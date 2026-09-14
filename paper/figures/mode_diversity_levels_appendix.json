@@ -37,7 +37,7 @@
   },
   "output": "paper/figures/mode_diversity_levels_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "9b7fafc8ea49564f14dc2c9c96f3fbf84030d5488505e0499f0f371247c83ef6"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_levels_appendix.pdf": "1fd6ac1dcc7ae048b843f7730de7739d60ddf3202582ee991ea1a91229bc7e99"
   },
   "points": [
     {
@@ -641,6 +641,16 @@
       "support": 1.0
     },
     {
+      "defined_prompts": 71,
+      "domain": "graph_coloring",
+      "level": "level4",
+      "model_label": "7b",
+      "pass8": 0.490234375,
+      "pmd": 0.44703911448838185,
+      "reportable": true,
+      "support": 0.5546875
+    },
+    {
       "defined_prompts": 12,
       "domain": "countdown",
       "level": "level1",
@@ -721,6 +731,16 @@
       "support": 0.1015625
     },
     {
+      "defined_prompts": 46,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "qwen15b",
+      "pass8": 0.275390625,
+      "pmd": 0.6241389045736873,
+      "reportable": true,
+      "support": 0.359375
+    },
+    {
       "defined_prompts": 108,
       "domain": "python_factors",
       "level": "level2",
@@ -779,6 +799,36 @@
       "pmd": 0.22119502306721522,
       "reportable": true,
       "support": 1.0
+    },
+    {
+      "defined_prompts": 5,
+      "domain": "countdown",
+      "level": "level4",
+      "model_label": "qwen15b",
+      "pass8": 0.0390625,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.0390625
+    },
+    {
+      "defined_prompts": 73,
+      "domain": "graph_coloring",
+      "level": "level4",
+      "model_label": "qwen15b",
+      "pass8": 0.4921875,
+      "pmd": 0.4747443388787474,
+      "reportable": true,
+      "support": 0.5703125
+    },
+    {
+      "defined_prompts": 0,
+      "domain": "python_factors",
+      "level": "level4",
+      "model_label": "qwen15b",
+      "pass8": 0.015625,
+      "pmd": null,
+      "reportable": false,
+      "support": 0.0
     },
     {
       "defined_prompts": 7,
@@ -929,17 +979,47 @@
       "pmd": 0.042844627069523286,
       "reportable": true,
       "support": 0.9921875
+    },
+    {
+      "defined_prompts": 2,
+      "domain": "countdown",
+      "level": "level4",
+      "model_label": "qwen32b",
+      "pass8": 0.021484375,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.015625
+    },
+    {
+      "defined_prompts": 77,
+      "domain": "graph_coloring",
+      "level": "level4",
+      "model_label": "qwen32b",
+      "pass8": 0.537109375,
+      "pmd": 0.2471499301068174,
+      "reportable": true,
+      "support": 0.6015625
+    },
+    {
+      "defined_prompts": 105,
+      "domain": "python_factors",
+      "level": "level4",
+      "model_label": "qwen32b",
+      "pass8": 0.74609375,
+      "pmd": 0.2455605073213709,
+      "reportable": true,
+      "support": 0.8203125
     }
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "b35153e1becedba6179d9898fdcf09e652f777f47c137cbcaa6ff325e14be9b4",
+    "sha256": "7fe2ea471992e8c7154344c1d6c7e858e8541f520b7cc2ca8dd2af6bef5264c8",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "14311c5d925d9741ad5010e6dd82e9c7664f5edf32bf90f8e807c58254c0ace3"
   },
   "schema": "paper-mode-diversity-levels-v1",
   "scope": {
-    "cells": 89,
+    "cells": 97,
     "domains": [
       "graph_coloring",
       "countdown",
@@ -947,11 +1027,12 @@
       "mathir",
       "pantry"
     ],
-    "gap_cells": 23,
+    "gap_cells": 26,
     "levels": [
       "level1",
       "level2",
-      "level3"
+      "level3",
+      "level4"
     ],
     "models": [
       "05b",
@@ -961,11 +1042,11 @@
       "14b",
       "qwen32b"
     ],
-    "reportable_cells": 66
+    "reportable_cells": 71
   },
   "source": {
     "path": "paper/results/mode_diversity_base_grid.json",
-    "sha256": "ae9b62bd0563b22c2c22922e47883f72b9331fe0a02471e4e42c5d322f98738b"
+    "sha256": "170a065267d6c47b420a9dd5d47a189050556357308507502e7e8083f2d90139"
   },
   "status": "complete"
 }

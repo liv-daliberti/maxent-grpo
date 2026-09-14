@@ -19,4 +19,4 @@ for _ in 1 2; do pdflatex -interaction=nonstopmode -halt-on-error main > /dev/nu
 cd "$ROOT"
 $PY ops/report_grid_trends.py
 echo
-echo "receipts: $(ls "$MF"/receipts/*.json 2>/dev/null | wc -l)/260   main.pdf rebuilt"
+echo "receipts: $(ls "$MF"/receipts/*.json 2>/dev/null | wc -l)/280   main.pdf rebuilt"

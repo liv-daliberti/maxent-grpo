@@ -285,24 +285,18 @@ place to see the two quantities come apart.
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=.92\linewidth]{figures/mode_diversity_levels_appendix.pdf}
-  \caption{\textbf{Correctness and breadth are separate axes across scale.}
-  Frozen Qwen2.5-Instruct scales, plotted as \texttt{pass@8} against \pmd{};
-  colour runs green to red with parameter count on a log scale, and marker
-  shape identifies the level. Holding the training recipe fixed isolates what
-  size alone buys: success moves rightward with scale while breadth does not
-  follow it. Grey markers are the hosted deployments of
-  Section~\ref{sec:hosted-concentration}, which have no parameter count and so
-  sit off that ramp. They bank against \texttt{pass@8} near one while their
-  \pmd{} ranges from near zero to the top of the axis: answering correctly
-  every time says almost nothing about how many ways a model can do it. Ticks
-  below each axis mark cells whose success is too rare for \pmd{} to be
-  estimated on enough prompts; those cells are given no height, since a missing
-  measurement and a measured zero are different claims. Appendix
-  Figure~\ref{fig:families-appendix} places three further model families beside
-  these scales, and Appendix Figure~\ref{fig:level-construction} shows each
-  scale on its own.
-  \emph{Collection in progress: this rendering carries the completed cells and
-  is not yet the full grid.}}
+  \caption{\textbf{Breadth narrows as problems get harder and as models get
+  larger.} Frozen Qwen2.5-Instruct scales: colour is parameter count, marker
+  shape is the level, and a line follows one scale across the levels of a
+  domain. Raising the level holds the notion of mode fixed and makes the
+  problem harder. \pmd{} falls along that line, falls again with scale, and
+  falls for the hosted deployments of
+  Section~\ref{sec:hosted-concentration} (grey, off the size ramp) from
+  $\MDfrontierpmdhigh$ to $\MDfrontierpmdlow$ --- while those deployments
+  answer $\MDfrontierpass$ of prompts correctly at every level, so their
+  narrowing is not a side effect of failing more. Ticks mark cells solved too
+  rarely to estimate \pmd{}.
+  \emph{Collection in progress.}}
   \label{fig:base-levels-all-scales}
 \end{figure}
 

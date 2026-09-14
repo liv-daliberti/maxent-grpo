@@ -115,13 +115,40 @@ def load_frontier(path: Path = FRONTIER):
     return payload['cells']
 
 
-def _panel(axis, cells, models, domain, frontier=(), colors=None):
+def _trail(axis, points, colour, order, *, width=.65, alpha=.45, zorder=2):
+    """Join consecutive levels of one series into a difficulty trajectory.
+
+    Only adjacent levels are joined. Bridging a level whose success was too
+    rare to estimate PMD would draw a step the grid never measured, so a gap
+    breaks the line rather than being spanned.
+    """
+    run = []
+    for level in order:
+        cell = points.get(level)
+        if cell is not None and cell.get('reportable'):
+            run.append((cell['pass8'], cell['pmd']))
+            continue
+        if len(run) > 1:
+            axis.plot([x for x, _ in run], [y for _, y in run], color=colour,
+                      lw=width, alpha=alpha, zorder=zorder, solid_capstyle='round')
+        run = []
+    if len(run) > 1:
+        axis.plot([x for x, _ in run], [y for _, y in run], color=colour,
+                  lw=width, alpha=alpha, zorder=zorder, solid_capstyle='round')
+
+
+def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False):
     colors = COLORS if colors is None else colors
     axis.set_facecolor(DOMAIN_BACKGROUNDS[domain])
     axis.axhspan(STRIP_BOTTOM, STRIP_TOP, color=style.GRID, alpha=.45, zorder=0, lw=0)
     axis.axhline(0.0, color=style.MUTED, lw=.5, zorder=1)
+    ladder = levels_in(cells)
     for order, model in enumerate(reversed(models)):
-        for level in levels_in(cells):
+        if connect:
+            _trail(axis, {c['level']: c for c in cells if c['domain'] == domain
+                          and c['model_label'] == model},
+                   colors[model], ladder, zorder=2)
+        for level in ladder:
             cell = next((c for c in cells if c['domain'] == domain
                          and c['model_label'] == model and c['level'] == level), None)
             if cell is None:
@@ -136,6 +163,11 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None):
                 axis.scatter(cell['pass8'], (STRIP_TOP + STRIP_BOTTOM) / 2,
                              s=9, marker='|', color=style.MUTED, alpha=.85,
                              linewidths=.8, zorder=2, clip_on=False)
+    if connect:
+        for name in sorted({c['model'] for c in frontier if c['domain'] == domain}):
+            _trail(axis, {c['level']: c for c in frontier
+                          if c['domain'] == domain and c['model'] == name},
+                   FRONTIER_FACE, ladder, width=.6, alpha=.5, zorder=8)
     for cell in frontier:
         if cell['domain'] != domain or not cell.get('reportable'):
             continue
@@ -157,7 +189,7 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None):
 
 
 def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
-                 legends=True, frontier=None):
+                 legends=True, frontier=None, connect=False):
     cells = payload['cells']
     frontier = load_frontier() if frontier is None else frontier
     colors = scale_colors(tuple(models))
@@ -166,7 +198,7 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
     bottom = .40 if legends else .22
     figure.subplots_adjust(left=.068, right=.995, bottom=bottom, top=.88, wspace=.16)
     for axis, domain in zip(axes, DOMAINS):
-        _panel(axis, cells, models, domain, frontier, colors)
+        _panel(axis, cells, models, domain, frontier, colors, connect=connect)
     # Centre the label on the plotting band, not the whole canvas, or a short
     # figure pushes the ascender past the top edge.
     figure.text(.016, (bottom + .88) / 2, 'Pairwise modal diversity', rotation=90,
@@ -285,9 +317,10 @@ def record_for(payload: dict, models, output: Path) -> dict:
 
 
 def publish(payload: dict, models, output: Path, *, figsize, legends,
-            builder=None) -> dict:
+            builder=None, connect=False) -> dict:
     figure = (build_scale_grid(payload, models, figsize=figsize) if builder == 'scale_grid'
-              else build_figure(payload, models, figsize=figsize, legends=legends))
+              else build_figure(payload, models, figsize=figsize, legends=legends,
+                                connect=connect))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output.with_suffix('.pdf'))
     plt.close(figure)
@@ -313,7 +346,8 @@ def main() -> None:
         raise ValueError(f'payload carries no {MAIN_FAMILY} scale to plot in the main body')
     # The main body reads the scale axis within one family, where the training
     # recipe is held fixed; the cross-family comparison moves to the appendix.
-    main_body = publish(payload, family, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True)
+    main_body = publish(payload, family, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True,
+                        connect=True)
     families = publish(payload, present, OUT_FAMILIES, figsize=(6.4, 2.10), legends=True)
     # The construction figure used to carry 7B alone. Every scale now gets its own
     # row, so a reader can look up any single scale rather than only that one.

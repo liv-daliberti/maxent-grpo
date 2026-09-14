@@ -17,6 +17,7 @@
       "3b": "#f99053",
       "7b": "#ee603d",
       "falcon10b": "#e34a33",
+      "falcon1b": "#fdad61",
       "falcon3b": "#f98e52",
       "falcon7b": "#ee603d",
       "olmo13b": "#da362a",
@@ -46,7 +47,7 @@
   },
   "output": "paper/figures/mode_diversity_families_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_families_appendix.pdf": "ec3ccf5de481568f4736e3f43870cc1e0adeda01d6dc85ce7ffb197b751004d6"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_families_appendix.pdf": "2b166f3864e609a5efa5674bf30cfcb524a3dadbc60972a7a3c00c6f4b488070"
   },
   "points": [
     {
@@ -650,6 +651,16 @@
       "support": 1.0
     },
     {
+      "defined_prompts": 71,
+      "domain": "graph_coloring",
+      "level": "level4",
+      "model_label": "7b",
+      "pass8": 0.490234375,
+      "pmd": 0.44703911448838185,
+      "reportable": true,
+      "support": 0.5546875
+    },
+    {
       "defined_prompts": 41,
       "domain": "countdown",
       "level": "level1",
@@ -798,6 +809,16 @@
       "pmd": 0.004784178495115995,
       "reportable": true,
       "support": 1.0
+    },
+    {
+      "defined_prompts": 105,
+      "domain": "graph_coloring",
+      "level": "level1",
+      "model_label": "falcon1b",
+      "pass8": 0.671875,
+      "pmd": 0.5690746573851395,
+      "reportable": true,
+      "support": 0.8203125
     },
     {
       "defined_prompts": 52,
@@ -1400,6 +1421,16 @@
       "support": 0.109375
     },
     {
+      "defined_prompts": 1,
+      "domain": "countdown",
+      "level": "level4",
+      "model_label": "olmo1b",
+      "pass8": 0.009765625,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.0078125
+    },
+    {
       "defined_prompts": 31,
       "domain": "graph_coloring",
       "level": "level4",
@@ -1408,6 +1439,36 @@
       "pmd": 0.5419354838709678,
       "reportable": true,
       "support": 0.2421875
+    },
+    {
+      "defined_prompts": 11,
+      "domain": "mathir",
+      "level": "level4",
+      "model_label": "olmo1b",
+      "pass8": 0.0859375,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.0859375
+    },
+    {
+      "defined_prompts": 36,
+      "domain": "pantry",
+      "level": "level4",
+      "model_label": "olmo1b",
+      "pass8": 0.248046875,
+      "pmd": 0.39599592143737833,
+      "reportable": true,
+      "support": 0.28125
+    },
+    {
+      "defined_prompts": 0,
+      "domain": "python_factors",
+      "level": "level4",
+      "model_label": "olmo1b",
+      "pass8": 0.0,
+      "pmd": null,
+      "reportable": false,
+      "support": 0.0
     },
     {
       "defined_prompts": 50,
@@ -1640,6 +1701,16 @@
       "support": 0.1015625
     },
     {
+      "defined_prompts": 46,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "qwen15b",
+      "pass8": 0.275390625,
+      "pmd": 0.6241389045736873,
+      "reportable": true,
+      "support": 0.359375
+    },
+    {
       "defined_prompts": 108,
       "domain": "python_factors",
       "level": "level2",
@@ -1698,6 +1769,36 @@
       "pmd": 0.22119502306721522,
       "reportable": true,
       "support": 1.0
+    },
+    {
+      "defined_prompts": 5,
+      "domain": "countdown",
+      "level": "level4",
+      "model_label": "qwen15b",
+      "pass8": 0.0390625,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.0390625
+    },
+    {
+      "defined_prompts": 73,
+      "domain": "graph_coloring",
+      "level": "level4",
+      "model_label": "qwen15b",
+      "pass8": 0.4921875,
+      "pmd": 0.4747443388787474,
+      "reportable": true,
+      "support": 0.5703125
+    },
+    {
+      "defined_prompts": 0,
+      "domain": "python_factors",
+      "level": "level4",
+      "model_label": "qwen15b",
+      "pass8": 0.015625,
+      "pmd": null,
+      "reportable": false,
+      "support": 0.0
     },
     {
       "defined_prompts": 7,
@@ -1850,6 +1951,36 @@
       "support": 0.9921875
     },
     {
+      "defined_prompts": 2,
+      "domain": "countdown",
+      "level": "level4",
+      "model_label": "qwen32b",
+      "pass8": 0.021484375,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.015625
+    },
+    {
+      "defined_prompts": 77,
+      "domain": "graph_coloring",
+      "level": "level4",
+      "model_label": "qwen32b",
+      "pass8": 0.537109375,
+      "pmd": 0.2471499301068174,
+      "reportable": true,
+      "support": 0.6015625
+    },
+    {
+      "defined_prompts": 105,
+      "domain": "python_factors",
+      "level": "level4",
+      "model_label": "qwen32b",
+      "pass8": 0.74609375,
+      "pmd": 0.2455605073213709,
+      "reportable": true,
+      "support": 0.8203125
+    },
+    {
       "defined_prompts": 56,
       "domain": "countdown",
       "level": "level1",
@@ -1901,10 +2032,100 @@
     },
     {
       "defined_prompts": 0,
+      "domain": "countdown",
+      "level": "level2",
+      "model_label": "smol135",
+      "pass8": 0.009765625,
+      "pmd": null,
+      "reportable": false,
+      "support": 0.0
+    },
+    {
+      "defined_prompts": 0,
       "domain": "graph_coloring",
       "level": "level2",
       "model_label": "smol135",
       "pass8": 0.00390625,
+      "pmd": null,
+      "reportable": false,
+      "support": 0.0
+    },
+    {
+      "defined_prompts": 5,
+      "domain": "mathir",
+      "level": "level2",
+      "model_label": "smol135",
+      "pass8": 0.041015625,
+      "pmd": 0.0,
+      "reportable": false,
+      "support": 0.0390625
+    },
+    {
+      "defined_prompts": 7,
+      "domain": "pantry",
+      "level": "level2",
+      "model_label": "smol135",
+      "pass8": 0.048828125,
+      "pmd": 0.2380952380952381,
+      "reportable": false,
+      "support": 0.0546875
+    },
+    {
+      "defined_prompts": 0,
+      "domain": "python_factors",
+      "level": "level2",
+      "model_label": "smol135",
+      "pass8": 0.0078125,
+      "pmd": null,
+      "reportable": false,
+      "support": 0.0
+    },
+    {
+      "defined_prompts": 10,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "smol135",
+      "pass8": 0.080078125,
+      "pmd": 0.4994454820541777,
+      "reportable": false,
+      "support": 0.078125
+    },
+    {
+      "defined_prompts": 2,
+      "domain": "graph_coloring",
+      "level": "level3",
+      "model_label": "smol135",
+      "pass8": 0.029296875,
+      "pmd": 1.0,
+      "reportable": false,
+      "support": 0.015625
+    },
+    {
+      "defined_prompts": 6,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "smol135",
+      "pass8": 0.0625,
+      "pmd": 0.013888888888888895,
+      "reportable": false,
+      "support": 0.046875
+    },
+    {
+      "defined_prompts": 7,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "smol135",
+      "pass8": 0.056640625,
+      "pmd": 0.41428571428571426,
+      "reportable": false,
+      "support": 0.0546875
+    },
+    {
+      "defined_prompts": 0,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "smol135",
+      "pass8": 0.01953125,
       "pmd": null,
       "reportable": false,
       "support": 0.0
@@ -2060,6 +2281,16 @@
       "support": 0.6640625
     },
     {
+      "defined_prompts": 19,
+      "domain": "countdown",
+      "level": "level3",
+      "model_label": "smol17b",
+      "pass8": 0.12890625,
+      "pmd": 0.4921052631578947,
+      "reportable": false,
+      "support": 0.1484375
+    },
+    {
       "defined_prompts": 77,
       "domain": "graph_coloring",
       "level": "level3",
@@ -2068,6 +2299,36 @@
       "pmd": 0.583176924086015,
       "reportable": true,
       "support": 0.6015625
+    },
+    {
+      "defined_prompts": 13,
+      "domain": "mathir",
+      "level": "level3",
+      "model_label": "smol17b",
+      "pass8": 0.103515625,
+      "pmd": 0.3173076923076923,
+      "reportable": false,
+      "support": 0.1015625
+    },
+    {
+      "defined_prompts": 27,
+      "domain": "pantry",
+      "level": "level3",
+      "model_label": "smol17b",
+      "pass8": 0.177734375,
+      "pmd": 0.7173587729143285,
+      "reportable": false,
+      "support": 0.2109375
+    },
+    {
+      "defined_prompts": 102,
+      "domain": "python_factors",
+      "level": "level3",
+      "model_label": "smol17b",
+      "pass8": 0.55078125,
+      "pmd": 0.41447245564892626,
+      "reportable": true,
+      "support": 0.796875
     },
     {
       "defined_prompts": 65,
@@ -2272,13 +2533,13 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "b35153e1becedba6179d9898fdcf09e652f777f47c137cbcaa6ff325e14be9b4",
+    "sha256": "7fe2ea471992e8c7154344c1d6c7e858e8541f520b7cc2ca8dd2af6bef5264c8",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "14311c5d925d9741ad5010e6dd82e9c7664f5edf32bf90f8e807c58254c0ace3"
   },
   "schema": "paper-mode-diversity-levels-v1",
   "scope": {
-    "cells": 222,
+    "cells": 248,
     "domains": [
       "graph_coloring",
       "countdown",
@@ -2286,7 +2547,7 @@
       "mathir",
       "pantry"
     ],
-    "gap_cells": 77,
+    "gap_cells": 95,
     "levels": [
       "level1",
       "level2",
@@ -2300,6 +2561,7 @@
       "olmo1b",
       "qwen15b",
       "smol17b",
+      "falcon1b",
       "3b",
       "falcon3b",
       "olmo7b",
@@ -2310,11 +2572,11 @@
       "14b",
       "qwen32b"
     ],
-    "reportable_cells": 145
+    "reportable_cells": 153
   },
   "source": {
     "path": "paper/results/mode_diversity_base_grid.json",
-    "sha256": "ae9b62bd0563b22c2c22922e47883f72b9331fe0a02471e4e42c5d322f98738b"
+    "sha256": "170a065267d6c47b420a9dd5d47a189050556357308507502e7e8083f2d90139"
   },
   "status": "complete"
 }
