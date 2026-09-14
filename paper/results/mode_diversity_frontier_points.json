@@ -1,0 +1,950 @@
+{
+ "cells": [
+  {
+   "correct_pairs": 3362.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "Claude Opus 4.8",
+   "pass8": 0.9921875,
+   "pmd": 0.30220107079119574,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3563.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.12489475161380859,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3276.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "Claude Opus 4.8",
+   "pass8": 0.9453125,
+   "pmd": 0.06257631257631258,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3347.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.4472662085449657,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3455.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.14269175108538346,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.34693877551020413,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3369.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.23360047491837344,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3413.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.09903310870202164,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3549.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.3212172442941674,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "python_factors",
+   "level": "level2",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.1395089285714286,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3490.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "Claude Opus 4.8",
+   "pass8": 0.9921875,
+   "pmd": 0.2753581661891118,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.027117696393625934,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3534.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.009337860780984752,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3486.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.38382099827882965,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3519.0,
+   "domain": "python_factors",
+   "level": "level3",
+   "model": "Claude Opus 4.8",
+   "pass8": 1.0,
+   "pmd": 0.1361182154021029,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.2120535714285714,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3559.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.0595672941837595,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3229.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "Claude Opus 5",
+   "pass8": 0.9140625,
+   "pmd": 0.07773304428615668,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3477.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.26488352027610007,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 880.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "Claude Opus 5",
+   "pass8": 0.8125,
+   "pmd": 0.07045454545454544,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.306640625,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3518.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.11910176236498016,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2986.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "Claude Opus 5",
+   "pass8": 0.984375,
+   "pmd": 0.035498995311453396,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3233.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.19270027837921433,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.23790886217500695,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.006138392857142905,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3310.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "Claude Opus 5",
+   "pass8": 0.9921875,
+   "pmd": 0.012084592145015116,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3192.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "Claude Opus 5",
+   "pass8": 1.0,
+   "pmd": 0.2120927318295739,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.3423549107142857,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3189.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.26873628096582003,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3209.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 0.921875,
+   "pmd": 0.06076659395450301,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3479.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.6651336590974418,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3538.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.11192764273600908,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.3656695554934303,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3328.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.30979567307692313,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2943.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 0.953125,
+   "pmd": 0.4825008494733265,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2764.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.3885672937771346,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3556.0,
+   "domain": "python_factors",
+   "level": "level2",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.016029246344206993,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3539.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.3246679853065838,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3406.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.16647093364650611,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2884.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.1640083217753121,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 1970.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 0.984375,
+   "pmd": 0.3812182741116751,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3556.0,
+   "domain": "python_factors",
+   "level": "level3",
+   "model": "DeepSeek V4 Pro",
+   "pass8": 1.0,
+   "pmd": 0.022215973003374523,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3141.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.2343202801655524,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3570.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.18375350140056024,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3186.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "GPT-5.4",
+   "pass8": 0.90625,
+   "pmd": 0.2137476459510358,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.5719876991892647,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2768.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.43641618497109824,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3045.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.37044334975369453,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.25775789767961976,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3052.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "GPT-5.4",
+   "pass8": 0.921875,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2189.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.36820465966194604,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 990.0,
+   "domain": "python_factors",
+   "level": "level2",
+   "model": "GPT-5.4",
+   "pass8": 0.9609375,
+   "pmd": 0.2707070707070707,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2751.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "GPT-5.4",
+   "pass8": 0.9375,
+   "pmd": 0.3093420574336605,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3570.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.07282913165266103,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3500.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "GPT-5.4",
+   "pass8": 0.9765625,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2714.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "GPT-5.4",
+   "pass8": 1.0,
+   "pmd": 0.42225497420781133,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 1074.0,
+   "domain": "python_factors",
+   "level": "level3",
+   "model": "GPT-5.4",
+   "pass8": 0.9765625,
+   "pmd": 0.25605214152700184,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2877.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.984375,
+   "pmd": 0.2881473757386166,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3532.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "GPT-5.6 Sol",
+   "pass8": 1.0,
+   "pmd": 0.10334088335220837,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3181.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.8984375,
+   "pmd": 0.19679346117573093,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "GPT-5.6 Sol",
+   "pass8": 1.0,
+   "pmd": 0.53125,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 924.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.90625,
+   "pmd": 0.18181818181818177,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2033.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.8671875,
+   "pmd": 0.35317265125430397,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3535.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "GPT-5.6 Sol",
+   "pass8": 1.0,
+   "pmd": 0.1669024045261669,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3045.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.9296875,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 1246.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.9609375,
+   "pmd": 0.3635634028892456,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 244.0,
+   "domain": "python_factors",
+   "level": "level2",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.1171875,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 2269.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.8984375,
+   "pmd": 0.23578669017188192,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "GPT-5.6 Sol",
+   "pass8": 1.0,
+   "pmd": 0.0493861607142857,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3500.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.9765625,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 1630.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "GPT-5.6 Sol",
+   "pass8": 1.0,
+   "pmd": 0.49018404907975455,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 265.0,
+   "domain": "python_factors",
+   "level": "level3",
+   "model": "GPT-5.6 Sol",
+   "pass8": 0.140625,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.35169136147609725,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.1224888392857143,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3237.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "Grok 4.3",
+   "pass8": 0.9765625,
+   "pmd": 0.09854803830707448,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3542.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.6857707509881423,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3570.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.12016806722689077,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3570.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.34173669467787116,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.15655577299412915,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3423.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.05083260297984227,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3549.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.33446041138348825,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3570.0,
+   "domain": "python_factors",
+   "level": "level2",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.0117647058823529,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.3374336035784177,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3584.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.0552455357142857,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3250.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.02215384615384619,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3529.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.4202323604420516,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "python_factors",
+   "level": "level3",
+   "model": "Grok 4.3",
+   "pass8": 1.0,
+   "pmd": 0.01425775789767958,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3521.0,
+   "domain": "countdown",
+   "level": "level1",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.31581936949730194,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3549.0,
+   "domain": "graph_coloring",
+   "level": "level1",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.15722738799661873,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3206.0,
+   "domain": "mathir",
+   "level": "level1",
+   "model": "Kimi K3",
+   "pass8": 0.921875,
+   "pmd": 0.24173424828446666,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3403.0,
+   "domain": "pantry",
+   "level": "level1",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.7384660593593888,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3439.0,
+   "domain": "python_factors",
+   "level": "level1",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.42250654259959286,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3473.0,
+   "domain": "countdown",
+   "level": "level2",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.3564641520299453,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3557.0,
+   "domain": "graph_coloring",
+   "level": "level2",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.20016868147315148,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3266.0,
+   "domain": "mathir",
+   "level": "level2",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.0024494794856093627,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3118.0,
+   "domain": "pantry",
+   "level": "level2",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.5872354073123798,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3461.0,
+   "domain": "python_factors",
+   "level": "level2",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.38139266108061254,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3407.0,
+   "domain": "countdown",
+   "level": "level3",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.294393894922219,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3577.0,
+   "domain": "graph_coloring",
+   "level": "level3",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.05423539278725187,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3496.0,
+   "domain": "mathir",
+   "level": "level3",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.0,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3281.0,
+   "domain": "pantry",
+   "level": "level3",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.5662907650106674,
+   "reportable": true
+  },
+  {
+   "correct_pairs": 3448.0,
+   "domain": "python_factors",
+   "level": "level3",
+   "model": "Kimi K3",
+   "pass8": 1.0,
+   "pmd": 0.35295823665893267,
+   "reportable": true
+  }
+ ],
+ "definition": {
+  "min_correct_pairs": 30,
+  "note": "inference-only deployments; no parameter count",
+  "pmd": "one minus correct-pair collision"
+ },
+ "models": [
+  "Claude Opus 4.8",
+  "Claude Opus 5",
+  "DeepSeek V4 Pro",
+  "GPT-5.4",
+  "GPT-5.6 Sol",
+  "Grok 4.3",
+  "Kimi K3"
+ ],
+ "schema": "mode-diversity-frontier-points-v1",
+ "source": {
+  "path": "paper/results/frontier_comparison_20260911.json",
+  "sha256": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4"
+ }
+}

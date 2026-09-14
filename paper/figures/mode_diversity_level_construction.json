@@ -9,7 +9,7 @@
     "marker_area": 22,
     "min_defined_prompts": 30,
     "model_colors": {
-      "7b": "#D73027"
+      "7b": "#7A0018"
     },
     "unmeasurable_cells_have_no_height": true,
     "unmeasurable_strip": [
@@ -24,12 +24,12 @@
     "y": "pairwise modal diversity",
     "y_limits": [
       0.0,
-      0.62
+      0.8
     ]
   },
   "output": "paper/figures/mode_diversity_level_construction",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "85dce88df929f2c65c592051c45356c678ff361f6590647e7aac490b7453f6f2"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "32910d0a1243cd268d10f0b5ca526d81f61f1fa084a114c5344cef86efce2b2c"
   },
   "points": [
     {
@@ -185,9 +185,9 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "7dd0ac5f34c37d3219f0c42c9204aab85c0799d30b6cffb9ba86561a51e70005",
+    "sha256": "8fd251549ff8439313c0acc6da36516d0a8dc43a1057606780335de2efa05ceb",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+    "style_sha256": "14311c5d925d9741ad5010e6dd82e9c7664f5edf32bf90f8e807c58254c0ace3"
   },
   "schema": "paper-mode-diversity-levels-v1",
   "scope": {
@@ -212,7 +212,7 @@
   },
   "source": {
     "path": "paper/results/mode_diversity_base_grid.json",
-    "sha256": "0bcc6868d7903532bad2015988575386490f322ee92e4f929e2769bbaf1a46c6"
+    "sha256": "6050423cde0f7aec2c606cf6c744e5b31fbf555346de05e5119859b97729a4b1"
   },
   "status": "complete"
 }

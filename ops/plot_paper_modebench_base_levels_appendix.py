@@ -54,13 +54,28 @@ def _spread(values, models):
 
 
 def scale_colors(models=MODELS):
-    """Assign the sequential ramp across the measured scales, smallest first."""
-    return _spread(SCALE_RAMP, models)
+    """Map each scale onto the ramp by log parameter count.
+
+    Position on the ramp then means size, not list order, so two families at
+    the same parameter count get the same colour and a gap in the sizes shows
+    as a gap in the colour.
+    """
+    import math
+    from matplotlib.colors import LinearSegmentedColormap, to_hex
+    import evaluate_modebench_base_grid as grid
+    params = {m: grid.MODEL_PARAMS[m] for m in models if m in grid.MODEL_PARAMS}
+    if len(params) < len(models):          # unregistered scale: fall back to order
+        return _spread(SCALE_RAMP, tuple(models))
+    ramp = LinearSegmentedColormap.from_list('scale', SCALE_RAMP)
+    lo, hi = math.log(min(params.values())), math.log(max(params.values()))
+    if hi <= lo:
+        return {m: SCALE_RAMP[-1] for m in models}
+    return {m: to_hex(ramp((math.log(params[m]) - lo) / (hi - lo))) for m in models}
 
 
 def scale_areas(models=MODELS):
-    """Marker areas rising with scale, so colour is not the only ordering cue."""
-    return _spread(SCALE_AREAS, models)
+    """Uniform marker area; scale is carried by colour alone."""
+    return {model: 22 for model in models}
 
 
 COLORS = scale_colors()

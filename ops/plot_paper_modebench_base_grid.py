@@ -37,7 +37,12 @@ TITLES = {'countdown': 'Countdown', 'graph_coloring': 'Graph Coloring',
 COLORS = dict(zip(LEVELS, ('#4477AA', '#EE7733', '#228833', '#CCBB44', '#AA3377')))
 MARKERS = {'05b': 'o', '3b': 's', '7b': '^', '14b': 'D'}
 AREAS = {'05b': 16, '3b': 24, '7b': 31, '14b': 40}
-MODEL_NAMES = {'05b': '0.5B', '3b': '3B', '7b': '7B', '14b': '14B'}
+MODEL_NAMES = {'05b': '0.5B', '3b': '3B', '7b': '7B', '14b': '14B',
+               'qwen15b': '1.5B', 'qwen32b': '32B',
+               'smol135': '135M', 'smol360': '360M', 'smol17b': '1.7B',
+               'falcon1b': 'F-1B', 'falcon3b': 'F-3B', 'falcon7b': 'F-7B',
+               'falcon10b': 'F-10B',
+               'olmo1b': 'O-1B', 'olmo7b': 'O-7B', 'olmo13b': 'O-13B'}
 FIGSIZE = (7.2, 3.0)
 
 

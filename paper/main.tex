@@ -197,7 +197,7 @@ $\mathcal C_x$ nor its size is supplied to the learner or replay bank.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=.80\linewidth]{figures/modebench_examples.pdf}
+  \includegraphics[width=\linewidth]{figures/modebench_examples.pdf}
   \caption{\textbf{One prompt can have different verified outputs.}
   Keys identify a color vector in Graph, a normalized computation tree in
   Countdown, an executed return vector in Python, an algebraic state trajectory
@@ -279,15 +279,21 @@ the two axes start out coupled and are pulled apart only later.
 \begin{figure}[H]
   \centering
   \includegraphics[width=.92\linewidth]{figures/mode_diversity_levels_appendix.pdf}
-  \caption{\textbf{Frozen Qwen2.5-Instruct at four scales across Levels 1--3.}
-  All 60 model--level--domain cells. Colour runs light to dark with model scale;
-  marker shape identifies the level. Larger models move right but not up: mean
-  \pmd{} falls from $.269$ at 0.5B to $.186$ at 14B while \texttt{pass@8} rises
-  from $.441$ to $.580$, declining with scale in 10 of the 13 blocks that
-  support the comparison. Scale buys correctness rather than variety in how it
-  is reached. Ticks below each axis mark the 13 cells with too few verified
-  pairs to measure breadth, which are given no height.
-  Appendix Figure~\ref{fig:level-construction} shows the 7B scale alone.}
+  \caption{\textbf{Correctness and breadth are separate axes, across families and
+  scales.} Frozen instruction-tuned models from four families, plotted as
+  \texttt{pass@8} against \pmd{}; colour runs light to dark with parameter
+  count on a log scale, and marker shape identifies the level. Grey markers are
+  the hosted deployments of Section~\ref{sec:hosted-concentration}, which have
+  no parameter count and so sit off that ramp. They bank against
+  \texttt{pass@8} near one while their \pmd{} ranges from near zero to the top
+  of the axis: answering correctly every time says almost nothing about how
+  many ways a model can do it. Ticks below each axis mark cells whose success
+  is too rare for \pmd{} to be estimated on enough prompts; those cells are
+  given no height, since a missing measurement and a measured zero are
+  different claims. Appendix Figure~\ref{fig:level-construction} shows the 7B
+  scale alone.
+  \emph{Collection in progress: this rendering carries the completed cells and
+  is not yet the full grid.}}
   \label{fig:base-levels-all-scales}
 \end{figure}
 
@@ -481,7 +487,8 @@ frequent enough to measure \pmd{} at all. The gaps are not marginal ones.
 There are blocks where the control finishes at \pmd{} of zero --- every one of
 its successes is the same success --- and replay finishes with a third of its
 verified pairs differing. Averaged over the domains where breadth is
-measurable, replay roughly doubles it at every scale. The effect spans valid
+measurable, replay raises it at every scale: roughly twofold at 1B and 3B, and
+between five- and fourteenfold at 0.5B, where the controls finish nearest zero. The effect spans valid
 configurations, computation routes, and tested program behaviours
 (Appendix~\ref{app:retention-numerical-detail}).
 
@@ -1339,8 +1346,8 @@ Levels 4--5 await dataset admission and have no plotted measurements here.
   pairwise modal diversity; each point pools four independent eight-draw groups
   on 128 held-out prompts at $T=1$. The two axes separate cleanly: Python
   answers almost every prompt correctly and almost always with the same mode
-  (\texttt{pass@8} $\ge.99$, \pmd{} $\le.03$), while Graph reaches
-  \texttt{pass@8} $.34$--$.68$ with \pmd{} near $.37$.}
+  (\texttt{pass@8} $.986$--$.994$, \pmd{} $.008$--$.030$), while Graph reaches
+  \texttt{pass@8} $.34$--$.68$ with \pmd{} $.34$--$.40$.}
   \label{fig:level-construction}
 \end{figure}
 

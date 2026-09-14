@@ -43,6 +43,14 @@ SCHEMA = 'paper-mode-diversity-levels-v1'
 
 DOMAINS = base_grid.DOMAINS
 MODELS = base_grid.MODELS
+
+
+def models_in(payload: dict) -> tuple[str, ...]:
+    """Every scale the payload actually contains, smallest first."""
+    import evaluate_modebench_base_grid as grid
+    present = {c['model_label'] for c in payload['cells']}
+    known = [m for m in grid.MODEL_PARAMS if m in present]
+    return tuple(sorted(known, key=lambda m: grid.MODEL_PARAMS[m]))
 LEVELS = ('level1', 'level2', 'level3')
 TITLES = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry')))
 COLORS = scale_colors()
@@ -52,7 +60,7 @@ DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
                       for domain, letter in zip(DOMAINS, 'ABCDE', strict=True)}
 
 X_LIMITS = (0.0, 1.0)
-Y_LIMITS = (0.0, 0.62)
+Y_LIMITS = (0.0, 0.80)
 # The unmeasurable strip sits below the data axis in its own band so that a
 # tick there cannot be read as a value near zero.
 STRIP_TOP = -0.035
@@ -70,7 +78,23 @@ def load(payload_path: Path = PAYLOAD) -> dict:
     return payload
 
 
-def _panel(axis, cells, models, domain):
+FRONTIER = ROOT / 'paper/results/mode_diversity_frontier_points.json'
+# Hosted deployments have no parameter count, so they sit off the scale ramp:
+# one neutral ink-grey fill, with the level shapes they share with the grid.
+FRONTIER_FACE = '#6B7280'
+
+
+def load_frontier(path: Path = FRONTIER):
+    if not Path(path).is_file():
+        return []
+    payload = json.loads(Path(path).read_text())
+    if payload.get('schema') != 'mode-diversity-frontier-points-v1':
+        raise ValueError('unexpected frontier point schema')
+    return payload['cells']
+
+
+def _panel(axis, cells, models, domain, frontier=(), colors=None):
+    colors = COLORS if colors is None else colors
     axis.set_facecolor(DOMAIN_BACKGROUNDS[domain])
     axis.axhspan(STRIP_BOTTOM, STRIP_TOP, color=style.GRID, alpha=.45, zorder=0, lw=0)
     axis.axhline(0.0, color=style.MUTED, lw=.5, zorder=1)
@@ -82,7 +106,7 @@ def _panel(axis, cells, models, domain):
                 continue
             if cell['reportable']:
                 axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA,
-                             marker=LEVEL_MARKERS[level], facecolors=COLORS[model],
+                             marker=LEVEL_MARKERS[level], facecolors=colors[model],
                              edgecolors=style.INK, alpha=.85, linewidths=.35,
                              zorder=3 + order, clip_on=False)
             else:
@@ -90,11 +114,18 @@ def _panel(axis, cells, models, domain):
                 axis.scatter(cell['pass8'], (STRIP_TOP + STRIP_BOTTOM) / 2,
                              s=9, marker='|', color=style.MUTED, alpha=.85,
                              linewidths=.8, zorder=2, clip_on=False)
+    for cell in frontier:
+        if cell['domain'] != domain or not cell.get('reportable'):
+            continue
+        axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA * 1.15,
+                     marker=LEVEL_MARKERS[cell['level']], facecolors=FRONTIER_FACE,
+                     edgecolors='white', alpha=.95, linewidths=.55,
+                     zorder=9, clip_on=False)
     axis.set_title(TITLES[domain], fontsize=8.5, pad=4)
     axis.set_xlim(*X_LIMITS)
     axis.set_ylim(STRIP_BOTTOM, Y_LIMITS[1])
     axis.set_xticks([0, .5, 1], ['0', '.5', '1'], fontsize=7.4)
-    axis.set_yticks([0, .2, .4, .6], ['0', '.2', '.4', '.6'], fontsize=7.4)
+    axis.set_yticks([0, .2, .4, .6, .8], ['0', '.2', '.4', '.6', '.8'], fontsize=7.4)
     axis.grid(color=style.GRID, linewidth=.55, zorder=0)
     axis.spines[['top', 'right']].set_visible(False)
     for side in ('bottom', 'left'):
@@ -103,14 +134,17 @@ def _panel(axis, cells, models, domain):
     axis.tick_params(length=2, width=.6, pad=2)
 
 
-def build_figure(payload: dict, models=MODELS, *, figsize=(7.35, 2.35), legends=True):
+def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
+                 legends=True, frontier=None):
     cells = payload['cells']
+    frontier = load_frontier() if frontier is None else frontier
+    colors = scale_colors(tuple(models))
     style.apply_rcparams()
     figure, axes = plt.subplots(1, 5, figsize=figsize, sharex=True, sharey=True)
     bottom = .40 if legends else .22
-    figure.subplots_adjust(left=.075, right=.99, bottom=bottom, top=.88, wspace=.20)
+    figure.subplots_adjust(left=.068, right=.995, bottom=bottom, top=.88, wspace=.16)
     for axis, domain in zip(axes, DOMAINS):
-        _panel(axis, cells, models, domain)
+        _panel(axis, cells, models, domain, frontier, colors)
     # Centre the label on the plotting band, not the whole canvas, or a short
     # figure pushes the ascender past the top edge.
     figure.text(.016, (bottom + .88) / 2, 'Pairwise modal diversity', rotation=90,
@@ -125,15 +159,20 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(7.35, 2.35), legends=
                              color=style.MUTED, markeredgewidth=.9,
                              label='not measurable'))
         scales = [Line2D([], [], marker='o', linestyle='none', markersize=4.7,
-                         markerfacecolor=COLORS[model], markeredgecolor=style.INK,
+                         markerfacecolor=colors[model], markeredgecolor=style.INK,
                          markeredgewidth=.35, label=base_grid.MODEL_NAMES[model])
                   for model in models]
-        figure.legend(handles=levels, loc='lower center', bbox_to_anchor=(.52, .15),
-                      ncol=4, frameon=False, fontsize=7.4, handletextpad=.35,
-                      handlelength=.8, columnspacing=1.6, borderaxespad=0)
-        figure.legend(handles=scales, loc='lower center', bbox_to_anchor=(.52, .055),
-                      ncol=4, frameon=False, fontsize=7.4, handletextpad=.35,
-                      handlelength=.8, columnspacing=1.8, borderaxespad=0)
+        if frontier:
+            scales.append(Line2D([], [], marker='o', linestyle='none', markersize=5.0,
+                                 markerfacecolor=FRONTIER_FACE, markeredgecolor='white',
+                                 markeredgewidth=.55, label='frontier'))
+        figure.legend(handles=levels, loc='lower center', bbox_to_anchor=(.53, .155),
+                      ncol=len(levels), frameon=False, fontsize=7.2, handletextpad=.3,
+                      handlelength=.8, columnspacing=1.3, borderaxespad=0)
+        figure.legend(handles=scales, loc='lower center', bbox_to_anchor=(.53, .015),
+                      ncol=min(9, len(scales)), frameon=False, fontsize=7.2,
+                      handletextpad=.3, handlelength=.8, columnspacing=1.0,
+                      borderaxespad=0)
     return figure
 
 
@@ -151,7 +190,7 @@ def record_for(payload: dict, models, output: Path) -> dict:
                     'unmeasurable_strip': [STRIP_BOTTOM, STRIP_TOP],
                     'unmeasurable_cells_have_no_height': True,
                     'min_defined_prompts': payload['definition']['min_defined_prompts'],
-                    'model_colors': deepcopy({m: COLORS[m] for m in models}),
+                    'model_colors': deepcopy({m: scale_colors(tuple(models))[m] for m in models}),
                     'marker_area': MARKER_AREA,
                     'encoding': 'scale -> colour ramp; level -> marker shape',
                     'level_markers': deepcopy(LEVEL_MARKERS)},
@@ -182,8 +221,9 @@ def main() -> None:
     parser.add_argument('--payload', type=Path, default=PAYLOAD)
     args = parser.parse_args()
     payload = load(args.payload)
-    appendix = publish(payload, MODELS, OUT_APPENDIX, figsize=(7.35, 2.35), legends=True)
-    main_panel = publish(payload, ('7b',), OUT_MAIN, figsize=(7.35, 2.35), legends=True)
+    present = models_in(payload)
+    appendix = publish(payload, present, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True)
+    main_panel = publish(payload, ('7b',), OUT_MAIN, figsize=(6.4, 2.10), legends=True)
     print(json.dumps({'event': 'published',
                       'appendix': appendix['scope'], 'main': main_panel['scope']}))
 
