@@ -180,8 +180,8 @@ equally, so a solution found once is practiced as often as one found constantly.
 \setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}
 \item \mb{}: five executable domains in which the verifier that grades an answer
 also reports which answer it is, at four difficulty levels and 128 held-out
-prompts per cell. We use it to measure \MDcells{} frozen base-model cells across
-four model families and \MDfrontierdeployments{} frontier models
+prompts each. We measure \MDcells{} untrained model--domain--level
+combinations across four model families and \MDfrontierdeployments{} frontier models
 (Section~\ref{sec:modebench}).
 \item RLVR concentrates correct outputs, and so do fixed deployments. A
 verifier that only certifies whether an answer is right is indifferent to which
@@ -268,7 +268,8 @@ $q_c$ for how that correct probability is divided among the valid answers. Then
 where $D_K$ is the number of distinct correct keys in the draw. Both sides of
 \eqref{eq:main-occupancy} climb with $P$: a policy that is simply right more
 often returns more distinct answers without having broadened at all. That
-coupling is not a technicality. Across the \MDcells{} frozen base-model cells of
+coupling is not a technicality. Across the \MDcells{}
+untrained measurements of
 Fig.~\ref{fig:base-levels-all-scales}, \distk{} correlates $\MDdistinctcorr$
 with \texttt{pass@8}. Plotted as a diversity axis it is very nearly a second
 copy of the accuracy axis, and a method that improves it has not been shown to
@@ -297,7 +298,7 @@ zero, which finite samples cannot establish. The measure also has a floor it
 cannot see past: it needs two correct draws to exist at all, so a policy that
 almost never succeeds supports no statement about how its successes are spread.
 We handle that in the open rather than silently --- every \pmd{} we quote
-carries the number of prompts that define it, and a cell with too few is left
+carries the number of prompts that define it, and a measurement with too few is left
 blank instead of filled with noise. \texttt{pass@8} and \distk{} are reported
 alongside it throughout (Apps.~\ref{app:metric-details}
 and~\ref{app:registered-endpoints}).
@@ -311,7 +312,7 @@ Fig.~\ref{fig:base-levels-all-scales} measures the Qwen2.5-Instruct family
 across those levels at every scale we could run, which holds the training recipe
 fixed and lets size be the only thing that varies. Two things show up at once.
 Harder levels push success down within a scale, and accuracy and breadth move
-independently even before any training: across the frozen cells \pmd{}
+independently even before any training: across the untrained measurements \pmd{}
 correlates $\MDpmdcorr$ with \texttt{pass@8}. And as the models get bigger they
 get more accurate and answer in fewer ways --- \pmd{} falls with scale in ten of
 the thirteen domain--level blocks that support the comparison, while
@@ -342,7 +343,7 @@ it directly.
   answer $\MDfrontierpass$ of prompts correctly at every level, so their
   narrowing is not a side effect of failing more. Hollow markers carry \pmd{}
   estimated below the support bar, with its standard error; ticks mark the
-  cells solved too rarely to place at all.}
+  measurements solved too rarely to place at all.}
   \label{fig:base-levels-all-scales}
 \end{figure}
 
@@ -353,15 +354,15 @@ hidden graph vertices, more Countdown operands, longer factor case vectors. The
 fit targets only pass@1 and pass@8 of a reference model, never breadth, so
 \pmd{} is not a fitted quantity at any level (App.~\ref{app:data-levels}). Each
 level also draws a fresh test population, so the index orders constructions
-rather than difficulty: Level 2 is harder than Level 1 in most frozen cells, but
+rather than difficulty: Level 2 is harder than Level 1 for most untrained models, but
 Level 3 is not uniformly harder than Level 2.
 
 The frontier models make the separation of the two axes starkest. They
 answer $\MDfrontierpass$ of prompts correctly, far above every open checkpoint
 measured here, yet their mean \pmd{} is $\MDfrontierpmdmean{}$ --- below the
 $\MDsmallbestpmd{}$ of a 1.7B model that answers only $\MDsmallbestpass$ of the
-same prompts. Accuracy at the frontier is bought without breadth, and in many
-cells it is bought against it.
+same prompts. Accuracy at the frontier is bought without breadth, and often
+it is bought against it.
 
 \subsection{Concentration in frontier models}
 \label{sec:hosted-concentration}
@@ -370,7 +371,7 @@ cells it is bought against it.
   \centering
   \includegraphics[width=.92\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
   \caption{\textbf{More samples need not recover the available modes.}
-  GPT-5.6 Sol, medium reasoning; 32 problems per cell and 512 responses each.
+  GPT-5.6 Sol, medium reasoning; 32 problems per domain and level, 512 responses each.
   Curves average distinct verified modes in random $k$-subsets, including
   failures; bands are pointwise 95\% problem-bootstrap intervals. Gray lines
   give mean known support, exact for Graph and certified lower bounds
@@ -630,7 +631,7 @@ tracking the decline measured on extra modes
   (B) Qwen2.5-0.5B alternatives minus Dr.GRPO. Columns measure probability
   points and expected verified-mode counts, respectively. The green Average
   weights domains equally within seed. A dagger marks four paired seeds in
-  Falcon Countdown and its Average; other cells use five. Intervals are
+  Falcon Countdown and its Average; the rest use five. Intervals are
   nominal 95\% intervals for five-seed comparisons. Purple denotes Re:Dr.GRPO;
   bold entries mark column maxima in Panel B.}
   \label{fig:cross-scale-terminal-effects}
@@ -757,28 +758,20 @@ and Pantry's collision still rises on sparse jointly correct subsets, so
 broader sampling does not guarantee lower concentration
 (App.~\ref{app:level2-interim}).
 
-\textbf{What counts as a distinct mode is a choice, and it can be probed.}
-A verified mode means only as much as the equivalence the validator draws, so
-we vary it. Coarsening Python until opposite members of a factor pair count as
-one answer removes the breadth gain under the original wording though not under
-neutral wording, and neither setting claims to identify algorithms
-(App.~\ref{app:coarser-keys}). Removing the strategy hints costs Python
-correctness heavily, yet the control then fails outright where replay still
-succeeds, so the hints are not what separates the methods
-(App.~\ref{app:prompt-hint-ablation}). Extending trained MathIR to 64 draws
-leaves it as concentrated as before, placing its missing modes below the
-distribution rather than outside the budget
-(App.~\ref{app:sampling-budget-ablation}).
+\textbf{The result does not rest on how we drew the equivalence.} Coarsening
+Python until opposite members of a factor pair count as one answer, removing
+the strategy hints, and extending trained MathIR to 64 draws each leave the
+separation between replay and its control intact
+(App.~\ref{app:coarser-keys},~\ref{app:prompt-hint-ablation},~\ref{app:sampling-budget-ablation}).
 
-\textbf{Retained alternatives survive a changed requirement.}
-Counting modes is worth doing only if the modes are worth having. We withdraw
-an ingredient from a held-out Pantry problem after the policy has produced its
-eight plans, and ask how many remain feasible. Replay-trained policies keep
-more of them and need fewer further attempts to recover, against both
-tuned-temperature and diversity-prompt controls
-(App.~\ref{app:pantry-adaptation}). Their correctness is also higher, so
-this demonstrates better adaptation without isolating breadth as its cause. It
-is the only place we test what alternatives are good for rather than how many
+\textbf{The retained alternatives are worth having.} Counting modes matters
+only if the modes do. We withdraw an ingredient from a held-out Pantry problem
+after the policy has produced its eight plans and ask how many remain feasible.
+Replay-trained policies keep more of them and need fewer further attempts to
+recover, against both tuned-temperature and diversity-prompt controls
+(App.~\ref{app:pantry-adaptation}). Their correctness is higher too, so this
+shows better adaptation without isolating breadth as the cause --- but it is
+the one place we ask what the alternatives are good for, rather than how many
 there are.
 
 \section{Related Work}
@@ -3823,11 +3816,11 @@ sensitivity means that initial evaluations of the identical frozen base model
 agree within a GPU pool and can differ across pools, which is one reason
 initial evaluations are measured within each method rather than shared across
 arms; a before--after contrast compares a method with its own initial
-checkpoint and is unaffected. A provenance-based resolution exists --- of the
-step-0 blocks in a run's records, exactly one is the block its admitted
-trajectory continues from --- but adopting it would change the admitted
-population after the analysis was specified, so it is recorded here rather than
-applied.
+checkpoint and is unaffected. Of the step-0 blocks in a run's records, exactly one is the block its admitted
+trajectory continues from, and App.~\ref{app:initial-provenance} admits that
+block for the 27 cells where it is unique. That amendment was adopted after the
+analysis was specified, so it reports every affected block under both
+admissions.
 
 Trajectory records use registered sources and approved continuations or
 replacements, with superseded attempts excluded. Identical duplicates are
@@ -3841,6 +3834,60 @@ the same populations and gap rules. Supporting methods retain their
 explicit method-specific cohorts; available checkpoint counts and gaps
 are recorded alongside the curves. Machine-readable records identify the
 sources, exclusions, exact seed sets, checkpoint rule, and source hashes.
+
+\subsection{Conflicted initial checkpoints, admitted by provenance}
+\label{app:initial-provenance}
+
+A conflicted step-0 endpoint is a requeue duplicate, not a missing evaluation,
+and the two attempts disagree only because they executed on different GPU
+models. A fourth amendment to the concentration protocol therefore admits, for
+each affected cell, the step-0 block that the cell's admitted trajectory
+continues from --- chosen by file order, step number and the presence of
+training rows, never by a metric value. The rule resolves 27 of the 36
+conflicted cells and leaves nine, where more than one such block exists,
+unavailable as before.
+
+This amendment was adopted after the analysis was specified and after we knew
+which blocks were incomplete, so it reports every affected block under both
+admissions (Table~\ref{tab:initial-provenance}) and is stated as a
+post-specification change rather than a confirmation. Two checks bound what it
+can have moved. The twelve Dr.GRPO and GRPO before--after comparisons that
+carry Section~\ref{sec:results-collapse} are unaffected and reproduce to
+$10^{-9}$, and no terminal replay-effect block changes at all, since those
+compare two trained checkpoints and use no initial endpoint.
+
+What the re-admission buys is precision, not a new direction: every affected
+block moves from one to four defined seeds up to the registered five and
+receives a nominal interval, while its sign is unchanged. It does not license a
+broader collapse claim. Falcon3-1B Graph under MaxRL moves the other way, and
+now does so with an interval excluding zero, as does its replay variant; MaxRL
+concentrates on Countdown, MathIR and PantryPlan at that scale but not on
+Graph. We therefore continue to state the training-induced concentration result
+for the verifier-only objectives it was measured on, and report the MaxRL
+longitudinal cohort as the mixed result it is.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Every block the provenance amendment touches, under both
+  admissions.} Entries are the change in conditional collision from the initial
+  to the terminal checkpoint on jointly eligible prompts, so positive is more
+  concentrated. $n$ is the defined seed count out of five registered; intervals
+  are nominal paired Student-$t$ and appear only for complete blocks. The
+  preserved columns reproduce the amendment-3 analysis, which this amendment
+  leaves on disk unchanged beside its own result.}
+  \label{tab:initial-provenance}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lll rl rl@{}}
+    \toprule
+    & & & \multicolumn{2}{c}{\textbf{Preserved}} & \multicolumn{2}{c}{\textbf{Provenance-admitted}} \\
+    \cmidrule(lr){4-5}\cmidrule(l){6-7}
+    \textbf{Model} & \textbf{Domain} & \textbf{Method} &
+      $n$ & $\Delta C$ & $n$ & $\Delta C$ \\
+    \midrule
+    \input{results/initial_provenance_comparison_table_body.tex}
+  \end{tabular}
+\end{table}
 
 \subsection{Data, models, and scientific records}
 \label{app:repro-artifacts}
