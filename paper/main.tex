@@ -346,24 +346,15 @@ it directly.
   \label{fig:base-levels-all-scales}
 \end{figure}
 
-Each level is a fresh construction of the same task, not a re-scored copy of
-the one before it. The validator, the answer
-equivalence and the distribution of how
-many modes a prompt admits are held fixed; what changes is the structure that
-has to be searched --- more hidden graph vertices, more Countdown operands,
-longer factor case vectors. Each level is then fitted against a reference
-model, targeting only pass@1 and pass@8, so a larger frozen model meets the
-success rate a smaller one had on the level below. Crucially the fit never
-targets the registered \distk{}, and \pmd{} is a functional of the
-success-conditional mode distribution alone, so the breadth axis is not a
-fitted quantity at any level. App.~\ref{app:data-levels} gives the
-generating procedure, the fitted targets and the admission record for each
-level in turn. Because each level draws a fresh test population as well as a
-harder structure, a level index orders the constructions rather than the
-difficulty any one model experiences: Level 2 is harder than Level 1 for most
-frozen cells, but Level 3 is not uniformly harder than Level 2, and we
-therefore read levels as repeated independent constructions rather than as a
-monotone ladder.
+Each level is a fresh construction, not a re-scored copy of the one before it.
+The validator, the mode equivalence and the distribution of how many modes a
+prompt admits stay fixed; what grows is the structure to be searched --- more
+hidden graph vertices, more Countdown operands, longer factor case vectors. The
+fit targets only pass@1 and pass@8 of a reference model, never breadth, so
+\pmd{} is not a fitted quantity at any level (App.~\ref{app:data-levels}). Each
+level also draws a fresh test population, so the index orders constructions
+rather than difficulty: Level 2 is harder than Level 1 in most frozen cells, but
+Level 3 is not uniformly harder than Level 2.
 
 The frontier models make the separation of the two axes starkest. They
 answer $\MDfrontierpass$ of prompts correctly, far above every open checkpoint
@@ -376,13 +367,11 @@ cells it is bought against it.
 \label{sec:hosted-concentration}
 
 The same measurement applies to models we did not train, and they are already
-concentrated. Asked a Level-3
-Graph problem with six valid colorings, GPT-5.6 Sol is right every time --- all
-1,024 draws --- and almost always right the same way, offering barely one of
-the six.
-Because correctness is saturated there, \pmd{} isolates the collapse exactly;
-on MathIR it reaches zero, meaning every verified answer the model gave was the
-same answer (App.~\ref{app:hosted-concentration}).
+concentrated. Asked a Level-3 Graph problem with six valid colorings, GPT-5.6
+Sol is right in all 1,024 draws and almost always right the same way, offering
+barely one of the six. Correctness is saturated there, so \pmd{} isolates the
+collapse exactly; on MathIR it reaches zero
+(App.~\ref{app:hosted-concentration}).
 
 \textbf{Sampling harder does not recover what was lost.}
 The obvious remedy is to draw more. Fig.~\ref{fig:gpt56-sampling-budget}
@@ -453,30 +442,32 @@ needs gold solutions. We begin with why a second path is needed at all.
 \subsection{Why memory addresses a different pressure}
 \label{sec:collapse-mechanism}
 
-Section~\ref{sec:levels-design} left a question open: is narrowing something a
-model grows into, or something the training does to it? An idealized categorical
-model --- one prompt, one logit per outcome, Euclidean mean updates, no
-competing regularizer --- points at the training. Under it, GRPO, Dr.GRPO and
-binary MaxRL all induce the same conditional flow, after a positive time change:
+Narrowing could be something a model grows into or something the training does
+to it. An idealized categorical model --- one prompt, one logit per outcome,
+Euclidean mean updates, no competing regularizer --- says it is the training,
+and says why no reshaping of the same objective escapes it. Under that model
+GRPO, Dr.GRPO and binary MaxRL all induce one conditional flow:
 \begin{equation}
  \frac{dq_c}{d\tau}=q_c(q_c-C),\qquad
  \frac{dC}{d\tau}=2\operatorname{Var}_{c\sim q}(q_c)\ge0.
  \label{eq:main-collapse-flow}
 \end{equation}
-Concentration among correct answers therefore rises under all three objectives,
-and whichever mode starts ahead pulls the rest of the correct mass towards it
-(Theorem~\ref{thm:grpo-collapse}). Reshaping the advantage does not escape this,
-because all of these objectives can only act on what the policy is sampling now,
-and under the same geometry a bounded fresh-sample score exerts vanishing
-expected force on a mode exactly as that mode becomes rare
-(App.~\ref{app:theory-gradient-availability}). The pressure is in the reward,
+Two things follow. Concentration among correct answers rises under all three
+objectives, and whichever mode starts ahead pulls the rest of the correct mass
+toward it (Theorem~\ref{thm:grpo-collapse}). And no reweighting of the
+advantage can undo that, because every such objective acts only on what the
+policy samples now: as a mode becomes rare, the expected force any bounded
+fresh-sample score puts on it vanishes
+(App.~\ref{app:theory-gradient-availability}). A rare mode is therefore
+abandoned precisely when it most needs support. The pressure is in the reward,
 not in the size of the model.
 
-A memory is not subject to that limit, and this is the property we build on. A
-stored target keeps supplying a gradient whether or not the policy rediscovers
-it, and in this flow a fixed bank with a constant positive replay dose holds
-every banked mode above a probability floor --- though modes that never entered
-the bank may still vanish (Theorem~\ref{thm:replay-retention}). That is the
+A memory escapes that limit, and this is the property we build on: a stored
+target supplies its gradient whether or not the policy rediscovers it, so the
+force on a mode no longer decays with the mode. In this flow a fixed bank with
+a constant replay dose holds every banked mode above a probability floor, though
+modes that never entered the bank may still vanish
+(Theorem~\ref{thm:replay-retention}). That is the
 argument for adding a second path rather than sharpening the first. These are
 statements about an idealized gradient geometry: they do not certify AdamW/PPO
 or variable-length neural updates, the implemented exemplar loss is not an exact
@@ -561,13 +552,15 @@ inference-only: no replay is applied and no training effect is identified.
 \section{Results}
 \label{sec:results}
 
-The results answer four questions in order. Does verifier-only training really
-concentrate correct outputs (Section~\ref{sec:results-collapse})? Does verified
-memory undo it, and is it the equal weighting that does the work
-(Section~\ref{sec:results-retention})? Does it still contribute once the fresh
-objective is stronger (Section~\ref{sec:results-maxrl}) and once the tasks are
-harder (Section~\ref{sec:results-levels})? And is any of this confined to the
-small models we can train (Section~\ref{sec:hosted-concentration})?
+The results build one argument. RLVR narrows a policy onto a single verified
+answer, and it does so across scales, domains and both objectives
+(Section~\ref{sec:results-collapse}). Adding a memory of distinct successes
+reverses that narrowing without costing correctness, and the active ingredient
+is the equal weighting rather than the reuse
+(Section~\ref{sec:results-retention}). The gain is not an artifact of a weak
+baseline: it survives a stronger fresh objective
+(Section~\ref{sec:results-maxrl}) and a harder construction of every task
+(Section~\ref{sec:results-levels}).
 
 \subsection{Training on the verifier alone concentrates verified outputs}
 \label{sec:results-collapse}
@@ -800,21 +793,18 @@ because sampling-based selection consumes proposals
 our Pantry follow-up measures adaptation to changed constraints, while general
 search utility remains untested.
 
-\textbf{Broadening support through the objective.} Outcome bonuses, set
-prediction, distribution matching and uniform-correct objectives all reshape
-the fresh update
+\textbf{Broadening support.} Outcome bonuses, set prediction, distribution
+matching and uniform-correct objectives all reshape the fresh update
 \citep{song2025outcome,chen2025passktraining,li2025divergence,li2026setpo,li2026distribution,lochab2026ucpo},
-and MaxRL combines objectives across sampling budgets \citep{tajwar2026maxrl}.
-All of them act on what the policy samples now, which is the pressure our
-analysis identifies: a mode that has become rare contributes little however the
-advantage is shaped.
-
-\textbf{Broadening support through memory.} Replay mitigates forgetting
+and MaxRL combines objectives across sampling budgets \citep{tajwar2026maxrl};
+all of them act on what the policy samples now, which is the pressure our
+analysis identifies. Memory sidesteps it, but how it is weighted decides what
+survives: replay mitigates forgetting
 \citep{lin1992selfimproving,rolnick2019replay} and RLEP reuses successful
-reasoning trajectories \citep{zhang2025rlep}, but both revisit successes in
-proportion to how they were collected. Balancing modes independently
-of discovery frequency is what separates our memory from those, and connects it
-to behavioral archives in quality-diversity methods
+reasoning trajectories \citep{zhang2025rlep}, yet both revisit successes in
+proportion to how they were collected. Balancing modes independently of
+discovery frequency is what separates our memory from those, and connects it to
+behavioral archives in quality-diversity methods
 \citep{mouret2015illuminating,ecoffet2021return}, which retain one elite per
 behavior cell for the same reason.
 
