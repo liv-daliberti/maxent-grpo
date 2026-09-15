@@ -105,21 +105,20 @@ because a correct response earns one point whether it is the thousandth copy of
 a familiar solution or one never produced before. Seeing this
 requires deciding when two right answers are the same right answer, so \mb{}
 takes that decision from the verifier itself: across five executable domains
-every accepted output is run and reduced to a canonical key, and breadth becomes
-how often two correct responses differ --- which, unlike a count of distinct
+every accepted output is run and the verifier reports which answer it is, so
+breadth becomes how often two correct responses differ --- which, unlike a count of distinct
 answers, cannot rise merely because the model got more questions right. Measured
-this way, all twelve verifier-only comparisons narrow, by $9.8$ to $88.6$
-points, while accuracy holds or climbs; in Python every seed ends on one
-byte-identical answer per prompt. None of the \MDfrontierdeployments{} hosted
-deployments reaches $1.5$ effective verified modes at \texttt{pass@8} near
-$.99$, and raising the budget from eight samples to 512 recovers none. Re:MaxRL
+this way, training against a verifier narrows breadth while accuracy holds or
+climbs, and the
+frontier models we measured are already narrow. Re:MaxRL
 keeps the alternatives: the same verifier that tells modes apart indexes a
 memory holding one verified example per mode, each rehearsed equally, so a
 solution found once is practiced as often as one found constantly. Across three model
 scales, two RL objectives and a harder construction of every task, this improves
 both how often a policy succeeds and how many ways it can. An idealized analysis
-says why: binary rewards amplify whichever success is most common,
-while a memory keeps a signal alive for the ones that have gone quiet.
+says why: binary rewards amplify whichever success is already the most common,
+while a memory keeps supplying a signal for the successes that fresh sampling
+has stopped producing on its own.
 \end{abstract}
 
 \begin{figure}[H]
@@ -159,8 +158,8 @@ correct answers are the same correct answer, and the usual proxies answer a
 different question. Token-level diversity counts two spellings of one solution
 as variety. A judge that groups answers by meaning puts a second model between
 the data and the claim. \mb{} instead takes the decision from the verifier that
-already decides correctness: every accepted output is executed and reduced to a
-canonical key, so presentation differences merge and genuinely different
+already decides correctness: every accepted output is executed and identified by
+what it did, so presentation differences merge and genuinely different
 solutions stay apart. One definition then does double duty --- it tells us what
 to count, and it tells a training run what to remember.
 
@@ -182,21 +181,22 @@ equally, so a solution found once is practiced as often as one found constantly.
 \item \mb{}: five executable domains in which the verifier that grades an answer
 also reports which answer it is, at four difficulty levels and 128 held-out
 prompts per cell. We use it to measure \MDcells{} frozen base-model cells across
-four model families and \MDfrontierdeployments{} hosted deployments
+four model families and \MDfrontierdeployments{} frontier models
 (Section~\ref{sec:modebench}).
 \item RLVR concentrates correct outputs, and so do fixed deployments. A
 verifier that only certifies whether an answer is right is indifferent to which
 right answer it gets, so an idealized proof holds: every optimum of the binary
 objective is a point mass on a single mode. Training follows the proof: all
 twelve Dr.GRPO and GRPO before/after comparisons in the domains with measurable
-initial breadth move toward concentration, and no hosted deployment we measured
+initial breadth move toward concentration, and no frontier model we measured
 reaches $1.5$ effective verified modes, which a larger sampling budget does not
 recover
 (Sections~\ref{sec:results-collapse} and~\ref{sec:hosted-concentration}).
 \item Re:MaxRL, which stores one verified exemplar per mode and rehearses modes
 equally. Added to Dr.GRPO it raises accuracy in all 14 complete model--domain
 blocks and lifts terminal \pmd{} at every scale we trained; added to MaxRL, a
-stronger fresh objective, it still adds both (Sections~\ref{sec:method}
+stronger fresh objective, it still adds both, and the gain survives a harder
+construction of every task (Sections~\ref{sec:method}
 and~\ref{sec:results-retention}--\ref{sec:results-levels}).
 \end{itemize}
 \endgroup
@@ -335,7 +335,8 @@ it directly.
   larger.} Frozen Qwen2.5-Instruct scales: colour is parameter count, marker
   shape is the level. Raising the level holds the notion of mode fixed and makes
   the problem harder. \pmd{} falls along that line, falls again with scale, and
-  falls for the hosted deployments of
+  falls for the
+  frontier models of
   Section~\ref{sec:hosted-concentration} (black, off the size ramp) from
   $\MDfrontierpmdhigh$ to $\MDfrontierpmdlow$ --- while those deployments
   answer $\MDfrontierpass$ of prompts correctly at every level, so their
@@ -364,7 +365,7 @@ frozen cells, but Level 3 is not uniformly harder than Level 2, and we
 therefore read levels as repeated independent constructions rather than as a
 monotone ladder.
 
-The hosted deployments make the separation of the two axes starkest. They
+The frontier models make the separation of the two axes starkest. They
 answer $\MDfrontierpass$ of prompts correctly, far above every open checkpoint
 measured here, yet their mean \pmd{} is $\MDfrontierpmdmean{}$ --- below the
 $\MDsmallbestpmd{}$ of a 1.7B model that answers only $\MDsmallbestpass$ of the
@@ -471,6 +472,82 @@ that is succeeding often can stop receiving any comparative signal.
 App.~\ref{app:binary-maxrl} gives the exact advantages and the finite-group
 interpretation, and App.~\ref{app:degenerate-groups} measures how often this
 actually happens during our runs.
+
+\section{Three Objections Before Changing the Training}
+\label{sec:objections}
+
+Before asking whether training can be fixed, it is worth asking whether
+anything needs fixing. Three readings would account for everything measured so
+far without implicating the objective at all, and each of the three can be put
+to a test rather than argued about.
+
+\textbf{``The breadth is still there; you sampled too conservatively.''}
+The cheapest remedy would be to turn the temperature up. We put every frozen
+terminal checkpoint back through the ordinary evaluation path at six
+temperatures from $0.5$ to $2.0$, at four times the sample budget, and with the
+nucleus truncated to top-$p$ $.95$ --- eleven decoding settings per checkpoint,
+across five domains and five seeds (App.~\ref{app:decoding-objection}). A
+verifier-only policy stays where it collapsed at every one of them
+(Table~\ref{tab:decoding-objection}). In Graph its \pmd{} is $.000$ across the
+entire grid: two correct colourings are never two different colourings, at any
+setting we tried, while a replay arm of the same cohort sits at $.566$ at
+ordinary settings. The largest value any decoding change buys the control in
+any domain is PantryPlan's $.069$. Decoding is not where the missing modes went.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{No decoding setting reopens a collapsed policy.}
+  Qwen2.5-0.5B terminal checkpoints, five seeds, evaluated at eleven settings:
+  temperature $0.5$--$2.0$, $K\in\{8,32\}$, and top-$p\in\{.95,1\}$. The middle
+  column gives the verifier-only control's \pmd{} range over every setting that
+  clears the support bar; the last gives a replay arm of the same cohort at
+  ordinary settings ($T=1$, top-$p$ $1$, $K=8$) for scale. Python never clears
+  the bar under the control, which is itself the collapse reported in
+  Section~\ref{sec:results-collapse}. This cohort trains for twelve passes and
+  its replay arm predates Re:Dr.GRPO, so the control column, not the contrast,
+  is what answers the objection (App.~\ref{app:decoding-objection}).}
+  \label{tab:decoding-objection}
+  \small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    \textbf{Domain} & \textbf{Settings reportable} &
+      \textbf{Control \pmd{} over the grid} & \textbf{Replay at $T=1$} \\
+    \midrule
+    \input{results/decoding_objection_e72_table_body.tex}
+  \end{tabular}
+\end{table}
+
+\textbf{``Eight draws is too few to see the modes.''}
+Breadth that only appears at a larger budget is still breadth. But the budget
+does not find it. Locally, quadrupling the draws to $K=32$ leaves the control
+within a few thousandths of where it was at $K=8$ in every domain
+(App.~\ref{app:decoding-objection}), and a trained MathIR policy extended to
+64 draws is as concentrated as it was at eight
+(App.~\ref{app:sampling-budget-ablation}). The same holds far out of our
+compute range: Fig.~\ref{fig:gpt56-sampling-budget} follows a deployed model to
+512 draws per problem, and the Graph curve flattens well below a support that
+is known exactly. A mode that never appears in five hundred samples is missing
+from the distribution, not from the sample.
+
+\textbf{``Some existing objective already handles this.''}
+Several do act on exactly this pressure, and we ran four of them as controls:
+UCPO's on-policy advantage redistribution, RLEP's reuse of successful
+trajectories, a fixed semantic-entropy bonus, and replay weighted by how often
+fresh rollouts rediscovered each key. Their gains are local rather than general
+--- UCPO helps Countdown correctness and extra modes while its MathIR effects
+are inconclusive, and RLEP raises MathIR correctness with extra modes flat at
+$-.002$ (App.~\ref{app:ucpo-progress}). The weighting control is the most
+direct of the four, because it changes one thing: keep the same bank and the
+same reuse, and weight keys by rediscovery frequency instead of equally.
+Equal weighting adds $+.318$ extra modes per prompt over it
+($[+.272,+.358]$) with no aggregate correctness difference
+(App.~\ref{app:frequency-replay-progress}). Reusing successes is not the active
+ingredient; refusing to let popularity decide how often each one is rehearsed
+is.
+
+None of the three readings survives, so the question is a training-time one.
+The rest of the paper asks it as a controlled comparison: hold everything
+fixed, add the replay update, and measure both axes.
 
 \section{Experimental Design}
 \label{sec:experiments}
@@ -713,7 +790,7 @@ Graph problem with six valid colorings, GPT-5.6 Sol is right every time --- all
 the six.
 Because correctness is saturated there, \pmd{} isolates the collapse exactly;
 on MathIR it reaches zero, meaning every verified answer the model gave was the
-same canonical key (App.~\ref{app:hosted-concentration}).
+same answer (App.~\ref{app:hosted-concentration}).
 
 \textbf{Sampling harder does not recover what was lost.}
 The obvious remedy is to draw more. Fig.~\ref{fig:gpt56-sampling-budget}
@@ -2716,6 +2793,48 @@ remain distinct from this local eight-draw experiment.
 
 
 \clearpage
+\section{The Decoding Grid Behind the Objection}
+\label{app:decoding-objection}
+
+Section~\ref{sec:objections} answers the decoding objection with a completed
+grid that varies only how a frozen checkpoint is sampled. Each cell loads one
+terminal checkpoint, evaluates it once through the ordinary training evaluation
+path at a chosen $(T,\text{top-}p,K)$, and exits; no optimizer step, rollout or
+export occurs, so a cell is a pure function of the checkpoint and its decoding
+settings. Every non-decoding argument --- prompt template, split, response
+length, draw seeds --- is inherited from the source run's own recorded
+configuration rather than retyped. Cells are pinned to the node that trained
+the checkpoint, because GPU type changes floating-point reduction order and
+therefore the sampled tokens; an unpinned sweep would mix hardware into the
+trade-off it exists to isolate.
+
+The grid has three stages: temperature $T\in\{0.5,0.7,1.0,1.3,1.6,2.0\}$ at
+top-$p$ $1$ and $K=8\times4$ draws; budget $K=32\times2$ draws at
+$T\in\{1.0,1.3,1.6\}$; and truncation at top-$p$ $.95$ for $T\in\{1.0,1.6\}$.
+With five domains, five seeds and two arms this is 110 measured checkpoint
+cells. \pmd{} pools a prompt's draws before scoring it and a cell is reported
+only where at least 30 prompts return two verified responses, exactly as
+elsewhere in this paper. Every value is recomputed from the retained per-draw
+records, whose canonical keys were written by the validator that graded them;
+nothing is resampled or regraded.
+
+\paragraph{Cohort and its limits.}
+These are E72 checkpoints: Qwen2.5-0.5B, seeds 43--47, trained for twelve
+passes to step 4,609, with a replay arm that predates the Re:Dr.GRPO objective
+contract. The benchmark, splits, verifier and evaluation path are the ones used
+throughout. What the grid identifies is the behaviour of a verifier-only
+policy under changed decoding, which is what the objection is about; the
+replay column is a scale reference from the same cohort and is not a substitute
+for the matched comparisons of Section~\ref{sec:results}. One reading to avoid:
+temperature $2.0$ degrades correctness in Countdown and Python, so a \pmd{}
+that fails to rise there says the policy has stopped solving the task, not that
+its breadth was unreachable. The record
+\path{paper/results/decoding_objection_e72.json} retains every cell, its seeds,
+its defined-prompt count and its source path;
+\path{ops/build_paper_decoding_objection.py} regenerates it and the displayed
+table.
+
+\clearpage
 \section{Sampling-Budget Ablation}
 \label{app:sampling-budget-ablation}
 
@@ -3238,15 +3357,16 @@ mixed-reward group is
  h_G(P)=1-P^G-(1-P)^G\le G\min\{P,1-P\}.
 \]
 Every all-equal group has zero fresh task component for
-Equation~\eqref{eq:group-estimator} and the specified centered MaxRL
-estimator, so a nonzero fresh task component requires a mixed group and has
-probability at most $h_G(P)$.
+Equation~\eqref{eq:group-estimator} and for the specified centered MaxRL
+estimator, so a nonzero fresh task component requires a mixed group, an event
+whose probability is at most $h_G(P)$ at every correctness level.
 \end{lemma}
 
 \begin{proof}
 The all-correct and all-incorrect events are disjoint and have probabilities
 $P^G$ and $(1-P)^G$. A mixed group requires both a correct and an incorrect
-sample; the union bound gives the two bounds $GP$ and $G(1-P)$.
+sample, so the union bound supplies each of the two stated bounds, $GP$ and
+$G(1-P)$, and the minimum of the pair is therefore also a bound.
 \end{proof}
 
 \begin{lemma}[Replay ascent persists as fresh signal vanishes]
