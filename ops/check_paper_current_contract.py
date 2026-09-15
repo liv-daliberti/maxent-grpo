@@ -22,17 +22,20 @@ E120 = ROOT / "paper/results/e120_frequency_progress.json"
 ABSOLUTE_REFERENCES = ROOT / "paper/results/absolute_support_references.json"
 CORE = ROOT / "paper/results/core_terminal_endpoints.json"
 
+# The sampling-budget figure follows Figure 3 now: both measure models we did
+# not train, so they are read together at the end of ModeBench.
 MAIN_FIGURES = (
     "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
+    "gpt56_all_levels32_sampling_budget",
     "verified_support_story", "concentration_story",
     "experiment1_retention_comparator_matrix", "e118_all_scale_factorial_progress",
-    "modebench_level_admission", "gpt56_all_levels32_sampling_budget",
+    "modebench_level_admission",
 )
 MAIN_LABELS = (
     "fig:story", "fig:modebench-examples", "fig:base-levels-all-scales",
+    "fig:gpt56-sampling-budget",
     "fig:verified-support-story", "fig:concentration-story",
     "fig:cross-scale-terminal-effects", "fig:maxrl-factorial", "fig:level2-admission",
-    "fig:gpt56-sampling-budget",
 )
 # Supporting plots retain their numerical, source, rendered-output, and
 # label-preservation checks after moving out of the main narrative.
@@ -84,11 +87,14 @@ def normalized(text: str) -> str:
 
 def check_editorial_structure(main_body: str, appendix: str) -> None:
     """Preserve the requested main displays and scientific section roles."""
+    # Frontier concentration closes ModeBench: it is the same measurement applied
+    # to models we did not train, so it belongs beside Figure 3 rather than after
+    # the controlled results.
     ordered = (
-        "sec:introduction", "sec:modebench", "sec:method", "sec:experiments",
+        "sec:introduction", "sec:modebench", "sec:hosted-concentration",
+        "sec:method", "sec:experiments",
         "sec:results", "sec:results-collapse", "sec:results-retention",
-        "sec:results-maxrl", "sec:results-levels",
-        "sec:hosted-concentration", "sec:related",
+        "sec:results-maxrl", "sec:results-levels", "sec:related",
         "sec:conclusion", "sec:main-end",
     )
     positions = []
@@ -427,13 +433,17 @@ def check_hosted_comparison(appendix: str) -> None:
             "retired hosted introductory table returned")
     # The guard is about where the hosted section *lives*, not about whether the
     # contributions list may point forward to it, so test for its definition.
+    # Frontier concentration now sits with the measurement it belongs to, as the
+    # last subsection of ModeBench, so it is read beside Figure 3 rather than
+    # after the controlled results. It must still not open the paper, and the
+    # controlled results must still come before Related Work.
     require(r"\label{sec:hosted-concentration}" not in intro
             and main_source.index(r"\label{sec:modebench}")
+            < main_source.index(r"\label{sec:hosted-concentration}")
             < main_source.index(r"\label{sec:method}")
             < main_source.index(r"\label{sec:results-levels}")
-            < main_source.index(r"\label{sec:hosted-concentration}")
             < main_source.index(r"\label{sec:related}"),
-            "hosted observations must retain their original position after controlled results")
+            "frontier concentration must sit inside ModeBench, ahead of the method and results")
     require(appendix.count(r"\label{fig:hosted-verified-breadth}") == 1
             and r"\label{fig:hosted-verified-breadth}" not in main_source,
             "hosted breadth figure must retain its unique appendix label")

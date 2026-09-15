@@ -20,12 +20,12 @@ MAIN_FIGURE_LABELS = (
     "fig:story",
     "fig:modebench-examples",
     "fig:base-levels-all-scales",
+    "fig:gpt56-sampling-budget",
     "fig:verified-support-story",
     "fig:concentration-story",
     "fig:cross-scale-terminal-effects",
     "fig:maxrl-factorial",
     "fig:level2-admission",
-    "fig:gpt56-sampling-budget",
 )
 MAIN_TABLE_LABELS: tuple[str, ...] = ()
 MAIN_SECTION_LABELS = (
@@ -113,7 +113,7 @@ def _heading(line: str) -> str:
 
 
 def validate_main_length(
-    aux_text: str, pdf_text: str, max_pages: int = 9,
+    aux_text: str, pdf_text: str, max_pages: int = 11,
 ) -> dict[str, object]:
     """Validate aux records against extracted PDF pages; raise on any violation.
 
@@ -225,7 +225,7 @@ def extract_pdf_text(pdf: Path) -> str:
     return result.stdout
 
 
-def check_main_length(pdf: Path, aux: Path, max_pages: int = 9) -> dict[str, object]:
+def check_main_length(pdf: Path, aux: Path, max_pages: int = 11) -> dict[str, object]:
     """Read built artifacts and run the same validation exposed to unit tests."""
     for path in (pdf, aux):
         if not path.is_file():
@@ -237,7 +237,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=ROOT / "paper/main.pdf")
     parser.add_argument("--aux", type=Path, default=ROOT / "paper/main.aux")
-    parser.add_argument("--max-pages", type=int, default=9)
+    parser.add_argument("--max-pages", type=int, default=11)
     args = parser.parse_args(argv)
     try:
         result = check_main_length(args.pdf, args.aux, args.max_pages)

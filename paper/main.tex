@@ -372,6 +372,65 @@ $\MDsmallbestpmd{}$ of a 1.7B model that answers only $\MDsmallbestpass$ of the
 same prompts. Accuracy at the frontier is bought without breadth, and in many
 cells it is bought against it.
 
+\subsection{Concentration in frontier models}
+\label{sec:hosted-concentration}
+
+The same measurement applies to models we did not train, and they are already
+concentrated. Asked a Level-3
+Graph problem with six valid colorings, GPT-5.6 Sol is right every time --- all
+1,024 draws --- and almost always right the same way, offering barely one of
+the six.
+Because correctness is saturated there, \pmd{} isolates the collapse exactly;
+on MathIR it reaches zero, meaning every verified answer the model gave was the
+same answer (App.~\ref{app:hosted-concentration}).
+
+\textbf{Sampling harder does not recover what was lost.}
+The obvious remedy is to draw more. Fig.~\ref{fig:gpt56-sampling-budget}
+follows five domains and three levels out to 512 draws per problem, and in
+Graph the curves flatten well below the known support: a model that has settled
+on two colorings does not find the other four by being asked five hundred
+times. Python and MathIR saturate similarly, while Pantry keeps gaining. Where
+breadth is missing it is missing from the distribution, not from the sample
+(App.~\ref{app:gpt56-all-levels-discovery}).
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.92\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
+  \caption{\textbf{More samples need not recover the available modes.}
+  GPT-5.6 Sol, medium reasoning; 32 problems per cell and 512 responses each.
+  Curves average distinct verified modes in random $k$-subsets, including
+  failures; bands are pointwise 95\% problem-bootstrap intervals. Gray lines
+  give mean known support, exact for Graph and certified lower bounds
+  elsewhere (App.~\ref{app:gpt56-all-levels-discovery}).}
+  \label{fig:gpt56-sampling-budget}
+\end{figure}
+
+The pattern is not one model's quirk: no deployment we measured reaches even
+one and a half effective verified modes
+(App.~\ref{app:hosted-mode-diversity}). Disabling reasoning does not help
+--- every model loses both correctness and breadth --- though because
+correctness moves too, that comparison cannot isolate concentration
+(Table~\ref{tab:hosted-level-averages}, App.~\ref{app:hosted-reasoning-control},
+Fig.~\ref{fig:hosted-verified-breadth}).
+
+Two things do help, and both are revealing. Different models collapse onto
+different answers, so mixing responses from two of them covers more verified
+modes than either alone (App.~\ref{app:cross-model-overlap}); raising
+temperature widens breadth too, but stops paying early
+(Fig.~\ref{fig:gpt56-temperature-curve}). Neither substitutes for a policy
+that kept its alternatives, since one needs a second model and the other trades
+away the sharpness the deployment was tuned for.
+
+\textbf{Nor is eight draws too few to see them.} Quadrupling the draws to $K=32$ leaves the control
+within a few thousandths of where it was at $K=8$ in every domain
+(App.~\ref{app:decoding-objection}), and a trained MathIR policy extended to
+64 draws is as concentrated as it was at eight
+(App.~\ref{app:sampling-budget-ablation}). The same holds far out of our
+compute range: Fig.~\ref{fig:gpt56-sampling-budget} follows a deployed model to
+512 draws per problem, and the Graph curve flattens well below a support that
+is known exactly. A mode that never appears in five hundred samples is missing
+from the distribution, not from the sample.
+
 \section{Re:MaxRL: Learn from New Samples and Remember Successes}
 \label{sec:method}
 
@@ -472,82 +531,6 @@ that is succeeding often can stop receiving any comparative signal.
 App.~\ref{app:binary-maxrl} gives the exact advantages and the finite-group
 interpretation, and App.~\ref{app:degenerate-groups} measures how often this
 actually happens during our runs.
-
-\section{Three Objections Before Changing the Training}
-\label{sec:objections}
-
-Before asking whether training can be fixed, it is worth asking whether
-anything needs fixing. Three readings would account for everything measured so
-far without implicating the objective at all, and each of the three can be put
-to a test rather than argued about.
-
-\textbf{``The breadth is still there; you sampled too conservatively.''}
-The cheapest remedy would be to turn the temperature up. We put every frozen
-terminal checkpoint back through the ordinary evaluation path at six
-temperatures from $0.5$ to $2.0$, at four times the sample budget, and with the
-nucleus truncated to top-$p$ $.95$ --- eleven decoding settings per checkpoint,
-across five domains and five seeds (App.~\ref{app:decoding-objection}). A
-verifier-only policy stays where it collapsed at every one of them
-(Table~\ref{tab:decoding-objection}). In Graph its \pmd{} is $.000$ across the
-entire grid: two correct colourings are never two different colourings, at any
-setting we tried, while a replay arm of the same cohort sits at $.566$ at
-ordinary settings. The largest value any decoding change buys the control in
-any domain is PantryPlan's $.069$. Decoding is not where the missing modes went.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{No decoding setting reopens a collapsed policy.}
-  Qwen2.5-0.5B terminal checkpoints, five seeds, evaluated at eleven settings:
-  temperature $0.5$--$2.0$, $K\in\{8,32\}$, and top-$p\in\{.95,1\}$. The middle
-  column gives the verifier-only control's \pmd{} range over every setting that
-  clears the support bar; the last gives a replay arm of the same cohort at
-  ordinary settings ($T=1$, top-$p$ $1$, $K=8$) for scale. Python never clears
-  the bar under the control, which is itself the collapse reported in
-  Section~\ref{sec:results-collapse}. This cohort trains for twelve passes and
-  its replay arm predates Re:Dr.GRPO, so the control column, not the contrast,
-  is what answers the objection (App.~\ref{app:decoding-objection}).}
-  \label{tab:decoding-objection}
-  \small
-  \begin{tabular}{@{}lccc@{}}
-    \toprule
-    \textbf{Domain} & \textbf{Settings reportable} &
-      \textbf{Control \pmd{} over the grid} & \textbf{Replay at $T=1$} \\
-    \midrule
-    \input{results/decoding_objection_e72_table_body.tex}
-  \end{tabular}
-\end{table}
-
-\textbf{``Eight draws is too few to see the modes.''}
-Breadth that only appears at a larger budget is still breadth. But the budget
-does not find it. Locally, quadrupling the draws to $K=32$ leaves the control
-within a few thousandths of where it was at $K=8$ in every domain
-(App.~\ref{app:decoding-objection}), and a trained MathIR policy extended to
-64 draws is as concentrated as it was at eight
-(App.~\ref{app:sampling-budget-ablation}). The same holds far out of our
-compute range: Fig.~\ref{fig:gpt56-sampling-budget} follows a deployed model to
-512 draws per problem, and the Graph curve flattens well below a support that
-is known exactly. A mode that never appears in five hundred samples is missing
-from the distribution, not from the sample.
-
-\textbf{``Some existing objective already handles this.''}
-Several do act on exactly this pressure, and we ran four of them as controls:
-UCPO's on-policy advantage redistribution, RLEP's reuse of successful
-trajectories, a fixed semantic-entropy bonus, and replay weighted by how often
-fresh rollouts rediscovered each key. Their gains are local rather than general
---- UCPO helps Countdown correctness and extra modes while its MathIR effects
-are inconclusive, and RLEP raises MathIR correctness with extra modes flat at
-$-.002$ (App.~\ref{app:ucpo-progress}). The weighting control is the most
-direct of the four, because it changes one thing: keep the same bank and the
-same reuse, and weight keys by rediscovery frequency instead of equally.
-Equal weighting adds $+.318$ extra modes per prompt over it
-($[+.272,+.358]$) with no aggregate correctness difference
-(App.~\ref{app:frequency-replay-progress}). Reusing successes is not the active
-ingredient; refusing to let popularity decide how often each one is rehearsed
-is.
-
-None of the three readings survives, so the question is a training-time one.
-The rest of the paper asks it as a controlled comparison: hold everything
-fixed, add the replay update, and measure both axes.
 
 \section{Experimental Design}
 \label{sec:experiments}
@@ -726,6 +709,22 @@ not that replay and MaxRL interact superadditively
 Apps.~\ref{app:factorial-numerical-detail}
 and~\ref{app:factorial-training-curves}).
 
+\textbf{Existing objectives that act on the same pressure.}
+Several do act on exactly this pressure, and we ran four of them as controls:
+UCPO's on-policy advantage redistribution, RLEP's reuse of successful
+trajectories, a fixed semantic-entropy bonus, and replay weighted by how often
+fresh rollouts rediscovered each key. Their gains are local rather than general
+--- UCPO helps Countdown correctness and extra modes while its MathIR effects
+are inconclusive, and RLEP raises MathIR correctness with extra modes flat at
+$-.002$ (App.~\ref{app:ucpo-progress}). The weighting control is the most
+direct of the four, because it changes one thing: keep the same bank and the
+same reuse, and weight keys by rediscovery frequency instead of equally.
+Equal weighting adds $+.318$ extra modes per prompt over it
+($[+.272,+.358]$) with no aggregate correctness difference
+(App.~\ref{app:frequency-replay-progress}). Reusing successes is not the active
+ingredient; refusing to let popularity decide how often each one is rehearsed
+is.
+
 \subsection{Replay transfers to a harder construction}
 \label{sec:results-levels}
 
@@ -780,54 +779,6 @@ tuned-temperature and diversity-prompt controls
 this demonstrates better adaptation without isolating breadth as its cause. It
 is the only place we test what alternatives are good for rather than how many
 there are.
-
-\subsection{Concentration in fixed deployments}
-\label{sec:hosted-concentration}
-
-Concentration is not an artifact of the small models we train. Asked a Level-3
-Graph problem with six valid colorings, GPT-5.6 Sol is right every time --- all
-1,024 draws --- and almost always right the same way, offering barely one of
-the six.
-Because correctness is saturated there, \pmd{} isolates the collapse exactly;
-on MathIR it reaches zero, meaning every verified answer the model gave was the
-same answer (App.~\ref{app:hosted-concentration}).
-
-\textbf{Sampling harder does not recover what was lost.}
-The obvious remedy is to draw more. Fig.~\ref{fig:gpt56-sampling-budget}
-follows five domains and three levels out to 512 draws per problem, and in
-Graph the curves flatten well below the known support: a model that has settled
-on two colorings does not find the other four by being asked five hundred
-times. Python and MathIR saturate similarly, while Pantry keeps gaining. Where
-breadth is missing it is missing from the distribution, not from the sample
-(App.~\ref{app:gpt56-all-levels-discovery}).
-
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=.92\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
-  \caption{\textbf{More samples need not recover the available modes.}
-  GPT-5.6 Sol, medium reasoning; 32 problems per cell and 512 responses each.
-  Curves average distinct verified modes in random $k$-subsets, including
-  failures; bands are pointwise 95\% problem-bootstrap intervals. Gray lines
-  give mean known support, exact for Graph and certified lower bounds
-  elsewhere (App.~\ref{app:gpt56-all-levels-discovery}).}
-  \label{fig:gpt56-sampling-budget}
-\end{figure}
-
-The pattern is not one model's quirk: no deployment we measured reaches even
-one and a half effective verified modes
-(App.~\ref{app:hosted-mode-diversity}). Disabling reasoning does not help
---- every model loses both correctness and breadth --- though because
-correctness moves too, that comparison cannot isolate concentration
-(Table~\ref{tab:hosted-level-averages}, App.~\ref{app:hosted-reasoning-control},
-Fig.~\ref{fig:hosted-verified-breadth}).
-
-Two things do help, and both are revealing. Different models collapse onto
-different answers, so mixing responses from two of them covers more verified
-modes than either alone (App.~\ref{app:cross-model-overlap}); raising
-temperature widens breadth too, but stops paying early
-(Fig.~\ref{fig:gpt56-temperature-curve}). Neither substitutes for a policy
-that kept its alternatives, since one needs a second model and the other trades
-away the sharpness the deployment was tuned for.
 
 \section{Related Work}
 \label{sec:related}
@@ -2796,7 +2747,43 @@ remain distinct from this local eight-draw experiment.
 \section{The Decoding Grid Behind the Objection}
 \label{app:decoding-objection}
 
-Section~\ref{sec:objections} answers the decoding objection with a completed
+\paragraph{Does a different decoding setting reopen a collapsed policy?}
+The cheapest remedy would be to turn the temperature up. We put every frozen
+terminal checkpoint back through the ordinary evaluation path at six
+temperatures from $0.5$ to $2.0$, at four times the sample budget, and with the
+nucleus truncated to top-$p$ $.95$ --- eleven decoding settings per checkpoint,
+across five domains and five seeds (App.~\ref{app:decoding-objection}). A
+verifier-only policy stays where it collapsed at every one of them
+(Table~\ref{tab:decoding-objection}). In Graph its \pmd{} is $.000$ across the
+entire grid: two correct colourings are never two different colourings, at any
+setting we tried, while a replay arm of the same cohort sits at $.566$ at
+ordinary settings. The largest value any decoding change buys the control in
+any domain is PantryPlan's $.069$. Decoding is not where the missing modes went.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{No decoding setting reopens a collapsed policy.}
+  Qwen2.5-0.5B terminal checkpoints, five seeds, evaluated at eleven settings:
+  temperature $0.5$--$2.0$, $K\in\{8,32\}$, and top-$p\in\{.95,1\}$. The middle
+  column gives the verifier-only control's \pmd{} range over every setting that
+  clears the support bar; the last gives a replay arm of the same cohort at
+  ordinary settings ($T=1$, top-$p$ $1$, $K=8$) for scale. Python never clears
+  the bar under the control, which is itself the collapse reported in
+  Section~\ref{sec:results-collapse}. This cohort trains for twelve passes and
+  its replay arm predates Re:Dr.GRPO, so the control column, not the contrast,
+  is what answers the objection (App.~\ref{app:decoding-objection}).}
+  \label{tab:decoding-objection}
+  \small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    \textbf{Domain} & \textbf{Settings reportable} &
+      \textbf{Control \pmd{} over the grid} & \textbf{Replay at $T=1$} \\
+    \midrule
+    \input{results/decoding_objection_e72_table_body.tex}
+  \end{tabular}
+\end{table}
+
+This appendix answers the decoding objection with a completed
 grid that varies only how a frozen checkpoint is sampled. Each cell loads one
 terminal checkpoint, evaluates it once through the ordinary training evaluation
 path at a chosen $(T,\text{top-}p,K)$, and exits; no optimizer step, rollout or
@@ -3824,6 +3811,25 @@ valid Dr.GRPO and GRPO seed-59 sources remain admissible. The core replay
 comparison therefore has 74 pairs: 14 complete five-seed blocks and Falcon
 Countdown at $n=4$ (seeds 55--58). Primary partial intersections are
 descriptive and receive no confidence interval.
+
+A second kind of conflict is more common and has a diagnosable cause. The job
+watchdog can requeue a run; the restart finds no resumable checkpoint, begins
+from initialization, and evaluates the initial model a second time, appending a
+second step-0 block to the same record. Separate attempts can land on different
+GPU models, and GPU model changes floating-point reduction order and therefore
+the sampled tokens, so the two blocks disagree and the checkpoint is invalidated
+under the rule below. This is why several MaxRL initial checkpoints are
+unavailable, leaving the longitudinal contrast with three defined seeds in
+Falcon3-1B Graph and one in Falcon3-1B PantryPlan. The same hardware
+sensitivity means that initial evaluations of the identical frozen base model
+agree within a GPU pool and can differ across pools, which is one reason
+initial evaluations are measured within each method rather than shared across
+arms; a before--after contrast compares a method with its own initial
+checkpoint and is unaffected. A provenance-based resolution exists --- of the
+step-0 blocks in a run's records, exactly one is the block its admitted
+trajectory continues from --- but adopting it would change the admitted
+population after the analysis was specified, so it is recorded here rather than
+applied.
 
 Trajectory records use registered sources and approved continuations or
 replacements, with superseded attempts excluded. Identical duplicates are
