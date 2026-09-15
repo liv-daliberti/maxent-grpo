@@ -906,7 +906,9 @@ def interval_tex(metric,digits=3):
 def render_table(report,family,grading):
     label = 'Hosted models' if family=='frontier' else 'Local Qwen2.5-0.5B checkpoints'
     grade_label = 'strict verification' if grading=='strict' else 'frozen formatting normalization'
-    lines = [r'\begin{table}[t]',r'\centering',r'\scriptsize',r'\setlength{\tabcolsep}{3pt}',
+    # Seven columns of signed intervals overrun \linewidth by ~37pt at 3pt
+    # separation; hold the body to the text block instead of letting it bleed.
+    lines = [r'\begin{table}[t]',r'\centering',r'\scriptsize',r'\setlength{\tabcolsep}{2.2pt}',
              r'\caption{'+label+' under '+grade_label+r'. Each arrow gives original $\to$ neutral. '
              r'$P_8$ is empirical \texttt{pass@8}, $D_8$ is verified \texttt{distinct@8}, '
              r'and $B_8=D_8-P_8$. Effects are neutral minus original; brackets are pointwise 95\% intervals. '
@@ -958,7 +960,7 @@ def render_appendix(report, figure_prefix='figures/modebench_prompt_ablation'):
       r'The original arm retains the published prompt. The neutral arm removes the Python suggestions to test small divisors '
       r'with nested conditionals or dispatch on listed values, the MathIR ordered algebraic-isolation suggestion, '
       r'and the Pantry preference for high-energy/protein, low-sodium ingredients such as seeds or oats. '
-      r'MathIR changes ``those operations'' to ``the operations'' to preserve the menu-ID instruction. '
+      r"MathIR changes ``those operations'' to ``the operations'' to preserve the menu-ID instruction. "
       r'The user problem, answer specification, executable verifier, and remaining format requirements are unchanged.',
       r'We report the paired neutral-minus-original effects on empirical $P_8=\texttt{pass@8}$ and '
       r'$D_8=\texttt{distinct@8}$, with $B_8=D_8-P_8$ as additional verified breadth. '

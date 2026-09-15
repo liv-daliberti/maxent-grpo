@@ -15,7 +15,7 @@ This appendix reports the complete local panel only. The separately registered f
 For local models, we evaluate the initial Qwen2.5-0.5B model and fixed Level-2-trained DrGRPO and Re:Dr.GRPO checkpoints. Python and MathIR use matched training seeds 43--47; Pantry uses seeds 43 and 46. Level 3 is transfer evaluation. Seed means retain the same selected problem set across checkpoints. Five-seed intervals resample whole training seeds and paired prompts; Pantry reports both seed effects and intervals conditional on the two checkpoints. The native local syntax constraints and 192-token budget differ from hosted inference, so effects are interpreted within each model and interface.
 
 
-\begin{table}[H]
+\begin{table}[t]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -45,12 +45,11 @@ Re:Dr.GRPO ($s=2$) & Pantry L3 & $0.234\to0.281$ & $0.39\to0.50$ & $+0.047\;[+0.
 Re:Dr.GRPO ($s=5$) & Python factors L2 & $0.887\to0.556$ & $1.24\to0.68$ & $-0.331\;[-0.525,-0.150]$ & $-0.57\;[-0.85,-0.32]$ & $-0.24$ \\
 Re:Dr.GRPO ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.506\;[-0.825,-0.194]$ & $-0.76\;[-1.07,-0.38]$ & $-0.26$ \\
 \bottomrule
-\end{tabular}
-}
+\end{tabular}}
 \end{table}
 
 
-\begin{table}[H]
+\begin{table}[t]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -80,18 +79,15 @@ Re:Dr.GRPO ($s=2$) & Pantry L3 & $0.234\to0.281$ & $0.39\to0.50$ & $+0.047\;[+0.
 Re:Dr.GRPO ($s=5$) & Python factors L2 & $0.887\to0.556$ & $1.24\to0.68$ & $-0.331\;[-0.525,-0.150]$ & $-0.57\;[-0.85,-0.32]$ & $-0.24$ \\
 Re:Dr.GRPO ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.506\;[-0.825,-0.194]$ & $-0.76\;[-1.07,-0.38]$ & $-0.26$ \\
 \bottomrule
-\end{tabular}
-}
+\end{tabular}}
 \end{table}
 
 
-\clearpage
-
-\begin{figure}[H]
+\begin{figure}[t]
 
 \centering
 
-\includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{figures/modebench_prompt_ablation_local.pdf}
+\includegraphics[width=\linewidth]{figures/modebench_prompt_ablation_local.pdf}
 
 \caption{Prompt-hint removal effects for local checkpoints, preserving every registered domain--level cell. Blue circles use strict verification; orange squares use the same frozen formatting normalizer. Horizontal bars show the intervals described in the tables; zero is the vertical reference. Gray endpoint marks show the two individual Pantry seed effects. }
 
