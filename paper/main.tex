@@ -366,6 +366,18 @@ cells it is bought against it.
 \subsection{Concentration in frontier models}
 \label{sec:hosted-concentration}
 
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.92\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
+  \caption{\textbf{More samples need not recover the available modes.}
+  GPT-5.6 Sol, medium reasoning; 32 problems per cell and 512 responses each.
+  Curves average distinct verified modes in random $k$-subsets, including
+  failures; bands are pointwise 95\% problem-bootstrap intervals. Gray lines
+  give mean known support, exact for Graph and certified lower bounds
+  elsewhere (App.~\ref{app:gpt56-all-levels-discovery}).}
+  \label{fig:gpt56-sampling-budget}
+\end{figure}
+
 The same measurement applies to models we did not train, and they are already
 concentrated. Asked a Level-3 Graph problem with six valid colorings, GPT-5.6
 Sol is right in all 1,024 draws and almost always right the same way, offering
@@ -382,17 +394,7 @@ times. Python and MathIR saturate similarly, while Pantry keeps gaining. Where
 breadth is missing it is missing from the distribution, not from the sample
 (App.~\ref{app:gpt56-all-levels-discovery}).
 
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=.92\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
-  \caption{\textbf{More samples need not recover the available modes.}
-  GPT-5.6 Sol, medium reasoning; 32 problems per cell and 512 responses each.
-  Curves average distinct verified modes in random $k$-subsets, including
-  failures; bands are pointwise 95\% problem-bootstrap intervals. Gray lines
-  give mean known support, exact for Graph and certified lower bounds
-  elsewhere (App.~\ref{app:gpt56-all-levels-discovery}).}
-  \label{fig:gpt56-sampling-budget}
-\end{figure}
+
 
 The pattern is not one model's quirk: no deployment we measured reaches even
 one and a half effective verified modes
@@ -565,6 +567,25 @@ baseline: it survives a stronger fresh objective
 \subsection{Training on the verifier alone concentrates verified outputs}
 \label{sec:results-collapse}
 
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=.92\linewidth]{figures/concentration_story.pdf}
+\caption{\textbf{Training concentrates verified outputs; replay reverses it.}
+Both panels put narrower to the left and broader to the right, so the two
+halves of the claim are the two directions. (a) Change in \pmd{} from start to
+end of training under Dr.GRPO and GRPO: all twelve comparisons move left, by
+$9.8$ to $88.6$ points. (b) Replay minus its matched terminal control under
+each fresh objective: all twelve move right, by $2.1$ to $75.6$ points. Graph
+and PantryPlan are shown because they begin with enough breadth for the
+conditional measure to be defined. Dots and 95\% intervals average five seed
+contrasts, each weighting jointly eligible prompts equally; gutters give the
+defined seed $n$ and the eligible-prompt range out of 128. The panels have
+separate eligibility and are not one trajectory; the disjoint-stream
+orientation checks are reported in
+App.~\ref{app:conditional-concentration}.}
+\label{fig:concentration-story}
+\end{figure}
+
 \textbf{Training can replace varied attempts with one repeated answer.}
 The starkest case is Python, where every Dr.GRPO seed starts out writing a
 different program almost every time. Within a few hundred steps all of that is
@@ -596,27 +617,24 @@ scales and five domains agrees: macro \pmd{} falls at every scale, closely
 tracking the decline measured on extra modes
 (App.~\ref{app:pre-rl-regression}).
 
-\begin{figure}[!htbp]
-\centering
-\includegraphics[width=.92\linewidth]{figures/concentration_story.pdf}
-\caption{\textbf{Training concentrates verified outputs; replay reverses it.}
-Both panels put narrower to the left and broader to the right, so the two
-halves of the claim are the two directions. (a) Change in \pmd{} from start to
-end of training under Dr.GRPO and GRPO: all twelve comparisons move left, by
-$9.8$ to $88.6$ points. (b) Replay minus its matched terminal control under
-each fresh objective: all twelve move right, by $2.1$ to $75.6$ points. Graph
-and PantryPlan are shown because they begin with enough breadth for the
-conditional measure to be defined. Dots and 95\% intervals average five seed
-contrasts, each weighting jointly eligible prompts equally; gutters give the
-defined seed $n$ and the eligible-prompt range out of 128. The panels have
-separate eligibility and are not one trajectory; the disjoint-stream
-orientation checks are reported in
-App.~\ref{app:conditional-concentration}.}
-\label{fig:concentration-story}
-\end{figure}
+
 
 \subsection{Replay improves success and verified-mode diversity}
 \label{sec:results-retention}
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.92\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
+  \caption{\textbf{Canonical replay improves correctness and verified breadth.}
+  (A) Re:Dr.GRPO minus Dr.GRPO at all three scales.
+  (B) Qwen2.5-0.5B alternatives minus Dr.GRPO. Columns measure probability
+  points and expected verified-mode counts, respectively. The green Average
+  weights domains equally within seed. A dagger marks four paired seeds in
+  Falcon Countdown and its Average; other cells use five. Intervals are
+  nominal 95\% intervals for five-seed comparisons. Purple denotes Re:Dr.GRPO;
+  bold entries mark column maxima in Panel B.}
+  \label{fig:cross-scale-terminal-effects}
+\end{figure}
 
 \textbf{Verified memory improves both outcomes across scales.}
 Re:Dr.GRPO raises mean \texttt{pass@8} and \distk{} in every tested
@@ -633,19 +651,7 @@ between five- and fourteenfold at 0.5B, where the controls finish nearest zero. 
 configurations, computation routes, and tested program behaviours
 (App.~\ref{app:retention-numerical-detail}).
 
-\begin{figure}[!htbp]
-  \centering
-  \includegraphics[width=.92\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
-  \caption{\textbf{Canonical replay improves correctness and verified breadth.}
-  (A) Re:Dr.GRPO minus Dr.GRPO at all three scales.
-  (B) Qwen2.5-0.5B alternatives minus Dr.GRPO. Columns measure probability
-  points and expected verified-mode counts, respectively. The green Average
-  weights domains equally within seed. A dagger marks four paired seeds in
-  Falcon Countdown and its Average; other cells use five. Intervals are
-  nominal 95\% intervals for five-seed comparisons. Purple denotes Re:Dr.GRPO;
-  bold entries mark column maxima in Panel B.}
-  \label{fig:cross-scale-terminal-effects}
-\end{figure}
+
 
 Countdown at 0.5B shows the effect at its clearest: correctness rises by
 nineteen points while the number of distinct computation routes the model
@@ -721,12 +727,6 @@ is.
 \subsection{Replay transfers to a harder construction}
 \label{sec:results-levels}
 
-\textbf{The benefit extends to harder task constructions.}
-At Qwen2.5-0.5B, replay improves average correctness and verified-mode
-diversity under both fresh objectives within both levels, each comparison
-holding the level's prompts and fresh objective fixed
-(Fig.~\ref{fig:level2-admission}).
-
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=.92\linewidth]{figures/modebench_level_admission.pdf}
@@ -741,6 +741,14 @@ holding the level's prompts and fresh objective fixed
   (App.~\ref{app:level2-interim}).}
   \label{fig:level2-admission}
 \end{figure}
+
+\textbf{The benefit extends to harder task constructions.}
+At Qwen2.5-0.5B, replay improves average correctness and verified-mode
+diversity under both fresh objectives within both levels, each comparison
+holding the level's prompts and fresh objective fixed
+(Fig.~\ref{fig:level2-admission}).
+
+
 
 Level-2 Graph is the clearest case: replay roughly doubles correctness under
 both objectives, and its weakest seed beats the strongest non-replay seed.
