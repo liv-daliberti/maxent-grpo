@@ -141,8 +141,8 @@ A language model can usually satisfy the same request in more than one way:
 different explanations, different plans, different programs that all meet the
 requirements. Those alternatives are worth keeping. They give the user a choice,
 they are what test-time search and reranking consume, and they are what is left
-to fall back on when the first answer turns out to be unusable. So it is worth
-asking what happens to them as a model is trained to succeed more often.
+to fall back on when the first answer turns out to be unusable. What happens to
+them as a model is trained to succeed more often?
 
 Reinforcement learning with verifiable rewards (RLVR) trains against an
 executable check \citep{guo2025deepseekr1}, and that check cannot tell one
@@ -265,15 +265,13 @@ $q_c$ for how that correct probability is divided among the valid answers. Then
  =\sum_c[1-(1-Pq_c)^K],
  \label{eq:main-occupancy}
 \end{equation}
-where $D_K$ is the number of distinct correct keys in the draw. Both sides of
+where $D_K$ counts the distinct correct answers in the draw. Both sides of
 \eqref{eq:main-occupancy} climb with $P$: a policy that is simply right more
-often returns more distinct answers without having broadened at all. That
-coupling is not a technicality. Across the \MDcells{}
-untrained measurements of
-Fig.~\ref{fig:base-levels-all-scales}, \distk{} correlates $\MDdistinctcorr$
-with \texttt{pass@8}. Plotted as a diversity axis it is very nearly a second
-copy of the accuracy axis, and a method that improves it has not been shown to
-have changed anything about variety.
+often returns more distinct answers without having broadened at all. Across the
+\MDcells{} untrained measurements of
+Fig.~\ref{fig:base-levels-all-scales} that count correlates $\MDdistinctcorr$
+with \texttt{pass@8} --- close enough to be a second copy of the accuracy
+axis, so improving it demonstrates nothing about variety.
 
 We want a question whose answer cannot move just because the model got more
 questions right. Take two independent correct responses to the same prompt: how
@@ -297,11 +295,10 @@ probability now sits; it does not say that any answer has reached probability
 zero, which finite samples cannot establish. The measure also has a floor it
 cannot see past: it needs two correct draws to exist at all, so a policy that
 almost never succeeds supports no statement about how its successes are spread.
-We handle that in the open rather than silently --- every \pmd{} we quote
-carries the number of prompts that define it, and a measurement with too few is left
-blank instead of filled with noise. \texttt{pass@8} and \distk{} are reported
-alongside it throughout (Apps.~\ref{app:metric-details}
-and~\ref{app:registered-endpoints}).
+Every \pmd{} we quote therefore carries the number of prompts that define it,
+and a measurement with too few is left blank rather than filled with noise. The
+registered endpoints are reported alongside it throughout
+(Apps.~\ref{app:metric-details} and~\ref{app:registered-endpoints}).
 
 \subsection{Harder tasks with the same notion of a mode}
 \label{sec:levels-design}
@@ -413,15 +410,10 @@ temperature widens breadth too, but stops paying early
 that kept its alternatives, since one needs a second model and the other trades
 away the sharpness the deployment was tuned for.
 
-\textbf{Nor is eight draws too few to see them.} Quadrupling the draws to $K=32$ leaves the control
-within a few thousandths of where it was at $K=8$ in every domain
-(App.~\ref{app:decoding-objection}), and a trained MathIR policy extended to
-64 draws is as concentrated as it was at eight
-(App.~\ref{app:sampling-budget-ablation}). The same holds far out of our
-compute range: Fig.~\ref{fig:gpt56-sampling-budget} follows a deployed model to
-512 draws per problem, and the Graph curve flattens well below a support that
-is known exactly. A mode that never appears in five hundred samples is missing
-from the distribution, not from the sample.
+\textbf{Nor is eight draws too few to see them.} Quadrupling to $K=32$ moves a
+trained policy by thousandths, and extending MathIR to 64 draws leaves it as
+concentrated as at eight (Apps.~\ref{app:decoding-objection}
+and~\ref{app:sampling-budget-ablation}).
 
 \section{Re:MaxRL: Learn from New Samples and Remember Successes}
 \label{sec:method}
@@ -429,7 +421,7 @@ from the distribution, not from the sample.
 Fig.~\ref{fig:verified-support-story} shows the two learning paths we combine:
 binary rewards learn from fresh samples, while replay returns to successes the
 policy has already found. Both run on the policy's own outputs, and neither
-needs gold solutions. We begin with why a second path is needed at all.
+needs gold solutions.
 
 \begin{figure}[!htbp]
   \centering
@@ -455,7 +447,7 @@ GRPO, Dr.GRPO and binary MaxRL all induce one conditional flow:
  \frac{dC}{d\tau}=2\operatorname{Var}_{c\sim q}(q_c)\ge0.
  \label{eq:main-collapse-flow}
 \end{equation}
-Two things follow. Concentration among correct answers rises under all three
+Concentration among correct answers rises under all three
 objectives, and whichever mode starts ahead pulls the rest of the correct mass
 toward it (Theorem~\ref{thm:grpo-collapse}). And no reweighting of the
 advantage can undo that, because every such objective acts only on what the
@@ -465,8 +457,7 @@ fresh-sample score puts on it vanishes
 abandoned precisely when it most needs support. The pressure is in the reward,
 not in the size of the model.
 
-A memory escapes that limit, and this is the property we build on: a stored
-target supplies its gradient whether or not the policy rediscovers it, so the
+A memory escapes that limit: a stored target supplies its gradient whether or not the policy rediscovers it, so the
 force on a mode no longer decays with the mode. In this flow a fixed bank with
 a constant replay dose holds every banked mode above a probability floor, though
 modes that never entered the bank may still vanish
@@ -474,7 +465,7 @@ modes that never entered the bank may still vanish
 argument for adding a second path rather than sharpening the first. These are
 statements about an idealized gradient geometry: they do not certify AdamW/PPO
 or variable-length neural updates, the implemented exemplar loss is not an exact
-key-probability objective, and no floor guarantees visibility in eight draws or
+mode-probability objective, and no floor guarantees visibility in eight draws or
 held-out transfer. App.~\ref{app:claim-basis} maps each claim to its basis and
 scope.
 
@@ -483,8 +474,8 @@ scope.
 
 The analysis asks for one specific thing: a target that survives its own rarity.
 Each training prompt therefore owns an initially empty, bounded bank
-$\mathcal B_x$. The first time a key appears, the bank keeps one verified
-exemplar $e_c$ that realizes it; later rediscoveries of the same key add
+$\mathcal B_x$. The first time a mode appears, the bank keeps one verified
+exemplar $e_c$ that realizes it; later rediscoveries of the same mode add
 nothing. A deterministic schedule revisits nonempty banks throughout training.
 For an exemplar of token length $|e_c|$, the replay loss is
 \begin{equation}
@@ -497,7 +488,7 @@ much as a mode found a hundred times, so popularity cannot compound. It is also
 what makes the bank a counterweight to \eqref{eq:main-collapse-flow} rather than
 another copy of it --- App.~\ref{app:replay-metric-alignment} decomposes this
 loss into a term that rewards more banked probability and a term minimized by an
-even spread across the banked keys, which are the two things the fresh flow
+even spread across the banked modes, which are the two things the fresh flow
 works against.
 
 Adding this loss to the fresh update gives Re:MaxRL or, with Dr.GRPO,
@@ -638,8 +629,8 @@ tracking the decline measured on extra modes
 \end{figure}
 
 \textbf{Verified memory improves both outcomes across scales.}
-Re:Dr.GRPO raises mean \texttt{pass@8} and \distk{} in every tested
-model--domain comparison (Fig.~\ref{fig:cross-scale-terminal-effects}A).
+Re:Dr.GRPO raises both registered endpoints in every tested model--domain
+comparison (Fig.~\ref{fig:cross-scale-terminal-effects}A).
 Both of those endpoints move with correctness, so the breadth claim has to be
 checked on the success-conditional axis as well, and it survives there: replay
 ends above its control in all but two of the comparisons where success is
@@ -713,12 +704,12 @@ and~\ref{app:factorial-training-curves}).
 Several do act on exactly this pressure, and we ran four of them as controls:
 UCPO's on-policy advantage redistribution, RLEP's reuse of successful
 trajectories, a fixed semantic-entropy bonus, and replay weighted by how often
-fresh rollouts rediscovered each key. Their gains are local rather than general
+fresh rollouts rediscovered each mode. Their gains are local rather than general
 --- UCPO helps Countdown correctness and extra modes while its MathIR effects
 are inconclusive, and RLEP raises MathIR correctness with extra modes flat at
 $-.002$ (App.~\ref{app:ucpo-progress}). The weighting control is the most
 direct of the four, because it changes one thing: keep the same bank and the
-same reuse, and weight keys by rediscovery frequency instead of equally.
+same reuse, and weight modes by rediscovery frequency instead of equally.
 Equal weighting adds $+.318$ extra modes per prompt over it
 ($[+.272,+.358]$) with no aggregate correctness difference
 (App.~\ref{app:frequency-replay-progress}). Reusing successes is not the active
