@@ -3238,15 +3238,16 @@ mixed-reward group is
  h_G(P)=1-P^G-(1-P)^G\le G\min\{P,1-P\}.
 \]
 Every all-equal group has zero fresh task component for
-Equation~\eqref{eq:group-estimator} and the specified centered MaxRL
-estimator, so a nonzero fresh task component requires a mixed group and has
-probability at most $h_G(P)$.
+Equation~\eqref{eq:group-estimator} and for the specified centered MaxRL
+estimator, so a nonzero fresh task component requires a mixed group, an event
+whose probability is at most $h_G(P)$ at every correctness level.
 \end{lemma}
 
 \begin{proof}
 The all-correct and all-incorrect events are disjoint and have probabilities
 $P^G$ and $(1-P)^G$. A mixed group requires both a correct and an incorrect
-sample; the union bound gives the two bounds $GP$ and $G(1-P)$.
+sample, so the union bound supplies each of the two stated bounds, $GP$ and
+$G(1-P)$, and the minimum of the pair is therefore also a bound.
 \end{proof}
 
 \begin{lemma}[Replay ascent persists as fresh signal vanishes]

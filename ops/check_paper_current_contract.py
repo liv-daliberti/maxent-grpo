@@ -58,8 +58,8 @@ APPENDIX_FIGURES = (
     "direct_baseline_learning_curves_pass8",
     "e121_fixed_bank_survival",
 )
-PROOF_REFERENCE = ROOT / "paper/audits/proof_cleanup_20260914/main.tex"
-PROOF_REFERENCE_SHA256 = "c6c19d0467b2064958726980dc3b9b9c3132a7a0e81439cd0ade933536b8b6be"
+PROOF_REFERENCE = ROOT / "paper/audits/proof_cleanup_20260915/main.tex"
+PROOF_REFERENCE_SHA256 = "1c4c8d816c8fb5a57aeb1c6d627c678b423b253dd2d2cb90eeac8b2d48ddd158"
 RETIRED = (
     "sustained_auc_effects_qwen05b",
     "verified_support_discovery_two_scale_effects",
@@ -425,7 +425,9 @@ def check_hosted_comparison(appendix: str) -> None:
     require("frontier_comparison_20260911_motivation" not in main_source
             and "tab:frontier-motivation" not in main_source,
             "retired hosted introductory table returned")
-    require("sec:hosted-concentration" not in intro
+    # The guard is about where the hosted section *lives*, not about whether the
+    # contributions list may point forward to it, so test for its definition.
+    require(r"\label{sec:hosted-concentration}" not in intro
             and main_source.index(r"\label{sec:modebench}")
             < main_source.index(r"\label{sec:method}")
             < main_source.index(r"\label{sec:results-levels}")
