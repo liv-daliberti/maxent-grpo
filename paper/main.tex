@@ -370,9 +370,12 @@ it is bought against it.
   \caption{\textbf{More samples need not recover the available modes.}
   GPT-5.6 Sol, medium reasoning; 32 problems per domain and level, 512 responses each.
   Curves average distinct verified modes in random $k$-subsets, including
-  failures; bands are pointwise 95\% problem-bootstrap intervals. Gray lines
-  give mean known support, exact for Graph and certified lower bounds
-  elsewhere (App.~\ref{app:gpt56-all-levels-discovery}).}
+  failures; bands are pointwise 95\% problem-bootstrap intervals. The figure
+  prints how many modes each panel's problems actually admit, averaged over the
+  problems used, in Level 1 / Level 2 / Level 3 order; the counts are the
+  enumerated support the benchmark registers with each problem, so the gap
+  between a curve and its count is what the model never produced
+  (App.~\ref{app:gpt56-all-levels-discovery}).}
   \label{fig:gpt56-sampling-budget}
 \end{figure}
 
@@ -385,35 +388,33 @@ collapse exactly; on MathIR it reaches zero
 
 \textbf{Sampling harder does not recover what was lost.}
 The obvious remedy is to draw more. Fig.~\ref{fig:gpt56-sampling-budget}
-follows five domains and three levels out to 512 draws per problem, and in
-Graph the curves flatten well below the known support: a model that has settled
-on two colorings does not find the other four by being asked five hundred
-times. Python and MathIR saturate similarly, while Pantry keeps gaining. Where
-breadth is missing it is missing from the distribution, not from the sample
-(App.~\ref{app:gpt56-all-levels-discovery}).
+follows five domains and three levels out to 512 draws per problem, and the
+curves flatten far below what the problems admit: a model that has settled on
+two colorings does not find the other four by being asked five hundred times.
+Python is the extreme case. Its problems admit several hundred distinct return
+vectors on average, and five hundred draws surface between one and four of
+them --- under two percent of what is there, and under one percent at
+Levels 2 and 3. Where breadth is missing it is missing from the distribution,
+not from the sample (App.~\ref{app:gpt56-all-levels-discovery}).
 
 
 
 The pattern is not one model's quirk: no deployment we measured reaches even
 one and a half effective verified modes
-(App.~\ref{app:hosted-mode-diversity}). Disabling reasoning does not help
---- every model loses both correctness and breadth --- though because
-correctness moves too, that comparison cannot isolate concentration
-(Table~\ref{tab:hosted-level-averages}, App.~\ref{app:hosted-reasoning-control},
+(App.~\ref{app:hosted-mode-diversity}). Two interventions widen breadth without
+replacing it. Because different models collapse onto different answers, mixing
+responses from two deployments covers more verified modes than either alone
+(App.~\ref{app:cross-model-overlap}); raising temperature widens breadth too,
+but stops paying early (Fig.~\ref{fig:gpt56-temperature-curve}). One needs a
+second model and the other trades away the sharpness the deployment was tuned
+for. Nor is the concentration an artifact of how we look: quadrupling to $K=32$
+moves a trained policy by thousandths and MathIR at 64 draws is as concentrated
+as at eight (Apps.~\ref{app:decoding-objection}
+and~\ref{app:sampling-budget-ablation}), while disabling reasoning costs
+correctness and breadth together and so cannot isolate concentration at all
+(Table~\ref{tab:hosted-level-averages},
+App.~\ref{app:hosted-reasoning-control},
 Fig.~\ref{fig:hosted-verified-breadth}).
-
-Two things do help, and both are revealing. Different models collapse onto
-different answers, so mixing responses from two of them covers more verified
-modes than either alone (App.~\ref{app:cross-model-overlap}); raising
-temperature widens breadth too, but stops paying early
-(Fig.~\ref{fig:gpt56-temperature-curve}). Neither substitutes for a policy
-that kept its alternatives, since one needs a second model and the other trades
-away the sharpness the deployment was tuned for.
-
-\textbf{Nor is eight draws too few to see them.} Quadrupling to $K=32$ moves a
-trained policy by thousandths, and extending MathIR to 64 draws leaves it as
-concentrated as at eight (Apps.~\ref{app:decoding-objection}
-and~\ref{app:sampling-budget-ablation}).
 
 \section{Re:MaxRL: Learn from New Samples and Remember Successes}
 \label{sec:method}

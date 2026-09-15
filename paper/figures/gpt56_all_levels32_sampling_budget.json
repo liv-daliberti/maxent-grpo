@@ -7,7 +7,7 @@
   },
   "renderer": {
     "path": "ops/plot_paper_gpt56_all_levels32_sampling.py",
-    "sha256": "932dfed926c7d482638163638166dd7e1aa4b71ce3538372473432cbeb2476f8"
+    "sha256": "77778a4199b5e664f76224c2bd9cdd617bba4bc4e86d83321d62256caa9e3657"
   },
   "model": "gpt-5.6-sol",
   "grading": "normalized_secondary",
@@ -3068,12 +3068,13 @@
         }
       ],
       "support": {
-        "kind": "exact",
+        "kind": "registered_enumerated",
         "mean": 6.96875,
         "range": [
           4,
           12
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -3099,6 +3100,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "exact",
+        "mean": 6.96875,
+        "range": [
+          4,
+          12
+        ]
       }
     },
     {
@@ -6083,12 +6092,13 @@
         }
       ],
       "support": {
-        "kind": "exact",
+        "kind": "registered_enumerated",
         "mean": 6.03125,
         "range": [
           4,
           12
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -6114,6 +6124,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "exact",
+        "mean": 6.03125,
+        "range": [
+          4,
+          12
+        ]
       }
     },
     {
@@ -9109,12 +9127,13 @@
         }
       ],
       "support": {
-        "kind": "exact",
+        "kind": "registered_enumerated",
         "mean": 6.65625,
         "range": [
           4,
           12
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -9140,6 +9159,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "exact",
+        "mean": 6.65625,
+        "range": [
+          4,
+          12
+        ]
       }
     },
     {
@@ -12199,12 +12226,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 4.53125,
         "range": [
           2,
           6
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -12230,6 +12258,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 4.53125,
+        "range": [
+          2,
+          6
+        ]
       }
     },
     {
@@ -15255,12 +15291,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 4.40625,
         "range": [
           3,
           7
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -15286,6 +15323,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 4.40625,
+        "range": [
+          3,
+          7
+        ]
       }
     },
     {
@@ -18290,12 +18335,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 4.25,
         "range": [
           2,
           8
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -18321,6 +18367,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 4.25,
+        "range": [
+          2,
+          8
+        ]
       }
     },
     {
@@ -21323,12 +21377,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
-        "mean": 2.0,
+        "kind": "registered_enumerated",
+        "mean": 222.0,
         "range": [
-          2,
-          2
-        ]
+          16,
+          1440
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -21354,6 +21409,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 2.0,
+        "range": [
+          2,
+          2
+        ]
       }
     },
     {
@@ -24074,12 +24137,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
-        "mean": 2.0,
+        "kind": "registered_enumerated",
+        "mean": 335.75,
         "range": [
-          2,
-          2
-        ]
+          16,
+          2240
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -24105,6 +24169,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 2.0,
+        "range": [
+          2,
+          2
+        ]
       }
     },
     {
@@ -26822,12 +26894,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
-        "mean": 2.0,
+        "kind": "registered_enumerated",
+        "mean": 354.75,
         "range": [
-          2,
-          2
-        ]
+          16,
+          2880
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -26853,6 +26926,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 2.0,
+        "range": [
+          2,
+          2
+        ]
       }
     },
     {
@@ -30370,12 +30451,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 5.0,
         "range": [
           5,
           5
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -30401,6 +30483,14 @@
           "estimate": 0.0077972113502935425
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 5.0,
+        "range": [
+          5,
+          5
+        ]
       }
     },
     {
@@ -33395,12 +33485,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 5.0,
         "range": [
           5,
           5
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -33426,6 +33517,14 @@
           "estimate": 0.001958117864690745
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 5.0,
+        "range": [
+          5,
+          5
+        ]
       }
     },
     {
@@ -36418,12 +36517,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 5.0,
         "range": [
           5,
           5
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -36449,6 +36549,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 5.0,
+        "range": [
+          5,
+          5
+        ]
       }
     },
     {
@@ -42414,12 +42522,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 16.90625,
         "range": [
           8,
           39
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -42445,6 +42554,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 16.90625,
+        "range": [
+          8,
+          39
+        ]
       }
     },
     {
@@ -46619,12 +46736,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 16.5,
         "range": [
           8,
           39
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -46650,6 +46768,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 16.5,
+        "range": [
+          8,
+          39
+        ]
       }
     },
     {
@@ -50936,12 +51062,13 @@
         }
       ],
       "support": {
-        "kind": "certified_lower_bound",
+        "kind": "registered_enumerated",
         "mean": 16.875,
         "range": [
           8,
           40
-        ]
+        ],
+        "source": "answer_mode_count of the registered evaluation rows"
       },
       "tail": {
         "breadth": {
@@ -50967,6 +51094,14 @@
           "estimate": 0.0
         },
         "to_k": 512
+      },
+      "certified_support": {
+        "kind": "certified_lower_bound",
+        "mean": 16.875,
+        "range": [
+          8,
+          40
+        ]
       }
     }
   ],
@@ -162520,7 +162655,7 @@
       }
     },
     "intervals": "Pointwise 95% whole-problem bootstrap intervals from the bound analysis.",
-    "support": "Three grey lines retain the three level-specific mean support references; labels list their means in Level 1 / Level 2 / Level 3 order. Graph exact; other domains certified lower bounds.",
+    "support": "Printed as counts, not drawn as lines: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis's conservative certificate is retained per cell as certified_support.",
     "endpoints": "All fifteen curves use complete 512-draw pools; no extrapolation."
   },
   "validation": {
@@ -162536,11 +162671,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/gpt56_all_levels32_sampling_budget.pdf",
-      "sha256": "e9948c2b210eb138fabd993c840c781d77f3e0404fff29d366cd6481728f9bcb"
+      "sha256": "0cad31fd22b50134b04e870d3553f34dfb620661dcedc92decbb0c7c99f13448"
     },
     "png": {
       "path": "paper/figures/gpt56_all_levels32_sampling_budget.png",
-      "sha256": "636015dda8b21bf9f8227f6051623bc4929ebaed34a03806b232c7029ef88694"
+      "sha256": "bb70554200789d84d21afe9b4b00e23a79f49771dd7dd9e68beb2d0466b24994"
     }
   }
 }

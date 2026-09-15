@@ -229,11 +229,45 @@ def validate_report(report):
     validate_grading_conventions(report)
     return report
 
+ROWS_ROOT = ROOT / 'artifacts/modebench_base_level_grid_20260911/rows'
+ROW_DOMAIN = {'graph_coloring': 'graph_coloring', 'countdown': 'countdown',
+              'python_factors': 'python_factors', 'mathir': 'mathir',
+              'pantry_plan': 'pantry'}
+
+
+def registered_support(domain, level, row_indices):
+    """Enumerated modes for the prompts a cell used, from the registered rows.
+
+    The bound analysis reported `num_externally_certified_modes`, two witnesses
+    it re-executed rather than the enumerated support. For four domains that
+    matches the benchmark's own `answer_mode_count`; for PythonFactors it is 2
+    against a median of 104-128, which made a model finding four modes of many
+    hundreds look as though it had exhausted the available ones. Read the count
+    the benchmark registers, so every domain is described the same way.
+    """
+    import sys as _sys
+    if str(ROOT / 'ops') not in _sys.path:
+        _sys.path.insert(0, str(ROOT / 'ops'))
+    import evaluate_modebench_base_grid as grid
+    rows, _ = grid.load_rows({'rows_jsonl': str(ROWS_ROOT / f'level{level}'
+                                                / f'{ROW_DOMAIN[domain]}.jsonl'),
+                             'row_offset': 0, 'row_limit': 0})
+    counts = [int(rows[i]['answer_mode_count']) for i in sorted(row_indices)]
+    require(counts and all(c > 0 for c in counts), 'registered support must be positive')
+    return {'kind': 'registered_enumerated', 'mean': math.fsum(counts) / len(counts),
+            'range': [min(counts), max(counts)],
+            'source': 'answer_mode_count of the registered evaluation rows'}
+
+
 def build_record(source=SOURCE):
     source = Path(source)
     report = validate_report(read_json(source))
     cells = deepcopy(report['cells'])
     cells.sort(key=lambda c: (DOMAINS.index(c['domain']), c['level']))
+    for cell in cells:
+        cell['certified_support'] = cell['support']
+        cell['support'] = registered_support(
+            cell['domain'], cell['level'], [p['row_index'] for p in cell['prompts']])
     return {'schema': 'paper-gpt56-all-levels-sampling-budget-v1', 'status': 'complete',
             'source': binding(source), 'renderer': binding(__file__), 'model': report['model'],
             'grading': report['grading'], 'prompt_arm': 'original', 'cells': cells,
@@ -248,7 +282,7 @@ def build_record(source=SOURCE):
                         'curves': {str(level): {'label': f'Level {level}', **style}
                                    for level, style in STYLES.items()},
                         'intervals': 'Pointwise 95% whole-problem bootstrap intervals from the bound analysis.',
-                        'support': 'Three grey lines retain the three level-specific mean support references; labels list their means in Level 1 / Level 2 / Level 3 order. Graph exact; other domains certified lower bounds.',
+                        'support': 'Printed as counts, not drawn as lines: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis\'s conservative certificate is retained per cell as certified_support.',
                         'endpoints': 'All fifteen curves use complete 512-draw pools; no extrapolation.'},
             'validation': {'all_five_domains_and_three_levels': True, 'all_480_prompts_retained': True,
                            'all_245760_responses_retained': True, 'both_grading_pools_reconstructed': True,
@@ -259,16 +293,8 @@ def build_record(source=SOURCE):
 
 def support_label(cells):
     means = [cell['support']['mean'] for cell in sorted(cells, key=lambda c: c['level'])]
-    lower = cells[0]['support']['kind'] == 'certified_lower_bound'
-
-    def number(value):
-        if float(value).is_integer():
-            return f'{value:,.0f}'
-        value = math.floor(value * 100) / 100 if lower else value
-        return f'{value:,.2f}'.rstrip('0').rstrip('.')
-
-    count = ' / '.join(number(value) for value in means)
-    return ('≥ ' if lower else '') + count + '\nknown modes, L1–L3'
+    count = ' / '.join(f'{round(value):,d}' for value in means)
+    return count + '\nmodes available, L1–L3'
 
 
 def build_figure(record):
@@ -291,9 +317,8 @@ def build_budget_figure(record, *, draws, x_ticks, title):
         for ax, domain, domain_title in zip(axes, DOMAINS, LABELS):
             ax.set_facecolor(DOMAIN_BACKGROUNDS[domain])
             cells = {cell['level']: cell for cell in record['cells'] if cell['domain'] == domain}
-            support_max = max(cell['support']['mean'] for cell in cells.values())
-            maximum = max(support_max, max(p['distinct']['ci95'][1]
-                          for cell in cells.values() for p in cell['points']))
+            maximum = max(p['distinct']['ci95'][1]
+                          for cell in cells.values() for p in cell['points'])
             # Dashed/open traces over the solid trace expose coincident levels
             # without displacing any observed value from its actual coordinates.
             for level in (2, 3, 1):
@@ -304,8 +329,6 @@ def build_budget_figure(record, *, draws, x_ticks, title):
                                 color=style['color'], alpha=.09, linewidth=0)
                 ax.plot(xs, [p['distinct']['estimate'] for p in cell['points']],
                         **style, linewidth=1.15, markerfacecolor=style['color'] if level == 2 else 'none', zorder=3)
-                ax.axhline(cell['support']['mean'], color='#71808C', linestyle=(0, (3, 2)),
-                           linewidth=.7, zorder=1)
             ax.set_xscale('log', base=2)
             ax.set_xlim(.95, draws * 1.15)
             ax.set_ylim(0, maximum * 1.34)
