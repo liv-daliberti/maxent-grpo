@@ -19,6 +19,11 @@ LEVELS=('1','2','3')
 COLORS=('#00509E','#C76A3A','#7B1FA2')
 MARKERS=('o','s','^')
 FIGSIZE=(6.6,3.1)
+ICON=ROOT/'paper/icons/openai.png'
+# The mark stands beside a single deployment's name. Every point on this plate is
+# GPT-5.6 Sol, so one provider mark is an attribution rather than a claim about
+# the others; multi-deployment plates carry a per-model icon instead.
+LOGO_HEIGHT_IN=0.105
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def relative(path):return str(Path(path).resolve().relative_to(ROOT))
@@ -106,6 +111,7 @@ def build_record(source=SOURCE):
     return {'schema':('paper-gpt56-pass8-temperature-curve-expanded480-v1' if expanded else 'paper-gpt56-pass8-temperature-curve-v1' if legacy else 'paper-gpt56-pass8-temperature-curve-v2'),'source':{'path':relative(source),'sha256':sha(source)},
             'renderer':{'path':relative(__file__),'sha256':sha(__file__)},'authenticated_bindings':bindings,
             'model':'gpt-5.6-sol','reasoning_effort':'none','grading':'frozen formatting-normalized',
+            'icons':{'gpt-5.6-sol':{'path':relative(ICON),'sha256':sha(ICON)}},
             'sampling':{'temperatures':[float(t) for t in temperatures],'prompts_per_domain_level':prompts//15,'domains':5,
                         'levels':[1,2,3],'draws_per_prompt':8,'responses_per_temperature':responses,'total_responses':total_responses},
             'display':{'x':'pass@8 (%)','y':'distinct correct modes per eight draws',
@@ -119,6 +125,21 @@ def build_record(source=SOURCE):
             'analyses':{grade:{'temperatures':{t:{'groups':block['groups'],'counts':block['counts']} for t,block in data['temperatures'].items()},
                                'paired_endpoint_contrast':data['paired_endpoint_contrast'],
                                **({'paired_high_temperature_contrast':data['paired_high_temperature_contrast']} if expanded else {})} for grade,data in analysis['analyses'].items()}}
+
+def provider_logo(fig,anchor,*,height_in=LOGO_HEIGHT_IN,align=(0.0,0.5),path=ICON):
+    """Draw the provider mark at a figure-fraction anchor; return its width there.
+
+    Figure coordinates keep the mark at its printed size however the axes are laid
+    out, and the returned width lets the label that follows be positioned without
+    measuring the canvas.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.offsetbox import AnnotationBbox,OffsetImage
+    image=plt.imread(str(path))
+    zoom=height_in*fig.dpi/image.shape[0]
+    fig.add_artist(AnnotationBbox(OffsetImage(image,zoom=zoom),anchor,xycoords='figure fraction',
+                                  frameon=False,box_alignment=align,annotation_clip=False))
+    return image.shape[1]*height_in/(image.shape[0]*fig.get_figwidth())
 
 def build_figure(record):
     import matplotlib
@@ -167,7 +188,8 @@ def build_figure(record):
         axes[0].set_ylabel('Distinct correct modes / 8')
         axes[1].legend(loc='upper right',bbox_to_anchor=(1,1.40),ncol=3,frameon=False,
                        handlelength=1.1,columnspacing=.8,handletextpad=.4,fontsize=8)
-        fig.text(.09,.98,'GPT-5.6 Sol',ha='left',va='top',fontsize=9,fontweight='bold')
+        width=provider_logo(fig,(.09,.963))
+        fig.text(.09+width+.009,.98,'GPT-5.6 Sol',ha='left',va='top',fontsize=9,fontweight='bold')
         fig.text(.985,.88,'Reasoning: none',ha='right',
                  va='center',fontsize=8,color='#607487')
         prompt_count=record['sampling']['prompts_per_domain_level']*15

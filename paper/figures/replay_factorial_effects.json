@@ -1,7 +1,7 @@
 {
   "builder": {
     "path": "ops/plot_paper_reorganized_results.py",
-    "sha256": "5c9cf567496c7c21ce35457b87745b2ef270afa2eec4961fd1f5167ddf5e26a7"
+    "sha256": "28dd6d2a016fc4580159723cc806004c5e3f17b718849090d2dc012542ad5964"
   },
   "contrast_direction": "replay minus the same base objective",
   "display_metrics": {
@@ -1780,17 +1780,17 @@
     "sha256": "8be05fb5b3b7032ddf5db42d4e874a393ccdc73bede4087c9ddb9a545452cfbb"
   },
   "source_sha256": {
-    "paper/figures/e118_all_scale_factorial_progress.json": "3b2353523c2f024c514f3230a6d48e670f19713b652b3ecc68139878e80989d4",
-    "paper/figures/experiment1_retention_comparator_matrix.json": "43d9f0a65a1ced50752b8f39942051a6a9288384342e6f0c02bcc6cb530cdc74"
+    "paper/figures/e118_all_scale_factorial_progress.json": "071602d67ee741aa26abeabeabca969342419d9cf3ac616a57971217ce6996d7",
+    "paper/figures/experiment1_retention_comparator_matrix.json": "4a39d0d094e8b227edaa1a59685e9522084e67844b4bdac21c6437902e185d8b"
   },
   "sources": [
     {
       "path": "paper/figures/experiment1_retention_comparator_matrix.json",
-      "sha256": "43d9f0a65a1ced50752b8f39942051a6a9288384342e6f0c02bcc6cb530cdc74"
+      "sha256": "4a39d0d094e8b227edaa1a59685e9522084e67844b4bdac21c6437902e185d8b"
     },
     {
       "path": "paper/figures/e118_all_scale_factorial_progress.json",
-      "sha256": "3b2353523c2f024c514f3230a6d48e670f19713b652b3ecc68139878e80989d4"
+      "sha256": "071602d67ee741aa26abeabeabca969342419d9cf3ac616a57971217ce6996d7"
     }
   ],
   "terminal_step": 3072

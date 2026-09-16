@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / 'paper/results/conditional_concentration_20260911.json'
 TARGET = ROOT / 'paper/results/conditional_concentration_20260911_tables.tex'
 DOMAINS = {'graph_coloring':'Graph','countdown':'Countdown','python_factors':'Python','mathir':'MathIR','pantry_plan':'Pantry'}
-METHODS = {'drgrpo':'Dr.GRPO','grpo':'GRPO','maxrl':'MaxRL','replay_drgrpo':'ReplayDr','replay_maxrl':'Re:MaxRL'}
+METHODS = {'drgrpo':'Dr.GRPO','grpo':'GRPO','maxrl':'MaxRL','replay_drgrpo':'Re:Dr','replay_maxrl':'Re:Max'}
 SCALES = {'qwen05b':'Qwen2.5-0.5B','falcon1b':'Falcon3-1B','qwen3b':'Qwen2.5-3B'}
 
 def number(v):

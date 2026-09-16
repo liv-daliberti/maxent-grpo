@@ -25,7 +25,7 @@ SCALES = ('qwen05b', 'falcon1b', 'qwen3b')
 DOMAIN_LABELS = dict(zip(DOMAINS, ('Graph', 'Countdown', 'Python', 'MathIR', 'PantryPlan')))
 SCALE_LABELS = dict(zip(SCALES, ('Qwen2.5-0.5B', 'Falcon3-1B', 'Qwen2.5-3B')))
 METHOD_LABELS = {'drgrpo': 'Dr.GRPO', 'grpo': 'GRPO', 'maxrl': 'MaxRL',
-                 'replay_drgrpo': 'Re:Dr.GRPO', 'replay_maxrl': 'Re:MaxRL'}
+                 'replay_drgrpo': 'Re:Dr', 'replay_maxrl': 'Re:Max'}
 METRICS = ('collision', 'mean8', 'pass8', 'distinct8', 'extra8')
 DIRECT_ANALYSES = ('distinct_streams', 'orientation0', 'orientation1', 'naive_reused_streams_32')
 MAIN_CONTRASTS = (('before_after', 'drgrpo'), ('before_after', 'grpo'),

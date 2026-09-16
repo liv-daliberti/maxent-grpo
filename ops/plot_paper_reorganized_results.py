@@ -101,7 +101,7 @@ def _metadata(stem: str, size: tuple[float, float], sources: list[dict[str, str]
 def factorial_metadata(root: Path = ROOT) -> dict[str, Any]:
     dr, dr_source = _load(SOURCES['drgrpo'], root)
     mx, mx_source = _load(SOURCES['maxrl'], root)
-    if dr['panel_a']['description'] != 'Re:Dr.GRPO minus Dr.GRPO across scale':
+    if dr['panel_a']['description'] != 'Re:Dr minus Dr.GRPO across scale':
         raise ValueError('Dr.GRPO source contrast changed')
     rows = []
     counts = {'drgrpo': 0, 'maxrl': 0}

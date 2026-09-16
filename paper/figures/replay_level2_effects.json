@@ -1,7 +1,7 @@
 {
   "builder": {
     "path": "ops/plot_paper_reorganized_results.py",
-    "sha256": "5c9cf567496c7c21ce35457b87745b2ef270afa2eec4961fd1f5167ddf5e26a7"
+    "sha256": "28dd6d2a016fc4580159723cc806004c5e3f17b718849090d2dc012542ad5964"
   },
   "cohort_rule": "all-four-arm paired seed intersection within each domain",
   "contrast_direction": "replay minus the same base objective within Level 2",
@@ -946,12 +946,12 @@
     "sha256": "8be05fb5b3b7032ddf5db42d4e874a393ccdc73bede4087c9ddb9a545452cfbb"
   },
   "source_sha256": {
-    "paper/results/level2_factorial_contrasts_20260912.json": "09f37aaab26eeca3cd8ea995ce2421d25c13508594a6c7272b3cdf55d5a824b6"
+    "paper/results/level2_factorial_contrasts_20260912.json": "6e51a206b3c0eea647c6db0eb9e5071e7daa4a152cfc12ea2438b241318c7b77"
   },
   "sources": [
     {
       "path": "paper/results/level2_factorial_contrasts_20260912.json",
-      "sha256": "09f37aaab26eeca3cd8ea995ce2421d25c13508594a6c7272b3cdf55d5a824b6"
+      "sha256": "6e51a206b3c0eea647c6db0eb9e5071e7daa4a152cfc12ea2438b241318c7b77"
     }
   ],
   "terminal_step": 3072

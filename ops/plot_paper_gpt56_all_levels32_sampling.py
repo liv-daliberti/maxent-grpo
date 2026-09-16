@@ -21,7 +21,9 @@ SOURCE = ROOT / 'artifacts/modebench_discovery_all_levels_sol32x512_20260913/ana
 OUTPUT = ROOT / 'paper/figures/gpt56_all_levels32_sampling_budget'
 SCHEMA = 'gpt56-all-levels-discovery-v1'
 DOMAINS = ('graph_coloring', 'countdown', 'python_factors', 'mathir', 'pantry_plan')
-LABELS = ('Graph', 'Countdown', 'Python factors', 'MathIR', 'PantryPlan')
+# Same domain wording and weight as Figure 3's panels, so a reader moving
+# between the two figures is not asked to re-learn the labels.
+LABELS = ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry')
 LEVELS = (1, 2, 3)
 DRAWS = 512
 PROMPTS_PER_CELL = 32
@@ -34,6 +36,11 @@ STYLES = {
     3: {'color': '#C76A3A', 'linestyle': '--', 'marker': 's', 'markersize': 2.5},
 }
 FIGSIZE = (6.4, 1.90)
+ICON = ROOT / 'paper/icons/openai.png'
+# Every curve on this plate is one deployment, so the plate says which one rather
+# than leaving it to the caption. A provider mark may only stand beside a single
+# provider's points; plates spanning several carry a per-model icon instead.
+LOGO_HEIGHT_IN = 0.088
 # Exact Figure 2 card washes, also used by Figure 3's domain panels.
 # Source: plot_paper_modebench_examples.DOMAIN_PANEL (A through E).
 DOMAIN_BACKGROUNDS = dict(zip(DOMAINS, ('#E8F1FA', '#E7FBF6', '#EFFBE7', '#E7FBEE', '#E7ECFB')))
@@ -270,6 +277,7 @@ def build_record(source=SOURCE):
             cell['domain'], cell['level'], [p['row_index'] for p in cell['prompts']])
     return {'schema': 'paper-gpt56-all-levels-sampling-budget-v1', 'status': 'complete',
             'source': binding(source), 'renderer': binding(__file__), 'model': report['model'],
+            'icons': {report['model']: binding(ICON)},
             'grading': report['grading'], 'prompt_arm': 'original', 'cells': cells,
             'analysis_provenance': {k: deepcopy(v) for k, v in report.items()
                                     if k not in ('cells', 'strict_cells')},
@@ -278,11 +286,14 @@ def build_record(source=SOURCE):
                         'x_range': [1, DRAWS], 'x_ticks': list(X_TICKS),
                         'domain_backgrounds': deepcopy(DOMAIN_BACKGROUNDS),
                         'domain_palette_source': 'Figure 2 DOMAIN_PANEL; identical to Figure 3',
-                        'y': 'Mean distinct verified modes', 'y_scale': 'linear; separate per domain; includes every support reference',
+                        'y': 'Share of available modes found',
+                        'y_scale': 'linear 0-1, shared by all five domains; 1.0 is every enumerated mode',
                         'curves': {str(level): {'label': f'Level {level}', **style}
                                    for level, style in STYLES.items()},
                         'intervals': 'Pointwise 95% whole-problem bootstrap intervals from the bound analysis.',
-                        'support': 'Printed as counts, not drawn as lines: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis\'s conservative certificate is retained per cell as certified_support.',
+                        'support': 'Printed as counts and used as each curve\'s denominator: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis\'s conservative certificate is retained per cell as certified_support.',
+                        'normalization': 'Each plotted value is the cell\'s reconstructed mean distinct verified modes divided by its mean enumerated support. This is a display transform of the retained estimates; no statistic is recomputed.',
+                        'shortfall': 'The shaded band runs from the best level reached at each budget up to 1.0, so its height is the share of available modes no level ever produced.',
                         'endpoints': 'All fifteen curves use complete 512-draw pools; no extrapolation.'},
             'validation': {'all_five_domains_and_three_levels': True, 'all_480_prompts_retained': True,
                            'all_245760_responses_retained': True, 'both_grading_pools_reconstructed': True,
@@ -297,8 +308,33 @@ def support_label(cells):
     return count + '\nmodes available, L1–L3'
 
 
+def coverage(cell, point, bound=None):
+    """Express one retained estimate as a share of the cell's enumerated support."""
+    support = cell['support']['mean']
+    require(support > 0, 'A cell without enumerated support cannot be normalized')
+    value = point['distinct']['estimate'] if bound is None else point['distinct']['ci95'][bound]
+    return value / support
+
+
 def build_figure(record):
     return build_budget_figure(record, draws=DRAWS, x_ticks=X_TICKS, title=None)
+
+
+def provider_logo(figure, anchor, *, height_in=LOGO_HEIGHT_IN, align=(0.0, 0.5), path=ICON):
+    """Draw the provider mark at a figure-fraction anchor; return its width there.
+
+    Figure coordinates keep the mark at its printed size however the axes are laid
+    out, and the returned width lets the label that follows be positioned without
+    measuring the canvas.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+    image = plt.imread(str(path))
+    zoom = height_in * figure.dpi / image.shape[0]
+    figure.add_artist(AnnotationBbox(
+        OffsetImage(image, zoom=zoom), anchor, xycoords='figure fraction',
+        frameon=False, box_alignment=align, annotation_clip=False))
+    return image.shape[1] * height_in / (image.shape[0] * figure.get_figwidth())
 
 
 def build_budget_figure(record, *, draws, x_ticks, title):
@@ -306,38 +342,54 @@ def build_budget_figure(record, *, draws, x_ticks, title):
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
-    from matplotlib.ticker import FixedLocator, MaxNLocator, StrMethodFormatter
+    from matplotlib.ticker import FixedLocator, PercentFormatter, StrMethodFormatter
 
     rc = {'font.family': 'DejaVu Sans', 'font.size': 7, 'axes.labelsize': 7.5,
           'xtick.labelsize': 6.3, 'ytick.labelsize': 6.3, 'pdf.fonttype': 42,
           'ps.fonttype': 42, 'text.color': '#19324A', 'axes.labelcolor': '#19324A'}
     with plt.rc_context(rc):
-        fig, axes = plt.subplots(1, 5, figsize=FIGSIZE, sharex=True)
+        fig, axes = plt.subplots(1, 5, figsize=FIGSIZE, sharex=True, sharey=True)
         fig.subplots_adjust(left=.076, right=.99, bottom=.30, top=.87, wspace=.16)
-        for ax, domain, domain_title in zip(axes, DOMAINS, LABELS):
+        for index, (ax, domain, domain_title) in enumerate(zip(axes, DOMAINS, LABELS)):
             ax.set_facecolor(DOMAIN_BACKGROUNDS[domain])
             cells = {cell['level']: cell for cell in record['cells'] if cell['domain'] == domain}
-            maximum = max(p['distinct']['ci95'][1]
-                          for cell in cells.values() for p in cell['points'])
+            grid = [p['k'] for p in cells[1]['points']]
+            # The shaded band is the point of the panel: its height at each
+            # budget is the share of available modes that no level ever found.
+            best = [max(coverage(cells[level], cells[level]['points'][position])
+                        for level in LEVELS) for position in range(len(grid))]
+            # A single deeper wash rather than a tint plus hatching: the
+            # shortfall has to read the same over five different domain
+            # backgrounds, and the hatch lines competed with the traces.
+            ax.fill_between(grid, best, 1.0, facecolor='#C0392B', alpha=.22,
+                            linewidth=0, zorder=1)
+            ax.axhline(1.0, color='#7C4B52', linewidth=.7, linestyle=(0, (4, 2.4)), zorder=2)
             # Dashed/open traces over the solid trace expose coincident levels
             # without displacing any observed value from its actual coordinates.
             for level in (2, 3, 1):
                 cell, style = cells[level], STYLES[level]
                 xs = [p['k'] for p in cell['points']]
-                ax.fill_between(xs, [p['distinct']['ci95'][0] for p in cell['points']],
-                                [p['distinct']['ci95'][1] for p in cell['points']],
+                ax.fill_between(xs, [coverage(cell, p, 0) for p in cell['points']],
+                                [coverage(cell, p, 1) for p in cell['points']],
                                 color=style['color'], alpha=.09, linewidth=0)
-                ax.plot(xs, [p['distinct']['estimate'] for p in cell['points']],
+                ax.plot(xs, [coverage(cell, p) for p in cell['points']],
                         **style, linewidth=1.15, markerfacecolor=style['color'] if level == 2 else 'none', zorder=3)
             ax.set_xscale('log', base=2)
             ax.set_xlim(.95, draws * 1.15)
-            ax.set_ylim(0, maximum * 1.34)
+            ax.set_ylim(0, 1.17)
             ax.xaxis.set_major_locator(FixedLocator(x_ticks))
             ax.xaxis.set_major_formatter(StrMethodFormatter('{x:g}'))
-            ax.yaxis.set_major_locator(MaxNLocator(nbins=4, integer=True))
-            ax.annotate(support_label(list(cells.values())), (1.08, maximum), xytext=(0, 3),
+            ax.yaxis.set_major_locator(FixedLocator([0, .25, .5, .75, 1.0]))
+            ax.yaxis.set_major_formatter(PercentFormatter(xmax=1, decimals=0))
+            if index:
+                ax.tick_params(labelleft=False)
+            ax.annotate(support_label(list(cells.values())), (1.08, 1.0), xytext=(0, 3),
                         textcoords='offset points', fontsize=5.7, color='#566574', ha='left', va='bottom',
                         linespacing=1.05)
+            # One number per panel says how much the best level still misses.
+            ax.annotate(f'{1 - best[-1]:.0%} never\nproduced', (draws, 1.0), xytext=(-2, -3),
+                        textcoords='offset points', fontsize=5.9, color='#9E3A2C', ha='right', va='top',
+                        linespacing=1.05, zorder=4)
             ax.tick_params(length=2, width=.6, colors='#607487', pad=2)
             ax.grid(axis='y', color='#D8E2EA', linewidth=.45, alpha=.65)
             for side in ('top', 'right'):
@@ -345,7 +397,7 @@ def build_budget_figure(record, *, draws, x_ticks, title):
             for side in ('left', 'bottom'):
                 ax.spines[side].set_color('#AABAC7')
                 ax.spines[side].set_linewidth(.6)
-            ax.set_title(domain_title, fontsize=7.6, fontweight='bold', pad=4)
+            ax.set_title(domain_title, fontsize=8.5, pad=9)
         handles = [Line2D([], [], **STYLES[level], linewidth=1.15,
                           markerfacecolor=STYLES[level]['color'] if level == 2 else 'none',
                           label=f'Level {level}') for level in LEVELS]
@@ -353,7 +405,10 @@ def build_budget_figure(record, *, draws, x_ticks, title):
                    frameon=False, fontsize=7.1, handlelength=2.0, handletextpad=.4, columnspacing=1.4)
         if title:
             fig.text(.076, .985, title, ha='left', va='top', fontsize=8, fontweight='bold')
-        fig.text(.02, .58, 'Mean distinct\nverified modes', rotation=90, ha='center', va='center', fontsize=7.5)
+        width = provider_logo(fig, (.076, .063))
+        fig.text(.076 + width + .008, .063, record['model'].replace('gpt-5.6-sol', 'GPT-5.6 Sol'),
+                 ha='left', va='center', fontsize=7.1, fontweight='bold')
+        fig.text(.02, .58, 'Share of available\nmodes found', rotation=90, ha='center', va='center', fontsize=7.5)
         fig.text(.54, .155, 'Samples per prompt, $k$', ha='center', va='center', fontsize=7.5)
     return fig
 

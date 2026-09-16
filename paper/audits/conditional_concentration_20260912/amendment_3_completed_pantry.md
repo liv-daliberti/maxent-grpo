@@ -1,0 +1,5 @@
+# Retrospective complete-Pantry cohort extension, September 12
+
+The user requested all E118/E119/E120 results be current in both papers. The September12 source census adds exactly ten Level2 Pantry terminal checkpoints; 752 complete initial/terminal checkpoint identities are unchanged and no checkpoint is removed or replaced. All ten are included by endpoint availability. Previous concentration effects and the new P/D endpoint summaries have been inspected; new concentration effects have not. This is a declared retrospective extension, not a prospective experiment.
+
+Keep the original estimator, stream mapping, joint-eligibility rules, five-seed intervals, registered populations, and all sensitivity analyses unchanged. Reuse prior compact data only on exact frozen checkpoint equality. Verify new raw source prefixes and reconstruct original P/D/M first. Preserve the prior cache, result, source snapshot, protocols, and certificates. E118 and original GRPO cohorts do not change; E119 Pantry now has all five training seeds in all four arms.

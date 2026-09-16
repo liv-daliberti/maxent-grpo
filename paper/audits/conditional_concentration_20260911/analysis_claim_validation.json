@@ -1,0 +1,15 @@
+{
+  "status": "pass",
+  "result_sha256": "5c9f69d6961ba7f6938a9a535bf7414c352fe645f668a241bbcdae6637e262d4",
+  "source_cells": 475,
+  "available_checkpoints": 892,
+  "reported_blocks": 135,
+  "longitudinal_graph_pantry_positive": 12,
+  "longitudinal_both_splits_positive": 11,
+  "dr_replay_graph_pantry_negative_both_splits": 6,
+  "artifact_bindings": {
+    "paper/results/conditional_concentration_20260911.json": "5c9f69d6961ba7f6938a9a535bf7414c352fe645f668a241bbcdae6637e262d4",
+    "paper/results/conditional_concentration_20260911_appendix.tex": "3f4c10fc722734f410cb650e4fea669c6a5a7496bd461e9cc5ba9916b3bf8b96",
+    "paper/results/conditional_concentration_20260911_tables.tex": "f4107370e57c34975d058843d6fd66200417ec8291389cad462bf109dab6f159"
+  }
+}

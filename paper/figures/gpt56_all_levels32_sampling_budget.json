@@ -7,9 +7,15 @@
   },
   "renderer": {
     "path": "ops/plot_paper_gpt56_all_levels32_sampling.py",
-    "sha256": "77778a4199b5e664f76224c2bd9cdd617bba4bc4e86d83321d62256caa9e3657"
+    "sha256": "c6a523191477d5f2163f83a6f599452688bb34b0e8bc8efe2c5f2b24f1a98f30"
   },
   "model": "gpt-5.6-sol",
+  "icons": {
+    "gpt-5.6-sol": {
+      "path": "paper/icons/openai.png",
+      "sha256": "97f5c46136fa003d6ca499d21f4dc075f2fbe1d38f1af20e5149dc2e46729d04"
+    }
+  },
   "grading": "normalized_secondary",
   "prompt_arm": "original",
   "cells": [
@@ -162629,8 +162635,8 @@
       "pantry_plan": "#E7ECFB"
     },
     "domain_palette_source": "Figure 2 DOMAIN_PANEL; identical to Figure 3",
-    "y": "Mean distinct verified modes",
-    "y_scale": "linear; separate per domain; includes every support reference",
+    "y": "Share of available modes found",
+    "y_scale": "linear 0-1, shared by all five domains; 1.0 is every enumerated mode",
     "curves": {
       "1": {
         "label": "Level 1",
@@ -162655,7 +162661,9 @@
       }
     },
     "intervals": "Pointwise 95% whole-problem bootstrap intervals from the bound analysis.",
-    "support": "Printed as counts, not drawn as lines: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis's conservative certificate is retained per cell as certified_support.",
+    "support": "Printed as counts and used as each curve's denominator: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis's conservative certificate is retained per cell as certified_support.",
+    "normalization": "Each plotted value is the cell's reconstructed mean distinct verified modes divided by its mean enumerated support. This is a display transform of the retained estimates; no statistic is recomputed.",
+    "shortfall": "The shaded band runs from the best level reached at each budget up to 1.0, so its height is the share of available modes no level ever produced.",
     "endpoints": "All fifteen curves use complete 512-draw pools; no extrapolation."
   },
   "validation": {
@@ -162671,11 +162679,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/gpt56_all_levels32_sampling_budget.pdf",
-      "sha256": "0cad31fd22b50134b04e870d3553f34dfb620661dcedc92decbb0c7c99f13448"
+      "sha256": "5b344cfa5dca53c0c45e20c754d04f9342455fa22ab408d5c72083b3eec40a97"
     },
     "png": {
       "path": "paper/figures/gpt56_all_levels32_sampling_budget.png",
-      "sha256": "bb70554200789d84d21afe9b4b00e23a79f49771dd7dd9e68beb2d0466b24994"
+      "sha256": "c7e1973c61c1e32224348e7c09eb2b257e04efb4216cee80bf9c3559c6c495bd"
     }
   }
 }

@@ -1,0 +1,238 @@
+{
+  "affected_cell_count": 27,
+  "affected_cells": [
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "scale": "qwen3b",
+      "seed": 71
+    }
+  ],
+  "already_admitted_cell_count": 363,
+  "amendment_path": "paper/audits/conditional_concentration_20260914/amendment_4_initial_checkpoint_provenance.md",
+  "amendment_sha256": "3fbe91dbd69ba5f9eed70d47bc3895cc009f4bb3cfbf2ff358838b488906d9df",
+  "created_at_utc": "2026-09-15T01:28:42.363101+00:00",
+  "phase": "frozen_after_amendment_3_effects_before_any_effect_from_a_newly_admitted_initial_checkpoint",
+  "preserved_predecessor": {
+    "amendment": {
+      "path": "paper/audits/conditional_concentration_20260912/amendment_3_completed_pantry.md",
+      "sha256": "adcb4fb0d0ddfc88127a47ca46cacea52e2b28b17e4dc41ddb7a42ecbce237c1"
+    },
+    "cache": {
+      "path": "paper/audits/conditional_concentration_20260912/verified_samples_completed_cohort.jsonl.gz",
+      "sha256": "c54aaa1bc4ccc086af6a2f2f7b09eae3ea31c17094f249f412dea6ba5dba9179"
+    },
+    "receipt": {
+      "path": "paper/audits/conditional_concentration_20260912/collection_receipt_completed_cohort.json",
+      "sha256": "807c9f2cad69caea9f9dfa62787cf7c41794fa458de870fbfcc5eea12c91f5e5"
+    },
+    "result": {
+      "path": "paper/results/conditional_concentration_20260912.json",
+      "sha256": "22cb288ebcca55bbd23562bb4e170655fb2f19122106d794ee16c4e2ac0811a7"
+    }
+  },
+  "reason": "Conflicted step-0 endpoints are watchdog-requeue duplicates evaluated on different GPU models; resolved by attempt provenance, never by metric value.",
+  "reporting_requirement": "Report the before/after contrast under both admissions with the defined-seed count for each, and state that the rule was adopted after the original analysis was specified.",
+  "retrospective": true,
+  "rule_excluded_inputs": [
+    "metric values",
+    "canonical keys",
+    "collision estimates",
+    "effects"
+  ],
+  "rule_inputs": [
+    "file order",
+    "step number",
+    "draw index",
+    "presence of training-step rows"
+  ],
+  "source_snapshot": {
+    "path": "paper/results/training_curve_snapshot_20260912.json",
+    "sha256": "82189d9337087048355e50350b1bf534e0d699a3f29f9d635f8136db7b526d6a"
+  },
+  "status": "frozen_before_new_source_effects",
+  "unresolved_conflicted_cell_count": 9
+}
