@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resume the exact E119 Pantry Re:Dr.GRPO s43 cell after retry exhaustion."""
+"""Resume the exact E119 Pantry Re:Dr s43 cell after retry exhaustion."""
 from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
@@ -79,7 +79,7 @@ def main() -> None:
         row['previous_continuation_job_ids'] = [*row.get('previous_continuation_job_ids', []), OLD]
         row['continuation_job_id'] = new_id
         row['repair_kind'] = '20260905_pantry_s43_artifact_aware_watchdog_continuation'
-        continuation['operational_change'] = str(continuation.get('operational_change', '')) + '; 2026-09-05 Pantry Re:Dr.GRPO s43 continues from480 with current artifact-aware watchdog after prior12-retry exhaustion'
+        continuation['operational_change'] = str(continuation.get('operational_change', '')) + '; 2026-09-05 Pantry Re:Dr s43 continues from480 with current artifact-aware watchdog after prior12-retry exhaustion'
         assert campaign.E119_CONTINUATIONS.read_bytes() == before, 'Concurrent continuation-ledger mutation'
         (ART / 'e119_pantry_s43_continuation.before.json').write_bytes(before)
         atomic(campaign.E119_CONTINUATIONS, continuation)

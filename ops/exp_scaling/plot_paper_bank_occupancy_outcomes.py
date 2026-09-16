@@ -225,7 +225,7 @@ def build_payload(
             "no pooled or causal estimate"
         ),
         "model": "Qwen2.5-0.5B-Instruct",
-        "comparison": "Re:Dr.GRPO minus matched Dr.GRPO",
+        "comparison": "Re:Dr minus matched Dr.GRPO",
         "domain_order": list(DOMAINS),
         "registered_seeds": list(SEEDS),
         "capacity": 16,

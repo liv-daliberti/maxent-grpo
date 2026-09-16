@@ -66,7 +66,7 @@ FRONTIER_METHODS = (
 # Redundant colour-and-shape encoding, so no comparison here depends on colour
 # perception alone. Both channels come from the paper-wide registry rather than
 # being restated locally. They used to be a separate Okabe-Ito set defined right
-# here, which is how this figure ended up painting Re:Dr.GRPO orange while
+# here, which is how this figure ended up painting Re:Dr orange while
 # every other figure in the manuscript paints *matched Dr.GRPO* orange --- the
 # reader met the method under the control's colour in the one figure that
 # carries the headline result. paper_style.FRONTIER_FIVE records the validator
@@ -81,7 +81,7 @@ FRONTIER_VISUALS = {
 FRONTIER_METHOD_LABELS = {
     "drgrpo": "matched Dr.GRPO",
     "grpo": "GRPO",
-    "replay_grpo": "Re:Dr.GRPO (ours)",
+    "replay_grpo": "Re:Dr (ours)",
     "ucpo": "UCPO",
     "rlep_dr": "RLEP-Dr",
 }
@@ -452,7 +452,7 @@ def render(rows: list[dict[str, Any]], output: Path) -> None:
         handles,
         [
             "GRPO − Dr.GRPO",
-            "Re:Dr.GRPO − Dr.GRPO",
+            "Re:Dr − Dr.GRPO",
             "paired seed",
             "mean; 95% interval at n=5",
         ],
@@ -799,11 +799,11 @@ def main() -> int:
     provenance = {
         "schema": "paper-cross-scale-endpoint-effects-v2",
         **common_provenance,
-        "methods": ["GRPO", "matched Dr.GRPO", "Re:Dr.GRPO"],
+        "methods": ["GRPO", "matched Dr.GRPO", "Re:Dr"],
         "metrics": [
-            "Re:Dr.GRPO minus matched Dr.GRPO pass@8",
+            "Re:Dr minus matched Dr.GRPO pass@8",
             (
-                "Re:Dr.GRPO minus matched Dr.GRPO "
+                "Re:Dr minus matched Dr.GRPO "
                 "(distinct@8 - pass@8)"
             ),
             "GRPO minus matched Dr.GRPO pass@8",

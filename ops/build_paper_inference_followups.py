@@ -30,7 +30,7 @@ def read(name):
 def checkpoint(label):
     if label.endswith('initial'):
         return 'Initial'
-    return ('Re:Dr.GRPO' if 'replay_' in label else 'Dr.GRPO') + ' ' + label[-2:]
+    return ('Re:Dr' if 'replay_' in label else 'Dr.GRPO') + ' ' + label[-2:]
 
 
 def ci(metric, scale=1, digits=3):
@@ -108,7 +108,7 @@ registered domain, level, pair, wording and grading sensitivity.
 \subsection{Pantry portfolios under changed requirements}
 \label{app:pantry-adaptation}
 We evaluate the initial Qwen2.5-0.5B checkpoint and Level-2 Dr.GRPO and
-Re:Dr.GRPO checkpoints at fixed seeds 43 and 46 on 32 held-out problems.
+Re:Dr checkpoints at fixed seeds 43 and 46 on 32 held-out problems.
 All 192 single-ingredient outages come from task specifications independently
 of generated answers; exhaustive search of the original quantity grid finds
 181 feasible revised tasks. Verified feasibility witnesses are withheld from
@@ -156,7 +156,7 @@ Table~\ref{tab:pantry-adaptation-contrasts}.}
     for strategy, display in STRATEGIES.items():
         m=p['replay_minus_drgrpo']['fixed_two_seed_average'][strategy+'/outage']
         rows.append([display,ci(m['zero_call_survival'],100,2),ci(m['recovery_at_8'],100,2),ci(m['capped_recovery_calls'],1,2)])
-    tex+=table('Re:Dr.GRPO minus Dr.GRPO under outages, averaging fixed seeds 43 and 46. Survival and final-success changes are percentage points. Intervals resample 32 paired problems.',
+    tex+=table('Re:Dr minus Dr.GRPO under outages, averaging fixed seeds 43 and 46. Survival and final-success changes are percentage points. Intervals resample 32 paired problems.',
                'tab:pantry-adaptation-contrasts',['Strategy',r'$\Delta$ saved',r'$\Delta$ by 8 calls',r'$\Delta$ calls'],rows)
     tex+=r'''Ordinary sampling improves saved survival by 23.83 percentage points
 $[12.16,35.89]$, reduces capped recovery burden by 2.08 calls
@@ -245,7 +245,7 @@ distribution over coarse groups is a separate hypothetical policy.
     for r in local:
         rows.append([{'python_factors':'Python','mathir':'MathIR','pantry':'Pantry'}[r['domain']],r['level'],r['arm'],len(r['seeds']),
                      ci(r['metrics']['fine_distinct8']),ci(r['metrics']['coarse_distinct8'])])
-    tex+=table('Local Re:Dr.GRPO minus Dr.GRPO endpoint probes: 32 problems per domain/level and fixed seed averages. Level-2 trained checkpoints are evaluated at Levels 2 and 3; this is not a reanalysis of every main-paper trajectory. MathIR/Pantry definitions are unchanged.',
+    tex+=table('Local Re:Dr minus Dr.GRPO endpoint probes: 32 problems per domain/level and fixed seed averages. Level-2 trained checkpoints are evaluated at Levels 2 and 3; this is not a reanalysis of every main-paper trajectory. MathIR/Pantry definitions are unchanged.',
                'tab:local-coarse-keys',['Domain','Level','Wording','Seeds',r'Fine $\Delta D@8$',r'Coarse $\Delta D@8$'],rows,'lrllrr')
     tex+=r'''The original-wording Python Level-3 gain falls from $.419$ to zero;
 Level 2 falls from $.431$ to $.075$. Neutral-wording coarse gains remain
@@ -278,7 +278,7 @@ def plot(p):
     fig,axes=plt.subplots(1,3,figsize=(7.35,2.55),sharey=True)
     lines=[]
     for ax,(strategy,title) in zip(axes,STRATEGIES.items()):
-        for group,color,marker,style in [('Initial',MUTED,'s',':'),('Dr.GRPO',CONTROL,'o','--'),('Re:Dr.GRPO',METHOD,'D','-')]:
+        for group,color,marker,style in [('Initial',MUTED,'s',':'),('Dr.GRPO',CONTROL,'o','--'),('Re:Dr',METHOD,'D','-')]:
             models=[m for label,m in p['models'].items() if checkpoint(label).split()[0]==group]
             y=[100*statistics.mean(m['summary'][strategy+'/outage'][f'recovery_at_{i}']['estimate'] for m in models) for i in range(9)]
             line,=ax.plot(range(9),y,color=color,marker=marker,linestyle=style,markersize=3,label=group)

@@ -67,9 +67,9 @@ METHOD_SHORT = {
 METHOD_LABEL = {
     "drgrpo": "Dr.GRPO",
     "grpo": "GRPO",
-    "replay_grpo": "Re:Dr.GRPO",
-    "replay_semantic_maxent": "Fixed Semantic MaxEnt + Re:Dr.GRPO",
-    "adaptive_semantic_replay": "Adaptive Semantic MaxEnt + Re:Dr.GRPO",
+    "replay_grpo": "Re:Dr",
+    "replay_semantic_maxent": "Fixed Semantic MaxEnt + Re:Dr",
+    "adaptive_semantic_replay": "Adaptive Semantic MaxEnt + Re:Dr",
 }
 LEDGERS = {
     "core": ROOT / "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json",

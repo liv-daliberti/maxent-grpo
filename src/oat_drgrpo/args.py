@@ -26,6 +26,10 @@ class ZeroMathArgs(PPOArgs):
         "qwen_pantry_support_mask",
         "qwen_math",
         "qwen_math_route",
+        "qwen_level2_countdown",
+        "qwen_level2_python_factors",
+        "qwen_level2_mathir",
+        "qwen_level2_pantry",
         # Falcon-surface twins render the same contracts for the
         # Falcon3-*-Instruct external-validity cohort.
         "falcon_boxed",
@@ -39,11 +43,21 @@ class ZeroMathArgs(PPOArgs):
     ] = field(default="qwen_math")
     test_split: str = "all"
     verifier_version: Literal["fast", "math_verify"] = field(default="fast")
+    modebench_domain: Literal[
+        "none", "countdown", "graph_coloring", "python_factors", "mathir", "pantry_plan"
+    ] = field(default="none")
+    modebench_syntax_profile: Literal[
+        "none", "domain_legal_v1", "countdown_legal_v3"
+    ] = field(default="none")
 
     # Dr.GRPO is recovered exactly when xdr_tau is infinite. Finite values
     # apply detached candidate weights softmax(U/tau); zero is the exact
     # argmax-set limit.
     xdr_tau: float = math.inf
+    # Replace the ordinary group-centered binary task advantage with the
+    # finite-rollout MaxRL estimator. Verified replay remains a separate
+    # additive current-policy likelihood objective.
+    maxrl_task_objective: bool = False
     # E44 composes reward-directed xDr aggregation with a separately added
     # semantic policy-gradient advantage. When enabled, xDr's detached row
     # weights are computed from the ordinary task advantage captured before
@@ -148,6 +162,10 @@ class ZeroMathArgs(PPOArgs):
     # bounded non-positive bonus preserves task-reward ordering. Zero disables
     # the tracker and recovers the unmodified reward exactly.
     semantic_shannon_coef: float = 0.0
+    # Explicit component-ablation surface. When enabled, the semantic estimator
+    # may remain fully configured at coefficient zero so a control can share
+    # the exact runtime variant and flag surface with a semantic-on arm.
+    semantic_shannon_allow_zero_coefficient_control: bool = False
     semantic_shannon_surprisal_clip: float = 5.0
     semantic_shannon_pseudocount: float = 1.0
     # E41 keeps ordinary task reward as the only input to Dr.GRPO's group
@@ -167,6 +185,51 @@ class ZeroMathArgs(PPOArgs):
     # Only active, parseable, reward-positive rows receive its signed pressure.
     semantic_shannon_success_conditioned_signed_advantage: bool = False
     semantic_shannon_success_conditioned_signed_cap: float = 0.05
+    # Conservative verified-support conditional-entropy gradient surrogate.
+    # It retains open-set surprisal for ranking sampled successful modes, then
+    # centers only over sampled eligible rows. The artificial unseen bucket
+    # cannot create downward pressure unless a distinct verified mode is also
+    # present in the current group.
+    semantic_shannon_success_conditioned_group_centered_advantage: bool = False
+    # Predictor-centered conditional entropy over observed verifier-positive
+    # support only. Unlike v6, persistent history supplies the control variate,
+    # so a rare singleton remains actuated once another verified mode is known.
+    semantic_shannon_success_conditioned_verified_support_advantage: bool = False
+    # Optionally expand the predictor support with validator-positive replay
+    # exemplars, including proposal-only discoveries. Membership is imported;
+    # proposal rows never become on-policy frequency counts.
+    semantic_shannon_verified_support_include_replay_bank: bool = False
+
+    # Uniform-Correct Policy Optimization (Lochab et al., 2026). A positive
+    # value reallocates each prompt group's existing positive advantage mass
+    # toward low-probability verifier-positive rollouts. The paper default is
+    # tau=.2; zero is exactly inactive.
+    ucpo_tau: float = 0.0
+
+    # Decoupled Clip and Dynamic sAmpling Policy Optimization (DAPO; Yu et
+    # al., 2025). The direct baseline uses standard GRPO advantages, the
+    # paper's asymmetric .20/.28 PPO clip, token-level loss aggregation,
+    # accuracy-group dynamic sampling, and soft overlong reward shaping.
+    # Dynamic sampling draws at most ten generation batches to fill this
+    # campaign's one-prompt training batch, matching the official recipe's
+    # fail-closed generation ceiling.
+    dapo_enabled: bool = False
+    dapo_clip_low: float = 0.20
+    dapo_clip_high: float = 0.28
+    dapo_max_num_gen_batches: int = 10
+    dapo_overlong_buffer_ratio: float = 0.20
+    dapo_overlong_penalty_factor: float = 1.0
+
+    # RLEP-Dr comparative baseline. The experience root contains four fixed
+    # 16-sample T=.7/top-p=.95 verifier traces collected from the paired seed
+    # model. A positive count mixes that many verified trajectories into each
+    # fresh prompt group under one common reward baseline.
+    rlep_experience_root: str = ""
+    rlep_replay_count: int = 0
+    # Preserve every fresh prompt update and use replay only where the frozen
+    # seed-specific pool contains the complete prompt-matched replay dose.
+    # False preserves E98's original all-prompts hard gate exactly.
+    rlep_sparse_fallback: bool = False
 
     # E88 adaptive semantic MaxEnt. The coefficient is moved so that the
     # realized ratio of semantic-advantage RMS to task-advantage RMS tracks
@@ -239,9 +302,21 @@ class ZeroMathArgs(PPOArgs):
         "verified_likelihood_per_rollout",
         "split_mass_balance_per_rollout",
     ] = "bank_balance"
+    # Weight the same materialized replay exemplars either uniformly over
+    # retained keys or by cumulative fresh on-policy observation frequency.
+    # This changes only the within-bank target vector.
+    online_canonical_replay_key_weighting: Literal[
+        "uniform",
+        "fresh_frequency",
+    ] = "uniform"
     # A compute budget, not a semantic-support target. The default equals the
     # standard rollout width and never changes in response to evaluation data.
     online_canonical_replay_capacity: int = 16
+    # Freeze membership and fresh-observation counts at this learner step while
+    # continuing to replay and score the retained exemplars. Zero disables the
+    # freeze. This is an audit instrument for identity-level survival, not an
+    # adaptive training rule; it never reads outcomes or evaluation metrics.
+    online_canonical_replay_bank_freeze_step: int = 0
     # Default-off cross-prompt scheduling. A positive value replays this many
     # model-discovered verified prompt banks per optimizer update in persistent
     # round-robin order. It is a fixed compute budget, not a support target.
@@ -253,6 +328,12 @@ class ZeroMathArgs(PPOArgs):
     # checkpointed and never observes evaluation or exhaustive support.
     online_canonical_replay_global_bootstrap_steps: int = 0
     online_canonical_replay_mass_alpha: float = 0.1
+    # Default-off score-space safety cap for the split mass/balance objective.
+    # For each prompt bank, use the largest requested balance scale for which
+    # mass + balance assigns no positive derivative to any verified sequence
+    # score. This keeps every direct replay update retention-preserving while
+    # still applying as much known-bank equalization as the mass term permits.
+    online_canonical_replay_retention_safe_balance: bool = False
     # Compute-matched negative control: retain and teacher-force the same
     # verified replay banks, including the backward traversal, but replace the
     # replay score derivative by exact zeros before it reaches the optimizer.
@@ -265,6 +346,11 @@ class ZeroMathArgs(PPOArgs):
     # PPO. The retry budget and proposal temperatures are search-compute
     # parameters, not support or entropy targets.
     online_canonical_counterfactual_proposals: bool = False
+    # Compute-matched proposal control. Generate, validate, and canonicalize
+    # proposal candidates through the ordinary explorer, but discard the
+    # resulting admission payload before it can mutate support, replay,
+    # retention, or policy-gradient state. Proposal rows still never enter PPO.
+    online_canonical_counterfactual_admission_compute_only: bool = False
     # Keep proposal-derived replay exemplars out of the on-policy count table
     # used by the canonical entropy advantage. This permits a literal
     # E58 objective plus a replay-support actuator without off-policy proposal
@@ -273,14 +359,50 @@ class ZeroMathArgs(PPOArgs):
     # Restrict support-only proposals to a singleton verified bank. At most
     # one new verified outcome is admitted; no adaptive sensor is consulted.
     online_canonical_counterfactual_singleton_only: bool = False
+    # Try deterministic validator-preserving transformations before the
+    # isolated original-prompt sampler. Default-on preserves every historical
+    # proposal variant; a task may disable it when its declared exact support
+    # excludes validator-accepted transformation keys.
+    online_canonical_counterfactual_transform_proposals: bool = True
+    # Separately named, default-off Countdown actuator. It searches a fixed
+    # radius-two neighborhood in the public easy3 action grammar, then applies
+    # the ordinary validator. It never reads the enumerated solution set.
+    online_canonical_counterfactual_exact_grammar_transforms: bool = False
     online_canonical_counterfactual_anchor_max_tokens: int = 256
     online_canonical_counterfactual_max_attempts: int = 3
     online_canonical_counterfactual_sampling_temperature: float = 1.0
+    # Optional target-free reliability fallback. The controller counts only
+    # eligible original-prompt proposal updates with no genuinely new verified
+    # bank admission. After ``patience_updates`` it applies a bounded burst at
+    # ``fallback_max_attempts``, followed by a fixed cooldown if discovery still
+    # fails. Any new verified admission resets the schedule. It never observes
+    # evaluation, exhaustive support, desired mode counts, or entropy targets.
+    online_canonical_counterfactual_starvation_fallback: bool = False
+    online_canonical_counterfactual_starvation_patience_updates: int = 64
+    online_canonical_counterfactual_starvation_fallback_max_attempts: int = 4
+    online_canonical_counterfactual_starvation_burst_updates: int = 16
+    online_canonical_counterfactual_starvation_cooldown_updates: int = 48
     # Optional compute-matching surface. Every prompt update issues exactly
     # this many additional sampling requests with isolated proposal seeds.
     # Proposal-enabled arms may inspect up to ``max_attempts`` groups; all
     # remaining rows are discarded before banks, replay, and PPO.
     online_canonical_counterfactual_fixed_control_groups: int = 0
+    # Newly admitted proposal-only outcomes may receive a fixed number of
+    # replay visits with elevated *mass* weight. The weights are normalized
+    # within the full prompt bank, so the balance loss continues to compare the
+    # complete bank and the total replay-mass budget is unchanged.
+    online_canonical_proposal_replay_priority_visits: int = 0
+    online_canonical_proposal_replay_priority_multiplier: float = 1.0
+    # Default-off successor to E102/E103. Track every proposal-admitted
+    # exemplar's later verifier-positive neutral-rollout frequency and its
+    # teacher-forced replay likelihood. The optional controller refreshes only
+    # bounded mass-replay priority when either training-only signal weakens.
+    online_canonical_proposal_retention_tracking: bool = False
+    online_canonical_proposal_adaptive_retention_priority: bool = False
+    online_canonical_proposal_retention_max_missed_rollout_opportunities: int = 2
+    online_canonical_proposal_retention_max_mean_logprob_drop: float = 0.5
+    online_canonical_proposal_retention_refresh_visits: int = 4
+    online_canonical_proposal_retention_score_cooldown_observations: int = 2
     online_canonical_key_mode: Literal[
         "modebench_outcome",
         "math_verified_answer",
@@ -363,6 +485,14 @@ class ZeroMathArgs(PPOArgs):
     # draw and its spread are logged separately by the learner.
     eval_mode_coverage_draws: int = 4
     eval_mode_coverage_seed: int = 1001
+    # vLLM 0.8.4 V0 expands an ``n=K`` request with seed ``s`` into children
+    # ``s..s+K-1``. Seeding consecutive draws at ``base + draw_index`` therefore
+    # makes them share children: four draws of eight span eleven distinct
+    # streams, not thirty-two, and every success-conditional statistic computed
+    # by pooling a prompt's draws counts those repeats as independent. Striding
+    # by K keeps each draw's block disjoint. Set False only to reproduce a run
+    # recorded before this was fixed.
+    eval_mode_coverage_disjoint_draws: bool = True
     # E72: evaluate the loaded policy exactly once through the ordinary
     # training evaluation path, then exit before any rollout, optimizer step,
     # export, or resume checkpoint. This is how a frozen checkpoint is measured
@@ -410,10 +540,163 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     """Reject configurations outside the single supported training surface."""
 
     canonical_task = resolve_canonical_action_task(args)
-    if args.critic_type != "drgrpo":
-        raise ValueError("This project supports critic_type=drgrpo only")
+    modebench_domain = str(getattr(args, "modebench_domain", "none"))
+    syntax_profile = str(getattr(args, "modebench_syntax_profile", "none"))
+    level2_contracts = {
+        "graph_coloring": ("qwen_boxed", "none"),
+        "countdown": ("qwen_level2_countdown", "countdown_legal_v3"),
+        "python_factors": ("qwen_level2_python_factors", "domain_legal_v1"),
+        "mathir": ("qwen_level2_mathir", "domain_legal_v1"),
+        "pantry_plan": ("qwen_level2_pantry", "domain_legal_v1"),
+    }
+    if modebench_domain == "none":
+        if syntax_profile != "none":
+            raise ValueError("ModeBench syntax profile requires an explicit domain")
+    else:
+        required_template, required_syntax = level2_contracts[modebench_domain]
+        if (args.prompt_template, syntax_profile) != (required_template, required_syntax):
+            raise ValueError(
+                "Level-2 prompt/syntax contract mismatch: "
+                f"domain={modebench_domain} requires "
+                f"({required_template}, {required_syntax})"
+            )
+        if canonical_task != "none":
+            raise ValueError("Level-2 guided syntax and canonical actions are separate policies")
+        if int(getattr(args, "diayn_num_options", 0) or 0) != 0:
+            raise ValueError("Level-2 guided syntax does not admit DIAYN options")
+    # Dr.GRPO is the training surface for every treatment arm. Plain GRPO is
+    # admitted for control arms only, so the paper can show whether correct-mode
+    # collapse depends on Dr.GRPO's debiasing; the canonical bank and the
+    # semantic arms still assert drgrpo below.
+    if args.critic_type not in ("drgrpo", "grpo"):
+        raise ValueError("This project supports critic_type in {drgrpo, grpo}")
     if args.num_samples <= 1:
         raise ValueError("Dr.GRPO requires num_samples > 1")
+    if bool(getattr(args, "maxrl_task_objective", False)):
+        if args.critic_type != "drgrpo":
+            raise ValueError("binary MaxRL requires critic_type=drgrpo")
+        if bool(getattr(args, "dapo_enabled", False)):
+            raise ValueError("binary MaxRL and DAPO are separate objectives")
+        if int(getattr(args, "rlep_replay_count", 0) or 0) != 0:
+            raise ValueError("binary MaxRL does not admit RLEP reward mixing")
+    ucpo_tau = float(getattr(args, "ucpo_tau", 0.0) or 0.0)
+    if not math.isfinite(ucpo_tau) or not 0.0 <= ucpo_tau <= 1.0:
+        raise ValueError("ucpo_tau must be finite and in [0, 1]")
+    dapo_enabled = bool(getattr(args, "dapo_enabled", False))
+    dapo_clip_low = float(getattr(args, "dapo_clip_low", 0.20))
+    dapo_clip_high = float(getattr(args, "dapo_clip_high", 0.28))
+    dapo_max_num_gen_batches = int(
+        getattr(args, "dapo_max_num_gen_batches", 10)
+    )
+    dapo_overlong_buffer_ratio = float(
+        getattr(args, "dapo_overlong_buffer_ratio", 0.20)
+    )
+    dapo_overlong_penalty_factor = float(
+        getattr(args, "dapo_overlong_penalty_factor", 1.0)
+    )
+    if (
+        not math.isfinite(dapo_clip_low)
+        or not math.isfinite(dapo_clip_high)
+        or not 0.0 < dapo_clip_low < 1.0
+        or not dapo_clip_low <= dapo_clip_high < 1.0
+    ):
+        raise ValueError(
+            "DAPO clipping requires 0 < dapo_clip_low <= dapo_clip_high < 1"
+        )
+    if dapo_max_num_gen_batches <= 0:
+        raise ValueError("dapo_max_num_gen_batches must be positive")
+    if (
+        not math.isfinite(dapo_overlong_buffer_ratio)
+        or not 0.0 < dapo_overlong_buffer_ratio < 1.0
+    ):
+        raise ValueError(
+            "dapo_overlong_buffer_ratio must be finite and in (0, 1)"
+        )
+    if (
+        not math.isfinite(dapo_overlong_penalty_factor)
+        or dapo_overlong_penalty_factor < 0.0
+    ):
+        raise ValueError(
+            "dapo_overlong_penalty_factor must be finite and non-negative"
+        )
+    if dapo_enabled:
+        if args.critic_type != "grpo":
+            raise ValueError("DAPO requires critic_type=grpo")
+        if int(args.rollout_batch_size) != 1 or int(
+            args.rollout_batch_size_per_device
+        ) != 1:
+            raise ValueError(
+                "this registered DAPO adapter requires one training prompt per batch"
+            )
+        if int(args.train_batch_size) != int(args.num_samples) or int(
+            args.train_batch_size_per_device
+        ) != int(args.num_samples):
+            raise ValueError(
+                "DAPO requires one complete rollout group per optimizer batch"
+            )
+        if ucpo_tau > 0.0:
+            raise ValueError("DAPO and UCPO are separate comparative baselines")
+    rlep_root = str(getattr(args, "rlep_experience_root", "") or "")
+    rlep_count = int(getattr(args, "rlep_replay_count", 0) or 0)
+    if rlep_count < 0:
+        raise ValueError("rlep_replay_count must be non-negative")
+    if bool(rlep_root) != bool(rlep_count):
+        raise ValueError(
+            "rlep_experience_root and rlep_replay_count must be enabled together"
+        )
+    if bool(getattr(args, "rlep_sparse_fallback", False)) and not rlep_count:
+        raise ValueError(
+            "rlep_sparse_fallback requires an enabled RLEP experience pool"
+        )
+    if dapo_enabled and rlep_count:
+        raise ValueError("DAPO and RLEP-Dr are separate comparative baselines")
+    if rlep_count:
+        if args.critic_type != "drgrpo":
+            raise ValueError("RLEP-Dr requires critic_type=drgrpo")
+        if int(args.num_samples) != 16 or int(args.rollout_batch_size) != 1:
+            raise ValueError("RLEP-Dr requires one fresh 16-row prompt group")
+        if ucpo_tau > 0.0:
+            raise ValueError("RLEP-Dr and UCPO are separate comparative baselines")
+        if bool(getattr(args, "online_canonical_replay", False)):
+            raise ValueError("RLEP-Dr cannot be combined with canonical replay")
+    if dapo_enabled:
+        incompatible = {
+            "finite xDr tau": math.isfinite(float(args.xdr_tau)),
+            "direct MaxEnt": float(getattr(args, "maxent_alpha", 0.0) or 0.0)
+            != 0.0,
+            "token entropy": float(
+                getattr(args, "policy_entropy_coef", 0.0) or 0.0
+            )
+            != 0.0,
+            "SEED": float(getattr(args, "seed_entropy_alpha", 0.0) or 0.0)
+            != 0.0,
+            "semantic Shannon": float(
+                getattr(args, "semantic_shannon_coef", 0.0) or 0.0
+            )
+            != 0.0,
+            "outcome collision": float(
+                getattr(args, "outcome_collision_coef", 0.0) or 0.0
+            )
+            != 0.0,
+            "DIAYN": float(getattr(args, "diayn_mi_beta", 0.0) or 0.0)
+            != 0.0,
+            "canonical bank objective": float(
+                getattr(args, "online_canonical_bank_alpha", 0.0) or 0.0
+            )
+            != 0.0,
+            "canonical replay": bool(
+                getattr(args, "online_canonical_replay", False)
+            ),
+            "verified discovery tracking": bool(
+                getattr(args, "verified_discovery_tracking", True)
+            ),
+        }
+        active = sorted(name for name, enabled in incompatible.items() if enabled)
+        if active:
+            raise ValueError(
+                "DAPO must be an isolated direct baseline; incompatible "
+                f"components are active: {active}"
+            )
     for name in ("export_from", "resume_from"):
         if int(getattr(args, name)) < 0:
             raise ValueError(f"{name} must be non-negative")
@@ -474,6 +757,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "outcome_collision_coef"
         )
     semantic_shannon_coef = float(getattr(args, "semantic_shannon_coef", 0.0) or 0.0)
+    semantic_shannon_allow_zero_coefficient_control = bool(
+        getattr(args, "semantic_shannon_allow_zero_coefficient_control", False)
+    )
     semantic_shannon_surprisal_clip = float(
         getattr(args, "semantic_shannon_surprisal_clip", 5.0)
     )
@@ -502,6 +788,32 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "semantic_shannon_success_conditioned_signed_cap",
             0.05,
         )
+    )
+    semantic_shannon_success_conditioned_group_centered_advantage = bool(
+        getattr(
+            args,
+            "semantic_shannon_success_conditioned_group_centered_advantage",
+            False,
+        )
+    )
+    semantic_shannon_success_conditioned_verified_support_advantage = bool(
+        getattr(
+            args,
+            "semantic_shannon_success_conditioned_verified_support_advantage",
+            False,
+        )
+    )
+    semantic_shannon_verified_support_include_replay_bank = bool(
+        getattr(
+            args,
+            "semantic_shannon_verified_support_include_replay_bank",
+            False,
+        )
+    )
+    semantic_shannon_success_conditioned_advantage = bool(
+        semantic_shannon_success_conditioned_signed_advantage
+        or semantic_shannon_success_conditioned_group_centered_advantage
+        or semantic_shannon_success_conditioned_verified_support_advantage
     )
     online_canonical_bank_alpha = float(
         getattr(args, "online_canonical_bank_alpha", 0.0) or 0.0
@@ -552,6 +864,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     online_canonical_replay_alpha = float(
         getattr(args, "online_canonical_replay_alpha", 0.1)
     )
+    online_canonical_replay_key_weighting = str(
+        getattr(args, "online_canonical_replay_key_weighting", "uniform")
+    )
     online_canonical_replay_objective = str(
         getattr(
             args,
@@ -561,6 +876,9 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     )
     online_canonical_replay_capacity = int(
         getattr(args, "online_canonical_replay_capacity", 16)
+    )
+    online_canonical_replay_bank_freeze_step = int(
+        getattr(args, "online_canonical_replay_bank_freeze_step", 0)
     )
     online_canonical_replay_global_groups_per_step = int(
         getattr(
@@ -579,10 +897,24 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
     online_canonical_replay_mass_alpha = float(
         getattr(args, "online_canonical_replay_mass_alpha", 0.1)
     )
+    online_canonical_replay_retention_safe_balance = bool(
+        getattr(
+            args,
+            "online_canonical_replay_retention_safe_balance",
+            False,
+        )
+    )
     online_canonical_counterfactual_proposals = bool(
         getattr(
             args,
             "online_canonical_counterfactual_proposals",
+            False,
+        )
+    )
+    online_canonical_counterfactual_admission_compute_only = bool(
+        getattr(
+            args,
+            "online_canonical_counterfactual_admission_compute_only",
             False,
         )
     )
@@ -697,8 +1029,32 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "verified_likelihood or verified_likelihood_per_rollout or "
             "split_mass_balance_per_rollout"
         )
+    if online_canonical_replay_key_weighting not in {
+        "uniform",
+        "fresh_frequency",
+    }:
+        raise ValueError(
+            "online_canonical_replay_key_weighting must be uniform or "
+            "fresh_frequency"
+        )
+    if (
+        online_canonical_replay_key_weighting != "uniform"
+        and not online_canonical_replay
+    ):
+        raise ValueError(
+            "non-uniform online_canonical_replay_key_weighting requires "
+            "online_canonical_replay"
+        )
     if online_canonical_replay_capacity < 2:
         raise ValueError("online_canonical_replay_capacity must be at least two")
+    if online_canonical_replay_bank_freeze_step < 0:
+        raise ValueError(
+            "online_canonical_replay_bank_freeze_step must be non-negative"
+        )
+    if online_canonical_replay_bank_freeze_step > 0 and not online_canonical_replay:
+        raise ValueError(
+            "online_canonical_replay_bank_freeze_step requires canonical replay"
+        )
     online_canonical_replay_bank_normalized = bool(
         getattr(args, "online_canonical_replay_bank_normalized", False)
     )
@@ -761,6 +1117,17 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "online_canonical_replay_mass_alpha must be finite and positive, "
             "or exactly zero for a split mass/balance ablation"
         )
+    if online_canonical_replay_retention_safe_balance:
+        if not online_canonical_replay:
+            raise ValueError("retention-safe balance requires canonical replay")
+        if online_canonical_replay_objective != "split_mass_balance_per_rollout":
+            raise ValueError(
+                "retention-safe balance requires split_mass_balance_per_rollout"
+            )
+        if online_canonical_replay_mass_alpha <= 0.0:
+            raise ValueError(
+                "retention-safe balance requires positive verified-mass pressure"
+            )
     if (
         bool(getattr(args, "online_canonical_replay_compute_only", False))
         and not online_canonical_replay
@@ -790,6 +1157,41 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             1.0,
         )
     )
+    online_canonical_counterfactual_starvation_fallback = bool(
+        getattr(
+            args,
+            "online_canonical_counterfactual_starvation_fallback",
+            False,
+        )
+    )
+    online_canonical_counterfactual_starvation_patience_updates = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_starvation_patience_updates",
+            64,
+        )
+    )
+    online_canonical_counterfactual_starvation_fallback_max_attempts = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_starvation_fallback_max_attempts",
+            4,
+        )
+    )
+    online_canonical_counterfactual_starvation_burst_updates = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_starvation_burst_updates",
+            16,
+        )
+    )
+    online_canonical_counterfactual_starvation_cooldown_updates = int(
+        getattr(
+            args,
+            "online_canonical_counterfactual_starvation_cooldown_updates",
+            48,
+        )
+    )
     online_canonical_counterfactual_fixed_control_groups = int(
         getattr(
             args,
@@ -797,11 +1199,163 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             0,
         )
     )
+    online_canonical_proposal_replay_priority_visits = int(
+        getattr(
+            args,
+            "online_canonical_proposal_replay_priority_visits",
+            0,
+        )
+    )
+    online_canonical_proposal_replay_priority_multiplier = float(
+        getattr(
+            args,
+            "online_canonical_proposal_replay_priority_multiplier",
+            1.0,
+        )
+    )
+    online_canonical_proposal_retention_tracking = bool(
+        getattr(args, "online_canonical_proposal_retention_tracking", False)
+    )
+    online_canonical_proposal_adaptive_retention_priority = bool(
+        getattr(
+            args,
+            "online_canonical_proposal_adaptive_retention_priority",
+            False,
+        )
+    )
+    online_canonical_proposal_retention_max_missed_rollout_opportunities = int(
+        getattr(
+            args,
+            "online_canonical_proposal_retention_max_missed_rollout_opportunities",
+            2,
+        )
+    )
+    online_canonical_proposal_retention_max_mean_logprob_drop = float(
+        getattr(
+            args,
+            "online_canonical_proposal_retention_max_mean_logprob_drop",
+            0.5,
+        )
+    )
+    online_canonical_proposal_retention_refresh_visits = int(
+        getattr(
+            args,
+            "online_canonical_proposal_retention_refresh_visits",
+            4,
+        )
+    )
+    online_canonical_proposal_retention_score_cooldown_observations = int(
+        getattr(
+            args,
+            "online_canonical_proposal_retention_score_cooldown_observations",
+            2,
+        )
+    )
     if online_canonical_counterfactual_fixed_control_groups < 0:
         raise ValueError(
             "online_canonical_counterfactual_fixed_control_groups must be "
             "non-negative"
         )
+    if online_canonical_proposal_replay_priority_visits < 0:
+        raise ValueError("proposal replay priority visits must be non-negative")
+    if (
+        not math.isfinite(online_canonical_proposal_replay_priority_multiplier)
+        or online_canonical_proposal_replay_priority_multiplier < 1.0
+    ):
+        raise ValueError(
+            "proposal replay priority multiplier must be finite and at least one"
+        )
+    if online_canonical_proposal_replay_priority_visits > 0:
+        if not online_canonical_counterfactual_proposals:
+            raise ValueError(
+                "proposal replay priority requires counterfactual proposals"
+            )
+        if not online_canonical_counterfactual_separate_objective_support:
+            raise ValueError(
+                "proposal replay priority requires separate proposal support"
+            )
+        if online_canonical_proposal_replay_priority_multiplier <= 1.0:
+            raise ValueError(
+                "positive proposal priority visits require multiplier greater than one"
+            )
+    elif not math.isclose(
+        online_canonical_proposal_replay_priority_multiplier,
+        1.0,
+        rel_tol=0.0,
+        abs_tol=1e-12,
+    ):
+        raise ValueError(
+            "proposal priority multiplier must be one when priority is disabled"
+        )
+    for name, value in (
+        (
+            "online_canonical_proposal_retention_max_missed_rollout_opportunities",
+            online_canonical_proposal_retention_max_missed_rollout_opportunities,
+        ),
+        (
+            "online_canonical_proposal_retention_refresh_visits",
+            online_canonical_proposal_retention_refresh_visits,
+        ),
+        (
+            "online_canonical_proposal_retention_score_cooldown_observations",
+            online_canonical_proposal_retention_score_cooldown_observations,
+        ),
+    ):
+        if value <= 0:
+            raise ValueError(f"{name} must be positive")
+    if (
+        not math.isfinite(
+            online_canonical_proposal_retention_max_mean_logprob_drop
+        )
+        or online_canonical_proposal_retention_max_mean_logprob_drop <= 0.0
+    ):
+        raise ValueError(
+            "online_canonical_proposal_retention_max_mean_logprob_drop must be "
+            "finite and positive"
+        )
+    if online_canonical_proposal_adaptive_retention_priority and not (
+        online_canonical_proposal_retention_tracking
+    ):
+        raise ValueError(
+            "adaptive proposal retention priority requires retention tracking"
+        )
+    if online_canonical_proposal_retention_tracking:
+        if not online_canonical_counterfactual_proposals:
+            raise ValueError(
+                "proposal retention tracking requires counterfactual proposals"
+            )
+        if not online_canonical_counterfactual_separate_objective_support:
+            raise ValueError(
+                "proposal retention tracking requires separate proposal support"
+            )
+    if online_canonical_proposal_adaptive_retention_priority:
+        if online_canonical_proposal_replay_priority_visits <= 0:
+            raise ValueError(
+                "adaptive proposal retention priority requires proposal priority"
+            )
+        if online_canonical_replay_global_groups_per_step <= 0:
+            raise ValueError(
+                "adaptive proposal retention priority requires global replay"
+            )
+        if (
+            online_canonical_proposal_retention_refresh_visits
+            > online_canonical_proposal_replay_priority_visits
+        ):
+            raise ValueError(
+                "retention refresh visits may not exceed initial priority visits"
+            )
+        if online_canonical_replay_objective not in {
+            "verified_likelihood",
+            "verified_likelihood_per_rollout",
+            "split_mass_balance_per_rollout",
+        }:
+            raise ValueError(
+                "adaptive proposal retention priority requires a replay mass objective"
+            )
+        if bool(getattr(args, "online_canonical_replay_compute_only", False)):
+            raise ValueError(
+                "adaptive proposal retention priority conflicts with compute-only replay"
+            )
     if (
         online_canonical_counterfactual_fixed_control_groups > 0
         and not bool(getattr(args, "replicated_freeform_sampling", False))
@@ -827,6 +1381,52 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "online_canonical_counterfactual_sampling_temperature must be "
             "finite and positive"
         )
+    for name, value, minimum in (
+        (
+            "online_canonical_counterfactual_starvation_patience_updates",
+            online_canonical_counterfactual_starvation_patience_updates,
+            1,
+        ),
+        (
+            "online_canonical_counterfactual_starvation_fallback_max_attempts",
+            online_canonical_counterfactual_starvation_fallback_max_attempts,
+            1,
+        ),
+        (
+            "online_canonical_counterfactual_starvation_burst_updates",
+            online_canonical_counterfactual_starvation_burst_updates,
+            1,
+        ),
+        (
+            "online_canonical_counterfactual_starvation_cooldown_updates",
+            online_canonical_counterfactual_starvation_cooldown_updates,
+            0,
+        ),
+    ):
+        if value < minimum:
+            raise ValueError(f"{name} must be at least {minimum}")
+    if online_canonical_counterfactual_starvation_fallback:
+        if not online_canonical_counterfactual_proposals:
+            raise ValueError(
+                "proposal starvation fallback requires counterfactual proposals"
+            )
+        if (
+            online_canonical_counterfactual_starvation_fallback_max_attempts
+            <= online_canonical_counterfactual_max_attempts
+        ):
+            raise ValueError(
+                "proposal starvation fallback max attempts must exceed the base "
+                "proposal max attempts"
+            )
+        if (
+            online_canonical_counterfactual_fixed_control_groups > 0
+            and online_canonical_counterfactual_fixed_control_groups
+            < online_canonical_counterfactual_starvation_fallback_max_attempts
+        ):
+            raise ValueError(
+                "fixed counterfactual control groups must cover every fallback "
+                "proposal attempt"
+            )
     if online_canonical_replay:
         if not bool(getattr(args, "verified_discovery_tracking", True)):
             raise ValueError(
@@ -869,6 +1469,14 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         raise ValueError(
             "separate counterfactual objective support requires "
             "counterfactual proposals"
+        )
+    if (
+        online_canonical_counterfactual_admission_compute_only
+        and not online_canonical_counterfactual_proposals
+    ):
+        raise ValueError(
+            "counterfactual admission compute-only requires counterfactual "
+            "proposals"
         )
     if (
         online_canonical_counterfactual_singleton_only
@@ -1075,10 +1683,23 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         or semantic_shannon_pseudocount <= 0
     ):
         raise ValueError("semantic_shannon_pseudocount must be finite and positive")
-    if semantic_shannon_separate_advantage and semantic_shannon_coef <= 0:
+    if (
+        semantic_shannon_separate_advantage
+        and semantic_shannon_coef <= 0
+        and not semantic_shannon_allow_zero_coefficient_control
+    ):
         raise ValueError(
             "semantic_shannon_separate_advantage requires a positive "
-            "semantic_shannon_coef"
+            "semantic_shannon_coef unless the explicit zero-coefficient "
+            "control surface is enabled"
+        )
+    if (
+        semantic_shannon_allow_zero_coefficient_control
+        and not semantic_shannon_separate_advantage
+    ):
+        raise ValueError(
+            "semantic zero-coefficient control requires "
+            "semantic_shannon_separate_advantage"
         )
     if semantic_shannon_separate_advantage and args.critic_type != "drgrpo":
         raise ValueError(
@@ -1115,7 +1736,34 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "semantic_shannon_success_conditioned_signed_advantage requires "
             "semantic_shannon_separate_advantage"
         )
+    if (
+        semantic_shannon_success_conditioned_group_centered_advantage
+        and not semantic_shannon_separate_advantage
+    ):
+        raise ValueError(
+            "semantic_shannon_success_conditioned_group_centered_advantage "
+            "requires semantic_shannon_separate_advantage"
+        )
+    if (
+        semantic_shannon_success_conditioned_verified_support_advantage
+        and not semantic_shannon_separate_advantage
+    ):
+        raise ValueError(
+            "semantic_shannon_success_conditioned_verified_support_advantage "
+            "requires semantic_shannon_separate_advantage"
+        )
+    if semantic_shannon_verified_support_include_replay_bank:
+        if not semantic_shannon_success_conditioned_verified_support_advantage:
+            raise ValueError(
+                "replay-bank semantic support requires verified-support mode"
+            )
+        if not online_canonical_replay:
+            raise ValueError(
+                "replay-bank semantic support requires online canonical replay"
+            )
+
     if bool(getattr(args, "semantic_rms_control", False)):
+
         if not semantic_shannon_success_conditioned_signed_advantage:
             raise ValueError(
                 "semantic_rms_control requires the success-conditioned signed "
@@ -1149,13 +1797,18 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             raise ValueError("semantic_rms_max_step_ratio must exceed 1")
         if int(getattr(args, "semantic_rms_warmup_steps", -1)) < 0:
             raise ValueError("semantic_rms_warmup_steps must be non-negative")
-    if (
-        semantic_shannon_success_conditioned_signed_advantage
-        and semantic_shannon_quality_gated_advantage
-    ):
+    if sum(
+        (
+            semantic_shannon_success_conditioned_signed_advantage,
+            semantic_shannon_success_conditioned_group_centered_advantage,
+            semantic_shannon_success_conditioned_verified_support_advantage,
+            semantic_shannon_quality_gated_advantage,
+        )
+    ) > 1:
         raise ValueError(
-            "semantic Shannon quality-gated and success-conditioned signed "
-            "advantages are separate treatments"
+            "semantic Shannon quality-gated, success-conditioned signed, "
+            "group-centered, and verified-support advantages are separate "
+            "treatments"
         )
     xdr_task_advantage_weights = bool(
         getattr(args, "xdr_task_advantage_weights", False)
@@ -1209,7 +1862,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "separate treatments"
             )
         open_set_maxent_composition = (
-            semantic_shannon_success_conditioned_signed_advantage
+            semantic_shannon_success_conditioned_advantage
             and bool(getattr(args, "maxent_inverse_adaptation", False))
             and str(getattr(args, "maxent_objective", "sequence"))
             == "conditional_token_mean"
@@ -1240,7 +1893,7 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
         # is what lets semantic MaxEnt be measured against verified replay
         # without also inheriting the balance loss.
         open_set_replay_composition = (
-            semantic_shannon_success_conditioned_signed_advantage
+            semantic_shannon_success_conditioned_advantage
             and online_canonical_replay
             and online_canonical_replay_objective
             in {
@@ -1345,10 +1998,15 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
                 "local_actor_weight_sync"
             )
     if online_canonical_counterfactual_proposals:
-        if not replicated_freeform_sampling:
+        canonical_pantry_proposals = (
+            canonical_task == "pantry_support_mask"
+            and canonical_learner_sampling
+            and canonical_fixed_shape_sampling
+        )
+        if not replicated_freeform_sampling and not canonical_pantry_proposals:
             raise ValueError(
                 "counterfactual canonical proposals require replicated "
-                "free-form sampling"
+                "free-form sampling or the fixed-shape Pantry learner sampler"
             )
     if bool(args.local_actor_weight_sync):
         if not replicated_freeform_sampling:

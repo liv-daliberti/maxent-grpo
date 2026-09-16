@@ -47,11 +47,11 @@ METRICS = {"pass8": "Accuracy (pass@8)", "distinct8": "Correct modes (distinct@8
 METHODS = {
     "drgrpo": {"label": "Dr.GRPO", "color": style.CONTROL,
                "marker": "o", "fill": "none", "dash": (0, (4, 1.7))},
-    "replay_drgrpo": {"label": "Re:Dr.GRPO", "color": style.ADAPTIVE,
+    "replay_drgrpo": {"label": "Re:Dr", "color": style.ADAPTIVE,
                       "marker": "o", "fill": style.ADAPTIVE, "dash": "-"},
     "maxrl": {"label": "MaxRL", "color": style.COMPARATOR,
               "marker": "s", "fill": "none", "dash": (0, (4, 1.7))},
-    "replay_maxrl": {"label": "Re:MaxRL", "color": style.ABLATION,
+    "replay_maxrl": {"label": "Re:Max", "color": style.ABLATION,
                      "marker": "s", "fill": style.ABLATION, "dash": "-"},
 }
 

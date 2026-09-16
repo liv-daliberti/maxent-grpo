@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Outcome-blind E111 audit for v7 discovery, ReplayDr, and entropy actuation."""
+"""Outcome-blind E111 audit for v7 discovery, Re:Dr, and entropy actuation."""
 
 from __future__ import annotations
 
@@ -173,7 +173,7 @@ def parse_run(
 ) -> tuple[dict[str, Any], list[str]]:
     paths = shared.metric_paths(run_dir)
     report, violations = shared.parse_metrics(paths)
-    # E111 preregisters uniform verified-likelihood ReplayDr with this E102-only
+    # E111 preregisters uniform verified-likelihood Re:Dr with this E102-only
     # clipping mechanism disabled. Preserve every shared safety check except
     # the one that contradicts E111's frozen treatment identity.
     violations = [
@@ -360,10 +360,10 @@ def parse_run(
         or abs(mass_weight_max - 1.0) > UNIFORM_TOLERANCE
     ):
         violations.append(
-            f"ReplayDr mass weights were nonuniform: {mass_weight_min}, {mass_weight_max}"
+            f"Re:Dr mass weights were nonuniform: {mass_weight_min}, {mass_weight_max}"
         )
     if replay_groups_max > 0.0 and replay_gradient_l2_max <= 0.0:
-        violations.append("materialized ReplayDr groups had no applied gradient")
+        violations.append("materialized Re:Dr groups had no applied gradient")
     if not retention_tracking_seen or retention_tracking_min < 1.0:
         violations.append("diagnostic admission-retention tracking was absent")
     if not adaptive_seen or adaptive_max > 0.0:
@@ -599,7 +599,7 @@ def main() -> int:
     for scale in launch.SCALE_SEEDS:
         if not scale_chain_cells.get(scale):
             violations.append(
-                f"{scale}: no cell completed discovery-to-ReplayDr-to-v7 actuation"
+                f"{scale}: no cell completed discovery-to-Re:Dr-to-v7 actuation"
             )
 
     payload = {

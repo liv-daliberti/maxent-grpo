@@ -90,7 +90,7 @@ def prepare():
     AMENDMENT.write_text('''# E118 node302 priority handoff — September 6, 2026
 
 The user explicitly confirmed: “Requeue it; prioritize E118.” Requeue only
-E119 Pantry Re:Dr.GRPO seed43, effective job31075341, into a user hold after
+E119 Pantry Re:Dr seed43, effective job31075341, into a user hold after
 archiving logs and validating its latest complete model and optimizer checkpoint
 and all three saved counters. Preserve its same job ID, registered run directory,
 128GiB host memory,8CPUs,1GPU,36-hour walltime, frozen scientific/runtime exports,

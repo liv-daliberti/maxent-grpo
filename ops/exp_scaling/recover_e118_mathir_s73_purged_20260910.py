@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore E118 MathIR Re:MaxRL s73's owned long fallback after Slurm purged its hourly ID."""
+"""Restore E118 MathIR Re:Max s73's owned long fallback after Slurm purged its hourly ID."""
 from __future__ import annotations
 
 import argparse

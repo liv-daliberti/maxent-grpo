@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Continue timed-out E118 Qwen-3B Graph/Re:MaxRL seed 73."""
+"""Continue timed-out E118 Qwen-3B Graph/Re:Max seed 73."""
 
 from pathlib import Path
 

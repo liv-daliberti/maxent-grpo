@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render paired, training-wide Re:Dr.GRPO effects for Qwen2.5-0.5B.
+"""Render paired, training-wide Re:Dr effects for Qwen2.5-0.5B.
 
 The terminal E78 record already contains the preregistered trapezoidal AUC
 through every half-pass checkpoint from zero through eight passes.  This view
@@ -175,7 +175,7 @@ def build() -> dict[str, Any]:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": "balanced five-seed full-trajectory effect forest",
         "model": "Qwen2.5-0.5B-Instruct",
-        "comparison": "Re:Dr.GRPO minus matched Dr.GRPO",
+        "comparison": "Re:Dr minus matched Dr.GRPO",
         "domain_order": list(DOMAIN_ORDER),
         "paired_seeds": list(SEEDS),
         "metrics": {
@@ -307,7 +307,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
         ncol=5,
     )
     figure.suptitle(
-        "Sustained Re:Dr.GRPO (ours) effects through training",
+        "Sustained Re:Dr (ours) effects through training",
         fontsize=style.TITLE_FONT,
         color=style.INK,
         y=0.995,
@@ -316,7 +316,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
         0.5,
         0.925,
         (
-            "Re:Dr.GRPO (ours) − matched Dr.GRPO · trapezoidal AUC over all 17 "
+            "Re:Dr (ours) − matched Dr.GRPO · trapezoidal AUC over all 17 "
             "checkpoints from 0–8 passes; paired n=5; no domain pooling."
         ),
         ha="center",

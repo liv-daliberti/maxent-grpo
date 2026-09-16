@@ -2,12 +2,12 @@
   "family": "correct_budget_local",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/analysis_complete_caption_20260912_v1/modebench_discovery_correct_budget_local.pdf",
-      "sha256": "a84091e480819713fd45b81b3f8e5179f73fcc5674f9a4934b14c9e55f7c8a6e"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260915_rename/modebench_discovery_correct_budget_local.pdf",
+      "sha256": "dc4b915ae9dcc98b386fa84636e9a25588c4b45fb9a16690aaac79a8cfb45007"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/analysis_complete_caption_20260912_v1/modebench_discovery_correct_budget_local.png",
-      "sha256": "3158730d68fb02168f91ba52a9083259f1aa2715463f0a2b455d7eeee1440223"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260915_rename/modebench_discovery_correct_budget_local.png",
+      "sha256": "0cc70f3c4a45a6f1ff8edb63c882a976851bef1c0ca8c89a3f251961312dc6e3"
     }
   },
   "plotted_records": [
@@ -1164,7 +1164,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "method": "replay_drgrpo",
       "metrics": {
@@ -2754,7 +2754,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "method": "replay_drgrpo",
       "metrics": {
@@ -4479,7 +4479,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "method": "replay_drgrpo",
       "metrics": {
@@ -6258,7 +6258,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "method": "replay_drgrpo",
       "metrics": {
@@ -8278,7 +8278,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "method": "replay_drgrpo",
       "metrics": {
@@ -10693,7 +10693,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "method": "replay_drgrpo",
       "metrics": {
@@ -12670,7 +12670,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "method": "replay_drgrpo",
       "metrics": {
@@ -14260,7 +14260,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "method": "replay_drgrpo",
       "metrics": {
@@ -15985,7 +15985,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "method": "replay_drgrpo",
       "metrics": {
@@ -17764,7 +17764,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "method": "replay_drgrpo",
       "metrics": {
@@ -19784,7 +19784,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "method": "replay_drgrpo",
       "metrics": {
@@ -22199,7 +22199,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "method": "replay_drgrpo",
       "metrics": {
@@ -23024,6 +23024,6 @@
       }
     }
   ],
-  "report_sha256": "389f94cb5363907ad9ebaafc0e4ec6429fa0757826d4b98758b16911297d0716",
+  "report_sha256": "8c69e4ec8e8a54b369ac6f28e3a1eac92d1b2b329d38e82a54d390d91686154d",
   "schema": "modebench-discovery-figure-v1"
 }

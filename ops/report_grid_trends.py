@@ -3,7 +3,7 @@
 
 Means are taken over cells COMMON to every model being compared. Averaging each
 model over whatever cells it happens to have finished mixes domains that differ
-far more in PMD than the models do, which can invent or hide a trend while the
+far more in PCMD than the models do, which can invent or hide a trend while the
 grid is still filling in.
 """
 from __future__ import annotations
@@ -73,7 +73,7 @@ def main() -> None:
         for model in models:
             m = means[model]
             print(f'   {grid.MODEL_PARAMS[model]:6.2f}B {model:10s} '
-                  f'PMD={m["pmd"]:.3f}  pass8={m["pass8"]:.3f}')
+                  f'PCMD={m["pmd"]:.3f}  pass8={m["pass8"]:.3f}')
 
     print('\n== cross-family at matched scale (paired on cells shared by the listed models)')
     for low, high, label in ((6.0, 8.0, '~7B'), (10.0, 15.0, '10-15B'), (0.1, 2.0, 'under 2B')):
@@ -92,7 +92,7 @@ def main() -> None:
         for model in models:
             m = means[model]
             print(f'   {grid.MODEL_PARAMS[model]:6.2f}B {model:10s} {grid.MODEL_FAMILY[model]:9s} '
-                  f'PMD={m["pmd"]:.3f}  pass8={m["pass8"]:.3f}')
+                  f'PCMD={m["pmd"]:.3f}  pass8={m["pass8"]:.3f}')
 
 
 if __name__ == '__main__':

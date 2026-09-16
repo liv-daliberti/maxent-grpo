@@ -7,10 +7,16 @@ ADDITIONAL_METHODS = {
     'grpo_plain_control': ('GRPO', 'Reward-standardized group-relative task update, with no auxiliary replay derivative.'),
     'ucpo': ('UCPO', 'Reallocates positive advantage within the current on-policy rollout group.'),
     'rlep_dr_sparse': ('Sparse RLEP-Dr', 'Sparse replay of verified successes in observed frequency, without canonical-key balancing.'),
-    'semantic': ('Fixed Semantic-MaxEnt + Re:Dr.GRPO', 'Fixed detached surprisal over verified canonical outcomes, added to Dr.GRPO with verified replay.'),
+    'semantic': ('Fixed Semantic-MaxEnt + Re:Dr', 'Fixed detached surprisal over verified canonical outcomes, added to Dr.GRPO with verified replay.'),
     'semantic_only': ('Fixed Semantic-MaxEnt', 'The fixed semantic advantage with the replay derivative disabled.'),
-    'verified_support_discovery': ('Verified-support semantic + proposal bundle', 'Re:Dr.GRPO augmented with semantic regularization and an isolated verified proposal sampler; a bundled comparison.'),
-    'fixed_bank_survival': ('Fixed-bank survival', 'Re:Dr.GRPO with a bank frozen at the registered boundary and exemplar-likelihood survival telemetry.'),
+    'verified_support_discovery': ('Verified-support semantic + proposal bundle', 'Re:Dr augmented with semantic regularization and an isolated verified proposal sampler; a bundled comparison.'),
+    'fixed_bank_survival': ('Fixed-bank survival', 'Re:Dr with a bank frozen at the registered boundary and exemplar-likelihood survival telemetry.'),
+    # Each line below restates its cohort's registered scientific difference, so
+    # the method text on a model card cannot drift from the study text beside it.
+    'adaptive_semantic_reachable': ('RMS-targeted Semantic-MaxEnt', 'Semantic surprisal over verified canonical outcomes with the coefficient controlled to reach a realized semantic/task advantage RMS ratio, rather than held at a fixed eta.'),
+    'bank_normalized_replay': ('Bank-normalized verified replay', 'Verified replay whose dose scales with the number of banked modes, alpha = per_mode_coefficient x banked_modes, instead of splitting one fixed dose across them.'),
+    'full_open_bank': ('Full open-bank MaxEnt replay', 'Verified replay plus direct whole-bank balance, retention-safe capping, target-free original-prompt discovery, and fresh-mode mass priority; the four components are introduced together.'),
+    'starvation_fallback': ('Open-bank replay with starvation fallback', 'Full open-bank MaxEnt replay with a target-free bounded increase in original-prompt proposal attempts after verified admissions stall.'),
 }
 
 
@@ -23,6 +29,42 @@ DIRECT = 'Direct comparator family. Apply the paper’s frozen model/domain/seed
 FIXED = 'Fixed-semantic ablation family. This comparator is separate from canonical replay alone and from the verified-support proposal bundle.'
 SUPPORT = 'Reported exploratory bundled comparison. Semantic regularization and proposal sampling are introduced together; their individual effects are not isolated.'
 ADDITIONAL_STUDIES = {
+    # Wording below is taken from each cohort's registered objective and its
+    # preregistration, not paraphrased from the internal one-line label: the
+    # comparator a cohort is read against is part of what it means, and naming
+    # the wrong one reports two interventions as one.
+    'e89': study('E89', 'Adaptive Semantic-MaxEnt at a globally reachable target', 25,
+                 'Qwen2.5-0.5B: five domains and five seeds. Supersedes E88 on one parameter, the '
+                 'realized semantic/task advantage RMS ratio target, lowered from rho=.05 to a value '
+                 'every domain can reach; E88 pinned eta at its ceiling in Python Factors and MathIR '
+                 'without reaching .05.', DIRECT,
+                 'Against E88: the target ratio only. A coefficient-control change, not a new objective.'),
+    'e91': study('E91', 'RMS-targeted Semantic-MaxEnt · Falcon3-1B', 25,
+                 'Falcon3-1B: five domains and five seeds.', DIRECT,
+                 'Against E82: the coefficient control only, fixed eta to RMS-targeted at rho=0.015.'),
+    'e92': study('E92', 'RMS-targeted Semantic-MaxEnt · Qwen2.5-3B', 5,
+                 'Qwen2.5-3B: five domains at seed 70 only. This is a single-seed cohort, not a '
+                 'five-seed one like E89 and E91.', DIRECT,
+                 'Against E82: the coefficient control only, fixed eta to RMS-targeted at rho=0.015.'),
+    'e90': study('E90', 'Bank-normalized verified replay', 25,
+                 'Qwen2.5-0.5B: five domains and five seeds. Uniform verified replay splits the dose '
+                 'across a prompt’s banked modes, so each receives alpha/n and a prompt that has '
+                 'discovered more modes protects each one less; E90 sets alpha = per_mode_coefficient '
+                 'x banked_modes instead.', DIRECT,
+                 'Against E78 verified replay: the replay dose rule only.'),
+    'e102': study('E102', 'Full open-bank MaxEnt replay', 25,
+                  'Qwen2.5-0.5B: five domains and five seeds. Asks whether retention-safe direct bank '
+                  'balancing and model-driven support expansion improve semantic-mode coverage without '
+                  'sacrificing the correctness and retention delivered by replay alone.', SUPPORT,
+                  'Against E78 replay, adding direct whole-bank balance, retention-safe capping, '
+                  'target-free original-prompt discovery, and fresh-mode mass priority. Four components '
+                  'are introduced together and their individual effects are not isolated.'),
+    'e103': study('E103', 'Bounded explorer-starvation fallback', 25,
+                  'Qwen2.5-0.5B: five domains and five seeds. E102 produced large paired breadth gains '
+                  'over E78 replay but left correctness uncertainty, and one Python Factors cell stalled '
+                  'after eight proposal admissions.', SUPPORT,
+                  'E102 unchanged except for a target-free bounded increase in original-prompt proposal '
+                  'attempts after verified admissions stall. Its comparator is E102, not E78.'),
     'e95': study('E95', 'Plain GRPO · initial cross-scale cohort', 55,
                  'Qwen2.5-0.5B and Falcon3-1B: five domains and five seeds each; Qwen2.5-3B: five domains at seed 70.', DIRECT,
                  'Use the original E78/E79/E80-R1 Dr.GRPO references. Missing weights remain scientific records only and are not advertised as downloadable models.'),
@@ -31,7 +73,7 @@ ADDITIONAL_STUDIES = {
                   'Pair with E80-R1 Dr.GRPO by domain and seed. Keep the E114 source identity for extension exports.'),
     'e97': study('E97', 'UCPO · Qwen2.5-0.5B initial domains', 15,
                  'Qwen2.5-0.5B across Graph Coloring, Python Factors and PantryPlan, with five seeds per domain.', DIRECT,
-                 'Use E78 matched Dr.GRPO/Re:Dr.GRPO references. E115 supplies the remaining Qwen2.5-0.5B domains.'),
+                 'Use E78 matched Dr.GRPO/Re:Dr references. E115 supplies the remaining Qwen2.5-0.5B domains.'),
     'e99': study('E99', 'UCPO · Falcon3-1B', 25,
                  'Falcon3-1B across five domains and five registered seeds.', DIRECT,
                  'Use original E79 comparators and the common admitted seed intersection.'),
@@ -49,10 +91,10 @@ ADDITIONAL_STUDIES = {
                   'Use matched source-model/domain/seed references. The replay collection and completion stages belong to the same scientific treatment cell.'),
     'e81': study('E81', 'Fixed semantic + replay · Qwen2.5-0.5B', 25,
                  'Fixed semantic advantage added to verified replay across five domains and five seeds.', FIXED,
-                 'Compare with E78 Re:Dr.GRPO. Use E85 repaired PantryPlan exports where specified by the paper; retain E85 as their source experiment.'),
+                 'Compare with E78 Re:Dr. Use E85 repaired PantryPlan exports where specified by the paper; retain E85 as their source experiment.'),
     'e82': study('E82', 'Fixed semantic + replay · Falcon3-1B', 25,
                  'Fixed semantic advantage added to Falcon3-1B verified replay across five domains and five seeds.', FIXED,
-                 'Compare with E79 Re:Dr.GRPO. The source audit and registered repair history determine the admissible exports.'),
+                 'Compare with E79 Re:Dr. The source audit and registered repair history determine the admissible exports.'),
     'e83': study('E83', 'Fixed semantic without replay · Qwen2.5-0.5B', 25,
                  'Fixed semantic advantage with zero replay derivative across five domains and five seeds.', FIXED,
                  'Compare with E78 Dr.GRPO and the semantic-plus-replay arm. The paper uses E85 repaired PantryPlan exports for this family.'),
@@ -69,7 +111,7 @@ ADDITIONAL_STUDIES = {
     'e109': study('E109', 'Repaired Python replay comparators', 15,
                   'Five Python Factors seeds at each of three registered model scales, preserving the repaired prompt/action surface.',
                   'Comparator family for the verified-support analysis; only the paper’s admitted scales and source pairings belong to the reported contrast.',
-                  'Pair the appropriate repaired Re:Dr.GRPO source with E112-R1 by model and seed. These are distinct source exports, not replacements for all E78/E79/E80-R1 uses.'),
+                  'Pair the appropriate repaired Re:Dr source with E112-R1 by model and seed. These are distinct source exports, not replacements for all E78/E79/E80-R1 uses.'),
     'e112r1': study('E112-R1', 'Verified-support semantic + proposal bundle', 75,
                     'Three registered model scales × five domains × five seeds. The reported two-scale contrast uses its exact common admitted intersection.', SUPPORT,
                     'Use original replay comparators, with E109 repaired Python sources where required. Adaptive controllers and open-bank development branches are excluded from this reported treatment, not from every historical artifact in the broader project.'),

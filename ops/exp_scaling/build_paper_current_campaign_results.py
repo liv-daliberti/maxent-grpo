@@ -22,8 +22,8 @@ MODELS = {"qwen05b": "Qwen-0.5B", "falcon1b": "Falcon-1B", "qwen3b": "Qwen-3B"}
 DOMAINS = {"graph_coloring": "Graph", "countdown": "Countdown", "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "PantryPlan"}
 CAMPAIGNS = {"e118": "E118: MaxRL factorial", "e119": "E119: Level-2 factorial", "e120": "E120-R1: fresh-frequency replay ablation"}
 CONTRASTS = {
-    "replay_maxrl_minus_maxrl": ("Re:MaxRL", "MaxRL", "MaxRL"),
-    "replay_drgrpo_minus_drgrpo": ("Re:Dr.GRPO", "Dr.GRPO", "Dr.GRPO"),
+    "replay_maxrl_minus_maxrl": ("Re:Max", "MaxRL", "MaxRL"),
+    "replay_drgrpo_minus_drgrpo": ("Re:Dr", "Dr.GRPO", "Dr.GRPO"),
     "uniform_minus_frequency": ("Uniform", "Frequency", "Uniform"),
 }
 METRICS = ("pass8", "distinct8", "breadth8")
@@ -154,7 +154,7 @@ def findings(data: dict[str, Any]) -> list[str]:
     full = [r for r in data["rows"] if r["campaign"] == "e118" and r["n"] == 5]
     if full:
         positives = {m: sum(r["summaries"][m]["mean"] > 0 for r in full) for m in METRICS}
-        result.append(f"E118 has {len(full)} complete five-seed model/domain comparisons. Re:MaxRL has positive point estimates in {positives['pass8']}/{len(full)} for pass@8, {positives['distinct8']}/{len(full)} for distinct@8, and {positives['breadth8']}/{len(full)} for B8. These are directional counts, not a pooled effect or a significance test.")
+        result.append(f"E118 has {len(full)} complete five-seed model/domain comparisons. Re:Max has positive point estimates in {positives['pass8']}/{len(full)} for pass@8, {positives['distinct8']}/{len(full)} for distinct@8, and {positives['breadth8']}/{len(full)} for B8. These are directional counts, not a pooled effect or a significance test.")
     for model, domain in (("qwen05b", "graph_coloring"), ("qwen05b", "countdown"), ("qwen3b", "python_factors"), ("qwen3b", "graph_coloring"), ("qwen3b", "pantry_plan"), ("falcon1b", "graph_coloring")):
         row = lookup(data, "e118", model, domain, "replay_maxrl_minus_maxrl")
         if row:
@@ -228,7 +228,7 @@ def render_tex(data: dict[str, Any], campaign: str) -> str:
         n = f"{row['n']}/5"
         if campaign == "e120" and row["n"] > len(row["mechanism_validated_seeds"]):
             n += r"$^{\dagger}$"
-        contrast = "Re:MaxRL" if campaign == "e118" else row["short_contrast"]
+        contrast = "Re:Max" if campaign == "e118" else row["short_contrast"]
         lines.append(" & ".join([row["model"], row["domain"], contrast, n, effect(row, "pass8", tex=True, with_interval=False), effect(row, "distinct8", tex=True, with_interval=False), effect(row, "breadth8", tex=True)]) + r" \\")
     lines.append(r"\bottomrule")
     return "\n".join(lines) + "\n"

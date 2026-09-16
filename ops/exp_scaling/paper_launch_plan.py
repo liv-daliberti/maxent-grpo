@@ -58,14 +58,14 @@ WAVES: tuple[Wave, ...] = (
     Wave(
         "core_scale_extensions",
         2,
-        "Complete remaining Dr.GRPO and Re:Dr.GRPO scale cells",
+        "Complete remaining Dr.GRPO and Re:Dr scale cells",
         "new",
         "Extend the frozen five-domain paired protocol without changing the intervention.",
     ),
     Wave(
         "adaptive_replay",
         3,
-        "Extend Adaptive Re:Dr.GRPO",
+        "Extend Adaptive Re:Dr",
         "new",
         "Freeze the bank-normalized dose rule from E90 without scale-specific tuning.",
     ),
@@ -89,7 +89,7 @@ WAVES: tuple[Wave, ...] = (
     Wave(
         "adaptive_semantic_with_replay",
         6,
-        "Complete Adaptive Semantic MaxEnt plus Re:Dr.GRPO",
+        "Complete Adaptive Semantic MaxEnt plus Re:Dr",
         "new",
         "Freeze the reachable controller identity used by E89/E91/E92.",
     ),

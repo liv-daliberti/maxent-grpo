@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot E105 versus matched Re:Dr.GRPO in the baseline forest grammar."""
+"""Plot E105 versus matched Re:Dr in the baseline forest grammar."""
 
 from __future__ import annotations
 
@@ -62,16 +62,16 @@ EFFECT_SPECS = {
             ("terminal_sampled_excess8", r"$\Delta(D-P)$"),
         ),
         "title": (
-            "Repaired Semantic MaxEnt on Re:Dr.GRPO: paired terminal effects"
+            "Repaired Semantic MaxEnt on Re:Dr: paired terminal effects"
         ),
         "descriptions": {
             "terminal_sampled_pass8": (
-                "treatment terminal pass@8 minus matched Re:Dr.GRPO "
+                "treatment terminal pass@8 minus matched Re:Dr "
                 "terminal pass@8"
             ),
             "terminal_sampled_excess8": (
                 "treatment terminal (distinct@8-pass@8) minus matched "
-                "Re:Dr.GRPO terminal (distinct@8-pass@8)"
+                "Re:Dr terminal (distinct@8-pass@8)"
             ),
         },
     },
@@ -82,16 +82,16 @@ EFFECT_SPECS = {
             ("auc_sampled_excess8", r"$\Delta\operatorname{AUC}(D-P)$"),
         ),
         "title": (
-            "Repaired Semantic MaxEnt on Re:Dr.GRPO: paired trajectory AUC"
+            "Repaired Semantic MaxEnt on Re:Dr: paired trajectory AUC"
         ),
         "descriptions": {
             "auc_sampled_pass8": (
                 "treatment normalized pass@8 trajectory AUC minus matched "
-                "Re:Dr.GRPO normalized pass@8 trajectory AUC"
+                "Re:Dr normalized pass@8 trajectory AUC"
             ),
             "auc_sampled_excess8": (
                 "treatment normalized (distinct@8-pass@8) trajectory AUC "
-                "minus matched Re:Dr.GRPO normalized "
+                "minus matched Re:Dr normalized "
                 "(distinct@8-pass@8) trajectory AUC"
             ),
         },
@@ -172,8 +172,8 @@ def plot_payload(
         "input_sha256": sha256(input_path),
         "plotter": str(Path(__file__).resolve()),
         "plotter_sha256": sha256(Path(__file__)),
-        "baseline": "matched Re:Dr.GRPO",
-        "treatment": "Re:Dr.GRPO + repaired Semantic MaxEnt",
+        "baseline": "matched Re:Dr",
+        "treatment": "Re:Dr + repaired Semantic MaxEnt",
         "model_rows": list(SCALES),
         "domain_order": list(DOMAINS),
         "metric_order": [metric for metric, _label in metrics],

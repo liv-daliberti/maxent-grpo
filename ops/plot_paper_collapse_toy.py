@@ -2,7 +2,7 @@
 """Render the paper's model-backed Qwen2.5-3B Graph Coloring example.
 
 The figure is not a simulation. It mechanically selects one prompt from the
-four available Qwen2.5-3B-Instruct Dr.GRPO/Re:MaxRL pairs (seeds 70--73)
+four available Qwen2.5-3B-Instruct Dr.GRPO/Re:Max pairs (seeds 70--73)
 using their fixed-seed evaluation samples. Duplicate records caused by resumes
 are resolved by retaining the last (step, draw_index) record, exactly as a
 checkpoint snapshot.
@@ -836,7 +836,7 @@ def main() -> None:
     )
     replay_trajectory = render_method_trajectory(
         axes[2], replay, prompt_index, letter="C",
-        title="Qwen2.5-3B\nRe:MaxRL (ours)",
+        title="Qwen2.5-3B\nRe:Max (ours)",
         show_ylabel=False,
     )
 
@@ -1002,7 +1002,7 @@ def main() -> None:
             "panel_titles": [
                 PROMPT_QUESTION.replace("\n", " "),
                 "Qwen2.5-3B Dr.GRPO",
-                "Qwen2.5-3B Re:MaxRL",
+                "Qwen2.5-3B Re:Max",
             ],
             "steps": DISPLAY_STEPS,
             "end_pass": END_PASS,
@@ -1026,11 +1026,11 @@ def main() -> None:
                 "Coloring prompts whose paired step-0 correct samples match "
                 "with exactly three modes and fewer than 20/32 correct, "
                 "require all four terminal K=8 draws to succeed in both arms, "
-                "a singleton terminal Dr.GRPO endpoint, a 32/32 Re:MaxRL "
-                "endpoint, and no fewer than three Re:MaxRL "
+                "a singleton terminal Dr.GRPO endpoint, a 32/32 Re:Max "
+                "endpoint, and no fewer than three Re:Max "
                 "modes at any displayed checkpoint; maximize "
                 "the least frequent initial mode, then the smaller terminal "
-                "correct-sample count, Re:MaxRL terminal modes, and initial "
+                "correct-sample count, Re:Max terminal modes, and initial "
                 "correct samples, then choose the lowest seed and prompt index."
             ),
             "selection_step": 3072,

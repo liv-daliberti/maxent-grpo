@@ -658,7 +658,7 @@ def materialize_results(
             "kind": "bundled historical-comparator contrast",
             "contrast": (
                 "E112-R1 verified-support-discovery request path and source "
-                "snapshot minus registered historical Re:Dr.GRPO"
+                "snapshot minus registered historical Re:Dr"
             ),
             "isolated_semantic_v7_effect": False,
             "confirmatory_blind": False,
@@ -751,7 +751,7 @@ def materialize_results(
             "prompt_population_se": None,
             "generation_draws_change_prompt_identity": False,
             "baseline_centered_formula": (
-                "(E112(step)-E112(0)) - (ReplayDr(step)-ReplayDr(0))"
+                "(E112(step)-E112(0)) - (Re:Dr(step)-Re:Dr(0))"
             ),
             "registered_decision_or_gate": False,
             "isolated_component_effect": False,

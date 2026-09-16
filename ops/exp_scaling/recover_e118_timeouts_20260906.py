@@ -102,7 +102,7 @@ def prepare() -> dict:
         "Authorized: recover existing stranded cells and arrange follow-on allocations for "
         "healthy Pantry learners. No scientific cells, models, data, seeds, objectives, "
         "optimization settings, frozen training source, evaluation or checkpoint cadence change.\n\n"
-        "Countdown MaxRL s70 and Graph Re:MaxRL s74 receive audited 128 GiB, 16 CPU, "
+        "Countdown MaxRL s70 and Graph Re:Max s74 receive audited 128 GiB, 16 CPU, "
         "one GPU, 12-hour mltheory/node302 continuations, in that order through afterany. "
         "The previous allocations are terminal; source and aggregate ledgers are replaced before release.\n\n"
         "Pantry running predecessors 31073912, 31073907 and 31073908 continue untouched. "

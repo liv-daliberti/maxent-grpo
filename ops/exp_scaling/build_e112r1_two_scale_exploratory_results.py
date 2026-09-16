@@ -349,7 +349,7 @@ def _materialize_terminal_results(
             "kind": "bundled historical-comparator contrast",
             "contrast": (
                 "E112-R1 verified-support-discovery request path and source "
-                "snapshot minus registered historical Re:Dr.GRPO"
+                "snapshot minus registered historical Re:Dr"
             ),
             "isolated_semantic_v7_effect": False,
             "confirmatory_blind": False,

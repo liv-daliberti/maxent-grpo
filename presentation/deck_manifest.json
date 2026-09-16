@@ -1,0 +1,110 @@
+{
+  "deck": "presentation/verified_mode_support_story.pptx",
+  "storyboard": "presentation/STORYBOARD.md",
+  "slides": [
+    {
+      "number": 1,
+      "title": "When eight samples become eight copies",
+      "source": "Paper abstract and Figure 1"
+    },
+    {
+      "number": 2,
+      "title": "Accuracy can look perfect while support disappears",
+      "source": "paper/figures/modecollapse_story.png"
+    },
+    {
+      "number": 3,
+      "title": "Binary correctness hides answer identity",
+      "source": "paper/figures/modebench_examples.png"
+    },
+    {
+      "number": 4,
+      "title": "Why GRPO concentrates correct modes",
+      "source": "Paper Section 2 and Appendix A"
+    },
+    {
+      "number": 5,
+      "title": "One execution key repairs two different failures",
+      "source": "paper/figures/verified_support_story.png"
+    },
+    {
+      "number": 6,
+      "title": "Two questions, two matched tests",
+      "source": "Paper experimental design and evidence ledger"
+    },
+    {
+      "number": 7,
+      "title": "Retention: 74 / 74 admissible pairs improve",
+      "source": "paper/figures/cross_scale_terminal_endpoint_effects.json"
+    },
+    {
+      "number": 8,
+      "title": "The honest split: extra support vs. accuracy rescue",
+      "source": "paper/figures/cross_scale_terminal_endpoint_effects.json"
+    },
+    {
+      "number": 9,
+      "title": "Discovery adds breadth beyond replay\u2014unevenly",
+      "source": "paper/figures/verified_support_discovery_two_scale_effects.json"
+    },
+    {
+      "number": 10,
+      "title": "Three takeaways\u2014and the boundary",
+      "source": "Paper conclusion and evidence policy"
+    },
+    {
+      "number": 11,
+      "title": "Only replay is uniform; alternatives are local",
+      "source": "paper/figures/direct_comparator_endpoint_effects.json"
+    },
+    {
+      "number": 12,
+      "title": "Where excess breadth appears, it persists through training",
+      "source": "paper/figures/sustained_auc_effects_qwen05b.json"
+    },
+    {
+      "number": 13,
+      "title": "The retention mechanism is small and measurable",
+      "source": "paper/figures/replay_mechanism_telemetry_qwen05b.json"
+    },
+    {
+      "number": 14,
+      "title": "Replay also improves MaxRL",
+      "source": "paper/results/latest_results_20260908.json"
+    },
+    {
+      "number": 15,
+      "title": "Level 2 now has three complete domain blocks",
+      "source": "paper/results/latest_results_20260908.json"
+    }
+  ],
+  "validation": {
+    "slides": 15,
+    "zip_ok": true,
+    "shape_overflows": [],
+    "bytes": 1974111
+  },
+  "evidence_sha256": {
+    "paper/figures/cross_scale_terminal_endpoint_effects.json": "d584c07364e3357d12bc1b8027f6619e5877de477208e4015fb79d6421692125",
+    "paper/figures/verified_support_discovery_two_scale_effects.json": "595bebe294aa8f528adb024c9f05f9fe64716aada4055e0fc9f9538c6165fd2c",
+    "paper/figures/sustained_auc_effects_qwen05b.json": "937bea939e93ab33731322c0ca752a62d14e90d8b061d69424f66e0810031cf7",
+    "paper/figures/replay_mechanism_telemetry_qwen05b.json": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+    "paper/figures/direct_comparator_endpoint_effects.json": "00a2994663c3118d89cdf6a07a7b386f0672af7294d98726145f4d1f449ff8b2",
+    "paper/figures/modecollapse_story.png": "4678c5e7422cb529484f1e580dce798946e1ecc48461beb4951e2dc2758b4b8f",
+    "paper/figures/modebench_examples.png": "d4a50e1d975599027ec3c5ea287c0e37e6f3ede1ace380d54e3772578bb84544",
+    "paper/figures/verified_support_story.png": "a3f15173854e68ac18b3687f5ccf60f4ecf0333632622072454fb728eeec0ec7",
+    "paper/figures/e118_all_scale_factorial_progress.png": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+    "paper/figures/modebench_level_admission.png": "4049f618620e08965132465ba677d6e5ecdeec0d1725d7dd706c9e3d83b0c8db",
+    "paper/results/latest_results_20260908.json": "a65f0e88ff924623241d44d31b5fd497a3950cc472f1326158669d8f1a38ac0e"
+  },
+  "derived_figures": {
+    "headline": "presentation/figures/headline_admissible_pairs.png",
+    "falcon": "presentation/figures/falcon_paired_endpoints.png",
+    "scatter": "presentation/figures/accuracy_vs_breadth_effects.png",
+    "discovery": "presentation/figures/verified_support_discovery_effects.png",
+    "auc": "presentation/figures/sustained_auc_effects.png",
+    "telemetry": "presentation/figures/replay_mechanism_telemetry.png",
+    "comparators": "presentation/figures/direct_comparator_heatmap.png"
+  },
+  "claim_boundary": "Retention has 74 admissible pairs; Falcon Countdown n=4 has no interval. Discovery remains an exploratory 49-pair bundle. Updated MaxRL and Level2 results retain exact completeness gates."
+}

@@ -12,13 +12,13 @@ Intervals use 20,000 whole-prompt bootstrap resamples, paired across arms and st
 
 This appendix reports the complete local panel only. The separately registered frontier panel is not included here, and the overall local-plus-frontier experiment is incomplete.
 
-For local models, we evaluate the initial Qwen2.5-0.5B model and fixed Level-2-trained DrGRPO and Re:Dr.GRPO checkpoints. Python and MathIR use matched training seeds 43--47; Pantry uses seeds 43 and 46. Level 3 is transfer evaluation. Seed means retain the same selected problem set across checkpoints. Five-seed intervals resample whole training seeds and paired prompts; Pantry reports both seed effects and intervals conditional on the two checkpoints. The native local syntax constraints and 192-token budget differ from hosted inference, so effects are interpreted within each model and interface.
+For local models, we evaluate the initial Qwen2.5-0.5B model and fixed Level-2-trained DrGRPO and Re:Dr checkpoints. Python and MathIR use matched training seeds 43--47; Pantry uses seeds 43 and 46. Level 3 is transfer evaluation. Seed means retain the same selected problem set across checkpoints. Five-seed intervals resample whole training seeds and paired prompts; Pantry reports both seed effects and intervals conditional on the two checkpoints. The native local syntax constraints and 192-token budget differ from hosted inference, so effects are interpreted within each model and interface.
 
 
 \begin{table}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{2.2pt}
 \caption{Local Qwen2.5-0.5B checkpoints under strict verification. Each arrow gives original $\to$ neutral. $P_8$ is empirical \texttt{pass@8}, $D_8$ is verified \texttt{distinct@8}, and $B_8=D_8-P_8$. Effects are neutral minus original; brackets are pointwise 95\% intervals. Local rows average the displayed number of training seeds. Five-seed intervals include seed and paired-prompt resampling; two-seed Pantry intervals condition on the two fixed checkpoints. }
 \label{tab:prompt-hints-local-strict}
 \resizebox{\linewidth}{!}{%
@@ -38,12 +38,12 @@ DrGRPO ($s=2$) & Pantry L2 & $0.219\to0.203$ & $0.28\to0.25$ & $-0.016\;[-0.156,
 DrGRPO ($s=2$) & Pantry L3 & $0.172\to0.172$ & $0.27\to0.25$ & $+0.000\;[-0.078,+0.078]$ & $-0.02\;[-0.16,+0.11]$ & $-0.02$ \\
 DrGRPO ($s=5$) & Python factors L2 & $0.812\to0.000$ & $0.81\to0.00$ & $-0.812\;[-0.938,-0.656]$ & $-0.81\;[-0.94,-0.66]$ & $+0.00$ \\
 DrGRPO ($s=5$) & Python factors L3 & $1.000\to0.000$ & $1.00\to0.00$ & $-1.000\;[-1.000,-1.000]$ & $-1.00\;[-1.00,-1.00]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=5$) & MathIR L2 & $0.994\to0.975$ & $0.99\to0.97$ & $-0.019\;[-0.075,+0.000]$ & $-0.02\;[-0.07,+0.00]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=5$) & MathIR L3 & $0.312\to0.275$ & $0.31\to0.28$ & $-0.037\;[-0.138,+0.044]$ & $-0.04\;[-0.14,+0.04]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=2$) & Pantry L2 & $0.516\to0.500$ & $0.75\to0.73$ & $-0.016\;[-0.109,+0.078]$ & $-0.02\;[-0.20,+0.17]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=2$) & Pantry L3 & $0.234\to0.281$ & $0.39\to0.50$ & $+0.047\;[+0.000,+0.109]$ & $+0.11\;[+0.05,+0.19]$ & $+0.06$ \\
-Re:Dr.GRPO ($s=5$) & Python factors L2 & $0.887\to0.556$ & $1.24\to0.68$ & $-0.331\;[-0.525,-0.150]$ & $-0.57\;[-0.85,-0.32]$ & $-0.24$ \\
-Re:Dr.GRPO ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.506\;[-0.825,-0.194]$ & $-0.76\;[-1.07,-0.38]$ & $-0.26$ \\
+Re:Dr ($s=5$) & MathIR L2 & $0.994\to0.975$ & $0.99\to0.97$ & $-0.019\;[-0.075,+0.000]$ & $-0.02\;[-0.07,+0.00]$ & $+0.00$ \\
+Re:Dr ($s=5$) & MathIR L3 & $0.312\to0.275$ & $0.31\to0.28$ & $-0.037\;[-0.138,+0.044]$ & $-0.04\;[-0.14,+0.04]$ & $+0.00$ \\
+Re:Dr ($s=2$) & Pantry L2 & $0.516\to0.500$ & $0.75\to0.73$ & $-0.016\;[-0.109,+0.078]$ & $-0.02\;[-0.20,+0.17]$ & $+0.00$ \\
+Re:Dr ($s=2$) & Pantry L3 & $0.234\to0.281$ & $0.39\to0.50$ & $+0.047\;[+0.000,+0.109]$ & $+0.11\;[+0.05,+0.19]$ & $+0.06$ \\
+Re:Dr ($s=5$) & Python factors L2 & $0.887\to0.556$ & $1.24\to0.68$ & $-0.331\;[-0.525,-0.150]$ & $-0.57\;[-0.85,-0.32]$ & $-0.24$ \\
+Re:Dr ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.506\;[-0.825,-0.194]$ & $-0.76\;[-1.07,-0.38]$ & $-0.26$ \\
 \bottomrule
 \end{tabular}}
 \end{table}
@@ -52,7 +52,7 @@ Re:Dr.GRPO ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.5
 \begin{table}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{3pt}
+\setlength{\tabcolsep}{2.2pt}
 \caption{Local Qwen2.5-0.5B checkpoints under frozen formatting normalization. Each arrow gives original $\to$ neutral. $P_8$ is empirical \texttt{pass@8}, $D_8$ is verified \texttt{distinct@8}, and $B_8=D_8-P_8$. Effects are neutral minus original; brackets are pointwise 95\% intervals. Local rows average the displayed number of training seeds. Five-seed intervals include seed and paired-prompt resampling; two-seed Pantry intervals condition on the two fixed checkpoints. }
 \label{tab:prompt-hints-local-normalized-secondary}
 \resizebox{\linewidth}{!}{%
@@ -72,12 +72,12 @@ DrGRPO ($s=2$) & Pantry L2 & $0.219\to0.203$ & $0.28\to0.25$ & $-0.016\;[-0.156,
 DrGRPO ($s=2$) & Pantry L3 & $0.172\to0.172$ & $0.27\to0.25$ & $+0.000\;[-0.078,+0.078]$ & $-0.02\;[-0.16,+0.11]$ & $-0.02$ \\
 DrGRPO ($s=5$) & Python factors L2 & $0.812\to0.000$ & $0.81\to0.00$ & $-0.812\;[-0.938,-0.656]$ & $-0.81\;[-0.94,-0.66]$ & $+0.00$ \\
 DrGRPO ($s=5$) & Python factors L3 & $1.000\to0.000$ & $1.00\to0.00$ & $-1.000\;[-1.000,-1.000]$ & $-1.00\;[-1.00,-1.00]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=5$) & MathIR L2 & $0.994\to0.975$ & $0.99\to0.97$ & $-0.019\;[-0.075,+0.000]$ & $-0.02\;[-0.07,+0.00]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=5$) & MathIR L3 & $0.312\to0.275$ & $0.31\to0.28$ & $-0.037\;[-0.138,+0.044]$ & $-0.04\;[-0.14,+0.04]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=2$) & Pantry L2 & $0.516\to0.500$ & $0.75\to0.73$ & $-0.016\;[-0.109,+0.078]$ & $-0.02\;[-0.20,+0.17]$ & $+0.00$ \\
-Re:Dr.GRPO ($s=2$) & Pantry L3 & $0.234\to0.281$ & $0.39\to0.50$ & $+0.047\;[+0.000,+0.109]$ & $+0.11\;[+0.05,+0.19]$ & $+0.06$ \\
-Re:Dr.GRPO ($s=5$) & Python factors L2 & $0.887\to0.556$ & $1.24\to0.68$ & $-0.331\;[-0.525,-0.150]$ & $-0.57\;[-0.85,-0.32]$ & $-0.24$ \\
-Re:Dr.GRPO ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.506\;[-0.825,-0.194]$ & $-0.76\;[-1.07,-0.38]$ & $-0.26$ \\
+Re:Dr ($s=5$) & MathIR L2 & $0.994\to0.975$ & $0.99\to0.97$ & $-0.019\;[-0.075,+0.000]$ & $-0.02\;[-0.07,+0.00]$ & $+0.00$ \\
+Re:Dr ($s=5$) & MathIR L3 & $0.312\to0.275$ & $0.31\to0.28$ & $-0.037\;[-0.138,+0.044]$ & $-0.04\;[-0.14,+0.04]$ & $+0.00$ \\
+Re:Dr ($s=2$) & Pantry L2 & $0.516\to0.500$ & $0.75\to0.73$ & $-0.016\;[-0.109,+0.078]$ & $-0.02\;[-0.20,+0.17]$ & $+0.00$ \\
+Re:Dr ($s=2$) & Pantry L3 & $0.234\to0.281$ & $0.39\to0.50$ & $+0.047\;[+0.000,+0.109]$ & $+0.11\;[+0.05,+0.19]$ & $+0.06$ \\
+Re:Dr ($s=5$) & Python factors L2 & $0.887\to0.556$ & $1.24\to0.68$ & $-0.331\;[-0.525,-0.150]$ & $-0.57\;[-0.85,-0.32]$ & $-0.24$ \\
+Re:Dr ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.506\;[-0.825,-0.194]$ & $-0.76\;[-1.07,-0.38]$ & $-0.26$ \\
 \bottomrule
 \end{tabular}}
 \end{table}
@@ -98,4 +98,4 @@ Re:Dr.GRPO ($s=5$) & Python factors L3 & $1.000\to0.494$ & $1.42\to0.66$ & $-0.5
 
 
 \paragraph{Two-seed Pantry sensitivity.} Two checkpoints cannot support a stable estimate of training-seed variability. The following lists both strict prompt effects; the intervals in the local table condition on these two checkpoints.
-DrGRPO L2 (seed 43: $\Delta P_8=+0.000$, $\Delta D_8=+0.03$; seed 46: $\Delta P_8=-0.031$, $\Delta D_8=-0.09$); DrGRPO L3 (seed 43: $\Delta P_8=+0.031$, $\Delta D_8=+0.06$; seed 46: $\Delta P_8=-0.031$, $\Delta D_8=-0.09$); Re:Dr.GRPO L2 (seed 43: $\Delta P_8=-0.031$, $\Delta D_8=-0.06$; seed 46: $\Delta P_8=+0.000$, $\Delta D_8=+0.03$); Re:Dr.GRPO L3 (seed 43: $\Delta P_8=+0.031$, $\Delta D_8=+0.12$; seed 46: $\Delta P_8=+0.062$, $\Delta D_8=+0.09$).
+DrGRPO L2 (seed 43: $\Delta P_8=+0.000$, $\Delta D_8=+0.03$; seed 46: $\Delta P_8=-0.031$, $\Delta D_8=-0.09$); DrGRPO L3 (seed 43: $\Delta P_8=+0.031$, $\Delta D_8=+0.06$; seed 46: $\Delta P_8=-0.031$, $\Delta D_8=-0.09$); Re:Dr L2 (seed 43: $\Delta P_8=-0.031$, $\Delta D_8=-0.06$; seed 46: $\Delta P_8=+0.000$, $\Delta D_8=+0.03$); Re:Dr L3 (seed 43: $\Delta P_8=+0.031$, $\Delta D_8=+0.12$; seed 46: $\Delta P_8=+0.062$, $\Delta D_8=+0.09$).

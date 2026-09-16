@@ -333,7 +333,12 @@ def retire_weights(plan, record, manifest, verification, state_dir):
         assert_inactive(record, queue_snapshot())
         for item in remaining_manifest['files']:
             p = Path(item['local_path']); s = p.lstat()
-            require(stat.S_ISREG(s.st_mode) and s.st_size == item['size'] and verify._identity(s) == item['stat'], 'local file changed immediately before cleanup')
+            # Size and inode/mtime/ctime must match exactly; only the mount's
+            # device number may differ, because the same unchanged export reads
+            # a different st_dev from a different login node.
+            require(stat.S_ISREG(s.st_mode) and s.st_size == item['size']
+                    and verify.identity_matches(verify._identity(s), item['stat']),
+                    'local file changed immediately before cleanup')
         save(state_dir / 'retirement_intent.json', receipt)
         save(Path(record['run_dir']) / 'MODEL_ARCHIVE.json', receipt)
         directory = os.open(export, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -342,7 +347,12 @@ def retire_weights(plan, record, manifest, verification, state_dir):
                 if item['relative_path'] not in names or item['relative_path'] in absent:
                     continue
                 current = os.stat(item['relative_path'], dir_fd=directory, follow_symlinks=False)
-                require(stat.S_ISREG(current.st_mode) and current.st_size == item['size'] and verify._identity(current) == item['stat'], 'weight changed before unlink')
+                # Last gate before the unlink. Size, inode, mtime and ctime must
+                # match the manifest exactly; only the mount's device number may
+                # differ, for the same reason as the two checks above.
+                require(stat.S_ISREG(current.st_mode) and current.st_size == item['size']
+                        and verify.identity_matches(verify._identity(current), item['stat']),
+                        'weight changed before unlink')
                 os.unlink(item['relative_path'], dir_fd=directory)
                 removed.append({'relative_path': item['relative_path'], 'bytes': item['size'], 'sha256': item['sha256']})
                 save(state_dir / 'retirement_progress.json', {'removed': removed, 'at_utc': now()})

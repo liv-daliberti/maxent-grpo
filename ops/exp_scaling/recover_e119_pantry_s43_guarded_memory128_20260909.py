@@ -69,7 +69,7 @@ def identity(job):
 def replay_metadata(job,name,metadata):
     if TARGETS[job][0]=='replay_maxrl' and name.endswith('_model_states.pt'):
         require(any(arg=='online_canonical_bank_state' for _,arg,_ in pickletools.genops(metadata)),
-                'Re:MaxRL checkpoint lacks saved replay bank state')
+                'Re:Max checkpoint lacks saved replay bank state')
 
 
 def checkpoint(job,run):

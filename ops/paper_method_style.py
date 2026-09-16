@@ -21,7 +21,7 @@ METHOD_STYLE: dict[str, dict[str, Any]] = {
         # matched Dr.GRPO. Keep the two visually distinct even in dense
         # endpoint panels. The hue is base.COMPARATOR rather than the older
         # #2E6FBB: that blue sat at dE 10.0 from the method teal under
-        # all-pairs, making GRPO vs Re:Dr.GRPO --- the comparison the paper
+        # all-pairs, making GRPO vs Re:Dr --- the comparison the paper
         # is about --- the least separable pair on the page.
         "color": base.COMPARATOR,
         "linestyle": base.ARM_DASH[base.COMPARATOR],
@@ -51,7 +51,7 @@ METHOD_STYLE: dict[str, dict[str, Any]] = {
         "marker": "D",
     },
     "replay_grpo": {
-        "label": "Re:Dr.GRPO (ours)",
+        "label": "Re:Dr (ours)",
         "color": base.ADAPTIVE,
         "linestyle": base.ARM_DASH[base.ADAPTIVE],
         # A pentagon, not the circle this used to carry: GRPO is a circle, and
@@ -60,7 +60,7 @@ METHOD_STYLE: dict[str, dict[str, Any]] = {
         "marker": "p",
     },
     "adaptive_replay_grpo": {
-        "label": "Adaptive Re:Dr.GRPO",
+        "label": "Adaptive Re:Dr",
         "color": base.METHOD,
         "linestyle": base.METHOD_DOSE_DASH,
         "marker": "s",
@@ -78,13 +78,13 @@ METHOD_STYLE: dict[str, dict[str, Any]] = {
         "marker": "v",
     },
     "replay_semantic_maxent": {
-        "label": "Re:Dr.GRPO + Semantic MaxEnt",
+        "label": "Re:Dr + Semantic MaxEnt",
         "color": base.ABLATION,
         "linestyle": base.ARM_DASH[base.ABLATION],
         "marker": "P",
     },
     "adaptive_semantic_replay": {
-        "label": "Adaptive Semantic MaxEnt + Re:Dr.GRPO",
+        "label": "Adaptive Semantic MaxEnt + Re:Dr",
         "color": base.ADAPTIVE,
         "linestyle": base.ARM_DASH[base.ADAPTIVE],
         "marker": "X",

@@ -453,7 +453,7 @@ def comparator_index(
     path = root / COMPARATOR_LEDGERS[scale]
     payload = json.loads(path.read_text(encoding="utf-8"))
     if payload.get("released") is not True:
-        raise SystemExit(f"{scale} Re:Dr.GRPO comparator is not released")
+        raise SystemExit(f"{scale} Re:Dr comparator is not released")
     replay = [run for run in payload["runs"] if run.get("arm") == "replay"]
     expected = {
         (domain, seed) for domain in DOMAINS for seed in SCALE_SEEDS[scale]
@@ -468,7 +468,7 @@ def comparator_index(
         if allow_legacy_python:
             return index
         raise SystemExit(
-            "E105 repaired Python Re:Dr.GRPO comparator ledger is absent"
+            "E105 repaired Python Re:Dr comparator ledger is absent"
         )
     repaired = json.loads(repaired_path.read_text(encoding="utf-8"))
     if (

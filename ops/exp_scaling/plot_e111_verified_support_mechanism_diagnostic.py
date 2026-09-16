@@ -208,7 +208,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
         fontsize=6.8,
         linespacing=1.23,
     )
-    figure.suptitle("Verified-support Semantic-MaxEnt + Re:Dr.GRPO: mechanism validation", y=0.995)
+    figure.suptitle("Verified-support Semantic-MaxEnt + Re:Dr: mechanism validation", y=0.995)
     figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.965))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output.with_suffix(".pdf"), bbox_inches="tight")

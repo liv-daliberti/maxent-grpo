@@ -15,6 +15,7 @@ from .pantry_support_action import (
     PANTRY_SUPPORT_MASK_TASK,
     PANTRY_SUPPORT_MASK_WIDTH,
     decode_pantry_support_mask,
+    pantry_support_mask_from_allocation,
 )
 
 
@@ -176,6 +177,55 @@ def decode_canonical_action_response(
             spec = {}
         return decode_pantry_support_mask(text, spec)
     raise ValueError(f"unsupported canonical action task: {task!r}")
+
+
+def canonical_action_code_from_verified_response(
+    task: str,
+    response: str,
+    reference: str | dict[str, Any],
+) -> str:
+    """Represent a verified replay witness on its registered policy surface."""
+
+    text = str(response).strip()
+    if task == "graph_coloring":
+        decode_canonical_action_response(task, text, reference)
+        return text
+    if task == PANTRY_SUPPORT_MASK_TASK:
+        try:
+            spec = json.loads(reference) if isinstance(reference, str) else reference
+        except json.JSONDecodeError as exc:
+            raise ValueError("canonical Pantry reference is malformed") from exc
+        if not isinstance(spec, dict):
+            raise ValueError("canonical Pantry reference is malformed")
+        return pantry_support_mask_from_allocation(text, spec)
+    raise ValueError(
+        f"verified replay projection is unsupported for canonical task {task!r}"
+    )
+
+
+def canonical_action_code_token_ids(
+    action_space: CanonicalActionSpace,
+    code: str,
+) -> tuple[int, ...]:
+    """Encode one canonical code as exactly one registered token per action."""
+
+    text = str(code).strip()
+    if len(text) != action_space.horizon:
+        raise ValueError(
+            f"canonical action code has length {len(text)}, expected "
+            f"{action_space.horizon}"
+        )
+    token_ids: list[int] = []
+    for position, action in enumerate(text):
+        actions = action_space.action_strings_by_position[position]
+        try:
+            action_index = actions.index(action)
+        except ValueError as exc:
+            raise ValueError(
+                f"canonical action {action!r} is outside position {position} support"
+            ) from exc
+        token_ids.append(action_space.token_ids_by_position[position][action_index])
+    return tuple(token_ids)
 
 
 def _sample_canonical_actions_from_logits(

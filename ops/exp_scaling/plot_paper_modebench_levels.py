@@ -6,6 +6,7 @@ import argparse
 import copy
 import hashlib
 import json
+import statistics
 import sys
 from pathlib import Path
 
@@ -22,20 +23,75 @@ from exp_scaling.build_paper_modebench_level_comparison import (
 )
 
 SNAPSHOT = ROOT / "paper/results/modebench_level_comparison_snapshot.json"
+MODE_DIVERSITY = ROOT / "paper/results/mode_diversity_training.json"
 OUT = ROOT / "paper/figures/modebench_level_admission"
 LEVEL1_COLOR = "#475569"
 LEVEL2_COLOR = "#0F766E"
 PARTIAL_ARM_POLICY = "Partial-domain markers use each arm's available terminal seeds; differences between these arm means are not paired effects."
+METHOD_COLOURS = {
+    "drgrpo": style.CONTROL,
+    "replay_drgrpo": style.ADAPTIVE,
+    "maxrl": style.COMPARATOR,
+    "replay_maxrl": style.ABLATION,
+}
+# "(ours)" marks the two arms this paper introduces.
+# (dx, dy, ha, va) in points, chosen so the four labels clear each other and
+# the marks they name at the wrapped column width.
+LABEL_OFFSETS = {
+    "drgrpo": (0, 7, "center", "bottom"),
+    "maxrl": (0, -7, "center", "top"),
+    "replay_drgrpo": (7, 1, "left", "center"),
+    "replay_maxrl": (-6, -7, "right", "top"),
+}
+METHOD_LEGEND = {
+    "drgrpo": "Dr.GRPO",
+    "replay_drgrpo": "Re:Dr (ours)",
+    "maxrl": "MaxRL",
+    "replay_maxrl": "Re:Max (ours)",
+}
 METHODS = {
     "drgrpo": "Dr.GRPO",
-    "replay_drgrpo": "Re:Dr.GRPO",
+    "replay_drgrpo": "Re:Dr",
     "maxrl": "MaxRL",
-    "replay_maxrl": "Re:MaxRL",
+    "replay_maxrl": "Re:Max",
 }
 
 
 def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def build_pmd_comparison(path: Path = MODE_DIVERSITY) -> dict:
+    """Terminal PCMD per method and level, on domains matched across both.
+
+    Only domains where all four methods clear the support bar at *both* levels
+    can enter: otherwise a method's mean would rest on an easier subset than
+    its control's, which is the accuracy coupling PCMD exists to remove. That
+    matching is strict enough to leave two domains, so this panel is narrower
+    than the pass@8 panel beside it and the caption says which domains it is.
+    """
+    payload = json.loads(path.read_text())
+    arms = {(a["level"], a["scale"], a["domain"], a["method"]): a for a in payload["arms"]}
+    levels = ("level1", "level2")
+    matched = [d for d in DOMAINS
+               if all(arms.get((level, "qwen05b", d, method), {}).get("terminal_reportable")
+                      for level in levels for method in METHODS)]
+    if not matched:
+        raise RuntimeError("no domain supports PCMD for every method at both levels")
+    means = {level: {method: statistics.fmean(
+                arms[(level, "qwen05b", domain, method)]["pmd_after"] for domain in matched)
+             for method in METHODS} for level in levels}
+    return {
+        "metric": "pairwise correct-mode diversity (PCMD)",
+        "source": {"path": str(path.relative_to(ROOT)), "sha256": digest(path)},
+        "matched_domains": matched,
+        "matching_rule": "domains where every method clears the support bar at both levels",
+        "min_defined_prompts": payload["definition"]["min_defined_prompts"],
+        "means": means,
+        "per_domain": {level: {method: {domain: arms[(level, "qwen05b", domain, method)]["pmd_after"]
+                                       for domain in matched}
+                               for method in METHODS} for level in levels},
+    }
 
 
 def build_record(snapshot: dict, snapshot_path: Path) -> dict:
@@ -62,6 +118,7 @@ def build_record(snapshot: dict, snapshot_path: Path) -> dict:
         "interim_comparison_role": "Historical checkpoint-matched diagnostic retained in the sidecar; not plotted.",
         "interim_comparison": build_interim_comparison(snapshot["evaluations"], snapshot["availability"]),
         "terminal_progress_by_domain": build_terminal_progress(snapshot["level2_terminal_evaluations"]),
+        "pmd_comparison": build_pmd_comparison(),
     }
     return record
 
@@ -81,51 +138,67 @@ def _level_pair(axis, level1, level2, y):
 
 
 def render(record: dict, output: Path = OUT) -> None:
-    # Half the previous height: the in-figure title is caption material, and the
-    # legend rides on the same line as the panel titles instead of above them.
-    figure = plt.figure(figsize=(style.WIDTH, 1.02))
-    pass_axis = figure.add_axes([.20, .30, .33, .50])
-    distinct_axis = figure.add_axes([.64, .30, .33, .50])
-    for axis in (pass_axis, distinct_axis):
-        _axis(axis)
+    """One panel: correctness against breadth, both arms and both levels.
+
+    The two endpoints were separate strips before, which asked the reader to
+    carry a row position between them. Here each arm is a single point, so the
+    claim -- replay sits up and to the right of its control -- is a direction in
+    the plane rather than a comparison across panels.
+    """
+    # Authored for a narrow wrapped column, so the legend sits under the axes
+    # rather than beside them; a side legend would halve the plotting width.
+    figure = plt.figure(figsize=(2.85, 1.85))
+    axis = figure.add_axes([.185, .195, .785, .760])
+    axis.set_facecolor(style.PANEL)
+    axis.grid(color=style.GRID, lw=.6)
+    axis.spines[["top", "right"]].set_visible(False)
+    for side in ("bottom", "left"):
+        axis.spines[side].set_color(style.MUTED)
+        axis.spines[side].set_linewidth(.6)
+    axis.tick_params(length=2, width=.6, labelsize=7.4)
 
     comparison = record["terminal_comparison"]
-    for axis, metric, label in ((pass_axis, "pass8", "pass@8"),
-                                (distinct_axis, "distinct8", "distinct@8")):
-        for y, method in enumerate(METHODS):
-            _level_pair(axis, comparison["means"]["level1"][method][metric],
-                        comparison["means"]["level2"][method][metric], y)
-        axis.set_ylim(3.5, -.5)
-        axis.set_title(label, fontsize=7.1, pad=3)
-        if metric == "pass8":
-            axis.set_yticks(range(4), list(METHODS.values()), fontsize=6.5)
-            axis.set_xlim(0, 1.0)
-            axis.set_xticks((0, .5, 1), ("0", ".5", "1"))
-            axis.set_xlabel("probability", fontsize=6.6)
-        else:
-            axis.set_yticks(range(4), [""] * 4)
-            axis.set_xlim(0, 2.0)
-            axis.set_xticks((0, 1, 2))
-            axis.set_xlabel("verified modes", fontsize=6.6)
+    pmd = record["pmd_comparison"]
+    for method, colour in METHOD_COLOURS.items():
+        xs = [comparison["means"][lev][method]["pass8"] for lev in ("level1", "level2")]
+        ys = [pmd["means"][lev][method] for lev in ("level1", "level2")]
+        axis.plot(xs, ys, color=colour, lw=.8, alpha=.55, zorder=2)
+        axis.scatter(xs[0], ys[0], s=34, facecolors="none", edgecolors=colour,
+                     lw=1.2, zorder=4)
+        axis.scatter(xs[1], ys[1], s=34, color=colour, zorder=4)
 
-    domain_count = len(comparison["complete_domains"])
+    # The arms occupy pass@8 .37-.77 and PCMD .00-.29, so full 0-1 axes spent
+    # most of the panel on empty space. Limits now bracket the data.
+    axis.set_xlim(.28, .95)
+    axis.set_xticks((.4, .6, .8), (".4", ".6", ".8"))
+    axis.set_xlabel("pass@8", fontsize=7.8)
+    # The arms top out near .29, so .4 is ample headroom and keeps the wrapped
+    # column short; a .6 ceiling spent a third of the panel on empty space.
+    axis.set_ylim(-.015, .33)
+    axis.set_yticks((0, .15, .3), ("0", ".15", ".3"))
+    axis.set_ylabel("PCMD", fontsize=7.8)
+
+    # Arms are labelled at their own points rather than in a legend block: the
+    # legend was taking a third of the panel to name four things the reader can
+    # read off the marks directly.
+    for method, (dx, dy, ha, va) in LABEL_OFFSETS.items():
+        # Anchored to the Level-2 (filled) point, which sits interior; the
+        # Level-1 points are at the extremes where labels would clip.
+        x = comparison["means"]["level2"][method]["pass8"]
+        y = pmd["means"]["level2"][method]
+        axis.annotate(METHOD_LEGEND[method], (x, y), textcoords="offset points",
+                      xytext=(dx, dy), ha=ha, va=va, fontsize=6.3,
+                      color=METHOD_COLOURS[method], zorder=6)
+
     partial_notes = []
     for domain in comparison["partial_domains"]:
-        counts = [comparison["domain_results"][domain]["series"]["level2"][method]["n"] for method in METHODS]
+        counts = [comparison["domain_results"][domain]["series"]["level2"][method]["n"]
+                  for method in METHODS]
         name = dict(zip(DOMAINS, ("Graph", "Countdown", "Python", "MathIR", "PantryPlan")))[domain]
-        partial_notes.append(f"{name} Level 2 terminal n (method order above): " + ", ".join(map(str, counts)))
+        partial_notes.append(f"{name} Level 2 terminal n: " + ", ".join(map(str, counts)))
     if partial_notes:
-        figure.text(.5, .005, "; ".join(partial_notes) + "; excluded from mean.",
-                    ha="center", va="bottom", fontsize=5.6, color=style.MUTED)
-    figure.legend(
-        handles=[
-            Line2D([0], [0], marker="o", color="none", markerfacecolor="none", markeredgecolor=LEVEL1_COLOR, label="Level 1"),
-            Line2D([0], [0], marker="o", color="none", markerfacecolor=LEVEL2_COLOR, markeredgecolor=LEVEL2_COLOR, label="Level 2"),
-        ],
-        frameon=True, framealpha=1.0, facecolor="white", edgecolor=style.GRID,
-        fancybox=False, borderpad=.25, ncol=2, loc="upper center",
-        bbox_to_anchor=(.245, 1.16), fontsize=6.4, handletextpad=.3, columnspacing=.9,
-    )
+        figure.text(.5, .012, "; ".join(partial_notes) + "; excluded from mean.",
+                    ha="center", va="bottom", fontsize=5.2, color=style.MUTED)
     style.save(figure, output, png=True, dpi=240)
     plt.close(figure)
 

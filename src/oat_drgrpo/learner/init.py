@@ -30,6 +30,7 @@ from ..online_canonical_controller import (
     OnlineCanonicalDualController,
     OnlineCanonicalPolicyEntropyController,
 )
+from ..proposal_starvation import ProposalStarvationController
 from ..runtime import patch_oat_learner_datetime, resolve_fixed_oat_exp_suffix
 from ..semantic_shannon import SemanticShannonTracker
 from ..trajectory_dataset import ZeroMathTrajectoryDataset
@@ -147,6 +148,54 @@ def build_maxent_controllers(
             ema_decay=float(args.maxent_length_ema_decay),
         )
     return alpha_controller, length_controller
+
+
+def build_semantic_shannon_tracker(
+    args: ZeroMathArgs,
+) -> SemanticShannonTracker | None:
+    """Construct the semantic estimator, including explicit zero-dose controls."""
+
+    coefficient = float(getattr(args, "semantic_shannon_coef", 0.0) or 0.0)
+    zero_coefficient_control = bool(
+        getattr(args, "semantic_shannon_allow_zero_coefficient_control", False)
+    )
+    if coefficient <= 0.0 and not zero_coefficient_control:
+        return None
+    return SemanticShannonTracker(
+        coefficient=coefficient,
+        surprisal_clip=float(args.semantic_shannon_surprisal_clip),
+        pseudocount=float(args.semantic_shannon_pseudocount),
+        quality_gated_advantage=bool(
+            getattr(args, "semantic_shannon_quality_gated_advantage", False)
+        ),
+        quality_gated_cap=float(
+            getattr(args, "semantic_shannon_quality_gated_cap", 0.05)
+        ),
+        success_conditioned_signed_advantage=bool(
+            getattr(
+                args,
+                "semantic_shannon_success_conditioned_signed_advantage",
+                False,
+            )
+        ),
+        success_conditioned_signed_cap=float(
+            getattr(args, "semantic_shannon_success_conditioned_signed_cap", 0.05)
+        ),
+        success_conditioned_group_centered_advantage=bool(
+            getattr(
+                args,
+                "semantic_shannon_success_conditioned_group_centered_advantage",
+                False,
+            )
+        ),
+        success_conditioned_verified_support_advantage=bool(
+            getattr(
+                args,
+                "semantic_shannon_success_conditioned_verified_support_advantage",
+                False,
+            )
+        ),
+    )
 
 
 class ZeroMathInitMixin:
@@ -272,46 +321,20 @@ class ZeroMathInitMixin:
                 bool(args.diayn_mi_correct_only),
                 bool(args.diayn_mi_leave_one_out),
             )
-        self._semantic_shannon_tracker: SemanticShannonTracker | None = None
         semantic_shannon_coef = float(
             getattr(args, "semantic_shannon_coef", 0.0) or 0.0
         )
-        if semantic_shannon_coef > 0:
-            self._semantic_shannon_tracker = SemanticShannonTracker(
-                coefficient=semantic_shannon_coef,
-                surprisal_clip=float(args.semantic_shannon_surprisal_clip),
-                pseudocount=float(args.semantic_shannon_pseudocount),
-                quality_gated_advantage=bool(
-                    getattr(
-                        args,
-                        "semantic_shannon_quality_gated_advantage",
-                        False,
-                    )
-                ),
-                quality_gated_cap=float(
-                    getattr(args, "semantic_shannon_quality_gated_cap", 0.05)
-                ),
-                success_conditioned_signed_advantage=bool(
-                    getattr(
-                        args,
-                        "semantic_shannon_success_conditioned_signed_advantage",
-                        False,
-                    )
-                ),
-                success_conditioned_signed_cap=float(
-                    getattr(
-                        args,
-                        "semantic_shannon_success_conditioned_signed_cap",
-                        0.05,
-                    )
-                ),
-            )
+        self._semantic_shannon_tracker = build_semantic_shannon_tracker(args)
+        if self._semantic_shannon_tracker is not None:
             logging.info(
                 "semantic Shannon shaping enabled: coefficient=%.6g "
                 "surprisal_clip=%.6g pseudocount=%.6g "
                 "separate_advantage=%s quality_gated_advantage=%s "
                 "success_conditioned_signed_advantage=%s "
-                "semantic_estimator=open_set_fixed coefficient_control=fixed",
+                "success_conditioned_group_centered_advantage=%s "
+                "success_conditioned_verified_support_advantage=%s "
+                "verified_support_include_replay_bank=%s "
+                "semantic_estimator=mode_selected coefficient_control=fixed",
                 semantic_shannon_coef,
                 float(args.semantic_shannon_surprisal_clip),
                 float(args.semantic_shannon_pseudocount),
@@ -321,6 +344,27 @@ class ZeroMathInitMixin:
                     getattr(
                         args,
                         "semantic_shannon_success_conditioned_signed_advantage",
+                        False,
+                    )
+                ),
+                bool(
+                    getattr(
+                        args,
+                        "semantic_shannon_success_conditioned_group_centered_advantage",
+                        False,
+                    )
+                ),
+                bool(
+                    getattr(
+                        args,
+                        "semantic_shannon_success_conditioned_verified_support_advantage",
+                        False,
+                    )
+                ),
+                bool(
+                    getattr(
+                        args,
+                        "semantic_shannon_verified_support_include_replay_bank",
                         False,
                     )
                 ),
@@ -340,9 +384,7 @@ class ZeroMathInitMixin:
                 gain=float(args.semantic_rms_gain),
                 max_step_ratio=float(args.semantic_rms_max_step_ratio),
                 warmup_steps=int(args.semantic_rms_warmup_steps),
-                min_eligible_fraction=float(
-                    args.semantic_rms_min_eligible_fraction
-                ),
+                min_eligible_fraction=float(args.semantic_rms_min_eligible_fraction),
             )
             logging.info(
                 "adaptive semantic MaxEnt enabled: target_ratio=%.6g "
@@ -358,6 +400,9 @@ class ZeroMathInitMixin:
             )
 
         self._online_canonical_bank: OnlineCanonicalBank | None = None
+        self._proposal_starvation_controller: (
+            ProposalStarvationController | None
+        ) = None
         self._verified_route_library: VerifiedRouteLibrary | None = None
         self._math_strategy_canonicalizer: MathStrategyCanonicalizer | None = None
         self._online_canonical_alpha_controller: (
@@ -395,6 +440,62 @@ class ZeroMathInitMixin:
                         False,
                     )
                 ),
+                proposal_replay_priority_visits=int(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_replay_priority_visits",
+                        0,
+                    )
+                ),
+                proposal_replay_priority_multiplier=float(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_replay_priority_multiplier",
+                        1.0,
+                    )
+                ),
+                proposal_retention_tracking=bool(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_retention_tracking",
+                        False,
+                    )
+                ),
+                proposal_adaptive_retention_priority=bool(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_adaptive_retention_priority",
+                        False,
+                    )
+                ),
+                proposal_retention_max_missed_rollout_opportunities=int(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_retention_max_missed_rollout_opportunities",
+                        2,
+                    )
+                ),
+                proposal_retention_max_mean_logprob_drop=float(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_retention_max_mean_logprob_drop",
+                        0.5,
+                    )
+                ),
+                proposal_retention_refresh_visits=int(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_retention_refresh_visits",
+                        4,
+                    )
+                ),
+                proposal_retention_score_cooldown_observations=int(
+                    getattr(
+                        args,
+                        "online_canonical_proposal_retention_score_cooldown_observations",
+                        2,
+                    )
+                ),
             )
             if online_canonical_objective_active:
                 logging.info(
@@ -417,7 +518,7 @@ class ZeroMathInitMixin:
                     "verified canonical replay enabled: "
                     "balance_alpha=%.6g mass_alpha=%.6g capacity=%d "
                     "global_groups_per_step=%d global_bootstrap_steps=%d "
-                    "objective=%s coefficient_control=fixed "
+                    "objective=%s key_weighting=%s coefficient_control=fixed "
                     "gold_support_feedback=none",
                     float(args.online_canonical_replay_alpha),
                     float(args.online_canonical_replay_mass_alpha),
@@ -425,6 +526,7 @@ class ZeroMathInitMixin:
                     int(args.online_canonical_replay_global_groups_per_step),
                     int(args.online_canonical_replay_global_bootstrap_steps),
                     str(args.online_canonical_replay_objective),
+                    str(args.online_canonical_replay_key_weighting),
                 )
                 if bool(
                     getattr(
@@ -433,12 +535,60 @@ class ZeroMathInitMixin:
                         False,
                     )
                 ):
+                    if bool(
+                        getattr(
+                            args,
+                            "online_canonical_counterfactual_starvation_fallback",
+                            False,
+                        )
+                    ):
+                        self._proposal_starvation_controller = ProposalStarvationController(
+                            base_max_attempts=int(
+                                args.online_canonical_counterfactual_max_attempts
+                            ),
+                            patience_updates=int(
+                                args.online_canonical_counterfactual_starvation_patience_updates
+                            ),
+                            fallback_max_attempts=int(
+                                args.online_canonical_counterfactual_starvation_fallback_max_attempts
+                            ),
+                            burst_updates=int(
+                                args.online_canonical_counterfactual_starvation_burst_updates
+                            ),
+                            cooldown_updates=int(
+                                args.online_canonical_counterfactual_starvation_cooldown_updates
+                            ),
+                        )
+                        logging.info(
+                            "target-free proposal starvation fallback enabled: "
+                            "patience_eligible_updates=%d base_attempts=%d "
+                            "fallback_attempts=%d burst_updates=%d "
+                            "cooldown_updates=%d reset=new_verified_admission_only "
+                            "gold_support_feedback=none "
+                            "desired_mode_count_feedback=none "
+                            "evaluation_feedback=none",
+                            int(
+                                args.online_canonical_counterfactual_starvation_patience_updates
+                            ),
+                            int(args.online_canonical_counterfactual_max_attempts),
+                            int(
+                                args.online_canonical_counterfactual_starvation_fallback_max_attempts
+                            ),
+                            int(
+                                args.online_canonical_counterfactual_starvation_burst_updates
+                            ),
+                            int(
+                                args.online_canonical_counterfactual_starvation_cooldown_updates
+                            ),
+                        )
                     logging.info(
                         "verified open-set proposals enabled: "
                         "proposal_groups_per_eligible_prompt=up_to_%d "
                         "proposal_width=num_samples "
                         "original_prompt_temperature=%.6g "
                         "proposal_temperature_step=%s "
+                        "transform_proposals=%s "
+                        "exact_grammar_transforms=%s "
                         "admission=novel_validator_and_task_positive_only "
                         "proposal_rows_to_ppo=0 "
                         "objective_support_separated=%s "
@@ -453,6 +603,20 @@ class ZeroMathInitMixin:
                             "0"
                             if str(args.online_canonical_key_mode) == "verified_route"
                             else "0.2"
+                        ),
+                        bool(
+                            getattr(
+                                args,
+                                "online_canonical_counterfactual_transform_proposals",
+                                True,
+                            )
+                        ),
+                        bool(
+                            getattr(
+                                args,
+                                "online_canonical_counterfactual_exact_grammar_transforms",
+                                False,
+                            )
                         ),
                         bool(
                             getattr(

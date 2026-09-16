@@ -144,7 +144,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
     summary.axis("off")
     counts, zero_cells = payload["invariant_counts"], payload["zero_semantic_pressure_cells"]
     summary.text(0.02, 0.98, "Diagnostic invariants\n\n" f"group-centered estimator active: {counts['v6_group_centered_active']}/15\n" f"legacy estimator inactive: {counts['legacy_estimator_inactive']}/15\n" f"RMS controller inactive: {counts['rms_controller_inactive']}/15\n" f"centered mean <= 1e-8: {counts['centered_mean_within_tolerance']}/15\n" f"verified replay actuated: {counts['replay_actuated']}/15\n\n" f"zero semantic-RMS cells: {len(zero_cells)}\n" "(outlined; retained, not filtered)\n\n" "Mechanism-only diagnostic;\nno post-update outcomes used.", transform=summary.transAxes, ha="left", va="top", fontsize=7.0, linespacing=1.25)
-    figure.suptitle("Group-centered Semantic-MaxEnt + Re:Dr.GRPO: superseded diagnostic", y=0.995)
+    figure.suptitle("Group-centered Semantic-MaxEnt + Re:Dr: superseded diagnostic", y=0.995)
     figure.tight_layout(rect=(0.0, 0.0, 1.0, 0.965))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output.with_suffix(".pdf"), bbox_inches="tight")

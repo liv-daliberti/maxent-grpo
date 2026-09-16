@@ -7,7 +7,7 @@ validator-accepted outputs so correct modes do not disappear between collection
 batches. Semantic MaxEnt over canonical verified outcomes and known-mode balance
 remain explicit refinements whose usefulness can vary by domain.
 
-The paper does not claim that the comprehensive x-Mode GRPO stack is uniformly
+The paper does not claim that the comprehensive x-Mode Dr.GRPO stack is uniformly
 necessary. It also does not claim an isolated incremental effect for semantic
 MaxEnt until a clean same-plumbing comparison is run under the current code.
 
@@ -18,7 +18,7 @@ MaxEnt until a clean same-plumbing comparison is run under the current code.
 | matched Dr.GRPO | task advantage only; passive verified-support telemetry | collapse control |
 | ordinary verified rehearsal | task advantage + verified-mass replay | common-mechanism baseline |
 | replay + balance | rehearsal + known-mode balance | domain-dependent balance comparison |
-| x-Mode GRPO | rehearsal + semantic MaxEnt + known-mode balance | comprehensive current instantiation |
+| x-Mode Dr.GRPO | rehearsal + semantic MaxEnt + known-mode balance | comprehensive current instantiation |
 | semantic MaxEnt, no replay | task advantage + semantic MaxEnt | diagnostic only; not current paper evidence |
 
 All semantic scoring is validator-gated. The open-set unseen bucket belongs to

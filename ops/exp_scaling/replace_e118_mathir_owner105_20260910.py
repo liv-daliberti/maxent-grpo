@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Protect the still-pending E118 MathIR Re:MaxRL continuation on node105's owning partition."""
+"""Protect the still-pending E118 MathIR Re:Max continuation on node105's owning partition."""
 from __future__ import annotations
 import argparse
 import copy

@@ -43,6 +43,24 @@ def _identity(info: os.stat_result) -> dict[str, int]:
             'ctime_ns': info.st_ctime_ns}
 
 
+def identity_matches(observed: dict[str, int], recorded: dict[str, int]) -> bool:
+    """Is this the same file, allowing only the mount number to differ?
+
+    The companion of ``_device_only_difference`` for callers holding a bare stat
+    identity rather than a whole manifest record. ``st_dev`` names a mount, not
+    a file: the same untouched export reports a different device number from a
+    different login node, and this repository measured exactly that across 3,448
+    archived files with no other field moving.
+
+    Inode, mtime and ctime must still match exactly, so a file that was
+    replaced, rewritten or swapped for another inode is still refused. Callers
+    are expected to have compared size and content digest separately.
+    """
+    if set(observed) != set(recorded):
+        return False
+    return all(observed[key] == recorded[key] for key in observed if key != 'dev')
+
+
 def _root(export_dir: str | Path) -> Path:
     source = Path(export_dir).absolute()
     _require(not source.is_symlink(), 'export directory is a symlink')
@@ -149,23 +167,60 @@ def _validate_manifest(manifest: dict[str, Any]) -> tuple[Path, list[dict[str, A
     return root, files
 
 
+def _device_only_difference(current: dict[str, Any], record: dict[str, Any]) -> dict[str, int] | None:
+    """Return the device pair when ``st_dev`` is the *only* difference, else None.
+
+    ``st_dev`` identifies a mount, not a file. The same unchanged export read
+    from a different login node reports a different device number for an NFS
+    path, and this repository has already measured that: the retained-metadata
+    diagnostic of 2026-09-11 rehashed 3,448 archived files and found every one
+    moving 48 -> 71 with ``non_device_mismatches_or_errors: 0``. Later hosts
+    read 88 and 47 for the same paths.
+
+    Treating that as "the export changed" is what makes an archive unretirable
+    anywhere except the machine that wrote it. This predicate is deliberately
+    narrow so that the weakening is exactly one field: every other key must be
+    equal, and within ``stat`` the inode, mtime and ctime must be equal too, so
+    a replaced or rewritten file still fails. The content digest is recomputed
+    by the caller on every check and compared here like any other key.
+    """
+    if set(current) != set(record):
+        return None
+    if any(current[key] != record[key] for key in current if key != 'stat'):
+        return None
+    before, after = record.get('stat'), current.get('stat')
+    if not isinstance(before, dict) or not isinstance(after, dict) or set(before) != set(after):
+        return None
+    if any(before[key] != after[key] for key in before if key != 'dev'):
+        return None
+    if before['dev'] == after['dev']:
+        return None
+    return {'recorded_device': before['dev'], 'observed_device': after['dev']}
+
+
 def verify_local_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
     """Rehash the export and compare original stat identities and full inventory."""
     root, files = _validate_manifest(manifest)
-    errors, verified = [], []
+    errors, verified, device_drift = [], [], []
     try:
         _require(_root(root) == root, 'export root changed')
         _require(_inventory(root) == sorted(r['relative_path'] for r in files), 'local file inventory changed')
         for record in files:
             current = _hash_file(root, record['relative_path'], record['path_in_repo'])
-            if current != record:
+            if current == record:
+                verified.append(record['path_in_repo'])
+                continue
+            drift = _device_only_difference(current, record)
+            if drift is None:
                 errors.append({'path': record['path_in_repo'], 'reason': 'local content or stat identity differs'})
             else:
                 verified.append(record['path_in_repo'])
+                device_drift.append({'path': record['path_in_repo'], **drift})
         _require(_inventory(root) == sorted(r['relative_path'] for r in files), 'local inventory changed during verification')
     except (OSError, ArchiveVerificationError) as error:
         errors.append({'path': str(root), 'reason': str(error)})
-    return {'status': 'verified' if not errors else 'failed', 'verified_files': verified, 'errors': errors}
+    return {'status': 'verified' if not errors else 'failed', 'verified_files': verified,
+            'errors': errors, 'device_drift': device_drift}
 
 
 def _field(value: Any, name: str) -> Any:

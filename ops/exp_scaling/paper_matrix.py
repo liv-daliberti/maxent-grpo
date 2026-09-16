@@ -140,15 +140,15 @@ METHODS: tuple[Method, ...] = (
     ),
     Method(
         "replay_grpo",
-        "Re:Dr.GRPO",
+        "Re:Dr",
         "headline method",
         "Canonical mode-balanced verified replay on top of Dr.GRPO.",
     ),
     Method(
         "adaptive_replay_grpo",
-        "Adaptive Re:Dr.GRPO",
+        "Adaptive Re:Dr",
         "replay ablation",
-        "Re:Dr.GRPO with bank-normalized replay dose.",
+        "Re:Dr with bank-normalized replay dose.",
     ),
     Method(
         "semantic_maxent",
@@ -164,13 +164,13 @@ METHODS: tuple[Method, ...] = (
     ),
     Method(
         "replay_semantic_maxent",
-        "Re:Dr.GRPO + Semantic MaxEnt",
+        "Re:Dr + Semantic MaxEnt",
         "semantic factorial",
         "Fixed semantic MaxEnt added to canonical verified replay.",
     ),
     Method(
         "adaptive_semantic_replay",
-        "Adaptive Semantic MaxEnt + Re:Dr.GRPO",
+        "Adaptive Semantic MaxEnt + Re:Dr",
         "semantic factorial",
         "Adaptive semantic MaxEnt added to canonical verified replay.",
     ),

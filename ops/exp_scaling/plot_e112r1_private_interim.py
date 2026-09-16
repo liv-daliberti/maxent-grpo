@@ -212,10 +212,10 @@ def build(freeze_path: Path = FREEZE) -> dict[str, Any]:
         "selection_rule": freeze["selection_rule"],
         "analysis_rule": "exact paired seed effects only; no mean, interval, test, or pooling",
         "treatment": "E112-R1 corrected verified-support MaxEnt",
-        "comparator": "preregistered matched Re:Dr.GRPO",
+        "comparator": "preregistered matched Re:Dr",
         "metrics": {
-            "pass8": "E112-R1 pass@8 minus matched Re:Dr.GRPO pass@8",
-            "adjusted_breadth8": "E112-R1 (distinct@8-pass@8) minus matched Re:Dr.GRPO (distinct@8-pass@8)",
+            "pass8": "E112-R1 pass@8 minus matched Re:Dr pass@8",
+            "adjusted_breadth8": "E112-R1 (distinct@8-pass@8) minus matched Re:Dr (distinct@8-pass@8)",
         },
         "scale_order": list(SCALES),
         "domain_order": list(DOMAIN_ORDER),
@@ -301,7 +301,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
             axis.set_xticks((0, 1), [label for _metric, label in metrics])
             if domain_index == 0:
                 axis.set_ylabel(
-                    f"{SCALE_LABELS[scale]}\neffect vs Re:Dr.GRPO",
+                    f"{SCALE_LABELS[scale]}\neffect vs Re:Dr",
                     fontsize=style.LABEL_FONT,
                 )
             else:
@@ -328,7 +328,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
     figure.text(
         0.5,
         0.955,
-        "E112-R1 vs preregistered matched Re:Dr.GRPO · pass 8 · exact frozen subset",
+        "E112-R1 vs preregistered matched Re:Dr · pass 8 · exact frozen subset",
         ha="center",
         va="top",
         fontsize=style.SMALL_FONT,

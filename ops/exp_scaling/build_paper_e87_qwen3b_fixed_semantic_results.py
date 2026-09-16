@@ -2,8 +2,8 @@
 """Freeze the completed seed-70 Qwen2.5-3B fixed-semantic block for the paper.
 
 This is intentionally a descriptive single-seed result. It validates and
-reports the matched Dr.GRPO, Re:Dr.GRPO, and fixed Semantic MaxEnt plus
-Re:Dr.GRPO endpoints on all five static domains, but never constructs an
+reports the matched Dr.GRPO, Re:Dr, and fixed Semantic MaxEnt plus
+Re:Dr endpoints on all five static domains, but never constructs an
 interval or promotes the observation to a five-seed estimand.
 """
 

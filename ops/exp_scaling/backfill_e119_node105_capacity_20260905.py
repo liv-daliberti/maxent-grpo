@@ -108,7 +108,7 @@ def main() -> None:
         row['previous_continuation_job_ids']=[*row.get('previous_continuation_job_ids',[]),JOB]
         row['continuation_job_id']=new_id
         row['repair_kind']='20260905_node105_capacity_same_cell_continuation'
-        continuation['operational_change']=str(continuation.get('operational_change',''))+'; 2026-09-05 Python Re:Dr.GRPO s45 pending cell backfilled onto node105/mltheory from1152'
+        continuation['operational_change']=str(continuation.get('operational_change',''))+'; 2026-09-05 Python Re:Dr s45 pending cell backfilled onto node105/mltheory from1152'
         assert campaign.E119_CONTINUATIONS.read_bytes()==ledger_before,'Concurrent continuation-ledger mutation'
         (ART/'e119_node105_continuation.before.json').write_bytes(ledger_before)
         atomic(campaign.E119_CONTINUATIONS,continuation)

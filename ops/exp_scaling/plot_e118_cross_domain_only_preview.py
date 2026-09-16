@@ -61,7 +61,7 @@ def legend_handles() -> list[Line2D]:
         Line2D(
             [0], [0], marker="s", linestyle="none", markersize=5.4,
             markerfacecolor=style.ABLATION, markeredgecolor=style.ABLATION,
-            label="Re:MaxRL (ours)",
+            label="Re:Max (ours)",
         ),
         Line2D(
             [0], [0], marker="o", linestyle="none", markersize=5.2,
@@ -71,7 +71,7 @@ def legend_handles() -> list[Line2D]:
         Line2D(
             [0], [0], marker="o", linestyle="none", markersize=5.4,
             markerfacecolor=style.ADAPTIVE, markeredgecolor=style.ADAPTIVE,
-            label="Re:Dr.GRPO (ours)",
+            label="Re:Dr (ours)",
         ),
     ]
 

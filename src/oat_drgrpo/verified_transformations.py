@@ -17,10 +17,15 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from .math_grader import (
+    _canonical_countdown_expression_key,
     _extract_modebench_candidate,
     _graph_coloring_from_candidate,
     _verify_graph_coloring_colors,
     validated_modebench_outcome_key,
+)
+from .canonical_actions import (
+    decode_countdown_action_code,
+    enumerate_countdown_action_codes,
 )
 from .mathir import (
     Command,
@@ -217,6 +222,57 @@ def _countdown_candidates(candidate: str) -> tuple[str, ...]:
         )
         candidates.append(ast.unparse(ast.fix_missing_locations(variant)))
     return tuple(candidates)
+
+
+def _countdown_action_neighborhood_candidates(
+    candidate: str,
+    spec: dict[str, Any],
+    *,
+    radius: int,
+) -> tuple[str, ...]:
+    """Return a fixed local neighborhood in the public easy3 grammar.
+
+    The 108 action codes describe syntax, not valid answers. We invert the
+    verified anchor to all of its canonical code aliases without consulting
+    the target, then mutate at most ``radius`` code positions. The ordinary
+    validator later decides which local mutations solve the public instance.
+    Every decoded candidate therefore belongs to the exact binary-expression
+    grammar: positive input leaves, two binary operations, and no unary-sign
+    extension accepted only by the more permissive runtime validator.
+    """
+
+    if radius not in (1, 2):
+        raise ValueError("Countdown action-neighborhood radius must be 1 or 2")
+    try:
+        numbers = tuple(int(value) for value in spec["numbers"])
+    except Exception:
+        return ()
+    if len(numbers) != 3 or len(set(numbers)) != 3:
+        return ()
+    original_key = _canonical_countdown_expression_key(candidate, spec)
+    if original_key is None:
+        return ()
+
+    code_expressions = {
+        code: decode_countdown_action_code(code, spec)
+        for code in enumerate_countdown_action_codes()
+    }
+    anchor_codes = tuple(
+        code
+        for code, expression in code_expressions.items()
+        if _canonical_countdown_expression_key(expression, spec) == original_key
+    )
+    if not anchor_codes:
+        return ()
+
+    def distance(left: str, right: str) -> int:
+        return sum(a != b for a, b in zip(left, right))
+
+    return tuple(
+        expression
+        for code, expression in code_expressions.items()
+        if any(0 < distance(anchor_code, code) <= radius for anchor_code in anchor_codes)
+    )
 
 
 def _graph_candidates(
@@ -470,6 +526,30 @@ def derive_validator_preserving_counterfactuals(
         raw_candidates = ()
     return _validated_surfaces(
         raw_candidates,
+        reference,
+        original_key=original_key,
+    )
+
+
+def derive_countdown_action_neighborhood_counterfactuals(
+    model_response: str,
+    reference: Any,
+    *,
+    radius: int = 2,
+) -> tuple[str, ...]:
+    """Return verified local alternatives inside Countdown's exact grammar."""
+
+    spec = _parse_spec(reference)
+    if spec is None or str(spec.get("verifier", "")) != "countdown":
+        return ()
+    original_key = validated_modebench_outcome_key(model_response, reference)
+    if original_key is None:
+        return ()
+    candidate = _extract_modebench_candidate(model_response, reference)
+    if candidate is None:
+        return ()
+    return _validated_surfaces(
+        _countdown_action_neighborhood_candidates(candidate, spec, radius=radius),
         reference,
         original_key=original_key,
     )

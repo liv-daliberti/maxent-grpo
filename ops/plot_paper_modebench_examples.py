@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Render paired, validator-checked ModeBench examples for Section 3.1.
 
-One figure, one card per domain on a compact grid, one shared reading order: the
+One figure, one card per domain in a single row, one shared reading order: the
 response the policy emits, the execution that accepts it, and the canonical key
 that execution produces. The two answers of a card are the same two verified
-modes that Figure 1 tracks, so they carry Figure 1's plasma mode colours. A card
-sets its two answers side by side whenever it has the width for them, which
-keeps each card filled and the grid compact enough for the page.
+modes that Figure 1 tracks, so they carry Figure 1's plasma mode colours.
+
+The row is content-sized rather than laid on a column grid: every card is
+measured against the text it actually holds and is given exactly that width, so
+the canvas ends where the five domains end. A grid of equal columns cannot do
+this --- its column has to hold the widest line in the figure, which leaves the
+cards with shorter lines part empty --- and a second row compounds it, because
+then every card in a row is also drawn down to the height of whichever card in
+it carries a picture. One row of measured cards has no such slack to leave.
 """
 
 from __future__ import annotations
@@ -40,13 +46,16 @@ DATA_ROOTS = {
 }
 
 # Inches on a figure whose single axes spans the canvas one-to-one, so the
-# layout below can be read as the printed page geometry.
-CANVAS_WIDTH = 13.2
+# layout below can be read as the printed page geometry. The canvas the figure
+# actually ships at is the sum of the measured cards, computed in ``render``;
+# this is the type scale every hand-placed inch below is tuned against, and it
+# is what the printed size is reported relative to.
+TYPE_CANVAS = 13.2
 
 # One type size for the whole figure, exactly as in the collapse story, so no
 # label reads as a second-class annotation once the page scales it down. The
 # shared helper picks the size that matches every other figure on paper.
-FONT = style.font_for_canvas(CANVAS_WIDTH)
+FONT = style.font_for_canvas(TYPE_CANVAS)
 MONO = "DejaVu Sans Mono"
 
 INK = style.INK
@@ -143,30 +152,41 @@ mpl.rcParams.update(
     }
 )
 
-WIDTH = CANVAS_WIDTH
-MARGIN = 0.18
-COLUMNS = 3
-GUTTER = 0.22
-CARD_PAD = 0.16
+# Five cards in one row buy their width from one another, so the gaps between
+# them are set as tight as they can be and still read as gaps: a card edge
+# already separates neighbours, and every tenth of an inch spent here is a
+# tenth taken off all five cards' text.
+MARGIN = 0.12
+GUTTER = 0.18
+CARD_PAD = 0.14
 LINE = 0.28
 KEY_GAP = 0.06
 ROW_GAP = 0.12
 HEADER = 0.34
 PROMPT = 0.28
-ROW_SPACING = 0.16
-HEADLINE = 0.42
 # A card that draws a picture sets its two answers side by side instead of one
-# above the other: the picture then sits under its own text rather than beside
-# it, which is what kept a band of empty wash to the left of every thumbnail.
+# above the other: two stacked thumbnails would make that card twice the height
+# of its neighbours, and the row is drawn down to its tallest card.
 PAIR_GAP = 0.12
 THUMB_GAP = 0.10
-# Narrower than the half-card it sits on, so the two colourings of the pair
-# keep visibly separate rather than reading as one twelve-vertex graph.
+# The box the six vertices are *positioned* in. A vertex is drawn as a disc
+# centred on its position, so the thumbnail's ink runs a radius past this box on
+# every side; ``GRAPH_INK_*`` is what the layout has to reserve. Keeping the two
+# apart is what stops the pair of colourings from touching: reserve the box and
+# the outermost discs of the two thumbnails collide in the middle of the card.
 GRAPH_WIDTH = 1.40
-GRAPH_HEIGHT = 1.24
+GRAPH_HEIGHT = 1.15
+NODE_RADIUS = 0.205
+GRAPH_INK_WIDTH = GRAPH_WIDTH + 2 * NODE_RADIUS
+GRAPH_INK_HEIGHT = GRAPH_HEIGHT + 2 * NODE_RADIUS
 PAINT_SIZE = 0.24
-# Chips sit close enough that a six-vertex key fits one half-card.
 PAINT_STEP = 0.26
+# The key's chips carry no vertex numbers --- the response above them already
+# numbered the three it fills --- so they are set smaller and tighter than the
+# labelled rows, and the six-vertex key then fits inside the width the two
+# thumbnails already ask for.
+KEY_PAINT_SIZE = 0.18
+KEY_PAINT_STEP = 0.20
 
 
 def box(ax, x, y, w, h, *, face=WHITE, edge=GRID, radius=0.06, lw=1.0):
@@ -296,9 +316,11 @@ def load_and_validate() -> dict[str, dict]:
             assert entry["name"] == f"add {-operand}", letter
         else:
             assert action == "mul(a)" and entry["name"] == f"×{operands['a']}", letter
-    mathir["menu"] = "… · " + " · ".join(
-        f"{letter}: {entry['name']}" for letter, entry in mathir_menu.items()
-    )
+    # Set over two lines rather than one: on a card sized to its own content, a
+    # forty-character menu would buy the widest card in the row for a line that
+    # is read once, and every other line on the card would sit in its shadow.
+    entries = [f"{letter}: {entry['name']}" for letter, entry in mathir_menu.items()]
+    mathir["menu"] = ("… · " + " · ".join(entries[:2]), " · ".join(entries[2:]))
     mathir_answers = (
         {"answer": "C;F", "trace": ("x/2 = 8", "x = 16")},
         {"answer": "F;E", "trace": ("x − 18 = −2", "x = 16")},
@@ -392,12 +414,14 @@ def load_and_validate() -> dict[str, dict]:
 
 
 def build_blocks(examples: dict[str, dict]) -> list[dict]:
-    """Turn the validated examples into a two-row grid of domain cards.
+    """Turn the validated examples into one row of domain cards.
 
-    Each answer sets its canonical key on the line beneath the response. The
-    three cards of the first row take one column each; the two that finish the
-    grid take a column and a half, so the second row spans the canvas instead
-    of centring two cards over an empty third column.
+    Each answer sets its canonical key on the line beneath the response. No
+    card is given a width here: ``measure_row`` reads what each one holds and
+    sizes it to that. What a card does choose is how it spends the width it
+    asks for --- a prompt broken over three short lines rather than two long
+    ones asks for a narrower card and a taller one, which is the right trade
+    while a picture card is setting the height of the row anyway.
     """
 
     graph = examples["graph"]
@@ -409,14 +433,16 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
     blocks = [
         {
             "letter": "A",
-            "title": "Graph coloring",
+            "title": "Graph",
             "prompt": [
                 {"label": "partial colors", "paints": tuple(graph["spec"]["partial_colors"])},
                 "fill vertices 2, 3, 5",
             ],
             "check": "✓ valid",
-            "span": 1,
             "glyph": "graph",
+            # The one card that draws a picture, so the one card that sets its
+            # two answers side by side: stacked thumbnails would make it the
+            # tallest card by a clear head and leave slack in all four others.
             "pair": True,
             "key_kind": "paints",
             "answers": [
@@ -435,9 +461,8 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "B",
             "title": "Countdown",
-            "prompt": ["tiles {3, 6, 9} · target 18", "use each tile once"],
+            "prompt": ["tiles {3, 6, 9}", "target 18", "use each tile once"],
             "check": "✓ = 18",
-            "span": 1,
             "answers": [
                 {
                     "response": [operators(answer["answer"])],
@@ -448,10 +473,9 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         },
         {
             "letter": "C",
-            "title": "Python factors",
-            "prompt": ["lambda n: EXPR", "one call per n in 18, 82, 91, 93"],
+            "title": "Python",
+            "prompt": ["lambda n: EXPR", "one call per n in", "18, 82, 91, 93"],
             "check": "✓ divides",
-            "span": 1,
             "answers": [
                 {
                     "response": list(answer["lines"]),
@@ -463,13 +487,8 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
         {
             "letter": "D",
             "title": "MathIR",
-            "prompt": ["solve  x/2 − 9 = −1", mathir["spec"]["menu"]],
+            "prompt": ["solve  x/2 − 9 = −1", *mathir["spec"]["menu"]],
             "check": "✓ x = 16",
-            # A column and a half, with both answers on one row. Three equal
-            # columns leave the last row two-thirds full and every card in it
-            # half empty; two wide cards fill the row and halve its height.
-            "span": 1.5,
-            "pair": True,
             "answers": [
                 {
                     "response": [answer["answer"]],
@@ -486,15 +505,11 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             "letter": "E",
             "title": "PantryPlan",
             "prompt": [
-                # Two lines, as in MathIR beside it, so both cards of the
-                # row start their answers on the same baseline.
-                "2–4 ingredients · 125–200 g",
+                "2–4 ingredients",
+                "125–200 g total",
                 "four exact nutrition bounds",
             ],
             "check": "✓ feasible",
-            # Paired at a column and a half, like MathIR beside it.
-            "span": 1.5,
-            "pair": True,
             "glyph": "ingredient",
             "key_kind": "icons",
             "answers": [
@@ -518,7 +533,7 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             key_rows = 1 if block.get("key_kind") in {"paints", "icons"} else len(answer["key"])
             stack = len(answer["response"]) * LINE + KEY_GAP + key_rows * LINE + 0.08
             thumbnail_height = {
-                "graph": GRAPH_HEIGHT,
+                "graph": GRAPH_INK_HEIGHT,
             }.get(block.get("glyph"))
             # The text stack always keeps its own height; a picture is added
             # underneath it rather than set alongside, so nothing is padded up
@@ -566,35 +581,96 @@ def measure(fig, artist) -> float:
     return artist.get_window_extent(renderer=fig.canvas.get_renderer()).width / fig.dpi
 
 
-def card_width(span: float) -> float:
-    """Width of a card spanning ``span`` columns, gutters included.
+def probe(fig, ax, value, *, mono: bool = False, bold: bool = False) -> float:
+    """Width of a string without leaving it on the canvas.
 
-    ``span`` is fractional: any row whose spans sum to ``COLUMNS`` fills the
-    canvas between the margins exactly, whatever mix of widths it uses.
+    The measuring pass and the drawing pass have to agree to the inch, so both
+    ask the same renderer the same question; this draws the artist, measures it
+    the way ``measure`` does, and removes it again.
     """
 
-    unit = (WIDTH - 2 * MARGIN - (COLUMNS - 1) * GUTTER) / COLUMNS
-    return unit * span + GUTTER * (span - 1)
+    artist = text(
+        ax, 0.0, 0.0, value,
+        fontfamily=MONO if mono else "sans-serif",
+        fontweight="bold" if bold else "normal",
+    )
+    width = measure(fig, artist)
+    artist.remove()
+    return width
 
 
-def pack_rows(blocks: list[dict]) -> list[list[int]]:
-    """Fill each row in reading order until its spans reach ``COLUMNS``."""
+def segments_width(fig, ax, line) -> float:
+    """Width of one response or key line, whether plain text or coloured runs."""
 
-    rows: list[list[int]] = []
-    used = COLUMNS
-    for index, block in enumerate(blocks):
-        if used + block["span"] > COLUMNS + 1e-9:
-            rows.append([])
-            used = 0.0
-        rows[-1].append(index)
-        used += block["span"]
-    return rows
+    if isinstance(line, str):
+        return probe(fig, ax, line, mono=True, bold=True)
+    return sum(probe(fig, ax, value, mono=True, bold=True) for value, _ in line)
+
+
+def answer_indent(block: dict) -> float:
+    """Left offset the response text starts at, past the numbered badge."""
+
+    return 0.34 + (0.26 if block.get("glyph") == "ingredient" else 0.0)
+
+
+def cell_requirement(fig, ax, block: dict) -> float:
+    """Width one answer needs: its widest response line, key chip, or picture."""
+
+    indent = answer_indent(block)
+    key_left = 0.0 if block.get("glyph") == "graph" else indent
+    needs = [GRAPH_INK_WIDTH] if block.get("glyph") == "graph" else []
+    for answer in block["answers"]:
+        for index, line in enumerate(answer["response"]):
+            if answer.get("response_kind") == "paints":
+                needs.append(indent + paint_row_width([paint for paint, _ in line]))
+                continue
+            width = indent + segments_width(fig, ax, line)
+            if index == 0 and answer.get("note"):
+                width += 0.18 + probe(fig, ax, answer["note"])
+            needs.append(width)
+        kind = block.get("key_kind", "text")
+        if kind == "paints":
+            ink = paint_row_width(
+                answer["key"][0], size=KEY_PAINT_SIZE, step=KEY_PAINT_STEP
+            )
+            needs.append(key_left + 0.12 + ink + 0.24)
+        elif kind == "icons":
+            needs.append(key_left + 0.12 + icon_row_width(fig, ax, answer["key"][0]) + 0.20)
+        else:
+            ink = max(segments_width(fig, ax, line) for line in answer["key"])
+            needs.append(key_left + 0.12 + ink + 0.24)
+    return max(needs)
+
+
+def card_requirement(fig, ax, block: dict) -> float:
+    """Outer width of a card: the widest thing it holds, plus its own padding.
+
+    Measuring rather than assigning is the whole point of the single row. Every
+    card asks for exactly what its text needs, the canvas is the sum of those
+    asks, and no card is left holding width that belongs to another card's
+    longest line.
+    """
+
+    needs = [
+        0.42 + probe(fig, ax, block["title"], bold=True)
+        + 0.16 + probe(fig, ax, block["check"], bold=True)
+    ]
+    for line in block["prompt"]:
+        if isinstance(line, dict):
+            needs.append(
+                probe(fig, ax, line["label"]) + 0.14 + paint_row_width(line["paints"])
+            )
+        else:
+            needs.append(probe(fig, ax, line))
+    cell = cell_requirement(fig, ax, block)
+    needs.append(2 * cell + PAIR_GAP if block.get("pair") else cell)
+    return max(needs) + 2 * CARD_PAD
 
 
 def answer_rows(block: dict) -> int:
     """Two answers stacked, unless the card sets them side by side."""
 
-    return 1 if block["span"] == 2 or block.get("pair") else 2
+    return 1 if block.get("pair") else 2
 
 
 def card_height(block: dict) -> float:
@@ -630,7 +706,7 @@ def draw_mini_graph(ax, left: float, center: float, width: float, height: float,
         ax.add_patch(
             Circle(
                 (x, y),
-                0.205,
+                NODE_RADIUS,
                 facecolor=NODE_PAINTS[color],
                 edgecolor=WHITE,
                 linewidth=1.1,
@@ -669,17 +745,25 @@ def draw_ingredient(ax, name: str, x: float, y: float) -> None:
                          facecolor=fill, edgecolor=edge, **common))
 
 
-def draw_paint_row(ax, left: float, y: float, paints, labels=None) -> float:
+def paint_row_width(paints, *, size: float = PAINT_SIZE, step: float = PAINT_STEP) -> float:
+    """Ink width of a chip row, which is what both passes lay out against."""
+
+    return len(paints) * step - (step - size)
+
+
+def draw_paint_row(
+    ax, left: float, y: float, paints, labels=None,
+    *, size: float = PAINT_SIZE, step: float = PAINT_STEP,
+) -> float:
     """A row of paint chips, one per vertex, in vertex order."""
 
-    step = PAINT_STEP
     for index, paint in enumerate(paints):
-        centre = left + PAINT_SIZE / 2 + index * step
+        centre = left + size / 2 + index * step
         known = paint is not None
         ax.add_patch(
             Circle(
                 (centre, y),
-                PAINT_SIZE / 2,
+                size / 2,
                 facecolor=NODE_PAINTS[int(paint)] if known else WHITE,
                 edgecolor=WHITE if known else FRAME,
                 linewidth=1.0,
@@ -694,7 +778,14 @@ def draw_paint_row(ax, left: float, y: float, paints, labels=None) -> float:
                 color=NODE_TEXT[int(paint)] if known else MUTED,
                 fontweight="bold", ha="center", zorder=4,
             )
-    return len(paints) * step - (step - PAINT_SIZE)
+    return paint_row_width(paints, size=size, step=step)
+
+
+def icon_row_width(fig, ax, names) -> float:
+    """Ink width of a pictogram row, measured the way ``draw_icon_row`` lays it."""
+
+    plus = probe(fig, ax, "+", bold=True)
+    return len(names) * 0.32 + (len(names) - 1) * (plus + 0.10)
 
 
 def draw_icon_row(fig, ax, left: float, y: float, names) -> float:
@@ -719,7 +810,10 @@ def draw_key(
     lines = answer["key"]
     baseline = top - 0.04 - 0.5 * LINE
     if kind == "paints":
-        width = draw_paint_row(ax, left + 0.12, baseline, lines[0]) + 0.24
+        width = draw_paint_row(
+            ax, left + 0.12, baseline, lines[0],
+            size=KEY_PAINT_SIZE, step=KEY_PAINT_STEP,
+        ) + 0.24
     elif kind == "icons":
         width = draw_icon_row(fig, ax, left + 0.12, baseline, lines[0]) + 0.20
     else:
@@ -804,7 +898,7 @@ def draw_answer(
         draw_mini_graph(
             ax,
             left + (limit - GRAPH_WIDTH) / 2,
-            thumbnail_top - GRAPH_HEIGHT / 2,
+            thumbnail_top - NODE_RADIUS - GRAPH_HEIGHT / 2,
             GRAPH_WIDTH,
             GRAPH_HEIGHT,
             answer["mode"],
@@ -812,9 +906,9 @@ def draw_answer(
 
 
 def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> None:
-    # Both cards in a row are drawn to the row's height, so the grid keeps a
-    # flat baseline even when one domain needs two-line answers.
-    width = card_width(block["span"])
+    # Every card is drawn to the row's height, so the row keeps a flat baseline
+    # even when one domain needs two-line answers.
+    width = block["width"]
     # Softer than a form field, short of a pill: a card is the biggest box on
     # the page, so it is the one place a hard corner reads as "boxy" rather
     # than "framed".
@@ -860,14 +954,14 @@ def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> N
     # the tallest card of that row leaves, so no card looks bottom-heavy.
     spare = (height - CARD_PAD - HEADER - block["prompt_lines"] * PROMPT - CARD_PAD) - body
     body_top = top - CARD_PAD - HEADER - block["prompt_lines"] * PROMPT - spare / 2
-    if block["span"] == 2 or block.get("pair"):
-        # Both answers on one row: the wide card has the room outright, and a
-        # picture card buys it by putting each thumbnail under its own text.
-        gap = GUTTER if block["span"] >= 1.5 else PAIR_GAP
-        cell = (inner_right - inner_left - gap) / 2
+    if block.get("pair"):
+        # Both answers on one row, each thumbnail under its own text: a picture
+        # card that stacked them would stand twice as tall as its neighbours,
+        # and the row is drawn down to whichever card is tallest.
+        cell = (inner_right - inner_left - PAIR_GAP) / 2
         for index, answer in enumerate(block["answers"]):
             draw_answer(
-                fig, ax, answer, inner_left + index * (cell + gap),
+                fig, ax, answer, inner_left + index * (cell + PAIR_GAP),
                 body_top, cell, block["title"], glyph=block.get("glyph"),
                 key_kind=block.get("key_kind", "text"),
             )
@@ -881,53 +975,65 @@ def draw_card(fig, ax, block: dict, left: float, top: float, height: float) -> N
         )
 
 
+def measure_row(blocks: list[dict]) -> float:
+    """Give every card the width its own content needs; return the canvas width.
+
+    Measuring needs a renderer, and the renderer needs a figure, so the pass
+    runs on a scratch canvas that is thrown away: type is set in points, so what
+    it measures in inches is what the real canvas will draw.
+    """
+
+    scratch = plt.figure(figsize=(TYPE_CANVAS, 1.0))
+    ax = scratch.add_axes([0, 0, 1, 1])
+    ax.set_axis_off()
+    scratch.canvas.draw()
+    for block in blocks:
+        block["width"] = card_requirement(scratch, ax, block)
+    plt.close(scratch)
+    return (
+        2 * MARGIN
+        + sum(block["width"] for block in blocks)
+        + GUTTER * (len(blocks) - 1)
+    )
+
+
 def render() -> None:
     examples = load_and_validate()
     blocks = build_blocks(examples)
-    # Two rows, read in letter order, each one filled to the margins: three
-    # single columns, then two cards of a column and a half. Cards in a row are
-    # drawn to a common height, so the row keeps its flat baseline.
-    card_heights = [card_height(block) for block in blocks]
-    grid = pack_rows(blocks)
-    row_heights = [max(card_heights[index] for index in row) for row in grid]
+    # One row, read in letter order, each card as wide as its own text and no
+    # wider. The canvas is whatever those five widths come to, so the figure
+    # carries no margin it did not earn.
+    width = measure_row(blocks)
+    row_height = max(card_height(block) for block in blocks)
+    height = 0.10 + row_height + 0.12
 
-    height = (
-        0.10 + HEADLINE + sum(row_heights) + ROW_SPACING * (len(grid) - 1) + 0.12
-    )
-
-    fig = plt.figure(figsize=(WIDTH, height))
+    fig = plt.figure(figsize=(width, height))
     ax = fig.add_axes([0, 0, 1, 1])
-    ax.set_xlim(0, WIDTH)
+    ax.set_xlim(0, width)
     ax.set_ylim(0, height)
     ax.set_axis_off()
     fig.canvas.draw()
 
-    top = height - 0.10
-    text(
-        ax,
-        MARGIN + 0.20,
-        top - HEADLINE / 2,
-        "One prompt, two verified answers, two different canonical keys",
-        fontweight="bold",
-    )
-
-    cursor = top - HEADLINE
-    for row, indices in enumerate(grid):
-        widths = [card_width(blocks[index]["span"]) for index in indices]
-        spread = sum(widths) + GUTTER * (len(indices) - 1)
-        # A row that does not fill its span budget is centred rather than
-        # flushed left, so a short row reads as deliberate.
-        left = MARGIN + (WIDTH - 2 * MARGIN - spread) / 2
-        for index, width in zip(indices, widths):
-            draw_card(fig, ax, blocks[index], left, cursor, row_heights[row])
-            left += width + GUTTER
-        cursor -= row_heights[row] + ROW_SPACING
+    # No headline over the row: the caption already says that one prompt has
+    # two verified answers with different keys, and a title that repeats its
+    # own caption costs a band of the page to tell the reader nothing twice.
+    left = MARGIN
+    for block in blocks:
+        draw_card(fig, ax, block, left, height - 0.10, row_height)
+        left += block["width"] + GUTTER
+    assert abs(left - GUTTER - (width - MARGIN)) < 1e-9, "row must close on the margin"
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)
     fig.savefig(OUT.with_suffix(".png"), dpi=240, bbox_inches="tight", pad_inches=0.035)
     plt.close(fig)
-    print(f"Wrote {OUT.with_suffix('.pdf')}  ({WIDTH:.2f} x {height:.2f} in)")
+    # The figure is included at \linewidth, so its printed type is the canvas
+    # type scaled by the ratio of the text block to the canvas. Reported here
+    # because a content-sized canvas moves it whenever the content moves.
+    printed = FONT * style.WIDTH / width
+    print(f"Wrote {OUT.with_suffix('.pdf')}  ({width:.2f} x {height:.2f} in)")
+    print(f"  cards: " + ", ".join(f"{b['letter']}={b['width']:.2f}" for b in blocks))
+    print(f"  type on the page at \\linewidth: {printed:.2f}pt of the {style.FONT:.2f}pt standard")
     print(f"Wrote {OUT.with_suffix('.png')}")
 
 

@@ -3793,26 +3793,134 @@
     "dashed_connector": "partial or domain-specific paired seeds with exact counts and no interval",
     "domain_backgrounds": "exact Figure 2 domain-card tints; color is contextual, not data",
     "estimands": [
-      "ReplayMaxRL minus MaxRL on matched terminal seeds",
-      "ReplayDr.GRPO minus Dr.GRPO on its admissible paired seed intersection"
+      "Re:Max minus MaxRL on matched terminal seeds",
+      "Re:Dr minus Dr.GRPO on its admissible paired seed intersection"
     ],
     "falcon_average": "equal domain average within paired seed",
     "main_axis_limits": {
-      "distinct8": [
-        0.0,
-        1.8
-      ],
       "pass8": [
         0.0,
         1.0
+      ],
+      "pmd": [
+        0.0,
+        0.5
       ]
     },
-    "main_figure": "three-model cross-domain pass@8 and distinct@8 with MaxRL/replay and Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses five matched seeds across all five domains",
+    "main_figure": "three-model cross-domain pass@8 and PCMD with MaxRL/replay and Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses five matched seeds across all five domains",
     "main_panels": {
       "A": "cross-domain pass@8",
-      "B": "cross-domain distinct@8"
+      "B": "cross-domain PCMD"
     },
     "numeric_annotations": "complete five-seed tracks use solid connectors; partial tracks show exact n; all domain-specific counts and endpoints remain in JSON and appendix",
+    "pmd_domains": {
+      "falcon1b": [
+        "graph_coloring",
+        "countdown",
+        "pantry_plan"
+      ],
+      "qwen05b": [
+        "graph_coloring",
+        "mathir",
+        "pantry_plan"
+      ],
+      "qwen3b": [
+        "graph_coloring",
+        "pantry_plan"
+      ]
+    },
+    "pmd_seed_counts": {
+      "falcon1b": {
+        "before_training": {
+          "countdown": 5,
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "before_training_drgrpo": {
+          "countdown": 5,
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "drgrpo": {
+          "countdown": 5,
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "maxrl": {
+          "countdown": 5,
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "replay_drgrpo": {
+          "countdown": 4,
+          "graph_coloring": 5,
+          "pantry_plan": 4
+        },
+        "replay_maxrl": {
+          "countdown": 5,
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        }
+      },
+      "qwen05b": {
+        "before_training": {
+          "graph_coloring": 5,
+          "mathir": 5,
+          "pantry_plan": 5
+        },
+        "before_training_drgrpo": {
+          "graph_coloring": 5,
+          "mathir": 5,
+          "pantry_plan": 5
+        },
+        "drgrpo": {
+          "graph_coloring": 5,
+          "mathir": 5,
+          "pantry_plan": 5
+        },
+        "maxrl": {
+          "graph_coloring": 5,
+          "mathir": 5,
+          "pantry_plan": 5
+        },
+        "replay_drgrpo": {
+          "graph_coloring": 5,
+          "mathir": 5,
+          "pantry_plan": 5
+        },
+        "replay_maxrl": {
+          "graph_coloring": 5,
+          "mathir": 5,
+          "pantry_plan": 5
+        }
+      },
+      "qwen3b": {
+        "before_training": {
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "before_training_drgrpo": {
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "drgrpo": {
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "maxrl": {
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "replay_drgrpo": {
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        },
+        "replay_maxrl": {
+          "graph_coloring": 5,
+          "pantry_plan": 5
+        }
+      }
+    },
     "qwen3b_display": "complete five-seed MaxRL/replay and E80-R1 Dr.GRPO/replay tracks; equal domain averages within each paired seed, with seed paths; all domains and both metrics in appendix panels",
     "qwen3b_maxrl_average": "equal domain average within paired seed",
     "qwen3b_maxrl_counts": {
@@ -3826,10 +3934,14 @@
     "qwen_average": "equal domain average within paired seed",
     "solid_connector": "complete five-seed block",
     "tracks": {
-      "lower": "Untrained to Dr.GRPO to ReplayDr.GRPO",
-      "upper": "Untrained to MaxRL to ReplayMaxRL"
+      "lower": "Untrained to Dr.GRPO to Re:Dr",
+      "upper": "Untrained to MaxRL to Re:Max"
     },
     "untrained_reference": "shared frozen step-0 checkpoint restricted to each track's paired seeds; arms share initialization but are trained separately"
+  },
+  "display_notes": {
+    "maxrl_seed_scope": "3B MaxRL: all five seeds across all five domains; equal domain weights within seed.",
+    "panel_b_domain_averages": "B averages each scale's support-eligible domains --- Qwen2.5-0.5B: Graph, MathIR, Pantry; Falcon3-1B: Graph, Countdown, Pantry; Qwen2.5-3B: Graph, Pantry."
   },
   "endpoint_integrity_audit": [
     {
@@ -11353,9 +11465,9 @@
     ],
     "terminal_endpoints": "paper/results/core_terminal_endpoints.json"
   },
-  "schema": "e118-all-scale-terminal-progress-v6",
+  "schema": "e118-all-scale-terminal-progress-v7",
   "source_sha256": {
-    "paper/figures/direct_baseline_learning_curves_static_strip.json": "e9cbc3df08471fda3006d4fcf1d69f8dc898ac9790c09a55096db2ef4786756a",
+    "paper/figures/direct_baseline_learning_curves_static_strip.json": "26672554e3400c06d1565a5a24667ab3808924f12ee93f86ed111f0cfb9a6bc2",
     "paper/results/baseline_collapse_precheck.json": "6c851f9e09c9d914e6dc39d470b93c9113ad6075e5c71f16180e06a20f95b861",
     "paper/results/core_terminal_endpoints.json": "549447008b5a261d7f718160652e5ea8098bd823851d01cf195d1f9614d02176",
     "var/artifacts/e118_all_scales_maxrl_verified_replay_jobs.json": "c0fef2b5bdc3f68d87920166020c128a75e8cf7f72bec6dd11433cd9588f4ad7"

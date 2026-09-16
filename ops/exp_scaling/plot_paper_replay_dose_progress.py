@@ -3,8 +3,8 @@
 
 The live comparison preview can mix different seed sets across methods.  That is
 useful operationally but is not the right paper estimand.  This renderer selects
-every terminal Adaptive Re:Dr.GRPO seed at render time and restricts Dr.GRPO,
-Re:Dr.GRPO, and Adaptive Re:Dr.GRPO to that same within-domain subset.
+every terminal Adaptive Re:Dr seed at render time and restricts Dr.GRPO,
+Re:Dr, and Adaptive Re:Dr to that same within-domain subset.
 Complete five-seed domains and exact terminal prefixes therefore coexist without
 changing n along a trajectory or freezing an obsolete dated slice.
 """

@@ -482,7 +482,7 @@ def render_markdown(report):
         lines.append(f"| {c.get('model_scale', 'Qwen0.5B')} | {c['domain']} | {c['level']} | {c['wording']} | {c['contrast']} | {s['n_defined']}/{s['n_expected']} | {coverage} | {_fmt(e['mean'])} | {ci} | {_fmt(s['joint_population_effects']['mean_correct']['mean'])} | {_fmt(s['pooled_pairs_delta_equal_seed'])} |")
     if not panel:
         lines += ["", "## Reading the Pantry results", "",
-                  "The Pantry rows include every requested initial→Dr.GRPO, initial→Re:Dr.GRPO, and Dr.GRPO→Re:Dr.GRPO comparison under both wordings and both levels. Their collision direction is an observation on the displayed jointly correct prompts, not a five-seed replication."]
+                  "The Pantry rows include every requested initial→Dr.GRPO, initial→Re:Dr, and Dr.GRPO→Re:Dr comparison under both wordings and both levels. Their collision direction is an observation on the displayed jointly correct prompts, not a five-seed replication."]
     lines += ["", "`seed_contrasts.csv` preserves individual seed effects and same-population correctness; `prompt_contrasts.csv` preserves every eligible and ineligible prompt.", "",
               "## Equal-prompt versus pair-pooled collision", "",
               "The final column pools correct pairs within each seed on exactly the same joint prompt set before averaging seeds. The primary column first weights prompts equally. Their difference is a weighting/estimand difference; a reversal is retained. JSON records numerator and denominator counts. Correctness columns are per-response success rates on the same selected prompts, not full-test pass@8.", "", "## Limits", ""]

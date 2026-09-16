@@ -39,13 +39,13 @@ SCHEMAS = {
     "auc_primitives": "paper-e112r1-verified-support-primitive-auc-effects-v1",
 }
 TITLES = {
-    "terminal": ("E112-R1 bundle vs historical Re:Dr.GRPO: paired terminal effects"),
-    "auc": ("E112-R1 bundle vs historical Re:Dr.GRPO: paired trajectory AUC"),
+    "terminal": ("E112-R1 bundle vs historical Re:Dr: paired terminal effects"),
+    "auc": ("E112-R1 bundle vs historical Re:Dr: paired trajectory AUC"),
     "terminal_primitives": (
-        "E112-R1 bundle vs historical Re:Dr.GRPO: primitive terminal effects"
+        "E112-R1 bundle vs historical Re:Dr: primitive terminal effects"
     ),
     "auc_primitives": (
-        "E112-R1 bundle vs historical Re:Dr.GRPO: primitive trajectory AUC"
+        "E112-R1 bundle vs historical Re:Dr: primitive trajectory AUC"
     ),
 }
 BASE_EFFECT_KINDS = {

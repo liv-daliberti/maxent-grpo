@@ -23,9 +23,9 @@ DOMAINS = ("graph_coloring", "countdown", "python_factors", "mathir", "pantry_pl
 LABELS = ("Graph", "Countdown", "Python", "MathIR", "Pantry")
 METHODS = {
     "drgrpo": {"label": "Dr.GRPO", "color": style.CONTROL, "marker": "o", "fill": "none"},
-    "replay_drgrpo": {"label": "Re:Dr.GRPO", "color": style.METHOD, "marker": "o", "fill": style.METHOD},
+    "replay_drgrpo": {"label": "Re:Dr", "color": style.METHOD, "marker": "o", "fill": style.METHOD},
     "maxrl": {"label": "MaxRL", "color": style.COMPARATOR, "marker": "s", "fill": "none"},
-    "replay_maxrl": {"label": "Re:MaxRL", "color": style.ABLATION, "marker": "s", "fill": style.ABLATION},
+    "replay_maxrl": {"label": "Re:Max", "color": style.ABLATION, "marker": "s", "fill": style.ABLATION},
 }
 
 

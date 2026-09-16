@@ -21,13 +21,15 @@ MAIN_FIGURE_LABELS = (
     "fig:modebench-examples",
     "fig:base-levels-all-scales",
     "fig:gpt56-sampling-budget",
+    "fig:replay-bank-balance",
     "fig:verified-support-story",
     "fig:concentration-story",
-    "fig:cross-scale-terminal-effects",
     "fig:maxrl-factorial",
     "fig:level2-admission",
 )
-MAIN_TABLE_LABELS: tuple[str, ...] = ()
+MAIN_TABLE_LABELS: tuple[str, ...] = (
+    "tab:direct-comparator-matrix",
+)
 MAIN_SECTION_LABELS = (
     "sec:introduction", "sec:related", "sec:collapse", "sec:modebench",
     "sec:method", "sec:experiments", "sec:results", "sec:conclusion",
@@ -113,7 +115,7 @@ def _heading(line: str) -> str:
 
 
 def validate_main_length(
-    aux_text: str, pdf_text: str, max_pages: int = 11,
+    aux_text: str, pdf_text: str, max_pages: int = 9,
 ) -> dict[str, object]:
     """Validate aux records against extracted PDF pages; raise on any violation.
 
@@ -171,8 +173,11 @@ def validate_main_length(
         ("Table", {name: str(labels[name]["number"]) for name in MAIN_TABLE_LABELS}),
     )
     for kind, expected_numbers in display_groups:
+        # A wrapped figure puts its caption beside body text, so the marker is
+        # not at the start of the extracted line. The guard is about which page
+        # the caption lands on, so a word boundary is the right anchor.
         caption_pattern = re.compile(
-            r"^\s*(?:\d+\s+)?" + kind + r"\s+(\d+)\s*:", re.MULTILINE | re.IGNORECASE)
+            r"(?:^|\s)" + kind + r"\s+(\d+)\s*:", re.MULTILINE | re.IGNORECASE)
         caption_pages: dict[str, list[int]] = {number: [] for number in expected_numbers.values()}
         for page_number, page in enumerate(pages, 1):
             for match in caption_pattern.finditer(page):
@@ -225,7 +230,7 @@ def extract_pdf_text(pdf: Path) -> str:
     return result.stdout
 
 
-def check_main_length(pdf: Path, aux: Path, max_pages: int = 11) -> dict[str, object]:
+def check_main_length(pdf: Path, aux: Path, max_pages: int = 9) -> dict[str, object]:
     """Read built artifacts and run the same validation exposed to unit tests."""
     for path in (pdf, aux):
         if not path.is_file():
@@ -237,7 +242,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pdf", type=Path, default=ROOT / "paper/main.pdf")
     parser.add_argument("--aux", type=Path, default=ROOT / "paper/main.aux")
-    parser.add_argument("--max-pages", type=int, default=11)
+    parser.add_argument("--max-pages", type=int, default=9)
     args = parser.parse_args(argv)
     try:
         result = check_main_length(args.pdf, args.aux, args.max_pages)

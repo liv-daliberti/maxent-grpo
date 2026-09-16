@@ -2,7 +2,7 @@
   "schema": "e121-fixed-bank-survival-paper-v1",
   "analysis_date": "2026-09-09",
   "model": "Qwen2.5-0.5B-Instruct",
-  "method": "ReplayDr.GRPO",
+  "method": "Re:Dr",
   "domain": "Graph coloring",
   "registered_seeds": [
     43,
@@ -87,7 +87,7 @@
     "ledger": "var/artifacts/e121_fixed_bank_survival_telemetry_jobs.json",
     "ledger_sha256": "f48941e418a89ea0f888557553db4121e8350f7caf89f8c0ba4e0349c33582bf",
     "source_snapshot_sha256": "970e16dc21f478341154a9b4b96aacc7b369a6d939840ce9d2cbcaec0f1001c9",
-    "analysis_script_sha256": "a9ed01e32e9fb26a66604758182fea335a9ddf010f89492d1b507aebb8720e22",
+    "analysis_script_sha256": "a04fef990542a50f938ec7ea8c08bc1abe5ae8dc13a873802ecfa078e646d936",
     "numpy_version": "1.26.4",
     "source_runs": [
       {

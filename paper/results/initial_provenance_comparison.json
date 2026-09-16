@@ -1,0 +1,196 @@
+{
+ "amendment": {
+  "path": "paper/audits/conditional_concentration_20260914/amendment_4_initial_checkpoint_provenance.md",
+  "sha256": "3fbe91dbd69ba5f9eed70d47bc3895cc009f4bb3cfbf2ff358838b488906d9df"
+ },
+ "analysis_code_sha256": "dfcc0ec8fc92a5bc6313723cc955dbb25262dbadab258c8d221518431cdab106",
+ "headline_twelve_checked": 14,
+ "headline_twelve_unchanged": true,
+ "replay_effect_blocks_changed": [],
+ "rows": [
+  {
+   "amended": {
+    "ci95": [
+     0.18181818181818177,
+     0.18181818181818177
+    ],
+    "mean": 0.18181818181818177,
+    "n": 5
+   },
+   "domain": "countdown",
+   "level": "level1",
+   "method": "maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": 0.18181818181818177,
+    "n": 2
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     0.07829114916693056,
+     0.16708381257166752
+    ],
+    "mean": 0.12268748086929904,
+    "n": 5
+   },
+   "domain": "countdown",
+   "level": "level1",
+   "method": "replay_maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": 0.13498622589531672,
+    "n": 1
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     -0.13469512387314087,
+     -0.06734657800019368
+    ],
+    "mean": -0.10102085093666727,
+    "n": 5
+   },
+   "domain": "graph_coloring",
+   "level": "level1",
+   "method": "maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": -0.11297729276895944,
+    "n": 3
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     -0.10871520736857786,
+     -0.05430587844466482
+    ],
+    "mean": -0.08151054290662134,
+    "n": 5
+   },
+   "domain": "graph_coloring",
+   "level": "level1",
+   "method": "replay_maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": -0.06170036390624628,
+    "n": 2
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     0.06553613763149846,
+     0.3677971957018349
+    ],
+    "mean": 0.21666666666666667,
+    "n": 5
+   },
+   "domain": "mathir",
+   "level": "level1",
+   "method": "maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": 0.2777777777777778,
+    "n": 1
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     0.03119029344004806,
+     0.23399489174513707
+    ],
+    "mean": 0.13259259259259257,
+    "n": 5
+   },
+   "domain": "mathir",
+   "level": "level1",
+   "method": "replay_maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": 0.16666666666666663,
+    "n": 2
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     0.8864974937343358,
+     0.8864974937343358
+    ],
+    "mean": 0.8864974937343358,
+    "n": 5
+   },
+   "domain": "pantry_plan",
+   "level": "level1",
+   "method": "maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": 0.8864974937343358,
+    "n": 1
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     0.6484287557430836,
+     0.8487939241111754
+    ],
+    "mean": 0.7486113399271295,
+    "n": 5
+   },
+   "domain": "pantry_plan",
+   "level": "level1",
+   "method": "replay_maxrl",
+   "preserved": {
+    "ci95": null,
+    "mean": 0.7456896052290789,
+    "n": 2
+   },
+   "scale": "falcon1b"
+  },
+  {
+   "amended": {
+    "ci95": [
+     -0.035966143859026696,
+     0.016918524811407626
+    ],
+    "mean": -0.009523809523809535,
+    "n": 5
+   },
+   "domain": "mathir",
+   "level": "level1",
+   "method": "replay_drgrpo",
+   "preserved": {
+    "ci95": null,
+    "mean": -0.011904761904761918,
+    "n": 4
+   },
+   "scale": "qwen3b"
+  }
+ ],
+ "schema": "initial-provenance-comparison-v1",
+ "sources": {
+  "amended": {
+   "path": "paper/results/conditional_concentration_20260914.json",
+   "sha256": "3eeaa6849bbd11449d586eb3970dad114bd45d5dade0b8e9a99bff7adbb80b63"
+  },
+  "preserved": {
+   "path": "paper/results/conditional_concentration_20260912.json",
+   "sha256": "22cb288ebcca55bbd23562bb4e170655fb2f19122106d794ee16c4e2ac0811a7"
+  }
+ },
+ "unaffected_tolerance": 1e-09,
+ "worst_unaffected_deviation": 1.1102230246251565e-16
+}

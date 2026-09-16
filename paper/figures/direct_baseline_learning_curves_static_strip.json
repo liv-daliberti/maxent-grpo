@@ -16,7 +16,7 @@
     "falcon1b"
   ],
   "model_encoding": "row 1 Qwen2.5-0.5B; row 2 Falcon3-1B",
-  "evidence": "admissible paired Dr.GRPO/ReplayDr.GRPO trajectories plus retained terminal UCPO and sparse RLEP-Dr trajectories; exact n per method/domain; seed ranges, no intervals",
+  "evidence": "admissible paired Dr.GRPO/Re:Dr trajectories plus retained terminal UCPO and sparse RLEP-Dr trajectories; exact n per method/domain; seed ranges, no intervals",
   "metric": "mean distinct correct@8 with paired-seed range",
   "methods": [
     "drgrpo",

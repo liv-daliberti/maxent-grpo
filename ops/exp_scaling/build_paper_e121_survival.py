@@ -250,7 +250,7 @@ def main() -> None:
                   statistics=named_statistics(array_from_identities(all_identities)))
     intervals = hierarchical_bootstrap([r['identities'] for r in runs])
     result = dict(schema='e121-fixed-bank-survival-paper-v1', analysis_date='2026-09-09',
-                  model='Qwen2.5-0.5B-Instruct', method='Re:Dr.GRPO', domain='Graph coloring',
+                  model='Qwen2.5-0.5B-Instruct', method='Re:Dr', domain='Graph coloring',
                   registered_seeds=list(SEEDS), freeze_step=FREEZE, final_optimizer_update=HORIZON,
                   selection_rule='Every frozen seed/prompt/outcome identity; all meet the registered >=2-visit rule; none excluded.',
                   score_timing='Teacher-forced scores at scheduled replay visits; per-identity first/final visits differ across prompts.',

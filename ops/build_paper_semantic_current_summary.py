@@ -82,7 +82,7 @@ Pantry runs received zero semantic advantage because of an outcome-key defect
 and remain excluded. The historical Falcon factorial display had not applied
 that repair; no value from its superseded Pantry column is reused here.
 The matched four-arm studies compare its effect on Dr.GRPO, its effect on
-Re:Dr.GRPO, and the difference of these effects. This restores the full
+Re:Dr, and the difference of these effects. This restores the full
 factorial detail beyond the main semantic-only comparator. We reconstruct
 exact terminal four-draw endpoints under the current source-admission policy:
 identical repeated metrics are deduplicated, unapproved conflicting retries
@@ -111,7 +111,7 @@ entropy reproduces the mechanism of a bank that revisits verified keys.
      if x['ci95'] is not None:value+=f" $[{x['ci95'][0]:.3f}, {x['ci95'][1]:.3f}]$"
      values.append(value)
     rows.append([domain,len(cell['seeds']),{'without_replay':'Without replay','with_replay':'On replay','interaction':'Interaction'}[contrast],*values])
-  tex+=table(model+r': fixed semantic-entropy effects. Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr.GRPO; interaction subtracts the first effect from the second. Extra modes equal distinct@8 minus pass@8.',
+  tex+=table(model+r': fixed semantic-entropy effects. Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr; interaction subtracts the first effect from the second. Extra modes equal distinct@8 minus pass@8.',
              'tab:semantic-current-'+model.replace('.','').replace('-','').lower(),['Domain',r'$n$','Contrast',r'$\Delta$ pass@8',r'$\Delta$ distinct@8',r'$\Delta$ extra modes'],rows,'lr l rrr')
  tex+=r'''\path{results/semantic_current_summary_20260912.json} retains per-seed
 endpoints, source hashes, exclusion evidence and all three metrics.

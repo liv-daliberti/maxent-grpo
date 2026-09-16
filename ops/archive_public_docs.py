@@ -5,32 +5,32 @@ import re
 MODELS = {'qwen05b': 'Qwen2.5-0.5B-Instruct', 'falcon1b': 'Falcon3-1B-Instruct', 'qwen3b': 'Qwen2.5-3B-Instruct'}
 DOMAINS = {'countdown': 'Countdown', 'graph_coloring': 'Graph Coloring', 'python_factors': 'Python Factors', 'mathir': 'MathIR', 'pantry_plan': 'PantryPlan'}
 METHODS = {'control': ('Dr.GRPO', 'Compute-matched control with an exactly zero replay derivative.'),
-           'replay': ('Re:Dr.GRPO', 'Dr.GRPO with uniform likelihood rehearsal over retained verified canonical keys.'),
+           'replay': ('Re:Dr', 'Dr.GRPO with uniform likelihood rehearsal over retained verified canonical keys.'),
            'drgrpo': ('Dr.GRPO', 'Fresh Dr.GRPO objective; compute-matched bank traversal with zero replay derivative.'),
-           'replay_drgrpo': ('Re:Dr.GRPO', 'Dr.GRPO plus verified canonical replay.'),
+           'replay_drgrpo': ('Re:Dr', 'Dr.GRPO plus verified canonical replay.'),
            'maxrl': ('MaxRL', 'Binary MaxRL objective on fresh rollouts; zero replay derivative.'),
-           'replay_maxrl': ('Re:MaxRL', 'The same binary MaxRL objective plus verified canonical replay.'),
-           'fresh_frequency': ('Re:Dr.GRPO · fresh-frequency', 'Replay weights proportional to validator-positive fresh-rollout counts for retained keys.')}
+           'replay_maxrl': ('Re:Max', 'The same binary MaxRL objective plus verified canonical replay.'),
+           'fresh_frequency': ('Re:Dr · fresh-frequency', 'Replay weights proportional to validator-positive fresh-rollout counts for retained keys.')}
 STUDIES = {
     'e78': {'name': 'E78', 'title': 'Verified replay · Qwen2.5-0.5B', 'registered': 50,
             'question': 'Does replay of the policy’s own verified exemplars preserve correct output support beyond compute-matched Dr.GRPO?',
-            'design': 'Level 1 · five domains · five seeds (43–47) · Dr.GRPO and Re:Dr.GRPO. The replay intervention is uniform teacher-forced likelihood over one retained exemplar per discovered verified canonical key.',
+            'design': 'Level 1 · five domains · five seeds (43–47) · Dr.GRPO and Re:Dr. The replay intervention is uniform teacher-forced likelihood over one retained exemplar per discovered verified canonical key.',
             'paper': 'Experiment 1: retention across model scales. These are also the Qwen2.5-0.5B Dr.GRPO comparators for the Level-1 factorial.'},
     'e79': {'name': 'E79', 'title': 'Verified replay · Falcon3-1B', 'registered': 50,
             'question': 'Does the matched Dr.GRPO versus verified-replay comparison replicate with Falcon3-1B?',
-            'design': 'Level 1 · five domains · five seeds (55–59) · Dr.GRPO and Re:Dr.GRPO. The two arms share the aligned Falcon recipe; only the replay derivative differs.',
+            'design': 'Level 1 · five domains · five seeds (55–59) · Dr.GRPO and Re:Dr. The two arms share the aligned Falcon recipe; only the replay derivative differs.',
             'paper': 'Experiment 1: retention across model scales. These are also the Falcon3-1B Dr.GRPO comparators for the Level-1 factorial. The archival selection omits the inadmissible Countdown replay seed 59 source; it is not replaced or imputed.'},
     'e80r1': {'name': 'E80-R1', 'title': 'Verified replay · Qwen2.5-3B', 'registered': 50,
               'question': 'Does the matched Dr.GRPO versus verified-replay comparison replicate with Qwen2.5-3B?',
-              'design': 'Level 1 · five domains · five seeds (70–74) · Dr.GRPO and Re:Dr.GRPO. E80-R1 is the corrected replication and retains its own source identity; the superseded E80 is not substituted.',
+              'design': 'Level 1 · five domains · five seeds (70–74) · Dr.GRPO and Re:Dr. E80-R1 is the corrected replication and retains its own source identity; the superseded E80 is not substituted.',
               'paper': 'Experiment 1: retention across model scales. These are also the Qwen2.5-3B Dr.GRPO comparators for the Level-1 factorial.'},
     'e118': {'name': 'E118', 'title': 'MaxRL × verified replay · Level 1', 'registered': 150,
              'question': 'Does verified canonical replay add value beyond changing the fresh-rollout objective to binary MaxRL?',
-             'design': 'Three base models · five Level-1 domains · five seeds per model · MaxRL and Re:MaxRL. These 150 registered cells supply the MaxRL side of a four-arm factorial with the separately archived Dr.GRPO pairs.',
-             'paper': 'Experiment 2: the objective-by-replay factorial. Compare Re:MaxRL minus MaxRL within a model, domain and seed; compare that with Re:Dr.GRPO minus Dr.GRPO from E78, E79 or E80-R1 on the common admitted seed intersection.'},
+             'design': 'Three base models · five Level-1 domains · five seeds per model · MaxRL and Re:Max. These 150 registered cells supply the MaxRL side of a four-arm factorial with the separately archived Dr.GRPO pairs.',
+             'paper': 'Experiment 2: the objective-by-replay factorial. Compare Re:Max minus MaxRL within a model, domain and seed; compare that with Re:Dr minus Dr.GRPO from E78, E79 or E80-R1 on the common admitted seed intersection.'},
     'e119': {'name': 'E119', 'title': 'Four-method factorial · Level 2', 'registered': 100,
              'question': 'How do the task objective and verified replay interact on the matched, structurally harder Level-2 benchmark?',
-             'design': 'Qwen2.5-0.5B · five Level-2 domains · five seeds (43–47) · Dr.GRPO, Re:Dr.GRPO, MaxRL and Re:MaxRL. All four arms are newly trained on Level 2; Level-1 endpoints are not reused as Level-2 treatment comparators.',
+             'design': 'Qwen2.5-0.5B · five Level-2 domains · five seeds (43–47) · Dr.GRPO, Re:Dr, MaxRL and Re:Max. All four arms are newly trained on Level 2; Level-1 endpoints are not reused as Level-2 treatment comparators.',
              'paper': 'Experiment 3: matched levels. Within Level 2, estimate both within-objective replay contrasts and their interaction. Cross-level comparisons use different prompt sets and retain their separate level labels.'},
     'e120r1': {'name': 'E120-R1', 'title': 'Uniform versus fresh-frequency replay', 'registered': 45,
                'question': 'Does uniform weighting over discovered canonical keys preserve broader verified support than weighting those keys by their fresh-rollout frequency?',
@@ -114,7 +114,7 @@ def render_readmes(plan, catalog, *, include_guides=False, additional_studies=No
         require(coverage['record_only_count'] == sum(record_only.values()), 'Record-only census differs')
         require(coverage['logical_model_records'] == len(expected) + sum(record_only.values()), 'Scientific records and export census differ')
     root = ['---', 'library_name: transformers', 'tags:', '- reinforcement-learning', '- experimental-models', '---',
-            '# ModeBench and Re:MaxRL · Research artifacts', '',
+            '# ModeBench and Re:Max · Research artifacts', '',
             'Terminal fine-tuned models for studying correctness and verified output support. Browse by study, base model, domain, method and seed; restore each export from its recorded immutable revision.', '',
             f"**{'Paper artifact collection' if coverage else 'Initial model collection'} · {len(rows)} / {len(expected)} selected exports verified. {'This selection is fully transferred.' if complete else 'Transfer is in progress.'}**", '',
             'The fixed archival selection contains admitted completed models from the source studies listed below. Counts describe archive availability, not live training progress or a replacement for the papers’ frozen analysis sets.', '',
@@ -195,7 +195,7 @@ def render_readmes(plan, catalog, *, include_guides=False, additional_studies=No
             else: page += ['Transfer in progress; this model family has no verified exports in the index yet.', '']
         page += [anchor('comparators'), '## Comparators and analysis scope', '']
         if key == 'e118':
-            page += ['The MaxRL exports above supply two arms of the Level-1 factorial. Their original Dr.GRPO and Re:Dr.GRPO comparators are archived separately:', '',
+            page += ['The MaxRL exports above supply two arms of the Level-1 factorial. Their original Dr.GRPO and Re:Dr comparators are archived separately:', '',
                      '| Base model | Original Dr.GRPO pair |', '| --- | --- |',
                      '| Qwen2.5-0.5B-Instruct | [E78](../E78/README.md#models) |',
                      '| Falcon3-1B-Instruct | [E79](../E79/README.md#models) |',

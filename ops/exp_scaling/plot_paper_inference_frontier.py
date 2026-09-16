@@ -306,7 +306,7 @@ def build_snapshot() -> dict[str, Any]:
             "mixed terminal and constant-n progress; checkpoint and n are "
             "reported per model-domain cell"
         ),
-        "treatment": "Re:Dr.GRPO + Adaptive Semantic MaxEnt",
+        "treatment": "Re:Dr + Adaptive Semantic MaxEnt",
         "methods": ["drgrpo", "adaptive_semantic_replay"],
         "row_order": [scale["key"] for scale in SCALE_SPECS],
         "domain_order": list(DOMAIN_ORDER),

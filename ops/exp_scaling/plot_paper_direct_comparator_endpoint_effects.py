@@ -4,7 +4,7 @@
 The figure deliberately mirrors ``cross_scale_terminal_endpoint_effects``:
 raw paired seeds are circles, a diamond and paired Student-t interval appear
 only for a complete five-seed block, and the two reported effects are pass@8
-and correctness-adjusted breadth.  Unlike the terminal Re:Dr.GRPO forest,
+and correctness-adjusted breadth.  Unlike the terminal Re:Dr forest,
 this comparator view also admits exact terminal prefixes.  Their sample size is
 printed in-panel and they never receive a mean marker or interval.
 """

@@ -34,6 +34,7 @@ from .math_grader import (
     extract_normalized_final_answer,
 )
 from .math_grader_process import FullMathVerifierProcess
+from .modebench_guided import guided_sampling_params
 from .vllm_worker import PinnedWorkerExtensionArgs
 
 
@@ -420,6 +421,12 @@ class ZeroMathActor(PPOActor):
             template=self.args.prompt_template,
             verifier_version=self.args.verifier_version,
         )
+        syntax_profile = str(getattr(self.args, "modebench_syntax_profile", "none"))
+        modebench_domain = str(getattr(self.args, "modebench_domain", "none"))
+        if syntax_profile != "none" and modebench_domain == "none":
+            raise RuntimeError("active ModeBench syntax profile requires a domain")
+        self._modebench_syntax_profile = syntax_profile
+        self._modebench_domain = modebench_domain
 
         self._canonical_action_space: CanonicalActionSpace | None = None
         self._canonical_action_token_ids: tuple[int, ...] | None = None
@@ -479,6 +486,10 @@ class ZeroMathActor(PPOActor):
             "qwen_pantry_support_mask",
             "qwen_math",
             "qwen_math_route",
+            "qwen_level2_countdown",
+            "qwen_level2_python_factors",
+            "qwen_level2_mathir",
+            "qwen_level2_pantry",
             "falcon_boxed",
             "falcon_countdown_digits",
             "falcon_graph_digits",
@@ -631,12 +642,23 @@ class ZeroMathActor(PPOActor):
             generation_rows = [
                 (prompt_index, None) for prompt_index in range(len(formatted_prompts))
             ]
+            if coverage_seed is not None:
+                request_seeds_by_prompt = [
+                    [int(coverage_seed)] for _ in formatted_prompts
+                ]
 
         sampling_params = (
             [make_params(request_seed) for request_seed in generation_seeds]
             if use_diayn_options
             else make_params(coverage_seed)
         )
+        if not use_diayn_options:
+            sampling_params = guided_sampling_params(
+                sampling_params,
+                self._modebench_syntax_profile,
+                self._modebench_domain,
+                refs,
+            )
         outputs = self.generate(generation_prompts, sampling_params)
         if len(outputs) != len(generation_rows):
             raise RuntimeError("mode-coverage actor returned an invalid request grid")
@@ -723,9 +745,7 @@ class ZeroMathActor(PPOActor):
             "responses": realized_responses,
             "option_ids": per_prompt_options,
             "request_seeds": generation_seeds if use_diayn_options else None,
-            "request_seeds_by_prompt": (
-                request_seeds_by_prompt if use_diayn_options else None
-            ),
+            "request_seeds_by_prompt": request_seeds_by_prompt,
         }
 
     def generate_and_maybe_eval(
@@ -745,7 +765,8 @@ class ZeroMathActor(PPOActor):
         """
 
         canonical_action_space = getattr(self, "_canonical_action_space", None)
-        if canonical_action_space is None:
+        syntax_profile = getattr(self, "_modebench_syntax_profile", "none")
+        if canonical_action_space is None and syntax_profile == "none":
             return super().generate_and_maybe_eval(
                 prompts, formatted_prompts, references
             )
@@ -755,9 +776,17 @@ class ZeroMathActor(PPOActor):
         if references is None or len(references) != len(prompts):
             raise RuntimeError("canonical evaluation requires one reference per prompt")
 
-        outputs = self.generate(formatted_prompts, self.eval_sampling_params)
-        candidates = self.extract_candidates_from_output(
-            outputs, self.eval_sampling_params
+        eval_params = guided_sampling_params(
+            self.eval_sampling_params,
+            syntax_profile,
+            self._modebench_domain,
+            references,
+        )
+        outputs = self.generate(formatted_prompts, eval_params)
+        candidates = (
+            [[sample.text.strip() for sample in output.outputs] for output in outputs]
+            if isinstance(eval_params, list)
+            else self.extract_candidates_from_output(outputs, self.eval_sampling_params)
         )
         sample_count = int(self.eval_sampling_params.n)
         if len(candidates) != len(prompts) or any(
@@ -765,15 +794,19 @@ class ZeroMathActor(PPOActor):
         ):
             raise RuntimeError("canonical evaluation returned an invalid sample grid")
 
-        decoded = [
+        decoded = (
             [
-                decode_canonical_action_response(
-                    canonical_action_space.task, candidate, reference
-                )
-                for candidate in prompt_candidates
+                [
+                    decode_canonical_action_response(
+                        canonical_action_space.task, candidate, reference
+                    )
+                    for candidate in prompt_candidates
+                ]
+                for prompt_candidates, reference in zip(candidates, references)
             ]
-            for prompt_candidates, reference in zip(candidates, references)
-        ]
+            if canonical_action_space is not None
+            else candidates
+        )
         responses = [
             decoded[prompt_index][sample_index]
             for sample_index in range(sample_count)
@@ -878,7 +911,17 @@ class ZeroMathActor(PPOActor):
             )
             self._canonical_rollout_request_index += 1
             sampling_params.seed = canonical_request_seed
-        outputs = self.generate(formatted_prompt_token_ids, sampling_params)
+        if use_diayn_options and self._modebench_syntax_profile != "none":
+            raise RuntimeError("Level-2 guided syntax is incompatible with DIAYN options")
+        if references is None and self._modebench_syntax_profile != "none":
+            raise RuntimeError("Level-2 guided syntax requires row references")
+        generation_sampling_params = guided_sampling_params(
+            sampling_params,
+            self._modebench_syntax_profile,
+            self._modebench_domain,
+            [] if references is None else references,
+        )
+        outputs = self.generate(formatted_prompt_token_ids, generation_sampling_params)
 
         total_samples_per_prompt = int(self.sampling_params.n)
         candidates = [[None] * total_samples_per_prompt for _ in prompts]

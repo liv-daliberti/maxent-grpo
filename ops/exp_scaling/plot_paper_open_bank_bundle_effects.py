@@ -51,7 +51,7 @@ DOMAIN_LABEL = {
 SEEDS = (43, 44, 45, 46, 47)
 TARGET = 3072
 BASELINES = ("replay", "control")
-BASELINE_LABEL = {"replay": "Re:Dr.GRPO", "control": "Dr.GRPO"}
+BASELINE_LABEL = {"replay": "Re:Dr", "control": "Dr.GRPO"}
 EFFECT_FIELDS = ("pass8", "adjusted_breadth8")
 EFFECT_LABEL = {"pass8": "pass@8", "adjusted_breadth8": "D-P"}
 MECHANISM_FIELDS = ("admissions", "priority_replay_groups")
@@ -185,11 +185,11 @@ def build() -> dict[str, Any]:
         ),
         "model": "Qwen2.5-0.5B",
         "treatment": (
-            "Re:Dr.GRPO plus retention-safe whole-bank balance, one fresh "
+            "Re:Dr plus retention-safe whole-bank balance, one fresh "
             "original-prompt proposal group per update, and four-visit 4x mass "
             "priority for newly admitted verified modes"
         ),
-        "comparators": ["Re:Dr.GRPO", "Dr.GRPO"],
+        "comparators": ["Re:Dr", "Dr.GRPO"],
         "endpoint_metrics": ["pass@8", "distinct@8", "distinct@8-pass@8"],
         "domain_order": list(DOMAIN_ORDER),
         "seeds": list(SEEDS),

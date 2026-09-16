@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unstall the six remaining E109 repaired Python ReplayDr comparators."""
+"""Unstall the six remaining E109 repaired Python Re:Dr comparators."""
 
 from __future__ import annotations
 

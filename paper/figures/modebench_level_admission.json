@@ -28058,6 +28058,80 @@
     },
     "n": 5
   },
+  "pmd_comparison": {
+    "matched_domains": [
+      "graph_coloring",
+      "mathir",
+      "pantry_plan"
+    ],
+    "matching_rule": "domains where every method clears the support bar at both levels",
+    "means": {
+      "level1": {
+        "drgrpo": 0.000614154345200537,
+        "maxrl": 0.029068491276495356,
+        "replay_drgrpo": 0.30377163410838237,
+        "replay_maxrl": 0.28328397192373816
+      },
+      "level2": {
+        "drgrpo": 0.11718380124583605,
+        "maxrl": 0.08947090572726997,
+        "replay_drgrpo": 0.17862995922039218,
+        "replay_maxrl": 0.18738019238829107
+      }
+    },
+    "metric": "pairwise correct-mode diversity (PCMD)",
+    "min_defined_prompts": 30,
+    "per_domain": {
+      "level1": {
+        "drgrpo": {
+          "graph_coloring": 0.0010035842293906812,
+          "mathir": 0.0008388788062109297,
+          "pantry_plan": 0.0
+        },
+        "maxrl": {
+          "graph_coloring": 0.08682144925191311,
+          "mathir": 0.00038402457757296467,
+          "pantry_plan": 0.0
+        },
+        "replay_drgrpo": {
+          "graph_coloring": 0.5597474083185153,
+          "mathir": 0.017795240479316438,
+          "pantry_plan": 0.3337722535273154
+        },
+        "replay_maxrl": {
+          "graph_coloring": 0.526270895209856,
+          "mathir": 0.006180387635820028,
+          "pantry_plan": 0.3174006329255384
+        }
+      },
+      "level2": {
+        "drgrpo": {
+          "graph_coloring": 0.11075381748537647,
+          "mathir": 0.0,
+          "pantry_plan": 0.2407975862521317
+        },
+        "maxrl": {
+          "graph_coloring": 0.11214640108643018,
+          "mathir": 0.0,
+          "pantry_plan": 0.15626631609537972
+        },
+        "replay_drgrpo": {
+          "graph_coloring": 0.3464811160973099,
+          "mathir": 0.0,
+          "pantry_plan": 0.18940876156386666
+        },
+        "replay_maxrl": {
+          "graph_coloring": 0.32453712386363753,
+          "mathir": 0.0007620073891625615,
+          "pantry_plan": 0.23684144591207315
+        }
+      }
+    },
+    "source": {
+      "path": "paper/results/mode_diversity_training.json",
+      "sha256": "05c5dc3b61342c29b3d5744a8cbf012061c90683ffab219afc08979386fbe0dc"
+    }
+  },
   "schema": "modebench-level-admission-and-terminal-v4",
   "snapshot_collected_at_utc": "2026-09-12T15:43:38.179077+00:00",
   "sources": {

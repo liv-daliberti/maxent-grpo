@@ -1,0 +1,2674 @@
+{
+  "schema": "frontier-graph-comparison-v1",
+  "selection": "Selected after GPT-5.6 Sol for high strict correctness, certified support, and no normalization effect; selected before benchmark responses from the prospective comparison models.",
+  "pdf_sha256": "6237cfca147825a09bff9da3e77dbd0fd8271d60f1646a0eb9a37681b9cb144f",
+  "png_sha256": "937a9b6f5f17b54d3577ec73d8cf7aee44ed01f83fb8e4a39759f0e1da40fe09",
+  "models": [
+    {
+      "model": "gpt-5.6-sol",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3167.0,
+            "correct_draws": 1016.0,
+            "correct_pairs": 3532.0,
+            "distinct_correct_modes": 166.0,
+            "effective_modes_sum": 153.55144931933876,
+            "known_support_colliding_pairs": 3167.0,
+            "known_support_correct_pairs": 3532.0,
+            "known_support_distinct_sum": 166.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 94.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 850.0,
+            "uniform_colliding_pairs_sum": 646.8805555555556,
+            "uniform_distinct_sum": 571.2918901187275,
+            "uniform_one_mode_sum": 0.00449463336783473
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8629760903120366,
+                0.9278747704092757
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8966591166477916
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.6778850399362566,
+                0.7467925516336307
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.713510601484837
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8245098039215686,
+                0.8477406679764243
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8366141732283464
+            },
+            "distinct8": {
+              "ci95": [
+                1.2109375,
+                1.390625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.296875
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.993235525336244,
+                3.3353260261968236
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.166342891552558
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.1374963738612276,
+                1.2664283575882713
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.199620697807334
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.65625,
+                0.8125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.734375
+            },
+            "pass1": {
+              "ci95": [
+                0.9833984375,
+                0.998046875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9921875
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17295298051546124,
+                0.19360348159296648
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18314851516295458
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.320519604915266,
+                4.609043162703295
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.463217891552558
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.4430614130031847e-05,
+                5.0367539378138596e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.511432318620883e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2945.0,
+            "correct_draws": 1017.0,
+            "correct_pairs": 3535.0,
+            "distinct_correct_modes": 190.0,
+            "effective_modes_sum": 169.39650876344956,
+            "known_support_colliding_pairs": 2945.0,
+            "known_support_correct_pairs": 3535.0,
+            "known_support_distinct_sum": 190.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 76.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 827.0,
+            "uniform_colliding_pairs_sum": 669.8222222222219,
+            "uniform_distinct_sum": 561.4922514206143,
+            "uniform_one_mode_sum": 0.005007059360577927
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.7959978626481573,
+                0.8702469021952519
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8330975954738331
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.60785649527963,
+                0.6798975192565566
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6436146471790036
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.799410029498525,
+                0.8274170437405731
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8131760078662733
+            },
+            "distinct8": {
+              "ci95": [
+                1.375,
+                1.59375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.484375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.7329061613414547,
+                3.0753956536194136
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.902283214223549
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.2462667489600774,
+                1.4022545593687445
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.3234102247144497
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.515625,
+                0.6796875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.59375
+            },
+            "pass1": {
+              "ci95": [
+                0.98828125,
+                0.9970703125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9931640625
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.1786651211107732,
+                0.2002761391308235
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18948294829482937
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.233043006351444,
+                4.540495706637152
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.386658214223549
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                3.0255959430329418e-05,
+                4.864174230033728e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.9117651254515056e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3407.0,
+            "correct_draws": 1024.0,
+            "correct_pairs": 3584.0,
+            "distinct_correct_modes": 148.0,
+            "effective_modes_sum": 140.8394765400976,
+            "known_support_colliding_pairs": 3407.0,
+            "known_support_correct_pairs": 3584.0,
+            "known_support_distinct_sum": 148.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 112.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 876.0,
+            "uniform_colliding_pairs_sum": 681.0999999999998,
+            "uniform_distinct_sum": 562.7316171269465,
+            "uniform_one_mode_sum": 0.003906753946812895
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.9235491071428571,
+                0.9734933035714286
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9506138392857143
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.7346816096230159,
+                0.7833744109623016
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7605747767857143
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.845703125,
+                0.8642578125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.85546875
+            },
+            "distinct8": {
+              "ci95": [
+                1.0859375,
+                1.234375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.15625
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                3.0883795499063447,
+                3.3937922042570996
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.2400907588042696
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.0522475501985418,
+                1.157709665689763
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.1003084104695124
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.8125,
+                0.9296875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.875
+            },
+            "pass1": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17907931857638884,
+                0.20097819010416657
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.19003906249999994
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.245167096139737,
+                4.549645026547569
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.3963407588042696
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.543861548530638e-05,
+                3.5777817577205304e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.0521515209475744e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    },
+    {
+      "model": "claude-opus-5",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3347.0,
+            "correct_draws": 1019.0,
+            "correct_pairs": 3559.0,
+            "distinct_correct_modes": 147.0,
+            "effective_modes_sum": 141.43089248577556,
+            "known_support_colliding_pairs": 3347.0,
+            "known_support_correct_pairs": 3559.0,
+            "known_support_distinct_sum": 147.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 109.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 872.0,
+            "uniform_colliding_pairs_sum": 652.8111111111112,
+            "uniform_distinct_sum": 571.1467689225769,
+            "uniform_one_mode_sum": 0.015675511943556503
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.9128841689391582,
+                0.9642926897321429
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9404327058162405
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.726798627822914,
+                0.7847776203052939
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7570072742031158
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.84765625,
+                0.8626181206001164
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8557409224730128
+            },
+            "distinct8": {
+              "ci95": [
+                1.09375,
+                1.2109375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.1484375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                3.1432289560974125,
+                3.479237629580406
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.3136466322076323
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.0627921913753577,
+                1.1533263747755704
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.1049288475451216
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.7890625,
+                0.90625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8515625
+            },
+            "pass1": {
+              "ci95": [
+                0.9853515625,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9951171875
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17306749131944446,
+                0.19388183593750014
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18342543161312483
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.312526859037992,
+                4.607780252825145
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.462084132207632
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.2454207431682703e-05,
+                0.00031861918367113247
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.00012246493705903518
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3099.0,
+            "correct_draws": 1013.0,
+            "correct_pairs": 3518.0,
+            "distinct_correct_modes": 169.0,
+            "effective_modes_sum": 156.7278212753532,
+            "known_support_colliding_pairs": 3099.0,
+            "known_support_correct_pairs": 3518.0,
+            "known_support_distinct_sum": 169.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 91.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 844.0,
+            "uniform_colliding_pairs_sum": 666.0583333333329,
+            "uniform_distinct_sum": 560.19436106031,
+            "uniform_one_mode_sum": 0.06764865615734318
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8450584047496078,
+                0.9160575670634356
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8808982376350198
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.6530704280453855,
+                0.7292898689733286
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6915695470911504
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8216748768472907,
+                0.8444898456381071
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8331688055281342
+            },
+            "distinct8": {
+              "ci95": [
+                1.234375,
+                1.4140625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.3203125
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.8695499602048757,
+                3.2486946307644153
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.056205945783672
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.1566303329790513,
+                1.2980517390524609
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.2244361037136968
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.6328125,
+                0.7890625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7109375
+            },
+            "pass1": {
+              "ci95": [
+                0.9755859375,
+                0.998046875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9892578125
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17850230113576768,
+                0.20020067202236344
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.1893286905438695
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.223002536629229,
+                4.527170356426411
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.376518445783672
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.992093760448775e-05,
+                0.00151630384980295
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.0005285051262292436
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3562.0,
+            "correct_draws": 1024.0,
+            "correct_pairs": 3584.0,
+            "distinct_correct_modes": 130.0,
+            "effective_modes_sum": 129.39538850585947,
+            "known_support_colliding_pairs": 3562.0,
+            "known_support_correct_pairs": 3584.0,
+            "known_support_distinct_sum": 130.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 126.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 894.0,
+            "uniform_colliding_pairs_sum": 681.0999999999998,
+            "uniform_distinct_sum": 562.7316171269465,
+            "uniform_one_mode_sum": 0.003906753946812895
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.9832589285714286,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9938616071428571
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.789171626984127,
+                0.817165798611111
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8038225446428572
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8701171875,
+                0.875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.873046875
+            },
+            "distinct8": {
+              "ci95": [
+                1.0,
+                1.0390625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.015625
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                3.228976812276682,
+                3.5340226956706964
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.3807157588042696
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.0,
+                1.0293068512774495
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0109014727020271
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.9609375,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.984375
+            },
+            "pass1": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17907931857638884,
+                0.20097819010416657
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.19003906249999994
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.245167096139737,
+                4.549645026547569
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.3963407588042696
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.543861548530638e-05,
+                3.5777817577205304e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.0521515209475744e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    },
+    {
+      "model": "gpt-5.4",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2914.0,
+            "correct_draws": 1022.0,
+            "correct_pairs": 3570.0,
+            "distinct_correct_modes": 201.0,
+            "effective_modes_sum": 175.23937429617052,
+            "known_support_colliding_pairs": 2914.0,
+            "known_support_correct_pairs": 3570.0,
+            "known_support_distinct_sum": 201.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 68.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 821.0,
+            "uniform_colliding_pairs_sum": 653.838888888889,
+            "uniform_distinct_sum": 573.1746656811814,
+            "uniform_one_mode_sum": 0.0033367177265838026
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.7781442577030813,
+                0.8540616246498599
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8162464985994398
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.5928053812077637,
+                0.6721868243391106
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6330983504512916
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.788235294117647,
+                0.8173828125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8033268101761253
+            },
+            "distinct8": {
+              "ci95": [
+                1.4609375,
+                1.6875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.5703125
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.7228003176719437,
+                3.0963993836079315
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.9076145756342298
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.2899452126406297,
+                1.4548363800478183
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.3690576116888322
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.4453125,
+                0.6171875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.53125
+            },
+            "pass1": {
+              "ci95": [
+                0.9951171875,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.998046875
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17298849561983018,
+                0.19369454717053816
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18314814814814817
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.331672868972116,
+                4.621516827774282
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.47792707563423
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.124525923593444e-05,
+                3.1051190246472254e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.6068107238935958e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2655.0,
+            "correct_draws": 1023.0,
+            "correct_pairs": 3577.0,
+            "distinct_correct_modes": 223.0,
+            "effective_modes_sum": 195.56530007189258,
+            "known_support_colliding_pairs": 2655.0,
+            "known_support_correct_pairs": 3577.0,
+            "known_support_distinct_sum": 223.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 54.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 800.0,
+            "uniform_colliding_pairs_sum": 679.9333333333328,
+            "uniform_distinct_sum": 562.4525354797132,
+            "uniform_one_mode_sum": 0.003924615172235851
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.6983816964285714,
+                0.7871095117734593
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7422421023203802
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.5079232286521915,
+                0.5958053865570234
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.5521573012766752
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7661448140900196,
+                0.7976539589442815
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7820136852394917
+            },
+            "distinct8": {
+              "ci95": [
+                1.6171875,
+                1.8671875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.7421875
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.470443705523677,
+                2.8432846615166225
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.6519729334352595
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.4315994767052493,
+                1.6281411281818814
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.5278539068116608
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.3359375,
+                0.5078125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.421875
+            },
+            "pass1": {
+              "ci95": [
+                0.9970703125,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9990234375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17938620212104534,
+                0.20102440767973848
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.190084801043705
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.243643928337624,
+                4.5453241781273634
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.3941604334352595
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.570817302743201e-05,
+                3.5703120151601464e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.0661056033092584e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3310.0,
+            "correct_draws": 1022.0,
+            "correct_pairs": 3570.0,
+            "distinct_correct_modes": 157.0,
+            "effective_modes_sum": 146.64221992228673,
+            "known_support_colliding_pairs": 3310.0,
+            "known_support_correct_pairs": 3570.0,
+            "known_support_distinct_sum": 157.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 104.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 865.0,
+            "uniform_colliding_pairs_sum": 678.7666666666664,
+            "uniform_distinct_sum": 562.1734538324793,
+            "uniform_one_mode_sum": 0.003942476397658803
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8973950265037521,
+                0.954243588060224
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.927170868347339
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.7048129155454291,
+                0.7655755909669805
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7370401493930906
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8351281941931428,
+                0.8571428571428571
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8463796477495108
+            },
+            "distinct8": {
+              "ci95": [
+                1.140625,
+                1.3125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.2265625
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.9960320986592066,
+                3.3355995110618406
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.165417608066244
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.087226107782688,
+                1.2104059331710175
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.145642343142865
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.7421875,
+                0.875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8125
+            },
+            "pass1": {
+              "ci95": [
+                0.9951171875,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.998046875
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17917583157497466,
+                0.20113079165155479
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.1901307189542483
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.239991795919852,
+                4.54345846697678
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.391980108066244
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.5785522484274563e-05,
+                3.601984196996194e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.08005968567094e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    },
+    {
+      "model": "grok-4.3",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3145.0,
+            "correct_draws": 1024.0,
+            "correct_pairs": 3584.0,
+            "distinct_correct_modes": 179.0,
+            "effective_modes_sum": 158.93470167287865,
+            "known_support_colliding_pairs": 3145.0,
+            "known_support_correct_pairs": 3584.0,
+            "known_support_distinct_sum": 179.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 86.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 845.0,
+            "uniform_colliding_pairs_sum": 655.588888888889,
+            "uniform_distinct_sum": 573.9600574887376,
+            "uniform_one_mode_sum": 0.003330042006368959
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8423549107142857,
+                0.9098772321428571
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8775111607142857
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.6610350012400794,
+                0.7260062468998016
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6945901537698412
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8114990234375,
+                0.837890625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8251953125
+            },
+            "distinct8": {
+              "ci95": [
+                1.296875,
+                1.508007812499999
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.3984375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.9262672245521433,
+                3.2493760707518202
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.085625449130762
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.176862250659934,
+                1.3149155278502822
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.2416773568193644
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.5859375,
+                0.75
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.671875
+            },
+            "pass1": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.1727853732638889,
+                0.19340332031250002
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18292100694444446
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.338911600047304,
+                4.628673692635772
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.484062949130762
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.118887208285915e-05,
+                3.103045986402667e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.601595317475749e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3017.0,
+            "correct_draws": 1023.0,
+            "correct_pairs": 3577.0,
+            "distinct_correct_modes": 195.0,
+            "effective_modes_sum": 169.44317302383388,
+            "known_support_colliding_pairs": 3017.0,
+            "known_support_correct_pairs": 3577.0,
+            "known_support_distinct_sum": 195.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 77.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 828.0,
+            "uniform_colliding_pairs_sum": 680.2249999999996,
+            "uniform_distinct_sum": 562.3389212231688,
+            "uniform_one_mode_sum": 0.003910091806920318
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8054203824676504,
+                0.8801120448179272
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8434442270058709
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.613111191911558,
+                0.6905407293125584
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6532778864970648
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7935420743639922,
+                0.8240512165505866
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8093841642228738
+            },
+            "distinct8": {
+              "ci95": [
+                1.40625,
+                1.6484375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.5234375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.6777471951781617,
+                3.0586620771187203
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.869835322056006
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.2452152826539886,
+                1.409454205830204
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.3237747892487022
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.515625,
+                0.6798828124999989
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6015625
+            },
+            "pass1": {
+              "ci95": [
+                0.99609375,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9990234375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17944133952569022,
+                0.20104329427083323
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.19016634050880615
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.24154205631065,
+                4.542284306885193
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.393272822056006
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.5523117424055362e-05,
+                3.566195149195324e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.0547592241564984e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3386.0,
+            "correct_draws": 1024.0,
+            "correct_pairs": 3584.0,
+            "distinct_correct_modes": 150.0,
+            "effective_modes_sum": 141.153482115383,
+            "known_support_colliding_pairs": 3386.0,
+            "known_support_correct_pairs": 3584.0,
+            "known_support_distinct_sum": 150.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 108.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 874.0,
+            "uniform_colliding_pairs_sum": 681.0999999999998,
+            "uniform_distinct_sum": 562.7316171269465,
+            "uniform_one_mode_sum": 0.003906753946812895
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.9201939174107143,
+                0.9681919642857143
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9447544642857143
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.7307412574404764,
+                0.7770500837053571
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7547154017857143
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.84375,
+                0.8623046875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.853515625
+            },
+            "distinct8": {
+              "ci95": [
+                1.1015625,
+                1.25
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.171875
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                3.0786573928405168,
+                3.369506028323182
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.2244657588042696
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.059869053160311,
+                1.1493093458030708
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.1027615790264298
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.7734375,
+                0.90625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.84375
+            },
+            "pass1": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17907931857638884,
+                0.20097819010416657
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.19003906249999994
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.245167096139737,
+                4.549645026547569
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.3963407588042696
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.543861548530638e-05,
+                3.5777817577205304e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.0521515209475744e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    },
+    {
+      "model": "FW-Kimi-K3",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2991.0,
+            "correct_draws": 1019.0,
+            "correct_pairs": 3549.0,
+            "distinct_correct_modes": 190.0,
+            "effective_modes_sum": 168.67877601163238,
+            "known_support_colliding_pairs": 2991.0,
+            "known_support_correct_pairs": 3549.0,
+            "known_support_distinct_sum": 190.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 77.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 829.0,
+            "uniform_colliding_pairs_sum": 648.0055555555556,
+            "uniform_distinct_sum": 573.0014425341141,
+            "uniform_one_mode_sum": 0.003915080863464868
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8039915982862701,
+                0.8784872298624753
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8427726120033813
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.6209823703489594,
+                0.6981207284471317
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6601844024920949
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7984265510044656,
+                0.8271119842829077
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8135426889106968
+            },
+            "distinct8": {
+              "ci95": [
+                1.375,
+                1.6015625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.484375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.803181912573981,
+                3.175370201692974
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.992198769797766
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.2440533809678613,
+                1.403099988863307
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.317802937590878
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.515625,
+                0.6875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6015625
+            },
+            "pass1": {
+              "ci95": [
+                0.990234375,
+                0.9990234375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9951171875
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.1723412395141784,
+                0.1930233822489392
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18258820951128643
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.331740548905176,
+                4.620363093415315
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.476573769797766
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.359662069591007e-05,
+                3.832463694195173e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.058656924581928e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2845.0,
+            "correct_draws": 1020.0,
+            "correct_pairs": 3557.0,
+            "distinct_correct_modes": 208.0,
+            "effective_modes_sum": 180.2353400573113,
+            "known_support_colliding_pairs": 2845.0,
+            "known_support_correct_pairs": 3557.0,
+            "known_support_distinct_sum": 208.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 64.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 812.0,
+            "uniform_colliding_pairs_sum": 674.9333333333329,
+            "uniform_distinct_sum": 562.0075891906507,
+            "uniform_one_mode_sum": 0.005023247984735851
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.7595797824766058,
+                0.8405968203573864
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7998313185268485
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.5701541259102576,
+                0.6498977264796472
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6100834036172806
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7806072477962782,
+                0.8115248510718228
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.796078431372549
+            },
+            "distinct8": {
+              "ci95": [
+                1.5,
+                1.75
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.625
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.574233133207964,
+                2.962101447898099
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.7656842905519587
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.3172506752874513,
+                1.4983070926082127
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.4080885941977446
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.4140625,
+                0.59375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.5
+            },
+            "pass1": {
+              "ci95": [
+                0.990234375,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.99609375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17901381185444767,
+                0.20061436209708042
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18974791490956788
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.239679897594838,
+                4.542689571432672
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.390684290551959
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.733020000135085e-05,
+                5.8764823086418435e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.9244124880748834e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3383.0,
+            "correct_draws": 1023.0,
+            "correct_pairs": 3577.0,
+            "distinct_correct_modes": 152.0,
+            "effective_modes_sum": 142.52852953762445,
+            "known_support_colliding_pairs": 3383.0,
+            "known_support_correct_pairs": 3577.0,
+            "known_support_distinct_sum": 152.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 108.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 871.0,
+            "uniform_colliding_pairs_sum": 679.3499999999998,
+            "uniform_distinct_sum": 562.5981332402278,
+            "uniform_one_mode_sum": 0.004089859415562896
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.9180877830584289,
+                0.9686274509803922
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9457646072127481
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.7270365668402777,
+                0.780313550764117
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7558428850992452
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8395303326810176,
+                0.8611925708699902
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8514173998044966
+            },
+            "distinct8": {
+              "ci95": [
+                1.109375,
+                1.28125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.1875
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                3.041950631784066,
+                3.3725131434865894
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.2077979159392793
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.0597602378841358,
+                1.1803592024967071
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.113504137012691
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.7734375,
+                0.8984375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.84375
+            },
+            "pass1": {
+              "ci95": [
+                0.9970703125,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9990234375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17897059716616381,
+                0.20085262141386223
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.1899217221135029
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.2443775759570865,
+                4.548602183682579
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.395297915939279
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.6025289136498515e-05,
+                3.823081438488953e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.1952026684085126e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    },
+    {
+      "model": "claude-opus-4-8",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3118.0,
+            "correct_draws": 1021.0,
+            "correct_pairs": 3563.0,
+            "distinct_correct_modes": 172.0,
+            "effective_modes_sum": 158.13489719412289,
+            "known_support_colliding_pairs": 3118.0,
+            "known_support_correct_pairs": 3563.0,
+            "known_support_distinct_sum": 172.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 90.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 849.0,
+            "uniform_colliding_pairs_sum": 650.9222222222223,
+            "uniform_distinct_sum": 573.4140080680664,
+            "uniform_one_mode_sum": 0.0037141141692919127
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.8394896725813613,
+                0.9096007805947721
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8751052483861914
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.6558885225386453,
+                0.7288633103696026
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6924158792528143
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8193338750153487,
+                0.8434442270058709
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8315377081292851
+            },
+            "distinct8": {
+              "ci95": [
+                1.25,
+                1.4375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.34375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.961237649986155,
+                3.3112991647694083
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.136046938031769
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.168963439888435,
+                1.3050038249000513
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.235428884329085
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.625,
+                0.78125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.703125
+            },
+            "pass1": {
+              "ci95": [
+                0.9931640625,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9970703125
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17252639326222363,
+                0.19321993057596687
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18268936913337702
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.332405012783057,
+                4.6239466037910475
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.479796938031769
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.2657621169124313e-05,
+                3.605987511631255e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.9016516947593068e-05
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2582.0,
+            "correct_draws": 982.0,
+            "correct_pairs": 3369.0,
+            "distinct_correct_modes": 213.0,
+            "effective_modes_sum": 187.73739384829418,
+            "known_support_colliding_pairs": 2582.0,
+            "known_support_correct_pairs": 3369.0,
+            "known_support_distinct_sum": 213.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 62.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 769.0,
+            "uniform_colliding_pairs_sum": 634.9749999999998,
+            "uniform_distinct_sum": 549.259387000391,
+            "uniform_one_mode_sum": 0.9888081745383301
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.7233785940755983,
+                0.8106767338860976
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7663995250816266
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.5333169130392416,
+                0.625343606015756
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.5779237162362719
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7660449694495871,
+                0.8
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7830957230142567
+            },
+            "distinct8": {
+              "ci95": [
+                1.5390625,
+                1.789257812499999
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.6640625
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.4271799845086512,
+                2.837409610619598
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.627026460940555
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.369706297261427,
+                1.5643521410283403
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.4666983894397982
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.3984375,
+                0.5703125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.484375
+            },
+            "pass1": {
+              "ci95": [
+                0.9306640625,
+                0.9814453125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.958984375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17724730766439922,
+                0.19987499001049958
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18847580884535464
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.126159755811404,
+                4.461602720404685
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.291088960940555
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                0.001844695176212894,
+                0.015556957874431506
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.007725063863580704
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 3480.0,
+            "correct_draws": 1023.0,
+            "correct_pairs": 3577.0,
+            "distinct_correct_modes": 138.0,
+            "effective_modes_sum": 134.19276553197156,
+            "known_support_colliding_pairs": 3480.0,
+            "known_support_correct_pairs": 3577.0,
+            "known_support_distinct_sum": 138.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 118.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 885.0,
+            "uniform_colliding_pairs_sum": 680.2249999999998,
+            "uniform_distinct_sum": 562.3389212231684,
+            "uniform_one_mode_sum": 0.003910091806920317
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.9547968957488817,
+                0.9888392857142857
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9728823036063741
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.7627498062528262,
+                0.8024786966013574
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7827159630975679
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.8592375366568915,
+                0.8708446436462345
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8651026392961877
+            },
+            "distinct8": {
+              "ci95": [
+                1.03125,
+                1.125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.078125
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                3.158340076880633,
+                3.4752271370896306
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.3151478220560033
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.0201956438322475,
+                1.080266999741419
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0483809807185278
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.875,
+                0.96875
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.921875
+            },
+            "pass1": {
+              "ci95": [
+                0.9970703125,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9990234375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17926960784313714,
+                0.2012062223315823
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.1901663405088062
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.243154543006053,
+                4.545331610849885
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.393272822056003
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                2.5463586565565952e-05,
+                3.5777817577205304e-05
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 3.054759224156498e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    },
+    {
+      "model": "DeepSeek-V4-Pro",
+      "cells": [
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2332.0,
+            "correct_draws": 963.0,
+            "correct_pairs": 3189.0,
+            "distinct_correct_modes": 230.0,
+            "effective_modes_sum": 200.01450433187898,
+            "known_support_colliding_pairs": 2332.0,
+            "known_support_correct_pairs": 3189.0,
+            "known_support_distinct_sum": 230.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 51.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 733.0,
+            "uniform_colliding_pairs_sum": 578.0888888888891,
+            "uniform_distinct_sum": 557.7677034203545,
+            "uniform_one_mode_sum": 0.04652440866516834
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 1,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.6880945662930933,
+                0.774340330639385
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.73126371903418
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.5067460281338535,
+                0.5933907946720762
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.5499878053029511
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7417314746030272,
+                0.7797698573764023
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7611630321910696
+            },
+            "distinct8": {
+              "ci95": [
+                1.65625,
+                1.9453125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.796875
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.37111113258828,
+                2.7544522760409356
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.560685182971519
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.4525769446080394,
+                1.6761457442459848
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.5626133150928045
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.3203125,
+                0.484375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.3984375
+            },
+            "pass1": {
+              "ci95": [
+                0.921875,
+                0.9580078125
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9404296875
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.170483635612919,
+                0.1924391101282978
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18127591373122892
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.2088074654361725,
+                4.511275426369243
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.357560182971519
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                8.305773017709805e-05,
+                0.0008414821549810521
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.00036347194269662766
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2297.0,
+            "correct_draws": 985.0,
+            "correct_pairs": 3328.0,
+            "distinct_correct_modes": 252.0,
+            "effective_modes_sum": 216.46626995231733,
+            "known_support_colliding_pairs": 2297.0,
+            "known_support_correct_pairs": 3328.0,
+            "known_support_distinct_sum": 252.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 40.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 733.0,
+            "uniform_colliding_pairs_sum": 634.1388888888888,
+            "uniform_distinct_sum": 551.2564622852651,
+            "uniform_one_mode_sum": 0.02669189131132039
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 2,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.6441170403791914,
+                0.7347429365695032
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6902043269230769
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.45284433926049883,
+                0.5449681402065977
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.49965778579059833
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7245543358104994,
+                0.7632898696088265
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.7441624365482233
+            },
+            "distinct8": {
+              "ci95": [
+                1.828125,
+                2.109375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.96875
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.138500116475913,
+                2.5402505455324538
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.3379411116036337
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.5790083573594667,
+                1.810237341154444
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.6911427340024792
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.234375,
+                0.390625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.3125
+            },
+            "pass1": {
+              "ci95": [
+                0.9462890625,
+                0.9755859375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.9619140625
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17957332777065982,
+                0.20158415423976525
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.1905465411324786
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.156964155302879,
+                4.454716854858079
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.306691111603634
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                4.510218512101723e-05,
+                0.0004842478600407533
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.00020853040086969053
+            }
+          },
+          "missing_prompts": 0
+        },
+        {
+          "complete_prompts": 128,
+          "counts": {
+            "colliding_correct_pairs": 2839.0,
+            "correct_draws": 998.0,
+            "correct_pairs": 3406.0,
+            "distinct_correct_modes": 195.0,
+            "effective_modes_sum": 169.67335037637196,
+            "known_support_colliding_pairs": 2839.0,
+            "known_support_correct_pairs": 3406.0,
+            "known_support_distinct_sum": 195.0,
+            "known_support_prompts": 128.0,
+            "known_support_two_correct_prompts": 128.0,
+            "one_mode_prompts": 71.0,
+            "prompts": 128.0,
+            "prompts_with_correct": 128.0,
+            "prompts_with_two_correct": 128.0,
+            "repeated_correct_draws": 803.0,
+            "uniform_colliding_pairs_sum": 642.8805555555554,
+            "uniform_distinct_sum": 557.341820650814,
+            "uniform_one_mode_sum": 0.009351143623842005
+          },
+          "domain": "graph_coloring",
+          "expected_prompts": 128,
+          "level": 3,
+          "metrics": {
+            "correct_pair_collision": {
+              "ci95": [
+                0.7961130377110684,
+                0.8702445378063872
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8335290663534939
+            },
+            "correct_pair_collision_excess_uniform": {
+              "ci95": [
+                0.606559474039668,
+                0.6837079741035719
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.6447796372414694
+            },
+            "correct_repeat_fraction": {
+              "ci95": [
+                0.7896838672288966,
+                0.819183226412142
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.8046092184368737
+            },
+            "distinct8": {
+              "ci95": [
+                1.40625,
+                1.640625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.5234375
+            },
+            "distinct8_gap_to_uniform": {
+              "ci95": [
+                2.6548018199268673,
+                3.009940863644737
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 2.8307954738344847
+            },
+            "effective_modes_correct": {
+              "ci95": [
+                1.2520610693397527,
+                1.4052922686602163
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.325573049815406
+            },
+            "one_mode_rate": {
+              "ci95": [
+                0.46875,
+                0.640625
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.5546875
+            },
+            "pass1": {
+              "ci95": [
+                0.96484375,
+                0.984375
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.974609375
+            },
+            "pass8": {
+              "ci95": [
+                1.0,
+                1.0
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 1.0
+            },
+            "uniform_correct_pair_collision": {
+              "ci95": [
+                0.17758843919551795,
+                0.1999310534386599
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 0.18874942911202447
+            },
+            "uniform_expected_distinct8": {
+              "ci95": [
+                4.204452591441695,
+                4.509367367265077
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 4.354232973834485
+            },
+            "uniform_one_mode_rate": {
+              "ci95": [
+                4.566411807498833e-05,
+                0.000103961857358988
+              ],
+              "defined_bootstrap_replicates": 2000,
+              "estimate": 7.305580956126566e-05
+            }
+          },
+          "missing_prompts": 0
+        }
+      ]
+    }
+  ],
+  "metric_order": [
+    "pass1",
+    "correct_pair_collision"
+  ],
+  "uncertainty": "Saved pointwise whole-prompt bootstrap intervals.",
+  "uniform_band": "Range across admitted models of their correct-pair-weighted references."
+}

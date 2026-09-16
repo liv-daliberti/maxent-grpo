@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gc
+import hashlib
 import logging
 import math
 import time
@@ -18,6 +19,8 @@ from oat.utils.ops import masked_mean
 from ..args import resolve_canonical_action_task
 from ..answer_options import coerce_option_id, conditional_answer_repr
 from ..canonical_actions import (
+    canonical_action_code_from_verified_response,
+    canonical_action_code_token_ids,
     canonical_behavior_overlap_diagnostics,
     materialize_canonical_behavior_policy,
     materialize_position_canonical_behavior_policy,
@@ -26,16 +29,23 @@ from ..canonical_actions import (
 )
 from ..canonical_replay import (
     CanonicalReplayBatch,
+    cap_retention_safe_balance_score_gradients,
+    canonical_replay_key_target_weights,
     canonical_replay_split_mass_balance_loss,
     canonical_replay_uniform_loss,
     canonical_replay_uniform_verified_likelihood_loss,
     materialize_canonical_replay_batch,
+)
+from ..dapo import (
+    dapo_soft_overlong_penalty,
+    dapo_token_level_policy_loss,
 )
 from ..math_grader import (
     extract_normalized_final_answer,
     validated_exploration_identity,
     validated_modebench_outcome_key,
 )
+from ..maxrl import binary_maxrl_advantages
 from ..math_strategy_canonicalizer import MathStrategyCanonicalizer
 from ..on_policy_maxent import (
     mean_active_token_entropy_by_response,
@@ -52,6 +62,11 @@ from ..replicated_group import (
     replicated_group_permutation_seed,
     validate_replicated_group_layout,
 )
+from ..rlep import (
+    RLEPExperiencePool,
+    RLEPReplayGroup,
+    rlep_mixed_advantages,
+)
 from ..outcome_collision import (
     add_outcome_collision_outside_centering_advantage,
     compute_outcome_collision_bonuses,
@@ -59,11 +74,13 @@ from ..outcome_collision import (
 from ..semantic_shannon import (
     SemanticShannonTracker,
     add_semantic_shannon_separate_advantage,
+    success_conditioned_semantic_metric_values,
 )
 from ..seed_weights import compute_seed_row_weights
 from ..tensor_utils import cap_last_valid_token_pos_for_zero_advantage
 from ..verified_route_library import VerifiedRouteLibrary
 from ..xdr import aggregation_group_diagnostics, compute_xdr_row_weights
+from ..ucpo import redistribute_ucpo_advantages
 
 
 MATH_VERIFIED_ANSWER_OUTCOME_KEY = "math_verified_answer:correct"
@@ -265,6 +282,45 @@ class ZeroMathGrpoMixin:
             raise RuntimeError("canonical replay materialized an empty response")
         return (replay_logps * replay_mask).sum(dim=1) / token_counts
 
+    def _score_rlep_rows(
+        self,
+        replay: CanonicalReplayBatch,
+        *,
+        start: int,
+        stop: int,
+        policy_vocab_upper_bound: int,
+    ) -> torch.Tensor:
+        """Return Dr.GRPO-normalized sequence log-probabilities for RLEP."""
+
+        replay_input_ids = self._sanitize_scoring_token_ids(
+            replay.input_ids[start:stop],
+            upper_bound=policy_vocab_upper_bound,
+            context="rlep_replay_policy_input",
+        )
+        replay_logits = self.model(
+            replay_input_ids,
+            attention_mask=replay.attention_mask[start:stop],
+        )["logits"]
+        if self.args.temperature != 1:
+            replay_logits = replay_logits / self.args.temperature
+        replay_logits = self._mask_invalid_scoring_logit_columns(
+            replay_logits,
+            valid_vocab_size=policy_vocab_upper_bound,
+            context="rlep_replay_policy_logits",
+        )
+        replay_logps, _ = self._policy_logps_and_optional_entropy(
+            replay_logits,
+            replay_input_ids,
+            replay.response_masks[start:stop],
+            need_entropy=False,
+        )
+        replay_mask = replay.response_masks[start:stop].to(replay_logps.dtype)
+        if not bool(replay_mask.sum(dim=1).gt(0).all()):
+            raise RuntimeError("RLEP materialized an empty response")
+        return (replay_logps * replay_mask).sum(dim=1) / float(
+            self.args.generate_max_length
+        )
+
     def _baseline_update_with_precomputed_advantages(
         self,
         *,
@@ -283,6 +339,8 @@ class ZeroMathGrpoMixin:
         row_weights: torch.Tensor | None = None,
         extra_infos: dict[str, torch.Tensor] | None = None,
         canonical_replay_groups: (list[VerifiedCanonicalReplayGroup] | None) = None,
+        rlep_replay_groups: list[RLEPReplayGroup] | None = None,
+        rlep_replay_advantage: float | None = None,
     ) -> dict[str, torch.Tensor]:
         args = self.args
         canonical_task = resolve_canonical_action_task(args)
@@ -292,6 +350,14 @@ class ZeroMathGrpoMixin:
             infos.update(extra_infos)
         if advantages.ndim == 1:
             advantages = advantages[:, None]
+        fresh_advantage_fingerprint = float(
+            int(
+                hashlib.sha256(
+                    advantages.detach().cpu().contiguous().numpy().tobytes()
+                ).hexdigest()[:13],
+                16,
+            )
+        )
 
         if policy_vocab_upper_bound is None:
             policy_vocab_upper_bound = self._resolve_scoring_vocab_upper_bound(
@@ -424,26 +490,38 @@ class ZeroMathGrpoMixin:
                     context="baseline_policy_update_logits",
                 )
                 maxent_objective = str(getattr(args, "maxent_objective", "sequence"))
-                new_logps, policy_token_entropy = (
-                    self._policy_logps_and_optional_entropy(
-                        logits,
-                        mb_input_ids,
-                        mb_response_masks,
-                        # ``train/entropy`` retains one full-policy definition
-                        # across control and treatment arms. E21 computes its
-                        # separately labeled conditional-content objective in
-                        # addition to this shared diagnostic.
-                        need_entropy=True,
-                    )
+                (
+                    new_logps,
+                    policy_token_entropy,
+                ) = self._policy_logps_and_optional_entropy(
+                    logits,
+                    mb_input_ids,
+                    mb_response_masks,
+                    # ``train/entropy`` retains one full-policy definition
+                    # across control and treatment arms. E21 computes its
+                    # separately labeled conditional-content objective in
+                    # addition to this shared diagnostic.
+                    need_entropy=True,
                 )
                 if args.reinforce_update:
                     pg_loss_max = -mb_advantage * new_logps
                 else:
                     logprobs_diff = new_logps - mb_logps
                     ratio = torch.exp(logprobs_diff)
+                    dapo_enabled = bool(getattr(args, "dapo_enabled", False))
+                    clip_low = (
+                        float(args.dapo_clip_low)
+                        if dapo_enabled
+                        else float(args.cliprange)
+                    )
+                    clip_high = (
+                        float(args.dapo_clip_high)
+                        if dapo_enabled
+                        else float(args.cliprange)
+                    )
                     pg_losses = -mb_advantage * ratio
                     pg_losses2 = -mb_advantage * torch.clamp(
-                        ratio, 1.0 - args.cliprange, 1.0 + args.cliprange
+                        ratio, 1.0 - clip_low, 1.0 + clip_high
                     )
                     pg_loss_max = torch.max(pg_losses, pg_losses2)
 
@@ -457,18 +535,36 @@ class ZeroMathGrpoMixin:
                         (pg_loss_max == 0).detach().sum().item()
                     )
 
-                base_pg_loss = self.masked_aggregator(
-                    pg_loss_max, mb_response_masks, axis=1
-                )
-                if mb_row_weights is None:
-                    base_pg_loss = (base_pg_loss * mb_loss_masks).mean()
+                if bool(getattr(args, "dapo_enabled", False)):
+                    if mb_row_weights is not None:
+                        raise RuntimeError(
+                            "DAPO token-level reduction cannot use row weights"
+                        )
+                    base_pg_loss, active_tokens = dapo_token_level_policy_loss(
+                        pg_loss_max,
+                        mb_response_masks,
+                        mb_loss_masks,
+                    )
+                    infos["dapo_token_level_active_tokens"] = active_tokens
+                    infos["dapo_clip_low"] = torch.tensor(
+                        float(args.dapo_clip_low), device=base_pg_loss.device
+                    )
+                    infos["dapo_clip_high"] = torch.tensor(
+                        float(args.dapo_clip_high), device=base_pg_loss.device
+                    )
                 else:
-                    # xDr.GRPO: per-candidate tempered aggregation weights
-                    # (G * softmax(U/tau) per prompt group, detached). Only
-                    # the pg-loss aggregation is reweighted.
-                    base_pg_loss = (
-                        base_pg_loss * mb_loss_masks * mb_row_weights
-                    ).mean()
+                    base_pg_loss = self.masked_aggregator(
+                        pg_loss_max, mb_response_masks, axis=1
+                    )
+                    if mb_row_weights is None:
+                        base_pg_loss = (base_pg_loss * mb_loss_masks).mean()
+                    else:
+                        # xDr.GRPO: per-candidate tempered aggregation weights
+                        # (G * softmax(U/tau) per prompt group, detached). Only
+                        # the pg-loss aggregation is reweighted.
+                        base_pg_loss = (
+                            base_pg_loss * mb_loss_masks * mb_row_weights
+                        ).mean()
                 pg_loss = base_pg_loss
                 infos["pg_loss"] = pg_loss.detach()
                 loss = pg_loss
@@ -650,20 +746,20 @@ class ZeroMathGrpoMixin:
                             maxent_length_lambda, device=loss.device
                         )
                         infos["maxent_expected_length"] = expected_length.detach()
-                        infos["maxent_sampled_prefix_length"] = (
-                            sampled_prefix_length.detach()
-                        )
+                        infos[
+                            "maxent_sampled_prefix_length"
+                        ] = sampled_prefix_length.detach()
                         infos["maxent_length_surrogate"] = length_surrogate.detach()
                         infos["maxent_length_loss"] = length_loss.detach()
-                        infos["maxent_length_prefix_ratio_mean"] = (
-                            length_prefix_ratio_mean.detach()
-                        )
-                        infos["maxent_length_prefix_ratio_max"] = (
-                            length_prefix_ratio_max.detach()
-                        )
-                        infos["maxent_length_prefix_ratio_clipfrac"] = (
-                            length_prefix_ratio_clipfrac.detach()
-                        )
+                        infos[
+                            "maxent_length_prefix_ratio_mean"
+                        ] = length_prefix_ratio_mean.detach()
+                        infos[
+                            "maxent_length_prefix_ratio_max"
+                        ] = length_prefix_ratio_max.detach()
+                        infos[
+                            "maxent_length_prefix_ratio_clipfrac"
+                        ] = length_prefix_ratio_clipfrac.detach()
                         stats["maxent_length_lambda_used"].append(maxent_length_lambda)
                         stats["maxent_expected_length"].append(
                             float(expected_length.detach().cpu().item())
@@ -690,9 +786,9 @@ class ZeroMathGrpoMixin:
                         maxent_alpha, device=loss.device
                     )
                     if maxent_objective == "conditional_token_mean":
-                        infos["maxent_conditional_token_entropy"] = (
-                            sequence_entropy.detach()
-                        )
+                        infos[
+                            "maxent_conditional_token_entropy"
+                        ] = sequence_entropy.detach()
                         infos["maxent_state_distribution_detached"] = torch.tensor(
                             1.0, device=loss.device
                         )
@@ -704,20 +800,20 @@ class ZeroMathGrpoMixin:
                         )
                     else:
                         infos["maxent_sequence_entropy"] = sequence_entropy.detach()
-                        infos["maxent_sequence_entropy_per_tmax"] = (
-                            sequence_entropy_per_tmax.detach()
-                        )
-                        infos["maxent_sampled_prefix_entropy"] = (
-                            sampled_prefix_entropy.detach()
-                        )
-                        infos["maxent_sampled_prefix_entropy_per_tmax"] = (
-                            sampled_prefix_entropy_per_tmax.detach()
-                        )
+                        infos[
+                            "maxent_sequence_entropy_per_tmax"
+                        ] = sequence_entropy_per_tmax.detach()
+                        infos[
+                            "maxent_sampled_prefix_entropy"
+                        ] = sampled_prefix_entropy.detach()
+                        infos[
+                            "maxent_sampled_prefix_entropy_per_tmax"
+                        ] = sampled_prefix_entropy_per_tmax.detach()
                         infos["maxent_prefix_ratio_mean"] = prefix_ratio_mean.detach()
                         infos["maxent_prefix_ratio_max"] = prefix_ratio_max.detach()
-                        infos["maxent_prefix_ratio_clipfrac"] = (
-                            prefix_ratio_clipfrac.detach()
-                        )
+                        infos[
+                            "maxent_prefix_ratio_clipfrac"
+                        ] = prefix_ratio_clipfrac.detach()
                     infos["maxent_entropy_surrogate"] = entropy_surrogate.detach()
                     infos["maxent_entropy_loss"] = entropy_loss.detach()
                     infos["maxent_reward_estimator_scale"] = torch.tensor(
@@ -835,9 +931,9 @@ class ZeroMathGrpoMixin:
                         # learner update it is not H(q_new) unless prefix
                         # ratios are applied; reserve that name for the IS
                         # estimator and exact 27-leaf endpoint audit.
-                        infos["canonical_sampled_prefix_entropy_sum"] = (
-                            canonical_sequence_entropy
-                        )
+                        infos[
+                            "canonical_sampled_prefix_entropy_sum"
+                        ] = canonical_sequence_entropy
                         infos["canonical_sampled_prefix_entropy_ratio"] = (
                             canonical_sequence_entropy / canonical_max_entropy
                         )
@@ -887,6 +983,56 @@ class ZeroMathGrpoMixin:
                                     )
                                 ]
                             )
+                        retention_bank = getattr(
+                            self,
+                            "_online_canonical_bank",
+                            None,
+                        )
+                        if (
+                            isinstance(retention_bank, OnlineCanonicalBank)
+                            and retention_bank.proposal_retention_tracking_enabled
+                        ):
+                            retention_token_counts = replay.response_masks.sum(
+                                dim=1
+                            ).to(detached_scores.dtype)
+                            retention_score_tensor = torch.stack(
+                                (
+                                    detached_scores,
+                                    detached_scores * retention_token_counts,
+                                ),
+                                dim=1,
+                            ).detach()
+                            if (
+                                dist.is_available()
+                                and dist.is_initialized()
+                                and dist.get_world_size() > 1
+                            ):
+                                dist.broadcast(retention_score_tensor, src=0)
+                            retention_score_rows = (
+                                retention_score_tensor.float().cpu().tolist()
+                            )
+                            retention_diagnostics = (
+                                retention_bank.observe_replay_retention_scores(
+                                    groups=canonical_replay_groups,
+                                    mean_logprobs=[
+                                        row[0] for row in retention_score_rows
+                                    ],
+                                    sequence_logprobs=[
+                                        row[1] for row in retention_score_rows
+                                    ],
+                                )
+                            )
+                            infos.update(
+                                {
+                                    "canonical_replay_proposal_retention_"
+                                    f"{name}": torch.tensor(
+                                        value,
+                                        dtype=torch.float32,
+                                        device=input_ids.device,
+                                    )
+                                    for name, value in (retention_diagnostics.items())
+                                }
+                            )
                         replay_objective = str(args.online_canonical_replay_objective)
                         replay_alpha = float(args.online_canonical_replay_alpha)
                         # Uniform replay splits the dose across banked modes, so
@@ -896,6 +1042,32 @@ class ZeroMathGrpoMixin:
                         # n is already bounded by the replay capacity, so this
                         # introduces no ceiling that is not already registered.
                         replay_banked_modes = int(sum(replay.group_sizes))
+                        replay_key_weighting = str(
+                            getattr(
+                                args,
+                                "online_canonical_replay_key_weighting",
+                                "uniform",
+                            )
+                        )
+                        if replay_key_weighting == "uniform":
+                            # Alias the historical tensor exactly: the default
+                            # path performs no new arithmetic.
+                            replay_target_weights = replay.mass_weights
+                        else:
+                            if not bool(
+                                replay.mass_weights.eq(1.0).all()
+                            ):
+                                raise RuntimeError(
+                                    "fresh-frequency key weighting cannot be "
+                                    "combined with replay priority weights"
+                                )
+                            replay_target_weights = (
+                                canonical_replay_key_target_weights(
+                                    replay.fresh_observation_counts,
+                                    replay.group_sizes,
+                                    weighting=replay_key_weighting,
+                                )
+                            )
                         replay_bank_normalized = bool(
                             getattr(
                                 args,
@@ -905,9 +1077,7 @@ class ZeroMathGrpoMixin:
                         )
                         if replay_bank_normalized:
                             replay_alpha = (
-                                float(
-                                    args.online_canonical_replay_per_mode_coefficient
-                                )
+                                float(args.online_canonical_replay_per_mode_coefficient)
                                 * replay_banked_modes
                             )
                         replay_mass_alpha = 0.0
@@ -922,6 +1092,7 @@ class ZeroMathGrpoMixin:
                                 canonical_replay_uniform_verified_likelihood_loss(
                                     detached_scores,
                                     replay.group_sizes,
+                                    replay_target_weights,
                                 )
                             )
                         elif replay_objective == ("verified_likelihood_per_rollout"):
@@ -929,12 +1100,14 @@ class ZeroMathGrpoMixin:
                                 canonical_replay_uniform_verified_likelihood_loss(
                                     detached_scores,
                                     replay.group_sizes,
+                                    replay_target_weights,
                                 )
                             )
                         elif replay_objective == ("split_mass_balance_per_rollout"):
                             split_result = canonical_replay_split_mass_balance_loss(
                                 detached_scores,
                                 replay.group_sizes,
+                                replay_target_weights,
                             )
                             replay_mass_alpha = float(
                                 args.online_canonical_replay_mass_alpha
@@ -1001,7 +1174,7 @@ class ZeroMathGrpoMixin:
                                 "fixed canonical replay coefficient produced "
                                 "a non-finite weighted loss"
                             )
-                        raw_score_gradients = (
+                        requested_score_gradients = (
                             (
                                 (
                                     split_result.mass_score_gradients
@@ -1015,6 +1188,42 @@ class ZeroMathGrpoMixin:
                             .to(input_ids.device)
                             .detach()
                         )
+                        retention_safe_balance = bool(
+                            getattr(
+                                args,
+                                "online_canonical_replay_retention_safe_balance",
+                                False,
+                            )
+                        )
+                        balance_scales = detached_scores.new_ones(
+                            len(replay.group_sizes)
+                        )
+                        raw_score_gradients = requested_score_gradients
+                        if retention_safe_balance:
+                            if split_result is None:
+                                raise RuntimeError(
+                                    "retention-safe balance requires a split replay loss"
+                                )
+                            (
+                                raw_score_gradients,
+                                balance_scales,
+                            ) = cap_retention_safe_balance_score_gradients(
+                                (
+                                    split_result.mass_score_gradients
+                                    * replay_mass_alpha
+                                ).to(input_ids.device),
+                                (
+                                    split_result.balance_score_gradients * replay_alpha
+                                ).to(input_ids.device),
+                                replay.group_sizes,
+                            )
+                        if retention_safe_balance and bool(
+                            (raw_score_gradients > 1e-7).any()
+                        ):
+                            raise RuntimeError(
+                                "retention-safe replay assigned downward verified-mode "
+                                "pressure"
+                            )
                         replay_compute_only = bool(
                             getattr(
                                 args,
@@ -1068,6 +1277,62 @@ class ZeroMathGrpoMixin:
                                 self.model,
                                 self.optimizer,
                             )
+                    target_entropy_ratios: list[torch.Tensor] = []
+                    target_ginis: list[torch.Tensor] = []
+                    target_rare_allocations: list[torch.Tensor] = []
+                    target_common_allocations: list[torch.Tensor] = []
+                    target_start = 0
+                    for target_size in replay.group_sizes:
+                        target_stop = target_start + target_size
+                        target_slice = replay_target_weights[
+                            target_start:target_stop
+                        ].to(torch.float64)
+                        target_probabilities = (
+                            target_slice / target_slice.sum()
+                        )
+                        target_counts = replay.fresh_observation_counts[
+                            target_start:target_stop
+                        ]
+                        if target_size >= 2:
+                            target_entropy_ratios.append(
+                                -(
+                                    target_probabilities
+                                    * target_probabilities.log()
+                                ).sum()
+                                / math.log(target_size)
+                            )
+                        else:
+                            target_entropy_ratios.append(
+                                target_slice.new_tensor(1.0)
+                            )
+                        target_ginis.append(
+                            torch.abs(
+                                target_probabilities[:, None]
+                                - target_probabilities[None, :]
+                            ).sum()
+                            / (2.0 * target_size)
+                        )
+                        target_rare_allocations.append(
+                            target_probabilities[
+                                target_counts == target_counts.min()
+                            ].sum()
+                        )
+                        target_common_allocations.append(
+                            target_probabilities[
+                                target_counts == target_counts.max()
+                            ].sum()
+                        )
+                        target_start = target_stop
+                    target_normalized_entropy = torch.stack(
+                        target_entropy_ratios
+                    ).mean()
+                    target_gini = torch.stack(target_ginis).mean()
+                    target_rare_allocation = torch.stack(
+                        target_rare_allocations
+                    ).mean()
+                    target_common_allocation = torch.stack(
+                        target_common_allocations
+                    ).mean()
                     # DeepSpeed divides every backward call by the configured
                     # accumulation width. Replay is evaluated once at the
                     # boundary (rather than repeating a full exemplar bank for
@@ -1187,8 +1452,7 @@ class ZeroMathGrpoMixin:
                                 device=input_ids.device,
                             ),
                             "canonical_replay_applied_score_gradient_sum": (
-                                score_gradients.sum()
-                                * replay_objective_scale
+                                score_gradients.sum() * replay_objective_scale
                             ),
                             "canonical_replay_verified_likelihood_active": (
                                 torch.tensor(
@@ -1249,8 +1513,210 @@ class ZeroMathGrpoMixin:
                             "canonical_replay_applied_score_gradient_l2": (
                                 torch.linalg.vector_norm(score_gradients)
                             ),
+                            "canonical_replay_retention_safe_balance": torch.tensor(
+                                float(retention_safe_balance),
+                                dtype=torch.float32,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_balance_scale_min": (
+                                balance_scales.min().to(input_ids.device)
+                            ),
+                            "canonical_replay_balance_scale_mean": (
+                                balance_scales.mean().to(input_ids.device)
+                            ),
+                            "canonical_replay_balance_capped_group_fraction": (
+                                (balance_scales < 1.0)
+                                .float()
+                                .mean()
+                                .to(input_ids.device)
+                            ),
+                            "canonical_replay_requested_positive_gradient_max": (
+                                torch.clamp(
+                                    requested_score_gradients,
+                                    min=0.0,
+                                ).max()
+                            ),
+                            "canonical_replay_applied_positive_gradient_max": (
+                                torch.clamp(
+                                    raw_score_gradients,
+                                    min=0.0,
+                                ).max()
+                            ),
+                            "canonical_replay_priority_modes": torch.tensor(
+                                replay.priority_modes,
+                                dtype=torch.float32,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_mass_weight_min": (
+                                replay.mass_weights.min().to(input_ids.device)
+                            ),
+                            "canonical_replay_mass_weight_max": (
+                                replay.mass_weights.max().to(input_ids.device)
+                            ),
                         }
                     )
+                    infos.update(
+                        {
+                            "canonical_replay_key_weighting_frequency": torch.tensor(
+                                float(replay_key_weighting == "fresh_frequency"),
+                                dtype=torch.float32,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_target_normalized_entropy": (
+                                target_normalized_entropy.to(input_ids.device)
+                            ),
+                            "canonical_replay_target_gini": target_gini.to(
+                                input_ids.device
+                            ),
+                            "canonical_replay_rare_key_gradient_allocation": (
+                                target_rare_allocation.to(input_ids.device)
+                            ),
+                            "canonical_replay_common_key_gradient_allocation": (
+                                target_common_allocation.to(input_ids.device)
+                            ),
+                            "canonical_replay_target_weight_sum": (
+                                replay_target_weights.sum().to(input_ids.device)
+                            ),
+                            "canonical_replay_target_weight_min": (
+                                replay_target_weights.min().to(input_ids.device)
+                            ),
+                            "canonical_replay_target_weight_max": (
+                                replay_target_weights.max().to(input_ids.device)
+                            ),
+                            "canonical_replay_fresh_observation_count_sum": (
+                                replay.fresh_observation_counts.sum().to(
+                                    input_ids.device
+                                )
+                            ),
+                            "canonical_replay_fresh_observation_count_min": (
+                                replay.fresh_observation_counts.min().to(
+                                    input_ids.device
+                                )
+                            ),
+                            "canonical_replay_fresh_observation_count_max": (
+                                replay.fresh_observation_counts.max().to(
+                                    input_ids.device
+                                )
+                            ),
+                            "canonical_replay_frequency_count_fresh_only": torch.tensor(
+                                1.0,
+                                dtype=torch.float32,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_frequency_count_from_replay": torch.tensor(
+                                0.0,
+                                dtype=torch.float32,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_frequency_count_from_proposals": torch.tensor(
+                                0.0,
+                                dtype=torch.float32,
+                                device=input_ids.device,
+                            ),
+                            "canonical_replay_fresh_advantage_fingerprint": torch.tensor(
+                                fresh_advantage_fingerprint,
+                                dtype=torch.float64,
+                                device=input_ids.device,
+                            ),
+                        }
+                    )
+                    flat_outcome_keys = [
+                        outcome_key
+                        for replay_group in canonical_replay_groups
+                        for outcome_key in replay_group.outcome_keys
+                    ]
+                    flat_prompt_fingerprints = [
+                        int(
+                            hashlib.sha256(
+                                repr(replay_group.prompt_token_ids).encode("utf-8")
+                            ).hexdigest()[:13],
+                            16,
+                        )
+                        for replay_group in canonical_replay_groups
+                        for _outcome_key in replay_group.outcome_keys
+                    ]
+                    replay_token_counts = replay.response_masks.sum(dim=1).to(
+                        detached_scores.dtype
+                    )
+                    for row_index, (
+                        target_weight,
+                        fresh_count,
+                        outcome_key,
+                        prompt_fingerprint,
+                        mean_logprob,
+                        token_count,
+                    ) in enumerate(
+                        zip(
+                            replay_target_weights,
+                            replay.fresh_observation_counts,
+                            flat_outcome_keys,
+                            flat_prompt_fingerprints,
+                            detached_scores,
+                            replay_token_counts,
+                        )
+                    ):
+                        infos[
+                            f"canonical_replay_target_weight_row_{row_index:02d}"
+                        ] = target_weight.to(input_ids.device)
+                        infos[
+                            f"canonical_replay_fresh_count_row_{row_index:02d}"
+                        ] = fresh_count.to(input_ids.device)
+                        infos[
+                            f"canonical_replay_outcome_fingerprint_row_{row_index:02d}"
+                        ] = torch.tensor(
+                            float(
+                                int(
+                                    hashlib.sha256(
+                                        outcome_key.encode("utf-8")
+                                    ).hexdigest()[:13],
+                                    16,
+                                )
+                            ),
+                            dtype=torch.float64,
+                            device=input_ids.device,
+                        )
+                        infos[
+                            f"canonical_replay_prompt_fingerprint_row_{row_index:02d}"
+                        ] = torch.tensor(
+                            float(prompt_fingerprint),
+                            dtype=torch.float64,
+                            device=input_ids.device,
+                        )
+                        infos[
+                            f"canonical_replay_exemplar_mean_logprob_row_{row_index:02d}"
+                        ] = mean_logprob.to(input_ids.device)
+                        infos[
+                            f"canonical_replay_exemplar_sequence_logprob_row_{row_index:02d}"
+                        ] = (mean_logprob * token_count).to(input_ids.device)
+                    for group_index, replay_group in enumerate(
+                        canonical_replay_groups
+                    ):
+                        prompt_fingerprint = int(
+                            hashlib.sha256(
+                                repr(replay_group.prompt_token_ids).encode("utf-8")
+                            ).hexdigest()[:13],
+                            16,
+                        )
+                        membership_fingerprint = int(
+                            hashlib.sha256(
+                                repr(replay_group.outcome_keys).encode("utf-8")
+                            ).hexdigest()[:13],
+                            16,
+                        )
+                        infos[
+                            f"canonical_replay_prompt_fingerprint_group_{group_index:02d}"
+                        ] = torch.tensor(
+                            float(prompt_fingerprint),
+                            dtype=torch.float64,
+                            device=input_ids.device,
+                        )
+                        infos[
+                            f"canonical_replay_membership_fingerprint_group_{group_index:02d}"
+                        ] = torch.tensor(
+                            float(membership_fingerprint),
+                            dtype=torch.float64,
+                            device=input_ids.device,
+                        )
                     for key, value in (
                         (
                             "canonical_replay_actuator_loss",
@@ -1297,6 +1763,76 @@ class ZeroMathGrpoMixin:
                             if split_result is not None
                             else replay_result.retained_modes
                         )
+                    )
+
+                if (
+                    rlep_replay_groups
+                    and local_grad_step % self.strategy.grad_acc_step == 0
+                ):
+                    if rlep_replay_advantage is None:
+                        raise RuntimeError("RLEP replay rows lack a mixed advantage")
+                    replay = self._materialize_canonical_replay(
+                        rlep_replay_groups,
+                        device=input_ids.device,
+                    )
+                    replay_row_count = int(replay.input_ids.size(0))
+                    expected_rows = int(getattr(args, "rlep_replay_count", 0) or 0)
+                    if replay_row_count != expected_rows:
+                        raise RuntimeError(
+                            "RLEP materialized a replay dose different from its "
+                            "registered count"
+                        )
+                    replay_chunk_size = max(
+                        1,
+                        int(args.train_batch_size_per_device),
+                    )
+                    mixed_count = int(args.num_samples) + replay_row_count
+                    score_coefficient = -float(rlep_replay_advantage) / float(
+                        mixed_count
+                    )
+                    replay_losses: list[torch.Tensor] = []
+                    for start in range(0, replay_row_count, replay_chunk_size):
+                        stop = min(start + replay_chunk_size, replay_row_count)
+                        live_scores = self._score_rlep_rows(
+                            replay,
+                            start=start,
+                            stop=stop,
+                            policy_vocab_upper_bound=policy_vocab_upper_bound,
+                        )
+                        replay_backward_loss = (
+                            live_scores.sum()
+                            * score_coefficient
+                            * float(self.strategy.grad_acc_step)
+                        )
+                        if not bool(torch.isfinite(replay_backward_loss)):
+                            raise RuntimeError(
+                                "RLEP produced a non-finite replay backward scalar"
+                            )
+                        self.strategy.backward(
+                            replay_backward_loss,
+                            self.model,
+                            self.optimizer,
+                        )
+                        replay_losses.append(
+                            (live_scores.detach().sum() * score_coefficient)
+                        )
+                    infos.update(
+                        {
+                            "rlep_replay_rows": torch.tensor(
+                                replay_row_count, device=input_ids.device
+                            ),
+                            "rlep_replay_advantage": torch.tensor(
+                                rlep_replay_advantage, device=input_ids.device
+                            ),
+                            "rlep_replay_loss": torch.stack(replay_losses).sum(),
+                            "rlep_replay_score_coefficient": torch.tensor(
+                                score_coefficient, device=input_ids.device
+                            ),
+                            "rlep_backward_scale": torch.tensor(
+                                float(self.strategy.grad_acc_step),
+                                device=input_ids.device,
+                            ),
+                        }
                     )
 
                 if local_grad_step % self.strategy.grad_acc_step == 0:
@@ -1453,6 +1989,39 @@ class ZeroMathGrpoMixin:
         loss_masks = torch.tensor(trajectory["loss_masks"]).float().to(device)
         completion_masks = self.get_completion_mask(att_mask, prompt_id_lens)
         response_masks = completion_masks[:, 1:]
+        dapo_infos: dict[str, torch.Tensor] = {}
+        if bool(getattr(args, "dapo_enabled", False)):
+            response_lengths = response_masks.sum(dim=1)
+            penalties, diagnostics = dapo_soft_overlong_penalty(
+                response_lengths,
+                max_length=int(args.generate_max_length),
+                buffer_ratio=float(args.dapo_overlong_buffer_ratio),
+                penalty_factor=float(args.dapo_overlong_penalty_factor),
+            )
+            final_rewards = final_rewards + penalties.reshape(-1, 1).to(
+                final_rewards.device
+            )
+            dapo_infos = {
+                "dapo_enabled": torch.tensor(1.0, device=device),
+                "dapo_overlong_buffer_ratio": torch.tensor(
+                    float(args.dapo_overlong_buffer_ratio), device=device
+                ),
+                "dapo_overlong_penalty_factor": torch.tensor(
+                    float(args.dapo_overlong_penalty_factor), device=device
+                ),
+                "dapo_overlong_shaped_rows": torch.tensor(
+                    diagnostics.shaped_rows, device=device
+                ),
+                "dapo_overlong_truncated_rows": torch.tensor(
+                    diagnostics.truncated_rows, device=device
+                ),
+                "dapo_overlong_penalty_min": torch.tensor(
+                    diagnostics.penalty_min, device=device
+                ),
+                "dapo_overlong_penalty_mean": torch.tensor(
+                    diagnostics.penalty_mean, device=device
+                ),
+            }
         diayn_infos: dict[str, torch.Tensor] = {}
         outcome_collision_infos: dict[str, torch.Tensor] = {}
         outcome_collision_outside_advantage: torch.Tensor | None = None
@@ -1461,6 +2030,10 @@ class ZeroMathGrpoMixin:
         online_canonical_infos: dict[str, torch.Tensor] = {}
         online_canonical_advantage: torch.Tensor | None = None
         canonical_replay_groups: list[VerifiedCanonicalReplayGroup] = []
+        rlep_replay_groups: list[RLEPReplayGroup] = []
+        rlep_replay_advantage: float | None = None
+        rlep_infos: dict[str, torch.Tensor] = {}
+        rlep_step_count = 0
         canonical_behavior_infos: dict[str, torch.Tensor] = {}
         if canonical_actions:
             if self._canonical_action_space is None:
@@ -1474,6 +2047,110 @@ class ZeroMathGrpoMixin:
                     f"{observed_counts.detach().cpu().tolist()}"
                 )
         logging.info(f"learn data size {input_ids.shape}")
+
+        rlep_count = int(getattr(args, "rlep_replay_count", 0) or 0)
+        if rlep_count:
+            pool = getattr(self, "_rlep_experience_pool", None)
+            if pool is None:
+                pool = RLEPExperiencePool.from_directory(
+                    str(args.rlep_experience_root),
+                    allow_sparse=bool(getattr(args, "rlep_sparse_fallback", False)),
+                )
+                self._rlep_experience_pool = pool
+            if not isinstance(pool, RLEPExperiencePool):
+                raise RuntimeError("invalid RLEP experience pool")
+            num_rows = int(input_ids.size(0))
+            references = list(trajectory.get("references") or [])
+            if len(references) != num_rows:
+                raise RuntimeError("RLEP requires one reference per fresh row")
+            if num_rows != int(args.num_samples):
+                raise RuntimeError("RLEP requires one complete fresh prompt group")
+            first_reference = references[0]
+            if any(reference != first_reference for reference in references[1:]):
+                raise RuntimeError("RLEP fresh rows do not share one prompt reference")
+            rlep_step_count = (
+                rlep_count if pool.can_sample(first_reference, count=rlep_count) else 0
+            )
+            sampled_responses = (
+                pool.sample(
+                    first_reference,
+                    count=rlep_step_count,
+                    experiment_seed=int(args.seed),
+                    learner_step=int(getattr(self, "steps", 0)),
+                )
+                if rlep_step_count
+                else ()
+            )
+            max_response_tokens = int(args.generate_max_length)
+            eos_token_id = getattr(self.tokenizer, "eos_token_id", None)
+            replay_response_ids: list[tuple[int, ...]] = []
+            for response in sampled_responses:
+                if canonical_actions:
+                    action_code = canonical_action_code_from_verified_response(
+                        canonical_task,
+                        response,
+                        first_reference,
+                    )
+                    token_ids = list(
+                        canonical_action_code_token_ids(
+                            self._canonical_action_space,
+                            action_code,
+                        )
+                    )
+                else:
+                    token_ids = [
+                        int(value)
+                        for value in self.tokenizer.encode(
+                            response,
+                            add_special_tokens=False,
+                        )
+                    ]
+                    if eos_token_id is not None:
+                        eos = int(eos_token_id)
+                        if not token_ids or token_ids[-1] != eos:
+                            token_ids = token_ids[: max_response_tokens - 1] + [eos]
+                        else:
+                            token_ids = token_ids[:max_response_tokens]
+                    else:
+                        token_ids = token_ids[:max_response_tokens]
+                if not token_ids:
+                    raise RuntimeError("RLEP tokenized an empty verified response")
+                replay_response_ids.append(tuple(token_ids))
+            if replay_response_ids:
+                prompt_length = int(prompt_id_lens[0])
+                prompt_tokens = tuple(
+                    int(value)
+                    for value in input_ids[0, :prompt_length].detach().cpu().tolist()
+                )
+                rlep_replay_groups = [
+                    RLEPReplayGroup(
+                        prompt_token_ids=prompt_tokens,
+                        response_token_ids=tuple(replay_response_ids),
+                    )
+                ]
+            diagnostics = pool.diagnostics
+            rlep_infos = {
+                "rlep_pool_prompts": torch.tensor(diagnostics.prompts, device=device),
+                "rlep_pool_trajectories": torch.tensor(
+                    diagnostics.trajectories, device=device
+                ),
+                "rlep_pool_min_trajectories": torch.tensor(
+                    diagnostics.minimum_trajectories_per_prompt, device=device
+                ),
+                "rlep_pool_max_trajectories": torch.tensor(
+                    diagnostics.maximum_trajectories_per_prompt, device=device
+                ),
+                "rlep_pool_eligible_prompts": torch.tensor(
+                    diagnostics.eligible_prompts, device=device
+                ),
+                "rlep_pool_ineligible_prompts": torch.tensor(
+                    diagnostics.ineligible_prompts, device=device
+                ),
+                "rlep_replay_eligible": torch.tensor(
+                    float(rlep_step_count > 0), device=device
+                ),
+                "rlep_replay_rows": torch.tensor(rlep_step_count, device=device),
+            }
 
         mi_tracker = getattr(self, "_diayn_mi_tracker", None)
         if mi_tracker is not None:
@@ -1581,13 +2258,13 @@ class ZeroMathGrpoMixin:
             ]
             semantic_key_kwargs: dict[str, Any] = {}
             if canonical_actions:
-                semantic_key_kwargs["response_surfaces"] = (
-                    _task_bound_canonicalization_surfaces(
-                        [],
-                        trajectory,
-                        canonical_task=canonical_task,
-                        expected_count=num_rows,
-                    )
+                semantic_key_kwargs[
+                    "response_surfaces"
+                ] = _task_bound_canonicalization_surfaces(
+                    [],
+                    trajectory,
+                    canonical_task=canonical_task,
+                    expected_count=num_rows,
                 )
             answer_keys_grouped = self._seed_answer_keys_grouped(
                 input_ids,
@@ -1692,20 +2369,51 @@ class ZeroMathGrpoMixin:
                     False,
                 )
             )
+            semantic_shannon_use_success_conditioned_group_centered = bool(
+                getattr(
+                    args,
+                    "semantic_shannon_success_conditioned_group_centered_advantage",
+                    False,
+                )
+            )
+            semantic_shannon_use_success_conditioned_verified_support = bool(
+                getattr(
+                    args,
+                    "semantic_shannon_success_conditioned_verified_support_advantage",
+                    False,
+                )
+            )
+            semantic_shannon_verified_support_include_replay_bank = bool(
+                getattr(
+                    args,
+                    "semantic_shannon_verified_support_include_replay_bank",
+                    False,
+                )
+            )
             if (
                 semantic_shannon_use_quality_gate
                 or semantic_shannon_use_success_conditioned_signed
+                or semantic_shannon_use_success_conditioned_group_centered
+                or semantic_shannon_use_success_conditioned_verified_support
             ) and not semantic_shannon_use_separate_advantage:
                 raise RuntimeError(
                     "semantic Shannon gated modes require the separate advantage path"
                 )
             if (
-                semantic_shannon_use_quality_gate
-                and semantic_shannon_use_success_conditioned_signed
+                sum(
+                    (
+                        semantic_shannon_use_quality_gate,
+                        semantic_shannon_use_success_conditioned_signed,
+                        semantic_shannon_use_success_conditioned_group_centered,
+                        semantic_shannon_use_success_conditioned_verified_support,
+                    )
+                )
+                > 1
             ):
                 raise RuntimeError(
-                    "semantic Shannon quality-gated and "
-                    "success-conditioned signed modes are mutually exclusive"
+                    "semantic Shannon quality-gated, success-conditioned "
+                    "signed, group-centered, and verified-support modes "
+                    "are mutually exclusive"
                 )
             num_rows = int(input_ids.size(0))
             references = list(trajectory.get("references") or [])
@@ -1725,13 +2433,13 @@ class ZeroMathGrpoMixin:
             # parseable fraction .000.
             semantic_key_kwargs: dict[str, Any] = {}
             if canonical_actions:
-                semantic_key_kwargs["response_surfaces"] = (
-                    _task_bound_canonicalization_surfaces(
-                        [],
-                        trajectory,
-                        canonical_task=canonical_task,
-                        expected_count=num_rows,
-                    )
+                semantic_key_kwargs[
+                    "response_surfaces"
+                ] = _task_bound_canonicalization_surfaces(
+                    [],
+                    trajectory,
+                    canonical_task=canonical_task,
+                    expected_count=num_rows,
                 )
             answer_keys_grouped = self._seed_answer_keys_grouped(
                 input_ids,
@@ -1766,21 +2474,52 @@ class ZeroMathGrpoMixin:
                 .tolist()
                 for row_index in range(num_rows)
             ]
+            verified_support_keys_by_group = None
+            if semantic_shannon_verified_support_include_replay_bank:
+                support_bank = getattr(self, "_online_canonical_bank", None)
+                if not isinstance(support_bank, OnlineCanonicalBank):
+                    raise RuntimeError(
+                        "replay-bank semantic support requires an online "
+                        "canonical bank"
+                    )
+                verified_support_keys_by_group = [
+                    support_bank.verified_replay_support(prompt_token_ids[start])
+                    for start in range(0, num_rows, int(args.num_samples))
+                ]
             diagnostics = None
             advantage_diagnostics = None
             quality_gated_diagnostics = None
             success_conditioned_signed_diagnostics = None
-            if semantic_shannon_use_success_conditioned_signed:
+            success_conditioned_group_centered_diagnostics = None
+            success_conditioned_verified_support_diagnostics = None
+            if (
+                semantic_shannon_use_success_conditioned_signed
+                or semantic_shannon_use_success_conditioned_group_centered
+                or semantic_shannon_use_success_conditioned_verified_support
+            ):
                 (
                     separate_advantages,
-                    success_conditioned_signed_diagnostics,
+                    success_conditioned_diagnostics,
                 ) = semantic_shannon_tracker.score_success_conditioned_signed_advantages_and_update(
                     prompt_token_ids=prompt_token_ids,
                     answer_keys=answer_keys,
                     task_rewards=semantic_task_rewards,
                     active_mask=loss_masks.detach().view(-1).cpu().tolist(),
                     num_samples=int(args.num_samples),
+                    verified_support_keys_by_group=(verified_support_keys_by_group),
                 )
+                if semantic_shannon_use_success_conditioned_signed:
+                    success_conditioned_signed_diagnostics = (
+                        success_conditioned_diagnostics
+                    )
+                elif semantic_shannon_use_success_conditioned_group_centered:
+                    success_conditioned_group_centered_diagnostics = (
+                        success_conditioned_diagnostics
+                    )
+                else:
+                    success_conditioned_verified_support_diagnostics = (
+                        success_conditioned_diagnostics
+                    )
                 semantic_shannon_separate_advantage = (
                     torch.tensor(
                         separate_advantages,
@@ -1864,6 +2603,30 @@ class ZeroMathGrpoMixin:
                         float(semantic_shannon_use_success_conditioned_signed),
                         device=final_rewards.device,
                     )
+                ),
+                "semantic_shannon_success_conditioned_group_centered_advantage_active": (
+                    torch.tensor(
+                        float(semantic_shannon_use_success_conditioned_group_centered),
+                        device=final_rewards.device,
+                    )
+                ),
+                "semantic_shannon_success_conditioned_verified_support_advantage_active": (
+                    torch.tensor(
+                        float(
+                            semantic_shannon_use_success_conditioned_verified_support
+                        ),
+                        device=final_rewards.device,
+                    )
+                ),
+                "semantic_shannon_verified_support_include_replay_bank_active": (
+                    torch.tensor(
+                        float(semantic_shannon_verified_support_include_replay_bank),
+                        device=final_rewards.device,
+                    )
+                ),
+                "semantic_rms_controller_active": torch.tensor(
+                    float(getattr(self, "_semantic_rms_controller", None) is not None),
+                    device=final_rewards.device,
                 ),
             }
             if diagnostics is not None:
@@ -1997,55 +2760,34 @@ class ZeroMathGrpoMixin:
                         for name, value in quality_values.items()
                     }
                 )
-            if success_conditioned_signed_diagnostics is not None:
-                signed_values = {
-                    field_name: getattr(
-                        success_conditioned_signed_diagnostics, field_name
-                    )
-                    for field_name in (
-                        "raw_eligible_advantage_mean",
-                        "raw_eligible_advantage_min",
-                        "raw_eligible_advantage_max",
-                        "raw_eligible_advantage_abs_mean",
-                        "raw_eligible_advantage_rms",
-                        "effective_advantage_mean",
-                        "effective_advantage_min",
-                        "effective_advantage_max",
-                        "effective_advantage_abs_mean",
-                        "effective_advantage_rms",
-                        "effective_advantage_positive_fraction",
-                        "effective_advantage_negative_fraction",
-                        "effective_advantage_zero_fraction",
-                        "eligible_fraction",
-                        "gated_fraction",
-                        "active_fraction",
-                        "reward_positive_fraction",
-                        "parseable_fraction",
-                        "positive_cap_fraction",
-                        "negative_cap_fraction",
-                        "advantage_cap",
-                        "predictive_baseline_mean",
-                        "predictive_centering_error_max",
-                        "predictive_probability_mean",
-                        "predictive_probability_min",
-                        "predictive_probability_max",
-                        "normalization_error_max",
-                        "history_total_before_mean",
-                        "history_rows_added",
-                        "history_groups_updated",
-                        "history_groups_skipped",
-                        "tracked_prompts",
-                        "tracked_outcomes",
-                        "open_set_coefficient_used",
-                        "open_set_normalized_entropy_mean",
-                    )
-                }
+            success_conditioned_diagnostic_streams = (
+                (
+                    "semantic_shannon_success_conditioned_signed",
+                    success_conditioned_signed_diagnostics,
+                ),
+                (
+                    "semantic_shannon_success_conditioned_group_centered",
+                    success_conditioned_group_centered_diagnostics,
+                ),
+                (
+                    "semantic_shannon_success_conditioned_verified_support",
+                    success_conditioned_verified_support_diagnostics,
+                ),
+            )
+            for (
+                diagnostic_prefix,
+                success_conditioned_diagnostics,
+            ) in success_conditioned_diagnostic_streams:
+                if success_conditioned_diagnostics is None:
+                    continue
+                semantic_values = success_conditioned_semantic_metric_values(
+                    diagnostic_prefix,
+                    success_conditioned_diagnostics,
+                )
                 semantic_shannon_infos.update(
                     {
-                        (
-                            f"semantic_shannon_success_conditioned_signed_{name}"
-                        ): torch.tensor(value, device=final_rewards.device)
-                        for name, value in signed_values.items()
+                        name: torch.tensor(value, device=final_rewards.device)
+                        for name, value in semantic_values.items()
                     }
                 )
             if (
@@ -2318,13 +3060,21 @@ class ZeroMathGrpoMixin:
                     raise RuntimeError(
                         "MATH strategy reward gate reached a non-MATH key mode"
                     )
-                final_rewards, task_final_rewards = (
-                    apply_math_strategy_task_reward_gate(
-                        final_rewards,
-                        task_final_rewards,
-                        admitted,
-                    )
+                (
+                    final_rewards,
+                    task_final_rewards,
+                ) = apply_math_strategy_task_reward_gate(
+                    final_rewards,
+                    task_final_rewards,
+                    admitted,
                 )
+            replay_bank_freeze_step = int(
+                getattr(args, "online_canonical_replay_bank_freeze_step", 0)
+            )
+            replay_bank_membership_frozen = (
+                replay_bank_freeze_step > 0
+                and int(getattr(self, "steps", 0)) >= replay_bank_freeze_step
+            )
             bank_advantages, bank_diagnostics = online_canonical_bank.score_and_update(
                 prompt_token_ids=prompt_token_ids,
                 outcome_keys=outcome_keys,
@@ -2348,6 +3098,7 @@ class ZeroMathGrpoMixin:
                 response_token_ids=(
                     response_token_ids if online_canonical_replay_active else None
                 ),
+                update_bank=not replay_bank_membership_frozen,
             )
             if online_canonical_bank_objective_active:
                 online_canonical_advantage = (
@@ -2417,6 +3168,7 @@ class ZeroMathGrpoMixin:
                         canonical_replay_groups = online_canonical_bank.replay_groups(
                             prompt_token_ids,
                             min_modes=(replay_min_modes),
+                            consume_priority=True,
                         )
                     else:
                         canonical_replay_used_global_scheduler = True
@@ -2430,6 +3182,7 @@ class ZeroMathGrpoMixin:
                     canonical_replay_groups = online_canonical_bank.replay_groups(
                         prompt_token_ids,
                         min_modes=replay_min_modes,
+                        consume_priority=True,
                     )
             online_canonical_infos = {
                 f"online_canonical_{name}": torch.tensor(
@@ -2520,6 +3273,19 @@ class ZeroMathGrpoMixin:
                         ),
                     }
                 )
+            online_canonical_infos.update(
+                {
+                    "online_canonical_proposal_retention_"
+                    f"{name}": torch.tensor(
+                        value,
+                        dtype=torch.float32,
+                        device=final_rewards.device,
+                    )
+                    for name, value in (
+                        online_canonical_bank.proposal_retention_diagnostics().items()
+                    )
+                }
+            )
             if online_canonical_replay_active:
                 online_canonical_infos.update(
                     {
@@ -2538,6 +3304,16 @@ class ZeroMathGrpoMixin:
                         ),
                         "canonical_replay_capacity": torch.tensor(
                             int(args.online_canonical_replay_capacity),
+                            dtype=torch.float32,
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_bank_freeze_step": torch.tensor(
+                            replay_bank_freeze_step,
+                            dtype=torch.float32,
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_bank_membership_frozen": torch.tensor(
+                            float(replay_bank_membership_frozen),
                             dtype=torch.float32,
                             device=final_rewards.device,
                         ),
@@ -2631,6 +3407,25 @@ class ZeroMathGrpoMixin:
                             float(canonical_replay_used_prompt_local_scheduler),
                             device=final_rewards.device,
                         ),
+                        "canonical_replay_priority_remaining_visits": torch.tensor(
+                            online_canonical_bank.proposal_priority_remaining_visits,
+                            dtype=torch.float32,
+                            device=final_rewards.device,
+                        ),
+                        "canonical_replay_priority_replay_groups_cumulative": (
+                            torch.tensor(
+                                online_canonical_bank.proposal_priority_replay_groups,
+                                dtype=torch.float32,
+                                device=final_rewards.device,
+                            )
+                        ),
+                        "canonical_replay_priority_replay_modes_cumulative": (
+                            torch.tensor(
+                                online_canonical_bank.proposal_priority_replay_modes,
+                                dtype=torch.float32,
+                                device=final_rewards.device,
+                            )
+                        ),
                     }
                 )
             if math_strategy_diagnostics is not None:
@@ -2657,32 +3452,32 @@ class ZeroMathGrpoMixin:
                         )
                     }
                 )
-            online_canonical_infos["math_strategy_raw_task_reward_mean"] = (
-                raw_task_final_rewards.detach().mean()
-            )
-            online_canonical_infos["math_strategy_gated_task_reward_mean"] = (
-                task_final_rewards.detach().mean()
-            )
-            online_canonical_infos["math_strategy_task_reward_gate_active"] = (
-                torch.tensor(
-                    float(
-                        bool(
-                            getattr(
-                                args,
-                                "math_strategy_gate_task_reward",
-                                False,
-                            )
+            online_canonical_infos[
+                "math_strategy_raw_task_reward_mean"
+            ] = raw_task_final_rewards.detach().mean()
+            online_canonical_infos[
+                "math_strategy_gated_task_reward_mean"
+            ] = task_final_rewards.detach().mean()
+            online_canonical_infos[
+                "math_strategy_task_reward_gate_active"
+            ] = torch.tensor(
+                float(
+                    bool(
+                        getattr(
+                            args,
+                            "math_strategy_gate_task_reward",
+                            False,
                         )
-                    ),
-                    device=final_rewards.device,
-                )
+                    )
+                ),
+                device=final_rewards.device,
             )
-            online_canonical_infos["online_canonical_task_reward_mean"] = (
-                task_final_rewards.detach().mean()
-            )
-            online_canonical_infos["online_canonical_reward_sent_to_centering_mean"] = (
-                final_rewards.detach().mean()
-            )
+            online_canonical_infos[
+                "online_canonical_task_reward_mean"
+            ] = task_final_rewards.detach().mean()
+            online_canonical_infos[
+                "online_canonical_reward_sent_to_centering_mean"
+            ] = final_rewards.detach().mean()
             online_canonical_infos.update(
                 {
                     "online_canonical_validator_positive_actor_negative_rows": (
@@ -3027,6 +3822,63 @@ class ZeroMathGrpoMixin:
             advantages = self.compute_monte_carlo_advantages(rewards, response_masks)[
                 :, None
             ]
+        if rlep_step_count:
+            mixed = rlep_mixed_advantages(
+                task_final_rewards,
+                replay_count=rlep_step_count,
+            )
+            advantages = mixed.fresh.to(
+                dtype=advantages.dtype,
+                device=advantages.device,
+            )
+            rlep_replay_advantage = mixed.replay_advantage
+            rlep_infos.update(
+                {
+                    "rlep_fresh_rows": torch.tensor(
+                        mixed.fresh_count, device=final_rewards.device
+                    ),
+                    "rlep_mixed_rows": torch.tensor(
+                        mixed.fresh_count + mixed.replay_count,
+                        device=final_rewards.device,
+                    ),
+                    "rlep_mixed_reward_mean": torch.tensor(
+                        mixed.mixed_reward_mean, device=final_rewards.device
+                    ),
+                }
+            )
+        ucpo_tau = float(getattr(args, "ucpo_tau", 0.0) or 0.0)
+        ucpo_infos: dict[str, torch.Tensor] = {}
+        if ucpo_tau > 0.0:
+            sequence_log_probs = (old_logps * response_masks.float()).sum(dim=1)
+            advantages, ucpo_diagnostics = redistribute_ucpo_advantages(
+                advantages,
+                sequence_log_probs,
+                task_final_rewards,
+                loss_masks,
+                num_samples=int(args.num_samples),
+                tau=ucpo_tau,
+            )
+            ucpo_infos = {
+                "ucpo_tau": torch.tensor(ucpo_tau, device=final_rewards.device),
+                "ucpo_groups": torch.tensor(
+                    ucpo_diagnostics.groups, device=final_rewards.device
+                ),
+                "ucpo_eligible_groups": torch.tensor(
+                    ucpo_diagnostics.eligible_groups, device=final_rewards.device
+                ),
+                "ucpo_correct_rows": torch.tensor(
+                    ucpo_diagnostics.correct_rows, device=final_rewards.device
+                ),
+                "ucpo_weight_min": torch.tensor(
+                    ucpo_diagnostics.weight_min, device=final_rewards.device
+                ),
+                "ucpo_weight_max": torch.tensor(
+                    ucpo_diagnostics.weight_max, device=final_rewards.device
+                ),
+                "ucpo_advantage_mass_error_max": torch.tensor(
+                    ucpo_diagnostics.mass_error_max, device=final_rewards.device
+                ),
+            }
         # Freeze the ordinary task-centered advantage before any separately
         # added semantic term. E44 uses this only to form detached xDr row
         # weights, while the actor below still receives the combined advantage.
@@ -3105,9 +3957,7 @@ class ZeroMathGrpoMixin:
             rms_controller = getattr(self, "_semantic_rms_controller", None)
             if rms_controller is not None:
                 task_rms = float(torch.sqrt(base_advantages.square().mean()).item())
-                sem_rms = float(
-                    torch.sqrt(semantic_advantages.square().mean()).item()
-                )
+                sem_rms = float(torch.sqrt(semantic_advantages.square().mean()).item())
                 eligible = (
                     float(success_conditioned_signed_diagnostics.eligible_fraction)
                     if success_conditioned_signed_diagnostics is not None
@@ -3210,6 +4060,9 @@ class ZeroMathGrpoMixin:
             **outcome_collision_infos,
             **semantic_shannon_infos,
             **online_canonical_infos,
+            **ucpo_infos,
+            **rlep_infos,
+            **dapo_infos,
         }
         configured_xdr_tau = float(getattr(args, "xdr_tau", math.inf))
         tau_controller = getattr(self, "_xdr_tau_controller", None)
@@ -3269,9 +4122,9 @@ class ZeroMathGrpoMixin:
                 dtype=torch.float32,
                 device=final_rewards.device,
             )
-            extra_infos["xdr_weight_advantage_mean"] = (
-                xdr_weight_advantages.detach().mean()
-            )
+            extra_infos[
+                "xdr_weight_advantage_mean"
+            ] = xdr_weight_advantages.detach().mean()
             extra_infos["xdr_weight_advantage_rms"] = torch.sqrt(
                 xdr_weight_advantages.detach().square().mean()
             )
@@ -3355,6 +4208,8 @@ class ZeroMathGrpoMixin:
             row_weights=row_weights,
             extra_infos=extra_infos,
             canonical_replay_groups=canonical_replay_groups,
+            rlep_replay_groups=rlep_replay_groups,
+            rlep_replay_advantage=rlep_replay_advantage,
         )
 
     # Dr. GRPO Modification 2: remove difficulty bias by computing the MC
@@ -3366,11 +4221,14 @@ class ZeroMathGrpoMixin:
     ) -> torch.Tensor:
         del response_masks
         rewards = rewards.sum(-1)
-        values = rewards.view(-1, self.args.num_samples).mean(dim=1)
+        grouped_rewards = rewards.view(-1, self.args.num_samples)
+        if bool(getattr(self.args, "maxrl_task_objective", False)):
+            return binary_maxrl_advantages(grouped_rewards).reshape(-1)
+        values = grouped_rewards.mean(dim=1)
         values = values.repeat_interleave(self.args.num_samples, dim=0)
         advantages = rewards - values
         if getattr(self.args, "critic_type", "grpo") == "grpo":
-            std_grouped_rewards = rewards.view(-1, self.args.num_samples).std(dim=1)
+            std_grouped_rewards = grouped_rewards.std(dim=1)
             std_grouped_rewards = std_grouped_rewards.repeat_interleave(
                 self.args.num_samples,
                 dim=0,

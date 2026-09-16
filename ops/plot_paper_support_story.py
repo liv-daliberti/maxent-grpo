@@ -52,7 +52,7 @@ PATH_NEUTRAL = "#42525E"
 DISCOVERY = "#2F9E44"
 
 # One fill per pipeline stage, shared by both rows: the same colour marks
-# POLICY SAMPLES whether it feeds the reward-only path or Re:MaxRL, so a
+# POLICY SAMPLES whether it feeds the reward-only path or Re:Max, so a
 # reader can match stage to stage by colour before reading either box. Hues
 # are chosen clear of every colour that already means something else in this
 # figure -- mode A/B/C (violet/rose/orange), MaxRL green, and Replay teal --
@@ -73,9 +73,12 @@ STAGE_EDGE = MUTED
 # these data units only renders as an on-page circle if the two axes carry
 # the same physical inches-per-unit; see ``ASPECT`` below.
 WIDTH_IN = style.WIDTH
-HEIGHT_IN = 3.05
+# 2.34 * 0.85: the figure now sits at full \linewidth rather than .85 of it,
+# so the drawn height is reduced by the same factor and the rendered height on
+# the page is unchanged. The figure gets wider, not bigger.
+HEIGHT_IN = 1.989
 XLIM = (0.0, 1.0)
-YLIM = (0.06, 1.0)
+YLIM = (0.10, 1.0)
 # inches-per-x-unit divided by inches-per-y-unit. The axes here is not square
 # in data units (a wide, short canvas), so a Circle patch -- equal radius in
 # both data axes -- would draw as an oval. Ellipses compensate by this factor
@@ -146,7 +149,15 @@ def label(ax, x, y, value, **kwargs):
     return ax.text(x, y, value, **defaults)
 
 
-def chip(ax, x, y, value, color, *, radius=0.0165):
+# Badge radius in x data units. Tightened from .0165 so the circle hugs its
+# letter instead of reaching into the labels above and below it; the canvas is
+# shorter than it was, so a badge of the old radius covers more of the row's
+# height even though it is the same size on the page.
+CHIP_RADIUS = 0.0138
+ROW_CHIP_RADIUS = 0.0126
+
+
+def chip(ax, x, y, value, color, *, radius=CHIP_RADIUS):
     """A mode-identity badge: a true circle, matching Figure 2's badges.
 
     Drawn as an ``Ellipse`` rather than a ``Circle``: this axes is wider than
@@ -164,7 +175,7 @@ def chip(ax, x, y, value, color, *, radius=0.0165):
     return radius * 2
 
 
-def chip_row(ax, left, y, values, colors, *, radius=0.0165, gap=0.006):
+def chip_row(ax, left, y, values, colors, *, radius=CHIP_RADIUS, gap=0.006):
     """Chips laid left to right from ``left``; returns the row's total width."""
 
     step = radius * 2 + gap
@@ -173,11 +184,11 @@ def chip_row(ax, left, y, values, colors, *, radius=0.0165, gap=0.006):
     return len(values) * step - gap
 
 
-def chip_row_width(n, *, radius=0.0165, gap=0.006):
+def chip_row_width(n, *, radius=CHIP_RADIUS, gap=0.006):
     return n * (radius * 2 + gap) - gap
 
 
-def centered_chip_row(ax, cx, y, values, colors, *, radius=0.0165, gap=0.006):
+def centered_chip_row(ax, cx, y, values, colors, *, radius=CHIP_RADIUS, gap=0.006):
     """A chip row centred on ``cx`` instead of hand-placed from a left edge.
 
     A fixed left inset (``cx - some eyeballed offset``) only happens to clear
@@ -270,7 +281,7 @@ def draw() -> plt.Figure:
         stack(axis, cx, box_top, box_bottom, drawers, **kwargs)
 
     # ---------------- Row 1: reward-only path ----------------
-    row1_top, row1_h = 0.895, 0.275
+    row1_top, row1_h = 0.895, 0.255
     row1_bottom = row1_top - row1_h
     row1_label_y = row1_top + 0.045
 
@@ -285,12 +296,12 @@ def draw() -> plt.Figure:
     fixed_label(axis, cx, row1_top - 0.045, "POLICY SAMPLES", fontsize=style.SMALL_FONT, fontweight="bold")
     row_stack(cx, row1_top, row1_bottom, [
         lambda ax, cx, y: centered_chip_row(
-            axis, cx, y, ("A", "A", "B", r"$\bot$"), (MODE_A, MODE_A, MODE_B, MUTED), radius=0.0145,
+            axis, cx, y, ("A", "A", "B", r"$\bot$"), (MODE_A, MODE_A, MODE_B, MUTED), radius=ROW_CHIP_RADIUS,
         ),
     ])
 
     # Spans the split column too: the reward-only path never forks, so its one
-    # reward box simply reaches as far as Re:MaxRL's two forked boxes do,
+    # reward box simply reaches as far as Re:Max's two forked boxes do,
     # which is what keeps column 4 lined up between the rows.
     x, w = column(1, span=2)
     cx = x + w / 2
@@ -325,18 +336,18 @@ def draw() -> plt.Figure:
         end_x = column(end_col)[0]
         arrow(axis, (start_x + 0.004, row1_mid), (end_x - 0.004, row1_mid), color=PATH_NEUTRAL, dashed=True)
 
-    # ---------------- Row 2: Re:MaxRL ----------------
+    # ---------------- Row 2: Re:Max ----------------
     row2_top = row1_bottom - 0.115
-    row2_h = 0.335
+    row2_h = 0.355
     row2_bottom = row2_top - row2_h
     row2_label_y = row2_top + 0.045
 
-    # "Re:MaxRL" keeps its own mixed-case brand spelling even inside this
+    # "Re:Max" keeps its own mixed-case brand spelling even inside this
     # otherwise-all-caps label, matching how it is written everywhere else in
     # the paper -- the way "REWARD-ONLY PATH" beside it does not get its own
     # brand treatment because it is a plain description, not a method name.
     label(
-        axis, MARGIN, row2_label_y, "Re:MaxRL (ours)",
+        axis, MARGIN, row2_label_y, "Re:Max (ours)",
         ha="left", fontsize=style.SMALL_FONT, color=RETENTION, fontweight="bold",
     )
 
@@ -347,7 +358,7 @@ def draw() -> plt.Figure:
     fixed_label(axis, cx, row2_top - 0.045, "POLICY SAMPLES", fontsize=style.SMALL_FONT, fontweight="bold")
     row_stack(cx, row2_top, row2_bottom, [
         lambda ax, cx, y: centered_chip_row(
-            axis, cx, y, ("A", "A", "B", r"$\bot$"), (MODE_A, MODE_A, MODE_B, MUTED), radius=0.0145,
+            axis, cx, y, ("A", "A", "B", r"$\bot$"), (MODE_A, MODE_A, MODE_B, MUTED), radius=ROW_CHIP_RADIUS,
         ),
     ])
 
@@ -361,7 +372,7 @@ def draw() -> plt.Figure:
         text_row("one validator returns both", fontsize=style.SMALL_FONT, color=MUTED),
         text_row("reward:  1  1  1  0", fontweight="bold"),
         lambda ax, cx, y: centered_chip_row(
-            axis, cx, y, ("A", "A", "B", r"$\bot$"), (MODE_A, MODE_A, MODE_B, MUTED), radius=0.0145,
+            axis, cx, y, ("A", "A", "B", r"$\bot$"), (MODE_A, MODE_A, MODE_B, MUTED), radius=ROW_CHIP_RADIUS,
         ),
     ])
 
@@ -375,7 +386,7 @@ def draw() -> plt.Figure:
     fixed_label(axis, cx, maxrl_top - 0.030, "MAXRL", fontsize=style.SMALL_FONT, color=DISCOVERY, fontweight="bold")
     row_stack(cx, maxrl_top, maxrl_top - fork_h, [
         text_row("fresh search learns", fontsize=style.SMALL_FONT, fontweight="bold"),
-        lambda ax, cx, y: chip(axis, cx, y, "C", MODE_C, radius=0.0145),
+        lambda ax, cx, y: chip(axis, cx, y, "C", MODE_C, radius=ROW_CHIP_RADIUS),
     ], title_gap=0.050, bottom_pad=0.032, line_gap=0.052)
 
     replay_bottom = row2_bottom
@@ -384,7 +395,7 @@ def draw() -> plt.Figure:
     fixed_label(axis, cx, replay_top - 0.030, "REPLAY", fontsize=style.SMALL_FONT, color=RETENTION, fontweight="bold")
     row_stack(cx, replay_top, replay_bottom, [
         text_row("maintains", fontsize=style.SMALL_FONT, fontweight="bold"),
-        lambda ax, cx, y: centered_chip_row(axis, cx, y, ("A", "B"), (MODE_A, MODE_B), radius=0.0145),
+        lambda ax, cx, y: centered_chip_row(axis, cx, y, ("A", "B"), (MODE_A, MODE_B), radius=ROW_CHIP_RADIUS),
     ], title_gap=0.050, bottom_pad=0.032, line_gap=0.052)
     col2_right = x + w
 
@@ -392,7 +403,7 @@ def draw() -> plt.Figure:
     col3_left = x
     cx = x + w / 2
     rounded_box(axis, x, row2_bottom, w, row2_h, face=STAGE_FILL["update"], edge=STAGE_EDGE)
-    fixed_label(axis, cx, row2_top - 0.045, "Re:MaxRL UPDATE", fontsize=style.SMALL_FONT, fontweight="bold")
+    fixed_label(axis, cx, row2_top - 0.045, "Re:Max UPDATE", fontsize=style.SMALL_FONT, fontweight="bold")
     # Mirrors MODE-BLIND UPDATE's own shape exactly: one coloured, descriptive
     # line per component, so the two UPDATE boxes read as the same kind of
     # thing instead of one being two sentences and the other two bare labels.

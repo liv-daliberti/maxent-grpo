@@ -5,7 +5,7 @@ The left column retains the failed rho=.05 cohort strictly as mechanism-only
 context. For every terminal Qwen2.5-0.5B E89 seed, the other panels pair the
 reachable controller's final realized semantic/task RMS ratio and coefficient
 with the same seed's terminal effect relative to fixed Semantic MaxEnt +
-Re:Dr.GRPO. Complete five-seed domains receive outcome Student-t intervals;
+Re:Dr. Complete five-seed domains receive outcome Student-t intervals;
 incomplete domains retain only their exact terminal seeds. Domains are never
 pooled.
 """
@@ -306,8 +306,8 @@ def build() -> dict[str, Any]:
             "only for complete five-seed domains"
         ),
         "model": "Qwen2.5-0.5B-Instruct",
-        "treatment": "Adaptive Semantic MaxEnt + Re:Dr.GRPO, rho=.015",
-        "outcome_baseline": "Fixed Semantic MaxEnt + Re:Dr.GRPO, eta=.10",
+        "treatment": "Adaptive Semantic MaxEnt + Re:Dr, rho=.015",
+        "outcome_baseline": "Fixed Semantic MaxEnt + Re:Dr, eta=.10",
         "domain_order": list(DOMAIN_ORDER),
         "registered_seeds": list(SEEDS),
         "target_ratio": TARGET_RATIO,

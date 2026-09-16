@@ -101,7 +101,7 @@ ADAPTIVE = "#7B1FA2"
 # An *external* estimator we compare against, rather than one of our own arms.
 # Ordinary GRPO used to be drawn at #2E6FBB, which the all-pairs validator puts
 # at dE 10.0 (normal vision) from the method teal --- so the single pair the
-# paper's claim rests on, GRPO against Re:Dr.GRPO, was the hardest pair in
+# paper's claim rests on, GRPO against Re:Dr, was the hardest pair in
 # the figure to tell apart. This deeper blue clears every check in the frontier
 # five below. It is a comparator hue, not an arm slot: do not use it for an
 # ablation or a dose variant of one of ours.
@@ -109,7 +109,7 @@ COMPARATOR = "#00509E"
 
 # The five identities that meet in one panel in the pass-8 frontier and the
 # direct-comparator figures: matched Dr.GRPO (CONTROL), GRPO (COMPARATOR),
-# Re:Dr.GRPO (METHOD), UCPO (ABLATION), RLEP-Dr (ADD_ON). Validated together
+# Re:Dr (METHOD), UCPO (ABLATION), RLEP-Dr (ADD_ON). Validated together
 # under `--pairs all`, which is the right test because all five are scattered
 # into the same axes:
 #

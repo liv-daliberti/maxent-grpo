@@ -31,14 +31,14 @@ CONTINUATIONS = ARTIFACTS / "e119_level2_continuation_jobs.json"
 AUDIT = ARTIFACTS / "e119_node105_backfill_20260903.json"
 PVL = "node[004-008,020-026,101,103-104,403,805-808,901-902,906-909,911-914]"
 TARGET_ORIGINALS = (
-    31014399,  # Countdown Re:Dr.GRPO s43, checkpoint 1728
+    31014399,  # Countdown Re:Dr s43, checkpoint 1728
     31014400,  # Countdown MaxRL s43, checkpoint 1536
-    31014445,  # MathIR Re:MaxRL s44, checkpoint 1536
+    31014445,  # MathIR Re:Max s44, checkpoint 1536
     31014404,  # Countdown MaxRL s44, checkpoint 1536
     31014398,  # Countdown Dr.GRPO s43, checkpoint 1344
-    31014403,  # Countdown Re:Dr.GRPO s44, checkpoint 1344
-    31014497,  # Python Re:MaxRL s47, checkpoint 1344
-    31014401,  # Countdown Re:MaxRL s43, checkpoint 1152
+    31014403,  # Countdown Re:Dr s44, checkpoint 1344
+    31014497,  # Python Re:Max s47, checkpoint 1344
+    31014401,  # Countdown Re:Max s43, checkpoint 1152
 )
 EXPECTED = {
     31014399: ("countdown", "replay_drgrpo", 43),

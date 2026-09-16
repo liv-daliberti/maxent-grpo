@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Freeze the E105 semantic/ReplayDr verified-identity contract."""
+"""Freeze the E105 semantic/Re:Dr verified-identity contract."""
 
 from __future__ import annotations
 

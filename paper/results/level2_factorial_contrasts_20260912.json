@@ -3190,12 +3190,12 @@
   ],
   "builder": {
     "path": "ops/exp_scaling/build_paper_level2_factorial_contrasts.py",
-    "sha256": "088088ebf0c6e45dd1ef3f190554b8ebe2d9a4d9943c3180ab4fe8dfe69f6282"
+    "sha256": "180a8e3ad7c19750a019a62b1d80cfb7af3e8bf29f78d99e7e3a160433c375ce"
   },
   "collection_finished_at_utc": "2026-09-12T15:37:38.751403+00:00",
   "collection_started_at_utc": "2026-09-12T15:32:12.793811+00:00",
   "complete_five_seed_blocks": 5,
-  "interaction_definition": "(ReplayMaxRL - MaxRL) - (ReplayDr.GRPO - Dr.GRPO)",
+  "interaction_definition": "(Re:Max - MaxRL) - (Re:Dr - Dr.GRPO)",
   "ledger": "var/artifacts/e119_level2_qwen05b_factorial_jobs.json",
   "ledger_sha256": "341f77f6f41ab5954718d3216d6260ee87d2486cd38d91fbab5dd38c4efb760e",
   "level": 2,

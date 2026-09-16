@@ -18,9 +18,9 @@ DOMAINS=('graph_coloring','pantry_plan')
 SCALE_LABELS={'qwen05b':'Qwen2.5–0.5B','falcon1b':'Falcon3–1B','qwen3b':'Qwen2.5–3B'}
 DOMAIN_LABELS={'graph_coloring':'Graph','pantry_plan':'PantryPlan'}
 TRAINING=(('drgrpo_minus_initial','Dr.GRPO','#7755a2'),
-          ('replay_drgrpo_minus_initial','Re:Dr.GRPO','#12867d'),
+          ('replay_drgrpo_minus_initial','Re:Dr','#12867d'),
           ('maxrl_minus_initial','MaxRL','#cc7b22'),
-          ('replay_maxrl_minus_initial','Re:MaxRL','#2673b4'))
+          ('replay_maxrl_minus_initial','Re:Max','#2673b4'))
 REPLAY=(('replay_drgrpo_minus_drgrpo','Dr.GRPO + replay','#12867d'),
         ('replay_maxrl_minus_maxrl','MaxRL + replay','#2673b4'))
 

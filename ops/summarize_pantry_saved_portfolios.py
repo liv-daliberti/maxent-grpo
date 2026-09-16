@@ -69,7 +69,7 @@ def main():
         return f"{v['estimate']*k:.2f} [{v['ci95'][0]*k:.2f}, {v['ci95'][1]*k:.2f}]"
     for label,d in models.items():
         m=d['metrics'];lines.append(f"| {label} | {f(m['correct8'])} | {f(m['distinct8'])} | {f(m['outage_survival'],100)}% | {f(m['diet_survival'],100)}% |")
-    lines+=['','Fixed two-seed average, Re:Dr.GRPO minus DrGRPO: outage survival '+f(contrasts['fixed_two_seed_average']['outage_survival'],100)+' percentage points; dietary survival '+f(contrasts['fixed_two_seed_average']['diet_survival'],100)+' percentage points.','','This first stage uses no new inference. The running control/recovery study measures additional calls, unresolved cases and token usage.','']
+    lines+=['','Fixed two-seed average, Re:Dr minus DrGRPO: outage survival '+f(contrasts['fixed_two_seed_average']['outage_survival'],100)+' percentage points; dietary survival '+f(contrasts['fixed_two_seed_average']['diet_survival'],100)+' percentage points.','','This first stage uses no new inference. The running control/recovery study measures additional calls, unresolved cases and token usage.','']
     (out/'REPORT.md').write_text('\n'.join(lines));print(json.dumps({'status':'complete','feasibility':result['feasibility_counts'],'contrasts':contrasts['fixed_two_seed_average']}))
 
 if __name__=='__main__':main()

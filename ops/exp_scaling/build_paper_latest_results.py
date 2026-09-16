@@ -200,7 +200,7 @@ def render_tables(output: Path, stamp: str, result: dict) -> None:
                     s = contrast["summaries"][metric]
                     interval = s.get("student_t_95", s.get("paired_bootstrap_percentile_95"))
                     values.append(f"${signed(s['mean'])}\\;[{signed(interval[0])},{signed(interval[1])}]$")
-                label = {"replay_maxrl_minus_maxrl": "Re:MaxRL", "replay_drgrpo_minus_drgrpo": "Re:Dr.GRPO", "uniform_minus_frequency": "Uniform replay"}[name]
+                label = {"replay_maxrl_minus_maxrl": "Re:Max", "replay_drgrpo_minus_drgrpo": "Re:Dr", "uniform_minus_frequency": "Uniform replay"}[name]
                 lines.append(" & ".join([campaign.upper(), MODEL_LABELS[b["model_key"]], DOMAIN_LABELS[b["domain"]], label] + values) + r" \\")
     (output / f"latest_results_{stamp}_effects_table_body.tex").write_text("\n".join(lines) + "\n    \\bottomrule\n")
 

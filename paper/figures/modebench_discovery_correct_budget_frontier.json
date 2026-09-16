@@ -2,11 +2,11 @@
   "family": "correct_budget_frontier",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/analysis_complete_caption_20260912_v1/modebench_discovery_correct_budget_frontier.pdf",
-      "sha256": "0dcc55e1db743e7fd9e04b961f7b1bc4b6faf3f66cfbf79b3822c245c7874387"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/analysis_complete_caption_20260914_v2/modebench_discovery_correct_budget_frontier.pdf",
+      "sha256": "0d4ff4da4a15e2d2c2a75941f95413e13034e0c3195deeeb6abf56ccbf64f70f"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/analysis_complete_caption_20260912_v1/modebench_discovery_correct_budget_frontier.png",
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/analysis_complete_caption_20260914_v2/modebench_discovery_correct_budget_frontier.png",
       "sha256": "494251adb4a9b96cb3f8d9a5ad333e34b87a1bebd935f32a8132329fd50a3709"
     }
   },
@@ -26976,6 +26976,6 @@
       "seed_ranges": null
     }
   ],
-  "report_sha256": "389f94cb5363907ad9ebaafc0e4ec6429fa0757826d4b98758b16911297d0716",
+  "report_sha256": "3eb456de1556d09b23c6ac5d4c8890ff4a112113d30e56bc66433d515b9bbf33",
   "schema": "modebench-discovery-figure-v1"
 }

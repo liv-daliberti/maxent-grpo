@@ -29,7 +29,7 @@ ARMS = ('original', 'neutral')
 GRADINGS = ('strict', 'normalized_secondary')
 CONTRAST = 'neutral_minus_original'
 DOMAIN_LABELS = {'python_factors':'Python factors', 'mathir':'MathIR', 'pantry_plan':'Pantry'}
-METHOD_LABELS = {'initial':'Initial Qwen 0.5B', 'drgrpo':'DrGRPO', 'replay_drgrpo':'Re:Dr.GRPO'}
+METHOD_LABELS = {'initial':'Initial Qwen 0.5B', 'drgrpo':'DrGRPO', 'replay_drgrpo':'Re:Dr'}
 
 
 def require(ok, message):
@@ -1059,7 +1059,7 @@ def render_appendix(report):
     families=report['scope']['included_panels']
     text=[r'''\subsection{Protocol and estimands}
 \label{sec:discovery-curves}
-Large-budget \texttt{pass@k} evaluation can reveal differences hidden at small sampling budgets \citep{yue2025rlvrlimit}. We therefore freeze a second follow-up after observing the eight-draw prompt control: within every domain--level cell we take ranks 1--16 of its original outcome-independent SHA-256 selection. The six cells retain both prompt wordings, the same mathematical problems, and the same fixed initial and trained checkpoints. Every arm receives 64 fresh draws; none of the earlier eight-draw responses enters this analysis. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed replication. DrGRPO and Re:Dr.GRPO retain five matched seeds in Python and MathIR and two in Pantry. Trained Level-3 evaluation is transfer from Level-2 training.
+Large-budget \texttt{pass@k} evaluation can reveal differences hidden at small sampling budgets \citep{yue2025rlvrlimit}. We therefore freeze a second follow-up after observing the eight-draw prompt control: within every domain--level cell we take ranks 1--16 of its original outcome-independent SHA-256 selection. The six cells retain both prompt wordings, the same mathematical problems, and the same fixed initial and trained checkpoints. Every arm receives 64 fresh draws; none of the earlier eight-draw responses enters this analysis. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed replication. DrGRPO and Re:Dr retain five matched seeds in Python and MathIR and two in Pantry. Trained Level-3 evaluation is transfer from Level-2 training.
 
 For a complete 64-draw pool let $c$ be its number of correct outputs and $n_j$ its counts of distinct verified canonical keys. At $k\in\{1,2,4,8,16,32,64\}$, primary curves average all size-$k$ subsets without replacement from the complete pool:
 \[

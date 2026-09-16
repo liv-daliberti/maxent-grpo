@@ -1,8 +1,7 @@
 # ModeBench and Verified Replay
 
 This repository studies correct-mode collapse in reinforcement learning with
-verifiable rewards. The paper is **Mode Collapse under GRPO: ModeBench and
-Verified Replay**:
+verifiable rewards. The paper is **There’s More Than One Way: Mode Collapse in RLVR & ModeBench**:
 
 - source: [`paper/main.tex`](paper/main.tex)
 - built PDF: [`paper/main.pdf`](paper/main.pdf)
@@ -17,8 +16,10 @@ compute-matched control,
 whose applied replay derivative is exactly zero.
 
 Published prior-stack endpoints are historical evidence only. They must not be
-attributed to verified replay. The clean replay-only comparison is currently
-running on the frozen eight-pass, half-pass-checkpoint protocol.
+attributed to verified replay. The clean replay comparison is complete on the frozen eight-pass,
+half-pass-checkpoint protocol. Its three-scale analysis contains 74 admissible
+seed pairs; one conflicting Falcon Countdown endpoint is excluded. ReplayMaxRL
+and the harder Level-2 tasks extend that comparison.
 
 ## ModeBench
 
@@ -34,6 +35,11 @@ ModeBench currently has five execution-bound domains:
 
 Correctness and identity always come from the same execution. Training support
 is never initialized from a valid-answer catalogue.
+
+The main version for new Level 3 work is the [neutral-Python revision](docs/modebench_current_prompts.md): Python uses `python_level3_neutral_v1`, while Countdown, Graph Coloring, MathIR and Pantry retain their admitted V3 data and wording. Fresh neutral-dataset confirmation passed on September 12 (22.34% pass@1, 70.51% pass@8), and the queued Python jobs use CLI-tested immutable runtimes. New native training configurations should use `neutral_python_training_environment` from `ops/modebench_current_training.py` to bind the admitted data and runtime together. Historical results retain their original dataset and prompt identities.
+
+The [Level 4 / Qwen-7B and Level 5 / Qwen-14B guide](docs/modebench_scale_calibration.md)
+describes calibration, admission requirements, and loading the train/test splits.
 
 The Python task is the third benchmark environment. Each prompt requests
 `lambda n: EXPR` over four frozen inputs. The generated function must return a
@@ -89,19 +95,30 @@ never saw.
 
 ## Evidence status
 
-- **Running clean comparison:** Qwen2.5-0.5B-Instruct, all five domains,
-  control versus verified replay, seeds 43--47, exactly eight passes.
-- **Registered measurements:** pass 0 through pass 8 on the half-pass grid;
-  pass 8 is the only primary endpoint.
-- **Scientific difference:** the control performs the same bank, schedule,
-  scoring, and backward traversal but applies an exact-zero replay derivative.
-- **Historical program:** prior-stack results remain available as provenance
-  but are not estimates of the replay-only method.
+The [September 11 completion report](paper/results/completed_3b_and_level2_20260911.md)
+now presents all five finished 3B MaxRL/ReplayMaxRL comparisons. The
+[audited census](paper/results/latest_results_20260911.json) admits exact
+pass-8 endpoints with all four registered evaluation draws.
 
-The frozen protocol is
-[`paper/preregistration/e78_verified_replay_only_05b_20260804.md`](paper/preregistration/e78_verified_replay_only_05b_20260804.md),
-and submitted jobs are bound in
-[`var/artifacts/e78_verified_replay_only_05b_jobs.json`](var/artifacts/e78_verified_replay_only_05b_jobs.json).
+| Evidence | Admitted terminal cells | Complete paired blocks |
+|---|---:|---:|
+| E118 MaxRL / ReplayMaxRL | 150/150 | 15/15 |
+| E119 Level-2 four-method factorial | 90/100 | 4/5 |
+| E120 uniform versus frequency-weighted replay | 44/45 | 8/9 |
+
+**3B is complete:** all 50 endpoints and 25 seed pairs across the five
+domains. ReplayMaxRL has higher mean pass@8 and distinct@8 in every domain;
+Graph and Python correctness intervals remain inconclusive. Level 2 has
+complete Graph, Countdown, Python, and MathIR factorials (80/80 endpoints);
+Pantry remains at 10/20. The original ReplayDr.GRPO comparison retains
+14 complete five-seed blocks plus Falcon Countdown at four admissible seeds.
+Partial blocks retain exact seed counts without five-seed intervals.
+
+The control and replay arms share bank bookkeeping, recurrent traversal,
+scoring, and backward traversal; the control applies an exact-zero replay
+derivative. Historical multi-component results remain provenance rather than
+estimates of this intervention. The original protocol is
+[`paper/preregistration/e78_verified_replay_only_05b_20260804.md`](paper/preregistration/e78_verified_replay_only_05b_20260804.md).
 
 ## Main implementation surfaces
 

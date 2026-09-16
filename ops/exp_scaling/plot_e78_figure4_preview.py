@@ -41,14 +41,14 @@ DEFAULT_OUTPUT = ROOT / "var/artifacts/e78_figure4_interim"
 from status_e78 import DOMAIN_TITLES  # noqa: E402,F401
 ARM_STYLE = {
     "control": (style.CONTROL, style.ARM_DASH[style.CONTROL], "matched Dr.GRPO"),
-    "replay": (style.METHOD, style.ARM_DASH[style.METHOD], "Re:Dr.GRPO"),
+    "replay": (style.METHOD, style.ARM_DASH[style.METHOD], "Re:Dr"),
     # E81/E82 add one arm on top of `replay`; E83 adds the same term on top of
     # `control` instead. Both are add-one arms, so each carries its own colour
     # and dash rather than a shade of the arm it extends.
     "semantic": (
         style.ABLATION,
         style.ARM_DASH[style.ABLATION],
-        "Re:Dr.GRPO + Semantic MaxEnt",
+        "Re:Dr + Semantic MaxEnt",
     ),
     # E90 is verified replay with the dose set by bank occupancy rather than by
     # a fixed coefficient. It is the same mechanism at a different dose, so it
@@ -57,7 +57,7 @@ ARM_STYLE = {
     "bank_normalized_replay": (
         style.METHOD,
         style.METHOD_DOSE_DASH,
-        "Adaptive Re:Dr.GRPO",
+        "Adaptive Re:Dr",
     ),
     "semantic_only": (
         style.ADD_ON,
@@ -69,7 +69,7 @@ ARM_STYLE = {
     "adaptive_semantic": (
         style.ADAPTIVE,
         style.ARM_DASH[style.ADAPTIVE],
-        "Adaptive Semantic MaxEnt + Re:Dr.GRPO",
+        "Adaptive Semantic MaxEnt + Re:Dr",
     ),
 }
 EXPECTED_DRAWS = 4

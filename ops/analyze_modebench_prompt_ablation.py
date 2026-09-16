@@ -862,7 +862,7 @@ def warm_frozen_python(contract):
 
 
 MODEL_LABELS = {'gpt56sol':'GPT-5.6 Sol','gpt54':'GPT-5.4','grok43':'Grok 4.3','qwen05b_initial':'Initial Qwen 0.5B'}
-METHOD_LABELS = {'drgrpo':'DrGRPO','replay_drgrpo':'Re:Dr.GRPO'}
+METHOD_LABELS = {'drgrpo':'DrGRPO','replay_drgrpo':'Re:Dr'}
 
 
 def display_rows(report, family, grading):
@@ -907,7 +907,8 @@ def render_table(report,family,grading):
     label = 'Hosted models' if family=='frontier' else 'Local Qwen2.5-0.5B checkpoints'
     grade_label = 'strict verification' if grading=='strict' else 'frozen formatting normalization'
     # Seven columns of signed intervals overrun \linewidth by ~37pt at 3pt
-    # separation; hold the body to the text block instead of letting it bleed.
+    # separation, and ~26pt at 2.2pt; the remainder can only come out of the
+    # glyphs, so the body is scaled to the text block rather than bled past it.
     lines = [r'\begin{table}[t]',r'\centering',r'\scriptsize',r'\setlength{\tabcolsep}{2.2pt}',
              r'\caption{'+label+' under '+grade_label+r'. Each arrow gives original $\to$ neutral. '
              r'$P_8$ is empirical \texttt{pass@8}, $D_8$ is verified \texttt{distinct@8}, '
@@ -915,6 +916,7 @@ def render_table(report,family,grading):
              + ('Local rows average the displayed number of training seeds. Five-seed intervals include seed and paired-prompt resampling; two-seed Pantry intervals condition on the two fixed checkpoints. '
                 if family=='local' else 'Each model--domain--level row contains 32 paired problems and eight draws per arm. ')+r'}',
              r'\label{tab:prompt-hints-'+family+'-'+grading.replace('_','-')+'}',
+             r'\resizebox{\linewidth}{!}{%',
              r'\begin{tabular}{llrrrrr}',r'\toprule',
              r'Model & Cell & $P_8$: O$\to$N & $D_8$: O$\to$N & $\Delta P_8$ [95\%] & $\Delta D_8$ [95\%] & $\Delta B_8$ \\',r'\midrule']
     for row in display_rows(report,family,grading):
@@ -926,7 +928,7 @@ def render_table(report,family,grading):
         d = '$'+scalar(original['distinct8']['estimate'],2)+r'\to'+scalar(neutral['distinct8']['estimate'],2)+'$'
         lines.append(' & '.join([name,cell,p,d,interval_tex(delta['pass8']),interval_tex(delta['distinct8'],2),
                                 '$'+scalar(delta['b8']['estimate'],2,True)+'$'])+r' \\')
-    lines += [r'\bottomrule',r'\end{tabular}',r'\end{table}','']
+    lines += [r'\bottomrule',r'\end{tabular}}',r'\end{table}','']
     return '\n'.join(lines)
 
 
@@ -982,7 +984,7 @@ def render_appendix(report, figure_prefix='figures/modebench_prompt_ablation'):
                     tex_escape(omitted)+r' panel is not included here, and the overall local-plus-frontier experiment is incomplete.')
     if 'local' in families:
         text.append(r'For local models, we evaluate the initial Qwen2.5-0.5B model and fixed Level-2-trained DrGRPO and '
-                    r'Re:Dr.GRPO checkpoints. Python and MathIR use matched training seeds 43--47; Pantry uses seeds 43 and 46. '
+                    r'Re:Dr checkpoints. Python and MathIR use matched training seeds 43--47; Pantry uses seeds 43 and 46. '
                     r'Level 3 is transfer evaluation. Seed means retain the same selected problem set across checkpoints. '
                     r'Five-seed intervals resample whole training seeds and paired prompts; Pantry reports both seed effects '
                     r'and intervals conditional on the two checkpoints. The native local syntax constraints and 192-token budget '

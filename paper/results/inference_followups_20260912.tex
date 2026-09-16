@@ -13,7 +13,7 @@ registered domain, level, pair, wording and grading sensitivity.
 \subsection{Pantry portfolios under changed requirements}
 \label{app:pantry-adaptation}
 We evaluate the initial Qwen2.5-0.5B checkpoint and Level-2 Dr.GRPO and
-Re:Dr.GRPO checkpoints at fixed seeds 43 and 46 on 32 held-out problems.
+Re:Dr checkpoints at fixed seeds 43 and 46 on 32 held-out problems.
 All 192 single-ingredient outages come from task specifications independently
 of generated answers; exhaustive search of the original quantity grid finds
 181 feasible revised tasks. Verified feasibility witnesses are withheld from
@@ -65,12 +65,12 @@ Dr.GRPO 43 & Diversity prompt & 5.21 & 8.39 & 7.44 & 14103.23 & 848.09 \\
 Dr.GRPO 46 & Ordinary & 16.67 & 22.60 & 6.47 & 11265.39 & 637.59 \\
 Dr.GRPO 46 & Tuned temperature & 10.31 & 23.39 & 6.75 & 11531.40 & 644.94 \\
 Dr.GRPO 46 & Diversity prompt & 9.90 & 19.79 & 6.90 & 13124.10 & 731.00 \\
-Re:Dr.GRPO 43 & Ordinary & 39.38 & 47.97 & 4.47 & 9078.92 & 297.98 \\
-Re:Dr.GRPO 43 & Tuned temperature & 28.23 & 40.94 & 5.19 & 9718.01 & 310.50 \\
-Re:Dr.GRPO 43 & Diversity prompt & 36.93 & 47.19 & 4.68 & 10465.22 & 344.02 \\
-Re:Dr.GRPO 46 & Ordinary & 34.74 & 41.51 & 4.94 & 9547.16 & 308.52 \\
-Re:Dr.GRPO 46 & Tuned temperature & 37.34 & 48.85 & 4.53 & 9148.77 & 300.05 \\
-Re:Dr.GRPO 46 & Diversity prompt & 30.26 & 41.93 & 5.06 & 10584.02 & 313.50 \\
+Re:Dr 43 & Ordinary & 39.38 & 47.97 & 4.47 & 9078.92 & 297.98 \\
+Re:Dr 43 & Tuned temperature & 28.23 & 40.94 & 5.19 & 9718.01 & 310.50 \\
+Re:Dr 43 & Diversity prompt & 36.93 & 47.19 & 4.68 & 10465.22 & 344.02 \\
+Re:Dr 46 & Ordinary & 34.74 & 41.51 & 4.94 & 9547.16 & 308.52 \\
+Re:Dr 46 & Tuned temperature & 37.34 & 48.85 & 4.53 & 9148.77 & 300.05 \\
+Re:Dr 46 & Diversity prompt & 30.26 & 41.93 & 5.06 & 10584.02 & 313.50 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -93,18 +93,18 @@ Dr.GRPO 43 & Diversity prompt & 0.00 & 0.00 & 8.00 & 15045.40 & 939.60 \\
 Dr.GRPO 46 & Ordinary & 0.00 & 20.00 & 7.40 & 12063.00 & 650.40 \\
 Dr.GRPO 46 & Tuned temperature & 0.00 & 0.00 & 8.00 & 12544.20 & 615.40 \\
 Dr.GRPO 46 & Diversity prompt & 0.00 & 0.00 & 8.00 & 14132.40 & 725.60 \\
-Re:Dr.GRPO 43 & Ordinary & 20.00 & 60.00 & 5.20 & 9732.60 & 326.00 \\
-Re:Dr.GRPO 43 & Tuned temperature & 40.00 & 40.00 & 4.80 & 9402.80 & 307.60 \\
-Re:Dr.GRPO 43 & Diversity prompt & 40.00 & 40.00 & 4.80 & 10693.60 & 355.60 \\
-Re:Dr.GRPO 46 & Ordinary & 40.00 & 80.00 & 3.20 & 7853.20 & 271.20 \\
-Re:Dr.GRPO 46 & Tuned temperature & 40.00 & 80.00 & 3.60 & 8127.80 & 265.20 \\
-Re:Dr.GRPO 46 & Diversity prompt & 20.00 & 40.00 & 5.00 & 10738.20 & 341.00 \\
+Re:Dr 43 & Ordinary & 20.00 & 60.00 & 5.20 & 9732.60 & 326.00 \\
+Re:Dr 43 & Tuned temperature & 40.00 & 40.00 & 4.80 & 9402.80 & 307.60 \\
+Re:Dr 43 & Diversity prompt & 40.00 & 40.00 & 4.80 & 10693.60 & 355.60 \\
+Re:Dr 46 & Ordinary & 40.00 & 80.00 & 3.20 & 7853.20 & 271.20 \\
+Re:Dr 46 & Tuned temperature & 40.00 & 80.00 & 3.60 & 8127.80 & 265.20 \\
+Re:Dr 46 & Diversity prompt & 20.00 & 40.00 & 5.00 & 10738.20 & 341.00 \\
 \bottomrule
 \end{tabular}
 \end{table}
 \begin{table}[H]
 \centering
-\caption{Re:Dr.GRPO minus Dr.GRPO under outages, averaging fixed seeds 43 and 46. Survival and final-success changes are percentage points. Intervals resample 32 paired problems.}
+\caption{Re:Dr minus Dr.GRPO under outages, averaging fixed seeds 43 and 46. Survival and final-success changes are percentage points. Intervals resample 32 paired problems.}
 \label{tab:pantry-adaptation-contrasts}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
@@ -148,10 +148,10 @@ Dr.GRPO 43 & Calibration & 1.3 & 384 & 229392 & 19871 & 136.3 \\
 Dr.GRPO 43 & New collection & 1.3 & 4874 & 4870884 & 272484 & 3302.0 \\
 Dr.GRPO 46 & Calibration & 1.3 & 384 & 229392 & 15544 & 126.5 \\
 Dr.GRPO 46 & New collection & 1.3 & 4634 & 4365524 & 220458 & 2792.9 \\
-Re:Dr.GRPO 43 & Calibration & 0.7 & 384 & 229392 & 8552 & 111.1 \\
-Re:Dr.GRPO 43 & New collection & 0.7 & 3559 & 3160284 & 92227 & 1527.7 \\
-Re:Dr.GRPO 46 & Calibration & 1.0 & 384 & 229392 & 8585 & 112.5 \\
-Re:Dr.GRPO 46 & New collection & 1.0 & 3592 & 3169337 & 88300 & 1510.2 \\
+Re:Dr 43 & Calibration & 0.7 & 384 & 229392 & 8552 & 111.1 \\
+Re:Dr 43 & New collection & 0.7 & 3559 & 3160284 & 92227 & 1527.7 \\
+Re:Dr 46 & Calibration & 1.0 & 384 & 229392 & 8585 & 112.5 \\
+Re:Dr 46 & New collection & 1.0 & 3592 & 3169337 & 88300 & 1510.2 \\
 Initial & Calibration & 1.3 & 384 & 229392 & 9521 & 123.5 \\
 Initial & New collection & 1.3 & 4416 & 4035069 & 116619 & 1957.4 \\
 \bottomrule
@@ -294,7 +294,7 @@ Grok 4.3 & $1.698$ $[1.665, 1.732]$ & $1.645$ $[1.613, 1.679]$ & $0.791$ $[0.782
 \end{table}
 \begin{table}[H]
 \centering
-\caption{Local Re:Dr.GRPO minus Dr.GRPO endpoint probes: 32 problems per domain/level and fixed seed averages. Level-2 trained checkpoints are evaluated at Levels 2 and 3; this is not a reanalysis of every main-paper trajectory. MathIR/Pantry definitions are unchanged.}
+\caption{Local Re:Dr minus Dr.GRPO endpoint probes: 32 problems per domain/level and fixed seed averages. Level-2 trained checkpoints are evaluated at Levels 2 and 3; this is not a reanalysis of every main-paper trajectory. MathIR/Pantry definitions are unchanged.}
 \label{tab:local-coarse-keys}
 \scriptsize
 \setlength{\tabcolsep}{3pt}

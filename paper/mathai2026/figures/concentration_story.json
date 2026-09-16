@@ -1,0 +1,5227 @@
+{
+  "appendix": {
+    "all_domain_report": "paper/results/conditional_concentration_20260911/report.md",
+    "analyzed_block_count": 135,
+    "label": "app:conditional-concentration",
+    "tradeoffs": "paper/results/conditional_concentration_20260911/metric_tradeoffs.md"
+  },
+  "cohort_extension": {
+    "after_initial_result_blocks": 135,
+    "amendment_path": "paper/audits/conditional_concentration_20260911/amendment_2_current_census.md",
+    "amendment_sha256": "cfb9c95d6786caa068ba1621f0aa2720902079e29dbb8f1f3ebe3824b6130d41",
+    "completed_snapshot": {
+      "byte_length": 35966847,
+      "original_path": "paper/results/training_curve_snapshot_20260911.json",
+      "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_completed_cohort.json",
+      "sha256": "479d6bb83ae60d1f3ee9653fe2016701663b7b869fd197a0b111a7ed1e389e72"
+    },
+    "created_at_utc": "2026-09-11T20:25:39.921795+00:00",
+    "expected_primary_level1_pairs": {
+      "drgrpo": 74,
+      "maxrl": 75
+    },
+    "implementation_binding_policy": "Completed collection receipt will hash the exact extension and loader source bytes and all new source prefixes before subsequent effects are calculated.",
+    "new_source_certificate": {
+      "hash_binding": "The completed collection receipt binds the written source certificate before subsequent effect calculation.",
+      "path": "paper/audits/conditional_concentration_20260911/stream_source_audit_completed_cohort.json"
+    },
+    "original_cache": {
+      "path": "paper/audits/conditional_concentration_20260911/verified_samples.jsonl.gz",
+      "sha256": "c73f3e2cbc72e5fdb52ff1d6c70b458f66fa8e241d75804fccdb46caf642797c"
+    },
+    "original_collection_receipt": {
+      "path": "paper/audits/conditional_concentration_20260911/collection_receipt.json",
+      "sha256": "c22d5a3a6772ef98db56660e48cdbbabae128e47d43afc26701e30dfbb938ec5"
+    },
+    "original_snapshot": {
+      "byte_length": 35385643,
+      "original_path": "paper/audits/results_completion_20260911/before/paper/results/training_curve_snapshot_20260911.json",
+      "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_initial.json",
+      "sha256": "6b9e4d90d337152cc30b904bd41ffe660939d80f2f3611984368c788b25d33f1"
+    },
+    "phase": "after_initial_135_block_effects_before_newly_admitted_source_ingestion_or_extended_effects",
+    "preserved_initial_results": {
+      "byte_length": 36417387,
+      "original_path": "paper/results/conditional_concentration_20260911.json",
+      "path": "paper/results/conditional_concentration_20260911_initial.json",
+      "sha256": "50397987fa4960fe3003e377cbaecc245dd976b3d04c4411e87e01fa03ea2c32"
+    },
+    "reason": "Parallel completion census refresh; all newly admitted cells included by frozen source availability, not effect values.",
+    "retrospective": true,
+    "status": "frozen_after_initial_results_before_new_source_effects"
+  },
+  "display": {
+    "blocks": [
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/graph_coloring/before_after/drgrpo",
+        "domain": "graph_coloring",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            0.1363811858005533,
+            0.37750770308833553
+          ],
+          "ci95_percentage_points": [
+            13.63811858005533,
+            37.75077030883355
+          ],
+          "coverage_range": [
+            0.046875,
+            0.1875
+          ],
+          "delta_percentage_points": 25.694444444444443,
+          "eligible_count_range": [
+            6,
+            24
+          ],
+          "eligible_counts": {
+            "43": 6,
+            "44": 24,
+            "45": 6,
+            "46": 24,
+            "47": 24
+          },
+          "mean": 0.2569444444444444,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.33333333333333337,
+            "44": 0.1875,
+            "45": 0.38888888888888884,
+            "46": 0.1875,
+            "47": 0.1875
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.12375369960399399,
+            0.4448494749991806
+          ],
+          "ci95_percentage_points": [
+            12.375369960399398,
+            44.48494749991806
+          ],
+          "coverage_range": [
+            0.109375,
+            0.3125
+          ],
+          "delta_percentage_points": 28.430158730158727,
+          "eligible_count_range": [
+            14,
+            40
+          ],
+          "eligible_counts": {
+            "43": 15,
+            "44": 40,
+            "45": 14,
+            "46": 40,
+            "47": 40
+          },
+          "mean": 0.2843015873015873,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.5155555555555555,
+            "44": 0.22499999999999998,
+            "45": 0.2309523809523809,
+            "46": 0.22499999999999998,
+            "47": 0.22499999999999998
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.435263503191884,
+              -0.19932800007608997
+            ],
+            "mean": -0.317295751633987,
+            "n": 5,
+            "range": [
+              -0.48611111111111116,
+              -0.26875000000000004
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.48611111111111116,
+              "44": -0.26875000000000004,
+              "45": -0.2941176470588236,
+              "46": -0.26875000000000004,
+              "47": -0.26875000000000004
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.4581181863621149,
+              -0.1934667809581465
+            ],
+            "mean": -0.3257924836601307,
+            "n": 5,
+            "range": [
+              -0.5138888888888888,
+              -0.26875
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.5138888888888888,
+              "44": -0.26875,
+              "45": -0.3088235294117647,
+              "46": -0.26875,
+              "47": -0.26875
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.479332171918,
+              0.5983128444218693
+            ],
+            "mean": 0.5388225081699346,
+            "n": 5,
+            "range": [
+              0.50390625,
+              0.5955882352941176
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0.5868055555555556,
+              "44": 0.50390625,
+              "45": 0.5955882352941176,
+              "46": 0.50390625,
+              "47": 0.50390625
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.007047587590929707,
+              0.024041051643217272
+            ],
+            "mean": 0.008496732026143783,
+            "n": 5,
+            "range": [
+              0,
+              0.02777777777777779
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0.02777777777777779,
+              "44": 0,
+              "45": 0.014705882352941124,
+              "46": 0,
+              "47": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.11044422947964844,
+            0.37325619210312616
+          ],
+          "ci95_percentage_points": [
+            11.044422947964843,
+            37.32561921031262
+          ],
+          "coverage_range": [
+            0.1328125,
+            0.3125
+          ],
+          "delta_percentage_points": 24.18502107913873,
+          "eligible_count_range": [
+            17,
+            40
+          ],
+          "eligible_counts": {
+            "43": 18,
+            "44": 40,
+            "45": 17,
+            "46": 40,
+            "47": 40
+          },
+          "mean": 0.2418502107913873,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.4305675805675806,
+            "44": 0.19952380952380955,
+            "45": 0.1801120448179272,
+            "46": 0.19952380952380955,
+            "47": 0.19952380952380955
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/graph_coloring/before_after/grpo",
+        "domain": "graph_coloring",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "grpo",
+        "orientation0": {
+          "ci95": [
+            0.11255034008008155,
+            0.4225607710310295
+          ],
+          "ci95_percentage_points": [
+            11.255034008008154,
+            42.25607710310295
+          ],
+          "coverage_range": [
+            0.046875,
+            0.1171875
+          ],
+          "delta_percentage_points": 26.755555555555553,
+          "eligible_count_range": [
+            6,
+            15
+          ],
+          "eligible_counts": {
+            "43": 6,
+            "44": 15,
+            "45": 6,
+            "46": 6,
+            "47": 6
+          },
+          "mean": 0.26755555555555555,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.33333333333333337,
+            "44": 0.05999999999999994,
+            "45": 0.2777777777777778,
+            "46": 0.38888888888888884,
+            "47": 0.2777777777777778
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.15301875909813326,
+            0.42076088609327666
+          ],
+          "ci95_percentage_points": [
+            15.301875909813326,
+            42.07608860932767
+          ],
+          "coverage_range": [
+            0.09375,
+            0.15625
+          ],
+          "delta_percentage_points": 28.688982259570494,
+          "eligible_count_range": [
+            12,
+            20
+          ],
+          "eligible_counts": {
+            "43": 17,
+            "44": 20,
+            "45": 12,
+            "46": 14,
+            "47": 12
+          },
+          "mean": 0.28688982259570495,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.4529411764705883,
+            "44": 0.16166666666666674,
+            "45": 0.2944444444444444,
+            "46": 0.2309523809523809,
+            "47": 0.2944444444444444
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.5865968252459184,
+              0.028122698753216102
+            ],
+            "mean": -0.2792370632463511,
+            "n": 5,
+            "range": [
+              -0.6842105263157894,
+              -0.017857142857142794
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.6842105263157894,
+              "44": -0.017857142857142794,
+              "45": -0.19999999999999996,
+              "46": -0.2941176470588236,
+              "47": -0.19999999999999996
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.5945019838498589,
+              -0.003664019393543716
+            ],
+            "mean": -0.2990830016217013,
+            "n": 5,
+            "range": [
+              -0.6842105263157895,
+              -0.0357142857142857
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.6842105263157895,
+              "44": -0.0357142857142857,
+              "45": -0.23333333333333334,
+              "46": -0.3088235294117647,
+              "47": -0.23333333333333334
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.35120499970995156,
+              0.6923937029289988
+            ],
+            "mean": 0.5217993513194752,
+            "n": 5,
+            "range": [
+              0.27678571428571425,
+              0.5955882352941176
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0.5657894736842105,
+              "44": 0.27678571428571425,
+              "45": 0.5854166666666667,
+              "46": 0.5955882352941176,
+              "47": 0.5854166666666667
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0024177300209120706,
+              0.0372741467297882
+            ],
+            "mean": 0.019845938375350137,
+            "n": 5,
+            "range": [
+              0,
+              0.033333333333333326
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0,
+              "44": 0.017857142857142905,
+              "45": 0.033333333333333326,
+              "46": 0.014705882352941124,
+              "47": 0.033333333333333326
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.0974491447915422,
+            0.3435756338599503
+          ],
+          "ci95_percentage_points": [
+            9.74491447915422,
+            34.357563385995036
+          ],
+          "coverage_range": [
+            0.1171875,
+            0.21875
+          ],
+          "delta_percentage_points": 22.051238932574627,
+          "eligible_count_range": [
+            15,
+            28
+          ],
+          "eligible_counts": {
+            "43": 19,
+            "44": 28,
+            "45": 15,
+            "46": 17,
+            "47": 15
+          },
+          "mean": 0.22051238932574627,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.3830940988835726,
+            "44": 0.11522881880024738,
+            "45": 0.21206349206349207,
+            "46": 0.1801120448179272,
+            "47": 0.21206349206349207
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/graph_coloring/before_after/drgrpo",
+        "domain": "graph_coloring",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.07955005357209372,
+            0.1982002083708554
+          ],
+          "ci95_percentage_points": [
+            -7.955005357209371,
+            19.82002083708554
+          ],
+          "coverage_range": [
+            0.1328125,
+            0.296875
+          ],
+          "delta_percentage_points": 5.9325077399380834,
+          "eligible_count_range": [
+            17,
+            38
+          ],
+          "eligible_counts": {
+            "55": 35,
+            "56": 35,
+            "57": 38,
+            "58": 17,
+            "59": 38
+          },
+          "mean": 0.05932507739938083,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.1104761904761905,
+            "56": 0.20952380952380956,
+            "57": -0.09298245614035083,
+            "58": 0.019607843137254888,
+            "59": 0.050000000000000044
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.2988750586117373,
+            0.5578343430976644
+          ],
+          "ci95_percentage_points": [
+            29.88750586117373,
+            55.78343430976644
+          ],
+          "coverage_range": [
+            0.15625,
+            0.203125
+          ],
+          "delta_percentage_points": 42.83547008547009,
+          "eligible_count_range": [
+            20,
+            26
+          ],
+          "eligible_counts": {
+            "55": 24,
+            "56": 24,
+            "57": 26,
+            "58": 20,
+            "59": 26
+          },
+          "mean": 0.4283547008547009,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.5069444444444444,
+            "56": 0.5527777777777778,
+            "57": 0.42692307692307696,
+            "58": 0.30000000000000004,
+            "59": 0.35512820512820514
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.18299378566700156,
+              0.23407516096278394
+            ],
+            "mean": 0.02554068764789119,
+            "n": 5,
+            "range": [
+              -0.20121951219512213,
+              0.20833333333333326
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.09090909090909105,
+              "56": -0.20121951219512213,
+              "57": 0.20833333333333326,
+              "58": 0.13372093023255816,
+              "59": 0.07777777777777772
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.18065490711657933,
+              0.2340090096850892
+            ],
+            "mean": 0.026677051284254925,
+            "n": 5,
+            "range": [
+              -0.2012195121951219,
+              0.20833333333333326
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.08522727272727271,
+              "56": -0.2012195121951219,
+              "57": 0.20833333333333326,
+              "58": 0.13372093023255816,
+              "59": 0.07777777777777783
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.17019458659008962,
+              0.43599060026618347
+            ],
+            "mean": 0.30309259342813655,
+            "n": 5,
+            "range": [
+              0.1816860465116279,
+              0.42301829268292684
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.36434659090909094,
+              "56": 0.42301829268292684,
+              "57": 0.19849537037037035,
+              "58": 0.1816860465116279,
+              "59": 0.34791666666666665
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.004291414892270264,
+              0.0020186876195429707
+            ],
+            "mean": -0.0011363636363636465,
+            "n": 5,
+            "range": [
+              -0.005681818181818232,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.005681818181818232,
+              "56": 0,
+              "57": 0,
+              "58": 0,
+              "59": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.12364722116451987,
+            0.34305918299516364
+          ],
+          "ci95_percentage_points": [
+            12.364722116451986,
+            34.305918299516364
+          ],
+          "coverage_range": [
+            0.3203125,
+            0.421875
+          ],
+          "delta_percentage_points": 23.335320207984175,
+          "eligible_count_range": [
+            41,
+            54
+          ],
+          "eligible_counts": {
+            "55": 44,
+            "56": 41,
+            "57": 54,
+            "58": 43,
+            "59": 45
+          },
+          "mean": 0.23335320207984175,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.2645989111898203,
+            "56": 0.33249744835110695,
+            "57": 0.09621345732456843,
+            "58": 0.26492164166582777,
+            "59": 0.20853455186788528
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/graph_coloring/before_after/grpo",
+        "domain": "graph_coloring",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "grpo",
+        "orientation0": {
+          "ci95": [
+            -0.337649449322558,
+            -0.033431815092039685
+          ],
+          "ci95_percentage_points": [
+            -33.7649449322558,
+            -3.3431815092039683
+          ],
+          "coverage_range": [
+            0.203125,
+            0.2890625
+          ],
+          "delta_percentage_points": -18.554063220729887,
+          "eligible_count_range": [
+            26,
+            37
+          ],
+          "eligible_counts": {
+            "55": 26,
+            "56": 37,
+            "57": 37,
+            "58": 35,
+            "59": 27
+          },
+          "mean": -0.18554063220729886,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.37179487179487175,
+            "56": -0.06846846846846844,
+            "57": -0.1648648648648648,
+            "58": -0.09047619047619049,
+            "59": -0.23209876543209879
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.10333335114057712,
+            0.4417093839021579
+          ],
+          "ci95_percentage_points": [
+            10.333335114057713,
+            44.17093839021579
+          ],
+          "coverage_range": [
+            0.1875,
+            0.2109375
+          ],
+          "delta_percentage_points": 27.252136752136753,
+          "eligible_count_range": [
+            24,
+            27
+          ],
+          "eligible_counts": {
+            "55": 24,
+            "56": 26,
+            "57": 27,
+            "58": 26,
+            "59": 27
+          },
+          "mean": 0.2725213675213675,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.04722222222222222,
+            "56": 0.37307692307692303,
+            "57": 0.36543209876543215,
+            "58": 0.24230769230769228,
+            "59": 0.33456790123456787
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.1944528958793685,
+              0.38090531733598754
+            ],
+            "mean": 0.28767910660767804,
+            "n": 5,
+            "range": [
+              0.15454545454545454,
+              0.33673469387755084
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.3125000000000002,
+              "56": 0.3125,
+              "57": 0.33673469387755084,
+              "58": 0.3221153846153846,
+              "59": 0.15454545454545454
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.20322114512982764,
+              0.39086369859787323
+            ],
+            "mean": 0.29704242186385044,
+            "n": 5,
+            "range": [
+              0.1636363636363637,
+              0.34183673469387754
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.3258928571428572,
+              "56": 0.3125,
+              "57": 0.34183673469387754,
+              "58": 0.34134615384615374,
+              "59": 0.1636363636363637
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.1195926037970067,
+              0.2827082203788175
+            ],
+            "mean": 0.2011504120879121,
+            "n": 5,
+            "range": [
+              0.1127232142857143,
+              0.27343749999999994
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.1127232142857143,
+              "56": 0.27343749999999994,
+              "57": 0.21875000000000006,
+              "58": 0.2445913461538462,
+              "59": 0.15625
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.01856144351288703,
+              -0.00016518699945772437
+            ],
+            "mean": -0.009363315256172377,
+            "n": 5,
+            "range": [
+              -0.019230769230769273,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.013392857142857095,
+              "56": 0,
+              "57": -0.005102040816326481,
+              "58": -0.019230769230769273,
+              "59": -0.009090909090909038
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.026377009254167513,
+            0.1700179469714937
+          ],
+          "ci95_percentage_points": [
+            2.6377009254167514,
+            17.001794697149368
+          ],
+          "coverage_range": [
+            0.375,
+            0.4375
+          ],
+          "delta_percentage_points": 9.819747811283062,
+          "eligible_count_range": [
+            48,
+            56
+          ],
+          "eligible_counts": {
+            "55": 56,
+            "56": 48,
+            "57": 49,
+            "58": 52,
+            "59": 55
+          },
+          "mean": 0.09819747811283061,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.015481344052772628,
+            "56": 0.1660007816257817,
+            "57": 0.13758577023883145,
+            "58": 0.0791541791541791,
+            "59": 0.09276531549258821
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/graph_coloring/before_after/drgrpo",
+        "domain": "graph_coloring",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.06293535594422286,
+            0.12355928756815443
+          ],
+          "ci95_percentage_points": [
+            -6.293535594422287,
+            12.355928756815443
+          ],
+          "coverage_range": [
+            0.1640625,
+            0.203125
+          ],
+          "delta_percentage_points": 3.031196581196578,
+          "eligible_count_range": [
+            21,
+            26
+          ],
+          "eligible_counts": {
+            "70": 24,
+            "71": 26,
+            "72": 26,
+            "73": 21,
+            "74": 25
+          },
+          "mean": 0.03031196581196578,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.056944444444444464,
+            "71": 0.04230769230769227,
+            "72": 0.0923076923076922,
+            "73": -0.09999999999999998,
+            "74": 0.05999999999999994
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.230270864975706,
+            0.4481052034003624
+          ],
+          "ci95_percentage_points": [
+            23.0270864975706,
+            44.81052034003624
+          ],
+          "coverage_range": [
+            0.1875,
+            0.203125
+          ],
+          "delta_percentage_points": 33.91880341880342,
+          "eligible_count_range": [
+            24,
+            26
+          ],
+          "eligible_counts": {
+            "70": 24,
+            "71": 25,
+            "72": 25,
+            "73": 26,
+            "74": 24
+          },
+          "mean": 0.3391880341880342,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.4388888888888889,
+            "71": 0.32400000000000007,
+            "72": 0.20933333333333337,
+            "73": 0.39871794871794874,
+            "74": 0.32500000000000007
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.40513913756088116,
+              -0.13768592154077372
+            ],
+            "mean": -0.27141252955082745,
+            "n": 5,
+            "range": [
+              -0.43617021276595747,
+              -0.17222222222222228
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.3125,
+              "71": -0.25,
+              "72": -0.17222222222222228,
+              "73": -0.18617021276595747,
+              "74": -0.43617021276595747
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.4045235226421219,
+              -0.1357386737902874
+            ],
+            "mean": -0.2701310982162046,
+            "n": 5,
+            "range": [
+              -0.4414893617021276,
+              -0.17222222222222228
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.2954545454545454,
+              "71": -0.25531914893617025,
+              "72": -0.17222222222222228,
+              "73": -0.18617021276595747,
+              "74": -0.4414893617021276
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.18193983037340264,
+              0.260146458042673
+            ],
+            "mean": 0.22104314420803783,
+            "n": 5,
+            "range": [
+              0.17619680851063835,
+              0.24999999999999994
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.24999999999999994,
+              "71": 0.24069148936170215,
+              "72": 0.2381944444444445,
+              "73": 0.2001329787234043,
+              "74": 0.17619680851063835
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.012710877285743282,
+              0.01014801461649769
+            ],
+            "mean": -0.0012814313346227956,
+            "n": 5,
+            "range": [
+              -0.017045454545454475,
+              0.005319148936170248
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.017045454545454475,
+              "71": 0.005319148936170248,
+              "72": 0.0,
+              "73": 0.0,
+              "74": 0.005319148936170248
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.23214870403448323,
+            0.31617534670284936
+          ],
+          "ci95_percentage_points": [
+            23.214870403448323,
+            31.617534670284936
+          ],
+          "coverage_range": [
+            0.34375,
+            0.3671875
+          ],
+          "delta_percentage_points": 27.416202536866628,
+          "eligible_count_range": [
+            44,
+            47
+          ],
+          "eligible_counts": {
+            "70": 44,
+            "71": 47,
+            "72": 45,
+            "73": 47,
+            "74": 47
+          },
+          "mean": 0.2741620253686663,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.25545880886789984,
+            "71": 0.2704553130085045,
+            "72": 0.26252364919031584,
+            "73": 0.24934757913481326,
+            "74": 0.3330247766417979
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/graph_coloring/before_after/grpo",
+        "domain": "graph_coloring",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "grpo",
+        "orientation0": {
+          "ci95": [
+            -0.00828241769179873,
+            0.10072509846781291
+          ],
+          "ci95_percentage_points": [
+            -0.8282417691798729,
+            10.07250984678129
+          ],
+          "coverage_range": [
+            0.1875,
+            0.21875
+          ],
+          "delta_percentage_points": 4.622134038800709,
+          "eligible_count_range": [
+            24,
+            28
+          ],
+          "eligible_counts": {
+            "70": 28,
+            "71": 27,
+            "72": 27,
+            "73": 27,
+            "74": 24
+          },
+          "mean": 0.04622134038800709,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.014285714285714346,
+            "71": 0.0037037037037037646,
+            "72": 0.05802469135802468,
+            "73": 0.11481481481481481,
+            "74": 0.04027777777777786
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.29456214586199897,
+            0.43320928270942965
+          ],
+          "ci95_percentage_points": [
+            29.4562145861999,
+            43.320928270942964
+          ],
+          "coverage_range": [
+            0.1953125,
+            0.234375
+          ],
+          "delta_percentage_points": 36.38857142857143,
+          "eligible_count_range": [
+            25,
+            30
+          ],
+          "eligible_counts": {
+            "70": 28,
+            "71": 25,
+            "72": 25,
+            "73": 28,
+            "74": 30
+          },
+          "mean": 0.3638857142857143,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.3797619047619048,
+            "71": 0.30666666666666664,
+            "72": 0.4213333333333334,
+            "73": 0.4083333333333333,
+            "74": 0.3033333333333334
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.43363102705850515,
+              -0.15292191743103895
+            ],
+            "mean": -0.29327647224477205,
+            "n": 5,
+            "range": [
+              -0.42934782608695654,
+              -0.11734693877551017
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.32978723404255317,
+              "71": -0.11734693877551017,
+              "72": -0.28260869565217384,
+              "73": -0.42934782608695654,
+              "74": -0.3072916666666665
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.4375045900560614,
+              -0.15752033018030326
+            ],
+            "mean": -0.29751246011818233,
+            "n": 5,
+            "range": [
+              -0.4347826086956521,
+              -0.12244897959183676
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.3297872340425533,
+              "71": -0.12244897959183676,
+              "72": -0.2880434782608696,
+              "73": -0.4347826086956521,
+              "74": -0.3125
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.19949120251796967,
+              0.25071806886403364
+            ],
+            "mean": 0.22510463569100164,
+            "n": 5,
+            "range": [
+              0.19068877551020408,
+              0.24348958333333337
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.22938829787234039,
+              "71": 0.19068877551020408,
+              "72": 0.22418478260869562,
+              "73": 0.2377717391304348,
+              "74": 0.24348958333333337
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.001290251953646797,
+              0.007181723793173685
+            ],
+            "mean": 0.004235987873410241,
+            "n": 5,
+            "range": [
+              0.0,
+              0.005434782608695676
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.0,
+              "71": 0.005102040816326481,
+              "72": 0.005434782608695676,
+              "73": 0.005434782608695676,
+              "74": 0.00520833333333337
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.2074423278180341,
+            0.3407424992615711
+          ],
+          "ci95_percentage_points": [
+            20.744232781803408,
+            34.07424992615711
+          ],
+          "coverage_range": [
+            0.359375,
+            0.3828125
+          ],
+          "delta_percentage_points": 27.409241353980256,
+          "eligible_count_range": [
+            46,
+            49
+          ],
+          "eligible_counts": {
+            "70": 47,
+            "71": 49,
+            "72": 46,
+            "73": 46,
+            "74": 48
+          },
+          "mean": 0.27409241353980257,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.2667418869546529,
+            "71": 0.19971728951320789,
+            "72": 0.26414611958090223,
+            "73": 0.3485538615973398,
+            "74": 0.2913029100529101
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/pantry_plan/before_after/drgrpo",
+        "domain": "pantry_plan",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.3046875,
+            0.421875
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            39,
+            54
+          ],
+          "eligible_counts": {
+            "43": 54,
+            "44": 54,
+            "45": 53,
+            "46": 39,
+            "47": 53
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 1.0,
+            "44": 1.0,
+            "45": 1.0,
+            "46": 1.0,
+            "47": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.28125,
+            0.3828125
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            36,
+            49
+          ],
+          "eligible_counts": {
+            "43": 49,
+            "44": 49,
+            "45": 49,
+            "46": 36,
+            "47": 49
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 1.0,
+            "44": 1.0,
+            "45": 1.0,
+            "46": 1.0,
+            "47": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -2.21101023670217,
+              -1.8445453188533854
+            ],
+            "mean": -2.0277777777777777,
+            "n": 5,
+            "range": [
+              -2.09765625,
+              -1.7638888888888888
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -2.08984375,
+              "44": -2.08984375,
+              "45": -2.09765625,
+              "46": -1.7638888888888888,
+              "47": -2.09765625
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -2.2011469988161654,
+              -1.865519667850501
+            ],
+            "mean": -2.033333333333333,
+            "n": 5,
+            "range": [
+              -2.09765625,
+              -1.7916666666666667
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -2.08984375,
+              "44": -2.08984375,
+              "45": -2.09765625,
+              "46": -1.7916666666666667,
+              "47": -2.09765625
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.5299879786306562,
+              0.5751335491471216
+            ],
+            "mean": 0.5525607638888889,
+            "n": 5,
+            "range": [
+              0.5439453125,
+              0.5850694444444444
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0.544921875,
+              "44": 0.544921875,
+              "45": 0.5439453125,
+              "46": 0.5850694444444444,
+              "47": 0.5439453125
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.009869139473321105,
+              0.020980250584432224
+            ],
+            "mean": 0.005555555555555558,
+            "n": 5,
+            "range": [
+              0,
+              0.02777777777777779
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0,
+              "44": 0,
+              "45": 0,
+              "46": 0.02777777777777779,
+              "47": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.8192977479861988,
+            0.8469629075105679
+          ],
+          "ci95_percentage_points": [
+            81.92977479861987,
+            84.6962907510568
+          ],
+          "coverage_range": [
+            0.421875,
+            0.5
+          ],
+          "delta_percentage_points": 83.31303277483833,
+          "eligible_count_range": [
+            54,
+            64
+          ],
+          "eligible_counts": {
+            "43": 64,
+            "44": 64,
+            "45": 64,
+            "46": 54,
+            "47": 64
+          },
+          "mean": 0.8331303277483834,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.8453000992063492,
+            "44": 0.8453000992063492,
+            "45": 0.8256944444444445,
+            "46": 0.8236625514403292,
+            "47": 0.8256944444444445
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/pantry_plan/before_after/grpo",
+        "domain": "pantry_plan",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "grpo",
+        "orientation0": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.34375,
+            0.421875
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            44,
+            54
+          ],
+          "eligible_counts": {
+            "43": 54,
+            "44": 54,
+            "45": 44,
+            "46": 44,
+            "47": 44
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 1.0,
+            "44": 1.0,
+            "45": 1.0,
+            "46": 1.0,
+            "47": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.3671875,
+            0.3828125
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            47,
+            49
+          ],
+          "eligible_counts": {
+            "43": 49,
+            "44": 49,
+            "45": 47,
+            "46": 47,
+            "47": 47
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 1.0,
+            "44": 1.0,
+            "45": 1.0,
+            "46": 1.0,
+            "47": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -2.106896008994724,
+              -1.8172866833129684
+            ],
+            "mean": -1.962091346153846,
+            "n": 5,
+            "range": [
+              -2.08984375,
+              -1.876923076923077
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -2.08984375,
+              "44": -2.08984375,
+              "45": -1.876923076923077,
+              "46": -1.876923076923077,
+              "47": -1.876923076923077
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -2.1050478386718408,
+              -1.8468271613281588
+            ],
+            "mean": -1.9759375,
+            "n": 5,
+            "range": [
+              -2.08984375,
+              -1.9
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -2.08984375,
+              "44": -2.08984375,
+              "45": -1.9,
+              "46": -1.9,
+              "47": -1.9
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.5416659186889837,
+              0.5969638890033239
+            ],
+            "mean": 0.5693149038461538,
+            "n": 5,
+            "range": [
+              0.544921875,
+              0.585576923076923
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0.544921875,
+              "44": 0.544921875,
+              "45": 0.585576923076923,
+              "46": 0.585576923076923,
+              "47": 0.585576923076923
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.0018481703228828538,
+              0.02954047801519058
+            ],
+            "mean": 0.013846153846153864,
+            "n": 5,
+            "range": [
+              0,
+              0.023076923076923106
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0,
+              "44": 0,
+              "45": 0.023076923076923106,
+              "46": 0.023076923076923106,
+              "47": 0.023076923076923106
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.844814175258113,
+            0.8530669297479919
+          ],
+          "ci95_percentage_points": [
+            84.4814175258113,
+            85.30669297479919
+          ],
+          "coverage_range": [
+            0.5,
+            0.5078125
+          ],
+          "delta_percentage_points": 84.89405525030524,
+          "eligible_count_range": [
+            64,
+            65
+          ],
+          "eligible_counts": {
+            "43": 64,
+            "44": 64,
+            "45": 65,
+            "46": 65,
+            "47": 65
+          },
+          "mean": 0.8489405525030524,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": 0.8453000992063492,
+            "44": 0.8453000992063492,
+            "45": 0.8513675213675214,
+            "46": 0.8513675213675214,
+            "47": 0.8513675213675214
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/pantry_plan/before_after/drgrpo",
+        "domain": "pantry_plan",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.2578125,
+            0.2578125
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            33,
+            33
+          ],
+          "eligible_counts": {
+            "55": 33,
+            "56": 33,
+            "57": 33,
+            "58": 33,
+            "59": 33
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 1.0,
+            "56": 1.0,
+            "57": 1.0,
+            "58": 1.0,
+            "59": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.4921875,
+            0.4921875
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            63,
+            63
+          ],
+          "eligible_counts": {
+            "55": 63,
+            "56": 63,
+            "57": 63,
+            "58": 63,
+            "59": 63
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 1.0,
+            "56": 1.0,
+            "57": 1.0,
+            "58": 1.0,
+            "59": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -1.6085526315789473,
+              -1.6085526315789473
+            ],
+            "mean": -1.6085526315789473,
+            "n": 5,
+            "range": [
+              -1.6085526315789473,
+              -1.6085526315789473
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -1.6085526315789473,
+              "56": -1.6085526315789473,
+              "57": -1.6085526315789473,
+              "58": -1.6085526315789473,
+              "59": -1.6085526315789473
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -1.611842105263158,
+              -1.611842105263158
+            ],
+            "mean": -1.611842105263158,
+            "n": 5,
+            "range": [
+              -1.611842105263158,
+              -1.611842105263158
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -1.611842105263158,
+              "56": -1.611842105263158,
+              "57": -1.611842105263158,
+              "58": -1.611842105263158,
+              "59": -1.611842105263158
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.619654605263158,
+              0.619654605263158
+            ],
+            "mean": 0.619654605263158,
+            "n": 5,
+            "range": [
+              0.619654605263158,
+              0.619654605263158
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.619654605263158,
+              "56": 0.619654605263158,
+              "57": 0.619654605263158,
+              "58": 0.619654605263158,
+              "59": 0.619654605263158
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.003289473684210509,
+              0.003289473684210509
+            ],
+            "mean": 0.003289473684210509,
+            "n": 5,
+            "range": [
+              0.003289473684210509,
+              0.003289473684210509
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.003289473684210509,
+              "56": 0.003289473684210509,
+              "57": 0.003289473684210509,
+              "58": 0.003289473684210509,
+              "59": 0.003289473684210509
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.8864974937343358,
+            0.8864974937343358
+          ],
+          "ci95_percentage_points": [
+            88.64974937343358,
+            88.64974937343358
+          ],
+          "coverage_range": [
+            0.59375,
+            0.59375
+          ],
+          "delta_percentage_points": 88.64974937343358,
+          "eligible_count_range": [
+            76,
+            76
+          ],
+          "eligible_counts": {
+            "55": 76,
+            "56": 76,
+            "57": 76,
+            "58": 76,
+            "59": 76
+          },
+          "mean": 0.8864974937343358,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.8864974937343358,
+            "56": 0.8864974937343358,
+            "57": 0.8864974937343358,
+            "58": 0.8864974937343358,
+            "59": 0.8864974937343358
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/pantry_plan/before_after/grpo",
+        "domain": "pantry_plan",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "grpo",
+        "orientation0": {
+          "ci95": [
+            0.7940120851710292,
+            1.0968970057380618
+          ],
+          "ci95_percentage_points": [
+            79.40120851710292,
+            109.68970057380618
+          ],
+          "coverage_range": [
+            0.2578125,
+            0.2578125
+          ],
+          "delta_percentage_points": 94.54545454545455,
+          "eligible_count_range": [
+            33,
+            33
+          ],
+          "eligible_counts": {
+            "55": 33,
+            "56": 33,
+            "57": 33,
+            "58": 33,
+            "59": 33
+          },
+          "mean": 0.9454545454545454,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 1.0,
+            "56": 1.0,
+            "57": 1.0,
+            "58": 0.7272727272727273,
+            "59": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "ci95_percentage_points": [
+            100.0,
+            100.0
+          ],
+          "coverage_range": [
+            0.4921875,
+            0.4921875
+          ],
+          "delta_percentage_points": 100.0,
+          "eligible_count_range": [
+            63,
+            63
+          ],
+          "eligible_counts": {
+            "55": 63,
+            "56": 63,
+            "57": 63,
+            "58": 63,
+            "59": 63
+          },
+          "mean": 1.0,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 1.0,
+            "56": 1.0,
+            "57": 1.0,
+            "58": 1.0,
+            "59": 1.0
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -1.7230865923088055,
+              -1.3650713024280368
+            ],
+            "mean": -1.544078947368421,
+            "n": 5,
+            "range": [
+              -1.6085526315789473,
+              -1.2861842105263157
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -1.6085526315789473,
+              "56": -1.6085526315789473,
+              "57": -1.6085526315789473,
+              "58": -1.2861842105263157,
+              "59": -1.6085526315789473
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -1.726376065993016,
+              -1.3683607761122474
+            ],
+            "mean": -1.5473684210526317,
+            "n": 5,
+            "range": [
+              -1.611842105263158,
+              -1.2894736842105263
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -1.611842105263158,
+              "56": -1.611842105263158,
+              "57": -1.611842105263158,
+              "58": -1.2894736842105263,
+              "59": -1.611842105263158
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.6047475851110613,
+              0.6266668885731492
+            ],
+            "mean": 0.6157072368421053,
+            "n": 5,
+            "range": [
+              0.5999177631578947,
+              0.619654605263158
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.619654605263158,
+              "56": 0.619654605263158,
+              "57": 0.619654605263158,
+              "58": 0.5999177631578947,
+              "59": 0.619654605263158
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.003289473684210509,
+              0.003289473684210509
+            ],
+            "mean": 0.003289473684210509,
+            "n": 5,
+            "range": [
+              0.003289473684210509,
+              0.003289473684210509
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.003289473684210509,
+              "56": 0.003289473684210509,
+              "57": 0.003289473684210509,
+              "58": 0.003289473684210509,
+              "59": 0.003289473684210509
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.7979588285885502,
+            0.9281462067270114
+          ],
+          "ci95_percentage_points": [
+            79.79588285885501,
+            92.81462067270114
+          ],
+          "coverage_range": [
+            0.59375,
+            0.59375
+          ],
+          "delta_percentage_points": 86.30525176577808,
+          "eligible_count_range": [
+            76,
+            76
+          ],
+          "eligible_counts": {
+            "55": 76,
+            "56": 76,
+            "57": 76,
+            "58": 76,
+            "59": 76
+          },
+          "mean": 0.8630525176577808,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.8864974937343358,
+            "56": 0.8864974937343358,
+            "57": 0.8864974937343358,
+            "58": 0.7692726133515607,
+            "59": 0.8864974937343358
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/pantry_plan/before_after/drgrpo",
+        "domain": "pantry_plan",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            0.22750358336169407,
+            0.7290889376824834
+          ],
+          "ci95_percentage_points": [
+            22.750358336169406,
+            72.90889376824833
+          ],
+          "coverage_range": [
+            0.2109375,
+            0.2734375
+          ],
+          "delta_percentage_points": 47.82962605220887,
+          "eligible_count_range": [
+            27,
+            35
+          ],
+          "eligible_counts": {
+            "70": 35,
+            "71": 27,
+            "72": 27,
+            "73": 34,
+            "74": 29
+          },
+          "mean": 0.47829626052208873,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.5219047619047619,
+            "71": 0.6358024691358024,
+            "72": 0.6358024691358024,
+            "73": 0.14509803921568626,
+            "74": 0.45287356321839084
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.02225935560314163,
+            0.4685250943555019
+          ],
+          "ci95_percentage_points": [
+            2.225935560314163,
+            46.85250943555019
+          ],
+          "coverage_range": [
+            0.1875,
+            0.2421875
+          ],
+          "delta_percentage_points": 24.539222497932176,
+          "eligible_count_range": [
+            24,
+            31
+          ],
+          "eligible_counts": {
+            "70": 24,
+            "71": 25,
+            "72": 25,
+            "73": 26,
+            "74": 31
+          },
+          "mean": 0.24539222497932175,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.30000000000000004,
+            "71": 0.4053333333333333,
+            "72": 0.4053333333333333,
+            "73": 0.10769230769230775,
+            "74": 0.008602150537634357
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -1.0613116576929345,
+              -0.1829565738534154
+            ],
+            "mean": -0.6221341157731749,
+            "n": 5,
+            "range": [
+              -0.9387755102040816,
+              -0.11567164179104461
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.6916666666666667,
+              "71": -0.9387755102040816,
+              "72": -0.9387755102040816,
+              "73": -0.11567164179104461,
+              "74": -0.42578125
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -1.0716318842255632,
+              -0.19024302058710824
+            ],
+            "mean": -0.6309374524063357,
+            "n": 5,
+            "range": [
+              -0.9489795918367347,
+              -0.12313432835820892
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.7000000000000001,
+              "71": -0.9489795918367347,
+              "72": -0.9489795918367347,
+              "73": -0.12313432835820892,
+              "74": -0.43359375
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.3926968064272155,
+              0.6730183082100573
+            ],
+            "mean": 0.5328575573186364,
+            "n": 5,
+            "range": [
+              0.39645522388059706,
+              0.6243622448979591
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.5947916666666667,
+              "71": 0.6243622448979591,
+              "72": 0.6243622448979591,
+              "73": 0.39645522388059706,
+              "74": 0.42431640625
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.007169689918019753,
+              0.010436983348301709
+            ],
+            "mean": 0.00880333663316073,
+            "n": 5,
+            "range": [
+              0.007462686567164201,
+              0.010204081632653073
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.008333333333333304,
+              "71": 0.010204081632653073,
+              "72": 0.010204081632653073,
+              "73": 0.007462686567164201,
+              "74": 0.0078125
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.26610616458389535,
+            0.6268977911066275
+          ],
+          "ci95_percentage_points": [
+            26.610616458389536,
+            62.68977911066275
+          ],
+          "coverage_range": [
+            0.3828125,
+            0.5234375
+          ],
+          "delta_percentage_points": 44.65019778452614,
+          "eligible_count_range": [
+            49,
+            67
+          ],
+          "eligible_counts": {
+            "70": 60,
+            "71": 49,
+            "72": 49,
+            "73": 67,
+            "74": 64
+          },
+          "mean": 0.4465019778452614,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.4870550745550745,
+            "71": 0.5706349206349206,
+            "72": 0.5706349206349206,
+            "73": 0.23046563718205504,
+            "74": 0.37371933621933623
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/pantry_plan/before_after/grpo",
+        "domain": "pantry_plan",
+        "kind": "before_after",
+        "level": "level1",
+        "method": "grpo",
+        "orientation0": {
+          "ci95": [
+            0.416852810649762,
+            0.610497298079657
+          ],
+          "ci95_percentage_points": [
+            41.685281064976195,
+            61.049729807965704
+          ],
+          "coverage_range": [
+            0.1953125,
+            0.2890625
+          ],
+          "delta_percentage_points": 51.36750543647095,
+          "eligible_count_range": [
+            25,
+            37
+          ],
+          "eligible_counts": {
+            "70": 35,
+            "71": 25,
+            "72": 37,
+            "73": 29,
+            "74": 35
+          },
+          "mean": 0.5136750543647095,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.5238095238095238,
+            "71": 0.64,
+            "72": 0.4396396396396396,
+            "73": 0.4620689655172414,
+            "74": 0.5028571428571429
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            0.15038131851660608,
+            0.39232979259450507
+          ],
+          "ci95_percentage_points": [
+            15.038131851660609,
+            39.23297925945051
+          ],
+          "coverage_range": [
+            0.1875,
+            0.203125
+          ],
+          "delta_percentage_points": 27.135555555555555,
+          "eligible_count_range": [
+            24,
+            26
+          ],
+          "eligible_counts": {
+            "70": 24,
+            "71": 24,
+            "72": 26,
+            "73": 26,
+            "74": 25
+          },
+          "mean": 0.27135555555555557,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.33333333333333337,
+            "71": 0.36944444444444446,
+            "72": 0.22435897435897434,
+            "73": 0.12564102564102564,
+            "74": 0.30400000000000005
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.8258093783074478,
+              -0.5026495342486026
+            ],
+            "mean": -0.6642294562780252,
+            "n": 5,
+            "range": [
+              -0.8724489795918366,
+              -0.5541666666666667
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.6864406779661016,
+              "71": -0.8724489795918366,
+              "72": -0.5564516129032258,
+              "73": -0.5541666666666667,
+              "74": -0.6516393442622952
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.8354744279342313,
+              -0.5102937760928913
+            ],
+            "mean": -0.6728841020135613,
+            "n": 5,
+            "range": [
+              -0.8826530612244898,
+              -0.5625
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.6949152542372881,
+              "71": -0.8826530612244898,
+              "72": -0.564516129032258,
+              "73": -0.5625,
+              "74": -0.6598360655737705
+            }
+          },
+          "mean8": {
+            "ci95": [
+              0.5326115685807199,
+              0.6466939630682526
+            ],
+            "mean": 0.5896527658244862,
+            "n": 5,
+            "range": [
+              0.5208333333333334,
+              0.6345663265306123
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.6228813559322033,
+              "71": 0.6345663265306123,
+              "72": 0.5685483870967742,
+              "73": 0.5208333333333334,
+              "74": 0.6014344262295082
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.007562551955170421,
+              0.009746739515901765
+            ],
+            "mean": 0.008654645735536093,
+            "n": 5,
+            "range": [
+              0.008064516129032251,
+              0.010204081632653073
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.008474576271186418,
+              "71": 0.010204081632653073,
+              "72": 0.008064516129032251,
+              "73": 0.008333333333333304,
+              "74": 0.008196721311475419
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            0.4112706770744667,
+            0.5257452987106674
+          ],
+          "ci95_percentage_points": [
+            41.12706770744667,
+            52.574529871066744
+          ],
+          "coverage_range": [
+            0.3828125,
+            0.484375
+          ],
+          "delta_percentage_points": 46.8507987892567,
+          "eligible_count_range": [
+            49,
+            62
+          ],
+          "eligible_counts": {
+            "70": 59,
+            "71": 49,
+            "72": 62,
+            "73": 60,
+            "74": 61
+          },
+          "mean": 0.46850798789256703,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.4946939124905227,
+            "71": 0.524408811143505,
+            "72": 0.4245205511334543,
+            "73": 0.4176106301106301,
+            "74": 0.48130603458472304
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/graph_coloring/replay_effect/drgrpo",
+        "domain": "graph_coloring",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.9393457411015211,
+            -0.7661925016469553
+          ],
+          "ci95_percentage_points": [
+            -93.93457411015211,
+            -76.61925016469553
+          ],
+          "coverage_range": [
+            0.2265625,
+            0.2734375
+          ],
+          "delta_percentage_points": -85.27691213742382,
+          "eligible_count_range": [
+            29,
+            35
+          ],
+          "eligible_counts": {
+            "43": 35,
+            "44": 29,
+            "45": 33,
+            "46": 31,
+            "47": 33
+          },
+          "mean": -0.8527691213742382,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.8942857142857142,
+            "44": -0.7908045977011494,
+            "45": -0.9474747474747475,
+            "46": -0.7827956989247312,
+            "47": -0.8484848484848485
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.8761700692735217,
+            -0.7368986444898973
+          ],
+          "ci95_percentage_points": [
+            -87.61700692735216,
+            -73.68986444898972
+          ],
+          "coverage_range": [
+            0.1484375,
+            0.2265625
+          ],
+          "delta_percentage_points": -80.65343568817094,
+          "eligible_count_range": [
+            19,
+            29
+          ],
+          "eligible_counts": {
+            "43": 28,
+            "44": 25,
+            "45": 29,
+            "46": 19,
+            "47": 23
+          },
+          "mean": -0.8065343568817095,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.8476190476190476,
+            "44": -0.7466666666666666,
+            "45": -0.8206896551724138,
+            "46": -0.868421052631579,
+            "47": -0.7492753623188406
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              1.3782653803863814,
+              2.0635490960333582
+            ],
+            "mean": 1.7209072382098698,
+            "n": 5,
+            "range": [
+              1.3175675675675675,
+              1.9500000000000002
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.9500000000000002,
+              "44": 1.5576923076923075,
+              "45": 1.94375,
+              "46": 1.3175675675675675,
+              "47": 1.835526315789474
+            }
+          },
+          "extra8": {
+            "ci95": [
+              1.3782653803863816,
+              2.0635490960333582
+            ],
+            "mean": 1.7209072382098698,
+            "n": 5,
+            "range": [
+              1.3175675675675675,
+              1.9500000000000002
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.9500000000000002,
+              "44": 1.5576923076923077,
+              "45": 1.94375,
+              "46": 1.3175675675675675,
+              "47": 1.8355263157894737
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.5987480352728399,
+              -0.5242784400891617
+            ],
+            "mean": -0.5615132376810008,
+            "n": 5,
+            "range": [
+              -0.6081081081081081,
+              -0.5328125
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.546875,
+              "44": -0.5737179487179487,
+              "45": -0.5328125,
+              "46": -0.6081081081081081,
+              "47": -0.5460526315789473
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0,
+            "n": 5,
+            "range": [
+              0,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0,
+              "44": 0,
+              "45": 0,
+              "46": 0,
+              "47": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.8311283021593077,
+            -0.6802947231584546
+          ],
+          "ci95_percentage_points": [
+            -83.11283021593077,
+            -68.02947231584547
+          ],
+          "coverage_range": [
+            0.2890625,
+            0.3125
+          ],
+          "delta_percentage_points": -75.57115126588812,
+          "eligible_count_range": [
+            37,
+            40
+          ],
+          "eligible_counts": {
+            "43": 40,
+            "44": 39,
+            "45": 40,
+            "46": 37,
+            "47": 38
+          },
+          "mean": -0.7557115126588811,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.8158910533910534,
+            "44": -0.6891127391127392,
+            "45": -0.8105952380952381,
+            "46": -0.696031746031746,
+            "47": -0.7669267866636288
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/graph_coloring/replay_effect/maxrl",
+        "domain": "graph_coloring",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "maxrl",
+        "orientation0": {
+          "ci95": [
+            -0.8310669528262363,
+            -0.419762423061279
+          ],
+          "ci95_percentage_points": [
+            -83.10669528262363,
+            -41.9762423061279
+          ],
+          "coverage_range": [
+            0.25,
+            0.3359375
+          ],
+          "delta_percentage_points": -62.54146879437577,
+          "eligible_count_range": [
+            32,
+            43
+          ],
+          "eligible_counts": {
+            "43": 43,
+            "44": 37,
+            "45": 36,
+            "46": 42,
+            "47": 32
+          },
+          "mean": -0.6254146879437577,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.44651162790697674,
+            "44": -0.6747747747747748,
+            "45": -0.6898148148148148,
+            "46": -0.47222222222222227,
+            "47": -0.84375
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.7494580140026127,
+            -0.46131739935344573
+          ],
+          "ci95_percentage_points": [
+            -74.94580140026127,
+            -46.13173993534458
+          ],
+          "coverage_range": [
+            0.2421875,
+            0.421875
+          ],
+          "delta_percentage_points": -60.53877066780292,
+          "eligible_count_range": [
+            31,
+            54
+          ],
+          "eligible_counts": {
+            "43": 52,
+            "44": 33,
+            "45": 44,
+            "46": 54,
+            "47": 31
+          },
+          "mean": -0.6053877066780292,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.41602564102564105,
+            "44": -0.6575757575757575,
+            "45": -0.5765151515151514,
+            "46": -0.6703703703703704,
+            "47": -0.7064516129032259
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              1.0068063431059877,
+              1.8583526365123393
+            ],
+            "mean": 1.4325794898091635,
+            "n": 5,
+            "range": [
+              1.0140845070422537,
+              1.9146341463414633
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.0140845070422537,
+              "44": 1.5833333333333333,
+              "45": 1.41796875,
+              "46": 1.232876712328767,
+              "47": 1.9146341463414633
+            }
+          },
+          "extra8": {
+            "ci95": [
+              1.0027204390847428,
+              1.8596216391251335
+            ],
+            "mean": 1.4311710391049381,
+            "n": 5,
+            "range": [
+              1.0070422535211268,
+              1.9146341463414633
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.0070422535211268,
+              "44": 1.5833333333333333,
+              "45": 1.41796875,
+              "46": 1.2328767123287672,
+              "47": 1.9146341463414633
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.43891695012326915,
+              0.020115599132538076
+            ],
+            "mean": -0.20940067549536553,
+            "n": 5,
+            "range": [
+              -0.5076219512195121,
+              -0.03345070422535207
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.03345070422535207,
+              "44": -0.2571614583333333,
+              "45": -0.12890625,
+              "46": -0.11986301369863012,
+              "47": -0.5076219512195121
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.0025020353594335156,
+              0.005318936767884216
+            ],
+            "mean": 0.0014084507042253502,
+            "n": 5,
+            "range": [
+              0,
+              0.007042253521126751
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0.007042253521126751,
+              "44": 0,
+              "45": 0,
+              "46": 0,
+              "47": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.7591897761466732,
+            -0.4141060570858214
+          ],
+          "ci95_percentage_points": [
+            -75.91897761466731,
+            -41.41060570858214
+          ],
+          "coverage_range": [
+            0.3203125,
+            0.5703125
+          ],
+          "delta_percentage_points": -58.664791661624726,
+          "eligible_count_range": [
+            41,
+            73
+          ],
+          "eligible_counts": {
+            "43": 71,
+            "44": 48,
+            "45": 64,
+            "46": 73,
+            "47": 41
+          },
+          "mean": -0.5866479166162473,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.39340487368656385,
+            "44": -0.640719696969697,
+            "45": -0.6319140061327562,
+            "46": -0.5100792662436499,
+            "47": -0.7571217400485694
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/graph_coloring/replay_effect/drgrpo",
+        "domain": "graph_coloring",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.2427777463525084,
+            -0.015121012477622958
+          ],
+          "ci95_percentage_points": [
+            -24.27777463525084,
+            -1.512101247762296
+          ],
+          "coverage_range": [
+            0.125,
+            0.2109375
+          ],
+          "delta_percentage_points": -12.894937941506567,
+          "eligible_count_range": [
+            16,
+            27
+          ],
+          "eligible_counts": {
+            "55": 17,
+            "56": 16,
+            "57": 16,
+            "58": 27,
+            "59": 22
+          },
+          "mean": -0.12894937941506568,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.07450980392156858,
+            "56": -0.24999999999999994,
+            "57": -0.19375000000000003,
+            "58": -0.023456790123456805,
+            "59": -0.10303030303030303
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.7644068543388396,
+            -0.13953649377117533
+          ],
+          "ci95_percentage_points": [
+            -76.44068543388396,
+            -13.953649377117532
+          ],
+          "coverage_range": [
+            0.125,
+            0.2890625
+          ],
+          "delta_percentage_points": -45.19716740550074,
+          "eligible_count_range": [
+            16,
+            37
+          ],
+          "eligible_counts": {
+            "55": 20,
+            "56": 16,
+            "57": 37,
+            "58": 35,
+            "59": 27
+          },
+          "mean": -0.45197167405500743,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.45333333333333337,
+            "56": -0.65625,
+            "57": -0.02882882882882884,
+            "58": -0.49428571428571433,
+            "59": -0.6271604938271605
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.352894960287394,
+              0.4756591871780439
+            ],
+            "mean": 0.41427707373271894,
+            "n": 5,
+            "range": [
+              0.36290322580645173,
+              0.47916666666666674
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.3928571428571428,
+              "56": 0.36290322580645173,
+              "57": 0.47916666666666674,
+              "58": 0.453125,
+              "59": 0.3833333333333335
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.39889927729795316,
+              0.47713134866210827
+            ],
+            "mean": 0.4380153129800307,
+            "n": 5,
+            "range": [
+              0.3928571428571428,
+              0.4708333333333333
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.3928571428571428,
+              "56": 0.4193548387096775,
+              "57": 0.4708333333333333,
+              "58": 0.45703125,
+              "59": 0.45000000000000007
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.35925941855385674,
+              0.03010811287029297
+            ],
+            "mean": -0.16457565284178188,
+            "n": 5,
+            "range": [
+              -0.3850806451612903,
+              0.013020833333333315
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.2419642857142857,
+              "56": -0.3850806451612903,
+              "57": 0.013020833333333315,
+              "58": -0.0546875,
+              "59": -0.15416666666666667
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.06718943777831025,
+              0.01971295928368666
+            ],
+            "mean": -0.023738239247311797,
+            "n": 5,
+            "range": [
+              -0.06666666666666665,
+              0.008333333333333415
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.0,
+              "56": -0.056451612903225756,
+              "57": 0.008333333333333415,
+              "58": -0.00390625,
+              "59": -0.06666666666666665
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.5228041076641885,
+            -0.09448694061946727
+          ],
+          "ci95_percentage_points": [
+            -52.28041076641885,
+            -9.448694061946728
+          ],
+          "coverage_range": [
+            0.2421875,
+            0.5
+          ],
+          "delta_percentage_points": -30.86455241418279,
+          "eligible_count_range": [
+            31,
+            64
+          ],
+          "eligible_counts": {
+            "55": 35,
+            "56": 31,
+            "57": 60,
+            "58": 64,
+            "59": 45
+          },
+          "mean": -0.3086455241418279,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.37506493506493505,
+            "56": -0.49667411441604997,
+            "57": -0.029436026936026927,
+            "58": -0.299087977994228,
+            "59": -0.3429645662978996
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/graph_coloring/replay_effect/maxrl",
+        "domain": "graph_coloring",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "maxrl",
+        "orientation0": {
+          "ci95": [
+            0.02865756497970931,
+            0.17225627517623612
+          ],
+          "ci95_percentage_points": [
+            2.865756497970931,
+            17.22562751762361
+          ],
+          "coverage_range": [
+            0.390625,
+            0.46875
+          ],
+          "delta_percentage_points": 10.045692007797271,
+          "eligible_count_range": [
+            50,
+            60
+          ],
+          "eligible_counts": {
+            "55": 60,
+            "56": 60,
+            "57": 50,
+            "58": 54,
+            "59": 57
+          },
+          "mean": 0.10045692007797272,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.09611111111111115,
+            "56": 0.095,
+            "57": 0.11400000000000002,
+            "58": 0.17962962962962964,
+            "59": 0.017543859649122806
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.09411560349663128,
+            0.06781771938154285
+          ],
+          "ci95_percentage_points": [
+            -9.411560349663128,
+            6.781771938154285
+          ],
+          "coverage_range": [
+            0.421875,
+            0.484375
+          ],
+          "delta_percentage_points": -1.3148942057544222,
+          "eligible_count_range": [
+            54,
+            62
+          ],
+          "eligible_counts": {
+            "55": 54,
+            "56": 54,
+            "57": 62,
+            "58": 56,
+            "59": 55
+          },
+          "mean": -0.013148942057544221,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.05308641975308642,
+            "56": -0.10370370370370374,
+            "57": 0.04462365591397849,
+            "58": -0.013690476190476197,
+            "59": -0.04606060606060608
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              -0.17182778933321036,
+              -0.052531062341430665
+            ],
+            "mean": -0.1121794258373205,
+            "n": 5,
+            "range": [
+              -0.18181818181818166,
+              -0.05249999999999977
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.18181818181818166,
+              "56": -0.05249999999999977,
+              "57": -0.10000000000000009,
+              "58": -0.1315789473684208,
+              "59": -0.0950000000000002
+            }
+          },
+          "extra8": {
+            "ci95": [
+              -0.1767400711916531,
+              -0.05674424566108487
+            ],
+            "mean": -0.116742158426369,
+            "n": 5,
+            "range": [
+              -0.18686868686868685,
+              -0.05750000000000011
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.18686868686868685,
+              "56": -0.05750000000000011,
+              "57": -0.10499999999999998,
+              "58": -0.13684210526315788,
+              "59": -0.09750000000000014
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.06310576074203353,
+              -0.030815956429683627
+            ],
+            "mean": -0.04696085858585858,
+            "n": 5,
+            "range": [
+              -0.059374999999999956,
+              -0.02656249999999999
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.04292929292929293,
+              "56": -0.059374999999999956,
+              "57": -0.05593750000000003,
+              "58": -0.04999999999999999,
+              "59": -0.02656249999999999
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0031246266345393045,
+              0.006000838543557499
+            ],
+            "mean": 0.004562732589048402,
+            "n": 5,
+            "range": [
+              0.0025000000000000577,
+              0.0052631578947368585
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.005050505050505083,
+              "56": 0.0050000000000000044,
+              "57": 0.0050000000000000044,
+              "58": 0.0052631578947368585,
+              "59": 0.0025000000000000577
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.0399559394492648,
+            -0.0017362826885713861
+          ],
+          "ci95_percentage_points": [
+            -3.99559394492648,
+            -0.1736282688571386
+          ],
+          "coverage_range": [
+            0.7421875,
+            0.78125
+          ],
+          "delta_percentage_points": -2.0846111068918094,
+          "eligible_count_range": [
+            95,
+            100
+          ],
+          "eligible_counts": {
+            "55": 99,
+            "56": 100,
+            "57": 100,
+            "58": 95,
+            "59": 100
+          },
+          "mean": -0.020846111068918094,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.022542889209555883,
+            "56": -0.01660317460317462,
+            "57": -0.03397619047619049,
+            "58": 0.0031297941824257602,
+            "59": -0.034238095238095234
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/graph_coloring/replay_effect/drgrpo",
+        "domain": "graph_coloring",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.40179149847173534,
+            -0.3251671760471859
+          ],
+          "ci95_percentage_points": [
+            -40.179149847173534,
+            -32.51671760471859
+          ],
+          "coverage_range": [
+            0.234375,
+            0.2890625
+          ],
+          "delta_percentage_points": -36.34793372594606,
+          "eligible_count_range": [
+            30,
+            37
+          ],
+          "eligible_counts": {
+            "70": 31,
+            "71": 37,
+            "72": 34,
+            "73": 32,
+            "74": 30
+          },
+          "mean": -0.36347933725946063,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.3946236559139785,
+            "71": -0.3630630630630631,
+            "72": -0.3735294117647059,
+            "73": -0.3739583333333334,
+            "74": -0.3122222222222222
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.2235217977151679,
+            -0.07872342373005359
+          ],
+          "ci95_percentage_points": [
+            -22.352179771516788,
+            -7.872342373005359
+          ],
+          "coverage_range": [
+            0.171875,
+            0.203125
+          ],
+          "delta_percentage_points": -15.112261072261074,
+          "eligible_count_range": [
+            22,
+            26
+          ],
+          "eligible_counts": {
+            "70": 25,
+            "71": 26,
+            "72": 26,
+            "73": 22,
+            "74": 22
+          },
+          "mean": -0.15112261072261074,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.15200000000000002,
+            "71": -0.2102564102564103,
+            "72": -0.07820512820512815,
+            "73": -0.10909090909090913,
+            "74": -0.20606060606060606
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.4262452941282422,
+              0.7395564371634629
+            ],
+            "mean": 0.5829008656458525,
+            "n": 5,
+            "range": [
+              0.4196428571428572,
+              0.745762711864407
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.6666666666666665,
+              "71": 0.5422535211267605,
+              "72": 0.4196428571428572,
+              "73": 0.5401785714285712,
+              "74": 0.745762711864407
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.42952848118360487,
+              0.7353203102467096
+            ],
+            "mean": 0.5824243957151573,
+            "n": 5,
+            "range": [
+              0.4196428571428572,
+              0.7457627118644068
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.6527777777777779,
+              "71": 0.5492957746478873,
+              "72": 0.4196428571428572,
+              "73": 0.5446428571428571,
+              "74": 0.7457627118644068
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.17084936721428765,
+              -0.09994294196091416
+            ],
+            "mean": -0.1353961545876009,
+            "n": 5,
+            "range": [
+              -0.17361111111111105,
+              -0.09745762711864403
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.17361111111111105,
+              "71": -0.1408450704225352,
+              "72": -0.14508928571428564,
+              "73": -0.1199776785714286,
+              "74": -0.09745762711864403
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.009558935080864948,
+              0.010511874942255504
+            ],
+            "mean": 0.000476469930695278,
+            "n": 5,
+            "range": [
+              -0.007042253521126751,
+              0.01388888888888884
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.01388888888888884,
+              "71": -0.007042253521126751,
+              "72": 0.0,
+              "73": -0.004464285714285698,
+              "74": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.2987425507882691,
+            -0.24711330136410986
+          ],
+          "ci95_percentage_points": [
+            -29.874255078826913,
+            -24.711330136410986
+          ],
+          "coverage_range": [
+            0.421875,
+            0.5546875
+          ],
+          "delta_percentage_points": -27.29279260761895,
+          "eligible_count_range": [
+            54,
+            71
+          ],
+          "eligible_counts": {
+            "70": 54,
+            "71": 71,
+            "72": 56,
+            "73": 56,
+            "74": 59
+          },
+          "mean": -0.2729279260761895,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.2824902463791353,
+            "71": -0.27814970631872044,
+            "72": -0.23758503401360542,
+            "73": -0.2745529272314986,
+            "74": -0.29186171643798764
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/graph_coloring/replay_effect/maxrl",
+        "domain": "graph_coloring",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "maxrl",
+        "orientation0": {
+          "ci95": [
+            -0.33645337237781886,
+            -0.0014418770755701416
+          ],
+          "ci95_percentage_points": [
+            -33.64533723778189,
+            -0.14418770755701416
+          ],
+          "coverage_range": [
+            0.3046875,
+            0.3359375
+          ],
+          "delta_percentage_points": -16.89476247266945,
+          "eligible_count_range": [
+            39,
+            43
+          ],
+          "eligible_counts": {
+            "70": 43,
+            "71": 40,
+            "72": 43,
+            "73": 40,
+            "74": 39
+          },
+          "mean": -0.1689476247266945,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.26124031007751936,
+            "71": -0.06916666666666665,
+            "72": -0.35193798449612407,
+            "73": -0.13333333333333336,
+            "74": -0.029059829059829068
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.010527497205993816,
+            0.12868161906979309
+          ],
+          "ci95_percentage_points": [
+            -1.0527497205993817,
+            12.868161906979308
+          ],
+          "coverage_range": [
+            0.1875,
+            0.2734375
+          ],
+          "delta_percentage_points": 5.907706093189964,
+          "eligible_count_range": [
+            24,
+            35
+          ],
+          "eligible_counts": {
+            "70": 31,
+            "71": 28,
+            "72": 24,
+            "73": 31,
+            "74": 35
+          },
+          "mean": 0.05907706093189964,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": 0.02043010752688168,
+            "71": 0.12857142857142856,
+            "72": 0.03194444444444444,
+            "73": 0.10967741935483877,
+            "74": 0.004761904761904745
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.016704323102953916,
+              0.4630977552097377
+            ],
+            "mean": 0.2399010391563458,
+            "n": 5,
+            "range": [
+              0.04216867469879482,
+              0.48897058823529416
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.28125,
+              "71": 0.2987012987012987,
+              "72": 0.48897058823529416,
+              "73": 0.08841463414634143,
+              "74": 0.04216867469879482
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.020168701372987707,
+              0.4634344146256357
+            ],
+            "mean": 0.24180155799931172,
+            "n": 5,
+            "range": [
+              0.048192771084337505,
+              0.49264705882352944
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.28125,
+              "71": 0.2954545454545454,
+              "72": 0.49264705882352944,
+              "73": 0.0914634146341462,
+              "74": 0.048192771084337505
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.06505849174620468,
+              -0.010274115853042103
+            ],
+            "mean": -0.037666303799623393,
+            "n": 5,
+            "range": [
+              -0.06755514705882354,
+              -0.007711038961038974
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.04023437499999999,
+              "71": -0.007711038961038974,
+              "72": -0.06755514705882354,
+              "73": -0.04496951219512191,
+              "74": -0.027861445783132543
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.006359405963970768,
+              0.00255836827803916
+            ],
+            "mean": -0.0019005188429658038,
+            "n": 5,
+            "range": [
+              -0.0060240963855421326,
+              0.0032467532467532756
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.0,
+              "71": 0.0032467532467532756,
+              "72": -0.003676470588235281,
+              "73": -0.0030487804878048808,
+              "74": -0.0060240963855421326
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.2612432180845739,
+            -0.06225903673396739
+          ],
+          "ci95_percentage_points": [
+            -26.124321808457392,
+            -6.225903673396739
+          ],
+          "coverage_range": [
+            0.53125,
+            0.6484375
+          ],
+          "delta_percentage_points": -16.175112740927062,
+          "eligible_count_range": [
+            68,
+            83
+          ],
+          "eligible_counts": {
+            "70": 80,
+            "71": 77,
+            "72": 68,
+            "73": 82,
+            "74": 83
+          },
+          "mean": -0.16175112740927064,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.13543831168831172,
+            "71": -0.18012406064354114,
+            "72": -0.2925176131058484,
+            "73": -0.09821472565375006,
+            "74": -0.10246092595490186
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/pantry_plan/replay_effect/drgrpo",
+        "domain": "pantry_plan",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.5390022970569928,
+            -0.3453569491504508
+          ],
+          "ci95_percentage_points": [
+            -53.900229705699275,
+            -34.53569491504508
+          ],
+          "coverage_range": [
+            0.3984375,
+            0.4921875
+          ],
+          "delta_percentage_points": -44.21796231037218,
+          "eligible_count_range": [
+            51,
+            63
+          ],
+          "eligible_counts": {
+            "43": 62,
+            "44": 62,
+            "45": 63,
+            "46": 51,
+            "47": 60
+          },
+          "mean": -0.4421796231037218,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.4139784946236559,
+            "44": -0.5483870967741935,
+            "45": -0.3502645502645503,
+            "46": -0.49215686274509807,
+            "47": -0.4061111111111111
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.5963310050864623,
+            -0.3908314752903038
+          ],
+          "ci95_percentage_points": [
+            -59.63310050864623,
+            -39.083147529030384
+          ],
+          "coverage_range": [
+            0.3828125,
+            0.5078125
+          ],
+          "delta_percentage_points": -49.3581240188383,
+          "eligible_count_range": [
+            49,
+            65
+          ],
+          "eligible_counts": {
+            "43": 65,
+            "44": 65,
+            "45": 64,
+            "46": 49,
+            "47": 65
+          },
+          "mean": -0.49358124018838306,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.5282051282051282,
+            "44": -0.5169230769230769,
+            "45": -0.4145833333333333,
+            "46": -0.6020408163265306,
+            "47": -0.4061538461538462
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              1.0294615957668645,
+              1.7011677748625063
+            ],
+            "mean": 1.3653146853146854,
+            "n": 5,
+            "range": [
+              1.0653846153846156,
+              1.7384615384615385
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.2651515151515151,
+              "44": 1.7384615384615385,
+              "45": 1.0653846153846156,
+              "46": 1.5416666666666665,
+              "47": 1.2159090909090908
+            }
+          },
+          "extra8": {
+            "ci95": [
+              1.0294615957668645,
+              1.7011677748625063
+            ],
+            "mean": 1.3653146853146854,
+            "n": 5,
+            "range": [
+              1.0653846153846154,
+              1.7384615384615385
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.2651515151515151,
+              "44": 1.7384615384615385,
+              "45": 1.0653846153846154,
+              "46": 1.5416666666666667,
+              "47": 1.2159090909090908
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.20031115470017685,
+              -0.10812221748319534
+            ],
+            "mean": -0.1542166860916861,
+            "n": 5,
+            "range": [
+              -0.18923611111111116,
+              -0.09519230769230769
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.18229166666666663,
+              "44": -0.15048076923076925,
+              "45": -0.09519230769230769,
+              "46": -0.18923611111111116,
+              "47": -0.1538825757575758
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0,
+            "n": 5,
+            "range": [
+              0,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0,
+              "44": 0,
+              "45": 0,
+              "46": 0,
+              "47": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.5184250148459554,
+            -0.34688784064871825
+          ],
+          "ci95_percentage_points": [
+            -51.84250148459554,
+            -34.688784064871825
+          ],
+          "coverage_range": [
+            0.421875,
+            0.515625
+          ],
+          "delta_percentage_points": -43.26564277473368,
+          "eligible_count_range": [
+            54,
+            66
+          ],
+          "eligible_counts": {
+            "43": 66,
+            "44": 65,
+            "45": 65,
+            "46": 54,
+            "47": 66
+          },
+          "mean": -0.4326564277473368,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.4261850102759194,
+            "44": -0.4989643689643689,
+            "45": -0.35146631146631147,
+            "46": -0.5058922558922558,
+            "47": -0.3807741921378285
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "block_id": "level1/qwen05b/pantry_plan/replay_effect/maxrl",
+        "domain": "pantry_plan",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "maxrl",
+        "orientation0": {
+          "ci95": [
+            -0.46767830013811573,
+            -0.2591526132108304
+          ],
+          "ci95_percentage_points": [
+            -46.767830013811576,
+            -25.915261321083037
+          ],
+          "coverage_range": [
+            0.390625,
+            0.546875
+          ],
+          "delta_percentage_points": -36.341545667447306,
+          "eligible_count_range": [
+            50,
+            70
+          ],
+          "eligible_counts": {
+            "43": 61,
+            "44": 61,
+            "45": 67,
+            "46": 50,
+            "47": 70
+          },
+          "mean": -0.36341545667447306,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.45136612021857925,
+            "44": -0.412568306010929,
+            "45": -0.2666666666666667,
+            "46": -0.406,
+            "47": -0.28047619047619043
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.6922827551245679,
+            -0.3238049164631035
+          ],
+          "ci95_percentage_points": [
+            -69.22827551245679,
+            -32.38049164631035
+          ],
+          "coverage_range": [
+            0.375,
+            0.515625
+          ],
+          "delta_percentage_points": -50.80438357938357,
+          "eligible_count_range": [
+            48,
+            66
+          ],
+          "eligible_counts": {
+            "43": 63,
+            "44": 65,
+            "45": 66,
+            "46": 48,
+            "47": 65
+          },
+          "mean": -0.5080438357938357,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.5629629629629629,
+            "44": -0.43025641025641026,
+            "45": -0.43181818181818177,
+            "46": -0.7423611111111111,
+            "47": -0.37282051282051276
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.8910254909161226,
+              1.6034170432394859
+            ],
+            "mean": 1.2472212670778042,
+            "n": 5,
+            "range": [
+              0.8943661971830985,
+              1.6076923076923078
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.6076923076923078,
+              "44": 1.2769230769230768,
+              "45": 1.0373134328358211,
+              "46": 1.4198113207547172,
+              "47": 0.8943661971830985
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.8910254909161226,
+              1.6034170432394859
+            ],
+            "mean": 1.2472212670778042,
+            "n": 5,
+            "range": [
+              0.8943661971830986,
+              1.6076923076923078
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 1.6076923076923078,
+              "44": 1.2769230769230768,
+              "45": 1.037313432835821,
+              "46": 1.419811320754717,
+              "47": 0.8943661971830986
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.1901019044647474,
+              -0.11336079186573855
+            ],
+            "mean": -0.15173134816524297,
+            "n": 5,
+            "range": [
+              -0.19471153846153844,
+              -0.12406716417910446
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": -0.19471153846153844,
+              "44": -0.12788461538461537,
+              "45": -0.12406716417910446,
+              "46": -0.17334905660377353,
+              "47": -0.13864436619718312
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0,
+            "n": 5,
+            "range": [
+              0,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "43": 0,
+              "44": 0,
+              "45": 0,
+              "46": 0,
+              "47": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.5468059643842598,
+            -0.28783287013374403
+          ],
+          "ci95_percentage_points": [
+            -54.68059643842598,
+            -28.783287013374405
+          ],
+          "coverage_range": [
+            0.4140625,
+            0.5546875
+          ],
+          "delta_percentage_points": -41.73194172590019,
+          "eligible_count_range": [
+            53,
+            71
+          ],
+          "eligible_counts": {
+            "43": 65,
+            "44": 65,
+            "45": 67,
+            "46": 53,
+            "47": 71
+          },
+          "mean": -0.4173194172590019,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "43": -0.5016239316239317,
+            "44": -0.3764746364746365,
+            "45": -0.32709396739247487,
+            "46": -0.5535993356748075,
+            "47": -0.32780521512915883
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen05b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/pantry_plan/replay_effect/drgrpo",
+        "domain": "pantry_plan",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.6230833498526758,
+            -0.24721481155659675
+          ],
+          "ci95_percentage_points": [
+            -62.30833498526758,
+            -24.721481155659674
+          ],
+          "coverage_range": [
+            0.5625,
+            0.6328125
+          ],
+          "delta_percentage_points": -43.514908070463626,
+          "eligible_count_range": [
+            72,
+            81
+          ],
+          "eligible_counts": {
+            "55": 81,
+            "56": 78,
+            "57": 72,
+            "58": 74,
+            "59": 81
+          },
+          "mean": -0.43514908070463626,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.22633744855967086,
+            "56": -0.617948717948718,
+            "57": -0.5314814814814814,
+            "58": -0.4378378378378378,
+            "59": -0.36213991769547327
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.5471708707612718,
+            -0.1567339263528417
+          ],
+          "ci95_percentage_points": [
+            -54.71708707612718,
+            -15.67339263528417
+          ],
+          "coverage_range": [
+            0.4453125,
+            0.6328125
+          ],
+          "delta_percentage_points": -35.19523985570567,
+          "eligible_count_range": [
+            57,
+            81
+          ],
+          "eligible_counts": {
+            "55": 81,
+            "56": 72,
+            "57": 58,
+            "58": 57,
+            "59": 81
+          },
+          "mean": -0.35195239855705673,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.2716049382716049,
+            "56": -0.6328703703703704,
+            "57": -0.2931034482758621,
+            "58": -0.2807017543859649,
+            "59": -0.28148148148148144
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.6637734175082668,
+              1.7707303169954673
+            ],
+            "mean": 1.217251867251867,
+            "n": 5,
+            "range": [
+              0.6790123456790123,
+              1.7884615384615383
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.6790123456790123,
+              "56": 1.7884615384615383,
+              "57": 1.5202702702702702,
+              "58": 0.9256756756756757,
+              "59": 1.1728395061728394
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.6637734175082669,
+              1.7707303169954676
+            ],
+            "mean": 1.2172518672518673,
+            "n": 5,
+            "range": [
+              0.6790123456790124,
+              1.7884615384615385
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.6790123456790124,
+              "56": 1.7884615384615385,
+              "57": 1.5202702702702702,
+              "58": 0.9256756756756757,
+              "59": 1.1728395061728396
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.3214981263044282,
+              -0.051304644415009176
+            ],
+            "mean": -0.18640138535971867,
+            "n": 5,
+            "range": [
+              -0.2828525641025641,
+              -0.04012345679012341
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.04012345679012341,
+              "56": -0.2828525641025641,
+              "57": -0.2690033783783784,
+              "58": -0.23817567567567566,
+              "59": -0.10185185185185186
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0,
+            "n": 5,
+            "range": [
+              0,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0,
+              "56": 0,
+              "57": 0,
+              "58": 0,
+              "59": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.5999208194862888,
+            -0.208949710865723
+          ],
+          "ci95_percentage_points": [
+            -59.992081948628886,
+            -20.8949710865723
+          ],
+          "coverage_range": [
+            0.578125,
+            0.6328125
+          ],
+          "delta_percentage_points": -40.44352651760059,
+          "eligible_count_range": [
+            74,
+            81
+          ],
+          "eligible_counts": {
+            "55": 81,
+            "56": 78,
+            "57": 74,
+            "58": 74,
+            "59": 81
+          },
+          "mean": -0.4044352651760059,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.22446689113355778,
+            "56": -0.6133653383653384,
+            "57": -0.5173091923091924,
+            "58": -0.3459225459225459,
+            "59": -0.3211123581493952
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "block_id": "level1/falcon1b/pantry_plan/replay_effect/maxrl",
+        "domain": "pantry_plan",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "maxrl",
+        "orientation0": {
+          "ci95": [
+            -0.3706457790547002,
+            -0.03462171065723399
+          ],
+          "ci95_percentage_points": [
+            -37.06457790547002,
+            -3.462171065723399
+          ],
+          "coverage_range": [
+            0.6328125,
+            0.6328125
+          ],
+          "delta_percentage_points": -20.26337448559671,
+          "eligible_count_range": [
+            81,
+            81
+          ],
+          "eligible_counts": {
+            "55": 81,
+            "56": 81,
+            "57": 81,
+            "58": 81,
+            "59": 81
+          },
+          "mean": -0.2026337448559671,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.10041152263374487,
+            "56": -0.10041152263374487,
+            "57": -0.11111111111111116,
+            "58": -0.34156378600823045,
+            "59": -0.35967078189300417
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.11110002220663227,
+            0.02418644195971871
+          ],
+          "ci95_percentage_points": [
+            -11.110002220663228,
+            2.418644195971871
+          ],
+          "coverage_range": [
+            0.6328125,
+            0.6328125
+          ],
+          "delta_percentage_points": -4.345679012345678,
+          "eligible_count_range": [
+            81,
+            81
+          ],
+          "eligible_counts": {
+            "55": 81,
+            "56": 81,
+            "57": 81,
+            "58": 81,
+            "59": 81
+          },
+          "mean": -0.04345679012345678,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": 0.0,
+            "56": 0.0,
+            "57": -0.1333333333333333,
+            "58": -0.0444444444444444,
+            "59": -0.03950617283950619
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.05456801856381316,
+              0.8935801295843349
+            ],
+            "mean": 0.47407407407407404,
+            "n": 5,
+            "range": [
+              0.16666666666666674,
+              0.8765432098765431
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.16666666666666674,
+              "56": 0.19753086419753085,
+              "57": 0.33333333333333326,
+              "58": 0.7962962962962963,
+              "59": 0.8765432098765431
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.054568018563813214,
+              0.893580129584335
+            ],
+            "mean": 0.4740740740740741,
+            "n": 5,
+            "range": [
+              0.16666666666666666,
+              0.8765432098765432
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0.16666666666666666,
+              "56": 0.19753086419753085,
+              "57": 0.3333333333333333,
+              "58": 0.7962962962962963,
+              "59": 0.8765432098765432
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.08643424170495524,
+              -0.017578103974057097
+            ],
+            "mean": -0.05200617283950617,
+            "n": 5,
+            "range": [
+              -0.0864197530864198,
+              -0.017746913580246937
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": -0.03009259259259256,
+              "56": -0.017746913580246937,
+              "57": -0.06327160493827155,
+              "58": -0.0625,
+              "59": -0.0864197530864198
+            }
+          },
+          "pass8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "mean": 0,
+            "n": 5,
+            "range": [
+              0,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "55": 0,
+              "56": 0,
+              "57": 0,
+              "58": 0,
+              "59": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.22343399705874828,
+            -0.03541124549019799
+          ],
+          "ci95_percentage_points": [
+            -22.343399705874827,
+            -3.541124549019799
+          ],
+          "coverage_range": [
+            0.6328125,
+            0.6328125
+          ],
+          "delta_percentage_points": -12.942262127447313,
+          "eligible_count_range": [
+            81,
+            81
+          ],
+          "eligible_counts": {
+            "55": 81,
+            "56": 81,
+            "57": 81,
+            "58": 81,
+            "59": 81
+          },
+          "mean": -0.12942262127447313,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "55": -0.054545454545454564,
+            "56": -0.05432098765432103,
+            "57": -0.1265993265993266,
+            "58": -0.20498815313630125,
+            "59": -0.20665918443696218
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "falcon1b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/pantry_plan/replay_effect/drgrpo",
+        "domain": "pantry_plan",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "drgrpo",
+        "orientation0": {
+          "ci95": [
+            -0.428071572769914,
+            -0.24519784600895228
+          ],
+          "ci95_percentage_points": [
+            -42.8071572769914,
+            -24.51978460089523
+          ],
+          "coverage_range": [
+            0.5546875,
+            0.6328125
+          ],
+          "delta_percentage_points": -33.66347093894331,
+          "eligible_count_range": [
+            71,
+            81
+          ],
+          "eligible_counts": {
+            "70": 81,
+            "71": 71,
+            "72": 71,
+            "73": 73,
+            "74": 75
+          },
+          "mean": -0.33663470938943313,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.31728395061728387,
+            "71": -0.37370892018779345,
+            "72": -0.43615023474178405,
+            "73": -0.31780821917808216,
+            "74": -0.23822222222222222
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.48813212267756667,
+            -0.12143591333604617
+          ],
+          "ci95_percentage_points": [
+            -48.81321226775667,
+            -12.143591333604617
+          ],
+          "coverage_range": [
+            0.53125,
+            0.640625
+          ],
+          "delta_percentage_points": -30.478401800680643,
+          "eligible_count_range": [
+            68,
+            82
+          ],
+          "eligible_counts": {
+            "70": 82,
+            "71": 71,
+            "72": 70,
+            "73": 69,
+            "74": 68
+          },
+          "mean": -0.30478401800680643,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.23983739837398377,
+            "71": -0.43568075117370897,
+            "72": -0.4842857142857143,
+            "73": -0.14009661835748793,
+            "74": -0.22401960784313724
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.5100662959662903,
+              1.2392252965906878
+            ],
+            "mean": 0.874645796278489,
+            "n": 5,
+            "range": [
+              0.46604938271604945,
+              1.2183098591549295
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.9036144578313252,
+              "71": 1.063380281690141,
+              "72": 1.2183098591549295,
+              "73": 0.46604938271604945,
+              "74": 0.7218750000000003
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.5282081685189942,
+              1.2347253993466256
+            ],
+            "mean": 0.88146678393281,
+            "n": 5,
+            "range": [
+              0.4876543209876544,
+              1.2183098591549295
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.9036144578313253,
+              "71": 1.0633802816901408,
+              "72": 1.2183098591549295,
+              "73": 0.4876543209876544,
+              "74": 0.7343749999999999
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.1657364077728734,
+              -0.012809872090974297
+            ],
+            "mean": -0.08927313993192385,
+            "n": 5,
+            "range": [
+              -0.16549295774647887,
+              -0.011959876543209846
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.09600903614457834,
+              "71": -0.12720070422535212,
+              "72": -0.16549295774647887,
+              "73": -0.011959876543209846,
+              "74": -0.04570312500000007
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.01908762872224585,
+              0.0054456534136038985
+            ],
+            "mean": -0.006820987654320976,
+            "n": 5,
+            "range": [
+              -0.021604938271604923,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0,
+              "71": 0,
+              "72": 0,
+              "73": -0.021604938271604923,
+              "74": -0.012499999999999956
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.4201466269152402,
+            -0.17929201372094816
+          ],
+          "ci95_percentage_points": [
+            -42.014662691524016,
+            -17.929201372094816
+          ],
+          "coverage_range": [
+            0.5546875,
+            0.6484375
+          ],
+          "delta_percentage_points": -29.971932031809416,
+          "eligible_count_range": [
+            71,
+            83
+          ],
+          "eligible_counts": {
+            "70": 83,
+            "71": 71,
+            "72": 71,
+            "73": 81,
+            "74": 80
+          },
+          "mean": -0.2997193203180942,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.2707661816095551,
+            "71": -0.3740290226205719,
+            "72": -0.42497205454951936,
+            "73": -0.19177667325815478,
+            "74": -0.23705266955266957
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      },
+      {
+        "admitted_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "block_id": "level1/qwen3b/pantry_plan/replay_effect/maxrl",
+        "domain": "pantry_plan",
+        "kind": "replay_effect",
+        "level": "level1",
+        "method": "maxrl",
+        "orientation0": {
+          "ci95": [
+            -0.41682715344423904,
+            -0.2929145784782585
+          ],
+          "ci95_percentage_points": [
+            -41.682715344423904,
+            -29.291457847825853
+          ],
+          "coverage_range": [
+            0.6171875,
+            0.6875
+          ],
+          "delta_percentage_points": -35.487086596124875,
+          "eligible_count_range": [
+            79,
+            88
+          ],
+          "eligible_counts": {
+            "70": 80,
+            "71": 82,
+            "72": 88,
+            "73": 79,
+            "74": 82
+          },
+          "mean": -0.3548708659612488,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.39208333333333334,
+            "71": -0.3991869918699187,
+            "72": -0.38181818181818183,
+            "73": -0.3012658227848101,
+            "74": -0.30000000000000004
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "orientation1": {
+          "ci95": [
+            -0.2704565385261207,
+            -0.20334302389754277
+          ],
+          "ci95_percentage_points": [
+            -27.045653852612073,
+            -20.334302389754278
+          ],
+          "coverage_range": [
+            0.609375,
+            0.6796875
+          ],
+          "delta_percentage_points": -23.689978121183174,
+          "eligible_count_range": [
+            78,
+            87
+          ],
+          "eligible_counts": {
+            "70": 81,
+            "71": 82,
+            "72": 87,
+            "73": 78,
+            "74": 83
+          },
+          "mean": -0.23689978121183175,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.2506172839506172,
+            "71": -0.2008130081300813,
+            "72": -0.2218390804597702,
+            "73": -0.23974358974358967,
+            "74": -0.2714859437751004
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "original_metrics_on_primary_eligible": {
+          "distinct8": {
+            "ci95": [
+              0.7161536290193964,
+              1.0028583428483808
+            ],
+            "mean": 0.8595059859338886,
+            "n": 5,
+            "range": [
+              0.7291666666666667,
+              1.0369318181818181
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.8950617283950617,
+              "71": 0.8273809523809526,
+              "72": 0.8089887640449438,
+              "73": 1.0369318181818181,
+              "74": 0.7291666666666667
+            }
+          },
+          "extra8": {
+            "ci95": [
+              0.7153643142452186,
+              1.004784021258922
+            ],
+            "mean": 0.8600741677520704,
+            "n": 5,
+            "range": [
+              0.7291666666666667,
+              1.039772727272727
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0.8950617283950617,
+              "71": 0.8273809523809524,
+              "72": 0.8089887640449439,
+              "73": 1.039772727272727,
+              "74": 0.7291666666666667
+            }
+          },
+          "mean8": {
+            "ci95": [
+              -0.12597933184545743,
+              0.01079402449605834
+            ],
+            "mean": -0.05759265367469955,
+            "n": 5,
+            "range": [
+              -0.09561011904761907,
+              0.038707386363636465
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": -0.08603395061728392,
+              "71": -0.09561011904761907,
+              "72": -0.0635533707865169,
+              "73": 0.038707386363636465,
+              "74": -0.0814732142857143
+            }
+          },
+          "pass8": {
+            "ci95": [
+              -0.00214570744613509,
+              0.001009343809771466
+            ],
+            "mean": -0.0005681818181818121,
+            "n": 5,
+            "range": [
+              -0.0028409090909090606,
+              0
+            ],
+            "registered_n": 5,
+            "uncertainty": "nominal paired Student-t over five measured seed estimates",
+            "values": {
+              "70": 0,
+              "71": 0,
+              "72": 0,
+              "73": -0.0028409090909090606,
+              "74": 0
+            }
+          }
+        },
+        "primary": {
+          "ci95": [
+            -0.3185357397943813,
+            -0.26512197001740534
+          ],
+          "ci95_percentage_points": [
+            -31.85357397943813,
+            -26.512197001740535
+          ],
+          "coverage_range": [
+            0.6328125,
+            0.6953125
+          ],
+          "delta_percentage_points": -29.18288549058933,
+          "eligible_count_range": [
+            81,
+            89
+          ],
+          "eligible_counts": {
+            "70": 81,
+            "71": 84,
+            "72": 89,
+            "73": 88,
+            "74": 84
+          },
+          "mean": -0.29182885490589333,
+          "n": 5,
+          "registered_n": 5,
+          "seed_estimates": {
+            "70": -0.3237320292875848,
+            "71": -0.3030320208891637,
+            "72": -0.2798847220195535,
+            "73": -0.2825331234422143,
+            "74": -0.2699623788909503
+          },
+          "uncertainty": "nominal paired Student-t over five measured seed estimates"
+        },
+        "scale": "qwen3b"
+      }
+    ],
+    "caption": "Training-induced concentration and matched replay effects on Level-1 Graph and PantryPlan, the two existing initial-breadth illustration domains. Left: final minus initial for Dr.GRPO and GRPO. Right: replay minus its matched terminal control for Dr.GRPO and MaxRL. Filled symbols show equal-prompt collision changes; bars are nominal unadjusted 95% intervals over five measured seeds. Open left/right triangles show the two disjoint nominal-stream orientations on their own eligible populations. Gutters give defined seed n and the range of jointly eligible prompt counts, each out of 128. The 32 saved positions map to 11 nominal child-seed streams under the conditional historical vLLM mapping; distinct seed IDs do not prove iid sampling, and shared-RNG eligibility makes these descriptive comparisons. The panels have different matched populations and do not form one absolute-collision trajectory. Correctness is not held fixed. All five domains, undefined blocks, correctness tradeoffs, source assumptions and the retrospective completed-cohort extension are retained in Appendix app:conditional-concentration and paper/results/conditional_concentration_20260911/report.md.",
+    "domains": [
+      "graph_coloring",
+      "pantry_plan"
+    ],
+    "full_scale_labels": {
+      "falcon1b": "Falcon3-1B",
+      "qwen05b": "Qwen2.5-0.5B",
+      "qwen3b": "Qwen2.5-3B"
+    },
+    "limits": [
+      "Graph and PantryPlan were the existing initial-breadth illustration domains: their initial checkpoints permit observable correct-key breadth. This is not selection by the signs of the concentration effects. All five domains and all 135 defined/undefined blocks remain in the linked appendix report.",
+      "Each point averages per-prompt correct-key pair-collision changes over prompts with at least two correct representatives in both conditions, then averages five measured seed estimates. The population differs across contrasts and sensitivity orientations.",
+      "The 32 saved positions correspond to 11 nominal child-seed streams under the audited vLLM V0 n=8 mapping. Deterministic earliest draw/output representatives were selected without using output values. The mapping remains conditional where historical runtime identity is unavailable.",
+      "Archived actor source is available for 150 of 400 primary cells and 0 of 75 GRPO cells. Historical vLLM dependency identity is not cryptographically established for every run.",
+      "Distinct seed identifiers do not establish iid sampling. The usual per-prompt collision U-statistic identity requires iid correct labels. Shared RNG and joint eligibility make these comparisons descriptive; no iid prompt-population inference is claimed.",
+      "Triangles show A-lower/B-upper and A-upper/B-lower disjoint nominal-stream orientations. They reduce same-prompt cross-condition stream overlap, use their own eligible populations, and retain shared seed identifiers across prompts.",
+      "Intervals are nominal unadjusted 95% intervals over five measured seed estimates, not prompt-level confidence guarantees. Triangles show orientation means, not their uncertainty intervals.",
+      "The left and right panels use separately matched eligible populations. Their estimates cannot be joined into one absolute-collision trajectory or subtracted as if their populations were equal.",
+      "Replay-associated reductions in collision coexist with changes in correctness. All displayed replay Graph/PantryPlan blocks lower eligible-prompt mean@8; the linked report retains simultaneous original K8 metrics.",
+      "Training collision weights eligible prompts equally; hosted collision pools correct-pair counts. Those different aggregation weights are intentional.",
+      "The completed-cohort extension was declared after the initial concentration results were inspected. It adds all newly admitted source cases and withdraws source conflicts according to the documented amended census."
+    ],
+    "prompt_denominator": 128,
+    "scales": [
+      "qwen05b",
+      "falcon1b",
+      "qwen3b"
+    ]
+  },
+  "figure": {
+    "gutter": "Defined seed n | minimum\u2013maximum primary-eligible prompt count, out of 128.",
+    "layout": "Separate training and replay panels; six domain/scale rows and two methods per row.",
+    "method_colors": {
+      "drgrpo": "#C76A3A",
+      "grpo": "#00509E",
+      "maxrl": "#00509E"
+    },
+    "minimum_font_at_5p5_in_width": 8.003731343283581,
+    "minimum_font_points": 9.75,
+    "primary_marks": {
+      "drgrpo": "circle",
+      "grpo": "square",
+      "maxrl": "diamond"
+    },
+    "sensitivity_marks": {
+      "orientation0": "open left triangle",
+      "orientation1": "open right triangle"
+    },
+    "size_inches": [
+      6.7,
+      3.1
+    ],
+    "x_limits_percentage_points": [
+      -110,
+      110
+    ]
+  },
+  "outputs": {
+    "pdf": {
+      "path": "paper/figures/concentration_story.pdf",
+      "sha256": "26b89edb72ee066587424e5aa8c672777d5fa99e8f3b570d8eef5ef3d95f179a"
+    },
+    "png": {
+      "path": "paper/figures/concentration_story.png",
+      "sha256": "3e5755385225cc6eb42c91693f6068820d2a26a229f60dcf63106bc628bc6295"
+    }
+  },
+  "renderer": {
+    "path": "ops/plot_paper_concentration_story.py",
+    "sha256": "bf8ec8311daf4ff60a636352eb51ace7d332397655f6825bbe742c5ddbe1f4af"
+  },
+  "schema": "paper-concentration-story-v1",
+  "source": {
+    "analysis_code_sha256": "550ebf40fd701bf101176c6b980a70cb70e0dd66102b32eec5c6b24e712223f0",
+    "path": "paper/results/conditional_concentration_20260911.json",
+    "schema": "paper-conditional-concentration-v1",
+    "sha256": "5c9f69d6961ba7f6938a9a535bf7414c352fe645f668a241bbcdae6637e262d4"
+  },
+  "style_source": {
+    "path": "ops/paper_style.py",
+    "sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+  }
+}

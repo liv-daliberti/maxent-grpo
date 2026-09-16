@@ -27,6 +27,7 @@ ENDPOINT_AUDIT: list[dict] = []
 LEDGER = ROOT / "var/artifacts/e118_all_scales_maxrl_verified_replay_jobs.json"
 BASE = ROOT / "paper/results/core_terminal_endpoints.json"
 PRECHECK = ROOT / "paper/results/baseline_collapse_precheck.json"
+PMD_SOURCE = ROOT / "paper/results/mode_diversity_training.json"
 TRAJECTORY = ROOT / "paper/figures/direct_baseline_learning_curves_static_strip.json"
 OUT = ROOT / "paper/figures/e118_all_scale_factorial_progress"
 APPENDIX_OUT = ROOT / "paper/figures/e118_scale_extensions_appendix"
@@ -39,6 +40,7 @@ DOMAINS = (
     "graph_coloring", "countdown", "python_factors", "mathir", "pantry_plan",
 )
 LABELS = ("Graph", "Countdown", "Python", "MathIR", "Pantry")
+DOMAIN_SHORT = dict(zip(DOMAINS, LABELS))
 DOMAIN_WASH = {
     "graph_coloring": "#E8F1FA", "countdown": "#E7FBF6",
     "python_factors": "#EFFBE7", "mathir": "#E7FBEE",
@@ -47,9 +49,9 @@ DOMAIN_WASH = {
 METHODS = {
     "before_training": ("Untrained", "#6B7280", "D", "#6B7280"),
     "drgrpo": ("Dr.GRPO", style.CONTROL, "o", "none"),
-    "replay_drgrpo": ("Re:Dr.GRPO (ours)", style.ADAPTIVE, "o", style.ADAPTIVE),
+    "replay_drgrpo": ("Re:Dr (ours)", style.ADAPTIVE, "o", style.ADAPTIVE),
     "maxrl": ("MaxRL", style.COMPARATOR, "s", "none"),
-    "replay_maxrl": ("Re:MaxRL (ours)", style.ABLATION, "s", style.ABLATION),
+    "replay_maxrl": ("Re:Max (ours)", style.ABLATION, "s", style.ABLATION),
 }
 def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -126,7 +128,7 @@ def attach_reference_methods(
 
 
 MAIN_FIGURE_DESCRIPTION = (
-    "three-model cross-domain pass@8 and distinct@8 with MaxRL/replay and "
+    "three-model cross-domain pass@8 and PCMD with MaxRL/replay and "
     "Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses descriptive equal-domain means "
     "of available within-domain paired seeds"
 )
@@ -156,7 +158,7 @@ def qwen3b_display_descriptions(record: dict) -> dict:
     if complete_maxrl_scale(record, "qwen3b"):
         return {
             "main_figure": (
-                "three-model cross-domain pass@8 and distinct@8 with MaxRL/replay and "
+                "three-model cross-domain pass@8 and PCMD with MaxRL/replay and "
                 "Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses five matched seeds "
                 "across all five domains"
             ),
@@ -358,6 +360,86 @@ def descriptive_available_domain_averages(record: dict) -> dict:
     return output
 
 
+PMD_DEFINITION = "equal domain average of domain-specific support-eligible seed means"
+PMD_METHODS = (
+    "before_training", "before_training_drgrpo", "drgrpo",
+    "replay_drgrpo", "maxrl", "replay_maxrl",
+)
+PMD_START = {"before_training": "before", "before_training_drgrpo": "before"}
+
+
+def pmd_domain_averages() -> dict:
+    """Average PCMD over the domains where every arm clears the support bar.
+
+    PCMD is undefined for a seed whose policy succeeds on too few prompts, so a
+    common cross-domain seed cohort does not exist at every scale. Each domain
+    therefore contributes the mean over its own support-eligible seeds, and the
+    per-domain seed counts travel with the aggregate so a thin arm is visible
+    rather than implied.
+    """
+    payload = json.loads(PMD_SOURCE.read_text(encoding="utf-8"))
+    rows: dict[tuple[str, str, str], dict[int, dict]] = {}
+    for row in payload["seeds"]:
+        if row["level"] != "level1":
+            continue
+        rows.setdefault((row["scale"], row["domain"], row["method"]), {})[row["seed"]] = row
+
+    output: dict[str, dict] = {}
+    for scale, _model, _seeds in MODELS:
+        arms = ("drgrpo", "replay_drgrpo", "maxrl", "replay_maxrl")
+        # Every marker in a row has to describe the same domains, so the
+        # untrained reference must also be measurable, not just the two arms.
+        eligible = [
+            domain for domain in DOMAINS
+            if all(
+                any(entry["after"]["reportable"]
+                    for entry in rows.get((scale, domain, arm), {}).values())
+                for arm in arms
+            ) and any(
+                entry["before"]["reportable"] and entry["before"]["pmd"] is not None
+                for entry in rows.get((scale, domain, "drgrpo"), {}).values()
+            )
+        ]
+        if not eligible:
+            continue
+        scale_output: dict[str, dict] = {}
+        for method in PMD_METHODS:
+            checkpoint = PMD_START.get(method, "after")
+            source_method = "drgrpo" if method.startswith("before_training") else method
+            per_domain: dict[str, dict[str, float]] = {}
+            for domain in eligible:
+                values = {
+                    str(seed): float(entry[checkpoint]["pmd"])
+                    for seed, entry in sorted(rows.get((scale, domain, source_method), {}).items())
+                    if entry[checkpoint]["reportable"] and entry[checkpoint]["pmd"] is not None
+                }
+                if values:
+                    per_domain[domain] = values
+            if len(per_domain) != len(eligible):
+                continue
+            domain_means = {
+                domain: statistics.fmean(values.values())
+                for domain, values in per_domain.items()
+            }
+            scale_output[method] = {
+                "mean": statistics.fmean(domain_means.values()),
+                "n_domains": len(eligible),
+                "domains": list(eligible),
+                "domain_means": domain_means,
+                "per_domain_per_seed": per_domain,
+                "domain_seed_counts": {
+                    domain: len(values) for domain, values in per_domain.items()
+                },
+                "domain_weights": {domain: 1 / len(eligible) for domain in eligible},
+                "definition": PMD_DEFINITION,
+                "status": "descriptive support-eligible domain mean; no cross-domain seed inference",
+                "uncertainty": "none; domain-specific eligible seed sets are not pooled",
+            }
+        if scale_output:
+            output[scale] = {"pmd": scale_output}
+    return output
+
+
 PAIR_TRACKS = (
     (
         "maxrl", "replay_maxrl", 0.18, "s",
@@ -389,7 +471,7 @@ def pair_legend_handles(*, include_untrained: bool = False) -> list[Line2D]:
         Line2D(
             [0], [0], marker="s", linestyle="none", markersize=5.4,
             markerfacecolor=style.ABLATION, markeredgecolor=style.ABLATION,
-            label="Re:MaxRL (ours)",
+            label="Re:Max (ours)",
         ),
         Line2D(
             [0], [0], marker="o", linestyle="none", markersize=5.4,
@@ -399,7 +481,7 @@ def pair_legend_handles(*, include_untrained: bool = False) -> list[Line2D]:
         Line2D(
             [0], [0], marker="o", linestyle="none", markersize=5.6,
             markerfacecolor=style.ADAPTIVE, markeredgecolor=style.ADAPTIVE,
-            label="Re:Dr.GRPO (ours)",
+            label="Re:Dr (ours)",
         ),
     ])
     return handles
@@ -527,7 +609,8 @@ def draw_pair_panel(
         if tick_labels:
             tick_labels[0].set_fontweight("bold")
     axis.set_xlabel(
-        "pass@8" if metric == "pass8" else "distinct@8 (verified modes)",
+        {"pass8": "pass@8", "distinct8": "distinct@8 (verified modes)",
+         "pmd": "PCMD (pairwise correct-mode diversity)"}[metric],
         fontsize=8.2, labelpad=3,
     )
 
@@ -556,9 +639,10 @@ def draw_cross_domain_panel(
     title: str,
     xlim: tuple[float, float],
     descriptive_averages: dict | None = None,
+    from_base: bool = False,
 ) -> None:
     axis.set_facecolor(style.WHITE)
-    axis.set_title(title, loc="left", fontsize=9.4, fontweight="bold", pad=6)
+    axis.set_title(title, loc="left", fontsize=7.9, fontweight="bold", pad=4)
     axis.set_xlim(*xlim)
     completed = tuple(model for model in MODELS if model[0] in absolute_averages)
     positions = tuple(float(index) for index in reversed(range(len(completed))))
@@ -579,11 +663,19 @@ def draw_cross_domain_panel(
             y = row + (offset if len(tracks) > 1 else 0.0)
             if start in descriptive:
                 source = descriptive[start]
-                if source["definition"] != AVAILABLE_DOMAIN_DEFINITION:
+                if source["definition"] not in (AVAILABLE_DOMAIN_DEFINITION, PMD_DEFINITION):
                     raise RuntimeError("unsupported descriptive domain aggregate")
-                counts = list(source["domain_seed_counts"].values())
-                count_label = f"n={min(counts)}–{max(counts)}/domain"
-                complete = False
+                # A pair is only as complete as its thinnest arm, so the count
+                # spans the untrained reference and both arms rather than the
+                # control alone.
+                counts = [
+                    count
+                    for method in (initial_method(start), start, finish)
+                    for count in descriptive[method]["domain_seed_counts"].values()
+                ]
+                count_label = (f"n={counts[0]}/domain" if min(counts) == max(counts)
+                               else f"n={min(counts)}–{max(counts)}/domain")
+                complete = min(counts) == max(counts) == 5
                 initial_mean, start_mean, finish_mean = (
                     descriptive[method]["mean"]
                     for method in (initial_method(start), start, finish)
@@ -624,47 +716,84 @@ def draw_cross_domain_panel(
                 )
             line_style = "-" if complete else (0, (2.5, 1.8))
             if not complete:
+                # At the wrapped width the right end of a row is where the
+                # trained markers sit, so the count goes to the empty left end.
                 axis.text(
-                    xlim[1] - 0.015 * (xlim[1] - xlim[0]), y + 0.065,
-                    count_label, fontsize=6.5, color=start_color,
-                    ha="right", va="bottom", zorder=7,
+                    xlim[0] + 0.015 * (xlim[1] - xlim[0]), y + 0.055,
+                    count_label, fontsize=5.6, color=start_color,
+                    ha="left", va="bottom", zorder=7,
                 )
-            axis.plot(
-                [initial_mean, start_mean], [y, y], color="#6B7280",
-                linewidth=1.15, linestyle=line_style,
-                solid_capstyle="round", zorder=4,
-            )
-            axis.annotate(
-                "", xy=(finish_mean, y), xytext=(start_mean, y),
-                arrowprops={
-                    "arrowstyle": "-|>", "color": start_color,
-                    "linewidth": 1.55, "mutation_scale": 8.5,
-                    "linestyle": line_style,
-                    "shrinkA": 4.0, "shrinkB": 5.0,
-                },
-                zorder=4,
-            )
-            axis.plot(
-                initial_mean, y, marker="D", linestyle="none", markersize=5.0,
-                markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=5,
-            )
-            axis.plot(
-                start_mean, y, marker=marker, linestyle="none", markersize=5.7,
-                markerfacecolor=style.WHITE, markeredgecolor=start_color,
-                markeredgewidth=1.35, zorder=5,
-            )
-            axis.plot(
-                finish_mean, y, marker=marker, linestyle="none", markersize=6.0,
-                markerfacecolor=finish_color, markeredgecolor=finish_color,
-                markeredgewidth=1.0, zorder=6,
-            )
+            if from_base:
+                # Both arrows leave the same untrained point, so the row reads
+                # as one question -- what did training do, with and without
+                # memory -- instead of a single path through the control.
+                arrow_rows = (
+                    (start_mean, start_color, -0.055, 5.7, style.WHITE, start_color),
+                    (finish_mean, finish_color, 0.055, 6.0, finish_color, finish_color),
+                )
+                for value, colour, shift, size, face, edge in arrow_rows:
+                    axis.annotate(
+                        "", xy=(value, y + shift), xytext=(initial_mean, y + shift),
+                        arrowprops={
+                            "arrowstyle": "-|>", "color": colour,
+                            "linewidth": 1.45, "mutation_scale": 8.0,
+                            "linestyle": line_style,
+                            "shrinkA": 4.6, "shrinkB": 5.0,
+                        },
+                        zorder=4,
+                    )
+                    axis.plot(
+                        value, y + shift, marker=marker, linestyle="none",
+                        markersize=size, markerfacecolor=face, markeredgecolor=edge,
+                        markeredgewidth=1.35 if face is style.WHITE else 1.0,
+                        zorder=6,
+                    )
+                axis.plot(
+                    [initial_mean, initial_mean], [y - 0.055, y + 0.055],
+                    color="#6B7280", linewidth=0.9, zorder=5,
+                )
+                axis.plot(
+                    initial_mean, y, marker="D", linestyle="none", markersize=5.0,
+                    markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=6,
+                )
+            else:
+                axis.plot(
+                    [initial_mean, start_mean], [y, y], color="#6B7280",
+                    linewidth=1.15, linestyle=line_style,
+                    solid_capstyle="round", zorder=4,
+                )
+                axis.annotate(
+                    "", xy=(finish_mean, y), xytext=(start_mean, y),
+                    arrowprops={
+                        "arrowstyle": "-|>", "color": start_color,
+                        "linewidth": 1.55, "mutation_scale": 8.5,
+                        "linestyle": line_style,
+                        "shrinkA": 4.0, "shrinkB": 5.0,
+                    },
+                    zorder=4,
+                )
+                axis.plot(
+                    initial_mean, y, marker="D", linestyle="none", markersize=5.0,
+                    markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=5,
+                )
+                axis.plot(
+                    start_mean, y, marker=marker, linestyle="none", markersize=5.7,
+                    markerfacecolor=style.WHITE, markeredgecolor=start_color,
+                    markeredgewidth=1.35, zorder=5,
+                )
+                axis.plot(
+                    finish_mean, y, marker=marker, linestyle="none", markersize=6.0,
+                    markerfacecolor=finish_color, markeredgecolor=finish_color,
+                    markeredgewidth=1.0, zorder=6,
+                )
 
     axis.set_yticks(
         positions, [model for _scale, model, _seeds in completed],
     )
     axis.set_xlabel(
-        "probability" if metric == "pass8" else "verified modes (raw count)",
-        fontsize=8.1, labelpad=3,
+        {"pass8": "probability", "distinct8": "verified modes (raw count)",
+         "pmd": "correct-mode diversity"}[metric],
+        fontsize=7.0, labelpad=2,
     )
 
 
@@ -679,44 +808,65 @@ def distinct_axis_upper(record: dict, scales: tuple[str, ...]) -> float:
 
 
 def render_main_figure(record: dict, absolute_averages: dict) -> None:
-    style.apply_rcparams(font_size=8.8)
+    # Sized to be wrapped, not set full width: the panels sit close together
+    # and the scale labels take the only left gutter, because panel B hides its
+    # tick labels.
+    style.apply_rcparams(font_size=7.4)
     figure, axes = plt.subplots(
-        1, 2, figsize=(style.WIDTH, 2.70), gridspec_kw={"wspace": 0.20},
+        1, 2, figsize=(3.62, 2.62), gridspec_kw={"wspace": 0.24},
     )
     descriptive = record["descriptive_available_domain_average"]
     draw_cross_domain_panel(
         axes[0], absolute_averages=absolute_averages, descriptive_averages=descriptive,
-        metric="pass8", title="A  Cross-domain pass@8", xlim=(0.0, 1.0),
+        metric="pass8", title="A  pass@8", xlim=(0.0, 1.0),
     )
-    maximum_distinct = max(
-        [value for scale in absolute_averages.values()
-         for method in scale["distinct8"].values()
-         for value in method["per_seed"].values()]
-        + [method["mean"] for scale in descriptive.values()
-           for method in scale["distinct8"].values()]
-    )
-    distinct_upper = max(1.62, math.ceil(maximum_distinct * 1.04 * 10) / 10)
+    pmd_averages = pmd_domain_averages()
+    maximum_pmd = max(method["mean"] for scale in pmd_averages.values()
+                      for method in scale["pmd"].values())
+    pmd_upper = math.ceil(maximum_pmd * 1.16 * 20) / 20
     record["display_contract"]["main_axis_limits"] = {
-        "pass8": [0.0, 1.0], "distinct8": [0.0, distinct_upper],
+        "pass8": [0.0, 1.0], "pmd": [0.0, pmd_upper],
+    }
+    record["display_contract"]["pmd_domains"] = {
+        scale: scale_record["pmd"]["drgrpo"]["domains"]
+        for scale, scale_record in pmd_averages.items()
+    }
+    record["display_contract"]["pmd_seed_counts"] = {
+        scale: {method: aggregate["domain_seed_counts"]
+                for method, aggregate in scale_record["pmd"].items()}
+        for scale, scale_record in pmd_averages.items()
     }
     draw_cross_domain_panel(
-        axes[1], absolute_averages=absolute_averages, descriptive_averages=descriptive,
-        metric="distinct8", title="B  Cross-domain distinct@8", xlim=(0.0, distinct_upper),
+        axes[1], absolute_averages={scale: {"pmd": {}} for scale in pmd_averages},
+        descriptive_averages=pmd_averages,
+        metric="pmd", title="B  PCMD", xlim=(0.0, pmd_upper),
+        from_base=True,
     )
     axes[1].tick_params(labelleft=False)
     figure.legend(
-        handles=pair_legend_handles(include_untrained=True), ncol=5,
-        loc="upper center", bbox_to_anchor=(0.57, 0.995), frameon=False,
-        fontsize=7.0, columnspacing=0.70, handletextpad=0.30,
+        handles=pair_legend_handles(include_untrained=True), ncol=3,
+        loc="upper center", bbox_to_anchor=(0.56, 1.005), frameon=False,
+        fontsize=6.1, columnspacing=0.55, handletextpad=0.25,
     )
-    figure.text(
-        0.99, 0.025,
-        ("3B MaxRL: all five seeds across all five domains; equal domain weights within seed."
-         if complete_maxrl_scale(record, "qwen3b") else
-         "3B MaxRL: equal domain weights; domain-specific paired seeds; descriptive only."),
-        ha="right", fontsize=6.8, color=style.MUTED,
+    maxrl_note = (
+        "3B MaxRL: all five seeds across all five domains; equal domain weights within seed."
+        if complete_maxrl_scale(record, "qwen3b") else
+        "3B MaxRL: equal domain weights; domain-specific paired seeds; descriptive only.")
+    pmd_note = "; ".join(
+        f"{label}: " + ", ".join(
+            DOMAIN_SHORT[domain] for domain in pmd_averages[scale]["pmd"]["drgrpo"]["domains"])
+        for scale, label, _seeds in MODELS if scale in pmd_averages
     )
-    figure.subplots_adjust(top=0.80, bottom=0.22, left=0.19, right=0.99)
+    # The two footnote rows moved out of the plate: they are prose, they set the
+    # smallest type on the page, and the caption is where a reader looks for
+    # scope. Both strings stay on the record so the caption and the appendix can
+    # quote them without re-deriving the domain lists.
+    record["display_notes"] = {
+        "maxrl_seed_scope": maxrl_note,
+        "panel_b_domain_averages": "B averages each scale's support-eligible domains --- "
+                                   + pmd_note + ".",
+    }
+    figure.subplots_adjust(top=0.78, bottom=0.145, left=0.235, right=0.995)
     for extension in ("pdf", "png"):
         figure.savefig(
             OUT.with_suffix("." + extension), dpi=220,
@@ -749,9 +899,9 @@ def render_appendix_figure(record: dict, absolute_averages: dict) -> None:
             )
         axes[row, 1].tick_params(labelleft=False)
     figure.legend(
-        handles=pair_legend_handles(include_untrained=True), ncol=5,
-        loc="upper center", bbox_to_anchor=(0.57, 0.995), frameon=False,
-        fontsize=7.0, columnspacing=0.70, handletextpad=0.30,
+        handles=pair_legend_handles(include_untrained=True), ncol=3,
+        loc="upper center", bbox_to_anchor=(0.56, 1.005), frameon=False,
+        fontsize=6.1, columnspacing=0.55, handletextpad=0.25,
     )
     figure.text(
         0.99, 0.013, "Solid: n=5; dashed: available paired seeds (descriptive).",
@@ -770,8 +920,8 @@ def write_qwen3b_python_table(record: dict) -> None:
     """Emit the completed domain block without aggregating incomplete scales."""
     cell = record["cells"]["qwen3b"]["python_factors"]
     expected = [70, 71, 72, 73, 74]
-    methods = (("drgrpo", "Dr.GRPO"), ("replay_drgrpo", "Re:Dr.GRPO"),
-               ("maxrl", "MaxRL"), ("replay_maxrl", "Re:MaxRL"))
+    methods = (("drgrpo", "Dr.GRPO"), ("replay_drgrpo", "Re:Dr"),
+               ("maxrl", "MaxRL"), ("replay_maxrl", "Re:Max"))
     if any(cell["method_seeds"][method] != expected for method, _ in methods):
         raise RuntimeError("Qwen3B Python table requires five valid four-arm seeds")
     lines = []
@@ -818,7 +968,7 @@ def main() -> int:
         for run in ledger["runs"]
     }
     record = {
-        "schema": "e118-all-scale-terminal-progress-v6",
+        "schema": "e118-all-scale-terminal-progress-v7",
         "target_step": 3072,
         "before_training_step": 0,
         "before_training_definition": (
@@ -996,7 +1146,7 @@ def main() -> int:
             }
     record["cross_domain_average"] = averages
     record["display_contract"] = {
-        "estimand": "Re:MaxRL minus MaxRL on matched terminal seeds",
+        "estimand": "Re:Max minus MaxRL on matched terminal seeds",
         "filled_marker": "complete five-seed block",
         "open_marker": "terminal paired prefix; no interval",
         "intervals": "unadjusted descriptive 95% Student-t; n=5 only",
@@ -1037,12 +1187,12 @@ def main() -> int:
             "all three models across five domains and both terminal metrics"
         ),
         "estimands": [
-            "Re:MaxRL minus MaxRL on matched terminal seeds",
-            "Re:Dr.GRPO minus Dr.GRPO on its admissible paired seed intersection",
+            "Re:Max minus MaxRL on matched terminal seeds",
+            "Re:Dr minus Dr.GRPO on its admissible paired seed intersection",
         ],
         "tracks": {
-            "upper": "Untrained to MaxRL to Re:MaxRL",
-            "lower": "Untrained to Dr.GRPO to Re:Dr.GRPO",
+            "upper": "Untrained to MaxRL to Re:Max",
+            "lower": "Untrained to Dr.GRPO to Re:Dr",
         },
         "untrained_reference": (
             "shared frozen step-0 checkpoint restricted to each track's paired seeds; "
@@ -1058,7 +1208,7 @@ def main() -> int:
             "all domain-specific counts and endpoints remain in JSON and appendix"
         ),
         "main_panels": {
-            "A": "cross-domain pass@8", "B": "cross-domain distinct@8",
+            "A": "cross-domain pass@8", "B": "cross-domain PCMD",
         },
         "qwen_average": "equal domain average within paired seed",
         "falcon_average": averages["falcon1b"]["definition"],

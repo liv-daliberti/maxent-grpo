@@ -1,0 +1,11 @@
+{
+  "role": "Official xAI documentation identity mark used beside Grok deployment",
+  "page_url": "https://docs.x.ai/overview",
+  "asset_url": "https://docs.x.ai/_next/static/media/favicon-light.1u6watcuoe8mg.svg?dpl=f850a0bd8e76d6be0d3d2fada946ae1f9f50eb34",
+  "retrieved_date": "2026-09-11",
+  "source_svg_sha256": "f441eef32955dabf2ded0bb66bf5674a53afb81557d9281c00735dd245dfdc86",
+  "png_sha256": "de5510e89b3903bc172db8237e51ab630114f1ea0be7e82436b298c6fcec7c73",
+  "conversion": "ImageMagick SVG-to-PNG rendering; original geometry, color and aspect ratio retained.",
+  "archive_download": "Current official brand archive returned HTTP403; public official documentation favicon was accessible.",
+  "scientific_figure": false
+}

@@ -39,7 +39,7 @@ CONTRASTS = {
 }
 TABLE_CONTRASTS = {
     "maxrl_minus_drgrpo": "MaxRL $-$ Dr.GRPO",
-    "replay_maxrl_minus_replay_drgrpo": "Re:MaxRL $-$ Re:Dr.GRPO",
+    "replay_maxrl_minus_replay_drgrpo": "Re:Max $-$ Re:Dr",
     "factorial_interaction": "Replay $\\times$ MaxRL interaction",
 }
 
@@ -186,7 +186,7 @@ def main() -> int:
             "breadth8": "distinct8 minus pass8; extra modes beyond the first, still coupled to correctness.",
             "mean8": "Mean per-sample correctness among eight samples (secondary).",
         },
-        "interaction_definition": "(Re:MaxRL - MaxRL) - (Re:Dr.GRPO - Dr.GRPO)",
+        "interaction_definition": "(Re:Max - MaxRL) - (Re:Dr - Dr.GRPO)",
         **build(audit),
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)

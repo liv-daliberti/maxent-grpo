@@ -2,12 +2,12 @@
   "family": "local",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2/modebench_prompt_ablation_local.pdf",
-      "sha256": "65727706ac770d3cb01fe77058a8e938d9ac5b35258a14c715a67df0b7d67d1d"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260915_rename/modebench_prompt_ablation_local.pdf",
+      "sha256": "3607e290c51f32526b6ca6796233bdd77e61660b631708b5a9cff33db536822e"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2/modebench_prompt_ablation_local.png",
-      "sha256": "88bb50c8fea97e46916ba180b2971c5611db35dda59e9f4f01b47f058d456ddd"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260915_rename/modebench_prompt_ablation_local.png",
+      "sha256": "b2b559ea9256182a01f974a7bfd509e4474ae7b6bea79c86c71f7959267a5683"
     }
   },
   "plotted_records": [
@@ -3222,7 +3222,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "metrics": {
         "neutral": {
@@ -3455,7 +3455,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "metrics": {
         "neutral": {
@@ -3688,7 +3688,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "metrics": {
         "neutral": {
@@ -3954,7 +3954,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "metrics": {
         "neutral": {
@@ -4220,7 +4220,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "metrics": {
         "neutral": {
@@ -4453,7 +4453,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "metrics": {
         "neutral": {
@@ -7875,7 +7875,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "metrics": {
         "neutral": {
@@ -8108,7 +8108,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "metrics": {
         "neutral": {
@@ -8341,7 +8341,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "metrics": {
         "neutral": {
@@ -8607,7 +8607,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "metrics": {
         "neutral": {
@@ -8873,7 +8873,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 2,
       "metrics": {
         "neutral": {
@@ -9106,7 +9106,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "Replay DrGRPO",
+      "label": "Re:Dr",
       "level": 3,
       "metrics": {
         "neutral": {
@@ -9318,6 +9318,6 @@
       "seed_ranges": null
     }
   ],
-  "report_sha256": "00e0f55bdc11d8ae55aa04c1a8c027d8e0315e9c989afceaa2ba43eaed1c2880",
+  "report_sha256": "674221353b434f2ee5bd2f3be2d1838c7c8fa82407648d5a3e7e86b55e4401b6",
   "schema": "prompt-ablation-figure-v1"
 }

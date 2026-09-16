@@ -1292,7 +1292,7 @@ def _direct_plot_record(snapshot: dict[str, Any], metric: str, output: Path) -> 
         "UCPO and sparse RLEP-Dr comparisons at the two smaller models only; "
         "larger-model source cells are retained for provenance and before-training references")
     result["evidence"] = (
-        "admissible paired Dr.GRPO/Re:Dr.GRPO trajectories plus retained terminal "
+        "admissible paired Dr.GRPO/Re:Dr trajectories plus retained terminal "
         "UCPO and sparse RLEP-Dr trajectories; exact n per method/domain; seed ranges, no intervals")
     result["core_pairing"] = (
         "Both displayed core arms use their admissible seed intersection. The original "

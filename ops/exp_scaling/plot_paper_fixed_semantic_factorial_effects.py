@@ -2,7 +2,7 @@
 """Render paired fixed-semantic effects and their factorial interaction.
 
 The forest shows the semantic-MaxEnt effect without replay, its effect on top
-of Re:Dr.GRPO, and their difference-in-differences interaction.  Qwen2.5-
+of Re:Dr, and their difference-in-differences interaction.  Qwen2.5-
 0.5B is read from the completed paper factorial record.  Falcon3-1B is rebuilt
 from exact terminal draws for all five balanced four-arm domains.  Raw paired
 seeds, means, and two-sided Student-t intervals are
@@ -287,7 +287,7 @@ def build() -> dict[str, Any]:
         "contrasts": list(CONTRASTS),
         "contrast_definitions": {
             "maxent_without_replay": "semantic-only minus matched Dr.GRPO",
-            "maxent_with_replay": "semantic-plus-replay minus Re:Dr.GRPO",
+            "maxent_with_replay": "semantic-plus-replay minus Re:Dr",
             "factorial_interaction": (
                 "(semantic-plus-replay minus replay) minus "
                 "(semantic-only minus control)"

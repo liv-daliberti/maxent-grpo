@@ -1218,12 +1218,37 @@ def _parse_modebench_spec(gt_answer: Any) -> dict[str, Any] | None:
     return None
 
 
+PYTHON_FACTOR_RESPONSE_SURFACE_VERSION = (
+    "python-factor-response-v2-latex-lambda"
+)
+
+
+def _normalize_python_factor_lambda_surface(candidate: str) -> str:
+    """Normalize one formatting-only LaTeX spelling of ``lambda n:``."""
+
+    # Qwen's native boxed surface can typeset the Python keyword as the LaTeX
+    # command ``\lambda``.  Accept only the exact required signature (plus the
+    # conventional ``\,`` spacing alias); the restricted AST parser and
+    # isolated executable validator remain the authority.
+    return re.sub(
+        r"^\\lambda(?:\s+|\\,\s*)n\s*:\s*",
+        "lambda n: ",
+        str(candidate).strip(),
+        count=1,
+    ).strip()
+
+
 def _extract_modebench_candidate(model_response: str, gt_answer: Any) -> str | None:
     spec = _parse_modebench_spec(gt_answer)
     if spec is None:
         return None
     if "\\boxed" in str(model_response):
-        return extract_answer(str(model_response))
+        candidate = extract_answer(str(model_response))
+        if candidate is None:
+            return None
+        if str(spec.get("verifier")) == PYTHON_FACTOR_VERIFIER:
+            candidate = _normalize_python_factor_lambda_surface(candidate)
+        return candidate or None
     candidate = str(model_response).strip()
     if not candidate:
         return None
@@ -1266,6 +1291,7 @@ def _extract_modebench_candidate(model_response: str, gt_answer: Any) -> str | N
             candidate,
             flags=re.IGNORECASE,
         ).strip()
+        candidate = _normalize_python_factor_lambda_surface(candidate)
         return candidate or None
     if str(spec.get("verifier")) in {
         POINT_MAZE_VERIFIER,

@@ -106,7 +106,7 @@ def prepare(base):
             'rows_path': str(rows), 'prompts_path': str(prompts),
             'input_sha256': {**inputs, **archive_inputs}, 'code_sha256': source_pins,
             'settings': SETTINGS, 'checkpoints': checkpoints, 'output_root': str(local / 'results'),
-            'checkpoint_selection': 'Every available completed matched DrGRPO/ReplayDrGRPO seed pair at freeze time; no performance selection.',
+            'checkpoint_selection': 'Every available completed matched DrGRPO/Re:DrGRPO seed pair at freeze time; no performance selection.',
             'transfer_interpretation': 'E119 checkpoints trained on Level2; Level3 evaluation measures transfer.',
             'seed_panel': SEED_PANEL, 'expected_draws': 27648,
             'storage': {'isolated_model_bytes': sum(f['bytes'] for c in checkpoints[1:] for f in c['files']),

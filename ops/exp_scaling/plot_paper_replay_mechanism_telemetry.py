@@ -2,7 +2,7 @@
 """Plot terminal replay-bank and compute telemetry from the clean E78 cohort.
 
 This is deliberately a mechanism diagnostic rather than an outcome figure.  It
-reads every optimizer-update record from the 25 terminal Re:Dr.GRPO runs and
+reads every optimizer-update record from the 25 terminal Re:Dr runs and
 their 25 exact-zero, compute-matched controls.  No evaluation metric is used to
 select a run, seed, domain, update, or displayed statistic.
 """
@@ -481,7 +481,7 @@ def main() -> int:
         "schema": "paper-replay-mechanism-telemetry-v1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": "terminal observational mechanism telemetry",
-        "cohort": "E78 Qwen2.5-0.5B Re:Dr.GRPO and exact-zero compute-matched control",
+        "cohort": "E78 Qwen2.5-0.5B Re:Dr and exact-zero compute-matched control",
         "selection_rule": (
             "all five registered static domains, seeds 43--47, and all 3,072 "
             "optimizer updates; no evaluation outcome used for selection"

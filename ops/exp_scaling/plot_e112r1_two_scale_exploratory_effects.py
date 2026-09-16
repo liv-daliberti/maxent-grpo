@@ -51,7 +51,7 @@ EFFECT_SPECS = {
             ("terminal_sampled_pass8", r"$\Delta P$"),
             ("terminal_sampled_excess8", r"$\Delta(D-P)$"),
         ),
-        "title": "Verified-support Semantic-MaxEnt + Re:Dr.GRPO",
+        "title": "Verified-support Semantic-MaxEnt + Re:Dr",
     },
 }
 
@@ -150,7 +150,7 @@ def plot_payload(
         "effect_kind": effect_kind,
         "title": spec["title"],
         "subtitle": (
-            "Paired effects vs Re:Dr.GRPO; Qwen 0.5B n=25, Falcon 1B n=24; "
+            "Paired effects vs Re:Dr; Qwen 0.5B n=25, Falcon 1B n=24; "
             "Qwen 3B not analyzed"
         ),
         "input": str(input_path.resolve()),
@@ -158,8 +158,8 @@ def plot_payload(
         "plotter": str(Path(__file__).resolve()),
         "plotter_sha256": sha256(Path(__file__)),
         "pointmaze": "excluded",
-        "treatment": "verified-support Semantic-MaxEnt + Re:Dr.GRPO",
-        "baseline": "Re:Dr.GRPO",
+        "treatment": "verified-support Semantic-MaxEnt + Re:Dr",
+        "baseline": "Re:Dr",
         "model_rows": list(SCALES),
         "domain_order": list(DOMAINS),
         "metric_order": [metric for metric, _label in spec["metrics"]],

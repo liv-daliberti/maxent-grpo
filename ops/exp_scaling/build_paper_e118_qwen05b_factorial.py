@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the terminal Qwen-0.5B Dr/Replay x MaxRL/Re:MaxRL record."""
+"""Build the terminal Qwen-0.5B Dr/Replay x MaxRL/Re:Max record."""
 
 from __future__ import annotations
 

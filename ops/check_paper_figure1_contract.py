@@ -419,7 +419,7 @@ def check_additional_evidence_figures(manuscript: str) -> None:
         == ["Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B"]
         and endpoint.get("domain_order") == ALIGNED_DOMAIN_ORDER
         and endpoint.get("methods")
-        == ["GRPO", "matched Dr.GRPO", "Re:Dr.GRPO"]
+        == ["GRPO", "matched Dr.GRPO", "Re:Dr"]
         and len(rows) == 15,
         "cross-scale endpoint figure is not the 15-cell exact-n snapshot",
     )
@@ -781,7 +781,7 @@ def check_additional_evidence_figures(manuscript: str) -> None:
         == "balanced five-seed full-trajectory effect forest"
         and sustained.get("model") == "Qwen2.5-0.5B-Instruct"
         and sustained.get("comparison")
-        == "Re:Dr.GRPO minus matched Dr.GRPO"
+        == "Re:Dr minus matched Dr.GRPO"
         and sustained.get("domain_order") == ALIGNED_DOMAIN_ORDER
         and sustained.get("paired_seeds") == [43, 44, 45, 46, 47]
         and set(sustained.get("metrics", {})) == sustained_metrics
@@ -1076,7 +1076,7 @@ def check_additional_evidence_figures(manuscript: str) -> None:
         == [
             "matched Dr.GRPO",
             "GRPO",
-            "Re:Dr.GRPO",
+            "Re:Dr",
             "UCPO",
             "RLEP-Dr",
         ]
@@ -1199,7 +1199,7 @@ def check_additional_evidence_figures(manuscript: str) -> None:
         )
         and occupancy_outcomes.get("model") == "Qwen2.5-0.5B-Instruct"
         and occupancy_outcomes.get("comparison")
-        == "Re:Dr.GRPO minus matched Dr.GRPO"
+        == "Re:Dr minus matched Dr.GRPO"
         and occupancy_outcomes.get("domain_order") == ALIGNED_DOMAIN_ORDER
         and occupancy_outcomes.get("registered_seeds") == [43, 44, 45, 46, 47]
         and occupancy_outcomes.get("capacity") == 16
@@ -2426,7 +2426,7 @@ def check_program_status(manuscript: str) -> None:
         r"\label{tab:program-status}",
         r"\input{results/paper_program_status_table_body.tex}",
         "not one completed factorial",
-        "Adaptive Re:Dr.GRPO",
+        "Adaptive Re:Dr",
         "Adaptive Semantic MaxEnt without replay",
         "Figures expose every available sampled checkpoint",
         "no five-seed display gate",
@@ -2654,9 +2654,9 @@ def main() -> None:
         "RLVR lacks the execution-grounded identity needed to support both",
         "We make three contributions",
         r"\textbf{ModeBench measures verified solution support.}",
-        r"\textbf{Re:MaxRL explores and preserves.}",
+        r"\textbf{Re:Max explores and preserves.}",
         r"\textbf{Matched evidence isolates the value of memory.}",
-        "Re:MaxRL exceeds MaxRL in mean",
+        "Re:Max exceeds MaxRL in mean",
         "mnih2015human",
         "lin1992selfimproving",
         "ecoffet2021return",
@@ -2845,7 +2845,7 @@ def main() -> None:
         r"\label{fig:level2-admission}",
         "all 75 Level-1 model--domain--seed pairs",
         "Other alternatives produce domain-local effects",
-        r"Re:MaxRL exceeds MaxRL in mean \texttt{pass@8} and \texttt{distinct@8} in every domain",
+        r"Re:Max exceeds MaxRL in mean \texttt{pass@8} and \texttt{distinct@8} in every domain",
         r"The mean pass-rate effects range from \(+.084\) to \(+.509\)",
         "use PantryPlan as an enumerable stress test of support concentration under RL",
     ):
@@ -3007,7 +3007,7 @@ def main() -> None:
     for token in (
         "DISPLAY_STEPS = [0, 96, 288, 384, 768, 864, 1152, 1248]",
         'title="Qwen2.5-3B\\nDr.GRPO"',
-        'title="Qwen2.5-3B\\nRe:MaxRL (ours)"',
+        'title="Qwen2.5-3B\\nRe:Max (ours)"',
         "FONT = style.font_for_canvas(CANVAS_WIDTH)",
     ):
         require(token in source, f"Figure 1 source missing {token!r}")
@@ -3021,7 +3021,7 @@ def main() -> None:
             "panel_titles": [
                 "Color the three blank nodes; connected nodes must differ.",
                 "Qwen2.5-3B Dr.GRPO",
-                "Qwen2.5-3B Re:MaxRL",
+                "Qwen2.5-3B Re:Max",
             ],
             "steps": [0, 96, 288, 384, 768, 864, 1152, 1248],
             "end_pass": 6.5,
@@ -3043,7 +3043,7 @@ def main() -> None:
     require(
         audit["replay_maxrl_trajectory"][endpoint]["correct"] == 32
         and audit["replay_maxrl_trajectory"][endpoint]["distinct"] == 4,
-        "Figure 1 Re:MaxRL endpoint changed",
+        "Figure 1 Re:Max endpoint changed",
     )
     require(
         audit["prompt"]["verifier_valid_completions"] == 6
@@ -3102,13 +3102,13 @@ def main() -> None:
     page_one_source = " ".join(manuscript.split())
     for token in (
         r"Explore and Preserve Solution Modes in RLVR:",
-        r"ModeBench and Re:MaxRL",
+        r"ModeBench and Re:Max",
         r"figures/modecollapse_story.pdf",
         r"Correctness can improve while verified solution support",
         r"Both start at 16/32 correct across three modes",
         r"a dashed ring marks a vertex the prompt leaves blank",
         r"By pass 4.5, Dr.GRPO",
-        r"Re:MaxRL returns 32/32 across four",
+        r"Re:Max returns 32/32 across four",
         r"Numbers above bars are pooled unique verified keys",
     ):
         require(
@@ -3120,7 +3120,7 @@ def main() -> None:
         r"figures/e118_all_scale_factorial_progress.pdf",
         r"\label{fig:maxrl-factorial}",
         r"Replay remains useful when fresh rollouts optimize",
-        r"Re:MaxRL exceeds MaxRL",
+        r"Re:Max exceeds MaxRL",
         r"all five domains",
     ):
         require(token in manuscript, f"missing MaxRL results token {token!r}")

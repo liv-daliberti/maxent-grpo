@@ -125,6 +125,38 @@ def pantry_support_from_mask(
     return tuple(sorted(support))
 
 
+def pantry_support_mask_from_allocation(
+    allocation: str,
+    spec: Mapping[str, Any],
+) -> str:
+    """Project a verifier-valid allocation onto its public-row support mask.
+
+    This is the inverse representation adapter needed when an offline replay
+    pool stores PantryPlan witnesses but the policy acts on the registered
+    support-mask surface. It validates the original witness first and changes
+    only its serialization; no replay row is dropped or deduplicated.
+    """
+
+    parsed_spec = parse_pantry_plan_spec(spec)
+    if len(parsed_spec.ingredients) != PANTRY_SUPPORT_MASK_WIDTH:
+        raise PantryPlanError(
+            "Pantry support masks require exactly "
+            f"{PANTRY_SUPPORT_MASK_WIDTH} public ingredient rows"
+        )
+    validation = validate_pantry_plan(allocation, spec)
+    if validation is None:
+        raise PantryPlanError("replayed Pantry allocation fails its verifier")
+    selected = {ingredient_id for ingredient_id, _grams in validation.allocations_g}
+    mask = "".join(
+        "1" if ingredient.ingredient_id in selected else "0"
+        for ingredient in parsed_spec.ingredients
+    )
+    decoded_support = pantry_support_from_mask(mask, spec)
+    if decoded_support != tuple(sorted(selected)):
+        raise PantryPlanError("Pantry allocation cannot be represented by its mask")
+    return mask
+
+
 def decode_pantry_support_mask(
     mask: str,
     spec: Mapping[str, Any],
@@ -146,4 +178,3 @@ def decode_pantry_support_mask(
         f"{ingredient_id}={grams}"
         for ingredient_id, grams in validation.allocations_g
     )
-

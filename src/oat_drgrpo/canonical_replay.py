@@ -48,6 +48,9 @@ class CanonicalReplayBatch:
     attention_mask: torch.Tensor
     response_masks: torch.Tensor
     group_sizes: tuple[int, ...]
+    fresh_observation_counts: torch.Tensor
+    mass_weights: torch.Tensor
+    priority_modes: int
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,9 @@ def materialize_canonical_replay_batch(
     prompt_lengths: list[int] = []
     response_lengths: list[int] = []
     group_sizes: list[int] = []
+    fresh_observation_counts: list[int] = []
+    mass_weights: list[float] = []
+    priority_modes = 0
     for group in groups:
         prompt = tuple(int(value) for value in group.prompt_token_ids)
         responses = tuple(
@@ -98,10 +104,55 @@ def materialize_canonical_replay_batch(
         ):
             raise ValueError("canonical replay token ids must be non-negative")
         group_sizes.append(len(responses))
-        for response in responses:
+        raw_fresh_counts = tuple(
+            int(value)
+            for value in getattr(group, "fresh_observation_counts", ())
+        )
+        if not raw_fresh_counts:
+            # Compatibility for external/offline replay groups. Frequency
+            # weighting rejects these sentinel zeros in the learner.
+            raw_fresh_counts = tuple(0 for _ in responses)
+        if len(raw_fresh_counts) != len(responses) or any(
+            value < 0 for value in raw_fresh_counts
+        ):
+            raise ValueError(
+                "canonical replay fresh observation counts must be "
+                "non-negative and align with response rows"
+            )
+        raw_mass_weights = tuple(
+            float(value) for value in getattr(group, "mass_weights", ())
+        )
+        if not raw_mass_weights:
+            raw_mass_weights = tuple(1.0 for _ in responses)
+        if len(raw_mass_weights) != len(responses):
+            raise ValueError(
+                "canonical replay mass weights must align with response rows"
+            )
+        if any(
+            not math.isfinite(value) or value <= 0.0
+            for value in raw_mass_weights
+        ):
+            raise ValueError(
+                "canonical replay mass weights must be finite and positive"
+            )
+        if not math.isclose(
+            sum(raw_mass_weights),
+            float(len(raw_mass_weights)),
+            rel_tol=0.0,
+            abs_tol=1e-6,
+        ):
+            raise ValueError(
+                "canonical replay mass weights must preserve the group budget"
+            )
+        priority_modes += int(getattr(group, "priority_modes", 0))
+        for response, fresh_count, mass_weight in zip(
+            responses, raw_fresh_counts, raw_mass_weights
+        ):
             sequences.append(prompt + response)
             prompt_lengths.append(len(prompt))
             response_lengths.append(len(response))
+            fresh_observation_counts.append(fresh_count)
+            mass_weights.append(mass_weight)
 
     max_length = max(len(row) for row in sequences)
     input_ids = torch.full(
@@ -137,7 +188,60 @@ def materialize_canonical_replay_batch(
         attention_mask=attention_mask,
         response_masks=response_masks,
         group_sizes=tuple(group_sizes),
+        fresh_observation_counts=torch.tensor(
+            fresh_observation_counts,
+            dtype=torch.int64,
+            device=device,
+        ),
+        mass_weights=torch.tensor(
+            mass_weights,
+            dtype=torch.float32,
+            device=device,
+        ),
+        priority_modes=priority_modes,
     )
+
+
+def canonical_replay_key_target_weights(
+    fresh_observation_counts: torch.Tensor,
+    group_sizes: Sequence[int],
+    *,
+    weighting: str,
+) -> torch.Tensor:
+    """Return group-budget-preserving weights over fixed replay rows.
+
+    The uniform mode intentionally returns literal ones and therefore preserves
+    the pre-ablation replay path exactly. Fresh-frequency mode normalizes
+    cumulative counts from validator-positive fresh policy rollouts to sum to
+    the number of retained keys in each prompt bank. Neither replay nor
+    proposal rows are admitted as frequency observations.
+    """
+
+    sizes = tuple(int(value) for value in group_sizes)
+    if fresh_observation_counts.ndim != 1:
+        raise ValueError("fresh replay counts must be one-dimensional")
+    if not sizes or any(value < 1 for value in sizes):
+        raise ValueError("replay target groups must be non-empty")
+    if sum(sizes) != int(fresh_observation_counts.numel()):
+        raise ValueError("replay target group sizes do not partition counts")
+    if weighting == "uniform":
+        return torch.ones_like(fresh_observation_counts, dtype=torch.float32)
+    if weighting != "fresh_frequency":
+        raise ValueError("replay key weighting must be uniform or fresh_frequency")
+    if bool((fresh_observation_counts <= 0).any()):
+        raise ValueError(
+            "frequency replay requires a positive fresh observation count "
+            "for every materialized key"
+        )
+
+    weights: list[torch.Tensor] = []
+    start = 0
+    for size in sizes:
+        stop = start + size
+        counts = fresh_observation_counts[start:stop].to(torch.float64)
+        weights.append(counts * (float(size) / counts.sum()))
+        start = stop
+    return torch.cat(weights).to(torch.float32)
 
 
 def canonical_replay_uniform_loss(
@@ -218,6 +322,7 @@ def canonical_replay_uniform_loss(
 def canonical_replay_uniform_verified_likelihood_loss(
     mode_scores: torch.Tensor,
     group_sizes: Sequence[int],
+    mass_weights: torch.Tensor | None = None,
 ) -> CanonicalReplayLoss:
     """Raise common verified-mode score while weighting observed modes equally.
 
@@ -249,6 +354,18 @@ def canonical_replay_uniform_verified_likelihood_loss(
         raise ValueError("canonical replay group sizes do not partition scores")
     if not torch.isfinite(mode_scores).all():
         raise ValueError("canonical replay mode scores must be finite")
+    if mass_weights is None:
+        mass_weights = torch.ones_like(mode_scores.detach())
+    if (
+        mass_weights.ndim != 1
+        or mass_weights.shape != mode_scores.shape
+        or not bool(torch.isfinite(mass_weights).all())
+        or bool((mass_weights <= 0.0).any())
+    ):
+        raise ValueError(
+            "verified-likelihood mass weights must be finite, positive, and "
+            "aligned with mode scores"
+        )
 
     losses: list[torch.Tensor] = []
     balance_losses: list[torch.Tensor] = []
@@ -259,12 +376,14 @@ def canonical_replay_uniform_verified_likelihood_loss(
     for size in sizes:
         stop = start + size
         scores = mode_scores[start:stop].float()
-        losses.append(-scores.mean())
+        weights = mass_weights[start:stop].to(
+            device=scores.device,
+            dtype=scores.dtype,
+        )
+        weight_sum = weights.sum()
+        losses.append(-(scores * weights).sum() / weight_sum)
         score_gradients.append(
-            torch.full_like(
-                scores.detach(),
-                -1.0 / float(len(sizes) * size),
-            )
+            -weights.detach() / (float(len(sizes)) * weight_sum.detach())
         )
         if size >= 2:
             log_probabilities = torch.log_softmax(scores, dim=0)
@@ -310,6 +429,7 @@ def canonical_replay_uniform_verified_likelihood_loss(
 def canonical_replay_split_mass_balance_loss(
     mode_scores: torch.Tensor,
     group_sizes: Sequence[int],
+    mass_weights: torch.Tensor | None = None,
 ) -> CanonicalReplaySplitLoss:
     """Return actuator-aligned mass and balance terms from one score pass.
 
@@ -322,6 +442,7 @@ def canonical_replay_split_mass_balance_loss(
     mass = canonical_replay_uniform_verified_likelihood_loss(
         mode_scores,
         group_sizes,
+        mass_weights,
     )
     sizes = tuple(int(value) for value in group_sizes)
     eligible_slices: list[tuple[int, int]] = []
@@ -375,3 +496,115 @@ def canonical_replay_split_mass_balance_loss(
         balance_eligible_groups=balance_groups,
         balance_retained_modes=balance_modes,
     )
+
+
+def project_retention_safe_score_gradients(
+    raw_score_gradients: torch.Tensor,
+    group_sizes: Sequence[int],
+) -> torch.Tensor:
+    """Keep rare-mode emphasis without assigning downward verified-score pressure.
+
+    Each prompt-local raw gradient is projected onto the non-positive orthant
+    and renormalized to preserve that group's total verified-mass gradient.
+    The input is treated as a detached score-space update, matching replay's
+    existing exact-gradient surrogate.
+    """
+
+    if raw_score_gradients.ndim != 1:
+        raise ValueError("replay score gradients must be one-dimensional")
+    sizes = tuple(int(value) for value in group_sizes)
+    if not sizes or any(value < 1 for value in sizes):
+        raise ValueError("retention-safe projection requires non-empty groups")
+    if sum(sizes) != int(raw_score_gradients.numel()):
+        raise ValueError("replay group sizes do not partition score gradients")
+    if not torch.isfinite(raw_score_gradients).all():
+        raise ValueError("replay score gradients must be finite")
+
+    detached = raw_score_gradients.detach()
+    projected = torch.empty_like(detached)
+    start = 0
+    for size in sizes:
+        stop = start + size
+        chunk = detached[start:stop]
+        preserved_mass = -chunk.sum()
+        if not bool(preserved_mass > 0.0):
+            raise ValueError(
+                "each replay group must have negative total mass gradient"
+            )
+        upward_pressure = torch.clamp(-chunk, min=0.0)
+        normalizer = upward_pressure.sum()
+        if not bool(normalizer > 0.0):
+            raise RuntimeError(
+                "negative total mass gradient must leave upward pressure"
+            )
+        projected[start:stop] = (
+            -upward_pressure * (preserved_mass / normalizer)
+        )
+        start = stop
+
+    if not torch.isfinite(projected).all():
+        raise RuntimeError("retention-safe projection produced non-finite values")
+    if bool((projected > 0.0).any()):
+        raise RuntimeError("retention-safe projection assigned downward pressure")
+    return projected
+
+
+def cap_retention_safe_balance_score_gradients(
+    weighted_mass_score_gradients: torch.Tensor,
+    weighted_balance_score_gradients: torch.Tensor,
+    group_sizes: Sequence[int],
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Apply the largest prompt-local balance scale with no positive gradient."""
+
+    if weighted_mass_score_gradients.ndim != 1:
+        raise ValueError("replay score gradients must be one-dimensional")
+    if (
+        weighted_balance_score_gradients.shape
+        != weighted_mass_score_gradients.shape
+    ):
+        raise ValueError("mass and balance score gradients must have equal shape")
+    sizes = tuple(int(value) for value in group_sizes)
+    if not sizes or any(value < 1 for value in sizes):
+        raise ValueError("retention-safe balance requires non-empty groups")
+    if sum(sizes) != int(weighted_mass_score_gradients.numel()):
+        raise ValueError("replay group sizes do not partition score gradients")
+    if not all(
+        bool(torch.isfinite(value).all())
+        for value in (
+            weighted_mass_score_gradients,
+            weighted_balance_score_gradients,
+        )
+    ):
+        raise ValueError("replay score gradients must be finite")
+
+    mass = weighted_mass_score_gradients.detach()
+    balance = weighted_balance_score_gradients.detach()
+    if bool((mass > 0.0).any()):
+        raise ValueError("verified-mass gradients must be non-positive")
+
+    combined = torch.empty_like(mass)
+    balance_scales: list[torch.Tensor] = []
+    start = 0
+    for size in sizes:
+        stop = start + size
+        mass_chunk = mass[start:stop]
+        balance_chunk = balance[start:stop]
+        if not bool(mass_chunk.sum() < 0.0):
+            raise ValueError("each replay group requires negative mass pressure")
+        positive_balance = balance_chunk > 0.0
+        scale = mass_chunk.new_tensor(1.0)
+        if bool(positive_balance.any()):
+            limit = (
+                -mass_chunk[positive_balance] / balance_chunk[positive_balance]
+            ).min()
+            scale = torch.clamp(limit, min=0.0, max=1.0)
+            if bool(scale < 1.0):
+                scale = torch.nextafter(scale, torch.zeros_like(scale))
+        safe_chunk = mass_chunk + scale * balance_chunk
+        if bool((safe_chunk > 0.0).any()):
+            raise RuntimeError("safe balance assigned downward score pressure")
+        combined[start:stop] = safe_chunk
+        balance_scales.append(scale)
+        start = stop
+
+    return combined, torch.stack(balance_scales)

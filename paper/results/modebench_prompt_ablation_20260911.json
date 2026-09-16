@@ -1,13 +1,13 @@
 {
   "analysis_dependencies": {
     "audit_hosted_modebench_completion.py": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2/analysis_code/audit_hosted_modebench_completion.py",
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v5/analysis_code/audit_hosted_modebench_completion.py",
       "sha256": "b2fdb2262d9829de42f4f161ba95d68c3b6bf7919194798f0a96406d19f9ea60"
     }
   },
   "analyzer_source": {
-    "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2/analysis_code/analyze_modebench_prompt_ablation_2be926e99e984465.py",
-    "sha256": "2be926e99e98446512f4a14077a2e175d4b5bde0fada2933323f1bf7eaebb891"
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v5/analysis_code/analyze_modebench_prompt_ablation_212f37ede95b76a9.py",
+    "sha256": "212f37ede95b76a93bff7f63d676210989ddfa1197651cda3ca5acc93bd326b5"
   },
   "design": {
     "design.json": {
@@ -277074,8 +277074,8 @@
     "seed": 20260911
   },
   "publication_source": {
-    "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2",
-    "report_path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2/analysis.json"
+    "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v5",
+    "report_path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v5/analysis.json"
   },
   "registries": {
     "local": {

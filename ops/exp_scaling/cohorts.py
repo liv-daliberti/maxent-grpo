@@ -171,7 +171,7 @@ REGISTRY: tuple[Cohort, ...] = (
            "e110_falcon_python_admission_horizon_jobs.json",
            "repair", reader="smoke"),
     # The v7 mechanism gate couples target-free verified support discovery to
-    # uniform ReplayDr and the persistent verified-support entropy estimator.
+    # uniform Re:Dr and the persistent verified-support entropy estimator.
     # It is registered prospectively so its held and live states are visible.
     Cohort("e111", "E111 all scales    verified-support discovery gate",
            "e111_verified_support_discovery_mechanism_gate_jobs.json",
@@ -185,10 +185,10 @@ REGISTRY: tuple[Cohort, ...] = (
     Cohort("e117s1", "E117 Stage 1 development C/P/F efficacy screen",
            "e117_stage1_development_jobs.json",
            "repair", reader="smoke"),
-    Cohort("e118", "E118 Qwen-0.5B/Falcon-1B/Qwen-3B MaxRL / Re:MaxRL factorial",
+    Cohort("e118", "E118 Qwen-0.5B/Falcon-1B/Qwen-3B MaxRL / Re:Max factorial",
            "e118_all_scales_maxrl_verified_replay_jobs.json",
            "repair", reader="smoke"),
-    Cohort("e119", "E119 Qwen-0.5B Level-2 Dr.GRPO / Re:Dr.GRPO / MaxRL / Re:MaxRL factorial",
+    Cohort("e119", "E119 Qwen-0.5B Level-2 Dr.GRPO / Re:Dr / MaxRL / Re:Max factorial",
            "e119_level2_qwen05b_factorial_jobs.json",
            "repair", reader="smoke"),
     Cohort("e120r1", "E120-R1 fresh-frequency replay ablation",
@@ -199,12 +199,12 @@ REGISTRY: tuple[Cohort, ...] = (
            "repair", reader="smoke"),
     # Prospective Level-3 factorial; its planned cells remain visible while
     # admission and model selection are pending, before scheduler jobs exist.
-    Cohort("e122", "E122 Qwen-0.5B Level-3 Dr.GRPO / Re:Dr.GRPO / MaxRL / Re:MaxRL factorial",
+    Cohort("e122", "E122 Qwen-0.5B Level-3 Dr.GRPO / Re:Dr / MaxRL / Re:Max factorial",
            "e122_level3_factorial_jobs.json",
            "repair", reader="smoke"),
     # Separate Qwen3B Level-3 factorial; its systems benchmark does not count
     # as science progress, and its held/released allocations remain distinct.
-    Cohort("e123", "E123 Qwen-3B Level-3 Dr.GRPO / Re:Dr.GRPO / MaxRL / Re:MaxRL factorial",
+    Cohort("e123", "E123 Qwen-3B Level-3 Dr.GRPO / Re:Dr / MaxRL / Re:Max factorial",
            "e123_level3_factorial_jobs.json",
            "repair", reader="smoke"),
     # Conditional full efficacy successor to E105; preregistered before E111
@@ -218,11 +218,11 @@ REGISTRY: tuple[Cohort, ...] = (
     Cohort("e112r1", "E112-R1 all scales corrected verified-support MaxEnt relaunch",
            "e112r1_verified_support_discovery_full_three_scale_jobs.json",
            "repair"),
-    # The parser repair is shared by semantic MaxEnt and ReplayDr admission.
-    # These fifteen Python-only ReplayDr cells remove that change from E105's
+    # The parser repair is shared by semantic MaxEnt and Re:Dr admission.
+    # These fifteen Python-only Re:Dr cells remove that change from E105's
     # paired treatment effect instead of comparing repaired treatment to an
     # old-parser baseline.
-    Cohort("e109", "E109 all scales    repaired Python ReplayDr comparators",
+    Cohort("e109", "E109 all scales    repaired Python Re:Dr comparators",
            "e109_repaired_python_replay_comparators_jobs.json", "repair"),
     # Dormant until its combined E104+E106 mechanism gate passes. Registering
     # before release prevents the full evaluation from silently disappearing
@@ -258,6 +258,18 @@ REGISTRY: tuple[Cohort, ...] = (
                "a second control with no paired treatment arm; Figure 4 shows "
                "paired differences, so plotting an unpaired baseline beside "
                "them would read as a treatment effect")),
+    # The E95 weights were removed on 2026-08-24 from a run root both retention
+    # scripts skip, and had never been uploaded, so those policies no longer
+    # exist. E95-R retrains the same recorded recipes; it is a replication, not
+    # a recovery, and its cells are not substitutable for the E95 cells whose
+    # numbers the manuscript reports.
+    Cohort("e95r_05b", "E95R Qwen-0.5B   plain GRPO replication",
+           "e95r_plain_grpo_replication_jobs.json", "paired", "Qwen2.5-0.5B",
+           plotted=False,
+           not_plotted_because=(
+               "a replication of a lost unpaired control; it has no paired "
+               "treatment arm, and its policies differ from the E95 cells the "
+               "manuscript reports, so it cannot stand in for them")),
     Cohort("e114", "E114 Qwen-3B     plain GRPO seed extension",
            "e114_plain_grpo_qwen3b_extension_jobs.json", "paired", "Qwen2.5-3B",
            plotted=False,

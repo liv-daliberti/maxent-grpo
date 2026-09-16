@@ -12,7 +12,7 @@ that are easy to hide in an endpoint-only plot explicit:
 * ``distinct@8 - pass@8`` can fall when an arm rescues previously unsolved
   prompts with one correct mode, even while raw ``distinct@8`` rises; and
 * the non-Pantry E112-R1 treatment uses replicated free-form sampling and
-  local actor synchronization whereas its historical ReplayDr comparators use
+  local actor synchronization whereas its historical Re:Dr comparators use
   the ordinary collector path.  The repository's E66 protocol already treats
   that request-stream difference as a separate intervention.
 """

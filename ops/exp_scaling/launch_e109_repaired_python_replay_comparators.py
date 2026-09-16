@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Submit 15 parser-matched Re:Dr.GRPO Python comparators for E105."""
+"""Submit 15 parser-matched Re:Dr Python comparators for E105."""
 
 from __future__ import annotations
 

@@ -58,7 +58,7 @@ def prepare():
 The user requested other Qwen-3B E118 training to start when job31073906
 finishes. The five cited Python failures already have successful terminal
 successors; no completed Python cell is restarted. Select existing pending
-Graph Re:MaxRL seed70 (job31048108) by highest valid pending checkpoint
+Graph Re:Max seed70 (job31048108) by highest valid pending checkpoint
 progress, breaking the tie by original job ID, without inspecting efficacy
 outcomes. Resume its valid model and optimizer checkpoint at step1728.
 

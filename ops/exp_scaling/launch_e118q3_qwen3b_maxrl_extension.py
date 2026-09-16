@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Submit the five-seed Qwen2.5-3B E118 MaxRL/Re:MaxRL extension."""
+"""Submit the five-seed Qwen2.5-3B E118 MaxRL/Re:Max extension."""
 
 from __future__ import annotations
 

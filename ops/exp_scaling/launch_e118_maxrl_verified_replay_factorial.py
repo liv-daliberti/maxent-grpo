@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Submit E118: matched MaxRL versus Re:MaxRL extension to E78."""
+"""Submit E118: matched MaxRL versus Re:Max extension to E78."""
 
 from __future__ import annotations
 

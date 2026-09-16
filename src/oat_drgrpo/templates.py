@@ -107,6 +107,67 @@ def apply_falcon_boxed_template(question: str) -> str:
     return render_chat_prompt("falcon", _BOXED_SYSTEM, question)
 
 
+_LEVEL2_HYBRID_SYSTEMS = {
+    "countdown": (
+        "Solve the executable constraint problem carefully. You may reason briefly, "
+        "but end with exactly one final answer inside \\boxed{}. Systematically combine "
+        "every supplied number exactly once using +, -, *, /, and parentheses. Check "
+        "the exact target before answering. Output exactly the boxed expression."
+    ),
+    "python_factors": (
+        "Solve the executable constraint problem carefully. You may reason briefly, "
+        "but end with exactly one final answer inside \\boxed{}. Construct one allowed "
+        "lambda expression. Test small divisors with nested conditional expressions, "
+        "for example 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5, but adapt the "
+        "tests to every listed case. You may instead dispatch on each listed value. "
+        "Output exactly the boxed lambda."
+    ),
+    "mathir": (
+        "Solve the executable constraint problem carefully. You may reason briefly, "
+        "but end with exactly one final answer inside \\boxed{}. Use algebraic isolation: "
+        "move the right-side x term left, remove the left constant, then divide by the "
+        "combined coefficient. Match those operations to the shuffled menu IDs."
+    ),
+    "pantry": (
+        "Solve the executable constraint problem carefully. You may reason briefly, "
+        "but end with exactly one final answer inside \\boxed{}. Prefer allowed "
+        "high-energy/protein, very-low-sodium ingredients, especially seeds or oats. "
+        "Choose stepped amounts, check every bound, and output 2 to 4 "
+        "ingredient_id=grams pairs."
+    ),
+}
+
+
+def apply_qwen_level2_countdown_template(question: str) -> str:
+    return render_chat_prompt("qwen", _LEVEL2_HYBRID_SYSTEMS["countdown"], question)
+
+
+def apply_qwen_level2_python_factors_template(question: str) -> str:
+    return render_chat_prompt("qwen", _LEVEL2_HYBRID_SYSTEMS["python_factors"], question)
+
+
+
+# Prospective Python Level 3 default, chosen after the September 11 prompt
+# sensitivity analysis. Keep the existing Level 2/historical template intact.
+_LEVEL3_PYTHON_NEUTRAL_SYSTEM = (
+    "Solve the executable constraint problem carefully. You may reason briefly, "
+    "but end with exactly one final answer inside \\boxed{}. Construct one allowed "
+    "lambda expression. Output exactly the boxed lambda."
+)
+
+
+def apply_qwen_level3_python_factors_template(question: str) -> str:
+    return render_chat_prompt("qwen", _LEVEL3_PYTHON_NEUTRAL_SYSTEM, question)
+
+
+def apply_qwen_level2_mathir_template(question: str) -> str:
+    return render_chat_prompt("qwen", _LEVEL2_HYBRID_SYSTEMS["mathir"], question)
+
+
+def apply_qwen_level2_pantry_template(question: str) -> str:
+    return render_chat_prompt("qwen", _LEVEL2_HYBRID_SYSTEMS["pantry"], question)
+
+
 _GRAPH_DIGITS_SYSTEM = (
     "Return only the requested bare sequence of digits. Do not explain, "
     "add punctuation, or use LaTeX."
@@ -328,6 +389,12 @@ TEMPLATE_FACTORY: dict[str, Callable[[str], str]] = {
     "qwen_pantry_support_mask": apply_qwen_pantry_support_mask_template,
     "qwen_math": apply_qwen_math_template,
     "qwen_math_route": apply_qwen_math_route_template,
+    "qwen_level2_countdown": apply_qwen_level2_countdown_template,
+    "qwen_level2_python_factors": apply_qwen_level2_python_factors_template,
+    "qwen_level3_python_factors": apply_qwen_level3_python_factors_template,
+    "qwen_level3_python_factors_neutral_v1": apply_qwen_level3_python_factors_template,
+    "qwen_level2_mathir": apply_qwen_level2_mathir_template,
+    "qwen_level2_pantry": apply_qwen_level2_pantry_template,
     "falcon_boxed": apply_falcon_boxed_template,
     "falcon_countdown_digits": apply_falcon_countdown_digits_template,
     "falcon_graph_digits": apply_falcon_graph_digits_template,
@@ -363,6 +430,12 @@ PROMPT_TEMPLATE_ROLES: dict[str, str] = {
     "qwen_math": "math",
     "falcon_math": "math",
     "qwen_math_route": "math_route",
+    "qwen_level2_countdown": "boxed",
+    "qwen_level2_python_factors": "boxed",
+    "qwen_level3_python_factors": "boxed",
+    "qwen_level3_python_factors_neutral_v1": "boxed",
+    "qwen_level2_mathir": "boxed",
+    "qwen_level2_pantry": "boxed",
     "falcon_math_route": "math_route",
     "r1": "r1",
     "no": "no",

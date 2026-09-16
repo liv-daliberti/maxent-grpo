@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed contract for the current ModeBench/Re:MaxRL paper story."""
+"""Fail-closed contract for the current ModeBench/Re:Max paper story."""
 from __future__ import annotations
 
 from collections import Counter
@@ -26,16 +26,27 @@ CORE = ROOT / "paper/results/core_terminal_endpoints.json"
 # not train, so they are read together at the end of ModeBench.
 MAIN_FIGURES = (
     "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
-    "gpt56_all_levels32_sampling_budget",
+    "gpt56_all_levels32_sampling_budget", "replay_bank_balance",
     "verified_support_story", "concentration_story",
-    "experiment1_retention_comparator_matrix", "e118_all_scale_factorial_progress",
+    "e118_all_scale_factorial_progress",
     "modebench_level_admission",
 )
 MAIN_LABELS = (
     "fig:story", "fig:modebench-examples", "fig:base-levels-all-scales",
-    "fig:gpt56-sampling-budget",
+    "fig:gpt56-sampling-budget", "fig:replay-bank-balance",
     "fig:verified-support-story", "fig:concentration-story",
-    "fig:cross-scale-terminal-effects", "fig:maxrl-factorial", "fig:level2-admission",
+    "fig:maxrl-factorial", "fig:level2-admission",
+)
+# The retention matrix reads as two tables: at the width the main body allows a
+# heatmap of that many cells was not legible, and a table also carries the
+# paired interval the plate had to leave in the record.
+MAIN_TABLES = (
+    ("tab:direct-comparator-matrix", "results/retention_matrix_panel_b_table_body.tex"),
+)
+# The cross-scale half is the per-domain detail behind Fig. 9's averages, so it
+# reads in the appendix and the main body cites it across the divide.
+APPENDIX_TABLES = (
+    ("tab:cross-scale-terminal-effects", "results/retention_matrix_panel_a_table_body.tex"),
 )
 # Supporting plots retain their numerical, source, rendered-output, and
 # label-preservation checks after moving out of the main narrative.
@@ -61,8 +72,8 @@ APPENDIX_FIGURES = (
     "direct_baseline_learning_curves_pass8",
     "e121_fixed_bank_survival",
 )
-PROOF_REFERENCE = ROOT / "paper/audits/proof_cleanup_20260915/main.tex"
-PROOF_REFERENCE_SHA256 = "1c4c8d816c8fb5a57aeb1c6d627c678b423b253dd2d2cb90eeac8b2d48ddd158"
+PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_20260915b/main.tex"
+PROOF_REFERENCE_SHA256 = "383b497b2ea2ed688c44e4f7f93d367881d7185aea1dd9b8e34d6532de056b18"
 RETIRED = (
     "sustained_auc_effects_qwen05b",
     "verified_support_discovery_two_scale_effects",
@@ -114,6 +125,28 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
         require(f"figures/{stem}.pdf" not in appendix, f"main figure {stem} duplicated in appendix")
         label_positions.append(main_body.index(token))
     require(label_positions == sorted(label_positions), "main figure labels are out of order")
+    for label, body in MAIN_TABLES:
+        token = r"\label{" + label + "}"
+        require(main_body.count(token) == 1 and token not in appendix,
+                f"main table label {label} missing, duplicated, or moved to the appendix")
+        include = r"\input{" + body + "}"
+        require(main_body.count(include) == 1 and include not in appendix,
+                f"main table {label} must compile its generated body exactly once")
+        require(main_body.count(r"\ref{" + label + "}") >= 1,
+                f"main table {label} is never cited in the main body")
+        require((ROOT / "paper" / body).is_file(),
+                f"generated table body for {label} is missing from the tree")
+    for label, body in APPENDIX_TABLES:
+        token = r"\label{" + label + "}"
+        require(appendix.count(token) == 1 and token not in main_body,
+                f"appendix table {label} must be compiled once outside the main")
+        include = r"\input{" + body + "}"
+        require(appendix.count(include) == 1 and include not in main_body,
+                f"appendix table {label} must compile its generated body exactly once")
+        require(main_body.count(r"\ref{" + label + "}") >= 1,
+                f"appendix table {label} is not tied to the main body")
+        require((ROOT / "paper" / body).is_file(),
+                f"generated table body for {label} is missing from the tree")
     require(main_body.index(r"\end{abstract}")
             < main_body.index("figures/modecollapse_story.pdf")
             < main_body.index(r"\label{sec:introduction}"),
@@ -144,8 +177,8 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
         ("sec:levels-design", "sec:method", "fig:base-levels-all-scales", "mode_diversity_levels_appendix"),
         ("sec:method", "sec:experiments", "fig:verified-support-story", "verified_support_story"),
         ("sec:results-collapse", "sec:results-retention", "fig:concentration-story", "concentration_story"),
-        ("sec:results-retention", "sec:results-maxrl", "fig:cross-scale-terminal-effects",
-         "experiment1_retention_comparator_matrix"),
+        ("sec:results-retention", "sec:results-maxrl", "tab:cross-scale-terminal-effects",
+         None),
         ("sec:results-maxrl", "sec:results-levels", "fig:maxrl-factorial",
          "e118_all_scale_factorial_progress"),
         ("sec:results-levels", "sec:hosted-concentration", "fig:level2-admission", "modebench_level_admission"),
@@ -602,7 +635,9 @@ def main() -> None:
         r"\label{lem:success-breadth}",
         r"\label{eq:success-breadth-identities}",
         r"\label{eq:fixed-success-breadth-bounds}",
-        r"\label{app:claim-basis}",
+        # The claim-evidence map was withdrawn from the manuscript; the scope
+        # statements it carried now live in Conclusion and Limitations. Every
+        # other proof-chain block below stays required.
         r"\label{lem:shared-exemplar-retention}",
         r"\label{lem:maxrl-mean}",
         r"\label{thm:grpo-collapse}",
@@ -616,7 +651,7 @@ def main() -> None:
         r"e^{-2560}",
         "full-coverage corollary therefore cannot supply a domain-wide guarantee there",
         r"\label{app:fixed-bank-survival}",
-        "The fixed-bank study tracks Qwen2.5-0.5B Re:Dr.GRPO",
+        "The fixed-bank study tracks Qwen2.5-0.5B Re:Dr",
         "score surrogates, not exact probabilities of sampling canonical modes",
         "Without a matched no-replay fixed-bank arm",
         "supplies no probability floor for an unbanked key",
@@ -725,8 +760,9 @@ def main() -> None:
         fig4.get("estimands") == {
             "pass8": "method minus matched Dr.GRPO terminal pass@8",
             "distinct8": "method minus matched Dr.GRPO terminal distinct@8",
+            "pmd": "method minus matched Dr.GRPO terminal PCMD",
         },
-        "Figure 4 does not show the two registered co-primary endpoints",
+        "Figure 4 does not show the registered endpoint beside the breadth axis",
     )
     require(
         "not encoded as cell-level significance decisions"
@@ -737,20 +773,24 @@ def main() -> None:
     require(
         omnibus.get("status") == "post-hoc omnibus consistency check"
         and omnibus.get("magnitude_pooling") is False
-        and omnibus.get("family") == ["pass8", "distinct8"],
+        and omnibus.get("family") == ["pass8", "pmd"],
         "Figure 4 omnibus-test family drifted",
     )
-    for endpoint in ("pass8", "distinct8"):
+    # PCMD is undefined in the blocks whose success is too rare to give verified
+    # pairs, so its sign test runs over fewer blocks than pass@8's.
+    for endpoint, positive, exact, holm in (
+        ("pass8", 14, 0.0001220703125, 0.000244140625),
+        ("pmd", 13, 0.000244140625, 0.000244140625),
+    ):
         test = omnibus.get("tests", {}).get(endpoint, {})
         require(
-            test.get("positive") == 14
+            test.get("positive") == positive
             and test.get("negative") == 0
             and test.get("ties") == 0
-            and abs(test.get("two_sided_exact_sign_p", 0.0) - 0.0001220703125)
-            < 1e-15
+            and abs(test.get("two_sided_exact_sign_p", 0.0) - exact) < 1e-15
             and abs(
                 test.get("holm_adjusted_p_across_two_coprimary_endpoints", 0.0)
-                - 0.000244140625
+                - holm
             )
             < 1e-15,
             f"Figure 4 {endpoint} omnibus statistics drifted",
@@ -784,7 +824,7 @@ def main() -> None:
     require(
         set(panel_b.get("methods", []))
         == {
-            "before_training", "replay_drgrpo", "maxrl", "ucpo",
+            "before_training", "replay_drgrpo", "replay_maxrl", "maxrl", "ucpo",
             "rlep_dr", "semantic_maxent", "grpo",
         }
         and set(panel_b.get("domains", [])) == DOMAINS
@@ -800,7 +840,7 @@ def main() -> None:
             )
 
     e118 = json.loads(E118.read_text(encoding="utf-8"))
-    require(e118.get("schema") == "e118-all-scale-terminal-progress-v6",
+    require(e118.get("schema") == "e118-all-scale-terminal-progress-v7",
             "wrong E118 figure schema")
     require(e118.get("target_step") == 3072, "wrong E118 terminal step")
     require(e118.get("before_training_step") == 0,
@@ -808,8 +848,8 @@ def main() -> None:
     display = e118.get("display_contract", {})
     require(
         display.get("tracks") == {
-            "upper": "Untrained to MaxRL to Re:MaxRL",
-            "lower": "Untrained to Dr.GRPO to Re:Dr.GRPO",
+            "upper": "Untrained to MaxRL to Re:Max",
+            "lower": "Untrained to Dr.GRPO to Re:Dr",
         }
         and "restricted to each track's paired seeds"
         in display.get("untrained_reference", ""),
@@ -840,11 +880,11 @@ def main() -> None:
     domain_definition = "equal domain average of domain-specific paired-seed means"
     paired_definition = "equal domain average within paired seed"
     expected_main_description = (
-        "three-model cross-domain pass@8 and distinct@8 with MaxRL/replay and "
+        "three-model cross-domain pass@8 and PCMD with MaxRL/replay and "
         "Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses five matched seeds "
         "across all five domains"
         if qwen3b_complete else
-        "three-model cross-domain pass@8 and distinct@8 with MaxRL/replay and "
+        "three-model cross-domain pass@8 and PCMD with MaxRL/replay and "
         "Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses descriptive equal-domain means "
         "of available within-domain paired seeds"
     )
@@ -852,7 +892,7 @@ def main() -> None:
         display.get("main_figure")
         == expected_main_description
         and display.get("main_panels") == {
-            "A": "cross-domain pass@8", "B": "cross-domain distinct@8",
+            "A": "cross-domain pass@8", "B": "cross-domain PCMD",
         }
         and display.get("appendix_figure")
         == "all three models across five domains and both terminal metrics"

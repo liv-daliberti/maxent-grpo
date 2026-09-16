@@ -526,7 +526,7 @@ def worker(plan):
                     torch.cuda.synchronize(); elapsed = time.monotonic() - started
                     require(engine.global_steps == before + 1, 'physical microbatch changed effective optimizer count')
                     norm = float(engine.get_global_grad_norm())
-                    require(math.isfinite(norm) and norm > 0, 'full-model Re:MaxRL gradient is zero or nonfinite')
+                    require(math.isfinite(norm) and norm > 0, 'full-model Re:Max gradient is zero or nonfinite')
                     require(all(bool(torch.isfinite(v).all()) for v in info.values() if isinstance(v, torch.Tensor)), 'nonfinite production update')
                     if domain_index == i == 0:
                         result['fixed_update_sketch'] = optimizer_sketch(engine)

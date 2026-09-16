@@ -82,7 +82,7 @@ COMPARISONS = (
     Comparison(
         "core_retention",
         "Canonical verified replay",
-        "Does Re:Dr.GRPO retain more verified modes than matched Dr.GRPO?",
+        "Does Re:Dr retain more verified modes than matched Dr.GRPO?",
         ("drgrpo", "replay_grpo"),
         {},
     ),
@@ -112,7 +112,7 @@ COMPARISONS = (
     Comparison(
         "adaptive_semantic_replay",
         "Adaptive semantic MaxEnt with replay",
-        "What does the registered adaptive semantic controller add to Re:Dr.GRPO?",
+        "What does the registered adaptive semantic controller add to Re:Dr?",
         ("replay_grpo", "adaptive_semantic_replay"),
         {
             "qwen05b": ("e89",),

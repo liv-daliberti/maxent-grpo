@@ -11,7 +11,7 @@ import shutil
 import socket
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -36,6 +36,7 @@ from ..canonical_actions import (
     _sample_canonical_actions_from_logits,
     decode_canonical_action_response,
 )
+from ..dapo import dapo_group_diagnostics, dapo_resample_prompt_index
 from ..logging_utils import filter_wandb_logs
 from ..math_grader import (
     VerifiedExplorationIdentity,
@@ -56,6 +57,7 @@ from ..templates import (
     validate_canonical_prompt_materialization,
 )
 from ..verified_transformations import (
+    derive_countdown_action_neighborhood_counterfactuals,
     derive_validator_preserving_counterfactuals,
 )
 from ..verified_route_library import VerifiedRouteLibrary
@@ -399,6 +401,9 @@ class ZeroMathRunMixin:
         refs: list[str],
         neutral_feedback: list[TrajectoryData],
         precomputed_proposal_groups: list[list[TrajectoryData]] | None = None,
+        proposal_group_factory: (
+            Callable[[int, float, int], list[TrajectoryData]] | None
+        ) = None,
     ) -> tuple[dict[str, list[Any]], dict[str, float]]:
         """Search a fixed temperature sweep for novel valid modes.
 
@@ -416,8 +421,32 @@ class ZeroMathRunMixin:
             )
         )
         verified_route_mode = key_mode == "verified_route"
+        transform_proposals = bool(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_transform_proposals",
+                True,
+            )
+        ) and not verified_route_mode
+        exact_grammar_transforms = bool(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_exact_grammar_transforms",
+                False,
+            )
+        ) and not verified_route_mode
+        if transform_proposals and exact_grammar_transforms:
+            raise RuntimeError(
+                "legacy and exact-grammar proposal transforms are mutually exclusive"
+            )
         metrics = {
             "actor/counterfactual_proposal_enabled": 1.0,
+            "actor/counterfactual_proposal_transform_enabled": float(
+                transform_proposals
+            ),
+            "actor/counterfactual_proposal_exact_grammar_transform_enabled": float(
+                exact_grammar_transforms
+            ),
             "actor/counterfactual_proposal_anchor_available": 0.0,
             "actor/counterfactual_proposal_anchor_from_current_neutral": 0.0,
             "actor/counterfactual_proposal_anchor_from_prior_bank": 0.0,
@@ -466,6 +495,39 @@ class ZeroMathRunMixin:
                 1.0 if verified_route_mode else 0.0
             ),
         }
+        starvation_controller = getattr(
+            self,
+            "_proposal_starvation_controller",
+            None,
+        )
+        starvation_diagnostics = (
+            starvation_controller.diagnostics()
+            if starvation_controller is not None
+            else {}
+        )
+        metrics.update(
+            {
+                "actor/counterfactual_proposal_starvation_fallback_enabled": float(
+                    starvation_controller is not None
+                ),
+                "actor/counterfactual_proposal_starvation_eligible_update": 0.0,
+                "actor/counterfactual_proposal_starvation_fallback_active": 0.0,
+                "actor/counterfactual_proposal_starvation_fallback_activation": 0.0,
+                "actor/counterfactual_proposal_starvation_fallback_extra_groups": 0.0,
+                "actor/counterfactual_proposal_starvation_stalled_updates_before": float(
+                    starvation_diagnostics.get("stalled_eligible_updates", 0)
+                ),
+                "actor/counterfactual_proposal_starvation_fallback_updates_cumulative": float(
+                    starvation_diagnostics.get("fallback_updates", 0)
+                ),
+                "actor/counterfactual_proposal_starvation_fallback_activations_cumulative": float(
+                    starvation_diagnostics.get("fallback_activations", 0)
+                ),
+                "actor/counterfactual_proposal_starvation_gold_support_feedback": 0.0,
+                "actor/counterfactual_proposal_starvation_desired_mode_count_feedback": 0.0,
+                "actor/counterfactual_proposal_starvation_eval_feedback": 0.0,
+            }
+        )
         empty_payload: dict[str, list[Any]] = {
             "prompt_token_ids": [],
             "outcome_keys": [],
@@ -751,12 +813,18 @@ class ZeroMathRunMixin:
                 skip_special_tokens=True,
             )
         transformed_surfaces = (
-            []
-            if verified_route_mode
+            derive_countdown_action_neighborhood_counterfactuals(
+                anchor_surface,
+                refs[0],
+                radius=2,
+            )
+            if exact_grammar_transforms
             else derive_validator_preserving_counterfactuals(
                 anchor_surface,
                 refs[0],
             )
+            if transform_proposals
+            else []
         )
         metrics["actor/counterfactual_proposal_transform_candidate_surfaces"] = float(
             len(transformed_surfaces)
@@ -872,7 +940,26 @@ class ZeroMathRunMixin:
         known_alternate_rows = 0
         novel_candidate_rows = 0
         generation_time = 0.0
-        max_attempts = int(self.args.online_canonical_counterfactual_max_attempts)
+        starvation_plan = (
+            starvation_controller.plan()
+            if starvation_controller is not None
+            else None
+        )
+        max_attempts = (
+            int(starvation_plan.max_attempts)
+            if starvation_plan is not None
+            else int(self.args.online_canonical_counterfactual_max_attempts)
+        )
+        metrics[
+            "actor/counterfactual_proposal_starvation_eligible_update"
+        ] = 1.0
+        if starvation_plan is not None:
+            metrics[
+                "actor/counterfactual_proposal_starvation_fallback_active"
+            ] = float(starvation_plan.fallback_active)
+            metrics[
+                "actor/counterfactual_proposal_starvation_fallback_activation"
+            ] = float(starvation_plan.fallback_activation)
         base_sampling_temperature = float(
             self.args.online_canonical_counterfactual_sampling_temperature
         )
@@ -909,7 +996,15 @@ class ZeroMathRunMixin:
                 stream=f"proposal:{attempt_index}",
             )
             proposal_request_seeds.append(proposal_request_seed)
-            if precomputed_proposal_groups is not None:
+            if proposal_group_factory is not None:
+                started = time.time()
+                proposal_feedback = proposal_group_factory(
+                    attempt_index,
+                    sampling_temperature,
+                    proposal_request_seed,
+                )
+                generation_time += time.time() - started
+            elif precomputed_proposal_groups is not None:
                 if attempt_index >= len(precomputed_proposal_groups):
                     raise RuntimeError(
                         "fixed counterfactual controls do not cover every "
@@ -1032,6 +1127,16 @@ class ZeroMathRunMixin:
         metrics["actor/counterfactual_proposal_seed_isolation_active"] = 1.0
         if not novel_candidates:
             metrics["actor/counterfactual_proposal_attempts_exhausted"] = 1.0
+        if starvation_plan is not None and starvation_plan.fallback_active:
+            metrics[
+                "actor/counterfactual_proposal_starvation_fallback_extra_groups"
+            ] = float(
+                max(
+                    int(metrics["actor/counterfactual_proposal_groups_generated"])
+                    - int(starvation_controller.base_max_attempts),
+                    0,
+                )
+            )
 
         if disagreement_rows:
             logging.warning(
@@ -1436,6 +1541,46 @@ class ZeroMathRunMixin:
                 raise RuntimeError(
                     "verified-route actuator may admit at most one proposal per update"
                 )
+            admission_compute_only = bool(
+                getattr(
+                    self.args,
+                    "online_canonical_counterfactual_admission_compute_only",
+                    False,
+                )
+            )
+            if admission_compute_only:
+                actor_info.update(
+                    {
+                        "actor/counterfactual_proposal_admitted_new_outcomes": 0.0,
+                        "actor/counterfactual_proposal_stored_exemplars": 0.0,
+                        "actor/counterfactual_proposal_cumulative_new_outcomes": float(
+                            bank.proposal_new_outcomes
+                        ),
+                        "actor/counterfactual_proposal_bank_mean_support": float(
+                            bank.replay_mean_support_per_prompt
+                        ),
+                        "actor/counterfactual_proposal_objective_bank_mean_support": float(
+                            bank.mean_support_per_prompt
+                        ),
+                        "actor/counterfactual_proposal_objective_outcome_delta": 0.0,
+                        "actor/counterfactual_proposal_objective_support_separated": float(
+                            bank.separate_proposal_objective_support
+                        ),
+                        "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": 0.0,
+                        "actor/counterfactual_proposal_neutral_ppo_rows": float(
+                            len(feedback_data)
+                        ),
+                        "actor/counterfactual_proposal_route_admitted": 0.0,
+                        "actor/counterfactual_proposal_route_rejected_trust": 0.0,
+                        "actor/counterfactual_proposal_route_already_known": 0.0,
+                        "actor/counterfactual_proposal_endpoint_fallback_admitted": 0.0,
+                        "actor/counterfactual_proposal_admission_compute_only": 1.0,
+                        "actor/counterfactual_proposal_candidates_discarded": float(
+                            proposal_count
+                        ),
+                    }
+                )
+                return feedback_data, actor_info
             objective_outcomes_before = bank.tracked_outcome_count
             admitted_new_outcomes = 0
             stored_exemplars = 0
@@ -1579,15 +1724,377 @@ class ZeroMathRunMixin:
                     "actor/counterfactual_proposal_endpoint_fallback_admitted": (
                         float(endpoint_fallback_admitted)
                     ),
+                    "actor/counterfactual_proposal_admission_compute_only": 0.0,
+                    "actor/counterfactual_proposal_candidates_discarded": 0.0,
                 }
             )
+            self._record_counterfactual_starvation_outcome(
+                actor_info,
+                admitted_new_outcomes=admitted_new_outcomes,
+            )
         return feedback_data, actor_info
+
+    def _collect_dapo_dynamic_feedback(
+        self,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+    ) -> tuple[list[TrajectoryData], dict[str, float]]:
+        """Fill one DAPO group, discarding reward-constant generations.
+
+        The official DAPO recipe oversamples generation batches and retains
+        only prompts whose sampled rewards are neither all zero nor all one.
+        This campaign trains on one prompt group at a time, so every rejected
+        group is charged to the query budget and a deterministic fresh prompt
+        is drawn from the frozen training dataset for the next attempt. A
+        rejected row never enters the PPO buffer.
+        """
+
+        if not bool(getattr(self.args, "dapo_enabled", False)):
+            raise RuntimeError("DAPO dynamic sampling was not enabled")
+        if len(raw_prompts) != 1 or len(processed_prompts) != 1 or len(refs) != 1:
+            raise RuntimeError("DAPO dynamic sampling requires one prompt group")
+        if int(self.update_interval) != 1:
+            raise RuntimeError("DAPO dynamic sampling requires update_interval=1")
+        if len(self.prompts_dataset) <= 0:
+            raise RuntimeError("DAPO dynamic sampling received an empty dataset")
+
+        current_raw = list(raw_prompts)
+        current_processed = list(processed_prompts)
+        current_refs = list(refs)
+        max_generation_batches = int(self.args.dapo_max_num_gen_batches)
+        rejected_groups = 0
+        all_zero_groups = 0
+        all_one_groups = 0
+        total_actor_time = 0.0
+
+        for generation_batch in range(1, max_generation_batches + 1):
+            feedback_data, actor_info = self.collector.collect_feedback(
+                current_raw,
+                current_processed,
+                current_refs,
+                self._same_actor_group,
+            )
+            if feedback_data is None:
+                raise RuntimeError(
+                    "DAPO actor returned no feedback while filling a training group"
+                )
+            if len(feedback_data) != int(self.args.num_samples):
+                raise RuntimeError(
+                    "DAPO actor returned "
+                    f"{len(feedback_data)} rows, expected {self.args.num_samples}"
+                )
+            rewards = [float(trajectory.rewards[-1]) for trajectory in feedback_data]
+            diagnostics = dapo_group_diagnostics(
+                rewards,
+                num_samples=int(self.args.num_samples),
+            )
+            if diagnostics.groups != 1:
+                raise RuntimeError("DAPO one-prompt adapter produced multiple groups")
+            all_zero_groups += diagnostics.all_zero_groups
+            all_one_groups += diagnostics.all_one_groups
+            total_actor_time += float(actor_info.get("actor/total_time", 0.0))
+
+            if diagnostics.eligible_groups == 1:
+                metrics = dict(actor_info)
+                if total_actor_time > 0.0:
+                    metrics["actor/total_time"] = total_actor_time
+                metrics.update(
+                    {
+                        "actor/dapo_dynamic_sampling_enabled": 1.0,
+                        "actor/dapo_generation_batches": float(generation_batch),
+                        "actor/dapo_rejected_groups": float(rejected_groups),
+                        "actor/dapo_all_zero_groups": float(all_zero_groups),
+                        "actor/dapo_all_one_groups": float(all_one_groups),
+                        "actor/dapo_accepted_groups": 1.0,
+                        "actor/dapo_max_num_gen_batches": float(
+                            max_generation_batches
+                        ),
+                    }
+                )
+                return feedback_data, metrics
+
+            # Charge every discarded generation to the actual sampling budget,
+            # but never expose it to process_feedback_data or the PPO buffer.
+            self.query_step += len(feedback_data)
+            self.prompt_consumed += len(feedback_data)
+            rejected_groups += 1
+            if generation_batch < max_generation_batches:
+                prompt_index = dapo_resample_prompt_index(
+                    base_seed=int(self.args.seed),
+                    learner_step=int(self.steps),
+                    generation_batch=generation_batch,
+                    dataset_size=len(self.prompts_dataset),
+                )
+                processed_prompt, raw_prompt, reference = self.prompts_dataset[
+                    prompt_index
+                ]
+                current_processed = [processed_prompt]
+                current_raw = [raw_prompt]
+                current_refs = [reference]
+
+        raise RuntimeError(
+            "DAPO dynamic sampling could not produce a non-constant reward group "
+            f"within {max_generation_batches} generation batches at learner "
+            f"step {self.steps}; rejected={rejected_groups}, "
+            f"all_zero={all_zero_groups}, all_one={all_one_groups}"
+        )
+
+    def _record_counterfactual_starvation_outcome(
+        self,
+        metrics: dict[str, float],
+        *,
+        admitted_new_outcomes: int,
+    ) -> None:
+        """Commit the rank-consistent fallback transition after bank admission."""
+
+        controller = getattr(self, "_proposal_starvation_controller", None)
+        if controller is None:
+            return
+        eligible = bool(
+            metrics.get(
+                "actor/counterfactual_proposal_starvation_eligible_update",
+                0.0,
+            )
+        )
+        fallback_active = False
+        if eligible:
+            plan = controller.plan()
+            registered_attempts = int(
+                metrics.get("actor/counterfactual_proposal_max_attempts", -1.0)
+            )
+            registered_active = bool(
+                metrics.get(
+                    "actor/counterfactual_proposal_starvation_fallback_active",
+                    0.0,
+                )
+            )
+            registered_activation = bool(
+                metrics.get(
+                    "actor/counterfactual_proposal_starvation_fallback_activation",
+                    0.0,
+                )
+            )
+            if (
+                registered_attempts != plan.max_attempts
+                or registered_active != plan.fallback_active
+                or registered_activation != plan.fallback_activation
+            ):
+                raise RuntimeError(
+                    "proposal starvation plan diverged across learner ranks"
+                )
+            fallback_active = plan.fallback_active
+            controller.observe(
+                plan,
+                admitted_new_outcomes=admitted_new_outcomes,
+            )
+        elif admitted_new_outcomes > 0:
+            controller.observe_admission_without_opportunity(
+                admitted_new_outcomes=admitted_new_outcomes,
+            )
+
+        diagnostics = controller.diagnostics()
+        metrics.update(
+            {
+                "actor/counterfactual_proposal_starvation_stalled_updates_after": float(
+                    diagnostics["stalled_eligible_updates"]
+                ),
+                "actor/counterfactual_proposal_starvation_burst_remaining": float(
+                    diagnostics["burst_remaining"]
+                ),
+                "actor/counterfactual_proposal_starvation_cooldown_remaining": float(
+                    diagnostics["cooldown_remaining"]
+                ),
+                "actor/counterfactual_proposal_starvation_eligible_updates_cumulative": float(
+                    diagnostics["eligible_updates"]
+                ),
+                "actor/counterfactual_proposal_starvation_fallback_updates_cumulative": float(
+                    diagnostics["fallback_updates"]
+                ),
+                "actor/counterfactual_proposal_starvation_fallback_activations_cumulative": float(
+                    diagnostics["fallback_activations"]
+                ),
+                "actor/counterfactual_proposal_starvation_admissions_cumulative": float(
+                    diagnostics["admitted_new_outcomes"]
+                ),
+                "actor/counterfactual_proposal_starvation_fallback_admitted_new_outcomes": float(
+                    admitted_new_outcomes if fallback_active else 0
+                ),
+            }
+        )
+
+    def _sample_and_admit_canonical_counterfactual_proposals(
+        self,
+        *,
+        raw_prompts: list[str],
+        processed_prompts: list[str],
+        refs: list[str],
+        neutral_feedback: list[TrajectoryData],
+        actor_info: dict[str, float],
+    ) -> dict[str, float]:
+        """Discover Pantry modes with a second learner sample, never PPO rows."""
+
+        if resolve_canonical_action_task(self.args) != "pantry_support_mask":
+            raise RuntimeError(
+                "canonical counterfactual proposals are implemented only for "
+                "the validator-complete Pantry support-mask policy"
+            )
+        bank = getattr(self, "_online_canonical_bank", None)
+        if not isinstance(bank, OnlineCanonicalBank):
+            raise RuntimeError("canonical proposals require an online canonical bank")
+        if not bank.separate_proposal_objective_support:
+            raise RuntimeError("canonical proposals require separate objective support")
+
+        proposal_sampler_infos: list[dict[str, float]] = []
+
+        def sample_group(
+            _attempt_index: int,
+            sampling_temperature: float,
+            sampling_seed: int,
+        ) -> list[TrajectoryData]:
+            proposal_feedback, sampler_info = (
+                self._sample_canonical_feedback_with_learner(
+                    raw_prompts,
+                    processed_prompts,
+                    refs,
+                    sampling_seed=sampling_seed,
+                    sampling_temperature=sampling_temperature,
+                    set_entropy_pending=False,
+                )
+            )
+            proposal_sampler_infos.append(sampler_info)
+            return proposal_feedback
+
+        proposal_admission, proposal_metrics = (
+            self._generate_verified_counterfactual_proposals(
+                actor=None,
+                raw_prompts=raw_prompts,
+                processed_prompts=processed_prompts,
+                refs=refs,
+                neutral_feedback=neutral_feedback,
+                proposal_group_factory=sample_group,
+            )
+        )
+        for field in ("prompt_token_ids", "outcome_keys", "response_token_ids"):
+            if field not in proposal_admission or not isinstance(
+                proposal_admission[field], list
+            ):
+                raise RuntimeError("canonical proposal admission payload is incomplete")
+        proposal_count = len(proposal_admission["outcome_keys"])
+        if any(
+            len(proposal_admission[field]) != proposal_count
+            for field in ("prompt_token_ids", "outcome_keys", "response_token_ids")
+        ):
+            raise RuntimeError("canonical proposal admission fields are misaligned")
+
+        admission_compute_only = bool(
+            getattr(
+                self.args,
+                "online_canonical_counterfactual_admission_compute_only",
+                False,
+            )
+        )
+        if admission_compute_only:
+            proposal_metrics.update(
+                {
+                    "actor/counterfactual_proposal_admitted_new_outcomes": 0.0,
+                    "actor/counterfactual_proposal_stored_exemplars": 0.0,
+                    "actor/counterfactual_proposal_cumulative_new_outcomes": float(
+                        bank.proposal_new_outcomes
+                    ),
+                    "actor/counterfactual_proposal_bank_mean_support": float(
+                        bank.replay_mean_support_per_prompt
+                    ),
+                    "actor/counterfactual_proposal_objective_bank_mean_support": float(
+                        bank.mean_support_per_prompt
+                    ),
+                    "actor/counterfactual_proposal_objective_outcome_delta": 0.0,
+                    "actor/counterfactual_proposal_objective_support_separated": 1.0,
+                    "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": 0.0,
+                    "actor/counterfactual_proposal_neutral_ppo_rows": float(
+                        len(neutral_feedback)
+                    ),
+                    "actor/counterfactual_proposal_route_admitted": 0.0,
+                    "actor/counterfactual_proposal_route_rejected_trust": 0.0,
+                    "actor/counterfactual_proposal_route_already_known": 0.0,
+                    "actor/counterfactual_proposal_endpoint_fallback_admitted": 0.0,
+                    "actor/counterfactual_proposal_canonical_learner_sampler": 1.0,
+                    "actor/counterfactual_proposal_canonical_sampler_groups": float(
+                        len(proposal_sampler_infos)
+                    ),
+                    "actor/counterfactual_proposal_admission_compute_only": 1.0,
+                    "actor/counterfactual_proposal_candidates_discarded": float(
+                        proposal_count
+                    ),
+                }
+            )
+            actor_info.update(proposal_metrics)
+            return actor_info
+
+        objective_outcomes_before = bank.tracked_outcome_count
+        admission = bank.admit_verified_proposals(
+            prompt_token_ids=proposal_admission["prompt_token_ids"],
+            outcome_keys=proposal_admission["outcome_keys"],
+            response_token_ids=proposal_admission["response_token_ids"],
+        )
+        objective_outcome_delta = bank.tracked_outcome_count - objective_outcomes_before
+        if objective_outcome_delta != 0:
+            raise RuntimeError(
+                "canonical proposal changed the neutral objective support"
+            )
+        proposal_metrics.update(
+            {
+                "actor/counterfactual_proposal_admitted_new_outcomes": float(
+                    admission.new_outcomes
+                ),
+                "actor/counterfactual_proposal_stored_exemplars": float(
+                    admission.stored_exemplars
+                ),
+                "actor/counterfactual_proposal_cumulative_new_outcomes": float(
+                    bank.proposal_new_outcomes
+                ),
+                "actor/counterfactual_proposal_bank_mean_support": float(
+                    bank.replay_mean_support_per_prompt
+                ),
+                "actor/counterfactual_proposal_objective_bank_mean_support": float(
+                    bank.mean_support_per_prompt
+                ),
+                "actor/counterfactual_proposal_objective_outcome_delta": float(
+                    objective_outcome_delta
+                ),
+                "actor/counterfactual_proposal_objective_support_separated": 1.0,
+                "actor/counterfactual_proposal_conditioned_rows_sent_to_ppo": 0.0,
+                "actor/counterfactual_proposal_neutral_ppo_rows": float(
+                    len(neutral_feedback)
+                ),
+                "actor/counterfactual_proposal_route_admitted": 0.0,
+                "actor/counterfactual_proposal_route_rejected_trust": 0.0,
+                "actor/counterfactual_proposal_route_already_known": 0.0,
+                "actor/counterfactual_proposal_endpoint_fallback_admitted": 0.0,
+                "actor/counterfactual_proposal_canonical_learner_sampler": 1.0,
+                "actor/counterfactual_proposal_canonical_sampler_groups": float(
+                    len(proposal_sampler_infos)
+                ),
+                "actor/counterfactual_proposal_admission_compute_only": 0.0,
+                "actor/counterfactual_proposal_candidates_discarded": 0.0,
+            }
+        )
+        actor_info.update(proposal_metrics)
+        self._record_counterfactual_starvation_outcome(
+            actor_info,
+            admitted_new_outcomes=admission.new_outcomes,
+        )
+        return actor_info
 
     def _sample_canonical_feedback_with_learner(
         self,
         raw_prompts: list[str],
         processed_prompts: list[str],
         refs: list[str],
+        *,
+        sampling_seed: int | None = None,
+        sampling_temperature: float | None = None,
+        set_entropy_pending: bool = True,
     ) -> tuple[list[TrajectoryData], dict[str, float]]:
         """Sample a three-position canonical policy with the HF learner.
 
@@ -1676,9 +2183,13 @@ class ZeroMathRunMixin:
         except StopIteration:
             device = torch.device("cuda", torch.cuda.current_device())
         request_seed = (
-            int(self.args.seed)
-            + 1_000_003 * int(self.steps)
-            + int(self._prompt_batches_consumed_total)
+            int(sampling_seed)
+            if sampling_seed is not None
+            else (
+                int(self.args.seed)
+                + 1_000_003 * int(self.steps)
+                + int(self._prompt_batches_consumed_total)
+            )
         )
         cpu_generator = torch.Generator(device="cpu")
         cpu_generator.manual_seed(request_seed)
@@ -1735,7 +2246,11 @@ class ZeroMathRunMixin:
                             next_logits = self.model(
                                 input_ids, attention_mask=attention_mask
                             )["logits"][:, prefix_last_position, :]
-                            temperature = float(self.args.temperature)
+                            temperature = float(
+                                self.args.temperature
+                                if sampling_temperature is None
+                                else sampling_temperature
+                            )
                             if not np.isfinite(temperature) or temperature <= 0:
                                 raise RuntimeError(
                                     "canonical learner sampling requires a finite "
@@ -1857,7 +2372,11 @@ class ZeroMathRunMixin:
             "actor/response_tok_len": float(horizon),
             "actor/generate_avg_str_len": float(horizon),
             "actor/sampling_max_tokens": float(horizon),
-            "actor/sampling_temperature": float(self.args.temperature),
+            "actor/sampling_temperature": float(
+                self.args.temperature
+                if sampling_temperature is None
+                else sampling_temperature
+            ),
             "actor/no_eos_count": 0.0,
             "actor/canonical_graph_actions": float(canonical_task == "graph_coloring"),
             "actor/canonical_countdown_actions": float(canonical_task == "countdown"),
@@ -1918,7 +2437,8 @@ class ZeroMathRunMixin:
                 [list(support) for support in supports],
             )
             trajectories.append(trajectory)
-        self._canonical_entropy_prompt_pending = processed_prompts[0]
+        if set_entropy_pending:
+            self._canonical_entropy_prompt_pending = processed_prompts[0]
         logging.info(
             "canonical learner sampler finished data_len=%s seed=%s "
             "normalization_error_max=%.3g fixed_shape=1",
@@ -2014,7 +2534,6 @@ class ZeroMathRunMixin:
                 raise ValueError(
                     "semantic Shannon run cannot resume without estimator state"
                 )
-            semantic_shannon_tracker.load_state_dict(saved_semantic_shannon)
             rms_controller = getattr(self, "_semantic_rms_controller", None)
             saved_rms = resume_states.get("semantic_rms_controller_state")
             if rms_controller is not None:
@@ -2022,6 +2541,12 @@ class ZeroMathRunMixin:
                     raise ValueError(
                         "adaptive semantic run cannot resume without controller state"
                     )
+                # The tracker stores the coefficient that was active when the
+                # checkpoint was written, while a fresh adaptive run starts at
+                # the registered base coefficient. Restore the controller
+                # first so the tracker's strict contract check compares the
+                # two checkpoint states rather than comparing evolved state to
+                # the base configuration.
                 rms_controller.load_state_dict(saved_rms)
                 semantic_shannon_tracker.coefficient = float(
                     rms_controller.current_coefficient
@@ -2030,6 +2555,7 @@ class ZeroMathRunMixin:
                 raise ValueError(
                     "fixed-coefficient run cannot resume an adaptive checkpoint"
                 )
+            semantic_shannon_tracker.load_state_dict(saved_semantic_shannon)
         elif saved_semantic_shannon is not None:
             raise ValueError(
                 "non-semantic-Shannon run cannot resume a semantic Shannon checkpoint"
@@ -2058,6 +2584,26 @@ class ZeroMathRunMixin:
         elif saved_online_canonical is not None:
             raise ValueError(
                 "regular run cannot resume an online canonical bank checkpoint"
+            )
+        proposal_starvation_controller = getattr(
+            self,
+            "_proposal_starvation_controller",
+            None,
+        )
+        saved_proposal_starvation = resume_states.get(
+            "proposal_starvation_controller_state"
+        )
+        if proposal_starvation_controller is not None:
+            if not isinstance(saved_proposal_starvation, dict):
+                raise ValueError(
+                    "proposal-starvation run cannot resume without controller state"
+                )
+            proposal_starvation_controller.load_state_dict(
+                saved_proposal_starvation
+            )
+        elif saved_proposal_starvation is not None:
+            raise ValueError(
+                "fixed proposal run cannot resume a starvation-controller checkpoint"
             )
         verified_route_library = getattr(
             self,
@@ -2827,6 +3373,15 @@ class ZeroMathRunMixin:
             client_state["online_canonical_bank_state"] = (
                 online_canonical_bank.state_dict()
             )
+        proposal_starvation_controller = getattr(
+            self,
+            "_proposal_starvation_controller",
+            None,
+        )
+        if proposal_starvation_controller is not None:
+            client_state["proposal_starvation_controller_state"] = (
+                proposal_starvation_controller.state_dict()
+            )
         verified_route_library = getattr(
             self,
             "_verified_route_library",
@@ -2861,6 +3416,42 @@ class ZeroMathRunMixin:
         if self._wandb_run_name:
             client_state["wandb_run_name"] = self._wandb_run_name
         return client_state
+
+    def _infer_resume_step(self, resume_states: dict[str, Any] | None) -> int:
+        """Recover the loaded checkpoint's step without restarting its counters."""
+        saved_step = None
+        if isinstance(resume_states, dict) and "steps" in resume_states:
+            raw_step = resume_states["steps"]
+            try:
+                saved_step = int(raw_step)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise RuntimeError("Checkpoint has invalid client-state steps") from exc
+            if isinstance(raw_step, bool) or saved_step < 0 or str(raw_step) not in (
+                str(saved_step), str(float(saved_step))
+            ):
+                raise RuntimeError("Checkpoint has invalid client-state steps")
+
+        tag = getattr(self.args, "resume_tag", None)
+        if not tag and getattr(self.args, "resume_dir", None):
+            latest = Path(self.args.resume_dir) / "latest"
+            if latest.is_symlink():
+                tag = latest.resolve().name
+            elif latest.is_file():
+                tag = latest.read_text(encoding="utf-8").strip()
+        tag_step = None
+        if tag:
+            tag_name = Path(str(tag)).name
+            if tag_name.startswith("step_") and tag_name[5:].isdigit():
+                tag_step = int(tag_name[5:])
+        if saved_step is not None:
+            if tag_step is not None and tag_step != saved_step:
+                raise RuntimeError(
+                    f"Checkpoint step mismatch: client state={saved_step}, tag={tag_step}"
+                )
+            return saved_step
+        if tag_step is not None:
+            return tag_step
+        raise RuntimeError("Cannot infer resumed checkpoint step from client state or tag")
 
     def _restore_prompt_progress(
         self,
@@ -3087,9 +3678,33 @@ class ZeroMathRunMixin:
                             refs,
                         )
                     )
+                    if bool(
+                        getattr(
+                            self.args,
+                            "online_canonical_counterfactual_proposals",
+                            False,
+                        )
+                    ):
+                        self.actor_info = (
+                            self._sample_and_admit_canonical_counterfactual_proposals(
+                                raw_prompts=raw_prompts,
+                                processed_prompts=processed_prompts,
+                                refs=refs,
+                                neutral_feedback=feedback_data,
+                                actor_info=self.actor_info,
+                            )
+                        )
                 elif replicated_freeform_sampling:
                     feedback_data, self.actor_info = (
                         self._sample_replicated_freeform_feedback(
+                            raw_prompts,
+                            processed_prompts,
+                            refs,
+                        )
+                    )
+                elif bool(getattr(self.args, "dapo_enabled", False)):
+                    feedback_data, self.actor_info = (
+                        self._collect_dapo_dynamic_feedback(
                             raw_prompts,
                             processed_prompts,
                             refs,
@@ -3671,9 +4286,12 @@ class ZeroMathRunMixin:
         coverage_top_p = float(
             getattr(getattr(self, "args", None), "eval_mode_coverage_top_p", 1.0) or 1.0
         )
+        # Each draw reserves its own block of K child streams; see
+        # ``eval_mode_coverage_disjoint_draws``.
+        stride = k if bool(getattr(self.args, "eval_mode_coverage_disjoint_draws", True)) else 1
         logging.info(
             "Starting sampled mode-coverage eval %s/%s: %s "
-            "(%s prompts, draws=%s, K=%s, T=%s, top_p=%s, seeds=%s..%s) at step %s",
+            "(%s prompts, draws=%s, K=%s, T=%s, top_p=%s, seeds=%s..%s stride=%s) at step %s",
             benchmark_name,
             len(self.eval_dataset_dict),
             benchmark_name,
@@ -3683,7 +4301,8 @@ class ZeroMathRunMixin:
             temperature,
             coverage_top_p,
             seed_base,
-            seed_base + draw_count - 1,
+            seed_base + (draw_count - 1) * stride + k - 1,
+            stride,
             steps,
         )
         greedy_mean, greedy_prompt_outcomes = self._run_sampled_mode_coverage_draw(
@@ -3711,7 +4330,7 @@ class ZeroMathRunMixin:
         draw_means: list[dict[str, float]] = []
         draw_prompt_outcomes: list[list[dict[str, Any]]] = []
         for draw_index in range(draw_count):
-            draw_seed = seed_base + draw_index
+            draw_seed = seed_base + draw_index * stride
             mean, prompt_outcomes = self._run_sampled_mode_coverage_draw(
                 dataset,
                 k=k,
@@ -3748,7 +4367,7 @@ class ZeroMathRunMixin:
             latent_draw_means: list[dict[str, float]] = []
             latent_draw_prompt_outcomes: list[list[dict[str, Any]]] = []
             for draw_index in range(draw_count):
-                draw_seed = seed_base + draw_index
+                draw_seed = seed_base + draw_index * stride
                 latent_mean, latent_prompt_outcomes = (
                     self._run_sampled_mode_coverage_draw(
                         dataset,

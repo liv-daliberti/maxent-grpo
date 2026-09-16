@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resume the failed E119 MathIR Re:MaxRL seed-44 continuation.
+"""Resume the failed E119 MathIR Re:Max seed-44 continuation.
 
 The scientific cell, run directory, frozen source, objective, and seed remain
 unchanged.  The replacement resumes from the latest durable checkpoint with a
@@ -171,7 +171,7 @@ def main() -> None:
         continuation["continuations"] = list(records.values())
         continuation["operational_change"] = (
             str(continuation.get("operational_change", "")).rstrip("; ")
-            + "; 2026-09-04 MathIR Re:MaxRL seed 44 resumed with a "
+            + "; 2026-09-04 MathIR Re:Max seed 44 resumed with a "
             "two-hour evaluation-safe watchdog on node105/mltheory"
         ).lstrip("; ")
         continuation["released"] = False
@@ -208,7 +208,7 @@ def main() -> None:
         raise
 
     print(
-        "recovered E119 MathIR Re:MaxRL seed 44: "
+        "recovered E119 MathIR Re:Max seed 44: "
         + ",".join(str(job_id) for job_id in submitted)
     )
 

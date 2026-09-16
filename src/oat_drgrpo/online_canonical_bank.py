@@ -21,6 +21,11 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any, Sequence
 
+from oat_drgrpo.admission_retention import (
+    AdmissionRetentionTracker,
+    RetentionPriorityRequest,
+)
+
 
 def _prompt_key(prompt_token_ids: Sequence[int]) -> str:
     normalized: list[int] = []
@@ -71,6 +76,11 @@ class VerifiedCanonicalReplayGroup:
     prompt_token_ids: tuple[int, ...]
     outcome_keys: tuple[str, ...]
     response_token_ids: tuple[tuple[int, ...], ...]
+    # Cumulative validator-positive observations from fresh on-policy rows.
+    # Replay and separated proposal admissions never increment these counts.
+    fresh_observation_counts: tuple[int, ...] = ()
+    mass_weights: tuple[float, ...] = ()
+    priority_modes: int = 0
 
 
 @dataclass(frozen=True)
@@ -120,6 +130,14 @@ class OnlineCanonicalBank:
         global_replay_groups_per_step: int = 0,
         global_replay_bootstrap_steps: int = 0,
         separate_proposal_objective_support: bool = False,
+        proposal_replay_priority_visits: int = 0,
+        proposal_replay_priority_multiplier: float = 1.0,
+        proposal_retention_tracking: bool = False,
+        proposal_adaptive_retention_priority: bool = False,
+        proposal_retention_max_missed_rollout_opportunities: int = 2,
+        proposal_retention_max_mean_logprob_drop: float = 0.5,
+        proposal_retention_refresh_visits: int = 4,
+        proposal_retention_score_cooldown_observations: int = 2,
     ) -> None:
         for name, value in (
             ("entropy_alpha", entropy_alpha),
@@ -147,6 +165,97 @@ class OnlineCanonicalBank:
             raise ValueError(
                 "separate proposal objective support requires replay exemplars"
             )
+        if (
+            isinstance(proposal_replay_priority_visits, bool)
+            or int(proposal_replay_priority_visits)
+            != proposal_replay_priority_visits
+            or int(proposal_replay_priority_visits) < 0
+        ):
+            raise ValueError(
+                "proposal replay priority visits must be a non-negative integer"
+            )
+        self.proposal_replay_priority_visits = int(
+            proposal_replay_priority_visits
+        )
+        self.proposal_replay_priority_multiplier = float(
+            proposal_replay_priority_multiplier
+        )
+        if (
+            not math.isfinite(self.proposal_replay_priority_multiplier)
+            or self.proposal_replay_priority_multiplier < 1.0
+        ):
+            raise ValueError(
+                "proposal replay priority multiplier must be finite and at least one"
+            )
+        if self.proposal_replay_priority_visits > 0:
+            if not self.separate_proposal_objective_support:
+                raise ValueError(
+                    "proposal replay priority requires separate proposal support"
+                )
+            if self.proposal_replay_priority_multiplier <= 1.0:
+                raise ValueError(
+                    "positive priority visits require multiplier greater than one"
+                )
+        elif not math.isclose(
+            self.proposal_replay_priority_multiplier,
+            1.0,
+            rel_tol=0.0,
+            abs_tol=1e-12,
+        ):
+            raise ValueError(
+                "priority multiplier must be one when priority is disabled"
+            )
+        self.proposal_retention_tracking = bool(proposal_retention_tracking)
+        self.proposal_adaptive_retention_priority = bool(
+            proposal_adaptive_retention_priority
+        )
+        if (
+            self.proposal_adaptive_retention_priority
+            and not self.proposal_retention_tracking
+        ):
+            raise ValueError(
+                "adaptive proposal retention priority requires retention tracking"
+            )
+        if (
+            self.proposal_retention_tracking
+            and not self.separate_proposal_objective_support
+        ):
+            raise ValueError(
+                "proposal retention tracking requires separated proposal support"
+            )
+        if self.proposal_adaptive_retention_priority:
+            if self.proposal_replay_priority_visits <= 0:
+                raise ValueError(
+                    "adaptive proposal retention priority requires proposal priority"
+                )
+            if int(global_replay_groups_per_step) <= 0:
+                raise ValueError(
+                    "adaptive proposal retention priority requires global replay"
+                )
+            if (
+                int(proposal_retention_refresh_visits)
+                > self.proposal_replay_priority_visits
+            ):
+                raise ValueError(
+                    "retention refresh visits may not exceed initial priority visits"
+                )
+        self._proposal_retention_tracker = (
+            AdmissionRetentionTracker(
+                adaptive_priority=self.proposal_adaptive_retention_priority,
+                max_missed_rollout_opportunities=(
+                    proposal_retention_max_missed_rollout_opportunities
+                ),
+                max_mean_logprob_drop=(
+                    proposal_retention_max_mean_logprob_drop
+                ),
+                refresh_visits=proposal_retention_refresh_visits,
+                score_cooldown_observations=(
+                    proposal_retention_score_cooldown_observations
+                ),
+            )
+            if self.proposal_retention_tracking
+            else None
+        )
         if (
             isinstance(replay_capacity, bool)
             or int(replay_capacity) != replay_capacity
@@ -200,6 +309,89 @@ class OnlineCanonicalBank:
         self._proposal_rows = 0
         self._proposal_new_outcomes = 0
         self._proposal_only_outcomes: dict[str, set[str]] = {}
+        self._proposal_priority_remaining: dict[str, dict[str, int]] = {}
+        self._proposal_priority_queue: list[str] = []
+        self._proposal_priority_replay_groups = 0
+        self._proposal_priority_replay_modes = 0
+
+    @property
+    def proposal_retention_tracking_enabled(self) -> bool:
+        return self._proposal_retention_tracker is not None
+
+    def proposal_retention_diagnostics(self) -> dict[str, float]:
+        if self._proposal_retention_tracker is None:
+            return {
+                "tracking_enabled": 0.0,
+                "adaptive_priority_enabled": 0.0,
+            }
+        return self._proposal_retention_tracker.diagnostics()
+
+    def _apply_retention_priority_requests(
+        self,
+        requests: Sequence[RetentionPriorityRequest],
+    ) -> None:
+        tracker = self._proposal_retention_tracker
+        if tracker is None and requests:
+            raise RuntimeError("retention priority request without a tracker")
+        for request in requests:
+            if request.outcome_key not in self._exemplars.get(
+                request.prompt_key,
+                {},
+            ):
+                raise RuntimeError(
+                    "retention priority request refers to a missing exemplar"
+                )
+            priority = self._proposal_priority_remaining.setdefault(
+                request.prompt_key,
+                {},
+            )
+            previous = int(priority.get(request.outcome_key, 0))
+            updated = max(previous, int(request.visits))
+            priority[request.outcome_key] = updated
+            if request.prompt_key not in self._proposal_priority_queue:
+                self._proposal_priority_queue.append(request.prompt_key)
+            assert tracker is not None
+            tracker.record_priority_application(
+                request,
+                visits_added=updated - previous,
+            )
+
+    def observe_replay_retention_scores(
+        self,
+        *,
+        groups: Sequence[VerifiedCanonicalReplayGroup],
+        mean_logprobs: Sequence[float],
+        sequence_logprobs: Sequence[float],
+    ) -> dict[str, float]:
+        """Record training-only replay likelihoods and refresh priority."""
+
+        tracker = self._proposal_retention_tracker
+        if tracker is None:
+            return self.proposal_retention_diagnostics()
+        expected_rows = sum(len(group.outcome_keys) for group in groups)
+        if not (
+            len(mean_logprobs) == len(sequence_logprobs) == expected_rows
+        ):
+            raise ValueError(
+                "proposal retention replay score rows do not match replay groups"
+            )
+        observations: list[tuple[str, str, float, float]] = []
+        cursor = 0
+        for group in groups:
+            prompt_key = _prompt_key(group.prompt_token_ids)
+            for outcome_key in group.outcome_keys:
+                observations.append(
+                    (
+                        prompt_key,
+                        outcome_key,
+                        float(mean_logprobs[cursor]),
+                        float(sequence_logprobs[cursor]),
+                    )
+                )
+                cursor += 1
+        requests = tracker.observe_scores(observations)
+        self._apply_retention_priority_requests(requests)
+        return tracker.diagnostics()
 
     @property
     def tracked_prompt_count(self) -> int:
@@ -236,6 +428,18 @@ class OnlineCanonicalBank:
             return 0.0
         return sum(len(exemplars) for exemplars in nonempty) / len(nonempty)
 
+    def verified_replay_support(
+        self, prompt_token_ids: Sequence[int]
+    ) -> tuple[str, ...]:
+        """Return validator-positive replay support for one prompt.
+
+        This exposes membership only. Proposal rows never become on-policy
+        frequency observations through this interface.
+        """
+
+        prompt_key = _prompt_key(prompt_token_ids)
+        return tuple(sorted(self._exemplars.get(prompt_key, {})))
+
     @property
     def support_at_least_two_prompt_fraction(self) -> float:
         """Fraction of discovered prompts with at least two verified routes."""
@@ -266,6 +470,22 @@ class OnlineCanonicalBank:
         return self._proposal_new_outcomes
 
     @property
+    def proposal_priority_remaining_visits(self) -> int:
+        return sum(
+            visits
+            for outcomes in self._proposal_priority_remaining.values()
+            for visits in outcomes.values()
+        )
+
+    @property
+    def proposal_priority_replay_groups(self) -> int:
+        return self._proposal_priority_replay_groups
+
+    @property
+    def proposal_priority_replay_modes(self) -> int:
+        return self._proposal_priority_replay_modes
+
+    @property
     def global_replay_bootstrap_active(self) -> bool:
         """Whether the finite global cold-start phase may still schedule."""
 
@@ -293,6 +513,14 @@ class OnlineCanonicalBank:
             state.update(
                 {
                     "schema": (
+                        "online_growing_support_canonical_maxent_"
+                        "replay_separated_proposal_priority_retention_v8"
+                        if self.proposal_retention_tracking
+                        else
+                        "online_growing_support_canonical_maxent_"
+                        "replay_separated_proposal_priority_fixed_v7"
+                        if self.proposal_replay_priority_visits > 0
+                        else
                         "online_growing_support_canonical_maxent_"
                         "replay_separated_proposal_fixed_v6"
                         if self.separate_proposal_objective_support
@@ -338,6 +566,36 @@ class OnlineCanonicalBank:
                     },
                 }
             )
+            if self.proposal_replay_priority_visits > 0:
+                state.update(
+                    {
+                        "proposal_replay_priority_visits": (
+                            self.proposal_replay_priority_visits
+                        ),
+                        "proposal_replay_priority_multiplier": (
+                            self.proposal_replay_priority_multiplier
+                        ),
+                        "proposal_priority_remaining": {
+                            prompt_key: dict(outcomes)
+                            for prompt_key, outcomes
+                            in self._proposal_priority_remaining.items()
+                            if outcomes
+                        },
+                        "proposal_priority_queue": list(
+                            self._proposal_priority_queue
+                        ),
+                        "proposal_priority_replay_groups": (
+                            self._proposal_priority_replay_groups
+                        ),
+                        "proposal_priority_replay_modes": (
+                            self._proposal_priority_replay_modes
+                        ),
+                    }
+                )
+            if self._proposal_retention_tracker is not None:
+                state["proposal_admission_retention"] = (
+                    self._proposal_retention_tracker.state_dict()
+                )
         return state
 
     def load_state_dict(self, state: dict[str, Any]) -> None:
@@ -345,6 +603,14 @@ class OnlineCanonicalBank:
             raise ValueError("invalid online canonical bank state")
         expected_schema = (
             (
+                "online_growing_support_canonical_maxent_"
+                "replay_separated_proposal_priority_retention_v8"
+                if self.proposal_retention_tracking
+                else
+                "online_growing_support_canonical_maxent_"
+                "replay_separated_proposal_priority_fixed_v7"
+                if self.proposal_replay_priority_visits > 0
+                else
                 "online_growing_support_canonical_maxent_"
                 "replay_separated_proposal_fixed_v6"
                 if self.separate_proposal_objective_support
@@ -541,6 +807,99 @@ class OnlineCanonicalBank:
             self._prompt_token_ids = restored_prompts
             self._exemplars = restored_exemplars
             self._proposal_only_outcomes = restored_proposal_only
+            if self.proposal_replay_priority_visits > 0:
+                if (
+                    int(state.get("proposal_replay_priority_visits", -1))
+                    != self.proposal_replay_priority_visits
+                    or not math.isclose(
+                        float(
+                            state.get(
+                                "proposal_replay_priority_multiplier",
+                                float("nan"),
+                            )
+                        ),
+                        self.proposal_replay_priority_multiplier,
+                        rel_tol=0.0,
+                        abs_tol=1e-12,
+                    )
+                ):
+                    raise ValueError(
+                        "online canonical bank resume mismatch for proposal priority"
+                    )
+                raw_priority = state.get("proposal_priority_remaining")
+                raw_queue = state.get("proposal_priority_queue")
+                if not isinstance(raw_priority, dict) or not isinstance(
+                    raw_queue,
+                    list,
+                ):
+                    raise ValueError(
+                        "online canonical replay state lacks proposal priority"
+                    )
+                restored_priority: dict[str, dict[str, int]] = {}
+                for prompt_key, outcomes in raw_priority.items():
+                    if (
+                        prompt_key not in restored_exemplars
+                        or not isinstance(outcomes, dict)
+                    ):
+                        raise ValueError(
+                            "online canonical replay state has invalid priority prompt"
+                        )
+                    restored_priority[prompt_key] = {}
+                    for outcome_key, visits in outcomes.items():
+                        if (
+                            outcome_key not in restored_exemplars[prompt_key]
+                            or isinstance(visits, bool)
+                            or int(visits) != visits
+                            or not 1 <= int(visits)
+                            <= self.proposal_replay_priority_visits
+                        ):
+                            raise ValueError(
+                                "online canonical replay state has invalid priority outcome"
+                            )
+                        restored_priority[prompt_key][outcome_key] = int(visits)
+                if (
+                    any(not isinstance(key, str) for key in raw_queue)
+                    or len(set(raw_queue)) != len(raw_queue)
+                    or set(raw_queue) != set(restored_priority)
+                ):
+                    raise ValueError(
+                        "online canonical replay priority queue is invalid"
+                    )
+                self._proposal_priority_remaining = restored_priority
+                self._proposal_priority_queue = list(raw_queue)
+            else:
+                self._proposal_priority_remaining = {}
+                self._proposal_priority_queue = []
+            if self._proposal_retention_tracker is not None:
+                restored_tracker = self._proposal_retention_tracker.clone()
+                restored_tracker.load_state_dict(
+                    state.get("proposal_admission_retention")
+                )
+                converted_pairs = set(restored_tracker.converted_pairs)
+                for prompt_key, outcome_key in restored_tracker.tracked_pairs:
+                    pair = (prompt_key, outcome_key)
+                    if outcome_key not in restored_exemplars.get(prompt_key, {}):
+                        raise ValueError(
+                            "proposal retention state refers to an unknown exemplar"
+                        )
+                    proposal_only = outcome_key in restored_proposal_only.get(
+                        prompt_key,
+                        set(),
+                    )
+                    observed_on_policy = outcome_key in restored.get(prompt_key, {})
+                    converted = pair in converted_pairs
+                    if (
+                        converted
+                        and (proposal_only or not observed_on_policy)
+                    ) or (
+                        not converted
+                        and (not proposal_only or observed_on_policy)
+                    ):
+                        raise ValueError(
+                            "proposal retention state has inconsistent "
+                            "admission lifecycle"
+                        )
+                self._proposal_retention_tracker = restored_tracker
             raw_cursor = state.get("global_replay_cursor", 0)
             if (
                 isinstance(raw_cursor, bool)
@@ -571,6 +930,14 @@ class OnlineCanonicalBank:
                 ("proposal_groups", "_proposal_groups"),
                 ("proposal_rows", "_proposal_rows"),
                 ("proposal_new_outcomes", "_proposal_new_outcomes"),
+                (
+                    "proposal_priority_replay_groups",
+                    "_proposal_priority_replay_groups",
+                ),
+                (
+                    "proposal_priority_replay_modes",
+                    "_proposal_priority_replay_modes",
+                ),
             ):
                 raw_value = state.get(field_name, 0)
                 if (
@@ -592,6 +959,10 @@ class OnlineCanonicalBank:
             self._proposal_rows = 0
             self._proposal_new_outcomes = 0
             self._proposal_only_outcomes = {}
+            self._proposal_priority_remaining = {}
+            self._proposal_priority_queue = []
+            self._proposal_priority_replay_groups = 0
+            self._proposal_priority_replay_modes = 0
         self._groups_scored = int(state.get("groups_scored", 0))
         self._rows_scored = int(state.get("rows_scored", 0))
 
@@ -691,6 +1062,17 @@ class OnlineCanonicalBank:
             prompt_key: set(outcomes)
             for prompt_key, outcomes in self._proposal_only_outcomes.items()
         }
+        staged_priority = {
+            prompt_key: dict(outcomes)
+            for prompt_key, outcomes
+            in self._proposal_priority_remaining.items()
+        }
+        staged_priority_queue = list(self._proposal_priority_queue)
+        staged_retention = (
+            self._proposal_retention_tracker.clone()
+            if self._proposal_retention_tracker is not None
+            else None
+        )
         new_outcomes = 0
         stored_exemplars = 0
         proposal_prompt_keys: set[str] = set()
@@ -734,6 +1116,14 @@ class OnlineCanonicalBank:
                         prompt_key,
                         set(),
                     ).add(outcome_key)
+                if self.proposal_replay_priority_visits > 0:
+                    staged_priority.setdefault(prompt_key, {})[outcome_key] = (
+                        self.proposal_replay_priority_visits
+                    )
+                    if prompt_key not in staged_priority_queue:
+                        staged_priority_queue.append(prompt_key)
+                if staged_retention is not None:
+                    staged_retention.admit(prompt_key, outcome_key)
                 stored_exemplars += 1
             new_outcomes += 1
 
@@ -741,6 +1131,9 @@ class OnlineCanonicalBank:
         self._prompt_token_ids = staged_prompts
         self._exemplars = staged_exemplars
         self._proposal_only_outcomes = staged_proposal_only
+        self._proposal_priority_remaining = staged_priority
+        self._proposal_priority_queue = staged_priority_queue
+        self._proposal_retention_tracker = staged_retention
         proposal_groups = len(proposal_prompt_keys)
         self._proposal_groups += proposal_groups
         self._proposal_rows += row_count
@@ -763,6 +1156,7 @@ class OnlineCanonicalBank:
         prompt_token_ids: Sequence[Sequence[int]],
         *,
         min_modes: int = 2,
+        consume_priority: bool = False,
     ) -> list[VerifiedCanonicalReplayGroup]:
         """Return deterministic replay banks for the requested prompts."""
 
@@ -785,17 +1179,70 @@ class OnlineCanonicalBank:
             exemplars = self._exemplars.get(prompt_key, {})
             if len(exemplars) < min_modes:
                 continue
-            outcome_keys = tuple(sorted(exemplars))
             groups.append(
-                VerifiedCanonicalReplayGroup(
-                    prompt_token_ids=normalized_prompt,
-                    outcome_keys=outcome_keys,
-                    response_token_ids=tuple(
-                        exemplars[key] for key in outcome_keys
-                    ),
+                self._replay_group_for_prompt(
+                    prompt_key,
+                    consume_priority=consume_priority,
                 )
             )
         return groups
+
+    def _replay_group_for_prompt(
+        self,
+        prompt_key: str,
+        *,
+        consume_priority: bool,
+    ) -> VerifiedCanonicalReplayGroup:
+        exemplars = self._exemplars[prompt_key]
+        outcome_keys = tuple(sorted(exemplars))
+        priority = self._proposal_priority_remaining.get(prompt_key, {})
+        active_keys = tuple(
+            key for key in outcome_keys if priority.get(key, 0) > 0
+        )
+        raw_weights = tuple(
+            (
+                self.proposal_replay_priority_multiplier
+                if key in active_keys
+                else 1.0
+            )
+            for key in outcome_keys
+        )
+        normalizer = sum(raw_weights)
+        mass_weights = tuple(
+            weight * len(raw_weights) / normalizer
+            for weight in raw_weights
+        )
+        if consume_priority and active_keys:
+            for key in active_keys:
+                remaining = priority[key] - 1
+                if remaining > 0:
+                    priority[key] = remaining
+                else:
+                    del priority[key]
+            if priority:
+                self._proposal_priority_remaining[prompt_key] = priority
+                if prompt_key not in self._proposal_priority_queue:
+                    self._proposal_priority_queue.append(prompt_key)
+            else:
+                self._proposal_priority_remaining.pop(prompt_key, None)
+                self._proposal_priority_queue = [
+                    key
+                    for key in self._proposal_priority_queue
+                    if key != prompt_key
+                ]
+            self._proposal_priority_replay_groups += 1
+            self._proposal_priority_replay_modes += len(active_keys)
+        return VerifiedCanonicalReplayGroup(
+            prompt_token_ids=self._prompt_token_ids[prompt_key],
+            outcome_keys=outcome_keys,
+            response_token_ids=tuple(exemplars[key] for key in outcome_keys),
+            fresh_observation_counts=tuple(
+                int(self._counts.get(prompt_key, {}).get(key, 0))
+                for key in outcome_keys
+            ),
+            mass_weights=mass_weights,
+            priority_modes=len(active_keys),
+        )
 
     def scheduled_global_replay_groups(
         self,
@@ -831,28 +1278,34 @@ class OnlineCanonicalBank:
         if not prompt_keys:
             return []
         count = min(self.global_replay_groups_per_step, len(prompt_keys))
-        start = self._global_replay_cursor % len(prompt_keys)
-        selected = [
-            prompt_keys[(start + offset) % len(prompt_keys)]
-            for offset in range(count)
-        ]
-        self._global_replay_cursor = (start + count) % len(prompt_keys)
+        selected: list[str] = []
+        eligible = set(prompt_keys)
+        while self._proposal_priority_queue and len(selected) < count:
+            prompt_key = self._proposal_priority_queue.pop(0)
+            if (
+                prompt_key in eligible
+                and prompt_key in self._proposal_priority_remaining
+                and prompt_key not in selected
+            ):
+                selected.append(prompt_key)
+        if len(selected) < count:
+            start = self._global_replay_cursor % len(prompt_keys)
+            scanned = 0
+            while len(selected) < count and scanned < len(prompt_keys):
+                prompt_key = prompt_keys[(start + scanned) % len(prompt_keys)]
+                scanned += 1
+                if prompt_key not in selected:
+                    selected.append(prompt_key)
+            self._global_replay_cursor = (start + scanned) % len(prompt_keys)
         if self.global_replay_bootstrap_steps > 0:
             self._global_replay_updates += 1
-        groups: list[VerifiedCanonicalReplayGroup] = []
-        for prompt_key in selected:
-            exemplars = self._exemplars[prompt_key]
-            outcome_keys = tuple(sorted(exemplars))
-            groups.append(
-                VerifiedCanonicalReplayGroup(
-                    prompt_token_ids=self._prompt_token_ids[prompt_key],
-                    outcome_keys=outcome_keys,
-                    response_token_ids=tuple(
-                        exemplars[key] for key in outcome_keys
-                    ),
-                )
+        return [
+            self._replay_group_for_prompt(
+                prompt_key,
+                consume_priority=True,
             )
-        return groups
+            for prompt_key in selected
+        ]
 
     def score_and_update(
         self,
@@ -864,8 +1317,17 @@ class OnlineCanonicalBank:
         num_samples: int,
         entropy_alpha_override: float | None = None,
         response_token_ids: Sequence[Sequence[int]] | None = None,
+        update_bank: bool = True,
     ) -> tuple[list[float], OnlineCanonicalBankDiagnostics]:
-        """Score complete groups against snapshots, then commit verified keys."""
+        """Score complete groups against snapshots, then optionally commit keys.
+
+        ``update_bank=False`` freezes both membership and fresh-observation
+        counts. Replay may continue to read and score the immutable exemplar
+        bank, which is the longitudinal-survival telemetry contract.
+        """
+
+        if not isinstance(update_bank, bool):
+            raise ValueError("update_bank must be a boolean")
 
         entropy_alpha = (
             self.entropy_alpha
@@ -938,6 +1400,15 @@ class OnlineCanonicalBank:
             current = Counter(
                 str(key) for key, keep in zip(group_keys, eligible) if keep
             )
+            if update_bank and self._proposal_retention_tracker is not None:
+                retention_requests = (
+                    self._proposal_retention_tracker.observe_rollout(
+                        prompt_key=prompt_key,
+                        verified_outcome_counts=current,
+                        row_count=num_samples,
+                    )
+                )
+                self._apply_retention_priority_requests(retention_requests)
             support = set(historical) | set(current)
             new_keys = set(current) - set(historical)
             new_outcome_count += len(new_keys)
@@ -981,10 +1452,11 @@ class OnlineCanonicalBank:
                 combined[row_index] = entropy_advantage
 
             updated = historical.copy()
-            updated.update(current)
+            if update_bank:
+                updated.update(current)
             if updated:
                 self._counts[prompt_key] = dict(updated)
-            if self.retain_exemplars and new_keys:
+            if update_bank and self.retain_exemplars and new_keys:
                 normalized_prompt = _normalized_token_tuple(
                     prompt_token_ids[start],
                     label="canonical replay prompt token ids",
