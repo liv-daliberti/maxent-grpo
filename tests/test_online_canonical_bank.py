@@ -1,3 +1,4 @@
+import copy
 import math
 
 import pytest
@@ -634,6 +635,238 @@ def test_separated_proposals_change_replay_support_not_on_policy_counts():
     assert graduated.response_token_ids == ((11,), (10,))
 
 
+def test_proposal_priority_is_fifo_fixed_budget_and_checkpoint_exact():
+    bank = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        global_replay_groups_per_step=1,
+        separate_proposal_objective_support=True,
+        proposal_replay_priority_visits=2,
+        proposal_replay_priority_multiplier=4.0,
+    )
+    bank.score_and_update(
+        prompt_token_ids=[[7, 8]] * 2 + [[9, 10]] * 2,
+        outcome_keys=["a", None, "z", None],
+        task_rewards=[1.0, 0.0, 1.0, 0.0],
+        active_mask=[1, 1, 1, 1],
+        response_token_ids=[[11], [99], [21], [98]],
+        num_samples=2,
+    )
+    bank.admit_verified_proposals(
+        prompt_token_ids=[[7, 8]],
+        outcome_keys=["b"],
+        response_token_ids=[[12]],
+    )
+
+    first = bank.scheduled_global_replay_groups()[0]
+    assert first.prompt_token_ids == (7, 8)
+    assert first.outcome_keys == ("a", "b")
+    assert first.mass_weights == pytest.approx((0.4, 1.6))
+    assert first.priority_modes == 1
+    assert bank.proposal_priority_remaining_visits == 1
+    assert bank.proposal_priority_replay_groups == 1
+
+    state = bank.state_dict()
+    assert state["schema"].endswith("proposal_priority_fixed_v7")
+    restored = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        global_replay_groups_per_step=1,
+        separate_proposal_objective_support=True,
+        proposal_replay_priority_visits=2,
+        proposal_replay_priority_multiplier=4.0,
+    )
+    restored.load_state_dict(state)
+    assert restored.state_dict() == state
+
+    second = restored.scheduled_global_replay_groups()[0]
+    assert second.prompt_token_ids == (7, 8)
+    assert second.mass_weights == pytest.approx((0.4, 1.6))
+    assert second.priority_modes == 1
+    assert restored.proposal_priority_remaining_visits == 0
+    assert restored.proposal_priority_replay_groups == 2
+
+    ordinary = restored.replay_groups([[7, 8]], min_modes=2)[0]
+    assert ordinary.mass_weights == pytest.approx((1.0, 1.0))
+    assert ordinary.priority_modes == 0
+
+
+def _adaptive_retention_bank() -> OnlineCanonicalBank:
+    return OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        global_replay_groups_per_step=1,
+        separate_proposal_objective_support=True,
+        proposal_replay_priority_visits=2,
+        proposal_replay_priority_multiplier=4.0,
+        proposal_retention_tracking=True,
+        proposal_adaptive_retention_priority=True,
+        proposal_retention_max_missed_rollout_opportunities=2,
+        proposal_retention_max_mean_logprob_drop=0.5,
+        proposal_retention_refresh_visits=2,
+        proposal_retention_score_cooldown_observations=2,
+    )
+
+
+def _seed_and_admit_retention_pair(bank: OnlineCanonicalBank) -> None:
+    bank.score_and_update(
+        prompt_token_ids=[[7, 8]] * 2,
+        outcome_keys=["a", None],
+        task_rewards=[1.0, 0.0],
+        active_mask=[1, 1],
+        response_token_ids=[[11], [99]],
+        num_samples=2,
+    )
+    bank.admit_verified_proposals(
+        prompt_token_ids=[[7, 8]],
+        outcome_keys=["b"],
+        response_token_ids=[[12]],
+    )
+
+
+def test_admission_retention_rollout_absence_refreshes_only_bounded_mass_priority():
+    bank = _adaptive_retention_bank()
+    _seed_and_admit_retention_pair(bank)
+    assert bank.state_dict()["schema"].endswith("priority_retention_v8")
+
+    # Consume the fixed initial two-visit admission priority first.
+    bank.scheduled_global_replay_groups()
+    bank.scheduled_global_replay_groups()
+    assert bank.proposal_priority_remaining_visits == 0
+
+    neutral_a_only = dict(
+        prompt_token_ids=[[7, 8]] * 2,
+        outcome_keys=["a", None],
+        task_rewards=[1.0, 0.0],
+        active_mask=[1, 1],
+        response_token_ids=[[11], [99]],
+        num_samples=2,
+    )
+    # The first group was sampled before proposal admission and is excluded;
+    # the next two neutral groups are genuine post-admission misses.
+    bank.score_and_update(**neutral_a_only)
+    bank.score_and_update(**neutral_a_only)
+    assert bank.proposal_priority_remaining_visits == 0
+    bank.score_and_update(**neutral_a_only)
+    assert bank.proposal_priority_remaining_visits == 2
+
+    prioritized = bank.scheduled_global_replay_groups()[0]
+    assert prioritized.outcome_keys == ("a", "b")
+    assert prioritized.mass_weights == pytest.approx((0.4, 1.6))
+    diagnostics = bank.proposal_retention_diagnostics()
+    assert diagnostics["rollout_conversion_fraction"] == 0.0
+    assert diagnostics["rollout_refresh_requests_cumulative"] == 1.0
+    assert diagnostics["gold_support_feedback"] == 0.0
+    assert diagnostics["eval_feedback"] == 0.0
+
+
+def test_admission_retention_likelihood_drop_refreshes_priority_and_resumes():
+    bank = _adaptive_retention_bank()
+    _seed_and_admit_retention_pair(bank)
+    bank.scheduled_global_replay_groups()
+    bank.scheduled_global_replay_groups()
+    replay_group = bank.replay_groups([[7, 8]], min_modes=2)[0]
+
+    baseline = bank.observe_replay_retention_scores(
+        groups=[replay_group],
+        mean_logprobs=[-0.5, -1.0],
+        sequence_logprobs=[-0.5, -2.0],
+    )
+    assert baseline["score_followup_admissions"] == 0.0
+    followup = bank.observe_replay_retention_scores(
+        groups=[replay_group],
+        mean_logprobs=[-0.5, -1.6],
+        sequence_logprobs=[-0.5, -3.2],
+    )
+    assert followup["score_retained_fraction"] == 0.0
+    assert followup["mean_logprob_drop_mean"] == pytest.approx(0.6)
+    assert followup["sequence_logprob_drop_mean"] == pytest.approx(1.2)
+    assert followup["score_refresh_requests_cumulative"] == 1.0
+    assert bank.proposal_priority_remaining_visits == 2
+
+    state = bank.state_dict()
+    restored = _adaptive_retention_bank()
+    restored.load_state_dict(state)
+    assert restored.state_dict() == state
+    assert restored.proposal_retention_diagnostics() == followup
+
+    legacy = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        global_replay_groups_per_step=1,
+        separate_proposal_objective_support=True,
+        proposal_replay_priority_visits=2,
+        proposal_replay_priority_multiplier=4.0,
+    )
+    with pytest.raises(ValueError, match="replay configuration mismatch"):
+        legacy.load_state_dict(state)
+
+    corrupted = copy.deepcopy(state)
+    tracked_records = next(
+        iter(corrupted["proposal_admission_retention"]["records"].values())
+    )
+    tracked_records["a"] = tracked_records.pop("b")
+    with pytest.raises(ValueError, match="inconsistent admission lifecycle"):
+        _adaptive_retention_bank().load_state_dict(corrupted)
+
+
+def test_admission_retention_resume_accepts_on_policy_converted_proposal():
+    bank = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        separate_proposal_objective_support=True,
+        proposal_retention_tracking=True,
+    )
+    neutral = dict(
+        prompt_token_ids=[[7, 8]] * 2,
+        outcome_keys=["a", None],
+        task_rewards=[1.0, 0.0],
+        active_mask=[1, 1],
+        response_token_ids=[[11], [99]],
+        num_samples=2,
+    )
+    bank.score_and_update(**neutral)
+    bank.admit_verified_proposals(
+        prompt_token_ids=[[7, 8]],
+        outcome_keys=["b"],
+        response_token_ids=[[12]],
+    )
+
+    # Consume the neutral group sampled before admission, then observe the
+    # proposal in a genuinely post-admission neutral group.
+    bank.score_and_update(**neutral)
+    bank.score_and_update(
+        prompt_token_ids=[[7, 8]] * 2,
+        outcome_keys=["b", None],
+        task_rewards=[1.0, 0.0],
+        active_mask=[1, 1],
+        response_token_ids=[[13], [98]],
+        num_samples=2,
+    )
+    state = bank.state_dict()
+    prompt_key = next(iter(state["counts"]))
+    assert state["counts"][prompt_key] == {"a": 2, "b": 1}
+    assert state["proposal_only_outcomes"] == {}
+    assert state["proposal_admission_retention"]["records"][prompt_key]["b"][
+        "converted_on_policy"
+    ] is True
+
+    restored = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        separate_proposal_objective_support=True,
+        proposal_retention_tracking=True,
+    )
+    restored.load_state_dict(state)
+    assert restored.state_dict() == state
+
+
 def test_separated_proposal_admission_is_atomic_at_replay_capacity():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,
@@ -684,3 +917,38 @@ def test_replay_resume_handles_more_discoveries_than_exemplar_capacity():
     restored.load_state_dict(bank.state_dict())
     assert restored.tracked_outcome_count == 4
     assert restored.state_dict() == bank.state_dict()
+
+
+
+def test_verified_replay_support_includes_proposals_but_not_their_counts():
+    bank = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=3,
+        separate_proposal_objective_support=True,
+    )
+    bank.score_and_update(
+        prompt_token_ids=[[7, 8]] * 2,
+        outcome_keys=["common", None],
+        task_rewards=[1.0, 0.0],
+        active_mask=[1, 1],
+        response_token_ids=[[11], [99]],
+        num_samples=2,
+    )
+    bank.admit_verified_proposals(
+        prompt_token_ids=[[7, 8]],
+        outcome_keys=["proposal_rare"],
+        response_token_ids=[[12]],
+    )
+
+    assert bank.verified_replay_support([7, 8]) == (
+        "common",
+        "proposal_rare",
+    )
+    assert bank.verified_replay_support([9, 10]) == ()
+    replay_group = bank.replay_groups([[7, 8]], min_modes=1)[0]
+    assert replay_group.outcome_keys == ("common", "proposal_rare")
+    assert replay_group.fresh_observation_counts == (1, 0)
+    counts = next(iter(bank.state_dict()["counts"].values()))
+    assert counts == {"common": 1}
+    assert "proposal_rare" not in counts

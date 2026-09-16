@@ -2,6 +2,7 @@ import json
 
 from oat_drgrpo.math_grader import validated_modebench_outcome_key
 from oat_drgrpo.verified_transformations import (
+    derive_countdown_action_neighborhood_counterfactuals,
     derive_validator_preserving_counterfactuals,
 )
 
@@ -53,6 +54,31 @@ def test_countdown_sign_rewrite_changes_tree_not_value_or_operands():
     alternatives, _ = _keys("\\boxed{2 + 3 * 4}", reference)
 
     assert any("- -" in alternative or "-(-" in alternative for alternative in alternatives)
+
+
+def test_countdown_action_neighborhood_stays_in_exact_binary_grammar():
+    reference = json.dumps(
+        {
+            "verifier": "countdown",
+            "numbers": [2, 3, 4],
+            "target": 10,
+            "num_completions": 999,
+            "gold_modes": ["must-not-be-read"],
+        }
+    )
+    alternatives = derive_countdown_action_neighborhood_counterfactuals(
+        "\\boxed{2 * 3 + 4}",
+        reference,
+        radius=2,
+    )
+    keys = {
+        validated_modebench_outcome_key(alternative, reference)
+        for alternative in alternatives
+    }
+
+    assert keys == {"countdown:sub(mul(3,4),2)"}
+    assert all("neg(" not in str(key) for key in keys)
+    assert all("-(-" not in alternative for alternative in alternatives)
 
 
 def test_graph_local_recolor_respects_public_fixed_vertices():

@@ -63,6 +63,9 @@ def _args(**overrides):
         "semantic_shannon_quality_gated_cap": 0.05,
         "semantic_shannon_success_conditioned_signed_advantage": False,
         "semantic_shannon_success_conditioned_signed_cap": 0.05,
+        "semantic_shannon_success_conditioned_group_centered_advantage": False,
+        "semantic_shannon_success_conditioned_verified_support_advantage": False,
+        "semantic_shannon_verified_support_include_replay_bank": False,
         "online_canonical_bank_alpha": 0.0,
         "online_canonical_bank_pseudocount": 1.0,
         "online_canonical_bank_surprisal_clip": 5.0,
@@ -180,14 +183,60 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
         is False
     )
     assert fields["online_canonical_counterfactual_max_attempts"].default == 3
+    assert (
+        fields[
+            "online_canonical_counterfactual_exact_grammar_transforms"
+        ].default
+        is False
+    )
     assert fields[
         "online_canonical_counterfactual_sampling_temperature"
     ].default == pytest.approx(1.0)
     assert (
+        fields["online_canonical_counterfactual_starvation_fallback"].default
+        is False
+    )
+    assert fields[
+        "online_canonical_counterfactual_starvation_patience_updates"
+    ].default == 64
+    assert fields[
+        "online_canonical_counterfactual_starvation_fallback_max_attempts"
+    ].default == 4
+    assert (
         fields["online_canonical_counterfactual_fixed_control_groups"].default
         == 0
     )
+    assert (
+        fields[
+            "online_canonical_counterfactual_admission_compute_only"
+        ].default
+        is False
+    )
     assert fields["online_canonical_replay_compute_only"].default is False
+    assert (
+        fields["online_canonical_replay_retention_safe_balance"].default
+        is False
+    )
+    assert fields["online_canonical_proposal_replay_priority_visits"].default == 0
+    assert fields[
+        "online_canonical_proposal_replay_priority_multiplier"
+    ].default == pytest.approx(1.0)
+    assert (
+        fields["online_canonical_proposal_retention_tracking"].default
+        is False
+    )
+    assert (
+        fields[
+            "online_canonical_proposal_adaptive_retention_priority"
+        ].default
+        is False
+    )
+    assert fields[
+        "online_canonical_proposal_retention_max_missed_rollout_opportunities"
+    ].default == 2
+    assert fields[
+        "online_canonical_proposal_retention_max_mean_logprob_drop"
+    ].default == pytest.approx(0.5)
     args = _args(
         xdr_tau=float("inf"),
         test_split="multi_answer",
@@ -201,6 +250,73 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
     )
 
     assert validate_zero_math_args(args) is args
+
+    compute_only = _args(
+        xdr_tau=float("inf"),
+        test_split="multi_answer",
+        online_evaluation=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_counterfactual_proposals=True,
+        online_canonical_counterfactual_separate_objective_support=True,
+        online_canonical_counterfactual_admission_compute_only=True,
+        replicated_freeform_sampling=True,
+        local_actor_weight_sync=True,
+    )
+    assert validate_zero_math_args(compute_only) is compute_only
+
+    with pytest.raises(ValueError, match="admission compute-only requires"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_counterfactual_admission_compute_only=True,
+            )
+        )
+
+    fallback_args = _args(
+        xdr_tau=float("inf"),
+        test_split="multi_answer",
+        online_evaluation=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="split_mass_balance_per_rollout",
+        online_canonical_counterfactual_proposals=True,
+        online_canonical_counterfactual_separate_objective_support=True,
+        online_canonical_counterfactual_max_attempts=1,
+        online_canonical_counterfactual_starvation_fallback=True,
+        online_canonical_counterfactual_starvation_patience_updates=64,
+        online_canonical_counterfactual_starvation_fallback_max_attempts=4,
+        online_canonical_counterfactual_starvation_burst_updates=16,
+        online_canonical_counterfactual_starvation_cooldown_updates=48,
+        replicated_freeform_sampling=True,
+        local_actor_weight_sync=True,
+    )
+    assert validate_zero_math_args(fallback_args) is fallback_args
+
+    with pytest.raises(ValueError, match="fallback requires counterfactual"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_counterfactual_starvation_fallback=True,
+            )
+        )
+
+    with pytest.raises(ValueError, match="must exceed the base"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                test_split="multi_answer",
+                online_evaluation=True,
+                online_canonical_replay=True,
+                online_canonical_replay_objective=(
+                    "split_mass_balance_per_rollout"
+                ),
+                online_canonical_counterfactual_proposals=True,
+                online_canonical_counterfactual_separate_objective_support=True,
+                online_canonical_counterfactual_max_attempts=4,
+                online_canonical_counterfactual_starvation_fallback=True,
+                online_canonical_counterfactual_starvation_fallback_max_attempts=4,
+                replicated_freeform_sampling=True,
+                local_actor_weight_sync=True,
+            )
+        )
 
     with pytest.raises(ValueError, match="max_attempts must be positive"):
         validate_zero_math_args(
@@ -268,6 +384,87 @@ def test_counterfactual_proposals_accept_only_support_only_replicated_replay():
         local_actor_weight_sync=True,
     )
     assert validate_zero_math_args(separated) is separated
+
+    full = _args(
+        xdr_tau=float("inf"),
+        test_split="multi_answer",
+        online_evaluation=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="split_mass_balance_per_rollout",
+        online_canonical_replay_mass_alpha=0.1,
+        online_canonical_replay_retention_safe_balance=True,
+        online_canonical_counterfactual_proposals=True,
+        online_canonical_counterfactual_separate_objective_support=True,
+        online_canonical_proposal_replay_priority_visits=4,
+        online_canonical_proposal_replay_priority_multiplier=4.0,
+        replicated_freeform_sampling=True,
+        local_actor_weight_sync=True,
+    )
+    assert validate_zero_math_args(full) is full
+
+    retention = _args(
+        xdr_tau=float("inf"),
+        test_split="multi_answer",
+        online_evaluation=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="split_mass_balance_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        online_canonical_counterfactual_proposals=True,
+        online_canonical_counterfactual_separate_objective_support=True,
+        online_canonical_proposal_replay_priority_visits=4,
+        online_canonical_proposal_replay_priority_multiplier=4.0,
+        online_canonical_proposal_retention_tracking=True,
+        online_canonical_proposal_adaptive_retention_priority=True,
+        online_canonical_proposal_retention_refresh_visits=4,
+        replicated_freeform_sampling=True,
+        local_actor_weight_sync=True,
+    )
+    assert validate_zero_math_args(retention) is retention
+
+    with pytest.raises(ValueError, match="requires retention tracking"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_proposal_adaptive_retention_priority=True,
+            )
+        )
+
+    with pytest.raises(ValueError, match="requires global replay"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                test_split="multi_answer",
+                online_evaluation=True,
+                online_canonical_replay=True,
+                online_canonical_replay_objective=(
+                    "split_mass_balance_per_rollout"
+                ),
+                online_canonical_counterfactual_proposals=True,
+                online_canonical_counterfactual_separate_objective_support=True,
+                online_canonical_proposal_replay_priority_visits=4,
+                online_canonical_proposal_replay_priority_multiplier=4.0,
+                online_canonical_proposal_retention_tracking=True,
+                online_canonical_proposal_adaptive_retention_priority=True,
+                replicated_freeform_sampling=True,
+                local_actor_weight_sync=True,
+            )
+        )
+
+    with pytest.raises(ValueError, match="retention-safe balance requires split"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_replay=True,
+                online_canonical_replay_objective="verified_likelihood_per_rollout",
+                online_canonical_replay_retention_safe_balance=True,
+            )
+        )
+
+    with pytest.raises(ValueError, match="priority requires counterfactual"):
+        validate_zero_math_args(
+            _args(
+                online_canonical_proposal_replay_priority_visits=4,
+                online_canonical_proposal_replay_priority_multiplier=4.0,
+            )
+        )
 
     with pytest.raises(
         ValueError,
@@ -519,6 +716,18 @@ def test_semantic_shannon_accepts_frozen_freeform_defaults():
     assert fields[
         "semantic_shannon_success_conditioned_signed_cap"
     ].default == pytest.approx(0.05)
+    assert (
+        fields[
+            "semantic_shannon_success_conditioned_group_centered_advantage"
+        ].default
+        is False
+    )
+    assert (
+        fields[
+            "semantic_shannon_success_conditioned_verified_support_advantage"
+        ].default
+        is False
+    )
 
     args = _args(
         xdr_tau=float("inf"),
@@ -573,6 +782,48 @@ def test_online_canonical_bank_accepts_task_bound_pantry_contract():
     )
 
     assert validate_zero_math_args(args) is args
+
+
+def test_full_open_bank_accepts_only_fixed_shape_pantry_canonical_explorer():
+    pantry = _args(
+        xdr_tau=float("inf"),
+        canonical_action_task="pantry_support_mask",
+        canonical_graph_action_count=6,
+        canonical_graph_learner_sampling=True,
+        canonical_graph_fixed_shape_sampling=True,
+        prompt_template="qwen_pantry_support_mask",
+        verifier_version="fast",
+        test_split="multi_answer",
+        online_evaluation=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="split_mass_balance_per_rollout",
+        online_canonical_replay_mass_alpha=0.1,
+        online_canonical_replay_retention_safe_balance=True,
+        online_canonical_counterfactual_proposals=True,
+        online_canonical_counterfactual_separate_objective_support=True,
+        online_canonical_proposal_replay_priority_visits=4,
+        online_canonical_proposal_replay_priority_multiplier=4.0,
+    )
+    assert validate_zero_math_args(pantry) is pantry
+
+    with pytest.raises(ValueError, match="fixed-shape Pantry learner sampler"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                canonical_action_task="pantry_support_mask",
+                canonical_graph_action_count=6,
+                canonical_graph_learner_sampling=True,
+                canonical_graph_fixed_shape_sampling=False,
+                prompt_template="qwen_pantry_support_mask",
+                verifier_version="fast",
+                test_split="multi_answer",
+                online_evaluation=True,
+                online_canonical_replay=True,
+                online_canonical_replay_objective="split_mass_balance_per_rollout",
+                online_canonical_counterfactual_proposals=True,
+                online_canonical_counterfactual_separate_objective_support=True,
+            )
+        )
 
 
 def test_online_canonical_math_strategy_requires_validator_and_endpoint():
@@ -993,6 +1244,73 @@ def test_semantic_shannon_success_conditioned_signed_accepts_extension():
     assert validate_zero_math_args(args) is args
 
 
+def test_semantic_shannon_group_centered_accepts_replay_composition():
+    args = _args(
+        xdr_tau=float("inf"),
+        semantic_shannon_coef=0.1,
+        semantic_shannon_separate_advantage=True,
+        semantic_shannon_success_conditioned_group_centered_advantage=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        test_split="multi_answer",
+        num_samples=16,
+    )
+
+    assert validate_zero_math_args(args) is args
+
+
+def test_semantic_shannon_accepts_explicit_zero_coefficient_control():
+    args = _args(
+        xdr_tau=float("inf"),
+        semantic_shannon_coef=0.0,
+        semantic_shannon_allow_zero_coefficient_control=True,
+        semantic_shannon_separate_advantage=True,
+        semantic_shannon_success_conditioned_verified_support_advantage=True,
+        semantic_shannon_verified_support_include_replay_bank=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        test_split="multi_answer",
+        num_samples=16,
+    )
+
+    assert validate_zero_math_args(args) is args
+
+
+def test_semantic_shannon_zero_coefficient_control_is_explicit_and_scoped():
+    with pytest.raises(ValueError, match="explicit zero-coefficient"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                semantic_shannon_coef=0.0,
+                semantic_shannon_separate_advantage=True,
+            )
+        )
+    with pytest.raises(ValueError, match="requires semantic_shannon_separate"):
+        validate_zero_math_args(
+            _args(
+                semantic_shannon_allow_zero_coefficient_control=True,
+            )
+        )
+
+
+def test_semantic_shannon_verified_support_accepts_replay_composition():
+    args = _args(
+        xdr_tau=float("inf"),
+        semantic_shannon_coef=0.1,
+        semantic_shannon_separate_advantage=True,
+        semantic_shannon_success_conditioned_verified_support_advantage=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        test_split="multi_answer",
+        num_samples=16,
+    )
+
+    assert validate_zero_math_args(args) is args
+
+
 def test_semantic_shannon_open_set_uses_the_fixed_signed_advantage_path():
     fields = ZeroMathArgs.__dataclass_fields__
     assert fields["semantic_shannon_success_conditioned_signed_advantage"].default is False
@@ -1125,6 +1443,22 @@ def test_open_set_split_canonical_composition_accepts_fixed_coefficients():
         ),
         (
             {
+                "xdr_tau": float("inf"),
+                "semantic_shannon_coef": 0.1,
+                "semantic_shannon_success_conditioned_group_centered_advantage": True,
+            },
+            "requires semantic_shannon_separate_advantage",
+        ),
+        (
+            {
+                "xdr_tau": float("inf"),
+                "semantic_shannon_coef": 0.1,
+                "semantic_shannon_success_conditioned_verified_support_advantage": True,
+            },
+            "requires semantic_shannon_separate_advantage",
+        ),
+        (
+            {
                 "semantic_shannon_success_conditioned_signed_cap": 0.0,
             },
             "finite and positive",
@@ -1136,6 +1470,26 @@ def test_open_set_split_canonical_composition_accepts_fixed_coefficients():
                 "semantic_shannon_separate_advantage": True,
                 "semantic_shannon_quality_gated_advantage": True,
                 "semantic_shannon_success_conditioned_signed_advantage": True,
+            },
+            "separate treatments",
+        ),
+        (
+            {
+                "xdr_tau": float("inf"),
+                "semantic_shannon_coef": 0.1,
+                "semantic_shannon_separate_advantage": True,
+                "semantic_shannon_success_conditioned_signed_advantage": True,
+                "semantic_shannon_success_conditioned_group_centered_advantage": True,
+            },
+            "separate treatments",
+        ),
+        (
+            {
+                "xdr_tau": float("inf"),
+                "semantic_shannon_coef": 0.1,
+                "semantic_shannon_separate_advantage": True,
+                "semantic_shannon_success_conditioned_group_centered_advantage": True,
+                "semantic_shannon_success_conditioned_verified_support_advantage": True,
             },
             "separate treatments",
         ),
@@ -1517,3 +1871,185 @@ def test_canonical_entropy_target_cannot_exceed_log_support(task, template, targ
                 maxent_control_target_entropy=target,
             )
         )
+
+
+@pytest.mark.parametrize("tau", [-0.1, 1.1, float("nan")])
+def test_ucpo_rejects_invalid_tau(tau):
+    with pytest.raises(ValueError, match="ucpo_tau"):
+        validate_zero_math_args(_args(xdr_tau=float("inf"), ucpo_tau=tau))
+
+
+def test_rlep_dr_accepts_one_fresh_16_row_group_and_two_replays():
+    args = _args(
+        xdr_tau=float("inf"),
+        num_samples=16,
+        rlep_experience_root="/frozen/pool",
+        rlep_replay_count=2,
+    )
+    assert validate_zero_math_args(args) is args
+
+
+def test_rlep_dr_accepts_sparse_prompt_fallback_when_pool_is_enabled():
+    args = _args(
+        xdr_tau=float("inf"),
+        num_samples=16,
+        rlep_experience_root="/frozen/pool",
+        rlep_replay_count=2,
+        rlep_sparse_fallback=True,
+    )
+    assert validate_zero_math_args(args) is args
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"rlep_experience_root": "/pool", "rlep_replay_count": 0}, "enabled together"),
+        ({"rlep_experience_root": "", "rlep_replay_count": 2}, "enabled together"),
+        ({"rlep_experience_root": "/pool", "rlep_replay_count": -1}, "non-negative"),
+        (
+            {
+                "critic_type": "grpo",
+                "rlep_experience_root": "/pool",
+                "rlep_replay_count": 2,
+            },
+            "requires critic_type=drgrpo",
+        ),
+        (
+            {
+                "num_samples": 32,
+                "rlep_experience_root": "/pool",
+                "rlep_replay_count": 2,
+            },
+            "one fresh 16-row",
+        ),
+        (
+            {
+                "num_samples": 16,
+                "ucpo_tau": 0.2,
+                "rlep_experience_root": "/pool",
+                "rlep_replay_count": 2,
+            },
+            "separate comparative baselines",
+        ),
+        (
+            {
+                "num_samples": 16,
+                "online_canonical_replay": True,
+                "rlep_experience_root": "/pool",
+                "rlep_replay_count": 2,
+            },
+            "cannot be combined with canonical replay",
+        ),
+    ],
+)
+def test_rlep_rejects_mixed_or_malformed_configuration(overrides, message):
+    with pytest.raises(ValueError, match=message):
+        validate_zero_math_args(_args(xdr_tau=float("inf"), **overrides))
+
+
+
+def test_semantic_verified_support_can_include_replay_membership():
+    args = _args(
+        xdr_tau=float("inf"),
+        semantic_shannon_coef=0.1,
+        semantic_shannon_separate_advantage=True,
+        semantic_shannon_success_conditioned_verified_support_advantage=True,
+        semantic_shannon_verified_support_include_replay_bank=True,
+        online_canonical_replay=True,
+        online_canonical_replay_objective="verified_likelihood_per_rollout",
+        online_canonical_replay_global_groups_per_step=1,
+        test_split="multi_answer",
+        num_samples=16,
+    )
+
+    assert validate_zero_math_args(args) is args
+
+
+@pytest.mark.parametrize(
+    "overrides, message",
+    [
+        (
+            {
+                "semantic_shannon_verified_support_include_replay_bank": True,
+            },
+            "requires verified-support mode",
+        ),
+        (
+            {
+                "semantic_shannon_coef": 0.1,
+                "semantic_shannon_separate_advantage": True,
+                "semantic_shannon_success_conditioned_verified_support_advantage": True,
+                "semantic_shannon_verified_support_include_replay_bank": True,
+            },
+            "requires online canonical replay",
+        ),
+    ],
+)
+def test_semantic_verified_support_replay_membership_fails_closed(
+    overrides, message
+):
+    with pytest.raises(ValueError, match=message):
+        validate_zero_math_args(_args(**overrides))
+
+
+def _dapo_args(**overrides):
+    values = {
+        "critic_type": "grpo",
+        "num_samples": 16,
+        "xdr_tau": float("inf"),
+        "dapo_enabled": True,
+        "dapo_clip_low": 0.20,
+        "dapo_clip_high": 0.28,
+        "dapo_max_num_gen_batches": 10,
+        "dapo_overlong_buffer_ratio": 0.20,
+        "dapo_overlong_penalty_factor": 1.0,
+        "train_batch_size": 16,
+        "train_batch_size_per_device": 16,
+        "verified_discovery_tracking": False,
+    }
+    values.update(overrides)
+    return _args(**values)
+
+
+def test_dapo_accepts_complete_isolated_configuration():
+    args = _dapo_args()
+
+    assert validate_zero_math_args(args) is args
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"critic_type": "drgrpo"}, "requires critic_type=grpo"),
+        ({"ucpo_tau": 0.2}, "separate comparative baselines"),
+        ({"verified_discovery_tracking": True}, "incompatible components"),
+        ({"online_canonical_replay": True}, "incompatible components"),
+        ({"train_batch_size": 32}, "complete rollout group"),
+        (
+            {
+                "rlep_experience_root": "/frozen/pool",
+                "rlep_replay_count": 2,
+            },
+            "separate comparative baselines",
+        ),
+    ],
+)
+def test_dapo_rejects_mixed_configuration(overrides, message):
+    with pytest.raises(ValueError, match=message):
+        validate_zero_math_args(_dapo_args(**overrides))
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"dapo_clip_low": 0.0}, "DAPO clipping"),
+        ({"dapo_clip_high": 1.0}, "DAPO clipping"),
+        ({"dapo_clip_low": 0.3, "dapo_clip_high": 0.2}, "DAPO clipping"),
+        ({"dapo_max_num_gen_batches": 0}, "must be positive"),
+        ({"dapo_overlong_buffer_ratio": 1.0}, "must be finite and in"),
+        ({"dapo_overlong_penalty_factor": -1.0}, "must be finite and non-negative"),
+    ],
+)
+def test_dapo_rejects_malformed_recipe(overrides, message):
+    with pytest.raises(ValueError, match=message):
+        validate_zero_math_args(_dapo_args(**overrides))

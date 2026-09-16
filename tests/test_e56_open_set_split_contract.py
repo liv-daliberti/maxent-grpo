@@ -5,7 +5,9 @@ import pytest
 import torch
 
 from oat_drgrpo.canonical_replay import (
+    cap_retention_safe_balance_score_gradients,
     canonical_replay_split_mass_balance_loss,
+    project_retention_safe_score_gradients,
 )
 from oat_drgrpo.semantic_shannon import (
     open_set_success_semantic_signal,
@@ -181,3 +183,61 @@ def test_e56_auditor_rejects_an_unbound_debug_attempt(tmp_path):
 
     assert len(records) == 1
     assert any("unexpected debug attempts" in item for item in violations)
+
+
+def test_retention_safe_projection_preserves_mass_per_prompt_group():
+    raw = torch.tensor(
+        [
+            -0.01,
+            -0.09,
+            0.04,
+            -0.04666666666666667,
+            -0.04666666666666667,
+            -0.04666666666666667,
+        ],
+        dtype=torch.float64,
+    )
+    safe = project_retention_safe_score_gradients(raw, [2, 4])
+
+    torch.testing.assert_close(safe[:2], raw[:2])
+    torch.testing.assert_close(
+        safe[2:],
+        torch.tensor(
+            [0.0, -1.0 / 30.0, -1.0 / 30.0, -1.0 / 30.0],
+            dtype=torch.float64,
+        ),
+    )
+    assert bool((safe <= 0.0).all())
+    assert float(safe[:2].sum()) == pytest.approx(-0.1)
+    assert float(safe[2:].sum()) == pytest.approx(-0.1)
+    assert safe.grad_fn is None
+
+
+def test_bank_local_balance_cap_preserves_mass_and_maximizes_safe_kl():
+    mass = torch.tensor([-0.05, -0.05, *([-0.025] * 4)], dtype=torch.float64)
+    balance = torch.tensor(
+        [0.0380797078, -0.0380797078, 0.065, *([-0.02166666666666667] * 3)],
+        dtype=torch.float64,
+    )
+
+    safe, scales = cap_retention_safe_balance_score_gradients(
+        mass,
+        balance,
+        [2, 4],
+    )
+
+    torch.testing.assert_close(
+        scales,
+        torch.tensor([1.0, 1.0 / 2.6], dtype=torch.float64),
+    )
+    torch.testing.assert_close(safe[:2], mass[:2] + balance[:2])
+    torch.testing.assert_close(
+        safe[2:],
+        torch.tensor(
+            [0.0, -1.0 / 30.0, -1.0 / 30.0, -1.0 / 30.0],
+            dtype=torch.float64,
+        ),
+        atol=1e-15,
+        rtol=1e-12,
+    )
+    assert bool((safe <= 0.0).all())

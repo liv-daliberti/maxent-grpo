@@ -7,6 +7,7 @@ import pytest
 
 from oat_drgrpo.learner.run import ZeroMathRunMixin
 from oat_drgrpo.outcome_collision import INVALID_OUTCOME_KEY
+from oat_drgrpo.semantic_rms_controller import SemanticRmsController
 from oat_drgrpo.semantic_shannon import (
     SemanticShannonTracker,
     open_set_success_semantic_signal,
@@ -484,6 +485,63 @@ def test_checkpoint_client_state_round_trip_persists_semantic_counts():
     assert restored._semantic_shannon_tracker.state_dict() == (
         source._semantic_shannon_tracker.state_dict()
     )
+
+
+def _semantic_rms_controller():
+    return SemanticRmsController(
+        base_coefficient=0.1,
+        target_ratio=0.015,
+        min_coefficient=0.02,
+        max_coefficient=0.4,
+    )
+
+
+def test_adaptive_semantic_resume_restores_controller_before_tracker_contract():
+    active_coefficient = 0.09568631381681084
+    saved_tracker = SemanticShannonTracker(coefficient=active_coefficient)
+    saved_tracker.score_and_update(
+        prompt_token_ids=_prompts(PROMPT_A, 2),
+        answer_keys=["a", "b"],
+        num_samples=2,
+    )
+    saved_controller = _semantic_rms_controller()
+    saved_controller.current_coefficient = active_coefficient
+
+    restored = _CheckpointHarness()
+    _set_checkpoint_fields(restored)
+    restored._semantic_shannon_tracker = SemanticShannonTracker(coefficient=0.1)
+    restored._semantic_rms_controller = _semantic_rms_controller()
+    restored._restore_training_progress_state(
+        {
+            "semantic_shannon_tracker_state": saved_tracker.state_dict(),
+            "semantic_rms_controller_state": saved_controller.state_dict(),
+        }
+    )
+
+    assert restored._semantic_shannon_tracker.state_dict() == (
+        saved_tracker.state_dict()
+    )
+    assert restored._semantic_rms_controller.state_dict() == (
+        saved_controller.state_dict()
+    )
+
+
+def test_adaptive_semantic_resume_rejects_disagreeing_checkpoint_coefficients():
+    saved_tracker = SemanticShannonTracker(coefficient=0.09)
+    saved_controller = _semantic_rms_controller()
+    saved_controller.current_coefficient = 0.08
+
+    restored = _CheckpointHarness()
+    _set_checkpoint_fields(restored)
+    restored._semantic_shannon_tracker = SemanticShannonTracker(coefficient=0.1)
+    restored._semantic_rms_controller = _semantic_rms_controller()
+    with pytest.raises(ValueError, match="resume mismatch for coefficient"):
+        restored._restore_training_progress_state(
+            {
+                "semantic_shannon_tracker_state": saved_tracker.state_dict(),
+                "semantic_rms_controller_state": saved_controller.state_dict(),
+            }
+        )
 
 
 def test_resume_requires_tracker_state_presence_to_match_active_treatment():

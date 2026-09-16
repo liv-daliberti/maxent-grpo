@@ -47,25 +47,45 @@ def _expand_vendor_macros(text: str) -> str:
     return text.replace(r"\qwenmark{}", "Qwen").replace(r"\qwenmark", "Qwen")
 
 
-def test_main_paper_centers_modebench_without_internal_experiment_ids():
-    text = MAIN.read_text(encoding="utf-8")
+def test_main_paper_centers_modebench_and_current_evidence_story():
     main_text = _main_body()
+    main_words = " ".join(main_text.split())
 
-    assert r"\mb{} and x-Mode GRPO" in main_text
-    assert r"\newcommand{\xmode}{\mbox{x-Mode GRPO}}" in main_text
+    assert re.search(r"\bE\d+(?:-R\d+)*\b", main_text) is None
+    for process_phrase in (
+        "science jobs", "operational smokes", "public disclosure",
+        "outcome blindness", "outcome-blind", "exploratory", "audit",
+        "campaign",
+    ):
+        assert process_phrase not in main_text.lower()
+
+    assert (
+        r"\title{There’s More Than One Way: "
+        r"Mode Collapse in RLVR \& ModeBench}"
+    ) in " ".join(main_text.replace(r"\\", " ").split())
+    assert (
+        r"\newcommand{\xmode}{\mbox{legacy adaptive MaxEnt+ReplayDr.GRPO}}"
+        in main_text
+    )
     assert r"\section{\mb: Executable Mode Measurement}" in main_text
-    assert r"\section{x-Mode GRPO: Verified Replay for Dr.GRPO}" in main_text
+    assert r"\section{Retaining and Discovering Verified Modes}" in main_text
     assert "historical multi-component treatment" in main_text
+    for story_token in (
+        r"\textbf{Measure:}",
+        r"\textbf{Retain:}",
+        r"\textbf{Discover:}",
+        r"\label{fig:support-story}",
+        r"\subsection{Replay retains modes across every model and domain}",
+        r"\subsection{Generic alternatives help locally}",
+        r"\subsection{Discovery expands beyond replay}",
+    ):
+        assert story_token in main_text
     assert "Open-set semantic MaxEnt" not in main_text
     assert "separated support" not in main_text.lower()
     for obsolete_name in ("prior stack", "full stack", "replay-only"):
         assert obsolete_name not in main_text.lower(), obsolete_name
-    assert "verified replay as its sole auxiliary derivative" in " ".join(
-        main_text.split()
-    )
-    # Internal experiment identifiers (E68, E70a, ...) are repository
-    # bookkeeping and must never reach the manuscript.
-    assert re.search(r"\bE[0-9]+[A-Za-z-]*\b", text) is None
+
+
 
 
 def test_paper_reports_exactly_the_five_executable_modebench_domains():
@@ -77,7 +97,7 @@ def test_paper_reports_exactly_the_five_executable_modebench_domains():
     # A sixth domain subsection would mean the prompt appendix and the headline
     # table have drifted apart.
     appendix = prose.split(r"\section{Domain Prompts}", maxsplit=1)[1]
-    appendix = appendix.split(r"\section{Dataset and Identity Audits}")[0]
+    appendix = appendix.split(r"\section{Dataset and Identity Validation}")[0]
     assert appendix.count(r"\subsection{") == len(MODEBENCH_DOMAINS)
 
 
@@ -86,44 +106,35 @@ def test_headline_rows_run_the_preregistered_terminal_design():
 
     for required in (
         "Qwen2.5-0.5B-Instruct",
-        "pinned revision",
-        "seeds 43--47",
+        "pinned revisions",
+        "five seeds each: 43--47, 55--59, and 70--74",
         "group size 16",
         "384 prompts",
         "128-prompt",
-        "greedy decoding",
+        r"greedy \texttt{pass@1}",
     ):
         assert required in prose, required
     assert "exactly eight passes" in prose
-    assert "fixed half-pass grid" in prose
+    assert "half-pass checkpoints from 0 to 8" in prose
     for required in (
         "Falcon3-1B-Instruct",
         "Qwen2.5-3B-Instruct",
-        "seeds 55--59",
-        "seeds 70--74",
-        "Snapshot boundary",
-        "Runs continue after this cutoff",
-        "deepest checkpoint shared by both arms",
+        "Every figure prints its exact seed count",
+        "no model, domain, or missing endpoint is pooled or imputed",
     ):
         assert required in prose, required
 
     assert "Interim-draft amendment" not in prose
     assert "Draft status" not in prose
+    assert "Snapshot boundary" not in prose
+    assert "Runs continue after this cutoff" not in prose
 
-def test_paper_includes_pointmaze_as_a_separate_interactive_stratum():
-    prose = " ".join(MAIN.read_text(encoding="utf-8").split())
-
-    for required in (
-        r"\noindent\textbf{PointMaze stratum.}",
-        r"PointMaze\_UMaze-v3",
-        "384 training and 128 evaluation maps",
-        "separate estimator from the static domains",
-        "selects a legal adjacent waypoint",
-        "Wall masking exposes no route or verifier signal",
-        "common-random-number interactive protocol",
-    ):
-        assert required in prose, required
-    assert r"\subsection{PointMaze cells}" not in prose
+def test_paper_excludes_pointmaze_and_tour():
+    prose = MAIN.read_text(encoding="utf-8").lower()
+    assert "pointmaze" not in prose
+    assert "point_maze" not in prose
+    assert "point maze" not in prose
+    assert "tour" not in prose
 
 
 def test_python_dataset_identity_matches_the_manuscript_audit():

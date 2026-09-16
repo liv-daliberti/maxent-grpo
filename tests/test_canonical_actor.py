@@ -233,7 +233,7 @@ def test_diayn_neutral_quality_keeps_the_control_request_shape(monkeypatch):
     assert params.n == 8
     assert params.seed == 360103
     assert result["option_ids"] == [[None] * 8]
-    assert result["request_seeds_by_prompt"] is None
+    assert result["request_seeds_by_prompt"] == [[360103]]
 
 
 def test_diayn_binding_uses_independent_prompt_option_seeds(monkeypatch):

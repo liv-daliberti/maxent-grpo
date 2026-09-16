@@ -527,8 +527,14 @@ def test_route_explorer_does_not_run_for_non_singleton_verified_support(
     assert actor.calls == []
 
 
-def test_replicated_route_admission_never_changes_neutral_objective_support(
+@pytest.mark.parametrize(
+    ("admission_compute_only", "expected_admissions"),
+    [(False, 1), (True, 0)],
+)
+def test_replicated_route_admission_control_never_changes_neutral_support(
     monkeypatch,
+    admission_compute_only,
+    expected_admissions,
 ):
     neutral_rows = [
         _route_row("anchor", 11, reward=1.0, mean_logprob=-0.5),
@@ -594,6 +600,9 @@ def test_replicated_route_admission_never_changes_neutral_objective_support(
             train_batch_size_per_device=2,
             online_evaluation=True,
             online_canonical_counterfactual_proposals=True,
+            online_canonical_counterfactual_admission_compute_only=(
+                admission_compute_only
+            ),
             online_canonical_key_mode="verified_route",
             seed=43,
         ),
@@ -607,6 +616,9 @@ def test_replicated_route_admission_never_changes_neutral_objective_support(
         _generate_verified_counterfactual_proposals=(
             lambda **kwargs: (proposal_payload, {})
         ),
+        _record_counterfactual_starvation_outcome=(
+            lambda *args, **kwargs: None
+        ),
     )
 
     feedback, metrics = ZeroMathRunMixin._sample_replicated_freeform_feedback(
@@ -618,10 +630,26 @@ def test_replicated_route_admission_never_changes_neutral_objective_support(
 
     assert feedback is neutral_rows
     assert bank.tracked_outcome_count == 0
-    assert route_library.diagnostics().proposal_rows_admitted == 1
-    exemplar = route_library.prompt_exemplars([7, 8])[0]
-    assert exemplar.proposal_observed
-    assert not exemplar.neutral_reproduced
+    assert (
+        route_library.diagnostics().proposal_rows_admitted
+        == expected_admissions
+    )
+    exemplars = route_library.prompt_exemplars([7, 8])
+    if admission_compute_only:
+        assert not exemplars
+    else:
+        exemplar = exemplars[0]
+        assert exemplar.proposal_observed
+        assert not exemplar.neutral_reproduced
     assert metrics["actor/counterfactual_proposal_objective_outcome_delta"] == 0
-    assert metrics["actor/counterfactual_proposal_route_admitted"] == 1
+    assert (
+        metrics["actor/counterfactual_proposal_route_admitted"]
+        == expected_admissions
+    )
+    assert metrics["actor/counterfactual_proposal_admission_compute_only"] == float(
+        admission_compute_only
+    )
+    assert metrics["actor/counterfactual_proposal_candidates_discarded"] == (
+        1.0 if admission_compute_only else 0.0
+    )
     assert metrics["actor/counterfactual_proposal_conditioned_rows_sent_to_ppo"] == 0

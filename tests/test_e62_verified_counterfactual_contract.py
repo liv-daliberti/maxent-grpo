@@ -15,6 +15,7 @@ from oat_drgrpo.learner.run import (
     _derive_freeform_request_seed,
 )
 from oat_drgrpo.online_canonical_bank import OnlineCanonicalBank
+from oat_drgrpo.proposal_starvation import ProposalStarvationController
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -221,6 +222,93 @@ def test_proposal_helper_returns_only_minimal_novel_admission_payload(monkeypatc
         "outcome_keys",
         "response_token_ids",
     }
+
+
+def test_starvation_fallback_expands_only_the_original_prompt_attempt_budget(
+    monkeypatch,
+):
+    bank = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+    )
+    bank.score_and_update(
+        prompt_token_ids=[[1, 2]] * 2,
+        outcome_keys=["anchor-key", None],
+        task_rewards=[1.0, 0.0],
+        active_mask=[1, 1],
+        response_token_ids=[[11], [99]],
+        num_samples=2,
+    )
+    controller = ProposalStarvationController(
+        base_max_attempts=1,
+        patience_updates=64,
+        fallback_max_attempts=4,
+        burst_updates=16,
+        cooldown_updates=48,
+    )
+    for _ in range(64):
+        plan = controller.plan()
+        controller.observe(plan, admitted_new_outcomes=0)
+    proposals = [_row("same", [21]), _row("invalid", [22], reward=0.0)]
+    actor = _Actor()
+    learner = SimpleNamespace(
+        args=SimpleNamespace(
+            seed=9011,
+            num_samples=2,
+            online_evaluation=True,
+            online_canonical_counterfactual_anchor_max_tokens=16,
+            online_canonical_counterfactual_max_attempts=1,
+            online_canonical_counterfactual_sampling_temperature=1.2,
+        ),
+        _online_canonical_bank=bank,
+        _proposal_starvation_controller=controller,
+        _prompt_batches_consumed_total=1,
+        tokenizer=_Tokenizer(),
+        collector=SimpleNamespace(ipc_client=_Ipc(proposals)),
+    )
+    monkeypatch.setattr(
+        run_module,
+        "validated_modebench_outcome_key",
+        lambda response, ref: "anchor-key" if response == "same" else None,
+    )
+    neutral_rows = [
+        SimpleNamespace(
+            prompt_ids=[1, 2],
+            response=f"invalid-{index}",
+            response_ids=[31 + index],
+            rewards=[0.0],
+            loss_mask=True,
+        )
+        for index in range(2)
+    ]
+
+    payload, metrics = ZeroMathRunMixin._generate_verified_counterfactual_proposals(
+        learner,
+        actor=actor,
+        raw_prompts=["raw"],
+        processed_prompts=["formatted"],
+        refs=["reference"],
+        neutral_feedback=neutral_rows,
+    )
+
+    assert payload["outcome_keys"] == []
+    assert len(actor.calls) == 4
+    assert [call[3] for call in actor.calls] == pytest.approx([1.2, 1.4, 1.6, 1.8])
+    assert metrics["actor/counterfactual_proposal_max_attempts"] == 4.0
+    assert metrics[
+        "actor/counterfactual_proposal_starvation_fallback_active"
+    ] == 1.0
+    assert metrics[
+        "actor/counterfactual_proposal_starvation_fallback_extra_groups"
+    ] == 3.0
+    assert metrics["actor/counterfactual_proposal_conditioned_prompt_groups"] == 0.0
+
+    ZeroMathRunMixin._record_counterfactual_starvation_outcome(
+        learner,
+        metrics,
+        admitted_new_outcomes=0,
+    )
+    assert controller.diagnostics()["burst_remaining"] == 15
 
 
 def test_proposal_bootstraps_from_current_neutral_group_without_prior_bank(

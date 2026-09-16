@@ -6,6 +6,7 @@ import subprocess
 import sys
 
 from oat_drgrpo.math_grader import (
+    PYTHON_FACTOR_RESPONSE_SURFACE_VERSION,
     boxed_reward_fn,
     extract_normalized_final_answer,
     validated_modebench_exploration_identity,
@@ -73,6 +74,38 @@ def test_python_factor_grader_binds_reward_and_key_to_same_tool_calls():
     assert "python-factor-route:v1:" in identity.route_signature
     assert "2" not in identity.route_signature
     assert "3" not in identity.route_signature
+
+
+def test_python_factor_grader_normalizes_boxed_latex_lambda_surface():
+    assert (
+        PYTHON_FACTOR_RESPONSE_SURFACE_VERSION
+        == "python-factor-response-v2-latex-lambda"
+    )
+    reference = json.dumps(_spec())
+    expected_key = "python_factor:2,2,3"
+
+    for response in (
+        r"\boxed{\lambda n: 2 if n % 2 == 0 else 3}",
+        r"\boxed{\lambda\,n: 2 if n % 2 == 0 else 3}",
+    ):
+        info, reward = boxed_reward_fn(response, reference)
+        assert info == {"formatted": True}
+        assert reward == 1.0
+        assert validated_modebench_outcome_key(response, reference) == expected_key
+
+    # The alias is formatting-only: it cannot change the required signature
+    # or bypass the existing restricted-AST safety boundary.
+    assert (
+        validated_modebench_outcome_key(r"\boxed{\lambda x: 2}", reference)
+        is None
+    )
+    assert (
+        validated_modebench_outcome_key(
+            r"\boxed{\lambda n: __import__('os').system('id')}",
+            reference,
+        )
+        is None
+    )
 
 
 def test_python_factor_grader_rejects_wrong_and_non_integer_outputs():
