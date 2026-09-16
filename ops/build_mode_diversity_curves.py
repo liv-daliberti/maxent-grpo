@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Build PMD training curves from the extracted verified-key container.
+"""Build PCMD training curves from the extracted verified-key container.
 
 Consumes the compact archive written by ``extract_mode_diversity_curves.py``
-and reports pairwise modal diversity at every saved checkpoint, so the
+and reports pairwise correct-mode diversity at every saved checkpoint, so the
 manuscript's training curves can run on a breadth axis that does not move with
 correctness. Each prompt pools its four draws at a step; a prompt contributes
 only where it returns at least two verified responses, and a curve point is
@@ -74,7 +74,7 @@ def build(archive: Path = ARCHIVE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPT
         'archive': {'path': str(archive.relative_to(ROOT)), 'sha256': file_sha(archive)},
         'builder': {'path': 'ops/build_mode_diversity_curves.py',
                     'sha256': file_sha(Path(__file__).resolve())},
-        'definition': {'metric': 'pairwise modal diversity (PMD)',
+        'definition': {'metric': 'pairwise correct-mode diversity (PCMD)',
                        'min_defined_prompts': min_defined,
                        'aggregation': "pooled over a step's four draws, unweighted mean over defined prompts"},
         'curves': curves,

@@ -4,17 +4,17 @@
     "gaps_are_not_joined": true,
     "min_defined_prompts": 30,
     "x": "training step",
-    "y": "pairwise modal diversity"
+    "y": "pairwise correct-mode diversity"
   },
   "level": "level1",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/factorial_training_curves_pmd.pdf": "bde1aeefcb94a1a0232670dcd844f506cfc7f12881fee89e19552785f892beab"
+    "/n/fs/similarity/maxent-grpo/paper/figures/factorial_training_curves_pmd.pdf": "c47db92a9c8a7ea6f076b1745c7c5a6c212266e589d9b197bc5d9cfe95c335c5"
   },
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_paper_mode_diversity_curves.py",
-    "sha256": "7d13f4b5e70143155edcda53a2a7775ae0e865b2f797dc58dd77653873f2f4d0",
+    "sha256": "292a474213d06493a5fe90630d329d174e2b1841ec4d1a9bed3d558af4f44e22",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+    "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
   },
   "schema": "paper-mode-diversity-curves-figure-v1",
   "scope": {

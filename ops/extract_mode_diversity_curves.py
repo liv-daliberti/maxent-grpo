@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract per-step verified key streams for PMD training curves, once.
+"""Extract per-step verified key streams for PCMD training curves, once.
 
 The saved training evaluations keep every response body, so the full set of
 source files is roughly 22 GiB on shared storage. The curves only need each

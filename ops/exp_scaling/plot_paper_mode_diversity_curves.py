@@ -2,7 +2,7 @@
 """Verified-mode diversity throughout training, on the success-conditional axis.
 
 The companion to the ``pass@8`` and ``distinct@8`` factorial curves. Because
-pairwise modal diversity conditions on the verified draws, a line that falls
+pairwise correct-mode diversity conditions on the verified draws, a line that falls
 here is reporting concentration of successes rather than loss of them, which is
 the distinction the accuracy curves cannot make on their own.
 
@@ -46,7 +46,7 @@ def digest(path: Path) -> str:
 
 
 def series(payload: dict, level: str = 'level1'):
-    """(scale, domain, method) -> step -> list of per-seed PMD values."""
+    """(scale, domain, method) -> step -> list of per-seed PCMD values."""
     table: dict[tuple, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
     for curve in payload['curves']:
         if curve['level'] != level:
@@ -122,7 +122,7 @@ def build_figure(payload: dict, level: str = 'level1'):
                 axis.set_ylabel(SCALE_LABELS[scale], fontsize=style.LABEL_FONT)
             if row == rows - 1:
                 axis.set_xlabel('Training step', fontsize=style.LABEL_FONT)
-    figure.text(.012, (bottom + 1) / 2, 'Pairwise modal diversity', rotation=90,
+    figure.text(.012, (bottom + 1) / 2, 'Pairwise correct-mode diversity', rotation=90,
                 va='center', ha='center', fontsize=style.TITLE_FONT)
     handles = [Line2D([], [], color=spec['color'], linestyle=spec['dash'],
                       linewidth=style.MEAN_LW, label=spec['label'])
@@ -149,7 +149,7 @@ def main() -> None:
     record = {
         'schema': SCHEMA, 'level': args.level,
         'source': {'path': str(args.payload.relative_to(ROOT)), 'sha256': digest(args.payload)},
-        'display': {'y': 'pairwise modal diversity', 'x': 'training step',
+        'display': {'y': 'pairwise correct-mode diversity', 'x': 'training step',
                     'min_defined_prompts': payload['definition']['min_defined_prompts'],
                     'gaps_are_not_joined': True,
                     'bands': 'seed range, not a confidence interval'},

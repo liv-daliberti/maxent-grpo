@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit the appendix table body pairing the registered endpoints with PMD.
+"""Emit the appendix table body pairing the registered endpoints with PCMD.
 
 One row per domain and level, one column group per model scale. Each group
 reports \\texttt{pass@8} and \\pmd{} so a reader can see directly that the two
@@ -18,11 +18,32 @@ PAYLOAD = ROOT / 'paper/results/mode_diversity_base_grid.json'
 OUT = ROOT / 'paper/results/mode_diversity_base_grid_table_body.tex'
 COVERAGE = ROOT / 'paper/results/mode_diversity_coverage.tex'
 
-MODELS = ('05b', '3b', '7b', '14b')
+# The Qwen ramp and the ladder are read off the grid, not written here. Hard
+# tuples went stale twice: the 1.5B scale was drawn in the figure while every
+# macro on this page described six scales, and Level 5 was released without
+# entering the counts. A level joins once the ramp covers it completely, so a
+# half-measured level cannot move a quoted number, and joins on its own when it
+# fills.
+QWEN_RAMP = ('05b', 'qwen15b', '3b', '7b', '14b', 'qwen32b', 'qwen72b')
 DOMAINS = ('graph_coloring', 'countdown', 'python_factors', 'mathir', 'pantry')
 DOMAIN_LABELS = {'graph_coloring': 'Graph', 'countdown': 'Countdown',
                  'python_factors': 'Python', 'mathir': 'MathIR', 'pantry': 'Pantry'}
-LEVELS = ('level1', 'level2', 'level3')
+ALL_LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
+
+
+def grid_axes(cells):
+    """The scales present, and the levels the ramp covers for every domain."""
+    present = {(c['model_label'], c['domain'], c['level']) for c in cells}
+    models = tuple(m for m in QWEN_RAMP
+                   if any(k[0] == m for k in present))
+    levels = tuple(level for level in ALL_LEVELS
+                   if all((m, d, level) in present
+                          for m in models for d in DOMAINS))
+    return models, levels
+
+
+MODELS = QWEN_RAMP
+LEVELS = ALL_LEVELS[:4]
 
 
 def fmt(value: float | None, *, reportable: bool = True) -> str:
@@ -51,6 +72,86 @@ def build(payload: dict) -> str:
             lines.append(r'\addlinespace')
     # The rule closes the body file rather than the manuscript: a body ending
     # in a bare row separator leaves \bottomrule stranded outside the \cr.
+    lines.append(r'    \bottomrule')
+    return '\n'.join(lines) + '\n'
+
+
+SPLIT_OUT = ROOT / 'paper/results/mode_diversity_base_grid_split_body.tex'
+
+# Pale wash so the printed number stays legible: low values red, high values
+# green, near-white in the middle. Both panels use the same direction, so the
+# reader sees pass@8 warming to the right while PCMD cools.
+LOW = (0.94, 0.58, 0.54)
+MID = (0.99, 0.99, 0.97)
+HIGH = (0.58, 0.84, 0.60)
+BLANK = (0.93, 0.93, 0.93)
+# Fixed cell width: the two panels then share one geometry, so neither has
+# to be scaled to fit and both print at the same size.
+CELL = r'\makebox[2.25em][c]{%s}'
+
+
+def _wash(t: float) -> tuple[float, float, float]:
+    """Interpolate LOW -> MID -> HIGH at t in [0, 1]."""
+    t = min(1.0, max(0.0, t))
+    if t <= 0.5:
+        a, b, u = LOW, MID, t / 0.5
+    else:
+        a, b, u = MID, HIGH, (t - 0.5) / 0.5
+    return tuple(a[i] + (b[i] - a[i]) * u for i in range(3))
+
+
+def _paint(rgb) -> str:
+    return r'\cellcolor[rgb]{%.3f,%.3f,%.3f}' % rgb
+
+
+def build_split(payload: dict) -> str:
+    """One row per domain and level, carrying both metrics side by side.
+
+    The row labels appear once and serve both column groups. Each domain is
+    washed from its own low to its own peak, separately per metric, so a row is
+    read against the rest of its domain rather than against Python's
+    near-ceiling accuracy. Values below the support bar are printed in
+    parentheses and washed at reduced strength instead of being dropped: the
+    gap is more legible as a weak number than as absence.
+    """
+    index = {(c['model_label'], c['level'], c['domain']): c for c in payload['cells']}
+
+    def bounds(domain, field):
+        seen = [index[(m, l, domain)][field]
+                for l in LEVELS for m in MODELS
+                if (m, l, domain) in index
+                and index[(m, l, domain)][field] is not None]
+        lo, hi = (min(seen), max(seen)) if seen else (0.0, 1.0)
+        return lo, (hi - lo) or 1.0
+
+    def group(domain, level, field):
+        lo, span = bounds(domain, field)
+        out = []
+        for model in MODELS:
+            cell = index.get((model, level, domain))
+            if cell is None or cell[field] is None:
+                out.append(_paint(BLANK) + CELL % '---')
+                continue
+            text = fmt(cell[field])
+            rgb = _wash((cell[field] - lo) / span)
+            if field == 'pmd' and not cell['reportable']:
+                # A noise-dominated estimate should not carry the same visual
+                # weight as a measurement that clears the bar.
+                text = f'({text})'
+                rgb = tuple(c + (1.0 - c) * 0.55 for c in rgb)
+            out.append(_paint(rgb) + CELL % text)
+        return out
+
+    lines = []
+    for domain in DOMAINS:
+        for position, level in enumerate(LEVELS):
+            label = DOMAIN_LABELS[domain] if position == 0 else ''
+            row = [label, str(position + 1)]
+            row += group(domain, level, 'pass8')
+            row += group(domain, level, 'pmd')
+            lines.append(' & '.join(row) + r' \\')
+        if domain != DOMAINS[-1]:
+            lines.append(r'\addlinespace')
     lines.append(r'    \bottomrule')
     return '\n'.join(lines) + '\n'
 
@@ -92,6 +193,9 @@ def build_coverage(payload: dict) -> str:
     """
     from collections import Counter
     cells = payload['cells']
+    # Shadow the module defaults with the axes the payload actually carries, so
+    # a newly released scale or level is counted instead of silently skipped.
+    MODELS, LEVELS = grid_axes(cells)
     reportable = [c for c in cells if c['reportable']]
     gaps = Counter(c['domain'] for c in cells if not c['reportable'])
     top, top_n = gaps.most_common(1)[0] if gaps else ('none', 0)
@@ -108,7 +212,7 @@ def build_coverage(payload: dict) -> str:
         text = f'{v:.3f}'
         return text.replace('0.', '.', 1) if text.startswith(('0.', '-0.')) else text
 
-    # distinct@8 needs no support gate, so it uses every cell; PMD uses the
+    # distinct@8 needs no support gate, so it uses every cell; PCMD uses the
     # cells where it is defined.
     distinct = corr([c['pass8'] for c in cells], [c['distinct8'] for c in cells])
     pmd = corr([c['pass8'] for c in reportable], [c['pmd'] for c in reportable])
@@ -136,7 +240,7 @@ def build_coverage(payload: dict) -> str:
     level_pmd = statistics.median(pmd_steps) if pmd_steps else float('nan')
 
     # The hosted deployments answer nearly every prompt at every level, so their
-    # PMD decline with level cannot be a side effect of falling success.
+    # PCMD decline with level cannot be a side effect of falling success.
     frontier_path = ROOT / 'paper/results/mode_diversity_frontier_points.json'
     front_first = front_last = front_pass = float('nan')
     front_extra: dict[str, dict] = {}
@@ -184,7 +288,116 @@ def build_coverage(payload: dict) -> str:
     small_pass = (statistics.mean(c['pass8'] for c in reportable
                                   if c['model_label'] == best) if best else float('nan'))
 
+    # The appendix scale table: how many frozen base models it prints, and the
+    # scale trend its caption quotes. A block supports the comparison when PCMD
+    # is reportable at two or more scales; it falls when PCMD at the largest such
+    # scale sits below PCMD at the smallest. Both move as the ladder grows, so
+    # neither may be written by hand.
+    indexed_grid = {(c['model_label'], c['domain'], c['level']): c for c in reportable}
+    scale_fall = scale_support = 0
+    for domain in DOMAINS:
+        for level in LEVELS:
+            run = [indexed_grid[(m, domain, level)] for m in MODELS
+                   if (m, domain, level) in indexed_grid]
+            if len(run) < 2:
+                continue
+            scale_support += 1
+            scale_fall += run[-1]['pmd'] < run[0]['pmd']
+
+    # The ladder's own claim, and its limit. A construction ladder is supposed to
+    # order difficulty, not breadth: pass@8 should fall from the first level to
+    # the last, while PCMD should be left to the model. Both numbers move as the
+    # grid fills, so B.2 quotes them through macros rather than by hand.
+    # pass@8 needs no support gate -- it is defined wherever the cell exists --
+    # so the ladder claim indexes every measured cell, not the PCMD-reportable
+    # subset. Gating it would silently drop the hardest cells, which are exactly
+    # the ones the claim is about.
+    indexed_all = {(c['model_label'], c['domain'], c['level']): c for c in cells}
+    ladder_fall = ladder_support = 0
+    for domain in DOMAINS:
+        for model in MODELS:
+            run = [indexed_all[(model, domain, level)] for level in LEVELS
+                   if (model, domain, level) in indexed_all]
+            if len(run) < 2:
+                continue
+            ladder_support += 1
+            ladder_fall += run[-1]['pass8'] < run[0]['pass8']
+
+    # The ladder's span, on a balanced population. Only (scale, domain) series
+    # measured at every level enter, so the comparison cannot be moved by which
+    # cells happen to exist at the hardest level. pass@8 needs no support gate.
+    ladder_balanced = [(m, d) for m in MODELS for d in DOMAINS
+                       if all((m, d, level) in indexed_all for level in LEVELS)]
+    def _ladder_mean(level, pairs):
+        vals = [indexed_all[(m, d, level)]['pass8'] for m, d in pairs]
+        return statistics.fmean(vals) if vals else float('nan')
+    ladder_pass_first = _ladder_mean(LEVELS[0], ladder_balanced)
+    ladder_pass_last = _ladder_mean(LEVELS[-1], ladder_balanced)
+    # The body asserts the mean falls at every rung, so the rungs are counted
+    # here and the claim fails closed: if a level ever stops lowering the mean,
+    # this raises instead of letting the sentence quietly go stale.
+    ladder_means = [_ladder_mean(level, ladder_balanced) for level in LEVELS]
+    ladder_steps_total = len(ladder_means) - 1
+    ladder_steps_down = sum(ladder_means[i + 1] < ladder_means[i]
+                            for i in range(ladder_steps_total))
+    if ladder_balanced and ladder_steps_down != ladder_steps_total:
+        raise ValueError(
+            'mean pass@8 no longer falls at every rung of the ladder '
+            f'({ladder_steps_down} of {ladder_steps_total}); '
+            f'means {[round(x, 3) for x in ladder_means]}. '
+            'Update the Section 2.2 sentence before regenerating.')
+    ladder_domains = ladder_domains_total = 0
+    for domain in DOMAINS:
+        pairs = [(m, d) for m, d in ladder_balanced if d == domain]
+        if not pairs:
+            continue
+        ladder_domains_total += 1
+        ladder_domains += _ladder_mean(LEVELS[-1], pairs) < _ladder_mean(LEVELS[0], pairs)
+
+    # How far PCMD travels when only the level changes, against how far it
+    # travels when only the scale changes. Medians over the series that carry at
+    # least three reportable points, so one sparse row cannot set the range.
+    level_ranges, scale_ranges = [], []
+    for domain in DOMAINS:
+        for model in MODELS:
+            run = [indexed_grid[(model, domain, level)]['pmd'] for level in LEVELS
+                   if (model, domain, level) in indexed_grid]
+            if len(run) >= 3:
+                level_ranges.append(max(run) - min(run))
+        for level in LEVELS:
+            run = [indexed_grid[(model, domain, level)]['pmd'] for model in MODELS
+                   if (model, domain, level) in indexed_grid]
+            if len(run) >= 3:
+                scale_ranges.append(max(run) - min(run))
+    level_span = statistics.median(level_ranges) if level_ranges else float('nan')
+    scale_span = statistics.median(scale_ranges) if scale_ranges else float('nan')
+
+    # The sharpest case of the split the axis argument makes: at 7B and above,
+    # Python is answered almost perfectly and almost always the same way. Both
+    # move as the grid fills, so A.2 quotes them through macros.
+    py = [c for c in reportable
+          if c['domain'] == 'python_factors' and c['level'] in LEVELS[:3]
+          and c['model_label'] in ('7b', '14b', 'qwen32b', 'qwen72b')]
+    py_pass = min((c['pass8'] for c in py), default=float('nan'))
+    py_pmd = max((c['pmd'] for c in py), default=float('nan'))
+
     lines = ['% Generated by build_mode_diversity_table.py; do not hand edit.',
+             fr'\newcommand{{\MDgridscales}}{{{len(MODELS)}}}',
+             fr'\newcommand{{\MDpyPasslo}}{{{fmt(py_pass)}}}',
+             fr'\newcommand{{\MDpyPmdhi}}{{{fmt(py_pmd)}}}',
+             fr'\newcommand{{\MDscalefall}}{{{scale_fall}}}',
+             fr'\newcommand{{\MDladderfall}}{{{ladder_fall}}}',
+             fr'\newcommand{{\MDladdersupport}}{{{ladder_support}}}',
+             fr'\newcommand{{\MDladderpassfirst}}{{{fmt(ladder_pass_first)}}}',
+             fr'\newcommand{{\MDladderpasslast}}{{{fmt(ladder_pass_last)}}}',
+             fr'\newcommand{{\MDladderdomains}}{{{ladder_domains}}}',
+             fr'\newcommand{{\MDladderdomainstotal}}{{{ladder_domains_total}}}',
+             fr'\newcommand{{\MDladderseries}}{{{len(ladder_balanced)}}}',
+             fr'\newcommand{{\MDladderrungs}}{{{len(LEVELS)}}}',
+             fr'\newcommand{{\MDladdersteps}}{{{ladder_steps_total}}}',
+             fr'\newcommand{{\MDlevelspan}}{{{fmt(level_span)}}}',
+             fr'\newcommand{{\MDscalespan}}{{{fmt(scale_span)}}}',
+             fr'\newcommand{{\MDscalesupport}}{{{scale_support}}}',
              fr'\newcommand{{\MDfrontierpmdmean}}{{{fmt(front_mean)}}}',
              fr'\newcommand{{\MDsmallbestpmd}}{{{fmt(small_pmd)}}}',
              fr'\newcommand{{\MDsmallbestpass}}{{{fmt(small_pass)}}}',
@@ -223,6 +436,7 @@ def main() -> None:
     args = parser.parse_args()
     payload = json.loads(args.payload.read_text())
     args.output.write_text(build(payload))
+    SPLIT_OUT.write_text(build_split(payload))
     COVERAGE.write_text(build_coverage(payload))
     gaps = sum(1 for c in payload['cells'] if not c['reportable'])
     print(json.dumps({'event': 'built', 'output': str(args.output),

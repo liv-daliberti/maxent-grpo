@@ -2,7 +2,7 @@
 """Frozen base-model success against success-conditional breadth.
 
 Replaces the ``pass@8`` versus ``distinct@8`` reading of the base-model grid.
-The vertical axis is pairwise modal diversity, which is estimated from the
+The vertical axis is pairwise correct-mode diversity, which is estimated from the
 verified draws alone, so a point's height no longer moves with its horizontal
 position. Cells whose frozen success is too rare to define the metric on enough
 prompts are not given a height: they appear as ticks in a separate strip below
@@ -26,6 +26,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / 'ops') not in sys.path:
@@ -79,9 +80,11 @@ def levels_in(cells, *extra):
     present = {c['level'] for c in cells}
     for group in extra:
         present |= {c['level'] for c in group or ()}
+    if present == {'levels_mean'}:
+        return ('levels_mean',)
     return tuple(level for level in LEVELS if level in present)
 MARKER_AREA = 22
-# Below the paper's support bar PMD is still estimated, just less precisely: at
+# Below the paper's support bar PCMD is still estimated, just less precisely: at
 # 10-29 defined prompts its standard error runs about 1.5x that of a cell above
 # the bar, not off the scale. Draw those hollow with their error bar rather than
 # discarding a measurement the grid actually made. Under 10 the estimate is too
@@ -115,6 +118,32 @@ FRONTIER = ROOT / 'paper/results/mode_diversity_frontier_points.json'
 # Black, not grey: the hosted deployments are a small set of points that carry
 # their own claim, and a grey fill lost them against the domain panel tints.
 FRONTIER_FACE = '#000000'
+ICONS = ROOT / 'paper/icons'
+# A provider mark may only stand beside a single provider's points. The
+# families and construction plates carry seven deployments at once, so they get
+# the generic label and no logo rather than one vendor's mark over all of them.
+PROVIDER_ICONS = {'GPT-5.6 Sol': 'openai.png', 'GPT-5.4': 'openai.png',
+                  'Claude Opus 5': 'claude.png', 'Claude Opus 4.8': 'claude.png',
+                  'DeepSeek V4 Pro': 'deepseek.png', 'Kimi K3': 'kimi.png',
+                  'Grok 4.3': 'grok_official_docs_print.png'}
+# Provider marks sit beside the names they belong to. Drawn after layout, in
+# figure coordinates, so a logo tracks its legend block rather than guessing at
+# a position that shifts whenever an entry is added.
+LOGO_HEIGHT_IN = 0.105
+
+
+def _logo(figure, legend, name, *, pad=0.006):
+    path = ICONS / name
+    if not path.is_file():
+        return
+    image = plt.imread(str(path))
+    figure.canvas.draw()
+    box = legend.get_window_extent().transformed(figure.transFigure.inverted())
+    zoom = LOGO_HEIGHT_IN * figure.dpi / image.shape[0]
+    figure.add_artist(AnnotationBbox(
+        OffsetImage(image, zoom=zoom), (box.x0 - pad, (box.y0 + box.y1) / 2),
+        xycoords='figure fraction', frameon=False, box_alignment=(1.0, 0.5),
+        annotation_clip=False))
 
 
 def load_frontier(path: Path = FRONTIER):
@@ -130,7 +159,7 @@ def _trail(axis, points, colour, order, *, width=.65, alpha=.45, zorder=2):
     """Join consecutive levels of one series into a difficulty trajectory.
 
     Only adjacent levels are joined. Bridging a level whose success was too
-    rare to estimate PMD would draw a step the grid never measured, so a gap
+    rare to estimate PCMD would draw a step the grid never measured, so a gap
     breaks the line rather than being spanned.
     """
     run = []
@@ -148,12 +177,57 @@ def _trail(axis, points, colour, order, *, width=.65, alpha=.45, zorder=2):
                   lw=width, alpha=alpha, zorder=zorder, solid_capstyle='round')
 
 
+def collapse_cells(cells, key='model_label'):
+    """Average each series over the levels it was measured at.
+
+    The main-body plate answers a question about scale and about the separation
+    of success from breadth; it does not answer one about difficulty, because
+    difficulty does not move PCMD (Level 1 to Level 5 marginals are flat in four
+    of five domains). Spending the marker-shape channel on a factor with no
+    effect cost the plate its legibility, so the levels are averaged into one
+    point per series and the per-level reading moves to the construction plate.
+
+    The three-way support rule is preserved rather than flattened: a series is
+    averaged over its reportable levels when it has any, else over its
+    provisional levels, else it keeps no height at all. So a hollow mark here
+    means no level of any difficulty cleared the support bar for that series,
+    which is a stronger and cleaner statement than the per-level hollow.
+
+    Every level the grid measured contributes, Level 4 MathIR included.
+    """
+    groups = {}
+    for cell in cells:
+        groups.setdefault((cell['domain'], cell[key]), []).append(cell)
+    out = []
+    for (domain, name), group in groups.items():
+        sized = [c for c in group if c.get('pmd') is not None and c.get('pass8') is not None]
+        if not sized:
+            continue
+        reportable = [c for c in sized if c.get('reportable')]
+        provisional = [c for c in sized if not c.get('reportable')
+                       and c.get('defined_prompts', 0) >= PROVISIONAL_MIN_DEFINED]
+        used = reportable or provisional or sized
+        out.append({
+            'domain': domain, key: name, 'level': 'levels_mean',
+            'pass8': sum(c['pass8'] for c in used) / len(used),
+            'pmd': sum(c['pmd'] for c in used) / len(used),
+            'reportable': bool(reportable),
+            'defined_prompts': max(c.get('defined_prompts', 0) for c in used),
+            'support': sum(c.get('support', 0) or 0 for c in used) / len(used),
+            'levels_averaged': sorted(c['level'] for c in used),
+            'levels_measured': sorted(c['level'] for c in sized),
+        })
+    return out
+
+
 def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False):
     colors = COLORS if colors is None else colors
     axis.set_facecolor(DOMAIN_BACKGROUNDS[domain])
     axis.axhspan(STRIP_BOTTOM, STRIP_TOP, color=style.GRID, alpha=.45, zorder=0, lw=0)
     axis.axhline(0.0, color=style.MUTED, lw=.5, zorder=1)
     ladder = levels_in(cells)
+    collapsed = ladder == ('levels_mean',)
+    marker_for = (lambda level: 'o') if collapsed else LEVEL_MARKERS.__getitem__
     for order, model in enumerate(reversed(models)):
         if connect:
             _trail(axis, {c['level']: c for c in cells if c['domain'] == domain
@@ -166,7 +240,7 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
                 continue
             if cell['reportable']:
                 axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA,
-                             marker=LEVEL_MARKERS[level], facecolors=colors[model],
+                             marker=marker_for(level), facecolors=colors[model],
                              edgecolors=style.INK, alpha=.85, linewidths=.35,
                              zorder=3 + order, clip_on=False)
             elif cell['defined_prompts'] >= PROVISIONAL_MIN_DEFINED:
@@ -177,7 +251,7 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
                                   capthick=.55, alpha=.75, zorder=2 + order,
                                   clip_on=False)
                 axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA,
-                             marker=LEVEL_MARKERS[level], facecolors='none',
+                             marker=marker_for(level), facecolors='none',
                              edgecolors=colors[model], alpha=.95, linewidths=.7,
                              zorder=3 + order, clip_on=False)
             else:
@@ -194,7 +268,7 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
         if cell['domain'] != domain or not cell.get('reportable'):
             continue
         axis.scatter(cell['pass8'], cell['pmd'], s=MARKER_AREA * 1.15,
-                     marker=LEVEL_MARKERS[cell['level']], facecolors=FRONTIER_FACE,
+                     marker=('o' if collapsed else LEVEL_MARKERS[cell['level']]), facecolors=FRONTIER_FACE,
                      edgecolors='white', alpha=1.0, linewidths=.6,
                      zorder=12, clip_on=False)
     axis.set_title(TITLES[domain], fontsize=8.5, pad=4)
@@ -211,11 +285,15 @@ def _panel(axis, cells, models, domain, frontier=(), colors=None, connect=False)
 
 
 def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
-                 legends=True, frontier=None, connect=False, frontier_models=None):
+                 legends=True, frontier=None, connect=False, frontier_models=None,
+                 collapse=False):
     cells = payload['cells']
     frontier = load_frontier() if frontier is None else frontier
     if frontier_models is not None:
         frontier = [c for c in frontier if c['model'] in frontier_models]
+    if collapse:
+        cells = collapse_cells([c for c in cells if c['model_label'] in models])
+        frontier = collapse_cells(frontier, key='model')
     colors = scale_colors(tuple(models))
     style.apply_rcparams()
     figure, axes = plt.subplots(1, 5, figsize=figsize, sharex=True, sharey=True)
@@ -225,35 +303,60 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
         _panel(axis, cells, models, domain, frontier, colors, connect=connect)
     # Centre the label on the plotting band, not the whole canvas, or a short
     # figure pushes the ascender past the top edge.
-    figure.text(.016, (bottom + .88) / 2, 'Pairwise modal diversity', rotation=90,
+    figure.text(.026, (bottom + .88) / 2, 'Pairwise correct-mode\ndiversity', rotation=90,
+                linespacing=.95,
                 va='center', ha='center', fontsize=8.5)
     figure.text(.53, bottom - .115, 'pass@8', va='center', ha='center', fontsize=8.5)
     if legends:
-        levels = [Line2D([], [], marker=LEVEL_MARKERS[level], linestyle='none', markersize=4.7,
-                         markerfacecolor=style.MUTED, markeredgecolor=style.INK,
-                         markeredgewidth=.35, label='Level ' + level[len('level'):])
-                  for level in levels_in(cells, frontier)]
+        if collapse:
+            levels = [Line2D([], [], marker='o', linestyle='none', markersize=4.7,
+                             markerfacecolor=style.MUTED, markeredgecolor=style.INK,
+                             markeredgewidth=.35, label='mean over Levels 1\u20135')]
+        else:
+            levels = [Line2D([], [], marker=LEVEL_MARKERS[level], linestyle='none', markersize=4.7,
+                             markerfacecolor=style.MUTED, markeredgecolor=style.INK,
+                             markeredgewidth=.35, label='Level ' + level[len('level'):])
+                      for level in levels_in(cells, frontier)]
         levels.append(Line2D([], [], marker='o', linestyle='none', markersize=4.7,
                              markerfacecolor='none', markeredgecolor=style.MUTED,
-                             markeredgewidth=.7, label='provisional'))
-        levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
-                             color=style.MUTED, markeredgewidth=.9,
-                             label='too rare to estimate'))
+                             markeredgewidth=.7,
+                             label='below support at every level' if collapse else 'provisional'))
+        # The tick strip survives collapsing: a series whose every level stayed
+        # under the estimation floor still gets no height, so it still needs its
+        # legend entry. Only drop the entry when no tick is actually drawn.
+        if not collapse or any(c.get('defined_prompts', 0) < PROVISIONAL_MIN_DEFINED
+                               for c in cells):
+            levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
+                                 color=style.MUTED, markeredgewidth=.9,
+                                 label='too rare to estimate'))
         scales = [Line2D([], [], marker='o', linestyle='none', markersize=4.7,
                          markerfacecolor=colors[model], markeredgecolor=style.INK,
                          markeredgewidth=.35, label=base_grid.MODEL_NAMES[model])
                   for model in models]
+        hosted = []
         if frontier:
-            scales.append(Line2D([], [], marker='o', linestyle='none', markersize=5.0,
+            names = sorted({c['model'] for c in frontier})
+            hosted.append(Line2D([], [], marker='o', linestyle='none', markersize=5.0,
                                  markerfacecolor=FRONTIER_FACE, markeredgecolor='white',
-                                 markeredgewidth=.55, label='frontier'))
+                                 markeredgewidth=.55,
+                                 label=names[0] if len(names) == 1 else 'frontier'))
         figure.legend(handles=levels, loc='lower center', bbox_to_anchor=(.53, .155),
                       ncol=len(levels), frameon=False, fontsize=7.2, handletextpad=.3,
                       handlelength=.8, columnspacing=1.3, borderaxespad=0)
-        figure.legend(handles=scales, loc='lower center', bbox_to_anchor=(.53, .015),
-                      ncol=min(9, len(scales)), frameon=False, fontsize=7.2,
-                      handletextpad=.3, handlelength=.8, columnspacing=1.0,
-                      borderaxespad=0)
+        scale_legend = figure.legend(
+            handles=scales, loc='lower center',
+            bbox_to_anchor=(.42 if hosted else .53, .015),
+            ncol=min(9, len(scales)), frameon=False, fontsize=7.2,
+            handletextpad=.3, handlelength=.8, columnspacing=1.0, borderaxespad=0)
+        _logo(figure, scale_legend, 'qwen.png')
+        if hosted:
+            hosted_legend = figure.legend(
+                handles=hosted, loc='lower center', bbox_to_anchor=(.88, .015),
+                ncol=1, frameon=False, fontsize=7.2, handletextpad=.3,
+                handlelength=.8, borderaxespad=0)
+            figure.add_artist(scale_legend)
+            if len(names) == 1 and names[0] in PROVIDER_ICONS:
+                _logo(figure, hosted_legend, PROVIDER_ICONS[names[0]])
     return figure
 
 
@@ -294,7 +397,8 @@ def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
                        top=row == 0, left=column == 0)
     for column in range(len(DOMAINS)):
         axes[-1][column].tick_params(labelbottom=True, labelsize=6.6)
-    figure.text(.012, (bottom + top) / 2, 'Pairwise modal diversity', rotation=90,
+    figure.text(.022, (bottom + top) / 2, 'Pairwise correct-mode\ndiversity', rotation=90,
+                linespacing=.95,
                 va='center', ha='center', fontsize=8.5)
     figure.text(.54, bottom - 0.62 / figsize[1], 'pass@8',
                 va='center', ha='center', fontsize=8.5)
@@ -318,8 +422,10 @@ def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
     return figure
 
 
-def record_for(payload: dict, models, output: Path, frontier_models=None) -> dict:
+def record_for(payload: dict, models, output: Path, frontier_models=None,
+               collapse=False) -> dict:
     cells = [c for c in payload['cells'] if c['model_label'] in models]
+    drawn_cells = collapse_cells(cells) if collapse else cells
     # Which hosted deployments this figure actually draws. The main body carries
     # one and the appendix carries the cohort, so a record that omitted this
     # would not distinguish them.
@@ -333,7 +439,7 @@ def record_for(payload: dict, models, output: Path, frontier_models=None) -> dic
                   'cells': len(cells),
                   'reportable_cells': sum(1 for c in cells if c['reportable']),
                   'gap_cells': sum(1 for c in cells if not c['reportable'])},
-        'display': {'x': 'pass@8', 'y': 'pairwise modal diversity',
+        'display': {'x': 'pass@8', 'y': 'pairwise correct-mode diversity',
                     'x_limits': list(X_LIMITS), 'y_limits': list(Y_LIMITS),
                     'unmeasurable_strip': [STRIP_BOTTOM, STRIP_TOP],
                     'unmeasurable_cells_have_no_height': True,
@@ -341,12 +447,15 @@ def record_for(payload: dict, models, output: Path, frontier_models=None) -> dic
                     'provisional_cells': sum(
                         1 for c in cells if not c['reportable']
                         and c['defined_prompts'] >= PROVISIONAL_MIN_DEFINED),
-                    'provisional_encoding': 'hollow marker with PMD standard error',
+                    'provisional_encoding': 'hollow marker with PCMD standard error',
                     'min_defined_prompts': payload['definition']['min_defined_prompts'],
                     'model_colors': deepcopy({m: scale_colors(tuple(models))[m] for m in models}),
                     'marker_area': MARKER_AREA,
-                    'encoding': 'scale -> colour ramp; level -> marker shape',
-                    'level_markers': deepcopy(LEVEL_MARKERS)},
+                    'encoding': ('scale -> colour ramp; levels averaged into one mark'
+                                 if collapse else 'scale -> colour ramp; level -> marker shape'),
+                    'levels_collapsed': collapse,
+                    'marks_drawn': len(drawn_cells),
+                    'level_markers': None if collapse else deepcopy(LEVEL_MARKERS)},
         'points': [{k: c[k] for k in ('model_label', 'level', 'domain', 'pass8', 'pmd',
                                       'defined_prompts', 'support', 'reportable')}
                    for c in cells],
@@ -358,14 +467,15 @@ def record_for(payload: dict, models, output: Path, frontier_models=None) -> dic
 
 
 def publish(payload: dict, models, output: Path, *, figsize, legends,
-            builder=None, connect=False, frontier_models=None) -> dict:
+            builder=None, connect=False, frontier_models=None, collapse=False) -> dict:
     figure = (build_scale_grid(payload, models, figsize=figsize) if builder == 'scale_grid'
               else build_figure(payload, models, figsize=figsize, legends=legends,
-                                connect=connect, frontier_models=frontier_models))
+                                connect=connect, frontier_models=frontier_models,
+                                collapse=collapse))
     output.parent.mkdir(parents=True, exist_ok=True)
     figure.savefig(output.with_suffix('.pdf'))
     plt.close(figure)
-    record = record_for(payload, models, output, frontier_models)
+    record = record_for(payload, models, output, frontier_models, collapse=collapse)
     record['display']['layout'] = ('one row per scale, five domain columns'
                                    if builder == 'scale_grid'
                                    else 'five domain panels, scales overlaid')
@@ -387,8 +497,10 @@ def main() -> None:
         raise ValueError(f'payload carries no {MAIN_FAMILY} scale to plot in the main body')
     # The main body reads the scale axis within one family, where the training
     # recipe is held fixed; the cross-family comparison moves to the appendix.
+    # The main-body plate averages the levels into one mark per scale; the
+    # per-level reading is Fig. level-construction in the appendix.
     main_body = publish(payload, family, OUT_APPENDIX, figsize=(6.4, 2.10), legends=True,
-                        frontier_models={MAIN_FRONTIER})
+                        frontier_models={MAIN_FRONTIER}, collapse=True)
     families = publish(payload, present, OUT_FAMILIES, figsize=(6.4, 2.10), legends=True)
     # The construction figure used to carry 7B alone. Every scale now gets its own
     # row, so a reader can look up any single scale rather than only that one.

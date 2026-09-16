@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Recompute success-conditional modal diversity for the training comparisons.
+"""Recompute pairwise correct-mode diversity for the training comparisons.
 
 Reads the frozen verified-sample archive built for the registered
 conditional-concentration analysis, which stores every evaluation response's
 canonical key already gated by its verification reward. Nothing is resampled or
-re-graded: this re-reads saved keys and reports pairwise modal diversity (PMD)
+re-graded: this re-reads saved keys and reports pairwise correct-mode diversity (PCMD)
 for each arm at step 0 and at the terminal step, so the manuscript's training
 claims can be stated on a breadth axis that does not move with accuracy.
 
 The archive is the same source the registered ``collision`` statistic uses, and
-``PMD = 1 - collision``, so this adds an orientation and an aggregation rather
+``PCMD = 1 - collision``, so this adds an orientation and an aggregation rather
 than a new measurement.
 """
 from __future__ import annotations
@@ -39,7 +39,7 @@ BEFORE, AFTER = '0', '3072'
 
 
 def _checkpoint_summary(checkpoint: dict, min_defined: int) -> dict | None:
-    """PMD over a checkpoint's prompts, pooling each prompt's four draws."""
+    """PCMD over a checkpoint's prompts, pooling each prompt's four draws."""
     if not checkpoint:
         return None
     diversities, pass8, distinct8 = [], [], []
@@ -65,6 +65,23 @@ def _checkpoint_summary(checkpoint: dict, min_defined: int) -> dict | None:
     }
 
 
+def _terminal_only(issues) -> bool:
+    """True when the only recorded problem is that step 0 was not admitted.
+
+    The frozen snapshot admits each checkpoint separately, and a step-0 refusal
+    says the untrained model could not be measured -- nothing about the trained
+    arms being compared. Dropping the whole record for it discards a sound
+    terminal measurement, which is the comparison the results actually make.
+    Any other issue, integrity failures included, still removes the record.
+    """
+    return bool(issues) and all(
+        isinstance(item, dict)
+        and item.get('kind') == 'not_admitted_in_frozen_snapshot'
+        and item.get('step') == 0
+        for item in issues
+    )
+
+
 def build(archive: Path = ARCHIVE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPTS) -> dict:
     seeds, manifest = [], None
     with gzip.open(archive, 'rt') as handle:
@@ -73,19 +90,25 @@ def build(archive: Path = ARCHIVE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPT
             if record.get('record_kind') == 'manifest':
                 manifest = record
                 continue
-            if record.get('sample_issues') or not record.get('before_after_available'):
+            terminal_only = _terminal_only(record.get('sample_issues'))
+            if record.get('sample_issues') and not terminal_only:
                 continue
-            before = _checkpoint_summary(record['checkpoints'].get(BEFORE), min_defined)
+            if not record.get('before_after_available') and not terminal_only:
+                continue
+            before = (None if terminal_only else
+                      _checkpoint_summary(record['checkpoints'].get(BEFORE), min_defined))
             after = _checkpoint_summary(record['checkpoints'].get(AFTER), min_defined)
-            if before is None or after is None:
+            if after is None or (before is None and not terminal_only):
                 continue
             seeds.append({
                 'level': record['level'], 'scale': record['scale'], 'domain': record['domain'],
                 'method': record['method'], 'seed': record['seed'],
                 'in_terminal_paired_cohort': record['in_terminal_paired_cohort'],
                 'before': before, 'after': after,
+                'terminal_only': terminal_only,
                 'delta_pmd': (after['pmd'] - before['pmd']
-                              if before['pmd'] is not None and after['pmd'] is not None else None),
+                              if before is not None and before['pmd'] is not None
+                              and after['pmd'] is not None else None),
             })
 
     arms: dict[tuple, list] = defaultdict(list)
@@ -99,7 +122,9 @@ def build(archive: Path = ARCHIVE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPT
         # because the frozen model was too weak to measure, which says nothing
         # about the arms being compared. Change claims still need both.
         terminal = [r for r in rows if r['after']['reportable']]
-        usable = [r for r in terminal if r['delta_pmd'] is not None and r['before']['reportable']]
+        usable = [r for r in terminal
+                  if r['delta_pmd'] is not None and r['before'] is not None
+                  and r['before']['reportable']]
         before = [r['before']['pmd'] for r in usable]
         after_paired = [r['after']['pmd'] for r in usable]
         after = [r['after']['pmd'] for r in terminal]
@@ -107,6 +132,7 @@ def build(archive: Path = ARCHIVE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPT
         summaries.append({
             'level': level, 'scale': scale, 'domain': domain, 'method': method,
             'seeds': len(rows),
+            'terminal_only_seeds': sum(1 for r in rows if r['terminal_only']),
             'terminal_seeds': len(terminal), 'reportable_seeds': len(usable),
             'terminal_reportable': len(terminal) > 0,
             'reportable': len(usable) > 0,
@@ -131,8 +157,8 @@ def build(archive: Path = ARCHIVE, min_defined: int = DEFAULT_MIN_DEFINED_PROMPT
         'builder': {'path': 'ops/build_mode_diversity_training.py',
                     'sha256': file_sha(Path(__file__).resolve())},
         'definition': {
-            'metric': 'pairwise modal diversity (PMD)',
-            'estimator': 'PMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)) over a prompt\'s verified responses',
+            'metric': 'pairwise correct-mode diversity (PCMD)',
+            'estimator': 'PCMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)) over a prompt\'s verified responses',
             'aggregation': 'pooled over a cell\'s four draws, unweighted mean over defined prompts, then over seeds',
             'equals': 'one minus the registered conditional-concentration collision U-statistic',
             'min_defined_prompts': min_defined,

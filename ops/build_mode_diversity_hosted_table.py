@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Emit the hosted PMD table body: one row per level, five domain columns."""
+"""Emit the hosted PCMD table body: one row per level, five domain columns."""
 from __future__ import annotations
 
 import argparse
@@ -36,7 +36,7 @@ def build(payload: dict) -> str:
 
 
 def build_cohort(payload: dict) -> str:
-    """One row per deployment: macro PMD, effective modes, and per-level macro."""
+    """One row per deployment: macro PCMD, effective modes, and per-level macro."""
     lines = []
     for model in sorted(payload['models'], key=lambda m: -(m['macro_pmd'] or -1)):
         macro = model['macro_pmd']

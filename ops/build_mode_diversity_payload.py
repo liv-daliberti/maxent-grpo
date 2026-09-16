@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Recompute success-conditional modal diversity for the frozen base-model grid.
+"""Recompute pairwise correct-mode diversity for the frozen base-model grid.
 
 Reads the same 60 receipts that back the base-level figures and emits the
-pairwise modal diversity (PMD) of each model--domain--level cell alongside the
+pairwise correct-mode diversity (PCMD) of each model--domain--level cell alongside the
 ``pass@8`` and ``distinct@8`` it is reported with. Every attempt's canonical key
 is already stored in those receipts, so nothing is resampled or re-graded here:
 this is a re-analysis of saved responses, not a new evaluation.
@@ -99,8 +99,8 @@ def build(source: Path | list[Path] = SOURCE,
         'builder': {'path': 'ops/build_mode_diversity_payload.py',
                     'sha256': file_sha(Path(__file__).resolve())},
         'definition': {
-            'metric': 'pairwise modal diversity (PMD)',
-            'estimator': 'PMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)), K verified draws per prompt',
+            'metric': 'pairwise correct-mode diversity (PCMD)',
+            'estimator': 'PCMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)), K verified draws per prompt',
             'estimand': 'P(two independent verified responses occupy different modes) = 1 - sum_m q_m^2',
             'aggregation': 'pooled over a prompt\'s four groups, unweighted mean over defined prompts',
             'equals': 'one minus the registered conditional-concentration collision U-statistic',

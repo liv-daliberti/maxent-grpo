@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Success-conditional modal diversity for the hosted GPT-5.6 Sol evaluation.
+"""Pairwise correct-mode diversity for the hosted GPT-5.6 Sol evaluation.
 
 The hosted summary already reports ``correct_pair_collision``, which is one
-minus pairwise modal diversity pooled over pairs. This recomputes the same
+minus pairwise correct-mode diversity pooled over pairs. This recomputes the same
 quantity from the audited per-sample records using the prompt-unweighted mean
 the rest of the manuscript uses, so the hosted numbers sit on the same axis as
 the frozen and trained ones, and reports the pooled reading beside it.
@@ -75,13 +75,16 @@ def build(samples: Path = SAMPLES, summary: Path = SUMMARY,
             'pmd_pair_pooled': 1.0 - colliding / pairs if pairs else None,
             'published_correct_pair_collision':
                 reference.get('metrics', {}).get('correct_pair_collision', {}).get('estimate'),
+            'pass8': reference.get('metrics', {}).get('pass8', {}).get('estimate')
+                     if isinstance(reference.get('metrics', {}).get('pass8'), dict)
+                     else reference.get('metrics', {}).get('pass8'),
         })
 
     for row in rows:
         published_collision = row['published_correct_pair_collision']
         if published_collision is not None and row['pmd_pair_pooled'] is not None:
             if abs((1.0 - published_collision) - row['pmd_pair_pooled']) > 1e-9:
-                raise ValueError(f'pooled PMD disagrees with the published collision for {row}')
+                raise ValueError(f'pooled PCMD disagrees with the published collision for {row}')
 
     return {
         'schema': SCHEMA,
@@ -91,7 +94,7 @@ def build(samples: Path = SAMPLES, summary: Path = SUMMARY,
         'builder': {'path': 'ops/build_mode_diversity_hosted.py',
                     'sha256': file_sha(Path(__file__).resolve())},
         'definition': {
-            'metric': 'pairwise modal diversity (PMD)',
+            'metric': 'pairwise correct-mode diversity (PCMD)',
             'aggregation': 'unweighted mean over prompts with at least two verified draws',
             'pair_pooled_check': 'pmd_pair_pooled equals 1 - published correct_pair_collision',
             'min_defined_prompts': min_defined,
@@ -104,7 +107,7 @@ def build(samples: Path = SAMPLES, summary: Path = SUMMARY,
 
 def build_cohort(comparison: Path = COMPARISON,
                  min_defined: int = DEFAULT_MIN_DEFINED_PROMPTS) -> dict:
-    """PMD for every completed deployment in the multi-model comparison.
+    """PCMD for every completed deployment in the multi-model comparison.
 
     Only the reference deployment has a published collision series to check
     against, so the other models are reported without that cross-check and
@@ -125,9 +128,13 @@ def build_cohort(comparison: Path = COMPARISON,
                     prompts[key][row['canonical_key']] += 1
         cells: dict[tuple, list] = defaultdict(list)
         totals: Counter = Counter()
+        passed: Counter = Counter()
         for key in seen:
-            cells[(key[0], key[1])].append(prompts.get(key, Counter()))
+            counts = prompts.get(key, Counter())
+            cells[(key[0], key[1])].append(counts)
             totals[(key[0], key[1])] += 1
+            if sum(counts.values()):
+                passed[(key[0], key[1])] += 1
         rows = []
         for (level, domain), counters in sorted(cells.items()):
             values = [v for v in (mode_diversity(c) for c in counters) if v is not None]
@@ -138,6 +145,8 @@ def build_cohort(comparison: Path = COMPARISON,
                 'reportable': len(values) >= min_defined,
                 'pmd': statistics.fmean(values) if values else None,
                 'effective_modes': effective_modes(statistics.fmean(values) if values else None),
+                'pass8': passed[(level, domain)] / totals[(level, domain)]
+                         if totals[(level, domain)] else None,
             })
         reportable = [r for r in rows if r['reportable']]
         models.append({
@@ -153,7 +162,7 @@ def build_cohort(comparison: Path = COMPARISON,
         'comparison': {'path': str(comparison.relative_to(ROOT)), 'sha256': file_sha(comparison)},
         'builder': {'path': 'ops/build_mode_diversity_hosted.py',
                     'sha256': file_sha(Path(__file__).resolve())},
-        'definition': {'metric': 'pairwise modal diversity (PMD)',
+        'definition': {'metric': 'pairwise correct-mode diversity (PCMD)',
                        'aggregation': 'unweighted mean over prompts with at least two verified draws',
                        'min_defined_prompts': min_defined},
         'models': models,

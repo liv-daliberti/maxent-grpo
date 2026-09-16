@@ -1,7 +1,7 @@
 {
   "builder": {
     "path": "ops/exp_scaling/plot_paper_training_curves.py",
-    "sha256": "b37e085b365c5af12f3a605643a92f6eed402c83c5d72a0aa364e258e2b7cce5"
+    "sha256": "57122284009f84aafd856978e6bee029de4fc547c59c786b9ba6f8de80191076"
   },
   "level": "level1",
   "methods": [
@@ -18981,7 +18981,7 @@
     }
   ],
   "schema": "primary-training-curves-figure-v1",
-  "source_sha256": "dda99da0c8845de96b3369252dabfeb712d51c2b2e9c905d094d862def8888cb",
+  "source_sha256": "1f3df09991829bee0dfc0ea1e98bfede5964d6bd0f8162e1682ba415105706cb",
   "source_snapshot": "paper/results/training_curve_snapshot_20260912.json",
   "x_limits": [
     0,

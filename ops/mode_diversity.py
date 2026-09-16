@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Conditional pairwise modal diversity: a breadth metric independent of accuracy.
+"""Conditional pairwise correct-mode diversity: a breadth metric independent of accuracy.
 
 ``distinct@8`` conflates two things. A model that never succeeds scores zero
 breadth because it never succeeds, not because its successes are concentrated.
@@ -84,7 +84,7 @@ def rarefied_distinct(counts: Mapping[Any, int] | Iterable[int], depth: int = 2)
     This is the unbiased fixed-depth rarefaction estimator
     ``sum_m [1 - C(K - n_m, r) / C(K, r)]``, defined when ``K >= r``. At
     ``depth == 2`` it equals ``1 + mode_diversity(counts)`` identically, which
-    is the sense in which pairwise modal diversity is a success-conditional
+    is the sense in which pairwise correct-mode diversity is a success-conditional
     ``distinct@2``. Larger depths resolve more structure but are defined on
     fewer prompts, so they serve as robustness checks rather than headline
     numbers.

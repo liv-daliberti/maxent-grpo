@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Build Figure 4: cross-scale retention plus fully matched direct alternatives.
 
-Panel A summarizes admissible Re:Dr.GRPO-minus-Dr.GRPO endpoints over
+Panel A summarizes admissible Re:Dr-minus-Dr.GRPO endpoints over
 three scales and five domains. Panel B holds scale fixed at Qwen2.5-0.5B so
-Re:Dr.GRPO can be compared fairly with ordinary GRPO, UCPO, sparse RLEP-Dr,
+Re:Dr can be compared fairly with ordinary GRPO, UCPO, sparse RLEP-Dr,
 binary MaxRL without replay, and fixed Semantic-MaxEnt without replay.
 """
 
@@ -36,6 +36,7 @@ DIRECT = ROOT / "paper/figures/direct_comparator_endpoint_effects.json"
 MAXRL = ROOT / "paper/figures/e118_all_scale_factorial_progress.json"
 SEMANTIC = ROOT / "paper/figures/fixed_semantic_factorial_effects.json"
 TRAJECTORY = ROOT / "paper/figures/direct_baseline_learning_curves_static_strip.json"
+PMD_MATRIX = ROOT / "paper/results/mode_diversity_retention_matrix.json"
 OUTPUT = ROOT / "paper/figures/experiment1_retention_comparator_matrix"
 
 MODELS = ("Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B")
@@ -54,6 +55,7 @@ DISPLAY_LABELS = DOMAIN_LABELS + ("Average",)
 METHODS = (
     "before_training",
     "replay_drgrpo",
+    "replay_maxrl",
     "maxrl",
     "ucpo",
     "rlep_dr",
@@ -62,18 +64,27 @@ METHODS = (
 )
 METHOD_LABELS = (
     "Before training",
-    "Re:Dr.GRPO (ours)",
+    "Re:Dr (ours)",
+    "Re:Max (ours)",
     "MaxRL (no replay)",
     "UCPO",
     "RLEP-Dr",
     "Semantic-MaxEnt",
     "GRPO",
 )
-METRICS = ("pass8", "distinct8")
+# Drawn in the plate.
+METRICS = ("pass8", "pmd")
+# Kept in the record: distinct@8 stays a registered endpoint and other
+# readers of this record still consume it.
+RECORD_METRICS = ("pass8", "distinct8", "pmd")
 METRIC_TITLES = (
     r"$\Delta$ pass@8",
-    r"$\Delta$ distinct@8",
+    r"$\Delta$ \textsc{pmd}" if False else r"$\Delta$ PCMD",
 )
+# Panel A stays on Re:Dr across the three scales; both replay arms appear
+# side by side in Panel B.
+PANEL_A_ROWS = MODELS
+PANEL_A_LABELS = MODEL_LABELS
 T_CRIT_DF4 = 2.7764451051977987
 AVERAGE_GREEN = "#008A5A"
 REPLAY_PURPLE = style.ADAPTIVE
@@ -92,15 +103,20 @@ def _summary(per_seed: dict[str, dict[str, float]]) -> dict[str, Any]:
     if not 1 <= len(seeds) <= 5:
         raise RuntimeError(f"invalid paired seed count: {seeds}")
     output: dict[str, Any] = {}
-    for metric in METRICS:
-        values = [float(per_seed[seed][metric]) for seed in seeds]
+    for metric in RECORD_METRICS:
+        present = [seed for seed in seeds if per_seed[seed].get(metric) is not None]
+        if not present:
+            # PCMD is undefined wherever too few prompts return a verified pair.
+            output[metric] = {"mean": None, "n": 0, "per_seed": {}}
+            continue
+        values = [float(per_seed[seed][metric]) for seed in present]
         mean = statistics.fmean(values)
         summary = {
             "mean": mean,
-            "n": len(seeds),
-            "per_seed": {seed: value for seed, value in zip(seeds, values)},
+            "n": len(present),
+            "per_seed": {seed: value for seed, value in zip(present, values)},
         }
-        if len(seeds) == 5:
+        if len(present) == 5:
             half = T_CRIT_DF4 * statistics.stdev(values) / math.sqrt(5)
             summary["student_t_95"] = [mean - half, mean + half]
         output[metric] = summary
@@ -113,14 +129,19 @@ def _macro_average(cells: dict[str, dict[str, Any]]) -> dict[str, Any]:
     seeds = sorted(set.intersection(*seed_sets), key=int)
     if not seeds:
         raise RuntimeError("cross-domain average has no common paired seeds")
+    def across_domains(seed: str, metric: str) -> float | None:
+        # PCMD is undefined in a domain whose success is too rare to give enough
+        # verified pairs, so the average covers the domains that define it and
+        # the count traveling with the value says how many that was.
+        values = [
+            float(cells[domain]["per_seed"][seed][metric])
+            for domain in DOMAINS
+            if cells[domain]["per_seed"].get(seed, {}).get(metric) is not None
+        ]
+        return statistics.fmean(values) if values else None
+
     per_seed = {
-        seed: {
-            metric: statistics.fmean(
-                float(cells[domain]["per_seed"][seed][metric])
-                for domain in DOMAINS
-            )
-            for metric in METRICS
-        }
+        seed: {metric: across_domains(seed, metric) for metric in RECORD_METRICS}
         for seed in seeds
     }
     return {
@@ -163,10 +184,11 @@ def _omnibus_sign_tests(
     raw_p: dict[str, float] = {}
     for metric in METRICS:
         values = [
-            float(cells[model][domain]["summaries"][metric]["mean"])
-            for model in MODELS
+            float(cells[row][domain]["summaries"][metric]["mean"])
+            for row in PANEL_A_ROWS
             for domain in DOMAINS
-            if cells[model][domain]["n"] == 5
+            if cells[row][domain]["n"] == 5
+            and cells[row][domain]["summaries"][metric]["mean"] is not None
         ]
         positive = sum(value > 0 for value in values)
         negative = sum(value < 0 for value in values)
@@ -189,9 +211,9 @@ def _omnibus_sign_tests(
         "status": "post-hoc omnibus consistency check",
         "assumption": "independent equiprobable block signs under the null; cross-block dependence is not modeled",
         "incomplete_blocks": [
-            {"model": model, "domain": domain, "n": cells[model][domain]["n"]}
-            for model in MODELS for domain in DOMAINS
-            if cells[model][domain]["n"] != 5
+            {"row": row, "domain": domain, "n": cells[row][domain]["n"]}
+            for row in PANEL_A_ROWS for domain in DOMAINS
+            if cells[row][domain]["n"] != 5
         ],
         "magnitude_pooling": False,
         "family": list(METRICS),
@@ -209,7 +231,8 @@ def _build_record() -> dict[str, Any]:
         raise RuntimeError("cross-scale retention source schema drifted")
     if direct.get("schema") != "paper-direct-comparator-endpoint-effects-v2":
         raise RuntimeError("direct-comparator source schema drifted")
-    if maxrl.get("schema") != "e118-all-scale-terminal-progress-v6":
+    if maxrl.get("schema") not in ("e118-all-scale-terminal-progress-v6",
+                                   "e118-all-scale-terminal-progress-v7"):
         raise RuntimeError("MaxRL source schema drifted")
     if semantic.get("schema") != "paper-fixed-semantic-factorial-effects-v1":
         raise RuntimeError("Semantic-MaxEnt source schema drifted")
@@ -342,6 +365,57 @@ def _build_record() -> dict[str, Any]:
             "summaries": _summary(per_seed),
         }
 
+    # --- Panel A gains the second replay arm, and both panels gain PCMD -------
+    scale_of = {"Qwen2.5-0.5B": "qwen05b", "Falcon3-1B": "falcon1b",
+                "Qwen2.5-3B": "qwen3b"}
+    label_of = {"before_training": "Before training",
+                "replay_drgrpo": "Re:Dr", "replay_maxrl": "Re:Max",
+                "maxrl": "MaxRL", "grpo": "GRPO", "ucpo": "UCPO",
+                "rlep_dr": "RLEP", "semantic_maxent": "Fixed Semantic-MaxEnt"}
+    pmd = _read(PMD_MATRIX)
+    if pmd.get("schema") != "paper-pmd-retention-matrix-v1":
+        raise RuntimeError("PCMD retention-matrix source schema drifted")
+
+    paired: dict[str, dict[str, Any]] = {model: primary_rows[model] for model in MODELS}
+
+    # Panel B: the second replay arm, differenced against matched Dr.GRPO.
+    block = {}
+    for domain in DOMAINS:
+        source = maxrl["cells"]["qwen05b"][domain]
+        seeds = list(source["matched_seeds"])
+        methods = source["methods"]
+        per_seed = {
+            str(seed): {"pass8": float(methods["replay_maxrl"]["pass8"][index])
+                        - float(methods["drgrpo"]["pass8"][index])}
+            for index, seed in enumerate(seeds)
+        }
+        block[domain] = {"n": len(per_seed), "seeds": seeds, "per_seed": per_seed}
+    qwen["replay_maxrl"] = block
+
+    def attach(cells: dict, domain: str, values: dict) -> None:
+        """Add PCMD to a cell's per-seed record, leaving a gap where undefined."""
+        for seed, entry in cells[domain]["per_seed"].items():
+            entry["pmd"] = values.get(str(seed))
+
+    for model in MODELS:
+        source = pmd["panel_a"][scale_of[model]]["Re:Dr"]
+        for domain in DOMAINS:
+            attach(paired[model], domain, source[domain]["per_seed"])
+    for method in METHODS:
+        label = label_of.get(method)
+        for domain in DOMAINS:
+            values = pmd["panel_b"][label][domain]["per_seed"] if label else {}
+            attach(qwen[method], domain, values)
+
+    for row in paired.values():
+        for domain in DOMAINS:
+            row[domain]["summaries"] = _summary(row[domain]["per_seed"])
+        row[AVERAGE_KEY] = _macro_average(row)
+    for method in METHODS:
+        for domain in DOMAINS:
+            qwen[method][domain]["summaries"] = _summary(qwen[method][domain]["per_seed"])
+    primary_rows = paired
+
     for method in METHODS:
         qwen[method][AVERAGE_KEY] = _macro_average(qwen[method])
 
@@ -351,6 +425,7 @@ def _build_record() -> dict[str, Any]:
         "estimands": {
             "pass8": "method minus matched Dr.GRPO terminal pass@8",
             "distinct8": "method minus matched Dr.GRPO terminal distinct@8",
+            "pmd": "method minus matched Dr.GRPO terminal PCMD",
         },
         "uncertainty": (
             "paired unadjusted two-sided 95% Student-t estimation intervals over "
@@ -360,7 +435,7 @@ def _build_record() -> dict[str, Any]:
         ),
         "omnibus_consistency_checks": _omnibus_sign_tests(primary_rows),
         "panel_a": {
-            "description": "Re:Dr.GRPO minus Dr.GRPO across scale",
+            "description": "Re:Dr minus Dr.GRPO across scale",
             "models": list(MODELS),
             "domains": list(DOMAINS),
             "cells": primary_rows,
@@ -407,13 +482,19 @@ def _draw_matrix(
     )
     norm = TwoSlopeNorm(vmin=-bound, vcenter=0.0, vmax=bound)
     matrix = [
-        [cells[row][domain]["summaries"][metric]["mean"] for domain in DISPLAY_COLUMNS]
+        [
+            float("nan") if cells[row][domain]["summaries"][metric]["mean"] is None
+            else cells[row][domain]["summaries"][metric]["mean"]
+            for domain in DISPLAY_COLUMNS
+        ]
         for row in rows
     ]
     column_best = {
         domain: max(
-            float(cells[row][domain]["summaries"][metric]["mean"])
-            for row in best_rows
+            (float(cells[row][domain]["summaries"][metric]["mean"])
+             for row in best_rows
+             if cells[row][domain]["summaries"][metric]["mean"] is not None),
+            default=float("nan"),
         )
         for domain in DISPLAY_COLUMNS
     } if best_rows else {}
@@ -443,6 +524,12 @@ def _draw_matrix(
     for row_index, row in enumerate(rows):
         for domain_index, domain in enumerate(DISPLAY_COLUMNS):
             summary = cells[row][domain]["summaries"][metric]
+            if summary["mean"] is None:
+                # Too few verified pairs to define the metric here; an empty
+                # cell says that, where a number would not.
+                axis.text(domain_index, row_index, "\u2014", ha="center",
+                          va="center", fontsize=6.3, color=style.MUTED)
+                continue
             value = float(summary["mean"])
             face = cmap(norm(value))
             axis.text(
@@ -504,12 +591,12 @@ def render(record: dict[str, Any], output: Path = OUTPUT) -> None:
         [figure.add_subplot(grid[row, column]) for column in plot_columns]
         for row in range(2)
     ]
-    bounds = {"pass8": 1.0, "distinct8": 2.4}
+    bounds = {"pass8": 1.0, "pmd": 0.7}
     for column, (metric, title) in enumerate(zip(METRICS, METRIC_TITLES)):
         _draw_matrix(
             axes[0][column],
-            rows=MODELS,
-            row_labels=MODEL_LABELS,
+            rows=PANEL_A_ROWS,
+            row_labels=PANEL_A_LABELS,
             cells=record["panel_a"]["cells"],
             metric=metric,
             bound=bounds[metric],
@@ -524,14 +611,14 @@ def render(record: dict[str, Any], output: Path = OUTPUT) -> None:
             cells=record["panel_b"]["cells"],
             metric=metric,
             bound=bounds[metric],
-            emphasized_rows=("replay_drgrpo",),
+            emphasized_rows=("replay_drgrpo", "replay_maxrl"),
             best_rows=tuple(row for row in METHODS if row != "before_training"),
         )
         axes[1][column].set_title(title, fontsize=7.5, pad=6, color=style.INK)
 
     figure.text(
         0.015, 0.975,
-        "A  Re:Dr.GRPO (ours) − Dr.GRPO across three model scales",
+        "A  Re:Dr (ours) − Dr.GRPO across three model scales",
         ha="left", va="top", fontsize=7.5, fontweight="bold", color=style.INK,
     )
     figure.text(
