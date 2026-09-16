@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "<stdin>", line 8, in work
+  File "/n/fs/similarity/maxent-grpo/ops/exp_scaling/build_paper_e113r4_dapo_progress.py", line 151, in build
+    result = _terminal_record(row)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/n/fs/similarity/maxent-grpo/ops/exp_scaling/build_paper_e113r4_dapo_progress.py", line 88, in _terminal_record
+    raise RuntimeError(f"terminal DAPO log is missing: {log_path}")
+RuntimeError: terminal DAPO log is missing: /n/fs/similarity/maxent-grpo/var/artifacts/logs/e113r4r2-q05-graph-s43-30869111.out

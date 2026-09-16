@@ -1,0 +1,9 @@
+{
+  "purpose": "Retain the actual stage128 independent-x-axis preview and its exact renderer before switching to shared sampling-budget axes.",
+  "files": {
+    "plot_paper_gpt56_all_domain_sampling.py": "a7d9816b16535e2e8373b4a622b378158cc367e5a69ac36fcf75aa22ed444549",
+    "stage128_preview.json": "0e196f97da0df67577decb22d3a5258ea50e7e864a10a379cd424bfb193ddc61",
+    "stage128_preview.pdf": "2a6985084e5db62f2a8225250418a7a43de3a586d4d134de99e7492433d60862",
+    "stage128_preview.png": "b14aa124754b97b462433313635ded821cdf9dd2bef0cf0e419a0e0946a1ab09"
+  }
+}

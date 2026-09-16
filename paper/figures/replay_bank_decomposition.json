@@ -1,0 +1,318 @@
+{
+ "schema": "paper-figure-derived-v1",
+ "kind": "derived-with-measurement",
+ "curves": "closed forms printed in App. A.3, evaluated over w(t) = (1 - t) e_1 + t U_k.",
+ "measured": {
+  "source": "paper/results/replay_bank_decomposition_measured.json",
+  "source_sha256": "0ea75bc7cdbe4eae65a99d745ef4b8375373ec35b97f0638bed2df107ad828c1",
+  "scope": {
+   "scale": "qwen05b",
+   "level": "level1",
+   "step": 3072,
+   "methods": [
+    "replay_drgrpo",
+    "replay_maxrl"
+   ],
+   "seed_per_cell": 43,
+   "domains": [
+    "countdown",
+    "graph_coloring",
+    "mathir",
+    "pantry_plan",
+    "python_factors"
+   ],
+   "prompts_per_cell": 128,
+   "draw_groups": 4,
+   "samples_per_group": 8
+  },
+  "prompts_plotted": 1092,
+  "circularity_note": "q and distinct@8 are estimated from the same draws, so the scatter shows internal consistency with the closed form, not an out-of-sample prediction."
+ },
+ "builder": {
+  "path": "ops/plot_paper_replay_bank_decomposition.py"
+ },
+ "panels": [
+  {
+   "domain": "graph_coloring",
+   "label": "Graph",
+   "prompts": 247,
+   "bins": [
+    {
+     "mass": 0.25,
+     "range": [
+      0.17,
+      0.33
+     ],
+     "prompts": 55,
+     "k_band": [
+      2,
+      4
+     ],
+     "k_observed": [
+      1,
+      4
+     ]
+    },
+    {
+     "mass": 0.5,
+     "range": [
+      0.42,
+      0.58
+     ],
+     "prompts": 68,
+     "k_band": [
+      2,
+      6
+     ],
+     "k_observed": [
+      1,
+      6
+     ]
+    },
+    {
+     "mass": 0.75,
+     "range": [
+      0.67,
+      0.83
+     ],
+     "prompts": 25,
+     "k_band": [
+      3,
+      7
+     ],
+     "k_observed": [
+      2,
+      7
+     ]
+    }
+   ]
+  },
+  {
+   "domain": "countdown",
+   "label": "Countdown",
+   "prompts": 167,
+   "bins": [
+    {
+     "mass": 0.25,
+     "range": [
+      0.17,
+      0.33
+     ],
+     "prompts": 2,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      1
+     ]
+    },
+    {
+     "mass": 0.5,
+     "range": [
+      0.42,
+      0.58
+     ],
+     "prompts": 2,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      2
+     ]
+    },
+    {
+     "mass": 0.75,
+     "range": [
+      0.67,
+      0.83
+     ],
+     "prompts": 11,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      3
+     ]
+    }
+   ]
+  },
+  {
+   "domain": "python_factors",
+   "label": "Python",
+   "prompts": 256,
+   "bins": [
+    {
+     "mass": 0.25,
+     "range": [
+      0.17,
+      0.33
+     ],
+     "prompts": 0,
+     "k_band": [
+      2,
+      4
+     ],
+     "k_observed": null
+    },
+    {
+     "mass": 0.5,
+     "range": [
+      0.42,
+      0.58
+     ],
+     "prompts": 0,
+     "k_band": [
+      2,
+      4
+     ],
+     "k_observed": null
+    },
+    {
+     "mass": 0.75,
+     "range": [
+      0.67,
+      0.83
+     ],
+     "prompts": 1,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      2,
+      2
+     ]
+    }
+   ]
+  },
+  {
+   "domain": "mathir",
+   "label": "MathIR",
+   "prompts": 210,
+   "bins": [
+    {
+     "mass": 0.25,
+     "range": [
+      0.17,
+      0.33
+     ],
+     "prompts": 9,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      2
+     ]
+    },
+    {
+     "mass": 0.5,
+     "range": [
+      0.42,
+      0.58
+     ],
+     "prompts": 13,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      2
+     ]
+    },
+    {
+     "mass": 0.75,
+     "range": [
+      0.67,
+      0.83
+     ],
+     "prompts": 16,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      2
+     ]
+    }
+   ]
+  },
+  {
+   "domain": "pantry_plan",
+   "label": "Pantry",
+   "prompts": 212,
+   "bins": [
+    {
+     "mass": 0.25,
+     "range": [
+      0.17,
+      0.33
+     ],
+     "prompts": 23,
+     "k_band": [
+      2,
+      3
+     ],
+     "k_observed": [
+      1,
+      3
+     ]
+    },
+    {
+     "mass": 0.5,
+     "range": [
+      0.42,
+      0.58
+     ],
+     "prompts": 10,
+     "k_band": [
+      2,
+      4
+     ],
+     "k_observed": [
+      1,
+      4
+     ]
+    },
+    {
+     "mass": 0.75,
+     "range": [
+      0.67,
+      0.83
+     ],
+     "prompts": 52,
+     "k_band": [
+      2,
+      5
+     ],
+     "k_observed": [
+      1,
+      5
+     ]
+    }
+   ]
+  }
+ ],
+ "bank_capacity": 16,
+ "capacity_note": "observed occupied keys stay far below a capacity of 16, so what bounds these policies is how many modes they find, not how many the bank can hold.",
+ "draws": 8,
+ "outputs": {
+  "pdf": {
+   "path": "paper/figures/replay_bank_decomposition.pdf",
+   "sha256": "e64280f1f2016a4578099947973312e2bbf1756aca3a66944d235e285a1dc29d"
+  },
+  "png": {
+   "path": "paper/figures/replay_bank_decomposition.png",
+   "sha256": "91e4e3a71af0fd1cbe215197c76a3a22a8ebf4ec9a9544e95aa85290be1cd8fb"
+  }
+ }
+}

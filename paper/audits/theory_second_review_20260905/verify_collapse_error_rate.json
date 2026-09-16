@@ -1,0 +1,1099 @@
+{
+  "passed": true,
+  "description": "Finite-horizon stable-logit effective-time check of the collapse exponent; not a proof.",
+  "record_count": 20,
+  "fixture_count": 4,
+  "lambdas": [
+    0.0,
+    0.25,
+    4.0,
+    16.0,
+    64.0
+  ],
+  "rtol": 2e-12,
+  "atol": 2e-13,
+  "max_step": 1.0,
+  "max_effective_time": 384.0,
+  "maximum_late_interval_slope_error": 1.865174681370263e-14,
+  "minimum_correct_log_probability": -384.2719337154836,
+  "minimum_log_failure": -25341.409732834556,
+  "underflow_avoided": "q,r remained strictly representable and positive. Failure probability was never formed: log(1-P)=-logaddexp(0,logitP), permitting log failures below -25000.",
+  "finite_horizon_caveat": "Raw logq/log(1-P) ratios retain O(1/tau) intercept error; only their approach and late-interval slope are tested. No exact finite-accuracy power law or physical-time exponential claim.",
+  "records": [
+    {
+      "fixture": "two_correct_one_incorrect",
+      "m": 2,
+      "n": 1,
+      "lambda_value": 0.0,
+      "P0": 0.2,
+      "q0": [
+        0.65,
+        0.35
+      ],
+      "r0": [
+        1.0
+      ],
+      "predicted_exponent": 0.5,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.5039374164072796,
+          0.5019417851931803,
+          0.5009642989756161,
+          0.5006414139725955,
+          0.5004805178179539
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.5
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.003937416407279626,
+      "final_ratio_absolute_error": 0.00048051781795388493,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 0.0,
+      "smallest_correct_log_probability": -383.0726594319397,
+      "final_log_failure": -765.4097328345547
+    },
+    {
+      "fixture": "two_correct_one_incorrect",
+      "m": 2,
+      "n": 1,
+      "lambda_value": 0.25,
+      "P0": 0.2,
+      "q0": [
+        0.65,
+        0.35
+      ],
+      "r0": [
+        1.0
+      ],
+      "predicted_exponent": 0.4444444444444444,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.4465684350592405,
+          0.4454935497512878,
+          0.44496583291361314,
+          0.4447913392491841,
+          0.4447043547690144
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.4444444444444444
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.0021239906147960674,
+      "final_ratio_absolute_error": 0.00025991032456995633,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 0.0,
+      "smallest_correct_log_probability": -383.0726594319397,
+      "final_log_failure": -861.4097328345547
+    },
+    {
+      "fixture": "two_correct_one_incorrect",
+      "m": 2,
+      "n": 1,
+      "lambda_value": 4.0,
+      "P0": 0.2,
+      "q0": [
+        0.65,
+        0.35
+      ],
+      "r0": [
+        1.0
+      ],
+      "predicted_exponent": 0.16666666666666666,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.16493011280462053,
+          0.1658023120081412,
+          0.1662354632762124,
+          0.16637941352071092,
+          0.16645130763400587
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.16666666666666666
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.0017365538620461307,
+      "final_ratio_absolute_error": 0.00021535903266078904,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 0.0,
+      "smallest_correct_log_probability": -383.0726594319397,
+      "final_log_failure": -2301.4097328345547
+    },
+    {
+      "fixture": "two_correct_one_incorrect",
+      "m": 2,
+      "n": 1,
+      "lambda_value": 16.0,
+      "P0": 0.2,
+      "q0": [
+        0.65,
+        0.35
+      ],
+      "r0": [
+        1.0
+      ],
+      "predicted_exponent": 0.05555555555555555,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.05464607333497663,
+          0.05510149712425205,
+          0.055328696625612246,
+          0.05540435407236036,
+          0.05544216861413224
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.05555555555555555
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.0009094822205789194,
+      "final_ratio_absolute_error": 0.00011338694142331435,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 0.0,
+      "smallest_correct_log_probability": -383.0726594319397,
+      "final_log_failure": -6909.409732834554
+    },
+    {
+      "fixture": "two_correct_one_incorrect",
+      "m": 2,
+      "n": 1,
+      "lambda_value": 64.0,
+      "P0": 0.2,
+      "q0": [
+        0.65,
+        0.35
+      ],
+      "r0": [
+        1.0
+      ],
+      "predicted_exponent": 0.015151515151515152,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.014870953021865885,
+          0.015011291459488346,
+          0.015081417639903782,
+          0.015104786661661956,
+          0.015116469978211084
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.015151515151515152
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.00028056212964926684,
+      "final_ratio_absolute_error": 3.5045173304068186e-05,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 0.0,
+      "smallest_correct_log_probability": -383.0726594319397,
+      "final_log_failure": -25341.409732834556
+    },
+    {
+      "fixture": "three_correct_two_incorrect",
+      "m": 3,
+      "n": 2,
+      "lambda_value": 0.0,
+      "P0": 0.08,
+      "q0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "r0": [
+        0.8,
+        0.2
+      ],
+      "predicted_exponent": 0.6666666666666666,
+      "minority_indices": [
+        1,
+        2
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.6941482803312033,
+          0.6800594893951978,
+          0.6732793454263057,
+          0.6710568208624738,
+          0.6699524630812249
+        ],
+        [
+          0.7052836308706663,
+          0.6854861640299383,
+          0.6759587548995734,
+          0.6728356795019025,
+          0.6712838439573279
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.666666666666667,
+        0.666666666666667
+      ],
+      "maximum_slope_absolute_error": 3.3306690738754696e-16,
+      "first_ratio_absolute_error": 0.038616964203999626,
+      "final_ratio_absolute_error": 0.004617177290661245,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 8.881784197001252e-16,
+      "smallest_correct_log_probability": -384.2719337154836,
+      "final_log_failure": -572.4432923189955
+    },
+    {
+      "fixture": "three_correct_two_incorrect",
+      "m": 3,
+      "n": 2,
+      "lambda_value": 0.25,
+      "P0": 0.08,
+      "q0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "r0": [
+        0.8,
+        0.2
+      ],
+      "predicted_exponent": 0.5714285714285714,
+      "minority_indices": [
+        1,
+        2
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.5905998162660712,
+          0.5808068685353357,
+          0.5760675522358673,
+          0.5745102353778188,
+          0.5737357200981794
+        ],
+        [
+          0.6000740686254189,
+          0.5854415364582359,
+          0.5783600937599587,
+          0.5760331652756604,
+          0.574875891689105
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.5714285714285716,
+        0.5714285714285716
+      ],
+      "maximum_slope_absolute_error": 2.220446049250313e-16,
+      "first_ratio_absolute_error": 0.028645497196847503,
+      "final_ratio_absolute_error": 0.003447320260533626,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 8.881784197001252e-16,
+      "smallest_correct_log_probability": -384.2719337154836,
+      "final_log_failure": -668.4432923189955
+    },
+    {
+      "fixture": "three_correct_two_incorrect",
+      "m": 3,
+      "n": 2,
+      "lambda_value": 4.0,
+      "P0": 0.08,
+      "q0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "r0": [
+        0.8,
+        0.2
+      ],
+      "predicted_exponent": 0.18181818181818182,
+      "minority_indices": [
+        1,
+        2
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.182418956696515,
+          0.18211653206795575,
+          0.18196685280919633,
+          0.18191718428667666,
+          0.18189239191803402
+        ],
+        [
+          0.18534527530223077,
+          0.18356976841058661,
+          0.18269101539126537,
+          0.18239941611096983,
+          0.18225386241848493
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.18181818181818182,
+        0.18181818181818182
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.0035270934840489487,
+      "final_ratio_absolute_error": 0.0004356806003031066,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 8.881784197001252e-16,
+      "smallest_correct_log_probability": -384.2719337154836,
+      "final_log_failure": -2108.4432923189956
+    },
+    {
+      "fixture": "three_correct_two_incorrect",
+      "m": 3,
+      "n": 2,
+      "lambda_value": 16.0,
+      "P0": 0.08,
+      "q0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "r0": [
+        0.8,
+        0.2
+      ],
+      "predicted_exponent": 0.05714285714285714,
+      "minority_indices": [
+        1,
+        2
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.05679977841859216,
+          0.05697168171511462,
+          0.05705736012334679,
+          0.05708587925568697,
+          0.05710013127067165
+        ],
+        [
+          0.05771094604829956,
+          0.0574262989726973,
+          0.05728442788099104,
+          0.057237204309462365,
+          0.05721360502737239
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.05714285714285714,
+        0.05714285714285714
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.0005680889054424168,
+      "final_ratio_absolute_error": 7.074788451524872e-05,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 8.881784197001252e-16,
+      "smallest_correct_log_probability": -384.2719337154836,
+      "final_log_failure": -6716.443292318995
+    },
+    {
+      "fixture": "three_correct_two_incorrect",
+      "m": 3,
+      "n": 2,
+      "lambda_value": 64.0,
+      "P0": 0.08,
+      "q0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "r0": [
+        0.8,
+        0.2
+      ],
+      "predicted_exponent": 0.015267175572519083,
+      "minority_indices": [
+        1,
+        2
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.015128371774659252,
+          0.015197812951892039,
+          0.01523250407344749,
+          0.01524406341925836,
+          0.015249842274753077
+        ],
+        [
+          0.01537105727511424,
+          0.015319087027668718,
+          0.01529312395729398,
+          0.015284472864584456,
+          0.01528014792998541
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.015267175572519083,
+        0.015267175572519083
+      ],
+      "maximum_slope_absolute_error": 0.0,
+      "first_ratio_absolute_error": 0.00013880379785983187,
+      "final_ratio_absolute_error": 1.733329776600588e-05,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 8.881784197001252e-16,
+      "smallest_correct_log_probability": -384.2719337154836,
+      "final_log_failure": -25148.443292318996
+    },
+    {
+      "fixture": "four_correct_seven_incorrect",
+      "m": 4,
+      "n": 7,
+      "lambda_value": 0.0,
+      "P0": 0.4,
+      "q0": [
+        0.47,
+        0.29,
+        0.17,
+        0.07
+      ],
+      "r0": [
+        0.35,
+        0.2,
+        0.15,
+        0.1,
+        0.08,
+        0.07,
+        0.05
+      ],
+      "predicted_exponent": 0.875,
+      "minority_indices": [
+        1,
+        2,
+        3
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.878152426557056,
+          0.8765390382817679,
+          0.8757605507935599,
+          0.8755050717457703,
+          0.8753780722784054
+        ],
+        [
+          0.8981203712037272,
+          0.8862875503351493,
+          0.8805779998889183,
+          0.8787042761189328,
+          0.8777728419256685
+        ],
+        [
+          0.9205740592969182,
+          0.8972496224408444,
+          0.885995157303266,
+          0.8823017388729842,
+          0.8804657285329864
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.8749999999999813,
+        0.8749999999999813,
+        0.8749999999999813
+      ],
+      "maximum_slope_absolute_error": 1.865174681370263e-14,
+      "first_ratio_absolute_error": 0.04557405929691816,
+      "final_ratio_absolute_error": 0.005465728532986436,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 2.7755575615628914e-15,
+      "smallest_correct_log_probability": -384.17297509360236,
+      "final_log_failure": -436.329277385621
+    },
+    {
+      "fixture": "four_correct_seven_incorrect",
+      "m": 4,
+      "n": 7,
+      "lambda_value": 0.25,
+      "P0": 0.4,
+      "q0": [
+        0.47,
+        0.29,
+        0.17,
+        0.07
+      ],
+      "r0": [
+        0.35,
+        0.2,
+        0.15,
+        0.1,
+        0.08,
+        0.07,
+        0.05
+      ],
+      "predicted_exponent": 0.717948717948718,
+      "minority_indices": [
+        1,
+        2,
+        3
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.7143416457710544,
+          0.7161799334305677,
+          0.7170727651713231,
+          0.7173666010841592,
+          0.7175128213730888
+        ],
+        [
+          0.7305847648585828,
+          0.7241449964893946,
+          0.7210172926346241,
+          0.7199879478260721,
+          0.7194757194402909
+        ],
+        [
+          0.7488499361671743,
+          0.7331016039284737,
+          0.7254528612874422,
+          0.7229356173618464,
+          0.7216829722016327
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.7179487179487054,
+        0.7179487179487054,
+        0.7179487179487054
+      ],
+      "maximum_slope_absolute_error": 1.2545520178264269e-14,
+      "first_ratio_absolute_error": 0.030901218218456372,
+      "final_ratio_absolute_error": 0.003734254252914737,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 2.7755575615628914e-15,
+      "smallest_correct_log_probability": -384.17297509360236,
+      "final_log_failure": -532.329277385621
+    },
+    {
+      "fixture": "four_correct_seven_incorrect",
+      "m": 4,
+      "n": 7,
+      "lambda_value": 4.0,
+      "P0": 0.4,
+      "q0": [
+        0.47,
+        0.29,
+        0.17,
+        0.07
+      ],
+      "r0": [
+        0.35,
+        0.2,
+        0.15,
+        0.1,
+        0.08,
+        0.07,
+        0.05
+      ],
+      "predicted_exponent": 0.19444444444444442,
+      "minority_indices": [
+        1,
+        2,
+        3
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.18807849084209236,
+          0.19127784858144056,
+          0.19286521023647116,
+          0.1933925216010635,
+          0.19365583936509034
+        ],
+        [
+          0.19235512981818512,
+          0.19340516331701268,
+          0.1939261376003926,
+          0.19409920191715727,
+          0.19418562317029775
+        ],
+        [
+          0.1971641534485856,
+          0.1957973004344675,
+          0.19511913630609531,
+          0.1948938545306306,
+          0.19478135801078542
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.19444444444444353,
+        0.19444444444444353,
+        0.19444444444444353
+      ],
+      "maximum_slope_absolute_error": 8.881784197001252e-16,
+      "first_ratio_absolute_error": 0.006365953602352065,
+      "final_ratio_absolute_error": 0.0007886050793540766,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 2.7755575615628914e-15,
+      "smallest_correct_log_probability": -384.17297509360236,
+      "final_log_failure": -1972.329277385621
+    },
+    {
+      "fixture": "four_correct_seven_incorrect",
+      "m": 4,
+      "n": 7,
+      "lambda_value": 16.0,
+      "P0": 0.4,
+      "q0": [
+        0.47,
+        0.29,
+        0.17,
+        0.07
+      ],
+      "r0": [
+        0.35,
+        0.2,
+        0.15,
+        0.1,
+        0.08,
+        0.07,
+        0.05
+      ],
+      "predicted_exponent": 0.058333333333333334,
+      "minority_indices": [
+        1,
+        2,
+        3
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.0560178491686238,
+          0.057177372304825974,
+          0.05775579705778305,
+          0.057948407768202294,
+          0.058044676127241665
+        ],
+        [
+          0.057291615860597944,
+          0.0578132758741489,
+          0.058073504463118444,
+          0.058160158454215065,
+          0.05820346880548747
+        ],
+        [
+          0.05872394955899145,
+          0.05852834097752219,
+          0.05843076221350424,
+          0.05839826928341565,
+          0.05838202905952985
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.05833333333333325,
+        0.05833333333333325,
+        0.05833333333333325
+      ],
+      "maximum_slope_absolute_error": 8.326672684688674e-17,
+      "first_ratio_absolute_error": 0.0023154841647095373,
+      "final_ratio_absolute_error": 0.00028865720609166923,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 2.7755575615628914e-15,
+      "smallest_correct_log_probability": -384.17297509360236,
+      "final_log_failure": -6580.329277385621
+    },
+    {
+      "fixture": "four_correct_seven_incorrect",
+      "m": 4,
+      "n": 7,
+      "lambda_value": 64.0,
+      "P0": 0.4,
+      "q0": [
+        0.47,
+        0.29,
+        0.17,
+        0.07
+      ],
+      "r0": [
+        0.35,
+        0.2,
+        0.15,
+        0.1,
+        0.08,
+        0.07,
+        0.05
+      ],
+      "predicted_exponent": 0.015350877192982457,
+      "minority_indices": [
+        1,
+        2,
+        3
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.014708142977251119,
+          0.015029640039563232,
+          0.015190291085315477,
+          0.0152438270012693,
+          0.015270592253948516
+        ],
+        [
+          0.015042585354158897,
+          0.015196793606814352,
+          0.015273850973895607,
+          0.015299529840213393,
+          0.015312367975757841
+        ],
+        [
+          0.015418661357428696,
+          0.0153847555693064,
+          0.01536781295688782,
+          0.015362166941511872,
+          0.015359344219130537
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.015350877192982447,
+        0.015350877192982447,
+        0.015350877192982447
+      ],
+      "maximum_slope_absolute_error": 1.0408340855860843e-17,
+      "first_ratio_absolute_error": 0.000642734215731338,
+      "final_ratio_absolute_error": 8.02849390339408e-05,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 2.7755575615628914e-15,
+      "smallest_correct_log_probability": -384.17297509360236,
+      "final_log_failure": -25012.329277385623
+    },
+    {
+      "fixture": "near_tie_two_correct_three_incorrect",
+      "m": 2,
+      "n": 3,
+      "lambda_value": 0.0,
+      "P0": 0.15,
+      "q0": [
+        0.5001,
+        0.4999
+      ],
+      "r0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "predicted_exponent": 0.75,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.6000612813844242,
+          0.6814430537927044,
+          0.7171273864355941,
+          0.7283804839629152,
+          0.7338939706907127
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.7500000000000103
+      ],
+      "maximum_slope_absolute_error": 1.0325074129013956e-14,
+      "first_ratio_absolute_error": 0.14993871861557584,
+      "final_ratio_absolute_error": 0.016106029309287284,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 7.771561172376096e-16,
+      "smallest_correct_log_probability": -368.35190801798234,
+      "final_log_failure": -501.9143401209629
+    },
+    {
+      "fixture": "near_tie_two_correct_three_incorrect",
+      "m": 2,
+      "n": 3,
+      "lambda_value": 0.25,
+      "P0": 0.15,
+      "q0": [
+        0.5001,
+        0.4999
+      ],
+      "r0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "predicted_exponent": 0.6315789473684211,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.49081744516610915,
+          0.5662000608923078,
+          0.6000112411847656,
+          0.6107718086484963,
+          0.6160613373873285
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.6315789473684286
+      ],
+      "maximum_slope_absolute_error": 7.438494264988549e-15,
+      "first_ratio_absolute_error": 0.14076150220231198,
+      "final_ratio_absolute_error": 0.01551760998109264,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 7.771561172376096e-16,
+      "smallest_correct_log_probability": -368.35190801798234,
+      "final_log_failure": -597.9143401209628
+    },
+    {
+      "fixture": "near_tie_two_correct_three_incorrect",
+      "m": 2,
+      "n": 3,
+      "lambda_value": 4.0,
+      "P0": 0.15,
+      "q0": [
+        0.5001,
+        0.4999
+      ],
+      "r0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "predicted_exponent": 0.1875,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.13155763101114154,
+          0.16009087924966814,
+          0.17393176231923346,
+          0.17848440168429902,
+          0.1807494558363618
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.18750000000000067
+      ],
+      "maximum_slope_absolute_error": 6.661338147750939e-16,
+      "first_ratio_absolute_error": 0.05594236898885846,
+      "final_ratio_absolute_error": 0.006750544163638211,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 7.771561172376096e-16,
+      "smallest_correct_log_probability": -368.35190801798234,
+      "final_log_failure": -2037.9143401209628
+    },
+    {
+      "fixture": "near_tie_two_correct_three_incorrect",
+      "m": 2,
+      "n": 3,
+      "lambda_value": 16.0,
+      "P0": 0.15,
+      "q0": [
+        0.5001,
+        0.4999
+      ],
+      "r0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "predicted_exponent": 0.057692307692307696,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.03936165417581223,
+          0.04858287159666655,
+          0.05315143488953149,
+          0.0546681234208795,
+          0.055425316843803606
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.05769230769230776
+      ],
+      "maximum_slope_absolute_error": 6.245004513516506e-17,
+      "first_ratio_absolute_error": 0.018330653516495467,
+      "final_ratio_absolute_error": 0.00226699084850409,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 7.771561172376096e-16,
+      "smallest_correct_log_probability": -368.35190801798234,
+      "final_log_failure": -6645.914340120963
+    },
+    {
+      "fixture": "near_tie_two_correct_three_incorrect",
+      "m": 2,
+      "n": 3,
+      "lambda_value": 64.0,
+      "P0": 0.15,
+      "q0": [
+        0.5001,
+        0.4999
+      ],
+      "r0": [
+        0.6,
+        0.25,
+        0.15
+      ],
+      "predicted_exponent": 0.015306122448979593,
+      "minority_indices": [
+        1
+      ],
+      "effective_times": [
+        48.0,
+        96.0,
+        192.0,
+        288.0,
+        384.0
+      ],
+      "log_probability_ratios": [
+        [
+          0.01034958239346073,
+          0.012831844010250408,
+          0.014069978717939793,
+          0.01448224761063282,
+          0.014688299155272002
+        ]
+      ],
+      "late_interval_log_slopes": [
+        0.0153061224489796
+      ],
+      "maximum_slope_absolute_error": 6.938893903907228e-18,
+      "first_ratio_absolute_error": 0.004956540055518863,
+      "final_ratio_absolute_error": 0.0006178232937075912,
+      "final_winner_mass_shortfall": 0.0,
+      "final_incorrect_uniform_error": 7.771561172376096e-16,
+      "smallest_correct_log_probability": -368.35190801798234,
+      "final_log_failure": -25077.914340120962
+    }
+  ]
+}

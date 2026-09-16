@@ -1,0 +1,62 @@
+{
+  "schema": "hosted-reframe-short-validation-v1",
+  "main_pages": 4,
+  "pdf_pages": 53,
+  "references_page": 5,
+  "main_figure_labels": {
+    "fig:story": {
+      "number": "1",
+      "page": 1
+    },
+    "fig:modebench-examples": {
+      "number": "2",
+      "page": 2
+    },
+    "fig:verified-support-story": {
+      "number": "3",
+      "page": 2
+    },
+    "fig:cross-scale-terminal-effects": {
+      "number": "4",
+      "page": 3
+    },
+    "fig:maxrl-factorial": {
+      "number": "5",
+      "page": 4
+    },
+    "fig:level2-admission": {
+      "number": "6",
+      "page": 4
+    },
+    "fig:hosted-verified-breadth": {
+      "number": "7",
+      "page": 4
+    }
+  },
+  "appendix_figure_count": 10,
+  "conclusion_page": 3,
+  "main_lastpage": 4,
+  "hosted_deployment_in_rendered_main": true,
+  "main_refusal_mentions": 0,
+  "sha256": {
+    "main.pdf": "d6f70c12725608273bd9ce3dda0e724e889b7f18593d64d80ed6c251ad40211e",
+    "mathai2026-source.zip": "0b0e3a62e6ad1219a7dff00850f440dfc3901928e0b0f7bb16745cf2c64dbc7c",
+    "main.tex": "d9f989bd4732ee162d79dd56e35cdc338f2ec5cae4fe226fc4f98a664f2deec3",
+    "check_submission.py": "f89de2271d9704f2829e9f21bcc3c8b6ec868dcf8bf8e673425a0ff890341a6e",
+    "snapshot.json": "0502d6e71015d92a32ec8cb74af20642ec03d5238bddcd261b14f69367b9133d",
+    "figures/hosted_verified_breadth.pdf": "7872845ceef7baeaad3411ce4993c256316ff4aaf80fe07ebec756e80a4d631d"
+  },
+  "source_bundle_files": 105,
+  "obsolete_intro_includes_in_bundle": [],
+  "build_log": "short_build_final.log",
+  "validation": "make bundle passed staged compile, exact figure order 1-7, four-page gate, references page 5, style/snapshot/receipt checks and no unresolved references or overfull boxes",
+  "visual_review": {
+    "passed": true,
+    "pages_reviewed": [
+      3,
+      4
+    ],
+    "final_page4_render": "short_page4.png",
+    "notes": "Final seven-deployment figure is legible at full text width, captions and legends do not overlap, and Figures 5-7 remain on page 4."
+  }
+}

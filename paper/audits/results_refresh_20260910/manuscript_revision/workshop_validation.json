@@ -1,0 +1,61 @@
+{
+  "status": "pass",
+  "source_snapshot_sha256": "f291c1f59fec652055f09b92f3941fe1ad7634a042d517af7fdbd4945cf85810",
+  "parent_source_sha256": "ad718125fba12b715f9bf9f2e7e70e86710208dfc89a6445f0884b4c9dc0b170",
+  "workshop_sources": {
+    "main.tex": "cca8eeab33db3c05d092e89aaed977e43af7717fd3b64446b446e8aa85dec296",
+    "appendix.tex": "34a18f2d9d299c74d61e30398aa99ff2d8f469add76075507d41912b7d4e45f0",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+  },
+  "copied_assets_verified_against_parent": 78,
+  "assets_refreshed": 24,
+  "build_command": "make -C paper/mathai2026 bundle",
+  "build_log": "paper/audits/results_refresh_20260910/manuscript_revision/workshop_build_r2.log",
+  "pdf_sha256": "4e9c4269bee63cbc6262baf6654a884186ccc24d695484e746b28ec612f4da01",
+  "pdf_bytes": 1203811,
+  "source_zip_sha256": "a66ba7c75dabaccfc4a208057e196bb6bf9aa5c1b2cf1e09a4a71376c4cefa36",
+  "source_zip_files": 93,
+  "source_zip_bytes": 2909694,
+  "total_pages": 65,
+  "main_pages": 4,
+  "references_begin": 5,
+  "selected_label_pages": {
+    "main:lastpage": 4,
+    "fig:maxrl-factorial": 4,
+    "fig:level2-admission": 4,
+    "app:latest-results-update": 60,
+    "tab:latest-completed-effects": 61,
+    "tab:current-e118": 62,
+    "tab:current-e119": 62,
+    "tab:level2-factorial-contrasts": 63,
+    "tab:current-e120": 63
+  },
+  "automated_checks": [
+    "Four main pages; all six main and eight supplementary figures; references page 5",
+    "Anonymous mode and unmodified official workshop style",
+    "All local references, snapshot bindings, compiler receipt, and source ZIP bytes current",
+    "Every copied asset byte-identical to its parent file, including historical assets",
+    "No undefined/multiply defined references or overfull boxes"
+  ],
+  "visual_review": {
+    "pages": [
+      4,
+      61,
+      62,
+      63
+    ],
+    "renders": "paper/audits/results_refresh_20260910/manuscript_revision/rendered/workshop-page{page}.png",
+    "result": "Updated Figure 6 and its matched-checkpoint caption, the main Graph summary, conclusion, and all updated complete/partial result tables are legible, with no clipping or overlap."
+  },
+  "revision_notes": [
+    "First staged build rejected fifth content page and preserved old validated PDF; tightened the updated MaxRL paragraph and Pantry caption, retaining new Graph result in main and full numerical results in appendix. No margin/font/figure-size/spacing changes.",
+    "Corrected workshop-only stale limitations counts and contradictory Countdown-incomplete clause.",
+    "Frozen E120 Qwen-0.5B primary assets and uncertainty scope preserved.",
+    "mathai2026-overleaf.zip is a historical September 9 artifact and was preserved; deliver the newly validated mathai2026-source.zip."
+  ],
+  "delivery_paths": {
+    "pdf": "paper/mathai2026/main.pdf",
+    "validated_source_zip": "paper/mathai2026/mathai2026-source.zip",
+    "historical_zip_preserved": "paper/mathai2026/mathai2026-overleaf.zip"
+  }
+}

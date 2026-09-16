@@ -1,0 +1,22 @@
+[
+  {
+    "example": "running_example",
+    "page": 14,
+    "path": "paper/audits/theory_examples_20260905/rendered/full_page14_running_example.png"
+  },
+  {
+    "example": "matched_accuracy",
+    "page": 18,
+    "path": "paper/audits/theory_examples_20260905/rendered/full_page18_matched_accuracy.png"
+  },
+  {
+    "example": "optimizer_bounds",
+    "page": 30,
+    "path": "paper/audits/theory_examples_20260905/rendered/full_page30_optimizer_bounds.png"
+  },
+  {
+    "example": "sharp_survival",
+    "page": 34,
+    "path": "paper/audits/theory_examples_20260905/rendered/full_page34_sharp_survival.png"
+  }
+]

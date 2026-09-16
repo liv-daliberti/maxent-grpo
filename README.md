@@ -40,6 +40,12 @@ The main version for new Level 3 work is the [neutral-Python revision](docs/mode
 
 The [Level 4 / Qwen-7B and Level 5 / Qwen-14B guide](docs/modebench_scale_calibration.md)
 describes calibration, admission requirements, and loading the train/test splits.
+Level 5 is admitted in all five domains. Level 4 is confirmed in four: its MathIR
+split is sound but not difficulty-matched, and the Level-1 MathIR target is
+unreachable at 7B, so a Level 4 MathIR number must carry that. All five levels are
+published at [od2961/ModeBench](https://huggingface.co/datasets/od2961/ModeBench),
+and `ops/validate_modebench_levels.py` re-checks every split on disk against its
+recorded digests.
 
 The Python task is the third benchmark environment. Each prompt requests
 `lambda n: EXPR` over four frozen inputs. The generated function must return a

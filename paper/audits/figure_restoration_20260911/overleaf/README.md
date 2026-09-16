@@ -1,0 +1,1 @@
+Overleaf archive validated from a fresh extraction outside the repository. All manuscript pages match the current reviewed PDF in extracted text and layout. The compile used no original-repository input files and no shell escape. See validation.json and extracted-build.log.

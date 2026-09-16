@@ -1,0 +1,969 @@
+[
+  {
+    "index": 16,
+    "key": "tajwar2026maxrl",
+    "url": "https://arxiv.org/abs/2602.02710",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Maximum Likelihood Reinforcement Learning"
+      ],
+      "citation_author": [
+        "Tajwar, Fahim",
+        "Zeng, Guanning",
+        "Zhou, Yueer",
+        "Song, Yuda",
+        "Arora, Daman",
+        "Jiang, Yiding",
+        "Schneider, Jeff",
+        "Salakhutdinov, Ruslan",
+        "Feng, Haiwen",
+        "Zanette, Andrea"
+      ],
+      "citation_date": [
+        "2026/02/02"
+      ],
+      "citation_online_date": [
+        "2026/08/21"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2602.02710"
+      ],
+      "citation_arxiv_id": [
+        "2602.02710"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning (RL) is the method of choice for training models in setups where the objective function can only be evaluated by sampling from the model. Our key observation is that when the feedback is terminal and binary, models implicitly induce a likelihood over correct rollouts. Maximum likelihood would be the natural framework in such settings, but RL is used instead as a workaround to the non-differentiability. We prove that the standard, expected-reward RL formulation is only a first-order approximation of the likelihood. To remedy this mismatch, we introduce Maximum Likelihood Reinforcement Learning (MaxRL), a compute-indexed family of sample-based objectives that interpolate between expected-reward RL and maximum likelihood as sampling compute is scaled. The resulting objective is a one-line change to standard RL implementations. MaxRL Pareto-dominates existing methods in all tested models and tasks, achieves up to $20\\times$ gains in test-time scaling efficiency over GRPO, and scales more favorably with additional training data and compute."
+      ]
+    },
+    "header": "[2602.02710] Maximum Likelihood Reinforcement Learning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2602.02710 (cs) [Submitted on 2 Feb 2026 ( v1 ), last revised 21 Aug 2026 (this version, v3)] Title: Maximum Likelihood Reinforcement Learning Authors: Fahim Tajwar , Guanning Zeng , Yueer Zhou , Yuda Song , Daman Arora , Yiding Jiang , Jeff Schneider , Ruslan Salakhutdinov , Haiwen Feng , Andrea Zanette View a PDF of the paper titled Maximum Likelihood Reinforcement Learning, by Fahim Tajwar and 9 other authors View PDF HTML (experimental) Abstract: Reinforcement learning (RL) is the method of choice for training models in setups where the objective function can only be evaluated by sampling from the model. Our key observation is that when the feedback is terminal and binary, models implicitly induce a likelihood over correct rollouts. Maximum likelihood would be the natural framework in such settings, but RL is used instead as a workaround to the non-differentiability. We prove that the standard, expected-reward RL formulation is only a first-order approximation of the likelihood. To remedy this mismatch, we introduce Maximum Likelihood Reinforcement Learning (MaxRL), a compute-indexed family of sample-based objectives that interpolate between expected-reward RL and maximum likelihood as sampling compute is scaled. The resulting objective is a one-line change to standard RL implementations. MaxRL Pareto-dominates existing methods in all tested models and tasks, achieves up to $20\\times$ gains in test-time scaling efficiency over GRPO, and scales more favorably with additional training data and compute. Comments: ICML 2026. Project website: this https URL Subjects: Machine Learning (cs.LG) Cite as: arXiv:2602.02710 [cs.LG] (or arXiv:2602.02710v3 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2602.02710 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Fahim Tajwar [ view email ] [v1] Mon, 2 Feb 2026 19:23:42 UTC (970 KB) [v2] Wed, 19 Aug 2026 18:38:40 UTC (1,115 KB) [v3] Fri, 21 Aug 2026 00:42:08 UTC (1,115 KB) Full-text links: Access Paper: View a PDF of the paper titled Maximum Likelihood Reinforcement Learning, by Fahim Tajwar and 9 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2026-02 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle Replicate ( What is Replicate? ) Spaces Toggle Hugging Face Spaces ( What is Spaces? ) Spaces Toggle TXYZ.AI ( What is TXYZ.AI? "
+  },
+  {
+    "index": 17,
+    "key": "gspo2025",
+    "url": "https://arxiv.org/abs/2507.18071",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Group Sequence Policy Optimization"
+      ],
+      "citation_author": [
+        "Zheng, Chujie",
+        "Liu, Shixuan",
+        "Li, Mingze",
+        "Chen, Xiong-Hui",
+        "Yu, Bowen",
+        "Gao, Chang",
+        "Dang, Kai",
+        "Liu, Yuqiong",
+        "Men, Rui",
+        "Yang, An",
+        "Zhou, Jingren",
+        "Lin, Junyang"
+      ],
+      "citation_date": [
+        "2025/07/24"
+      ],
+      "citation_online_date": [
+        "2025/07/28"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2507.18071"
+      ],
+      "citation_arxiv_id": [
+        "2507.18071"
+      ],
+      "citation_abstract": [
+        "This paper introduces Group Sequence Policy Optimization (GSPO), our stable, efficient, and performant reinforcement learning algorithm for training large language models. Unlike previous algorithms that adopt token-level importance ratios, GSPO defines the importance ratio based on sequence likelihood and performs sequence-level clipping, rewarding, and optimization. We demonstrate that GSPO achieves superior training efficiency and performance compared to the GRPO algorithm, notably stabilizes Mixture-of-Experts (MoE) RL training, and has the potential for simplifying the design of RL infrastructure. These merits of GSPO have contributed to the remarkable improvements in the latest Qwen3 models."
+      ]
+    },
+    "header": "[2507.18071] Group Sequence Policy Optimization Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2507.18071 (cs) [Submitted on 24 Jul 2025 ( v1 ), last revised 28 Jul 2025 (this version, v2)] Title: Group Sequence Policy Optimization Authors: Chujie Zheng , Shixuan Liu , Mingze Li , Xiong-Hui Chen , Bowen Yu , Chang Gao , Kai Dang , Yuqiong Liu , Rui Men , An Yang , Jingren Zhou , Junyang Lin View a PDF of the paper titled Group Sequence Policy Optimization, by Chujie Zheng and 11 other authors View PDF HTML (experimental) Abstract: This paper introduces Group Sequence Policy Optimization (GSPO), our stable, efficient, and performant reinforcement learning algorithm for training large language models. Unlike previous algorithms that adopt token-level importance ratios, GSPO defines the importance ratio based on sequence likelihood and performs sequence-level clipping, rewarding, and optimization. We demonstrate that GSPO achieves superior training efficiency and performance compared to the GRPO algorithm, notably stabilizes Mixture-of-Experts (MoE) RL training, and has the potential for simplifying the design of RL infrastructure. These merits of GSPO have contributed to the remarkable improvements in the latest Qwen3 models. Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI); Computation and Language (cs.CL) Cite as: arXiv:2507.18071 [cs.LG] (or arXiv:2507.18071v2 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2507.18071 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Chujie Zheng [ view email ] [v1] Thu, 24 Jul 2025 03:50:32 UTC (259 KB) [v2] Mon, 28 Jul 2025 11:11:33 UTC (259 KB) Full-text links: Access Paper: View a PDF of the paper titled Group Sequence Policy Optimization, by Chujie Zheng and 11 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-07 Change to browse by: cs cs.AI cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle Replicate ( What is Replicate? ) Spaces Toggle Hugging Face Spaces ( What is Spaces? ) Spaces Toggle TXYZ.AI ( What is TXYZ.AI? ) Related Papers Recommenders and Search Tools Link to Influence Flower Influence Flower ( What are Influence Flowers? ) Core recommender toggle CORE Recommender ( What is CORE? ) IArxiv recommender toggle IArxiv Recommender ( What is IArxiv? ) Author Venue Institution Topic About arXivLabs arXivLabs: experimental projects with community collaborators arXivLabs is a framework that allows collaborators to develo"
+  },
+  {
+    "index": 18,
+    "key": "divpo2025",
+    "url": "https://arxiv.org/abs/2505.23433",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Diversity-Aware Policy Optimization for Large Language Model Reasoning"
+      ],
+      "citation_author": [
+        "Yao, Jian",
+        "Cheng, Ran",
+        "Wu, Xingyu",
+        "Wu, Jibin",
+        "Tan, Kay Chen"
+      ],
+      "citation_date": [
+        "2025/05/29"
+      ],
+      "citation_online_date": [
+        "2025/11/03"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2505.23433"
+      ],
+      "citation_arxiv_id": [
+        "2505.23433"
+      ],
+      "citation_abstract": [
+        "The reasoning capabilities of large language models (LLMs) have advanced rapidly, particularly following the release of DeepSeek R1, which has inspired a surge of research into data quality and reinforcement learning (RL) algorithms. Despite the pivotal role diversity plays in RL, its influence on LLM reasoning remains largely underexplored. To bridge this gap, this work presents a systematic investigation into the impact of diversity in RL-based training for LLM reasoning, and proposes a novel diversity-aware policy optimization method. Across evaluations on 12 LLMs, we observe a strong positive correlation between the solution diversity and Potential at k (a novel metric quantifying an LLM's reasoning potential) in high-performing models. This finding motivates our method to explicitly promote diversity during RL training. Specifically, we design a token-level diversity and reformulate it into a practical objective, then we selectively apply it to positive samples. Integrated into the R1-zero training framework, our method achieves a 3.5 percent average improvement across four mathematical reasoning benchmarks, while generating more diverse and robust solutions."
+      ]
+    },
+    "header": "[2505.23433] Diversity-Aware Policy Optimization for Large Language Model Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2505.23433 (cs) [Submitted on 29 May 2025 ( v1 ), last revised 3 Nov 2025 (this version, v2)] Title: Diversity-Aware Policy Optimization for Large Language Model Reasoning Authors: Jian Yao , Ran Cheng , Xingyu Wu , Jibin Wu , Kay Chen Tan View a PDF of the paper titled Diversity-Aware Policy Optimization for Large Language Model Reasoning, by Jian Yao and 4 other authors View PDF HTML (experimental) Abstract: The reasoning capabilities of large language models (LLMs) have advanced rapidly, particularly following the release of DeepSeek R1, which has inspired a surge of research into data quality and reinforcement learning (RL) algorithms. Despite the pivotal role diversity plays in RL, its influence on LLM reasoning remains largely underexplored. To bridge this gap, this work presents a systematic investigation into the impact of diversity in RL-based training for LLM reasoning, and proposes a novel diversity-aware policy optimization method. Across evaluations on 12 LLMs, we observe a strong positive correlation between the solution diversity and Potential at k (a novel metric quantifying an LLM's reasoning potential) in high-performing models. This finding motivates our method to explicitly promote diversity during RL training. Specifically, we design a token-level diversity and reformulate it into a practical objective, then we selectively apply it to positive samples. Integrated into the R1-zero training framework, our method achieves a 3.5 percent average improvement across four mathematical reasoning benchmarks, while generating more diverse and robust solutions. Subjects: Machine Learning (cs.LG) Cite as: arXiv:2505.23433 [cs.LG] (or arXiv:2505.23433v2 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2505.23433 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Jian Yao [ view email ] [v1] Thu, 29 May 2025 13:27:44 UTC (895 KB) [v2] Mon, 3 Nov 2025 12:40:16 UTC (899 KB) Full-text links: Access Paper: View a PDF of the paper titled Diversity-Aware Policy Optimization for Large Language Model Reasoning, by Jian Yao and 4 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-05 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle Replicate ( What is Replicate? ) Spaces Toggle Hugging Face Spaces ( What is Spaces? ) Spaces Toggle TXYZ.AI ( W"
+  },
+  {
+    "index": 19,
+    "key": "cheng2025exploration",
+    "url": "https://arxiv.org/abs/2506.14758",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Reasoning with Exploration: An Entropy Perspective"
+      ],
+      "citation_author": [
+        "Cheng, Daixuan",
+        "Huang, Shaohan",
+        "Zhu, Xuekai",
+        "Dai, Bo",
+        "Zhao, Wayne Xin",
+        "Zhang, Zhenliang",
+        "Wei, Furu"
+      ],
+      "citation_date": [
+        "2025/06/17"
+      ],
+      "citation_online_date": [
+        "2025/11/08"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2506.14758"
+      ],
+      "citation_arxiv_id": [
+        "2506.14758"
+      ],
+      "citation_abstract": [
+        "Balancing exploration and exploitation is a central goal in reinforcement learning (RL). Despite recent advances in enhancing large language model (LLM) reasoning, most methods lean toward exploitation, and increasingly encounter performance plateaus. In this work, we revisit entropy -- a signal of exploration in RL -- and examine its relationship to exploratory reasoning in LLMs. Through empirical analysis, we uncover positive correlations between high-entropy regions and three types of exploratory reasoning actions: (1) pivotal tokens that determine or connect logical steps, (2) reflective actions such as self-verification and correction, and (3) rare behaviors under-explored by the base LLMs. Motivated by this, we introduce a minimal modification to standard RL with only one line of code: augmenting the advantage function with an entropy-based term. Unlike traditional maximum-entropy methods which encourage exploration by promoting uncertainty, we encourage exploration by promoting longer and deeper reasoning chains. Notably, our method achieves significant gains on the Pass@K metric -- an upper-bound estimator of LLM reasoning capabilities -- even when evaluated with extremely large K values, pushing the boundaries of LLM reasoning."
+      ]
+    },
+    "header": "[2506.14758] Reasoning with Exploration: An Entropy Perspective Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Computation and Language arXiv:2506.14758 (cs) [Submitted on 17 Jun 2025 ( v1 ), last revised 8 Nov 2025 (this version, v4)] Title: Reasoning with Exploration: An Entropy Perspective Authors: Daixuan Cheng , Shaohan Huang , Xuekai Zhu , Bo Dai , Wayne Xin Zhao , Zhenliang Zhang , Furu Wei View a PDF of the paper titled Reasoning with Exploration: An Entropy Perspective, by Daixuan Cheng and 6 other authors View PDF HTML (experimental) Abstract: Balancing exploration and exploitation is a central goal in reinforcement learning (RL). Despite recent advances in enhancing large language model (LLM) reasoning, most methods lean toward exploitation, and increasingly encounter performance plateaus. In this work, we revisit entropy -- a signal of exploration in RL -- and examine its relationship to exploratory reasoning in LLMs. Through empirical analysis, we uncover positive correlations between high-entropy regions and three types of exploratory reasoning actions: (1) pivotal tokens that determine or connect logical steps, (2) reflective actions such as self-verification and correction, and (3) rare behaviors under-explored by the base LLMs. Motivated by this, we introduce a minimal modification to standard RL with only one line of code: augmenting the advantage function with an entropy-based term. Unlike traditional maximum-entropy methods which encourage exploration by promoting uncertainty, we encourage exploration by promoting longer and deeper reasoning chains. Notably, our method achieves significant gains on the Pass@K metric -- an upper-bound estimator of LLM reasoning capabilities -- even when evaluated with extremely large K values, pushing the boundaries of LLM reasoning. Comments: AAAI 2026 Conference Subjects: Computation and Language (cs.CL) Cite as: arXiv:2506.14758 [cs.CL] (or arXiv:2506.14758v4 [cs.CL] for this version) https://doi.org/10.48550/arXiv.2506.14758 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Daixuan Cheng [ view email ] [v1] Tue, 17 Jun 2025 17:54:03 UTC (2,476 KB) [v2] Sun, 3 Aug 2025 12:47:07 UTC (2,480 KB) [v3] Tue, 12 Aug 2025 03:07:04 UTC (2,480 KB) [v4] Sat, 8 Nov 2025 04:52:16 UTC (2,480 KB) Full-text links: Access Paper: View a PDF of the paper titled Reasoning with Exploration: An Entropy Perspective, by Daixuan Cheng and 6 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.CL <\u00a0prev | next\u00a0> new | recent | 2025-06 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) Science"
+  },
+  {
+    "index": 20,
+    "key": "chen2025passktraining",
+    "url": "https://arxiv.org/abs/2508.10751",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Pass@k Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models"
+      ],
+      "citation_author": [
+        "Chen, Zhipeng",
+        "Qin, Xiaobo",
+        "Wu, Youbin",
+        "Ling, Yue",
+        "Ye, Qinghao",
+        "Zhao, Wayne Xin",
+        "Shi, Guang"
+      ],
+      "citation_date": [
+        "2025/08/14"
+      ],
+      "citation_online_date": [
+        "2025/08/14"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2508.10751"
+      ],
+      "citation_arxiv_id": [
+        "2508.10751"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning with verifiable rewards (RLVR), which typically adopts Pass@1 as the reward, has faced the issues in balancing exploration and exploitation, causing policies to prefer conservative actions, converging to a local optimum. Identifying an appropriate reward metric is therefore crucial. Regarding the prior work, although Pass@k has been used in evaluation, its connection to LLM exploration ability in RLVR remains largely overlooked. To investigate this, we first use Pass@k as the reward to train the policy model (i.e., $\\textbf{Pass@k Training}$), and observe the improvement on its exploration ability. Next, we derive an analytical solution for the advantage of Pass@k Training, leading to an efficient and effective process. Building on this, our analysis reveals that exploration and exploitation are not inherently conflicting objectives, while they can mutually enhance each other. Moreover, Pass@k Training with analytical derivation essentially involves directly designing the advantage function. Inspired by this, we preliminarily explore the advantage design for RLVR, showing promising results and highlighting a potential future direction."
+      ]
+    },
+    "header": "[2508.10751] Pass@k Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2508.10751 (cs) [Submitted on 14 Aug 2025] Title: Pass@k Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models Authors: Zhipeng Chen , Xiaobo Qin , Youbin Wu , Yue Ling , Qinghao Ye , Wayne Xin Zhao , Guang Shi View a PDF of the paper titled Pass@k Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models, by Zhipeng Chen and 6 other authors View PDF Abstract: Reinforcement learning with verifiable rewards (RLVR), which typically adopts Pass@1 as the reward, has faced the issues in balancing exploration and exploitation, causing policies to prefer conservative actions, converging to a local optimum. Identifying an appropriate reward metric is therefore crucial. Regarding the prior work, although Pass@k has been used in evaluation, its connection to LLM exploration ability in RLVR remains largely overlooked. To investigate this, we first use Pass@k as the reward to train the policy model (i.e., $\\textbf{Pass@k Training}$), and observe the improvement on its exploration ability. Next, we derive an analytical solution for the advantage of Pass@k Training, leading to an efficient and effective process. Building on this, our analysis reveals that exploration and exploitation are not inherently conflicting objectives, while they can mutually enhance each other. Moreover, Pass@k Training with analytical derivation essentially involves directly designing the advantage function. Inspired by this, we preliminarily explore the advantage design for RLVR, showing promising results and highlighting a potential future direction. Comments: Technical Report about RLVR: 32 pages, 18 figures, 7 tables Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI); Computation and Language (cs.CL) Cite as: arXiv:2508.10751 [cs.LG] (or arXiv:2508.10751v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2508.10751 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Zhipeng Chen [ view email ] [v1] Thu, 14 Aug 2025 15:34:47 UTC (4,655 KB) Full-text links: Access Paper: View a PDF of the paper titled Pass@k Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models, by Zhipeng Chen and 6 other authors View PDF TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-08 Change to browse by: cs cs.AI cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is "
+  },
+  {
+    "index": 21,
+    "key": "song2025outcome",
+    "url": "https://arxiv.org/abs/2509.06941",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Outcome-based Exploration for LLM Reasoning"
+      ],
+      "citation_author": [
+        "Song, Yuda",
+        "Kempe, Julia",
+        "Munos, Remi"
+      ],
+      "citation_date": [
+        "2025/09/08"
+      ],
+      "citation_online_date": [
+        "2025/09/08"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2509.06941"
+      ],
+      "citation_arxiv_id": [
+        "2509.06941"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning (RL) has emerged as a powerful method for improving the reasoning abilities of large language models (LLMs). Outcome-based RL, which rewards policies solely for the correctness of the final answer, yields substantial accuracy gains but also induces a systematic loss in generation diversity. This collapse undermines real-world performance, where diversity is critical for test-time scaling. We analyze this phenomenon by viewing RL post-training as a sampling process and show that, strikingly, RL can reduce effective diversity even on the training set relative to the base model. Our study highlights two central findings: (i) a transfer of diversity degradation, where reduced diversity on solved problems propagates to unsolved ones, and (ii) the tractability of the outcome space, since reasoning tasks admit only a limited set of distinct answers. Motivated by these insights, we propose outcome-based exploration, which assigns exploration bonuses according to final outcomes. We introduce two complementary algorithms: historical exploration, which encourages rarely observed answers via UCB-style bonuses, and batch exploration, which penalizes within-batch repetition to promote test-time diversity. Experiments on standard competition math with Llama and Qwen models demonstrate that both methods improve accuracy while mitigating diversity collapse. On the theoretical side, we formalize the benefit of outcome-based exploration through a new model of outcome-based bandits. Together, these contributions chart a practical path toward RL methods that enhance reasoning without sacrificing the diversity essential for scalable deployment."
+      ]
+    },
+    "header": "[2509.06941] Outcome-based Exploration for LLM Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2509.06941 (cs) [Submitted on 8 Sep 2025] Title: Outcome-based Exploration for LLM Reasoning Authors: Yuda Song , Julia Kempe , Remi Munos View a PDF of the paper titled Outcome-based Exploration for LLM Reasoning, by Yuda Song and 2 other authors View PDF HTML (experimental) Abstract: Reinforcement learning (RL) has emerged as a powerful method for improving the reasoning abilities of large language models (LLMs). Outcome-based RL, which rewards policies solely for the correctness of the final answer, yields substantial accuracy gains but also induces a systematic loss in generation diversity. This collapse undermines real-world performance, where diversity is critical for test-time scaling. We analyze this phenomenon by viewing RL post-training as a sampling process and show that, strikingly, RL can reduce effective diversity even on the training set relative to the base model. Our study highlights two central findings: (i) a transfer of diversity degradation, where reduced diversity on solved problems propagates to unsolved ones, and (ii) the tractability of the outcome space, since reasoning tasks admit only a limited set of distinct answers. Motivated by these insights, we propose outcome-based exploration, which assigns exploration bonuses according to final outcomes. We introduce two complementary algorithms: historical exploration, which encourages rarely observed answers via UCB-style bonuses, and batch exploration, which penalizes within-batch repetition to promote test-time diversity. Experiments on standard competition math with Llama and Qwen models demonstrate that both methods improve accuracy while mitigating diversity collapse. On the theoretical side, we formalize the benefit of outcome-based exploration through a new model of outcome-based bandits. Together, these contributions chart a practical path toward RL methods that enhance reasoning without sacrificing the diversity essential for scalable deployment. Comments: 26 pages, 11 figures Subjects: Machine Learning (cs.LG) ; Computation and Language (cs.CL) Cite as: arXiv:2509.06941 [cs.LG] (or arXiv:2509.06941v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2509.06941 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Yuda Song [ view email ] [v1] Mon, 8 Sep 2025 17:52:56 UTC (491 KB) Full-text links: Access Paper: View a PDF of the paper titled Outcome-based Exploration for LLM Reasoning, by Yuda Song and 2 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-09 Change to browse by: cs cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHu"
+  },
+  {
+    "index": 22,
+    "key": "li2025divergence",
+    "url": "https://arxiv.org/abs/2509.07430",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward"
+      ],
+      "citation_author": [
+        "Li, Long",
+        "Zhou, Zhijian",
+        "Hao, Jiaran",
+        "Liu, Jason Klein",
+        "Miao, Yanting",
+        "Pang, Wei",
+        "Tan, Xiaoyu",
+        "Chu, Wei",
+        "Wang, Zhe",
+        "Pan, Shirui",
+        "Qu, Chao",
+        "Qi, Yuan"
+      ],
+      "citation_date": [
+        "2025/09/09"
+      ],
+      "citation_online_date": [
+        "2026/03/03"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2509.07430"
+      ],
+      "citation_arxiv_id": [
+        "2509.07430"
+      ],
+      "citation_abstract": [
+        "A central paradox in fine-tuning Large Language Models (LLMs) with Reinforcement Learning with Verifiable Reward (RLVR) is the frequent degradation of multi-attempt performance (Pass@k) despite improvements in single-attempt accuracy (Pass@1). This is often accompanied by catastrophic forgetting, where models lose previously acquired skills. While various methods have been proposed, the choice and function of the divergence term have been surprisingly unexamined as a proactive solution. We argue that standard RLVR objectives -- both those using the mode-seeking reverse KL-divergence and those forgoing a divergence term entirely -- lack a crucial mechanism for knowledge retention. The reverse-KL actively accelerates this decay by narrowing the policy, while its absence provides no safeguard against the model drifting from its diverse knowledge base. We propose a fundamental shift in perspective: using the divergence term itself as the solution. Our framework, Diversity-Preserving Hybrid RL (DPH-RL), leverages mass-covering f-divergences (like forward-KL and JS-divergence) to function as a rehearsal mechanism. By continuously referencing the initial policy, this approach forces the model to maintain broad solution coverage. Extensive experiments on math and SQL generation demonstrate that DPH-RL not only resolves the Pass@k degradation but improves both Pass@1 and Pass@k in- and out-of-domain. Additionally, DPH-RL is more training-efficient because it computes f-divergence using generator functions, requiring only sampling from the initial policy and no online reference model. Our work highlights a crucial, overlooked axis for improving RLVR, demonstrating that the proper selection of a divergence measure is a powerful tool for building more general and diverse reasoning models."
+      ]
+    },
+    "header": "[2509.07430] The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2509.07430 (cs) [Submitted on 9 Sep 2025 ( v1 ), last revised 3 Mar 2026 (this version, v4)] Title: The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward Authors: Long Li , Zhijian Zhou , Jiaran Hao , Jason Klein Liu , Yanting Miao , Wei Pang , Xiaoyu Tan , Wei Chu , Zhe Wang , Shirui Pan , Chao Qu , Yuan Qi View a PDF of the paper titled The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward, by Long Li and 11 other authors View PDF HTML (experimental) Abstract: A central paradox in fine-tuning Large Language Models (LLMs) with Reinforcement Learning with Verifiable Reward (RLVR) is the frequent degradation of multi-attempt performance (Pass@k) despite improvements in single-attempt accuracy (Pass@1). This is often accompanied by catastrophic forgetting, where models lose previously acquired skills. While various methods have been proposed, the choice and function of the divergence term have been surprisingly unexamined as a proactive solution. We argue that standard RLVR objectives -- both those using the mode-seeking reverse KL-divergence and those forgoing a divergence term entirely -- lack a crucial mechanism for knowledge retention. The reverse-KL actively accelerates this decay by narrowing the policy, while its absence provides no safeguard against the model drifting from its diverse knowledge base. We propose a fundamental shift in perspective: using the divergence term itself as the solution. Our framework, Diversity-Preserving Hybrid RL (DPH-RL), leverages mass-covering f-divergences (like forward-KL and JS-divergence) to function as a rehearsal mechanism. By continuously referencing the initial policy, this approach forces the model to maintain broad solution coverage. Extensive experiments on math and SQL generation demonstrate that DPH-RL not only resolves the Pass@k degradation but improves both Pass@1 and Pass@k in- and out-of-domain. Additionally, DPH-RL is more training-efficient because it computes f-divergence using generator functions, requiring only sampling from the initial policy and no online reference model. Our work highlights a crucial, overlooked axis for improving RLVR, demonstrating that the proper selection of a divergence measure is a powerful tool for building more general and diverse reasoning models. Comments: 27 pages, 6 figures Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI) Cite as: arXiv:2509.07430 [cs.LG] (or arXiv:2509.07430v4 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2509.07430 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Long Li [ view email ] [v1] Tue, 9 Sep 2025 06:34:32 UTC (858 KB) [v2] Fri, 17 Oct 2025 09:26:39 UTC (847 KB) [v3] Wed, 11 Feb 2026 08:10:26 UTC (740 KB) [v4] Tue, 3 Mar 2026 07:36:26 UTC (740 KB) Full-text links: Access Paper: View a PDF of the paper titled The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward, by Long Li and 11 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev"
+  },
+  {
+    "index": 23,
+    "key": "agrae2026",
+    "url": "https://arxiv.org/abs/2602.05548",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Unveiling Implicit Advantage Symmetry: Why GRPO Struggles with Exploration and Difficulty Adaptation"
+      ],
+      "citation_author": [
+        "Yu, Zhiqi",
+        "Chen, Zhangquan",
+        "Liu, Mengting",
+        "Zhang, Heye",
+        "Qu, Liangqiong"
+      ],
+      "citation_date": [
+        "2026/02/05"
+      ],
+      "citation_online_date": [
+        "2026/03/30"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2602.05548"
+      ],
+      "citation_arxiv_id": [
+        "2602.05548"
+      ],
+      "citation_abstract": [
+        "Reinforcement Learning with Verifiable Rewards (RLVR), particularly GRPO, has become the standard for eliciting LLM reasoning. However, its efficiency in exploration and difficulty adaptation remains an open challenge. In this work, we argue that these bottlenecks stem from an implicit advantage symmetry inherent in Group Relative Advantage Estimation (GRAE). This symmetry induces two critical limitations: (i) at the group level, strict symmetry in weights between correct and incorrect trajectories leaves unsampled action logits unchanged, thereby hindering exploration of novel correct solution. (ii) at the sample level, the algorithm implicitly prioritizes medium-difficulty samples, remaining agnostic to the non-stationary demands of difficulty focus. Through controlled experiments, we reveal that this symmetric property is sub-optimal, yielding two pivotal insights: (i) asymmetrically suppressing the advantages of correct trajectories encourages essential exploration. (ii) learning efficiency is maximized by a curriculum-like transition-prioritizing simpler samples initially before gradually shifting to complex ones. Motivated by these findings, we propose Asymmetric GRAE (A-GRAE), which dynamically modulates exploration incentives and sample-difficulty focus. Experiments across seven benchmarks demonstrate that A-GRAE consistently improves GRPO and its variants across both LLMs and MLLMs."
+      ]
+    },
+    "header": "[2602.05548] Unveiling Implicit Advantage Symmetry: Why GRPO Struggles with Exploration and Difficulty Adaptation Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2602.05548 (cs) [Submitted on 5 Feb 2026 ( v1 ), last revised 30 Mar 2026 (this version, v3)] Title: Unveiling Implicit Advantage Symmetry: Why GRPO Struggles with Exploration and Difficulty Adaptation Authors: Zhiqi Yu , Zhangquan Chen , Mengting Liu , Heye Zhang , Liangqiong Qu View a PDF of the paper titled Unveiling Implicit Advantage Symmetry: Why GRPO Struggles with Exploration and Difficulty Adaptation, by Zhiqi Yu and 3 other authors View PDF HTML (experimental) Abstract: Reinforcement Learning with Verifiable Rewards (RLVR), particularly GRPO, has become the standard for eliciting LLM reasoning. However, its efficiency in exploration and difficulty adaptation remains an open challenge. In this work, we argue that these bottlenecks stem from an implicit advantage symmetry inherent in Group Relative Advantage Estimation (GRAE). This symmetry induces two critical limitations: (i) at the group level, strict symmetry in weights between correct and incorrect trajectories leaves unsampled action logits unchanged, thereby hindering exploration of novel correct solution. (ii) at the sample level, the algorithm implicitly prioritizes medium-difficulty samples, remaining agnostic to the non-stationary demands of difficulty focus. Through controlled experiments, we reveal that this symmetric property is sub-optimal, yielding two pivotal insights: (i) asymmetrically suppressing the advantages of correct trajectories encourages essential exploration. (ii) learning efficiency is maximized by a curriculum-like transition-prioritizing simpler samples initially before gradually shifting to complex ones. Motivated by these findings, we propose Asymmetric GRAE (A-GRAE), which dynamically modulates exploration incentives and sample-difficulty focus. Experiments across seven benchmarks demonstrate that A-GRAE consistently improves GRPO and its variants across both LLMs and MLLMs. Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI) Cite as: arXiv:2602.05548 [cs.LG] (or arXiv:2602.05548v3 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2602.05548 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Zhiqi Yu [ view email ] [v1] Thu, 5 Feb 2026 11:07:14 UTC (11,876 KB) [v2] Thu, 12 Feb 2026 06:56:38 UTC (11,876 KB) [v3] Mon, 30 Mar 2026 04:41:24 UTC (11,880 KB) Full-text links: Access Paper: View a PDF of the paper titled Unveiling Implicit Advantage Symmetry: Why GRPO Struggles with Exploration and Difficulty Adaptation, by Zhiqi Yu and 3 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2026-02 Change to browse by: cs cs.AI References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggl"
+  },
+  {
+    "index": 24,
+    "key": "avspo2026",
+    "url": "https://arxiv.org/abs/2605.21125",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation"
+      ],
+      "citation_author": [
+        "He, Xixiang",
+        "Sun, Qiyao",
+        "Cheng, Ao",
+        "Li, Xingming",
+        "Ji, Xuanyu",
+        "Lu, Hailun",
+        "Huang, Runke",
+        "Hu, Qingyong"
+      ],
+      "citation_date": [
+        "2026/05/20"
+      ],
+      "citation_online_date": [
+        "2026/05/30"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2605.21125"
+      ],
+      "citation_arxiv_id": [
+        "2605.21125"
+      ],
+      "citation_abstract": [
+        "Group Relative Policy Optimization (GRPO), a prominent algorithm within the Reinforcement Learning from Verifiable Rewards (RLVR) framework, has achieved strong results in improving the reasoning capabilities of large language models (LLMs). However, GRPO is prone to advantage collapse, a failure mode where homogeneous rewards within a group (e.g., all correct or all incorrect answers) yield near-zero advantages and vanishing gradients. To address this, we introduce the Advantage Collapse Rate (ACR), the first diagnostic metric quantifying the proportion of training batches with ineffective gradients. Across models from 0.5B to 14B parameters on mathematical reasoning benchmarks, we show that ACR strongly predicts training stagnation and final performance. We then propose Adaptive Virtual Sample Policy Optimization (AVSPO), a lightweight extension of GRPO that injects virtual reward samples, guided by real-time ACR monitoring, to enable learning from homogeneous groups without additional model rollouts. AVSPO reduces advantage collapse by 58-63% relative to GRPO and yields consistent accuracy gains of 4-6 percentage points across all model scales, while maintaining generalization on the evaluated out-of-domain task. Code and datasets are available at https://github.com/hexixiang/Advantage-Collapse-Rate."
+      ]
+    },
+    "header": "[2605.21125] Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2605.21125 (cs) [Submitted on 20 May 2026 ( v1 ), last revised 30 May 2026 (this version, v2)] Title: Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation Authors: Xixiang He , Qiyao Sun , Ao Cheng , Xingming Li , Xuanyu Ji , Hailun Lu , Runke Huang , Qingyong Hu View a PDF of the paper titled Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation, by Xixiang He and 7 other authors View PDF HTML (experimental) Abstract: Group Relative Policy Optimization (GRPO), a prominent algorithm within the Reinforcement Learning from Verifiable Rewards (RLVR) framework, has achieved strong results in improving the reasoning capabilities of large language models (LLMs). However, GRPO is prone to advantage collapse, a failure mode where homogeneous rewards within a group (e.g., all correct or all incorrect answers) yield near-zero advantages and vanishing gradients. To address this, we introduce the Advantage Collapse Rate (ACR), the first diagnostic metric quantifying the proportion of training batches with ineffective gradients. Across models from 0.5B to 14B parameters on mathematical reasoning benchmarks, we show that ACR strongly predicts training stagnation and final performance. We then propose Adaptive Virtual Sample Policy Optimization (AVSPO), a lightweight extension of GRPO that injects virtual reward samples, guided by real-time ACR monitoring, to enable learning from homogeneous groups without additional model rollouts. AVSPO reduces advantage collapse by 58-63% relative to GRPO and yields consistent accuracy gains of 4-6 percentage points across all model scales, while maintaining generalization on the evaluated out-of-domain task. Code and datasets are available at this https URL . Comments: Accepted at the International Conference on Machine Learning (ICML 2026). Project page: this https URL Subjects: Machine Learning (cs.LG) Cite as: arXiv:2605.21125 [cs.LG] (or arXiv:2605.21125v2 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2605.21125 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Xixiang He [ view email ] [v1] Wed, 20 May 2026 12:57:37 UTC (2,904 KB) [v2] Sat, 30 May 2026 15:03:07 UTC (3,556 KB) Full-text links: Access Paper: View a PDF of the paper titled Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation, by Xixiang He and 7 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2026-05 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( Wh"
+  },
+  {
+    "index": 25,
+    "key": "sinha2026expected",
+    "url": "https://arxiv.org/abs/2601.21669",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling"
+      ],
+      "citation_author": [
+        "Sinha, Abhijeet",
+        "Elango, Sundari",
+        "Liu, Dianbo"
+      ],
+      "citation_date": [
+        "2026/01/29"
+      ],
+      "citation_online_date": [
+        "2026/01/29"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2601.21669"
+      ],
+      "citation_arxiv_id": [
+        "2601.21669"
+      ],
+      "citation_abstract": [
+        "Many reinforcement learning (RL) problems admit multiple terminal solutions of comparable quality, where the goal is not to identify a single optimum but to represent a diverse set of high-quality outcomes. Nevertheless, policies trained by standard expected return maximization routinely collapse onto a small subset of outcomes, a phenomenon commonly attributed to insufficient exploration or weak regularization. We show that this explanation is incomplete: outcome level mode collapse is a structural consequence of the expected-return objective itself. Under idealized learning dynamics, the log-probability ratio between any two outcomes evolves linearly in their reward difference, implying exponential ratio divergence and inevitable collapse independent of the exploration strategy, entropy regularization, or optimization algorithm. We identify the source of this pathology as the probability multiplier inside the expectation and propose a minimal correction: inverse probability scaling, which removes outcome-frequency amplification from the learning signal, fundamentally changes the learning dynamics, and provably yields reward-proportional terminal distributions, preventing collapse in multimodal settings. We instantiate this principle in Group Relative Policy Optimization (GRPO) as a drop-in modification, IPS-GRPO, requiring no auxiliary models or architectural changes. Across different reasoning and molecular generation tasks, IPS-GRPO consistently reduces outcome-level mode collapse while matching or exceeding baseline performance, suggesting that correcting the objective rather than adding exploration heuristics is key to reliable multimodal policy optimization."
+      ]
+    },
+    "header": "[2601.21669] Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2601.21669 (cs) [Submitted on 29 Jan 2026] Title: Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling Authors: Abhijeet Sinha , Sundari Elango , Dianbo Liu View a PDF of the paper titled Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling, by Abhijeet Sinha and 2 other authors View PDF HTML (experimental) Abstract: Many reinforcement learning (RL) problems admit multiple terminal solutions of comparable quality, where the goal is not to identify a single optimum but to represent a diverse set of high-quality outcomes. Nevertheless, policies trained by standard expected return maximization routinely collapse onto a small subset of outcomes, a phenomenon commonly attributed to insufficient exploration or weak regularization. We show that this explanation is incomplete: outcome level mode collapse is a structural consequence of the expected-return objective itself. Under idealized learning dynamics, the log-probability ratio between any two outcomes evolves linearly in their reward difference, implying exponential ratio divergence and inevitable collapse independent of the exploration strategy, entropy regularization, or optimization algorithm. We identify the source of this pathology as the probability multiplier inside the expectation and propose a minimal correction: inverse probability scaling, which removes outcome-frequency amplification from the learning signal, fundamentally changes the learning dynamics, and provably yields reward-proportional terminal distributions, preventing collapse in multimodal settings. We instantiate this principle in Group Relative Policy Optimization (GRPO) as a drop-in modification, IPS-GRPO, requiring no auxiliary models or architectural changes. Across different reasoning and molecular generation tasks, IPS-GRPO consistently reduces outcome-level mode collapse while matching or exceeding baseline performance, suggesting that correcting the objective rather than adding exploration heuristics is key to reliable multimodal policy optimization. Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI) Cite as: arXiv:2601.21669 [cs.LG] (or arXiv:2601.21669v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2601.21669 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Abhijeet Sinha [ view email ] [v1] Thu, 29 Jan 2026 13:03:33 UTC (3,186 KB) Full-text links: Access Paper: View a PDF of the paper titled Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling, by Abhijeet Sinha and 2 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2026-01 Change to browse by: cs cs.AI References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connec"
+  },
+  {
+    "index": 26,
+    "key": "li2026distribution",
+    "url": "https://arxiv.org/abs/2605.19461",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Beyond Mode Collapse: Distribution Matching for Diverse Reasoning"
+      ],
+      "citation_author": [
+        "Li, Xiaozhe",
+        "Li, Yang",
+        "Fang, Xinyu",
+        "Ding, Shengyuan",
+        "Li, Peiji",
+        "Chen, Yongkang",
+        "Ma, Yichuan",
+        "Lyu, Tianyi",
+        "Li, Linyang",
+        "Lin, Dahua",
+        "Guo, Qipeng",
+        "Liu, Qingwen",
+        "Chen, Kai"
+      ],
+      "citation_date": [
+        "2026/05/19"
+      ],
+      "citation_online_date": [
+        "2026/05/19"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2605.19461"
+      ],
+      "citation_arxiv_id": [
+        "2605.19461"
+      ],
+      "citation_abstract": [
+        "On-policy reinforcement learning methods like GRPO suffer from mode collapse: they exhibit reduced solution diversity, concentrating probability mass on a single solution once discovered and ceasing exploration of alternative strategies. We show this stems from reverse KL minimization's mode-seeking behavior, which reinforces the first high-reward trajectory found rather than maintaining a distribution over multiple diverse solutions. We propose DMPO (Distribution-Matching Policy Optimization), which prevents mode collapse through principled approximation of forward KL minimization. DMPO constructs a group level target distribution over sampled trajectories proportional to their rewards, then aligns the policy distribution to this target. This provides mode-covering behavior without requiring sampling from the intractable global target distribution, enabling sustained exploration throughout training. We validate DMPO on NP-hard combinatorial optimization, where exponentially many feasible solutions exist but only a few approach optimality, an ideal testbed for evaluating exploration. DMPO achieves 43.9% Quality Ratio on text-based NP-Bench (vs. GRPO's 40.1%) and 43.1% on vision-based NP-Bench (vs. 38.4%), demonstrating 9% and 12% relative improvements respectively. These gains generalize to mathematical reasoning (+2.0%) and out-of-domain tasks (+2.3%), showing that diversity-preserving training enhances general reasoning capabilities across modalities. Our work establishes distribution matching as a practical, principled approach to preventing mode collapse in on-policy RL, with consistent quality improvements demonstrating sustained exploration across diverse reasoning tasks."
+      ]
+    },
+    "header": "[2605.19461] Beyond Mode Collapse: Distribution Matching for Diverse Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Artificial Intelligence arXiv:2605.19461 (cs) [Submitted on 19 May 2026] Title: Beyond Mode Collapse: Distribution Matching for Diverse Reasoning Authors: Xiaozhe Li , Yang Li , Xinyu Fang , Shengyuan Ding , Peiji Li , Yongkang Chen , Yichuan Ma , Tianyi Lyu , Linyang Li , Dahua Lin , Qipeng Guo , Qingwen Liu , Kai Chen View a PDF of the paper titled Beyond Mode Collapse: Distribution Matching for Diverse Reasoning, by Xiaozhe Li and 12 other authors View PDF HTML (experimental) Abstract: On-policy reinforcement learning methods like GRPO suffer from mode collapse: they exhibit reduced solution diversity, concentrating probability mass on a single solution once discovered and ceasing exploration of alternative strategies. We show this stems from reverse KL minimization's mode-seeking behavior, which reinforces the first high-reward trajectory found rather than maintaining a distribution over multiple diverse solutions. We propose DMPO (Distribution-Matching Policy Optimization), which prevents mode collapse through principled approximation of forward KL minimization. DMPO constructs a group level target distribution over sampled trajectories proportional to their rewards, then aligns the policy distribution to this target. This provides mode-covering behavior without requiring sampling from the intractable global target distribution, enabling sustained exploration throughout training. We validate DMPO on NP-hard combinatorial optimization, where exponentially many feasible solutions exist but only a few approach optimality, an ideal testbed for evaluating exploration. DMPO achieves 43.9% Quality Ratio on text-based NP-Bench (vs. GRPO's 40.1%) and 43.1% on vision-based NP-Bench (vs. 38.4%), demonstrating 9% and 12% relative improvements respectively. These gains generalize to mathematical reasoning (+2.0%) and out-of-domain tasks (+2.3%), showing that diversity-preserving training enhances general reasoning capabilities across modalities. Our work establishes distribution matching as a practical, principled approach to preventing mode collapse in on-policy RL, with consistent quality improvements demonstrating sustained exploration across diverse reasoning tasks. Subjects: Artificial Intelligence (cs.AI) Cite as: arXiv:2605.19461 [cs.AI] (or arXiv:2605.19461v1 [cs.AI] for this version) https://doi.org/10.48550/arXiv.2605.19461 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Xiaozhe Li [ view email ] [v1] Tue, 19 May 2026 07:13:00 UTC (2,631 KB) Full-text links: Access Paper: View a PDF of the paper titled Beyond Mode Collapse: Distribution Matching for Diverse Reasoning, by Xiaozhe Li and 12 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.AI <\u00a0prev | next\u00a0> new | recent | 2026-05 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations"
+  },
+  {
+    "index": 27,
+    "key": "li2026setpo",
+    "url": "https://arxiv.org/abs/2602.01062",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning"
+      ],
+      "citation_author": [
+        "Li, Chenyi",
+        "Zhang, Yuan",
+        "Wang, Bo",
+        "Ma, Guoqing",
+        "Tang, Wei",
+        "Huang, Haoyang",
+        "Duan, Nan"
+      ],
+      "citation_date": [
+        "2026/02/01"
+      ],
+      "citation_online_date": [
+        "2026/02/01"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2602.01062"
+      ],
+      "citation_arxiv_id": [
+        "2602.01062"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning with verifiable rewards has shown notable effectiveness in enhancing large language models (LLMs) reasoning performance, especially in mathematics tasks. However, such improvements often come with reduced outcome diversity, where the model concentrates probability mass on a narrow set of solutions. Motivated by diminishing-returns principles, we introduce a set level diversity objective defined over sampled trajectories using kernelized similarity. Our approach derives a leave-one-out marginal contribution for each sampled trajectory and integrates this objective as a plug-in advantage shaping term for policy optimization. We further investigate the contribution of a single trajectory to language model diversity within a distribution perturbation framework. This analysis theoretically confirms a monotonicity property, proving that rarer trajectories yield consistently higher marginal contributions to the global diversity. Extensive experiments across a range of model scales demonstrate the effectiveness of our proposed algorithm, consistently outperforming strong baselines in both Pass@1 and Pass@K across various benchmarks."
+      ]
+    },
+    "header": "[2602.01062] SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Artificial Intelligence arXiv:2602.01062 (cs) [Submitted on 1 Feb 2026] Title: SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning Authors: Chenyi Li , Yuan Zhang , Bo Wang , Guoqing Ma , Wei Tang , Haoyang Huang , Nan Duan View a PDF of the paper titled SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning, by Chenyi Li and 5 other authors View PDF HTML (experimental) Abstract: Reinforcement learning with verifiable rewards has shown notable effectiveness in enhancing large language models (LLMs) reasoning performance, especially in mathematics tasks. However, such improvements often come with reduced outcome diversity, where the model concentrates probability mass on a narrow set of solutions. Motivated by diminishing-returns principles, we introduce a set level diversity objective defined over sampled trajectories using kernelized similarity. Our approach derives a leave-one-out marginal contribution for each sampled trajectory and integrates this objective as a plug-in advantage shaping term for policy optimization. We further investigate the contribution of a single trajectory to language model diversity within a distribution perturbation framework. This analysis theoretically confirms a monotonicity property, proving that rarer trajectories yield consistently higher marginal contributions to the global diversity. Extensive experiments across a range of model scales demonstrate the effectiveness of our proposed algorithm, consistently outperforming strong baselines in both Pass@1 and Pass@K across various benchmarks. Subjects: Artificial Intelligence (cs.AI) Cite as: arXiv:2602.01062 [cs.AI] (or arXiv:2602.01062v1 [cs.AI] for this version) https://doi.org/10.48550/arXiv.2602.01062 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Chenyi Li [ view email ] [v1] Sun, 1 Feb 2026 07:13:20 UTC (7,005 KB) Full-text links: Access Paper: View a PDF of the paper titled SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning, by Chenyi Li and 5 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.AI <\u00a0prev | next\u00a0> new | recent | 2026-02 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle Replicate ( What is Replicate? ) Spaces Toggle Hugging Face Spaces ( What is Spaces? ) Spaces Toggle TXYZ.AI ( What is TXYZ.AI? ) Related Papers Recommenders and"
+  },
+  {
+    "index": 28,
+    "key": "ouyang2022training",
+    "url": "https://arxiv.org/abs/2203.02155",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Training language models to follow instructions with human feedback"
+      ],
+      "citation_author": [
+        "Ouyang, Long",
+        "Wu, Jeff",
+        "Jiang, Xu",
+        "Almeida, Diogo",
+        "Wainwright, Carroll L.",
+        "Mishkin, Pamela",
+        "Zhang, Chong",
+        "Agarwal, Sandhini",
+        "Slama, Katarina",
+        "Ray, Alex",
+        "Schulman, John",
+        "Hilton, Jacob",
+        "Kelton, Fraser",
+        "Miller, Luke",
+        "Simens, Maddie",
+        "Askell, Amanda",
+        "Welinder, Peter",
+        "Christiano, Paul",
+        "Leike, Jan",
+        "Lowe, Ryan"
+      ],
+      "citation_date": [
+        "2022/03/04"
+      ],
+      "citation_online_date": [
+        "2022/03/04"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2203.02155"
+      ],
+      "citation_arxiv_id": [
+        "2203.02155"
+      ],
+      "citation_abstract": [
+        "Making language models bigger does not inherently make them better at following a user's intent. For example, large language models can generate outputs that are untruthful, toxic, or simply not helpful to the user. In other words, these models are not aligned with their users. In this paper, we show an avenue for aligning language models with user intent on a wide range of tasks by fine-tuning with human feedback. Starting with a set of labeler-written prompts and prompts submitted through the OpenAI API, we collect a dataset of labeler demonstrations of the desired model behavior, which we use to fine-tune GPT-3 using supervised learning. We then collect a dataset of rankings of model outputs, which we use to further fine-tune this supervised model using reinforcement learning from human feedback. We call the resulting models InstructGPT. In human evaluations on our prompt distribution, outputs from the 1.3B parameter InstructGPT model are preferred to outputs from the 175B GPT-3, despite having 100x fewer parameters. Moreover, InstructGPT models show improvements in truthfulness and reductions in toxic output generation while having minimal performance regressions on public NLP datasets. Even though InstructGPT still makes simple mistakes, our results show that fine-tuning with human feedback is a promising direction for aligning language models with human intent."
+      ]
+    },
+    "header": "[2203.02155] Training language models to follow instructions with human feedback Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Computation and Language arXiv:2203.02155 (cs) [Submitted on 4 Mar 2022] Title: Training language models to follow instructions with human feedback Authors: Long Ouyang , Jeff Wu , Xu Jiang , Diogo Almeida , Carroll L. Wainwright , Pamela Mishkin , Chong Zhang , Sandhini Agarwal , Katarina Slama , Alex Ray , John Schulman , Jacob Hilton , Fraser Kelton , Luke Miller , Maddie Simens , Amanda Askell , Peter Welinder , Paul Christiano , Jan Leike , Ryan Lowe View a PDF of the paper titled Training language models to follow instructions with human feedback, by Long Ouyang and 19 other authors View PDF HTML (experimental) Abstract: Making language models bigger does not inherently make them better at following a user's intent. For example, large language models can generate outputs that are untruthful, toxic, or simply not helpful to the user. In other words, these models are not aligned with their users. In this paper, we show an avenue for aligning language models with user intent on a wide range of tasks by fine-tuning with human feedback. Starting with a set of labeler-written prompts and prompts submitted through the OpenAI API, we collect a dataset of labeler demonstrations of the desired model behavior, which we use to fine-tune GPT-3 using supervised learning. We then collect a dataset of rankings of model outputs, which we use to further fine-tune this supervised model using reinforcement learning from human feedback. We call the resulting models InstructGPT. In human evaluations on our prompt distribution, outputs from the 1.3B parameter InstructGPT model are preferred to outputs from the 175B GPT-3, despite having 100x fewer parameters. Moreover, InstructGPT models show improvements in truthfulness and reductions in toxic output generation while having minimal performance regressions on public NLP datasets. Even though InstructGPT still makes simple mistakes, our results show that fine-tuning with human feedback is a promising direction for aligning language models with human intent. Subjects: Computation and Language (cs.CL) ; Artificial Intelligence (cs.AI); Machine Learning (cs.LG) Cite as: arXiv:2203.02155 [cs.CL] (or arXiv:2203.02155v1 [cs.CL] for this version) https://doi.org/10.48550/arXiv.2203.02155 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Jan Leike [ view email ] [v1] Fri, 4 Mar 2022 07:04:42 UTC (1,047 KB) Full-text links: Access Paper: View a PDF of the paper titled Training language models to follow instructions with human feedback, by Long Ouyang and 19 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.CL <\u00a0prev | next\u00a0> new | recent | 2022-03 Change to browse by: cs cs.AI cs.LG References & Citations NASA ADS Google Scholar Semantic Scholar 13 blog links ( what is this? ) export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Arti"
+  },
+  {
+    "index": 78,
+    "key": "cui2025entropy",
+    "url": "https://arxiv.org/abs/2505.22617",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models"
+      ],
+      "citation_author": [
+        "Cui, Ganqu",
+        "Zhang, Yuchen",
+        "Chen, Jiacheng",
+        "Yuan, Lifan",
+        "Wang, Zhi",
+        "Zuo, Yuxin",
+        "Li, Haozhan",
+        "Fan, Yuchen",
+        "Chen, Huayu",
+        "Chen, Weize",
+        "Liu, Zhiyuan",
+        "Peng, Hao",
+        "Bai, Lei",
+        "Ouyang, Wanli",
+        "Cheng, Yu",
+        "Zhou, Bowen",
+        "Ding, Ning"
+      ],
+      "citation_date": [
+        "2025/05/28"
+      ],
+      "citation_online_date": [
+        "2025/05/28"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2505.22617"
+      ],
+      "citation_arxiv_id": [
+        "2505.22617"
+      ],
+      "citation_abstract": [
+        "This paper aims to overcome a major obstacle in scaling RL for reasoning with LLMs, namely the collapse of policy entropy. Such phenomenon is consistently observed across vast RL runs without entropy intervention, where the policy entropy dropped sharply at the early training stage, this diminished exploratory ability is always accompanied with the saturation of policy performance. In practice, we establish a transformation equation R=-a*e^H+b between entropy H and downstream performance R. This empirical law strongly indicates that, the policy performance is traded from policy entropy, thus bottlenecked by its exhaustion, and the ceiling is fully predictable H=0, R=-a+b. Our finding necessitates entropy management for continuous exploration toward scaling compute for RL. To this end, we investigate entropy dynamics both theoretically and empirically. Our derivation highlights that, the change in policy entropy is driven by the covariance between action probability and the change in logits, which is proportional to its advantage when using Policy Gradient-like algorithms. Empirical study shows that, the values of covariance term and entropy differences matched exactly, supporting the theoretical conclusion. Moreover, the covariance term stays mostly positive throughout training, further explaining why policy entropy would decrease monotonically. Through understanding the mechanism behind entropy dynamics, we motivate to control entropy by restricting the update of high-covariance tokens. Specifically, we propose two simple yet effective techniques, namely Clip-Cov and KL-Cov, which clip and apply KL penalty to tokens with high covariances respectively. Experiments show that these methods encourage exploration, thus helping policy escape entropy collapse and achieve better downstream performance."
+      ]
+    },
+    "header": "[2505.22617] The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2505.22617 (cs) [Submitted on 28 May 2025] Title: The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models Authors: Ganqu Cui , Yuchen Zhang , Jiacheng Chen , Lifan Yuan , Zhi Wang , Yuxin Zuo , Haozhan Li , Yuchen Fan , Huayu Chen , Weize Chen , Zhiyuan Liu , Hao Peng , Lei Bai , Wanli Ouyang , Yu Cheng , Bowen Zhou , Ning Ding View a PDF of the paper titled The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models, by Ganqu Cui and 15 other authors View PDF HTML (experimental) Abstract: This paper aims to overcome a major obstacle in scaling RL for reasoning with LLMs, namely the collapse of policy entropy. Such phenomenon is consistently observed across vast RL runs without entropy intervention, where the policy entropy dropped sharply at the early training stage, this diminished exploratory ability is always accompanied with the saturation of policy performance. In practice, we establish a transformation equation R=-a*e^H+b between entropy H and downstream performance R. This empirical law strongly indicates that, the policy performance is traded from policy entropy, thus bottlenecked by its exhaustion, and the ceiling is fully predictable H=0, R=-a+b. Our finding necessitates entropy management for continuous exploration toward scaling compute for RL. To this end, we investigate entropy dynamics both theoretically and empirically. Our derivation highlights that, the change in policy entropy is driven by the covariance between action probability and the change in logits, which is proportional to its advantage when using Policy Gradient-like algorithms. Empirical study shows that, the values of covariance term and entropy differences matched exactly, supporting the theoretical conclusion. Moreover, the covariance term stays mostly positive throughout training, further explaining why policy entropy would decrease monotonically. Through understanding the mechanism behind entropy dynamics, we motivate to control entropy by restricting the update of high-covariance tokens. Specifically, we propose two simple yet effective techniques, namely Clip-Cov and KL-Cov, which clip and apply KL penalty to tokens with high covariances respectively. Experiments show that these methods encourage exploration, thus helping policy escape entropy collapse and achieve better downstream performance. Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI); Computation and Language (cs.CL) Cite as: arXiv:2505.22617 [cs.LG] (or arXiv:2505.22617v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2505.22617 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Yuchen Zhang [ view email ] [v1] Wed, 28 May 2025 17:38:45 UTC (1,508 KB) Full-text links: Access Paper: View a PDF of the paper titled The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models, by Ganqu Cui and 15 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-05 Change to browse by: cs cs.AI cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliogra"
+  },
+  {
+    "index": 79,
+    "key": "zhu2025negative",
+    "url": "https://arxiv.org/abs/2506.01347",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning"
+      ],
+      "citation_author": [
+        "Zhu, Xinyu",
+        "Xia, Mengzhou",
+        "Wei, Zhepei",
+        "Chen, Wei-Lin",
+        "Chen, Danqi",
+        "Meng, Yu"
+      ],
+      "citation_date": [
+        "2025/06/02"
+      ],
+      "citation_online_date": [
+        "2025/10/25"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2506.01347"
+      ],
+      "citation_arxiv_id": [
+        "2506.01347"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning with verifiable rewards (RLVR) is a promising approach for training language models (LMs) on reasoning tasks that elicit emergent long chains of thought (CoTs). Unlike supervised learning, it updates the model using both correct and incorrect samples via policy gradients. To better understand its mechanism, we decompose the learning signal into reinforcing correct responses and penalizing incorrect ones, referred to as Positive and Negative Sample Reinforcement (PSR and NSR), respectively. We train Qwen2.5-Math-7B, Qwen3-4B and Llama-3.1-8B-Instruct on a mathematical reasoning dataset and uncover a surprising result: training with only negative samples -- without reinforcing correct responses -- can be highly effective: it consistently improves performance over the base model across the entire Pass@$k$ spectrum $k$ up to 256), often matching or surpassing PPO and GRPO. In contrast, reinforcing only correct responses improves Pass@1 but degrades performance at higher $k$, due to reduced diversity. These inference-scaling trends highlight that solely penalizing incorrect responses may contribute more to performance than previously recognized. Through gradient analysis, we show that NSR works by suppressing incorrect generations and redistributing probability mass toward other plausible candidates, guided by the model's prior beliefs. It refines the model's existing knowledge rather than introducing entirely new behaviors. Building on this insight, we propose a simple variant of the RL objective that upweights NSR, and show that it consistently improves overall Pass@$k$ performance on MATH, AIME 2025, and AMC23. Our code is available at https://github.com/TianHongZXY/RLVR-Decomposed."
+      ]
+    },
+    "header": "[2506.01347] The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Computation and Language arXiv:2506.01347 (cs) [Submitted on 2 Jun 2025 ( v1 ), last revised 25 Oct 2025 (this version, v2)] Title: The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning Authors: Xinyu Zhu , Mengzhou Xia , Zhepei Wei , Wei-Lin Chen , Danqi Chen , Yu Meng View a PDF of the paper titled The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning, by Xinyu Zhu and 5 other authors View PDF HTML (experimental) Abstract: Reinforcement learning with verifiable rewards (RLVR) is a promising approach for training language models (LMs) on reasoning tasks that elicit emergent long chains of thought (CoTs). Unlike supervised learning, it updates the model using both correct and incorrect samples via policy gradients. To better understand its mechanism, we decompose the learning signal into reinforcing correct responses and penalizing incorrect ones, referred to as Positive and Negative Sample Reinforcement (PSR and NSR), respectively. We train Qwen2.5-Math-7B, Qwen3-4B and Llama-3.1-8B-Instruct on a mathematical reasoning dataset and uncover a surprising result: training with only negative samples -- without reinforcing correct responses -- can be highly effective: it consistently improves performance over the base model across the entire Pass@$k$ spectrum $k$ up to 256), often matching or surpassing PPO and GRPO. In contrast, reinforcing only correct responses improves Pass@1 but degrades performance at higher $k$, due to reduced diversity. These inference-scaling trends highlight that solely penalizing incorrect responses may contribute more to performance than previously recognized. Through gradient analysis, we show that NSR works by suppressing incorrect generations and redistributing probability mass toward other plausible candidates, guided by the model's prior beliefs. It refines the model's existing knowledge rather than introducing entirely new behaviors. Building on this insight, we propose a simple variant of the RL objective that upweights NSR, and show that it consistently improves overall Pass@$k$ performance on MATH, AIME 2025, and AMC23. Our code is available at this https URL . Comments: Accepted to NeurIPS 2025 Subjects: Computation and Language (cs.CL) ; Machine Learning (cs.LG) Cite as: arXiv:2506.01347 [cs.CL] (or arXiv:2506.01347v2 [cs.CL] for this version) https://doi.org/10.48550/arXiv.2506.01347 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Xinyu Zhu [ view email ] [v1] Mon, 2 Jun 2025 06:10:54 UTC (1,478 KB) [v2] Sat, 25 Oct 2025 03:36:42 UTC (1,686 KB) Full-text links: Access Paper: View a PDF of the paper titled The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning, by Xinyu Zhu and 5 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.CL <\u00a0prev | next\u00a0> new | recent | 2025-06 Change to browse by: cs cs.LG References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litm"
+  },
+  {
+    "index": 80,
+    "key": "park2025cliplow",
+    "url": "https://arxiv.org/abs/2509.26114",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Clip-Low Increases Entropy and Clip-High Decreases Entropy in Reinforcement Learning of Large Language Models"
+      ],
+      "citation_author": [
+        "Park, Jaesung R.",
+        "Kim, Junsu",
+        "Kim, Gyeongman",
+        "Jo, Jinyoung",
+        "Choi, Sean",
+        "Cho, Jaewoong",
+        "Ryu, Ernest K."
+      ],
+      "citation_date": [
+        "2025/09/30"
+      ],
+      "citation_online_date": [
+        "2025/09/30"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2509.26114"
+      ],
+      "citation_arxiv_id": [
+        "2509.26114"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning with verifiable rewards (RLVR) has recently emerged as the leading approach for enhancing the reasoning capabilities of large language models (LLMs). However, RLVR is prone to entropy collapse, where the LLM quickly converges to a near-deterministic form, hindering exploration and progress during prolonged RL training. In this work, we reveal that the clipping mechanism in PPO and GRPO induces biases on entropy. Through theoretical and empirical analyses, we show that clip-low increases entropy, while clip-high decreases it. Further, under standard clipping parameters, the effect of clip-high dominates, resulting in an overall entropy reduction even when purely random rewards are provided to the RL algorithm. Our findings highlight an overlooked confounding factor in RLVR: independent of the reward signal, the clipping mechanism influences entropy, which in turn affects the reasoning behavior. Furthermore, our analysis demonstrates that clipping can be deliberately used to control entropy. Specifically, with a more aggressive clip-low value, one can increase entropy, promote exploration, and ultimately prevent entropy collapse in RLVR training."
+      ]
+    },
+    "header": "[2509.26114] Clip-Low Increases Entropy and Clip-High Decreases Entropy in Reinforcement Learning of Large Language Models Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2509.26114 (cs) [Submitted on 30 Sep 2025] Title: Clip-Low Increases Entropy and Clip-High Decreases Entropy in Reinforcement Learning of Large Language Models Authors: Jaesung R. Park , Junsu Kim , Gyeongman Kim , Jinyoung Jo , Sean Choi , Jaewoong Cho , Ernest K. Ryu View a PDF of the paper titled Clip-Low Increases Entropy and Clip-High Decreases Entropy in Reinforcement Learning of Large Language Models, by Jaesung R. Park and 5 other authors View PDF HTML (experimental) Abstract: Reinforcement learning with verifiable rewards (RLVR) has recently emerged as the leading approach for enhancing the reasoning capabilities of large language models (LLMs). However, RLVR is prone to entropy collapse, where the LLM quickly converges to a near-deterministic form, hindering exploration and progress during prolonged RL training. In this work, we reveal that the clipping mechanism in PPO and GRPO induces biases on entropy. Through theoretical and empirical analyses, we show that clip-low increases entropy, while clip-high decreases it. Further, under standard clipping parameters, the effect of clip-high dominates, resulting in an overall entropy reduction even when purely random rewards are provided to the RL algorithm. Our findings highlight an overlooked confounding factor in RLVR: independent of the reward signal, the clipping mechanism influences entropy, which in turn affects the reasoning behavior. Furthermore, our analysis demonstrates that clipping can be deliberately used to control entropy. Specifically, with a more aggressive clip-low value, one can increase entropy, promote exploration, and ultimately prevent entropy collapse in RLVR training. Subjects: Machine Learning (cs.LG) Cite as: arXiv:2509.26114 [cs.LG] (or arXiv:2509.26114v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2509.26114 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Jaesung Park [ view email ] [v1] Tue, 30 Sep 2025 11:33:15 UTC (4,942 KB) Full-text links: Access Paper: View a PDF of the paper titled Clip-Low Increases Entropy and Clip-High Decreases Entropy in Reinforcement Learning of Large Language Models, by Jaesung R. Park and 5 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-09 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Re"
+  },
+  {
+    "index": 81,
+    "key": "huang2025lowprob",
+    "url": "https://arxiv.org/abs/2510.03222",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward"
+      ],
+      "citation_author": [
+        "Huang, Guanhua",
+        "Xu, Tingqiang",
+        "Wang, Mingze",
+        "Yi, Qi",
+        "Gong, Xue",
+        "Li, Siheng",
+        "Xiong, Ruibin",
+        "Li, Kejiao",
+        "Jiang, Yuhao",
+        "Zhou, Bo"
+      ],
+      "citation_date": [
+        "2025/10/03"
+      ],
+      "citation_online_date": [
+        "2025/11/07"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2510.03222"
+      ],
+      "citation_arxiv_id": [
+        "2510.03222"
+      ],
+      "citation_abstract": [
+        "Reinforcement Learning with Verifiable Rewards (RLVR) has propelled Large Language Models in complex reasoning, yet its scalability is often hindered by a training bottleneck where performance plateaus as policy entropy collapses, signaling a loss of exploration. Previous methods typically address this by maintaining high policy entropy, yet the precise mechanisms that govern meaningful exploration have remained underexplored. Our analysis suggests that an unselective focus on entropy risks amplifying irrelevant tokens and destabilizing training. This paper investigates the exploration dynamics within RLVR and identifies a key issue: the gradual elimination of valuable low-probability exploratory tokens, which we term \\textbf{\\textit{reasoning sparks}}. We find that while abundant in pre-trained models, these sparks are systematically extinguished during RLVR due to over-penalization, leading to a degeneracy in exploration. To address this, we introduce Low-probability Regularization (Lp-Reg). Its core mechanism regularizes the policy towards a heuristic proxy distribution. This proxy is constructed by filtering out presumed noise tokens and re-normalizing the distribution over the remaining candidates. The result is a less-noisy proxy where the probability of \\textit{reasoning sparks} is amplified, which then serves as a soft regularization target to shield these valuable tokens from elimination via KL divergence. Experiments show that Lp-Reg enables stable on-policy RL, sustaining continuous scaling across $3,000$ training steps and $81,204$ GPU-hours, where baseline entropy-control methods collapse. This sustained exploration leads to state-of-the-art performance, achieving a $60.17\\%$ average accuracy on five math benchmarks, an improvement of $2.66\\%$ over prior methods. Code is available at https://github.com/CarlanLark/Lp-Reg."
+      ]
+    },
+    "header": "[2510.03222] Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2510.03222 (cs) [Submitted on 3 Oct 2025 ( v1 ), last revised 7 Nov 2025 (this version, v2)] Title: Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward Authors: Guanhua Huang , Tingqiang Xu , Mingze Wang , Qi Yi , Xue Gong , Siheng Li , Ruibin Xiong , Kejiao Li , Yuhao Jiang , Bo Zhou View a PDF of the paper titled Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward, by Guanhua Huang and 9 other authors View PDF HTML (experimental) Abstract: Reinforcement Learning with Verifiable Rewards (RLVR) has propelled Large Language Models in complex reasoning, yet its scalability is often hindered by a training bottleneck where performance plateaus as policy entropy collapses, signaling a loss of exploration. Previous methods typically address this by maintaining high policy entropy, yet the precise mechanisms that govern meaningful exploration have remained underexplored. Our analysis suggests that an unselective focus on entropy risks amplifying irrelevant tokens and destabilizing training. This paper investigates the exploration dynamics within RLVR and identifies a key issue: the gradual elimination of valuable low-probability exploratory tokens, which we term \\textbf{\\textit{reasoning sparks}}. We find that while abundant in pre-trained models, these sparks are systematically extinguished during RLVR due to over-penalization, leading to a degeneracy in exploration. To address this, we introduce Low-probability Regularization (Lp-Reg). Its core mechanism regularizes the policy towards a heuristic proxy distribution. This proxy is constructed by filtering out presumed noise tokens and re-normalizing the distribution over the remaining candidates. The result is a less-noisy proxy where the probability of \\textit{reasoning sparks} is amplified, which then serves as a soft regularization target to shield these valuable tokens from elimination via KL divergence. Experiments show that Lp-Reg enables stable on-policy RL, sustaining continuous scaling across $3,000$ training steps and $81,204$ GPU-hours, where baseline entropy-control methods collapse. This sustained exploration leads to state-of-the-art performance, achieving a $60.17\\%$ average accuracy on five math benchmarks, an improvement of $2.66\\%$ over prior methods. Code is available at this https URL . Subjects: Machine Learning (cs.LG) ; Computation and Language (cs.CL) Cite as: arXiv:2510.03222 [cs.LG] (or arXiv:2510.03222v2 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2510.03222 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Guanhua Huang [ view email ] [v1] Fri, 3 Oct 2025 17:56:13 UTC (5,048 KB) [v2] Fri, 7 Nov 2025 11:31:13 UTC (5,233 KB) Full-text links: Access Paper: View a PDF of the paper titled Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward, by Guanhua Huang and 9 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-10 Change to browse by: cs cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provi"
+  },
+  {
+    "index": 82,
+    "key": "deng2025negativegrad",
+    "url": "https://arxiv.org/abs/2505.18830",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization"
+      ],
+      "citation_author": [
+        "Deng, Wenlong",
+        "Ren, Yi",
+        "Li, Muchen",
+        "Sutherland, Danica J.",
+        "Li, Xiaoxiao",
+        "Thrampoulidis, Christos"
+      ],
+      "citation_date": [
+        "2025/05/24"
+      ],
+      "citation_online_date": [
+        "2025/05/24"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2505.18830"
+      ],
+      "citation_arxiv_id": [
+        "2505.18830"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning (RL) has become popular in enhancing the reasoning capabilities of large language models (LLMs), with Group Relative Policy Optimization (GRPO) emerging as a widely used algorithm in recent systems. Despite GRPO's widespread adoption, we identify a previously unrecognized phenomenon we term Lazy Likelihood Displacement (LLD), wherein the likelihood of correct responses marginally increases or even decreases during training. This behavior mirrors a recently discovered misalignment issue in Direct Preference Optimization (DPO), attributed to the influence of negative gradients. We provide a theoretical analysis of GRPO's learning dynamic, identifying the source of LLD as the naive penalization of all tokens in incorrect responses with the same strength. To address this, we develop a method called NTHR, which downweights penalties on tokens contributing to the LLD. Unlike prior DPO-based approaches, NTHR takes advantage of GRPO's group-based structure, using correct responses as anchors to identify influential tokens. Experiments on math reasoning benchmarks demonstrate that NTHR effectively mitigates LLD, yielding consistent performance gains across models ranging from 0.5B to 3B parameters."
+      ]
+    },
+    "header": "[2505.18830] On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2505.18830 (cs) [Submitted on 24 May 2025] Title: On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization Authors: Wenlong Deng , Yi Ren , Muchen Li , Danica J. Sutherland , Xiaoxiao Li , Christos Thrampoulidis View a PDF of the paper titled On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization, by Wenlong Deng and 5 other authors View PDF HTML (experimental) Abstract: Reinforcement learning (RL) has become popular in enhancing the reasoning capabilities of large language models (LLMs), with Group Relative Policy Optimization (GRPO) emerging as a widely used algorithm in recent systems. Despite GRPO's widespread adoption, we identify a previously unrecognized phenomenon we term Lazy Likelihood Displacement (LLD), wherein the likelihood of correct responses marginally increases or even decreases during training. This behavior mirrors a recently discovered misalignment issue in Direct Preference Optimization (DPO), attributed to the influence of negative gradients. We provide a theoretical analysis of GRPO's learning dynamic, identifying the source of LLD as the naive penalization of all tokens in incorrect responses with the same strength. To address this, we develop a method called NTHR, which downweights penalties on tokens contributing to the LLD. Unlike prior DPO-based approaches, NTHR takes advantage of GRPO's group-based structure, using correct responses as anchors to identify influential tokens. Experiments on math reasoning benchmarks demonstrate that NTHR effectively mitigates LLD, yielding consistent performance gains across models ranging from 0.5B to 3B parameters. Subjects: Machine Learning (cs.LG) ; Computation and Language (cs.CL) Cite as: arXiv:2505.18830 [cs.LG] (or arXiv:2505.18830v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2505.18830 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Wenlong Deng [ view email ] [v1] Sat, 24 May 2025 18:58:51 UTC (2,068 KB) Full-text links: Access Paper: View a PDF of the paper titled On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization, by Wenlong Deng and 5 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-05 Change to browse by: cs cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle Replicate"
+  },
+  {
+    "index": 83,
+    "key": "geng2023grammar",
+    "url": "https://aclanthology.org/2023.emnlp-main.674/",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning"
+      ],
+      "citation_author": [
+        "Saibo Geng",
+        "Martin Josifoski",
+        "Maxime Peyrard",
+        "Robert West"
+      ],
+      "citation_conference_title": [
+        "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing"
+      ],
+      "citation_publication_date": [
+        "2023/12"
+      ],
+      "citation_pdf_url": [
+        "https://aclanthology.org/2023.emnlp-main.674.pdf"
+      ],
+      "citation_firstpage": [
+        "10932"
+      ],
+      "citation_lastpage": [
+        "10952"
+      ],
+      "citation_doi": [
+        "10.18653/v1/2023.emnlp-main.674"
+      ]
+    },
+    "header": "Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning - ACL Anthology ACL Anthology About Announcements Communication channels Related work Copyright Credits Volunteer Development Feedback Using Author directory Citing papers Links in the Anthology Data access All FAQs Details Anthology identifiers Names ORCID iDs DOIs Verified authors Contributions Submissions Corrections Maintain author pages Attachments GitHub Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning Saibo Geng , Martin Josifoski , Maxime Peyrard , Robert West Correct Metadata for Use this form to create a GitHub issue with structured data describing the correction. You will need a GitHub account.\nOnce you create that issue, the correction will be reviewed by a staff member. \u26a0\ufe0f Mobile Users: Submitting this form to create a new issue will only work with github.com, not the GitHub Mobile app. Important : The Anthology treat PDFs as authoritative. Please use this form only to correct data\nthat is out of line with the PDF. See our corrections\nguidelines if you need to change the PDF. Title Adjust the title. Retain tags such as\n<fixed-case>. Authors Adjust author names and order to match the\nPDF. Add Author Abstract Correct abstract if needed. Retain XML formatting tags such as <tex-math>. You may use <b>...</b> for bold , <i>...</i> for italic , <u>...</u> for underline , <sc>...</sc> for small-caps , <tt>...<tt> for typewriter text , <url>...</url> for URLs, <a href=...> for hyperlinks, and <par/> for paragraph breaks. Verification against PDF Ensure that the new title/authors match the snapshot below. (If there\nis no snapshot or it is too small, consult the PDF .) Authors concatenated from the text boxes above: ALL author names match the snapshot above\u2014including\nmiddle initials, hyphens, and accents. Create GitHub issue for\u00a0staff review Abstract Despite their impressive performance, large language models (LMs) still struggle with reliably generating complex output structures when not finetuned to follow the required output format exactly. To address this issue, grammar-constrained decoding (GCD) can be used to control the generation of LMs, guaranteeing that the output follows a given structure. Most existing GCD methods are, however, limited to specific tasks, such as parsing or code generation. In this work, we demonstrate that formal grammars can describe the output space for a much wider range of tasks and argue that GCD can serve as a unified framework for structured NLP tasks in general. For increased flexibility, we introduce input-dependent grammars, which allow the grammar to depend on the input and thus enable the generation of different output structures for different inputs. We then empirically demonstrate the power and flexibility of GCD-enhanced LMs on (1) information extraction, (2) entity disambiguation, and (3) constituency parsing. Our results indicate that grammar-constrained LMs substantially outperform unconstrained LMs or even beat task-specific finetuned models. Grammar constraints thus hold great promise for harnessing off-the-shelf LMs for a wide range of structured NLP tasks, especially where training data is scarce or finetuning is expensive. Code and data: https://github.com/epfl-dlab/GCD . Anthology ID: 2023.emnlp-main.674 Volume: Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing Month: December Year: 2023 Address: Singapore Editors: Houda Bouamor , Juan Pino , Kalika B"
+  },
+  {
+    "index": 84,
+    "key": "yue2025rlvrlimit",
+    "url": "https://arxiv.org/abs/2504.13837",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?"
+      ],
+      "citation_author": [
+        "Yue, Yang",
+        "Chen, Zhiqi",
+        "Lu, Rui",
+        "Zhao, Andrew",
+        "Wang, Zhaokai",
+        "Yue, Yang",
+        "Song, Shiji",
+        "Huang, Gao"
+      ],
+      "citation_date": [
+        "2025/04/18"
+      ],
+      "citation_online_date": [
+        "2025/11/24"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2504.13837"
+      ],
+      "citation_arxiv_id": [
+        "2504.13837"
+      ],
+      "citation_abstract": [
+        "Reinforcement Learning with Verifiable Rewards (RLVR) has recently demonstrated notable success in enhancing the reasoning performance of large language models (LLMs), particularly on mathematics and programming tasks. Similar to how traditional RL helps agents explore and learn new strategies, RLVR is believed to enable LLMs to continuously self-improve, thus acquiring novel reasoning abilities beyond those of the corresponding base models. In this study we critically examine the current state of RLVR by systematically probing the reasoning capability boundaries of RLVR-trained LLMs across various model families, RL algorithms, and math, coding, and visual reasoning benchmarks, using pass@k at large k values as the evaluation metric. Surprisingly, we find that the current training setup does not elicit fundamentally new reasoning patterns. While RLVR-trained models outperform their base models at small k (e.g., k = 1), the base models achieve a higher pass@k score when k is large. Coverage and perplexity analyses show that the observed reasoning abilities originate from and are bounded by the base model. Treating the base model as an upper bound, our quantitative analysis shows that six popular RLVR algorithms perform similarly and remain far from optimal in leveraging the potential of the base model. By contrast, we find that distillation can introduce new reasoning patterns from the teacher and genuinely expand the model's reasoning capabilities. Overall, our findings suggest that current RLVR methods have not yet realized the potential of RL to elicit truly novel reasoning abilities in LLMs. This highlights the need for improved RL paradigms, such as continual scaling and multi-turn agent-environment interaction, to unlock this potential."
+      ]
+    },
+    "header": "[2504.13837] Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model? Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Artificial Intelligence arXiv:2504.13837 (cs) [Submitted on 18 Apr 2025 ( v1 ), last revised 24 Nov 2025 (this version, v5)] Title: Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model? Authors: Yang Yue , Zhiqi Chen , Rui Lu , Andrew Zhao , Zhaokai Wang , Yang Yue , Shiji Song , Gao Huang View a PDF of the paper titled Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?, by Yang Yue and 7 other authors View PDF HTML (experimental) Abstract: Reinforcement Learning with Verifiable Rewards (RLVR) has recently demonstrated notable success in enhancing the reasoning performance of large language models (LLMs), particularly on mathematics and programming tasks. Similar to how traditional RL helps agents explore and learn new strategies, RLVR is believed to enable LLMs to continuously self-improve, thus acquiring novel reasoning abilities beyond those of the corresponding base models. In this study we critically examine the current state of RLVR by systematically probing the reasoning capability boundaries of RLVR-trained LLMs across various model families, RL algorithms, and math, coding, and visual reasoning benchmarks, using pass@k at large k values as the evaluation metric. Surprisingly, we find that the current training setup does not elicit fundamentally new reasoning patterns. While RLVR-trained models outperform their base models at small k (e.g., k = 1), the base models achieve a higher pass@k score when k is large. Coverage and perplexity analyses show that the observed reasoning abilities originate from and are bounded by the base model. Treating the base model as an upper bound, our quantitative analysis shows that six popular RLVR algorithms perform similarly and remain far from optimal in leveraging the potential of the base model. By contrast, we find that distillation can introduce new reasoning patterns from the teacher and genuinely expand the model's reasoning capabilities. Overall, our findings suggest that current RLVR methods have not yet realized the potential of RL to elicit truly novel reasoning abilities in LLMs. This highlights the need for improved RL paradigms, such as continual scaling and multi-turn agent-environment interaction, to unlock this potential. Comments: 31 pages, 27 figures Subjects: Artificial Intelligence (cs.AI) ; Computation and Language (cs.CL); Computer Vision and Pattern Recognition (cs.CV) Cite as: arXiv:2504.13837 [cs.AI] (or arXiv:2504.13837v5 [cs.AI] for this version) https://doi.org/10.48550/arXiv.2504.13837 Focus to learn more arXiv-issued DOI via DataCite Journal\u00a0reference: NeurIPS 2025 Oral; ICML 2025 AI4MATH workshop best paper Submission history From: Yang Yue [ view email ] [v1] Fri, 18 Apr 2025 17:59:56 UTC (1,566 KB) [v2] Fri, 16 May 2025 15:39:33 UTC (1,813 KB) [v3] Mon, 13 Oct 2025 15:37:46 UTC (1,172 KB) [v4] Thu, 23 Oct 2025 15:11:15 UTC (1,264 KB) [v5] Mon, 24 Nov 2025 06:11:04 UTC (1,177 KB) Full-text links: Access Paper: View a PDF of the paper titled Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?, by Yang Yue and 7 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.AI "
+  },
+  {
+    "index": 85,
+    "key": "kirk2024understanding",
+    "url": "https://openreview.net/forum?id=PXD3FAVHJT",
+    "http": 200,
+    "meta": {},
+    "header": "Verifying your browser | OpenReview OpenReview .net Verifying your browser Complete the check below to continue to OpenReview Please complete the verification above. Have an OpenReview account? Sign in to skip this check. OpenReview \u2014 Open Peer Review. Open Publishing. Open Access."
+  },
+  {
+    "index": 86,
+    "key": "hu2024amortizing",
+    "url": "https://arxiv.org/abs/2310.04363",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Amortizing intractable inference in large language models"
+      ],
+      "citation_author": [
+        "Hu, Edward J.",
+        "Jain, Moksh",
+        "Elmoznino, Eric",
+        "Kaddar, Younesse",
+        "Lajoie, Guillaume",
+        "Bengio, Yoshua",
+        "Whitammer, Esmeralda S."
+      ],
+      "citation_date": [
+        "2023/10/06"
+      ],
+      "citation_online_date": [
+        "2026/08/31"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2310.04363"
+      ],
+      "citation_arxiv_id": [
+        "2310.04363"
+      ],
+      "citation_abstract": [
+        "Autoregressive large language models (LLMs) compress knowledge from their training data through next-token conditional distributions. This limits tractable querying of this knowledge to start-to-end autoregressive sampling. However, many tasks of interest -- including sequence continuation, infilling, and other forms of constrained generation -- involve sampling from intractable posterior distributions. We address this limitation by using amortized Bayesian inference to sample from these intractable posteriors. Such amortization is algorithmically achieved by fine-tuning LLMs via diversity-seeking reinforcement learning algorithms: generative flow networks (GFlowNets). We empirically demonstrate that this distribution-matching paradigm of LLM fine-tuning can serve as an effective alternative to maximum-likelihood training and reward-maximizing policy optimization. As an important application, we interpret chain-of-thought reasoning as a latent variable modeling problem and demonstrate that our approach enables data-efficient adaptation of LLMs to tasks that require multi-step rationalization and tool use."
+      ]
+    },
+    "header": "[2310.04363] Amortizing intractable inference in large language models Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2310.04363 (cs) [Submitted on 6 Oct 2023 ( v1 ), last revised 31 Aug 2026 (this version, v3)] Title: Amortizing intractable inference in large language models Authors: Edward J. Hu , Moksh Jain , Eric Elmoznino , Younesse Kaddar , Guillaume Lajoie , Yoshua Bengio , Esmeralda S. Whitammer View a PDF of the paper titled Amortizing intractable inference in large language models, by Edward J. Hu and 6 other authors View PDF HTML (experimental) Abstract: Autoregressive large language models (LLMs) compress knowledge from their training data through next-token conditional distributions. This limits tractable querying of this knowledge to start-to-end autoregressive sampling. However, many tasks of interest -- including sequence continuation, infilling, and other forms of constrained generation -- involve sampling from intractable posterior distributions. We address this limitation by using amortized Bayesian inference to sample from these intractable posteriors. Such amortization is algorithmically achieved by fine-tuning LLMs via diversity-seeking reinforcement learning algorithms: generative flow networks (GFlowNets). We empirically demonstrate that this distribution-matching paradigm of LLM fine-tuning can serve as an effective alternative to maximum-likelihood training and reward-maximizing policy optimization. As an important application, we interpret chain-of-thought reasoning as a latent variable modeling problem and demonstrate that our approach enables data-efficient adaptation of LLMs to tasks that require multi-step rationalization and tool use. Comments: ICLR 2024; 23 pages; code: this https URL Subjects: Machine Learning (cs.LG) ; Computation and Language (cs.CL) Cite as: arXiv:2310.04363 [cs.LG] (or arXiv:2310.04363v3 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2310.04363 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Esmeralda Whitammer [ view email ] [v1] Fri, 6 Oct 2023 16:36:08 UTC (7,996 KB) [v2] Wed, 13 Mar 2024 22:48:14 UTC (8,003 KB) [v3] Mon, 31 Aug 2026 10:54:48 UTC (7,993 KB) Full-text links: Access Paper: View a PDF of the paper titled Amortizing intractable inference in large language models, by Edward J. Hu and 6 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2023-10 Change to browse by: cs cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle "
+  },
+  {
+    "index": 87,
+    "key": "bengio2023gflownet",
+    "url": "https://jmlr.org/papers/v24/22-0364.html",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "GFlowNet Foundations"
+      ],
+      "citation_author": [
+        "Yoshua Bengio",
+        "Salem Lahlou",
+        "Tristan Deleu",
+        "Edward J. Hu",
+        "Mo Tiwari",
+        "Emmanuel Bengio"
+      ],
+      "citation_journal_title": [
+        "Journal of Machine Learning Research"
+      ],
+      "citation_volume": [
+        "24"
+      ],
+      "citation_issue": [
+        "210"
+      ],
+      "citation_firstpage": [
+        "1"
+      ],
+      "citation_lastpage": [
+        "55"
+      ],
+      "citation_pdf_url": [
+        "http://jmlr.org/papers/volume24/22-0364/22-0364.pdf"
+      ],
+      "citation_publication_date": [
+        "2023"
+      ],
+      "citation_public_url": [
+        "http://jmlr.org/papers/v24/22-0364.html"
+      ],
+      "citation_abstract_html_url": [
+        "http://jmlr.org/papers/v24/22-0364.html"
+      ],
+      "citation_issn": [
+        "1533-7928"
+      ]
+    },
+    "header": "GFlowNet Foundations Home Page Papers Submissions News Editorial Board Special Issues Open Source Software Proceedings (PMLR) Data (DMLR) Transactions (TMLR) Search Statistics Login Frequently Asked Questions Contact Us GFlowNet Foundations Yoshua Bengio, Salem Lahlou, Tristan Deleu, Edward J. Hu, Mo Tiwari, Emmanuel Bengio ; 24(210):1\u221255, 2023. Abstract Generative Flow Networks (GFlowNets) have been introduced as a method to sample a diverse set of candidates in an active learning context, with a training objective that makes them approximately sample in proportion to a given reward function. In this paper, we show a number of additional theoretical properties of GFlowNets, including a new local and efficient training objective called detailed balance for the analogy with MCMC. GFlowNets can be used to estimate joint probability distributions and the corresponding marginal distributions where some variables are unspecified and, of particular interest, can represent distributions over composite objects like sets and graphs. GFlowNets amortize the work typically done by computationally expensive MCMC methods in a single but trained generative pass. They could also be used to estimate partition functions and free energies, conditional probabilities of supersets (supergraphs) given a subset (subgraph), as well as marginal distributions over all supersets (supergraphs) of a given set (graph). We introduce variations enabling the estimation of entropy and mutual information, continuous actions and modular energy functions. [abs] [ pdf ][ bib ] \u00a9 JMLR 2023. \n( edit , beta ) Mastodon"
+  },
+  {
+    "index": 88,
+    "key": "zhu2025flowrl",
+    "url": "https://arxiv.org/abs/2509.15207",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "FlowRL: Matching Reward Distributions for LLM Reasoning"
+      ],
+      "citation_author": [
+        "Zhu, Xuekai",
+        "Cheng, Daixuan",
+        "Zhang, Dinghuai",
+        "Li, Hengli",
+        "Zhang, Kaiyan",
+        "Jiang, Che",
+        "Sun, Youbang",
+        "Hua, Ermo",
+        "Zuo, Yuxin",
+        "Lv, Xingtai",
+        "Zhang, Qizheng",
+        "Chen, Lin",
+        "Shao, Fanghao",
+        "Xue, Bo",
+        "Song, Yunchong",
+        "Yang, Zhenjie",
+        "Cui, Ganqu",
+        "Ding, Ning",
+        "Gao, Jianfeng",
+        "Liu, Xiaodong",
+        "Zhou, Bowen",
+        "Mei, Hongyuan",
+        "Lin, Zhouhan"
+      ],
+      "citation_date": [
+        "2025/09/18"
+      ],
+      "citation_online_date": [
+        "2025/11/04"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2509.15207"
+      ],
+      "citation_arxiv_id": [
+        "2509.15207"
+      ],
+      "citation_abstract": [
+        "We propose FlowRL: matching the full reward distribution via flow balancing instead of maximizing rewards in large language model (LLM) reinforcement learning (RL). Recent advanced reasoning models adopt reward-maximizing methods (\\eg, PPO and GRPO), which tend to over-optimize dominant reward signals while neglecting less frequent but valid reasoning paths, thus reducing diversity. In contrast, we transform scalar rewards into a normalized target distribution using a learnable partition function, and then minimize the reverse KL divergence between the policy and the target distribution. We implement this idea as a flow-balanced optimization method that promotes diverse exploration and generalizable reasoning trajectories. We conduct experiments on math and code reasoning tasks: FlowRL achieves a significant average improvement of $10.0\\%$ over GRPO and $5.1\\%$ over PPO on math benchmarks, and performs consistently better on code reasoning tasks. These results highlight reward distribution-matching as a key step toward efficient exploration and diverse reasoning in LLM reinforcement learning."
+      ]
+    },
+    "header": "[2509.15207] FlowRL: Matching Reward Distributions for LLM Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2509.15207 (cs) [Submitted on 18 Sep 2025 ( v1 ), last revised 4 Nov 2025 (this version, v3)] Title: FlowRL: Matching Reward Distributions for LLM Reasoning Authors: Xuekai Zhu , Daixuan Cheng , Dinghuai Zhang , Hengli Li , Kaiyan Zhang , Che Jiang , Youbang Sun , Ermo Hua , Yuxin Zuo , Xingtai Lv , Qizheng Zhang , Lin Chen , Fanghao Shao , Bo Xue , Yunchong Song , Zhenjie Yang , Ganqu Cui , Ning Ding , Jianfeng Gao , Xiaodong Liu , Bowen Zhou , Hongyuan Mei , Zhouhan Lin View a PDF of the paper titled FlowRL: Matching Reward Distributions for LLM Reasoning, by Xuekai Zhu and 22 other authors View PDF HTML (experimental) Abstract: We propose FlowRL: matching the full reward distribution via flow balancing instead of maximizing rewards in large language model (LLM) reinforcement learning (RL). Recent advanced reasoning models adopt reward-maximizing methods (\\eg, PPO and GRPO), which tend to over-optimize dominant reward signals while neglecting less frequent but valid reasoning paths, thus reducing diversity. In contrast, we transform scalar rewards into a normalized target distribution using a learnable partition function, and then minimize the reverse KL divergence between the policy and the target distribution. We implement this idea as a flow-balanced optimization method that promotes diverse exploration and generalizable reasoning trajectories. We conduct experiments on math and code reasoning tasks: FlowRL achieves a significant average improvement of $10.0\\%$ over GRPO and $5.1\\%$ over PPO on math benchmarks, and performs consistently better on code reasoning tasks. These results highlight reward distribution-matching as a key step toward efficient exploration and diverse reasoning in LLM reinforcement learning. Subjects: Machine Learning (cs.LG) ; Artificial Intelligence (cs.AI); Computation and Language (cs.CL) Cite as: arXiv:2509.15207 [cs.LG] (or arXiv:2509.15207v3 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2509.15207 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Xuekai Zhu [ view email ] [v1] Thu, 18 Sep 2025 17:56:36 UTC (377 KB) [v2] Tue, 30 Sep 2025 07:25:00 UTC (381 KB) [v3] Tue, 4 Nov 2025 08:52:02 UTC (381 KB) Full-text links: Access Paper: View a PDF of the paper titled FlowRL: Matching Reward Distributions for LLM Reasoning, by Xuekai Zhu and 22 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2025-09 Change to browse by: cs cs.AI cs.CL References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Hug"
+  },
+  {
+    "index": 91,
+    "key": "lochab2026ucpo",
+    "url": "https://arxiv.org/abs/2605.00365",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity"
+      ],
+      "citation_author": [
+        "Lochab, Anamika",
+        "Li, Bolian",
+        "Zhang, Ruqi"
+      ],
+      "citation_date": [
+        "2026/05/01"
+      ],
+      "citation_online_date": [
+        "2026/05/01"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2605.00365"
+      ],
+      "citation_arxiv_id": [
+        "2605.00365"
+      ],
+      "citation_abstract": [
+        "Reinforcement Learning with Verifiable Rewards (RLVR) has achieved substantial gains in single-attempt accuracy (Pass@1) on reasoning tasks, yet often suffers from reduced multi-sample coverage (Pass@K), indicating diversity collapse. We identify a structural cause for this degradation: common RLVR objectives, such as GRPO, are indifferent to how probability mass is distributed among correct solutions. Combined with stochastic training dynamics, this indifference induces a self-reinforcing collapse, in which probability mass concentrates on a narrow subset of correct outputs while alternative valid solutions are suppressed. We formalize this collapse mechanism and further characterize the optimal policy structure under two complementary criteria: robustness and entropy-regularized optimality, which identify the Uniform-Correct Policy as uniquely optimal. Motivated by this analysis, we propose Uniform-Correct Policy Optimization (UCPO), a modification to GRPO that adds a conditional uniformity penalty on the policy's distribution over correct solutions. The penalty redistributes gradient signal toward underrepresented correct responses, encouraging uniform allocation of probability mass within the correct set. Across three models (1.5B-7B parameters) and five mathematical reasoning benchmarks, UCPO improves Pass@K and diversity while maintaining competitive Pass@1, achieving up to +10\\% absolute improvement on AIME24 at Pass@64 and up to 45\\% higher equation-level diversity within the correct set. The code is available at https://github.com/AnamikaLochab/UCPO."
+      ]
+    },
+    "header": "[2605.00365] Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Machine Learning arXiv:2605.00365 (cs) [Submitted on 1 May 2026] Title: Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity Authors: Anamika Lochab , Bolian Li , Ruqi Zhang View a PDF of the paper titled Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity, by Anamika Lochab and 2 other authors View PDF HTML (experimental) Abstract: Reinforcement Learning with Verifiable Rewards (RLVR) has achieved substantial gains in single-attempt accuracy (Pass@1) on reasoning tasks, yet often suffers from reduced multi-sample coverage (Pass@K), indicating diversity collapse. We identify a structural cause for this degradation: common RLVR objectives, such as GRPO, are indifferent to how probability mass is distributed among correct solutions. Combined with stochastic training dynamics, this indifference induces a self-reinforcing collapse, in which probability mass concentrates on a narrow subset of correct outputs while alternative valid solutions are suppressed. We formalize this collapse mechanism and further characterize the optimal policy structure under two complementary criteria: robustness and entropy-regularized optimality, which identify the Uniform-Correct Policy as uniquely optimal. Motivated by this analysis, we propose Uniform-Correct Policy Optimization (UCPO), a modification to GRPO that adds a conditional uniformity penalty on the policy's distribution over correct solutions. The penalty redistributes gradient signal toward underrepresented correct responses, encouraging uniform allocation of probability mass within the correct set. Across three models (1.5B-7B parameters) and five mathematical reasoning benchmarks, UCPO improves Pass@K and diversity while maintaining competitive Pass@1, achieving up to +10\\% absolute improvement on AIME24 at Pass@64 and up to 45\\% higher equation-level diversity within the correct set. The code is available at this https URL . Subjects: Machine Learning (cs.LG) ; Computation and Language (cs.CL); Machine Learning (stat.ML) Cite as: arXiv:2605.00365 [cs.LG] (or arXiv:2605.00365v1 [cs.LG] for this version) https://doi.org/10.48550/arXiv.2605.00365 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Anamika Lochab [ view email ] [v1] Fri, 1 May 2026 03:02:44 UTC (2,251 KB) Full-text links: Access Paper: View a PDF of the paper titled Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity, by Anamika Lochab and 2 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.LG <\u00a0prev | next\u00a0> new | recent | 2026-05 Change to browse by: cs cs.CL stat stat.ML References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle Ca"
+  },
+  {
+    "index": 92,
+    "key": "zhang2025rlep",
+    "url": "https://arxiv.org/abs/2507.07451",
+    "http": 200,
+    "meta": {
+      "citation_title": [
+        "RLEP: Reinforcement Learning with Experience Replay for LLM Reasoning"
+      ],
+      "citation_author": [
+        "Zhang, Hongzhi",
+        "Fu, Jia",
+        "Zhang, Jingyuan",
+        "Fu, Kai",
+        "Wang, Qi",
+        "Zhang, Fuzheng",
+        "Zhou, Guorui"
+      ],
+      "citation_date": [
+        "2025/07/10"
+      ],
+      "citation_online_date": [
+        "2025/07/10"
+      ],
+      "citation_pdf_url": [
+        "https://arxiv.org/pdf/2507.07451"
+      ],
+      "citation_arxiv_id": [
+        "2507.07451"
+      ],
+      "citation_abstract": [
+        "Reinforcement learning (RL) for large language models is an energy-intensive endeavor: training can be unstable, and the policy may gradually drift away from its pretrained weights. We present \\emph{RLEP}\\, -- \\,Reinforcement Learning with Experience rePlay\\, -- \\,a two-phase framework that first collects verified trajectories and then replays them during subsequent training. At every update step, the policy is optimized on mini-batches that blend newly generated rollouts with these replayed successes. By replaying high-quality examples, RLEP steers the model away from fruitless exploration, focuses learning on promising reasoning paths, and delivers both faster convergence and stronger final performance. On the Qwen2.5-Math-7B base model, RLEP reaches baseline peak accuracy with substantially fewer updates and ultimately surpasses it, improving accuracy on AIME-2024 from 38.2% to 39.9%, on AIME-2025 from 19.8% to 22.3%, and on AMC-2023 from 77.0% to 82.2%. Our code, datasets, and checkpoints are publicly available at https://github.com/Kwai-Klear/RLEP to facilitate reproducibility and further research."
+      ]
+    },
+    "header": "[2507.07451] RLEP: Reinforcement Learning with Experience Replay for LLM Reasoning Skip to main content Search Submit Donate Log in Search arXiv Press Enter to search \u00b7 Advanced search Computer Science > Computation and Language arXiv:2507.07451 (cs) [Submitted on 10 Jul 2025] Title: RLEP: Reinforcement Learning with Experience Replay for LLM Reasoning Authors: Hongzhi Zhang , Jia Fu , Jingyuan Zhang , Kai Fu , Qi Wang , Fuzheng Zhang , Guorui Zhou View a PDF of the paper titled RLEP: Reinforcement Learning with Experience Replay for LLM Reasoning, by Hongzhi Zhang and 6 other authors View PDF HTML (experimental) Abstract: Reinforcement learning (RL) for large language models is an energy-intensive endeavor: training can be unstable, and the policy may gradually drift away from its pretrained weights. We present \\emph{RLEP}\\, -- \\,Reinforcement Learning with Experience rePlay\\, -- \\,a two-phase framework that first collects verified trajectories and then replays them during subsequent training. At every update step, the policy is optimized on mini-batches that blend newly generated rollouts with these replayed successes. By replaying high-quality examples, RLEP steers the model away from fruitless exploration, focuses learning on promising reasoning paths, and delivers both faster convergence and stronger final performance. On the Qwen2.5-Math-7B base model, RLEP reaches baseline peak accuracy with substantially fewer updates and ultimately surpasses it, improving accuracy on AIME-2024 from 38.2% to 39.9%, on AIME-2025 from 19.8% to 22.3%, and on AMC-2023 from 77.0% to 82.2%. Our code, datasets, and checkpoints are publicly available at this https URL to facilitate reproducibility and further research. Comments: this https URL Subjects: Computation and Language (cs.CL) Cite as: arXiv:2507.07451 [cs.CL] (or arXiv:2507.07451v1 [cs.CL] for this version) https://doi.org/10.48550/arXiv.2507.07451 Focus to learn more arXiv-issued DOI via DataCite Submission history From: Hongzhi Zhang [ view email ] [v1] Thu, 10 Jul 2025 05:58:55 UTC (3,163 KB) Full-text links: Access Paper: View a PDF of the paper titled RLEP: Reinforcement Learning with Experience Replay for LLM Reasoning, by Hongzhi Zhang and 6 other authors View PDF HTML (experimental) TeX Source view license Current browse context: cs.CL <\u00a0prev | next\u00a0> new | recent | 2025-07 Change to browse by: cs References & Citations NASA ADS Google Scholar Semantic Scholar export BibTeX citation Loading... BibTeX formatted citation \u00d7 loading... Data provided by: Bookmark Bibliographic Tools Bibliographic and Citation Tools Bibliographic Explorer Toggle Bibliographic Explorer ( What is the Explorer? ) Connected Papers Toggle Connected Papers ( What is Connected Papers? ) Litmaps Toggle Litmaps ( What is Litmaps? ) scite.ai Toggle scite Smart Citations ( What are Smart Citations? ) Code, Data, Media Code, Data and Media Associated with this Article alphaXiv Toggle alphaXiv ( What is alphaXiv? ) Links to Code Toggle CatalyzeX Code Finder for Papers ( What is CatalyzeX? ) DagsHub Toggle DagsHub ( What is DagsHub? ) GotitPub Toggle Gotit.pub ( What is GotitPub? ) Huggingface Toggle Hugging Face ( What is Huggingface? ) ScienceCast Toggle ScienceCast ( What is ScienceCast? ) Demos Demos Replicate Toggle Replicate ( What is Replicate? ) Spaces Toggle Hugging Face Spaces ( What is Spaces? ) Spaces Toggle TXYZ.AI ( What is TXYZ.AI? ) Related Papers Recommenders and Search Tools Link to Influence Flower Infl"
+  }
+]

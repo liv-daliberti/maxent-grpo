@@ -1,0 +1,1573 @@
+{
+  "source": "paper/main.tex",
+  "source_sha256": "f9924ffab8db6c4492a78505828211c5353b1ae035d591ea19c26a40dbf20eed",
+  "snapshot_date": "2026-09-11",
+  "template_url": "https://mathai-2026.github.io/files/mathai_neurips2026_template.zip",
+  "style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+  "copied_files": {
+    "example_paper.bib": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+    "figures/baseline_collapse_precheck.pdf": "e776295304f6f763e0aed39e554525710311c7a2c8a1046ec34dea1f32f95751",
+    "figures/direct_baseline_learning_curves_static_strip.pdf": "d334564c235f8dde945ea0f8513259a415ba8b64e5f60e9ee306cf8b910085e8",
+    "figures/direct_comparator_endpoint_effects.pdf": "3c2a3f23236e1eb52057b2210089e21c1e620b432c5c8a50588dde71ccabeaa7",
+    "figures/e118_all_scale_factorial_progress.pdf": "4595e5b7e69fbd15f41e0c1e8718387c9afb18305c3ad323c7048bd03f98630f",
+    "figures/e118_scale_extensions_appendix.pdf": "76386cc2b480e52faac19e2352daefa3e584fc98344b1912f547cec9579c0bdf",
+    "figures/experiment1_retention_comparator_matrix.pdf": "e9befbbc6a3853755927c455997941172fc3c2232fffe03b3a9a677df8891356",
+    "figures/modebench_examples.pdf": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+    "figures/modebench_level_admission.pdf": "9578fb3d1d9cb1cda17a6674d0faee70803651bea863c083b5f410a040c5149a",
+    "figures/modecollapse_story.pdf": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+    "figures/replay_mechanism_telemetry_qwen05b.pdf": "138071a257d266493c650363d1751d3e96af61ffb03af1561c153d4b70c636dc",
+    "figures/sustained_auc_effects_qwen05b.pdf": "a227d6ab5c2a00d09abd81ffa2e6a0612611b2496921a8dcb58016847b40104c",
+    "figures/verified_support_discovery_two_scale_effects.pdf": "0225de0d0f9de185cec423448f7e2d6342e4b44c72a445e3514799d69f48d3a4",
+    "figures/verified_support_story.pdf": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+    "results/absolute_support_references_table_body.tex": "c42b4c64d6d2c743bd99a2e87eddc8a280ce4760420b72a660f09e04dd518f31",
+    "results/baseline_collapse_precheck_table_body.tex": "1e5b8fce5f904a2bb50082e2fa86e5239af40f2f256674e854324c9fe1b693a9",
+    "results/core_terminal_endpoints_table_body.tex": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189",
+    "results/e120_frequency_progress_table_body.tex": "d353706bda93667ceeac8749cee16ced53a4f182e3d7e425c57749acc93679bd",
+    "figures/baseline_collapse_precheck.json": "3a6d185553a3846215d6d54c7956417df44f67780937b7ad2fd8fbdf6e17398c",
+    "figures/direct_baseline_learning_curves_static_strip.json": "09083df892a0ac58efe45f84e75e1ab3f43d11358e5a68f5da542889008b314b",
+    "figures/direct_comparator_endpoint_effects.json": "53cb67af8003499dda81e478e14349aacf51b8150c85ff50dcbf142c2b293957",
+    "figures/e118_all_scale_factorial_progress.json": "5701e01955091b0ba32e22eef50e6f48a50f9119c46b397fc0bcd0b610a43f2a",
+    "figures/e118_scale_extensions_appendix.json": "5701e01955091b0ba32e22eef50e6f48a50f9119c46b397fc0bcd0b610a43f2a",
+    "figures/experiment1_retention_comparator_matrix.json": "73526b2451d28d94cde028bc3896c5539163f7c009007e6085976fa4f5e72416",
+    "figures/modebench_level_admission.json": "4f7e2b5f1431b119192209b9dfdc522736038c201d389f0f78deb067306763ca",
+    "figures/replay_mechanism_telemetry_qwen05b.json": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+    "figures/sustained_auc_effects_qwen05b.json": "937bea939e93ab33731322c0ca752a62d14e90d8b061d69424f66e0810031cf7",
+    "figures/verified_support_discovery_two_scale_effects.json": "595bebe294aa8f528adb024c9f05f9fe64716aada4055e0fc9f9538c6165fd2c",
+    "results/e118_qwen3b_python_terminal_table_body.tex": "ee75d8db4f82dfe186c41572040ea0f1fde9aa334ef58414d951be19280302cc",
+    "results/e120_primary_breadth.json": "d93033c5aea99bfe066181187a49f3d6bc00f8fadbea681ce26bdc36e6a40e19",
+    "results/e120_primary_breadth_table_body.tex": "e60e9df5ca6bc24ee9b2e42f8eca5664ed6e114d2fca36f86faa4f50af3ad589",
+    "results/e120_primary_breadth_seeds_table_body.tex": "5456f09ac2513402736088191c41751a1083e9ab6dcc11ff43343519513c2f15",
+    "results/e120_frequency_progress.json": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab",
+    "results/modebench_level_comparison_snapshot.json": "9ee8bc6a06f5adebdf4bc239658970ec3301bcb21588b7f6fdf8d75a63af49ca",
+    "results/e120_falcon_graph_20260906_table_body.tex": "367ce21b638d06d51358103b0221d0b8b1b852eb6f0cac049d48494b32e9b045",
+    "results/e120_falcon_graph_20260906_seeds_table_body.tex": "75a7d17b21705887a837ebcff4644b3dab7df83a1f3eaa7ad638d4d35b6fb028",
+    "results/e120_falcon_graph_20260906.json": "37f9d69d32047379773c60d7bd90a3bf167af34161a4bd9d066d0f2f6629d2e2",
+    "results/latest_results_20260906_table_body.tex": "3a19d5867aef76245a5a1a35c015e0eaf2596b8cdc954e629f9f4faa86f6688f",
+    "results/latest_results_20260906.json": "199a6ec5b820421939d4106d42f6b9af70377db265c6e52ddf3f97099d843adc",
+    "figures/e118_all_scale_factorial_progress.png": "e2a3789242f9823b4416ff3dca05b7f21fed836cbb06dbd84735a5ca73eb49ec",
+    "figures/e118_scale_extensions_appendix.png": "f36cbc21f0fcbf0ede653b4fcda55f3440788973119bafbfef3cd8f5e45ca8a6",
+    "figures/modebench_level_admission.png": "d1b798a07c5be94154347d1131e4b1f77d3ac6cedb470b532894e5ab1939ef34",
+    "results/latest_results_20260908.json": "a65f0e88ff924623241d44d31b5fd497a3950cc472f1326158669d8f1a38ac0e",
+    "results/latest_results_20260908_table_body.tex": "c5c357069965383a4761559403a99d668f01910d641e52f9b40bc4129c436471",
+    "results/latest_results_20260908_effects_table_body.tex": "513a8bdcaec6609c21ea8d69f5b824f211ae3f121e9136ecffbe57855cb55391",
+    "results/e121_fixed_bank_survival.json": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
+    "results/e121_fixed_bank_survival_table_body.tex": "bad19eb78ba198240bf5cbc850f006e358e4f1afbe6be9dd9e6200c992b2ce3d",
+    "results/e121_fixed_bank_survival_sequence_table_body.tex": "35bafe5bc916f448873965e3cb29547e7c01c9eea2b3cb6b45c085314b6af95d",
+    "results/e121_fixed_bank_survival_bootstrap_table_body.tex": "0282f253e549620dfed79707561380b7c634d5f91002455bcea1a7cba7f75cce",
+    "figures/e121_fixed_bank_survival.pdf": "1bd7c1e98054d4512a1e3275f6344e800358929efa561a1864c932dbb1652654",
+    "figures/current_campaign_results_20260909.pdf": "b0617f23c2e90a333f838cf0fcbdef0becfafbd7681036a26291f64f6dc18b86",
+    "figures/current_campaign_results_20260909.png": "e383cbd0ef950548312999ffdf2f1e83b28103f9043208b26f0cbf1be9aa5fd7",
+    "results/current_campaign_results_20260909.csv": "4d3ee409649ffe2cb0030c974c1cff20dd600e452fad65f8726587f14fdea488",
+    "results/current_campaign_results_20260909.json": "4226ed01832dbd3679e63156591d67eb8573ff4130f2ea0a318855ce76fc5474",
+    "results/current_campaign_results_20260909.md": "e6481bc79e0938f51025b54394636d46433ec8cf63b41a3736792b3ca37d1883",
+    "results/current_campaign_results_20260909_coverage_table_body.tex": "629011a8a3de41c1c1d8835bcefa9ffc6889ea3510e3b053c4d97eb14162a152",
+    "results/current_campaign_results_20260909_e118_table_body.tex": "33a45e698fac1f10b8a7508801197c126450704c267c2b8d44a38ca2d21aa341",
+    "results/current_campaign_results_20260909_e119_table_body.tex": "5db8c1465b978ef66eefe975ff356664a03de0ed60c1abfdb1730d06c5d720dc",
+    "results/current_campaign_results_20260909_e120_table_body.tex": "e5c0ea1fc4942e6580d7c355fabb28b99a1232bafedc46ed536db99c745fa41e",
+    "results/latest_results_20260909.json": "048c9adde4e56ead61e6236e2c81f1e4052ee25ec244d3b59c90fc612aad42ec",
+    "results/latest_results_20260909_effects_table_body.tex": "d0de9b1cea18817f102863bf7e9bac8d0e312b41a55f2d17d0c468126f33462d",
+    "results/latest_results_20260909_table_body.tex": "4454de34ddceeed7f8af25b081e5e9f9ea7a2140c979c8944dc57e8351aa74c9",
+    "results/level2_factorial_contrasts_20260909.json": "bcbcbac790ce1e17f58a26e3a7dd9c88f957c0a0a7fd7fcc230c8c33a1a1929e",
+    "results/level2_factorial_contrasts_20260909_table_body.tex": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f",
+    "figures/current_campaign_results_20260910.pdf": "9a3c72b863170a73e807f7221628a8af4aa51800c694fe0a2c270bc8a92e529f",
+    "figures/current_campaign_results_20260910.png": "9dc28c64e518cad2ff3052bb3dc87a9282b4144b71c9a9853222682b8fb4a048",
+    "results/current_campaign_results_20260910.csv": "618b7d302fb9cf25bce68372e919e7f7eadd33a5260531a7975af6af0512e461",
+    "results/current_campaign_results_20260910.json": "e24e037e270f78f7c6daa7deda57d899812c7fdb983bccf1f71b78721e2cc5c3",
+    "results/current_campaign_results_20260910.md": "87278cd699dba4d1fbc530c4c0bb81d397c23eb0a83871ee6fe5a8cc9a8d76c8",
+    "results/current_campaign_results_20260910_coverage_table_body.tex": "eb64427683467a78b63157a634365ba8d91c54118c047a45c8c6bb1f02802d12",
+    "results/current_campaign_results_20260910_e118_table_body.tex": "eede14237559cc7fc05d60e4dcaa9b05069856547403cefdbfea1504fb9f1aa3",
+    "results/current_campaign_results_20260910_e119_table_body.tex": "33642ed6388044a37078b2bc397f2dad1b3fc6b1a1afeaf26a82e796aa10d744",
+    "results/current_campaign_results_20260910_e120_table_body.tex": "ebf39020cad6abba18cd6dcd3e947252626cd05bedf913b6bf6fd77d8565670f",
+    "results/latest_results_20260910.json": "dbaaf327e1765cbf2dc2d39d64599b69b17333487efb44762ffc09709f4b9d60",
+    "results/latest_results_20260910_effects_table_body.tex": "6e4d461e9c4b753aac6bce0290639d5920ec1aaf7322b528ecc309e27c2c1795",
+    "results/latest_results_20260910_table_body.tex": "5079b6a2833f43a6da8aac5d60e3a9a81824a37ba751d6ca84476466216eeeb3",
+    "results/level2_factorial_contrasts_20260910.json": "dc70a9901a84cadd7ccacfd3536efae7b6cd95ff77292223bfa92f886b5ec206",
+    "results/level2_factorial_contrasts_20260910_table_body.tex": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f",
+    "figures/baseline_collapse_precheck.png": "09a0c58621b209630524a59c11f0d5ecb44de5a39d127da1906989ea1c930be5",
+    "figures/current_campaign_results_20260911.pdf": "02e70332f95f6e5e6c0e1ce31c39c5d1cd428e45fd4d3f094ed9525e4ac29091",
+    "figures/current_campaign_results_20260911.png": "29c477321277c0fffc923c5fe5e8a0d803ec6d488c6c9dbb1166438c02729684",
+    "figures/direct_baseline_learning_curves_static_strip.png": "6a35826a4800ebff34a58c60322f9cb80953fe1588aa848da68d121849b6b8f4",
+    "figures/direct_comparator_endpoint_effects.png": "c47e3c8537af74bccaf711021ade1b81d4176d0249ae0a7d5801b8faa2a92622",
+    "figures/e121_fixed_bank_survival.png": "c675e0f5129da0f6f0078c89776666f7ce28b1d4387d27c0ced46ffd8c23a5ee",
+    "figures/experiment1_retention_comparator_matrix.png": "d906a9b53d1ca11bc1c4b9c86d054aeb6f7011fcc644e542705a6f249170370e",
+    "figures/modebench_examples.png": "d4a50e1d975599027ec3c5ea287c0e37e6f3ede1ace380d54e3772578bb84544",
+    "figures/modebench_level_terminal_by_domain.json": "1c47100f7131385e958d3f1b1073ffb460b9c99cac031799a09e32e33ffe672b",
+    "figures/modebench_level_terminal_by_domain.pdf": "10190ff5cdb73091bb8fe550877d8d656fe88dd70abd955be06bd352ccb07306",
+    "figures/modebench_level_terminal_by_domain.png": "1fc1f9baa891cf9b47e0c39990dde11c060fbbcb5e34011b0e0fa4596b208ced",
+    "figures/modecollapse_story.png": "4678c5e7422cb529484f1e580dce798946e1ecc48461beb4951e2dc2758b4b8f",
+    "figures/replay_mechanism_telemetry_qwen05b.png": "25786aa59e5b603585999a5d295f8841ce5d95ec705811194209b21db08705f5",
+    "figures/sustained_auc_effects_qwen05b.png": "93c2332c4e996aa157383286df378581879e5a1c6c18b54460009e91e15a169c",
+    "figures/verified_support_discovery_two_scale_effects.png": "6154a51d25bfebd55a41279dbe4f57ce3cb94a703655907e06b0cb93bc718d25",
+    "figures/verified_support_story.png": "a3f15173854e68ac18b3687f5ccf60f4ecf0333632622072454fb728eeec0ec7",
+    "results/current_campaign_results_20260911.csv": "49fa021a435b9ae664c5cfaa662fe953df5ff14de2eccc47a0319139a7ec81b3",
+    "results/current_campaign_results_20260911.json": "58a05aece8afc320ff37814d9bd85c3c67ab57894307731c28cc38d443307383",
+    "results/current_campaign_results_20260911.md": "82130ea482a9abf7012fa42bd81b774e40b09e735e005228954d01bd93447441",
+    "results/current_campaign_results_20260911_coverage_table_body.tex": "076161612ba20d7d328121feab970129bf91a5b43f74970f8902fe71a1dabe2e",
+    "results/current_campaign_results_20260911_e118_table_body.tex": "e421d132cefcabfbd9815dc86a615487bcabda616f841f401d6f367a541fbcb0",
+    "results/current_campaign_results_20260911_e119_table_body.tex": "fbdcaa26882b86ae86091a5c84a08e20c6da6282ee1314fb52c3802a13679bbe",
+    "results/current_campaign_results_20260911_e120_table_body.tex": "601551d7aeae0153706005379e62720599f8b5aed1419a07fb0724380a89929d",
+    "results/latest_results_20260911.json": "4e9733ccb53cc09534a1c08b4cb6c8aa0ba089c6ffc1fb29dc60e81a6db1b7e0",
+    "results/latest_results_20260911_effects_table_body.tex": "6e4d461e9c4b753aac6bce0290639d5920ec1aaf7322b528ecc309e27c2c1795",
+    "results/latest_results_20260911_table_body.tex": "fa175af6467c6cba2653593a18441de597e44ccb0a48aba20cc676ecad88cfec",
+    "results/level2_factorial_contrasts_20260911.json": "a05f353a34f0c0b54c149fb55c2c739f48b88f3b0c473563d71072d1185fb3f1",
+    "results/level2_factorial_contrasts_20260911_table_body.tex": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+  },
+  "correction_history": [
+    {
+      "date": "2026-09-04",
+      "reason": "Enforce existing source-integrity exclusion for Falcon Countdown ReplayDr.GRPO seed59 job30269051; use74admissible pairs, complete-five-seed inference and descriptive n4 tracks; bind RLEP trajectories to recovery-authorized sources; omit ambiguous nonterminal checkpoints; refresh linked provenance without selecting conflicting retry outcomes.",
+      "superseded_source_sha256": "6cf983c0a7ab5e88f1a409b0608b2bcba508d0e162298b42babef97db7d63094",
+      "corrected_source_sha256": "133fbc7a81d653bc41aba6debdfab5ad5a57514267700a8641078522bc491ef2",
+      "audit": "paper/audits/story_evidence_audit_20260904.md",
+      "exclusion_authority": "paper/preregistration/e112r1_two_scale_49pair_terminal_integrity_amendment_20260828.md",
+      "changed_files": {
+        "figures/direct_baseline_learning_curves_static_strip.json": {
+          "superseded_sha256": "5434797dd72365e8c9fce028d6e6a6705819ab28d4cedaccec841d911e7d307f",
+          "corrected_sha256": "05206086602080a88d4f470d167984589e745ad918e1c7d5b14991d988d873d5"
+        },
+        "figures/direct_baseline_learning_curves_static_strip.pdf": {
+          "superseded_sha256": "e8ba59a683900fdd3d89c4f35429fcadb5c3c5c2d5fbd591084a30ee59334237",
+          "corrected_sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d"
+        },
+        "figures/e118_all_scale_factorial_progress.json": {
+          "superseded_sha256": "769d03d6519078f2c985b42106f2f3adaefaedc8a6e9a9d970dbef9483794feb",
+          "corrected_sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d"
+        },
+        "figures/e118_all_scale_factorial_progress.pdf": {
+          "superseded_sha256": "863ee04b5000a0d63fd4ce83f4d0ab203aae583dbc25dd9c37bf0c5986dda071",
+          "corrected_sha256": "243da8937637b24271f184ecc0312e3b5431494f7061a38b45f38a2eea0122d6"
+        },
+        "figures/e118_scale_extensions_appendix.json": {
+          "superseded_sha256": "769d03d6519078f2c985b42106f2f3adaefaedc8a6e9a9d970dbef9483794feb",
+          "corrected_sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d"
+        },
+        "figures/e118_scale_extensions_appendix.pdf": {
+          "superseded_sha256": "5cdcea7f45beed052560e7bea0c36d5348849867e107cfe41d03c7b5e1b14609",
+          "corrected_sha256": "615bec3c98d0c1bfb36b1896661052e765ea6cd4af7dc6b0ef825440fd1fa964"
+        },
+        "figures/experiment1_retention_comparator_matrix.json": {
+          "superseded_sha256": "2e97667ffd98f78d34a109354d57eb30a7b973cde194999ed0adddc373143d4d",
+          "corrected_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221"
+        },
+        "figures/experiment1_retention_comparator_matrix.pdf": {
+          "superseded_sha256": "147c043199fa6cccfbbae4f74e0989f1fb9316e55993e1b69665569a58a90f26",
+          "corrected_sha256": "b2774ba4595e05bf42c6154fa0797dc8eae12beb651765859a801fd1f5efea1c"
+        },
+        "results/core_terminal_endpoints_table_body.tex": {
+          "superseded_sha256": "733cd168b4e10d2ec663789071d7f4b0177fd12c84116666a4c3999a9a19054c",
+          "corrected_sha256": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189"
+        }
+      },
+      "final_editorial_source_sha256": "10278cfdb5c84ed57c69a5a1d1327f0e624a4692be15ed1dcd0a3dc07bd21489"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "mathematical clarity and proof review",
+      "previous_source_sha256": "10278cfdb5c84ed57c69a5a1d1327f0e624a4692be15ed1dcd0a3dc07bd21489",
+      "source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
+      "source_assets_changed": false,
+      "experimental_results_changed": false,
+      "changes": [
+        "finite-group MaxRL budget G-1",
+        "explicit Euclidean categorical mean-flow assumptions and direct ratio proof",
+        "conditional metric and action-alias definitions",
+        "weighted replay, inverse-length target, relative prompt-frequency dose",
+        "pointwise training-seed uncertainty and factorial interaction scope",
+        "global smoothness, deterministic finite-step retention and fixed incomplete-bank probability limit"
+      ],
+      "audit": "../audits/mathematical_review_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "reference authenticity and citation usage audit",
+      "previous_source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
+      "source_sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
+      "previous_bibliography_sha256": "96ecce3e3ada4e1545447850e285e2c43a9b7ee887f4c1ef50d4131989c3b1cf",
+      "bibliography_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+      "experimental_results_changed": false,
+      "figures_changed": false,
+      "bibliography_entries_checked": 93,
+      "original_cited_sources": 28,
+      "final_cited_sources": 29,
+      "changes": [
+        "correct GRPO/Dr.GRPO attribution and distinguish our replay variants",
+        "separate literature diversity metrics and candidate breadth from fixed-correctness pass@K",
+        "remove ArgMaxRL misattribution; credit MaxRL version3 Theorem5",
+        "credit prior outcome-collapse analysis and distinguish replay/archive methods",
+        "repair FlowRL author list, four arXiv categories, two undated web citations, and two version links"
+      ],
+      "audit": "../audits/reference_audit_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "second proof and theoretical scope review",
+      "previous_source_sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
+      "source_sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
+      "source_assets_changed": false,
+      "experimental_results_changed": false,
+      "bibliography_changed": false,
+      "changes": [
+        "proof roadmap, endpoint regularity, tie cases, and explicit convergence steps",
+        "compact full-paper conclusion and limitations preserving the nine-page main text",
+        "matched-correctness logarithmic collapse exponent and pure-shared-geometry counterexample",
+        "exact categorical entropy nonextinction theorem and bounded sampled-score distinction",
+        "fresh-group starvation probability and persistent fixed-bank replay signal",
+        "shared-parameter complete-exemplar retention from joint energy descent",
+        "finite evaluation visibility bounds and incomplete-bank support ceiling",
+        "historical semantic predictor decomposition and code-matched entropy-gradient counterexample"
+      ],
+      "audit": "../audits/theory_second_review_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "integrate attributed theoretical extensions into both appendices",
+      "previous_source_sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
+      "source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+      "previous_bibliography_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+      "bibliography_sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "experimental_results_changed": false,
+      "figures_changed": false,
+      "workshop_main_text_changed": false,
+      "changes": [
+        "conditional stochastic retention and sharper bounded-noise finite-horizon bound",
+        "adaptive admission hazards and retention with controlled bank changes",
+        "exact conditional-entropy and full-support replay objective comparison",
+        "exact categorical Fisher natural-gradient comparison",
+        "sharp per-mode KL certificates, entropy threshold, complete-response mapping and sampling inference",
+        "primary-source attribution and theory roadmap/scope cross-references"
+      ],
+      "audit": "../audits/theory_appendix_integration_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "worked examples and reader progression throughout the theory appendix",
+      "previous_source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+      "source_sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
+      "experimental_results_changed": false,
+      "figures_changed": false,
+      "bibliography_changed": false,
+      "main_text_changed": false,
+      "formal_statements_and_proofs_unchanged": true,
+      "changes": [
+        "recurring three-correct-mode categorical example",
+        "worked illustrations throughout all twelve theory subsections",
+        "illustrations in all four survival-certificate subsubsections",
+        "explicit distinction between illustrative values, guaranteed floors and measured training results",
+        "reader roadmap and transitions following the proof chain"
+      ],
+      "audit": "../audits/theory_examples_20260905.md"
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "eligible E118 completion and registered E120 breadth analysis",
+      "previous_source_sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
+      "source_sha256": "0af1dac6fd5a1356532384cc42c2e01e4fef424a8ce2046646c31d1808d7c8cb",
+      "workshop_sources": {
+        "main.tex": "90aa157ffbd1f860e34919b26b6857637185e769a620359c737170b6af052b15",
+        "appendix.tex": "943f0990a7e840f086c4ea5a1e6df3b94eeff4768e995bb1a9a6640bf7f070f3",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "audit": "../audits/results_additions_20260906/independent_e118_e120_review.md",
+      "changes": [
+        "include the full five-seed Qwen2.5-3B Python factorial table and synchronized E118 figures",
+        "report the registered uniform-minus-frequency extra-mode and correctness endpoints for all five Qwen2.5-0.5B domains, all five paired seeds, and the domain mean",
+        "document exact paired percentile bootstrap conventions as implementation choices; preserve the frozen September 4 E120 25/45 progress snapshot",
+        "retain source-integrity exclusions, incomplete larger-model and Level-2 boundaries, and the E117/DAPO eligibility limits",
+        "require every referenced source input and bind the compiled artifact to current source and asset hashes"
+      ],
+      "changed_files": {
+        "figures/e118_all_scale_factorial_progress.pdf": {
+          "superseded_sha256": "243da8937637b24271f184ecc0312e3b5431494f7061a38b45f38a2eea0122d6",
+          "updated_sha256": "a9c0751b7aa83d8f13d45d90ea6637944cce09576e8619d49c106bfedeac84b9"
+        },
+        "figures/e118_all_scale_factorial_progress.json": {
+          "superseded_sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d",
+          "updated_sha256": "63ff32befe2314b7c245a996ca94ad783546de9f335d5410ebac49aca95bad33"
+        },
+        "figures/e118_scale_extensions_appendix.pdf": {
+          "superseded_sha256": "615bec3c98d0c1bfb36b1896661052e765ea6cd4af7dc6b0ef825440fd1fa964",
+          "updated_sha256": "0ca678726825208d5c9840b82e7229d5dfcef74b78ea57c99ed5bd9272151e47"
+        },
+        "figures/e118_scale_extensions_appendix.json": {
+          "superseded_sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d",
+          "updated_sha256": "63ff32befe2314b7c245a996ca94ad783546de9f335d5410ebac49aca95bad33"
+        },
+        "results/e118_qwen3b_python_terminal_table_body.tex": {
+          "superseded_sha256": null,
+          "updated_sha256": "ee75d8db4f82dfe186c41572040ea0f1fde9aa334ef58414d951be19280302cc"
+        },
+        "results/e120_primary_breadth.json": {
+          "superseded_sha256": null,
+          "updated_sha256": "d93033c5aea99bfe066181187a49f3d6bc00f8fadbea681ce26bdc36e6a40e19"
+        },
+        "results/e120_primary_breadth_table_body.tex": {
+          "superseded_sha256": null,
+          "updated_sha256": "e60e9df5ca6bc24ee9b2e42f8eca5664ed6e114d2fca36f86faa4f50af3ad589"
+        },
+        "results/e120_primary_breadth_seeds_table_body.tex": {
+          "superseded_sha256": null,
+          "updated_sha256": "5456f09ac2513402736088191c41751a1083e9ab6dcc11ff43343519513c2f15"
+        },
+        "results/e120_frequency_progress.json": {
+          "superseded_sha256": null,
+          "updated_sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab"
+        }
+      },
+      "e120_source_snapshot_sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab",
+      "main_content_pages": 4,
+      "main_figures": 6,
+      "supplementary_figures": 7
+    },
+    {
+      "date": "2026-09-06",
+      "reason": "Add the complete five-seed E80-R1 Qwen2.5-3B Dr.GRPO/ReplayDr.GRPO track to Figure 5, with matched initial references. Preserve all existing model averages, all MaxRL evidence and the existing Falcon exclusion; Qwen3B MaxRL remains incomplete and unaggregated.",
+      "audit": "paper/audits/figure5_qwen3b_20260906/validation.json",
+      "superseded_source_sha256": "0af1dac6fd5a1356532384cc42c2e01e4fef424a8ce2046646c31d1808d7c8cb",
+      "corrected_source_sha256": "ecfdb38a99100cb89e76eec39b81a3ffdbdc721950ded3df713a140cc9925337",
+      "changed_files": {
+        "figures/e118_all_scale_factorial_progress.pdf": {
+          "superseded_sha256": "a9c0751b7aa83d8f13d45d90ea6637944cce09576e8619d49c106bfedeac84b9",
+          "corrected_sha256": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51"
+        },
+        "figures/e118_all_scale_factorial_progress.json": {
+          "superseded_sha256": "63ff32befe2314b7c245a996ca94ad783546de9f335d5410ebac49aca95bad33",
+          "corrected_sha256": "41fb57fe73bf134e0162be1a367f528d35a845b2c79e0b793cecdc39721ba19d"
+        },
+        "figures/e118_scale_extensions_appendix.json": {
+          "superseded_sha256": "63ff32befe2314b7c245a996ca94ad783546de9f335d5410ebac49aca95bad33",
+          "corrected_sha256": "41fb57fe73bf134e0162be1a367f528d35a845b2c79e0b793cecdc39721ba19d"
+        },
+        "main.tex": {
+          "superseded_sha256": "90aa157ffbd1f860e34919b26b6857637185e769a620359c737170b6af052b15",
+          "corrected_sha256": "f163da7f0fcfa18a12263b5d9a49da0a33a75be798a0a31d332eb5f40b213dc5"
+        },
+        "appendix.tex": {
+          "superseded_sha256": "943f0990a7e840f086c4ea5a1e6df3b94eeff4768e995bb1a9a6640bf7f070f3",
+          "corrected_sha256": "8fb1b185129b8c7b0dc12c135efbe04ad124e2367b79f41c6ab2bca3f8197c40"
+        }
+      }
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "four-page build repair and dated endpoint update",
+      "audit": "paper/audits/build_repair_20260906/report.md",
+      "previous_source_sha256": "2e6e283dd8929f49b7acfc8254a9de5034366101de26f2e694549621976f828a",
+      "source_sha256": "dfe2e211f4917cca8937086028f1726ede46fea51f1cb988b06a74b8fed4dab1",
+      "previous_workshop_sources": {
+        "main.tex": "63a01a74c77df5cf43229bc2097190d2046b762e74d664b15559de94a0575b94",
+        "appendix.tex": "518ed0c9e17d02f97f4340addec55500da9c24d3567d51e37cadb2313c1b1917",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "630c2e69e583e408373534a6dd65eafea809b756a94c1c64f2222e6b09aa835e",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "changes": [
+        "Tighten redundant main-text prose to restore the four-page limit with all figures and the conclusion intact.",
+        "Build and validate in isolation; preserve the last validated PDF and source ZIP when a build fails.",
+        "Correct model-scope qualifiers and distinguish frozen terminal figures from matched interim Figure 6.",
+        "Add the independently verified complete Falcon Graph frequency-weighting ablation, all paired seeds, bootstrap intervals and supporting correctness tradeoff.",
+        "Add exact endpoint census: E118 116/150, E119 52/100, E120 33/45; preserve frozen figure and primary-analysis inputs.",
+        "Complete the parent manuscript caption line-fill checks without changing figure dimensions or scientific values."
+      ],
+      "changed_files": {
+        "results/e120_falcon_graph_20260906_table_body.tex": {
+          "previous_sha256": null,
+          "updated_sha256": "367ce21b638d06d51358103b0221d0b8b1b852eb6f0cac049d48494b32e9b045"
+        },
+        "results/e120_falcon_graph_20260906_seeds_table_body.tex": {
+          "previous_sha256": null,
+          "updated_sha256": "75a7d17b21705887a837ebcff4644b3dab7df83a1f3eaa7ad638d4d35b6fb028"
+        },
+        "results/e120_falcon_graph_20260906.json": {
+          "previous_sha256": null,
+          "updated_sha256": "37f9d69d32047379773c60d7bd90a3bf167af34161a4bd9d066d0f2f6629d2e2"
+        },
+        "results/latest_results_20260906_table_body.tex": {
+          "previous_sha256": null,
+          "updated_sha256": "3a19d5867aef76245a5a1a35c015e0eaf2596b8cdc954e629f9f4faa86f6688f"
+        },
+        "results/latest_results_20260906.json": {
+          "previous_sha256": null,
+          "updated_sha256": "199a6ec5b820421939d4106d42f6b9af70377db265c6e52ddf3f97099d843adc"
+        }
+      },
+      "main_content_pages": 4,
+      "main_figures": 6,
+      "supplementary_figures": 7
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "clearer conclusion and limits",
+      "previous_source_sha256": "dfe2e211f4917cca8937086028f1726ede46fea51f1cb988b06a74b8fed4dab1",
+      "source_sha256": "b4139bbe06f36a2ff9b0f74b9c3d2b2d8075c0813c87ba6eff0e59c38250302f",
+      "previous_workshop_sources": {
+        "main.tex": "630c2e69e583e408373534a6dd65eafea809b756a94c1c64f2222e6b09aa835e",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "bbb39246aed1bb07cf23436cde9a813b0465b09065af3676afa3f8dbc11652fa",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "audit": "paper/audits/build_repair_20260906/report.md",
+      "changes": [
+        "Explain ModeBench as measuring the range of verified outcomes for one problem.",
+        "Motivate multiple approaches by their different strengths and possible usefulness when constraints change or another approach fails.",
+        "Distinguish the measured replay results from untested general reasoning strategies, downstream usefulness, causality, and individual mode survival."
+      ],
+      "main_content_pages": 4
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "soften conclusion scope wording",
+      "previous_source_sha256": "b4139bbe06f36a2ff9b0f74b9c3d2b2d8075c0813c87ba6eff0e59c38250302f",
+      "source_sha256": "4e299db1bc49a48fb6f3050c56e3af9a354fdf1d0cca940da0473ee6678dc03b",
+      "previous_workshop_sources": {
+        "main.tex": "bbb39246aed1bb07cf23436cde9a813b0465b09065af3676afa3f8dbc11652fa",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "b12c1677483bfeedd28250bbbab81768a6175c64ad278dac7531bce6af48c822",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "changes": [
+        "Frame controlled ModeBench tasks as a starting point for studying diversity in broader mathematical reasoning, while retaining the explicit causal, downstream-utility and replay-retention limits."
+      ],
+      "audit": "paper/audits/build_repair_20260906/report.md"
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "lead with mathematical-agent motivation",
+      "previous_source_sha256": "4e299db1bc49a48fb6f3050c56e3af9a354fdf1d0cca940da0473ee6678dc03b",
+      "source_sha256": "ca1ee15cdffd39476bdbe94c01829d36b892c7342f7256790ac034c49aafcb0a",
+      "previous_workshop_sources": {
+        "main.tex": "b12c1677483bfeedd28250bbbab81768a6175c64ad278dac7531bce6af48c822",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "7464664a98f8472ee14f282700b38cfb5f1b547982af2dbaef9c292bd9d428d5",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "audit": "paper/audits/build_repair_20260906/workshop_fit/report.md",
+      "changes": [
+        "Open the abstract with candidate generation for mathematical-agent search, verification and recovery.",
+        "Put tool use, alternative proof/computation routes, changed constraints, and self-correction in the opening paragraph; frame their usefulness as motivation.",
+        "Use the section title Preserving alternatives for mathematical agents.",
+        "Retain ModeBench as controlled executable-output evidence; preserve the softened conclusion and all data boundaries.",
+        "Condense the abstract and idealized-size paragraph to keep Figure 1 on page 1 and the main text on four pages."
+      ],
+      "main_content_pages": 4
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "make the first four pages self-contained",
+      "previous_workshop_sources": {
+        "main.tex": "7464664a98f8472ee14f282700b38cfb5f1b547982af2dbaef9c292bd9d428d5",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "11ae6b3e2292a844461e9649efcd3a8d8b60b66e5cef6bd3a86c6ff34a44f478",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "source_sha256": "ca1ee15cdffd39476bdbe94c01829d36b892c7342f7256790ac034c49aafcb0a",
+      "main_content_pages": 4,
+      "audit": "paper/audits/four_page_argument_20260906/report.md",
+      "changes": [
+        "State the five-point argument in the abstract and main prose: sampled support collapse, executable identity, frequency-independent replay of retained keys, held-out evidence, and the latent-strategy boundary.",
+        "Define extra modes locally as distinct@8 minus pass@8, and state held-out bank exclusion and zero-gradient controls.",
+        "Move verified paired MaxRL effects and intervals into the main text; report both endpoints for the sole complete five-seed harder-task Graph factorial.",
+        "Cut repetition and the introductory model-size theory detour; preserve the broader conclusion and existing figures, endpoints, template and appendix."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "narrative opening, clearer result heading, consistent benchmark styling",
+      "previous_source_sha256": "ca1ee15cdffd39476bdbe94c01829d36b892c7342f7256790ac034c49aafcb0a",
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "previous_workshop_sources": {
+        "main.tex": "11ae6b3e2292a844461e9649efcd3a8d8b60b66e5cef6bd3a86c6ff34a44f478",
+        "appendix.tex": "d4030da73ea53c3696322a932c7df8b87a5e7d4d793737202dc43e6dc4c245db",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "81a8d0616ccfb6732d284f7efd47d071a126f82dd612dc0c97bd44e7213de5b5",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "main_content_pages": 4,
+      "audit": "paper/audits/narrative_opening_20260906/report.md",
+      "changes": [
+        "Expand the workshop abstract and introduction into a narrative about failed attempts, alternative routes, correctness feedback, executable identity and replay.",
+        "Clarify the result heading to Replay improves both Dr.GRPO and MaxRL.",
+        "Use the existing small-caps benchmark macro for all displayed mentions in both manuscripts, preserving the macro definition and code/path literals.",
+        "Preserve all six main figures, the broader conclusion, held-out evidence, exact endpoints, and explicit latent-strategy boundary."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "require Figure 1 on page 1",
+      "previous_workshop_sources": {
+        "main.tex": "81a8d0616ccfb6732d284f7efd47d071a126f82dd612dc0c97bd44e7213de5b5",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "a34099539dc26a1f24bedfa3430375c686ea1f5c1c2d3211e69ca59c24eead11",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/narrative_opening_20260906/report.md",
+      "changes": [
+        "Place Figure 1 immediately after the expanded abstract on page 1.",
+        "Remove repeated introduction closing and method/related-work setup to retain four main pages without reducing the expanded abstract or opening narrative.",
+        "Enforce Figure 1 on page 1 in check_submission.py; include the guard in the compiled source receipt and source archive."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "adopt author-preferred abstract framing",
+      "previous_workshop_sources": {
+        "main.tex": "a34099539dc26a1f24bedfa3430375c686ea1f5c1c2d3211e69ca59c24eead11",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "94b9b5f203ad509b36caf01b07f52c6abfe6a586ab7bbe7fe3a2bd064c60a35e",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/narrative_opening_20260906/report.md",
+      "changes": [
+        "Use the author-provided abstract nearly verbatim, adding held-out to qualify the correctness result and applying the existing benchmark macro.",
+        "Align the introduction with the distinction between becoming more often correct and preserving alternative correct solutions.",
+        "Retain Figure 1 on page 1, the four-page main text, clearer objective-comparison heading, consistent benchmark styling, and all evidence boundaries."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "describe language models by their mathematical task",
+      "previous_workshop_sources": {
+        "main.tex": "94b9b5f203ad509b36caf01b07f52c6abfe6a586ab7bbe7fe3a2bd064c60a35e",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "68f968d3068aded348add7bb4a19820b1a079de0ee74ce1a023b2f5eff8aaa05",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/language_model_wording_20260906/report.md",
+      "changes": [
+        "Use language model and explicitly state mathematical problems in the abstract and introduction, avoiding an implied specialized model category.",
+        "Preserve the author-preferred abstract framing, all evidence, the page-1 figure requirement and consistent benchmark formatting."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "integrate MaxRL context into method introduction",
+      "previous_workshop_sources": {
+        "main.tex": "68f968d3068aded348add7bb4a19820b1a079de0ee74ce1a023b2f5eff8aaa05",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "274ae10b2580d1ef9444415e766dd51e834df8df86f76134da97e82c59db19e5",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/method_flow_20260906/report.md",
+      "changes": [
+        "Introduce MaxRL and its citation as the fresh-sample component when ReplayMaxRL is first explained.",
+        "Let the replay-equation setup define only the bank, exemplar, token length and policy, removing the intervening standalone MaxRL definition.",
+        "Keep the replay equation, equal-weight interpretation, Dr.GRPO counterpart and full appendix objective definition unchanged."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "connect correctness proof, focus weighting result and correct workshop footer",
+      "previous_workshop_sources": {
+        "main.tex": "274ae10b2580d1ef9444415e766dd51e834df8df86f76134da97e82c59db19e5",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3"
+      },
+      "workshop_sources": {
+        "main.tex": "a38599d67a5ce1e3641fe30f9963fb9c1f2d1b576876f729b067e6f110e757c3",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/correctness_proof_bridge_20260906/report.md",
+      "official_cfp": "https://mathai-2026.github.io/cfp/",
+      "official_style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+      "changes": [
+        "Connect the metrics to the existing per-prompt matched-correctness theorem under its idealized categorical assumptions; retain the correctness-coupling warning.",
+        "Remove the main-text inconclusive-correctness clause from the frequency-weighting breadth comparison; retain all full correctness results in the supplement.",
+        "Tighten protocol/caption wording and the Countdown example without altering evidence to retain four main pages.",
+        "Correct the anonymous workshop footer with a preamble-only notice override, preserving the current official style file and double-blind formatting.",
+        "Check the compiled workshop notice alongside the existing page, figure, source and anonymity checks."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "distinguish shared replay from named objective variants",
+      "previous_workshop_sources": {
+        "main.tex": "a38599d67a5ce1e3641fe30f9963fb9c1f2d1b576876f729b067e6f110e757c3",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources": {
+        "main.tex": "b708aceac8fe15b77eed511927c59cd9451d6e207bdf1ea5049b76625a4c7960",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/replay_variant_names_20260906/report.md",
+      "changes": [
+        "Introduce replay of previously verified outputs as the common intervention in the abstract.",
+        "Name ReplayDr.GRPO and ReplayMaxRL as the respective Dr.GRPO and MaxRL variants before reporting their three-scale and two-scale results.",
+        "Preserve the preferred problem/measurement framing, proof connection, workshop footer and all empirical values."
+      ]
+    },
+    {
+      "date": "2026-09-06",
+      "kind": "prioritize replay intuition and a modest downstream teaser",
+      "previous_workshop_sources": {
+        "main.tex": "b708aceac8fe15b77eed511927c59cd9451d6e207bdf1ea5049b76625a4c7960",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources": {
+        "main.tex": "e4c835c82b33b892a2686c3ce3ea8615f0f5e4a07ee846b98d051552cac5d9ec",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "main_content_pages": 4,
+      "figure_1_page": 1,
+      "audit": "paper/audits/replay_intuition_20260906/report.md",
+      "changes": [
+        "Explain why equal replay weight per retained key keeps rare successes involved in training.",
+        "Keep main-body seed counts: five registered seeds per comparison, five paired seeds per MaxRL domain and five seeds in the completed harder Graph block. Omit exception bookkeeping from the prose as requested; exact exclusions and inference details remain in captions and the unchanged appendix.",
+        "Round the selected main-text mean effects to two decimals without changing underlying results.",
+        "End with a two-sentence graph-constraint example and proposed downstream test, without claiming new downstream evidence."
+      ]
+    },
+    {
+      "date": "2026-09-08",
+      "recorded_at_utc": "2026-09-08T15:42:15.360669+00:00",
+      "kind": "new terminal results and current matched-checkpoint figures",
+      "previous_source_sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "previous_workshop_sources": {
+        "main.tex": "e4c835c82b33b892a2686c3ce3ea8615f0f5e4a07ee846b98d051552cac5d9ec",
+        "appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "previous_copied_files": {
+        "figures/e118_all_scale_factorial_progress.pdf": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51",
+        "figures/e118_scale_extensions_appendix.pdf": "0ca678726825208d5c9840b82e7229d5dfcef74b78ea57c99ed5bd9272151e47",
+        "figures/modebench_level_admission.pdf": "8c220afd8a34e4bc2f182463a9d58b915f95b3b7e32bb73aba2755fe986108eb",
+        "figures/e118_all_scale_factorial_progress.json": "41fb57fe73bf134e0162be1a367f528d35a845b2c79e0b793cecdc39721ba19d",
+        "figures/e118_scale_extensions_appendix.json": "41fb57fe73bf134e0162be1a367f528d35a845b2c79e0b793cecdc39721ba19d",
+        "figures/modebench_level_admission.json": "6f27cb5b4380f840ad112742dba72e5e71b15a8c66b4c9761e8e8f85436ce257",
+        "results/modebench_level_comparison_snapshot.json": "3439418b62456f1c7ff424d450886016a491ce9085f185cb465d851cc6fd8ad4"
+      },
+      "workshop_sources": {
+        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+        "appendix.tex": "0f0b6ed19e3b3eca5e9344b36216ab2d0afe7ba60a94a5aa68710e533d19a7d2",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "source_sha256": "dd1eaec5fca9710e4326f006d51b597eb8e89aed17759faf826bd1ba7b88b2a0",
+      "changes": [
+        "E118124/150 with59 paired endpoints and11 complete blocks; exact incompleteQwen3B counts retained.",
+        "E11976/100, three complete factorial domains; primary Python/MathIR intervals include zero.",
+        "Fresh200-cell Level1/Level2 matched checkpoint snapshot; Pantry step0 remains explicit.",
+        "E12033/45 six complete blocks; September4 estimand source preserved.",
+        "Figure5 axis widened to include every displayed paired seed."
+      ],
+      "audit": "paper/audits/results_refresh_20260908/report.md"
+    },
+    {
+      "date": "2026-09-08",
+      "recorded_at_utc": "2026-09-08T15:43:26.711362+00:00",
+      "kind": "allow table domain names to wrap without overfull boxes",
+      "previous_workshop_sources": {
+        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+        "appendix.tex": "0f0b6ed19e3b3eca5e9344b36216ab2d0afe7ba60a94a5aa68710e533d19a7d2",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources": {
+        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+        "appendix.tex": "308a7068a81457e028067395f92b881f8362cd60f1c9e36c6af89700ac286d12",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "source_sha256": "b9cb6515dca578b5ac0b3ba5ec55fafd94a64fd38c69e1f95a5d40853896207c"
+    },
+    {
+      "date": "2026-09-08",
+      "recorded_at_utc": "2026-09-08T15:47:11.122025+00:00",
+      "kind": "tighten new captions to satisfy natural-prose line-fill contract",
+      "previous_workshop_sources": {
+        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+        "appendix.tex": "308a7068a81457e028067395f92b881f8362cd60f1c9e36c6af89700ac286d12",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources": {
+        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+        "appendix.tex": "39a0ba82d7cdb66a766e2bf7efab4bc8e7e07da0c025811d23da97e85c3f5c3c",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "source_sha256": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e"
+    },
+    {
+      "date": "2026-09-09",
+      "reason": "Add completed registered five-seed fixed-bank Graph exemplar-score analysis, full coverage and negative tails; replace historical-only survival limitations with scoped score-surrogate findings.",
+      "audit": "../audits/e121_results_20260909/analysis.md",
+      "parent_source_before": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e",
+      "parent_source_after": "a0708f58a77c4af60849a299e21c3afba3a05175b606646757da4ce79fdebb53",
+      "workshop_sources_before": {
+        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+        "appendix.tex": "39a0ba82d7cdb66a766e2bf7efab4bc8e7e07da0c025811d23da97e85c3f5c3c",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources_after": {
+        "main.tex": "532502e0f224667c6dc6a89d660619a339e5410d6c2d43070a97c5ac0a180ce0",
+        "appendix.tex": "8e45859cfbd3d09a0337d76095d503bd0bf6d26e26cc0c1de4ea6ebd71bdd184",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "added_assets": {
+        "results/e121_fixed_bank_survival.json": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
+        "results/e121_fixed_bank_survival_table_body.tex": "bad19eb78ba198240bf5cbc850f006e358e4f1afbe6be9dd9e6200c992b2ce3d",
+        "results/e121_fixed_bank_survival_sequence_table_body.tex": "35bafe5bc916f448873965e3cb29547e7c01c9eea2b3cb6b45c085314b6af95d",
+        "results/e121_fixed_bank_survival_bootstrap_table_body.tex": "0282f253e549620dfed79707561380b7c634d5f91002455bcea1a7cba7f75cce",
+        "figures/e121_fixed_bank_survival.pdf": "f09e296026e22c742b261cda0fad019e4b6e42b81bf5190ec34b1be0a32183b2"
+      },
+      "analysis": {
+        "frozen_identities": 3406,
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "hierarchical_bootstrap_draws": 10000,
+        "rng_seed": 121,
+        "scope": "teacher-forced exemplar scores; no exact canonical-mode probability or causal replay claim"
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "reason": "Integrate the September 9 audited E118/E119/E120 terminal census and complete paired-result tables, newly completed Level-2 Countdown factorial, partial scale results, and synchronized current Figures 5 and 6. Preserve the frozen E120 primary estimands and explicit incomplete-block denominators.",
+      "audit": "../audits/results_refresh_20260909/workshop_synced_assets.json",
+      "parent_source_before": "a0708f58a77c4af60849a299e21c3afba3a05175b606646757da4ce79fdebb53",
+      "parent_source_after": "dc17c5b57c4c8f3c925c86224fb9657193a2460b073e6f1961dc1f74ce2cde5c",
+      "workshop_sources_before": {
+        "main.tex": "532502e0f224667c6dc6a89d660619a339e5410d6c2d43070a97c5ac0a180ce0",
+        "appendix.tex": "8e45859cfbd3d09a0337d76095d503bd0bf6d26e26cc0c1de4ea6ebd71bdd184",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources_after": {
+        "main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+        "appendix.tex": "98f13fa716c35bfdab639031ee00a602297cfbac5c8781b9f17a21c6ed794851",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "assets": [
+        {
+          "path": "figures/current_campaign_results_20260909.pdf",
+          "before_sha256": null,
+          "after_sha256": "b0617f23c2e90a333f838cf0fcbdef0becfafbd7681036a26291f64f6dc18b86"
+        },
+        {
+          "path": "figures/current_campaign_results_20260909.png",
+          "before_sha256": null,
+          "after_sha256": "e383cbd0ef950548312999ffdf2f1e83b28103f9043208b26f0cbf1be9aa5fd7"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.json",
+          "before_sha256": "9c2fe31accdbc5b037fd5df09bbe969917d102ea7afff460f9be84ef26eafe1a",
+          "after_sha256": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.pdf",
+          "before_sha256": "cf7cd1a070384b9c0c8afd318c0d3dc280f3a8b5e14c04dcaf2d49dbb26f6dd8",
+          "after_sha256": "ce8f03ed8936f4a8c958924513dc1a3bc798730772f324d62b6f8271a7cd629f"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.png",
+          "before_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+          "after_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.json",
+          "before_sha256": "9c2fe31accdbc5b037fd5df09bbe969917d102ea7afff460f9be84ef26eafe1a",
+          "after_sha256": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.pdf",
+          "before_sha256": "4905611e8b7d9c9254a277c8b1dcfbff2056b9ffa861bb8207b99481a77b781c",
+          "after_sha256": "70b288c7e862cad73d5e627eb562c6edbbf5bebcaee4778fd451706d334e7a40"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.png",
+          "before_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+          "after_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7"
+        },
+        {
+          "path": "figures/modebench_level_admission.json",
+          "before_sha256": "29bfa454b3e629d09e78c55c224484851783a8e16dcaf6c1431a57e04da01f45",
+          "after_sha256": "5f6421c2349df8388d5f273db9953b852479ef5fbfb8c0f48307dd5535ddeee5"
+        },
+        {
+          "path": "figures/modebench_level_admission.pdf",
+          "before_sha256": "f96b8b5154a7f3b2d7b9db57f513e861567e398eaad3f601c33f43e193d46074",
+          "after_sha256": "0a06f11b90d8a98bfb7c3bbbc044bf1f8138391595dd8a55cacc9bbd424854f3"
+        },
+        {
+          "path": "figures/modebench_level_admission.png",
+          "before_sha256": "4049f618620e08965132465ba677d6e5ecdeec0d1725d7dd706c9e3d83b0c8db",
+          "after_sha256": "dc5031fbfbe7cd85dcf0f2d76ed5cce830427f37c7770c72ab5a482df6c490f1"
+        },
+        {
+          "path": "results/current_campaign_results_20260909.csv",
+          "before_sha256": null,
+          "after_sha256": "4d3ee409649ffe2cb0030c974c1cff20dd600e452fad65f8726587f14fdea488"
+        },
+        {
+          "path": "results/current_campaign_results_20260909.json",
+          "before_sha256": null,
+          "after_sha256": "4226ed01832dbd3679e63156591d67eb8573ff4130f2ea0a318855ce76fc5474"
+        },
+        {
+          "path": "results/current_campaign_results_20260909.md",
+          "before_sha256": null,
+          "after_sha256": "e6481bc79e0938f51025b54394636d46433ec8cf63b41a3736792b3ca37d1883"
+        },
+        {
+          "path": "results/current_campaign_results_20260909_coverage_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "629011a8a3de41c1c1d8835bcefa9ffc6889ea3510e3b053c4d97eb14162a152"
+        },
+        {
+          "path": "results/current_campaign_results_20260909_e118_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "33a45e698fac1f10b8a7508801197c126450704c267c2b8d44a38ca2d21aa341"
+        },
+        {
+          "path": "results/current_campaign_results_20260909_e119_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "5db8c1465b978ef66eefe975ff356664a03de0ed60c1abfdb1730d06c5d720dc"
+        },
+        {
+          "path": "results/current_campaign_results_20260909_e120_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "e5c0ea1fc4942e6580d7c355fabb28b99a1232bafedc46ed536db99c745fa41e"
+        },
+        {
+          "path": "results/latest_results_20260909.json",
+          "before_sha256": null,
+          "after_sha256": "048c9adde4e56ead61e6236e2c81f1e4052ee25ec244d3b59c90fc612aad42ec"
+        },
+        {
+          "path": "results/latest_results_20260909_effects_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "d0de9b1cea18817f102863bf7e9bac8d0e312b41a55f2d17d0c468126f33462d"
+        },
+        {
+          "path": "results/latest_results_20260909_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "4454de34ddceeed7f8af25b081e5e9f9ea7a2140c979c8944dc57e8351aa74c9"
+        },
+        {
+          "path": "results/level2_factorial_contrasts_20260909.json",
+          "before_sha256": null,
+          "after_sha256": "bcbcbac790ce1e17f58a26e3a7dd9c88f957c0a0a7fd7fcc230c8c33a1a1929e"
+        },
+        {
+          "path": "results/level2_factorial_contrasts_20260909_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+        },
+        {
+          "path": "results/modebench_level_comparison_snapshot.json",
+          "before_sha256": "57752021adf6a9e663e4024a4e7f2fb47fbb0c9119aae894962ba5d7240a374f",
+          "after_sha256": "6238497463c1012016f6ebdf25d9ab4482eac50d62beefd1aae66f89e2e14753"
+        }
+      ],
+      "coverage": {
+        "e118": {
+          "terminal": 126,
+          "registered": 150,
+          "complete_blocks": 11,
+          "registered_blocks": 15
+        },
+        "e119": {
+          "terminal": 83,
+          "registered": 100,
+          "complete_blocks": 4,
+          "registered_blocks": 5
+        },
+        "e120": {
+          "terminal": 35,
+          "registered": 45,
+          "complete_blocks": 6,
+          "registered_blocks": 9
+        }
+      },
+      "analysis_scope": "Exact step-3072 paired endpoints only; n<5 has no five-seed interval; E120 contrasts uniform minus fresh-frequency replay and mechanism eligibility audited separately."
+    },
+    {
+      "date": "2026-09-09",
+      "reason": "Mirror the parent E120 table-caption line-fill cleanup without changing any result or evidence boundary.",
+      "parent_source_before": "dc17c5b57c4c8f3c925c86224fb9657193a2460b073e6f1961dc1f74ce2cde5c",
+      "parent_source_after": "f169b0fe84cbd5b4422d2875c14195543c83a0038c300856c970ba10a9468469",
+      "workshop_sources_before": {
+        "main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+        "appendix.tex": "98f13fa716c35bfdab639031ee00a602297cfbac5c8781b9f17a21c6ed794851",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources_after": {
+        "main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+        "appendix.tex": "9ddbbf24a9fc8a8b44cec7752695377689b518addf9208a70de0a297c80673e8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "audit": "../audits/results_refresh_20260909/workshop-build-r2.log"
+    },
+    {
+      "date": "2026-09-10",
+      "reason": "Integrate the audited September 10 endpoint census, the complete Qwen2.5-3B Graph MaxRL comparison, the first descriptive Level-2 PantryPlan replay pair, and the inconclusive complete Falcon PantryPlan weighting block. Synchronize Figures 5/6 and the 22 matched Figure 6 cells. Preserve the distinct four-page workshop narrative, frozen primary results, and partial-block uncertainty boundaries; correct the workshop expanded-results stale Countdown completion sentence. Refresh the workshop-only limitations paragraph to the same complete-block counts and remove its contradictory Countdown-incomplete clause. Tighten the updated main MaxRL paragraph and Pantry caption to preserve the four-page content limit; full smaller-scale numerical averages remain in the appendix.",
+      "audit": "../audits/results_refresh_20260910/manuscript_revision/workshop_sync.json",
+      "parent_source_before": "f169b0fe84cbd5b4422d2875c14195543c83a0038c300856c970ba10a9468469",
+      "parent_source_after": "ad718125fba12b715f9bf9f2e7e70e86710208dfc89a6445f0884b4c9dc0b170",
+      "workshop_sources_before": {
+        "main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+        "appendix.tex": "9ddbbf24a9fc8a8b44cec7752695377689b518addf9208a70de0a297c80673e8",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources_after": {
+        "main.tex": "cca8eeab33db3c05d092e89aaed977e43af7717fd3b64446b446e8aa85dec296",
+        "appendix.tex": "34a18f2d9d299c74d61e30398aa99ff2d8f469add76075507d41912b7d4e45f0",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "assets": [
+        {
+          "path": "figures/current_campaign_results_20260910.pdf",
+          "before_sha256": null,
+          "after_sha256": "9a3c72b863170a73e807f7221628a8af4aa51800c694fe0a2c270bc8a92e529f"
+        },
+        {
+          "path": "figures/current_campaign_results_20260910.png",
+          "before_sha256": null,
+          "after_sha256": "9dc28c64e518cad2ff3052bb3dc87a9282b4144b71c9a9853222682b8fb4a048"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.json",
+          "before_sha256": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b",
+          "after_sha256": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.pdf",
+          "before_sha256": "ce8f03ed8936f4a8c958924513dc1a3bc798730772f324d62b6f8271a7cd629f",
+          "after_sha256": "e583f0d95be3dba8b72dd5cafd15013a0b304049c2cdbc25d85a42c9659945fb"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.png",
+          "before_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+          "after_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.json",
+          "before_sha256": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b",
+          "after_sha256": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.pdf",
+          "before_sha256": "70b288c7e862cad73d5e627eb562c6edbbf5bebcaee4778fd451706d334e7a40",
+          "after_sha256": "d44bf9aea89ef774e8ef3976629b0a47a94d2a02ba10eb328f5ca179a5423bd6"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.png",
+          "before_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+          "after_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7"
+        },
+        {
+          "path": "figures/modebench_level_admission.json",
+          "before_sha256": "5f6421c2349df8388d5f273db9953b852479ef5fbfb8c0f48307dd5535ddeee5",
+          "after_sha256": "21af1b6a793145cdfd8180f0d8050d110b2ded910755a6358965df215ab6d6f0"
+        },
+        {
+          "path": "figures/modebench_level_admission.pdf",
+          "before_sha256": "0a06f11b90d8a98bfb7c3bbbc044bf1f8138391595dd8a55cacc9bbd424854f3",
+          "after_sha256": "1c3b82c357d158e0cb276a0ed7689d26f4ee59abd9f7055fd6adb69115f9b61a"
+        },
+        {
+          "path": "figures/modebench_level_admission.png",
+          "before_sha256": "dc5031fbfbe7cd85dcf0f2d76ed5cce830427f37c7770c72ab5a482df6c490f1",
+          "after_sha256": "3780b23d09132308787b10ac53bcb8daf1eb8497c95fcd4a2b64f59183b11167"
+        },
+        {
+          "path": "results/current_campaign_results_20260910.csv",
+          "before_sha256": null,
+          "after_sha256": "618b7d302fb9cf25bce68372e919e7f7eadd33a5260531a7975af6af0512e461"
+        },
+        {
+          "path": "results/current_campaign_results_20260910.json",
+          "before_sha256": null,
+          "after_sha256": "e24e037e270f78f7c6daa7deda57d899812c7fdb983bccf1f71b78721e2cc5c3"
+        },
+        {
+          "path": "results/current_campaign_results_20260910.md",
+          "before_sha256": null,
+          "after_sha256": "87278cd699dba4d1fbc530c4c0bb81d397c23eb0a83871ee6fe5a8cc9a8d76c8"
+        },
+        {
+          "path": "results/current_campaign_results_20260910_coverage_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "eb64427683467a78b63157a634365ba8d91c54118c047a45c8c6bb1f02802d12"
+        },
+        {
+          "path": "results/current_campaign_results_20260910_e118_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "eede14237559cc7fc05d60e4dcaa9b05069856547403cefdbfea1504fb9f1aa3"
+        },
+        {
+          "path": "results/current_campaign_results_20260910_e119_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "33642ed6388044a37078b2bc397f2dad1b3fc6b1a1afeaf26a82e796aa10d744"
+        },
+        {
+          "path": "results/current_campaign_results_20260910_e120_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "ebf39020cad6abba18cd6dcd3e947252626cd05bedf913b6bf6fd77d8565670f"
+        },
+        {
+          "path": "results/latest_results_20260910.json",
+          "before_sha256": null,
+          "after_sha256": "dbaaf327e1765cbf2dc2d39d64599b69b17333487efb44762ffc09709f4b9d60"
+        },
+        {
+          "path": "results/latest_results_20260910_effects_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "6e4d461e9c4b753aac6bce0290639d5920ec1aaf7322b528ecc309e27c2c1795"
+        },
+        {
+          "path": "results/latest_results_20260910_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "5079b6a2833f43a6da8aac5d60e3a9a81824a37ba751d6ca84476466216eeeb3"
+        },
+        {
+          "path": "results/level2_factorial_contrasts_20260910.json",
+          "before_sha256": null,
+          "after_sha256": "dc70a9901a84cadd7ccacfd3536efae7b6cd95ff77292223bfa92f886b5ec206"
+        },
+        {
+          "path": "results/level2_factorial_contrasts_20260910_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+        },
+        {
+          "path": "results/modebench_level_comparison_snapshot.json",
+          "before_sha256": "6238497463c1012016f6ebdf25d9ab4482eac50d62beefd1aae66f89e2e14753",
+          "after_sha256": "11f3b57cf0b3ee0933694f115c3c70d5e2d1e0c92aafe4e5abab14c3c71c79a0"
+        }
+      ],
+      "coverage": {
+        "e118": {
+          "terminal": 137,
+          "registered": 150,
+          "complete_blocks": 12,
+          "registered_blocks": 15,
+          "paired_seeds": 66
+        },
+        "e119": {
+          "terminal": 85,
+          "registered": 100,
+          "complete_blocks": 4,
+          "registered_blocks": 5
+        },
+        "e120": {
+          "terminal": 41,
+          "registered": 45,
+          "complete_blocks": 7,
+          "registered_blocks": 9
+        }
+      },
+      "figure6_matched_cells": 22,
+      "analysis_scope": "Exact step-3072 paired endpoints only; partial blocks have no five-seed intervals. Figure 6 alone uses matched interim checkpoints (Pantry 43:672 and 45:0). Weighting contrasts are uniform minus fresh-frequency; frozen Qwen-0.5B primary evidence preserved."
+    },
+    {
+      "date": "2026-09-11",
+      "reason": "User-requested E120 interpretation: key balancing is a contributor to broader correct output support; preserve domain and correctness limitations and every frozen result.",
+      "superseded_source_sha256": "ad718125fba12b715f9bf9f2e7e70e86710208dfc89a6445f0884b4c9dc0b170",
+      "corrected_source_sha256": "96023ab51c30b00b0057c91d255ed0a345dc6fb8b48a18d894a96ef72f9a3309",
+      "audit": "var/artifacts/e120_claim_revision_20260911/",
+      "scientific_results_changed": false
+    },
+    {
+      "date": "2026-09-11",
+      "reason": "User-requested links from short-paper results and reproducibility notes to the public model archive, experiment landing pages, and original comparator cohorts. Preserve existing E120 interpretation and all numerical evidence.",
+      "audit": "var/artifacts/paper_archive_links_20260911/short/verification.json",
+      "workshop_sources_before": {
+        "main.tex": "46a3b0ddc2ec59a0ff1852ca3c5d2c2ace2842dae52d61fb83a693db0f6210b4",
+        "appendix.tex": "0047ffdbb24eda7997a8f9a6204eac3f02882fe279881bd464e91b9f7e091391",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources_after": {
+        "main.tex": "3012ef8db32371014364ac307e7eab800f92cd72b6c3b984461cc34e18fc5d62",
+        "appendix.tex": "2261a41ae510934db2d8a5470e52b930b0b2b506d7f72b343f6ff0ae5ad97aef",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "scientific_results_changed": false,
+      "copied_assets_changed": false
+    },
+    {
+      "schema": "paper-workshop-asset-sync-v1",
+      "date": "2026-09-11",
+      "reason": "Refresh shared figures, full model inventory, and September 11 terminal result evidence",
+      "assets": [
+        {
+          "path": "example_paper.bib",
+          "before_sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+          "after_sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3"
+        },
+        {
+          "path": "figures/baseline_collapse_precheck.json",
+          "before_sha256": "3a6d185553a3846215d6d54c7956417df44f67780937b7ad2fd8fbdf6e17398c",
+          "after_sha256": "3a6d185553a3846215d6d54c7956417df44f67780937b7ad2fd8fbdf6e17398c"
+        },
+        {
+          "path": "figures/baseline_collapse_precheck.pdf",
+          "before_sha256": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+          "after_sha256": "e776295304f6f763e0aed39e554525710311c7a2c8a1046ec34dea1f32f95751"
+        },
+        {
+          "path": "figures/baseline_collapse_precheck.png",
+          "before_sha256": null,
+          "after_sha256": "09a0c58621b209630524a59c11f0d5ecb44de5a39d127da1906989ea1c930be5"
+        },
+        {
+          "path": "figures/current_campaign_results_20260911.pdf",
+          "before_sha256": null,
+          "after_sha256": "02e70332f95f6e5e6c0e1ce31c39c5d1cd428e45fd4d3f094ed9525e4ac29091"
+        },
+        {
+          "path": "figures/current_campaign_results_20260911.png",
+          "before_sha256": null,
+          "after_sha256": "29c477321277c0fffc923c5fe5e8a0d803ec6d488c6c9dbb1166438c02729684"
+        },
+        {
+          "path": "figures/direct_baseline_learning_curves_static_strip.json",
+          "before_sha256": "05206086602080a88d4f470d167984589e745ad918e1c7d5b14991d988d873d5",
+          "after_sha256": "09083df892a0ac58efe45f84e75e1ab3f43d11358e5a68f5da542889008b314b"
+        },
+        {
+          "path": "figures/direct_baseline_learning_curves_static_strip.pdf",
+          "before_sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+          "after_sha256": "d334564c235f8dde945ea0f8513259a415ba8b64e5f60e9ee306cf8b910085e8"
+        },
+        {
+          "path": "figures/direct_baseline_learning_curves_static_strip.png",
+          "before_sha256": null,
+          "after_sha256": "6a35826a4800ebff34a58c60322f9cb80953fe1588aa848da68d121849b6b8f4"
+        },
+        {
+          "path": "figures/direct_comparator_endpoint_effects.json",
+          "before_sha256": "00a2994663c3118d89cdf6a07a7b386f0672af7294d98726145f4d1f449ff8b2",
+          "after_sha256": "53cb67af8003499dda81e478e14349aacf51b8150c85ff50dcbf142c2b293957"
+        },
+        {
+          "path": "figures/direct_comparator_endpoint_effects.pdf",
+          "before_sha256": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+          "after_sha256": "3c2a3f23236e1eb52057b2210089e21c1e620b432c5c8a50588dde71ccabeaa7"
+        },
+        {
+          "path": "figures/direct_comparator_endpoint_effects.png",
+          "before_sha256": null,
+          "after_sha256": "c47e3c8537af74bccaf711021ade1b81d4176d0249ae0a7d5801b8faa2a92622"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.json",
+          "before_sha256": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418",
+          "after_sha256": "5701e01955091b0ba32e22eef50e6f48a50f9119c46b397fc0bcd0b610a43f2a"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.pdf",
+          "before_sha256": "e583f0d95be3dba8b72dd5cafd15013a0b304049c2cdbc25d85a42c9659945fb",
+          "after_sha256": "4595e5b7e69fbd15f41e0c1e8718387c9afb18305c3ad323c7048bd03f98630f"
+        },
+        {
+          "path": "figures/e118_all_scale_factorial_progress.png",
+          "before_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+          "after_sha256": "e2a3789242f9823b4416ff3dca05b7f21fed836cbb06dbd84735a5ca73eb49ec"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.json",
+          "before_sha256": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418",
+          "after_sha256": "5701e01955091b0ba32e22eef50e6f48a50f9119c46b397fc0bcd0b610a43f2a"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.pdf",
+          "before_sha256": "d44bf9aea89ef774e8ef3976629b0a47a94d2a02ba10eb328f5ca179a5423bd6",
+          "after_sha256": "76386cc2b480e52faac19e2352daefa3e584fc98344b1912f547cec9579c0bdf"
+        },
+        {
+          "path": "figures/e118_scale_extensions_appendix.png",
+          "before_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+          "after_sha256": "f36cbc21f0fcbf0ede653b4fcda55f3440788973119bafbfef3cd8f5e45ca8a6"
+        },
+        {
+          "path": "figures/e121_fixed_bank_survival.pdf",
+          "before_sha256": "f09e296026e22c742b261cda0fad019e4b6e42b81bf5190ec34b1be0a32183b2",
+          "after_sha256": "1bd7c1e98054d4512a1e3275f6344e800358929efa561a1864c932dbb1652654"
+        },
+        {
+          "path": "figures/e121_fixed_bank_survival.png",
+          "before_sha256": null,
+          "after_sha256": "c675e0f5129da0f6f0078c89776666f7ce28b1d4387d27c0ced46ffd8c23a5ee"
+        },
+        {
+          "path": "figures/experiment1_retention_comparator_matrix.json",
+          "before_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+          "after_sha256": "73526b2451d28d94cde028bc3896c5539163f7c009007e6085976fa4f5e72416"
+        },
+        {
+          "path": "figures/experiment1_retention_comparator_matrix.pdf",
+          "before_sha256": "4f877601012512072ab8bc1473650f767e6260b35c1abbc2500605fa0ece9b66",
+          "after_sha256": "e9befbbc6a3853755927c455997941172fc3c2232fffe03b3a9a677df8891356"
+        },
+        {
+          "path": "figures/experiment1_retention_comparator_matrix.png",
+          "before_sha256": "8c6c2a07970126674b88667a1fe7ee91aa78b9508ab1fe54d5625ffd0435df3a",
+          "after_sha256": "d906a9b53d1ca11bc1c4b9c86d054aeb6f7011fcc644e542705a6f249170370e"
+        },
+        {
+          "path": "figures/modebench_examples.pdf",
+          "before_sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+          "after_sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6"
+        },
+        {
+          "path": "figures/modebench_examples.png",
+          "before_sha256": null,
+          "after_sha256": "d4a50e1d975599027ec3c5ea287c0e37e6f3ede1ace380d54e3772578bb84544"
+        },
+        {
+          "path": "figures/modebench_level_admission.json",
+          "before_sha256": "21af1b6a793145cdfd8180f0d8050d110b2ded910755a6358965df215ab6d6f0",
+          "after_sha256": "4f7e2b5f1431b119192209b9dfdc522736038c201d389f0f78deb067306763ca"
+        },
+        {
+          "path": "figures/modebench_level_admission.pdf",
+          "before_sha256": "1c3b82c357d158e0cb276a0ed7689d26f4ee59abd9f7055fd6adb69115f9b61a",
+          "after_sha256": "9578fb3d1d9cb1cda17a6674d0faee70803651bea863c083b5f410a040c5149a"
+        },
+        {
+          "path": "figures/modebench_level_admission.png",
+          "before_sha256": "3780b23d09132308787b10ac53bcb8daf1eb8497c95fcd4a2b64f59183b11167",
+          "after_sha256": "d1b798a07c5be94154347d1131e4b1f77d3ac6cedb470b532894e5ab1939ef34"
+        },
+        {
+          "path": "figures/modebench_level_terminal_by_domain.json",
+          "before_sha256": null,
+          "after_sha256": "1c47100f7131385e958d3f1b1073ffb460b9c99cac031799a09e32e33ffe672b"
+        },
+        {
+          "path": "figures/modebench_level_terminal_by_domain.pdf",
+          "before_sha256": null,
+          "after_sha256": "10190ff5cdb73091bb8fe550877d8d656fe88dd70abd955be06bd352ccb07306"
+        },
+        {
+          "path": "figures/modebench_level_terminal_by_domain.png",
+          "before_sha256": null,
+          "after_sha256": "1fc1f9baa891cf9b47e0c39990dde11c060fbbcb5e34011b0e0fa4596b208ced"
+        },
+        {
+          "path": "figures/modecollapse_story.pdf",
+          "before_sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+          "after_sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965"
+        },
+        {
+          "path": "figures/modecollapse_story.png",
+          "before_sha256": null,
+          "after_sha256": "4678c5e7422cb529484f1e580dce798946e1ecc48461beb4951e2dc2758b4b8f"
+        },
+        {
+          "path": "figures/replay_mechanism_telemetry_qwen05b.json",
+          "before_sha256": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+          "after_sha256": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf"
+        },
+        {
+          "path": "figures/replay_mechanism_telemetry_qwen05b.pdf",
+          "before_sha256": "0b5fc1554fedaa0ef47d9f1503da7021422e6eeffe840ec65a3dd9d8f0aa2915",
+          "after_sha256": "138071a257d266493c650363d1751d3e96af61ffb03af1561c153d4b70c636dc"
+        },
+        {
+          "path": "figures/replay_mechanism_telemetry_qwen05b.png",
+          "before_sha256": null,
+          "after_sha256": "25786aa59e5b603585999a5d295f8841ce5d95ec705811194209b21db08705f5"
+        },
+        {
+          "path": "figures/sustained_auc_effects_qwen05b.json",
+          "before_sha256": "937bea939e93ab33731322c0ca752a62d14e90d8b061d69424f66e0810031cf7",
+          "after_sha256": "937bea939e93ab33731322c0ca752a62d14e90d8b061d69424f66e0810031cf7"
+        },
+        {
+          "path": "figures/sustained_auc_effects_qwen05b.pdf",
+          "before_sha256": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba",
+          "after_sha256": "a227d6ab5c2a00d09abd81ffa2e6a0612611b2496921a8dcb58016847b40104c"
+        },
+        {
+          "path": "figures/sustained_auc_effects_qwen05b.png",
+          "before_sha256": null,
+          "after_sha256": "93c2332c4e996aa157383286df378581879e5a1c6c18b54460009e91e15a169c"
+        },
+        {
+          "path": "figures/verified_support_discovery_two_scale_effects.json",
+          "before_sha256": "595bebe294aa8f528adb024c9f05f9fe64716aada4055e0fc9f9538c6165fd2c",
+          "after_sha256": "595bebe294aa8f528adb024c9f05f9fe64716aada4055e0fc9f9538c6165fd2c"
+        },
+        {
+          "path": "figures/verified_support_discovery_two_scale_effects.pdf",
+          "before_sha256": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a",
+          "after_sha256": "0225de0d0f9de185cec423448f7e2d6342e4b44c72a445e3514799d69f48d3a4"
+        },
+        {
+          "path": "figures/verified_support_discovery_two_scale_effects.png",
+          "before_sha256": null,
+          "after_sha256": "6154a51d25bfebd55a41279dbe4f57ce3cb94a703655907e06b0cb93bc718d25"
+        },
+        {
+          "path": "figures/verified_support_story.pdf",
+          "before_sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+          "after_sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09"
+        },
+        {
+          "path": "figures/verified_support_story.png",
+          "before_sha256": null,
+          "after_sha256": "a3f15173854e68ac18b3687f5ccf60f4ecf0333632622072454fb728eeec0ec7"
+        },
+        {
+          "path": "results/absolute_support_references_table_body.tex",
+          "before_sha256": "c42b4c64d6d2c743bd99a2e87eddc8a280ce4760420b72a660f09e04dd518f31",
+          "after_sha256": "c42b4c64d6d2c743bd99a2e87eddc8a280ce4760420b72a660f09e04dd518f31"
+        },
+        {
+          "path": "results/baseline_collapse_precheck_table_body.tex",
+          "before_sha256": "1e5b8fce5f904a2bb50082e2fa86e5239af40f2f256674e854324c9fe1b693a9",
+          "after_sha256": "1e5b8fce5f904a2bb50082e2fa86e5239af40f2f256674e854324c9fe1b693a9"
+        },
+        {
+          "path": "results/core_terminal_endpoints_table_body.tex",
+          "before_sha256": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189",
+          "after_sha256": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189"
+        },
+        {
+          "path": "results/current_campaign_results_20260911.csv",
+          "before_sha256": null,
+          "after_sha256": "49fa021a435b9ae664c5cfaa662fe953df5ff14de2eccc47a0319139a7ec81b3"
+        },
+        {
+          "path": "results/current_campaign_results_20260911.json",
+          "before_sha256": null,
+          "after_sha256": "58a05aece8afc320ff37814d9bd85c3c67ab57894307731c28cc38d443307383"
+        },
+        {
+          "path": "results/current_campaign_results_20260911.md",
+          "before_sha256": null,
+          "after_sha256": "82130ea482a9abf7012fa42bd81b774e40b09e735e005228954d01bd93447441"
+        },
+        {
+          "path": "results/current_campaign_results_20260911_coverage_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "076161612ba20d7d328121feab970129bf91a5b43f74970f8902fe71a1dabe2e"
+        },
+        {
+          "path": "results/current_campaign_results_20260911_e118_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "e421d132cefcabfbd9815dc86a615487bcabda616f841f401d6f367a541fbcb0"
+        },
+        {
+          "path": "results/current_campaign_results_20260911_e119_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "fbdcaa26882b86ae86091a5c84a08e20c6da6282ee1314fb52c3802a13679bbe"
+        },
+        {
+          "path": "results/current_campaign_results_20260911_e120_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "601551d7aeae0153706005379e62720599f8b5aed1419a07fb0724380a89929d"
+        },
+        {
+          "path": "results/e118_qwen3b_python_terminal_table_body.tex",
+          "before_sha256": "ee75d8db4f82dfe186c41572040ea0f1fde9aa334ef58414d951be19280302cc",
+          "after_sha256": "ee75d8db4f82dfe186c41572040ea0f1fde9aa334ef58414d951be19280302cc"
+        },
+        {
+          "path": "results/e120_falcon_graph_20260906_seeds_table_body.tex",
+          "before_sha256": "75a7d17b21705887a837ebcff4644b3dab7df83a1f3eaa7ad638d4d35b6fb028",
+          "after_sha256": "75a7d17b21705887a837ebcff4644b3dab7df83a1f3eaa7ad638d4d35b6fb028"
+        },
+        {
+          "path": "results/e120_falcon_graph_20260906_table_body.tex",
+          "before_sha256": "367ce21b638d06d51358103b0221d0b8b1b852eb6f0cac049d48494b32e9b045",
+          "after_sha256": "367ce21b638d06d51358103b0221d0b8b1b852eb6f0cac049d48494b32e9b045"
+        },
+        {
+          "path": "results/e120_frequency_progress_table_body.tex",
+          "before_sha256": "d353706bda93667ceeac8749cee16ced53a4f182e3d7e425c57749acc93679bd",
+          "after_sha256": "d353706bda93667ceeac8749cee16ced53a4f182e3d7e425c57749acc93679bd"
+        },
+        {
+          "path": "results/e120_primary_breadth_seeds_table_body.tex",
+          "before_sha256": "5456f09ac2513402736088191c41751a1083e9ab6dcc11ff43343519513c2f15",
+          "after_sha256": "5456f09ac2513402736088191c41751a1083e9ab6dcc11ff43343519513c2f15"
+        },
+        {
+          "path": "results/e120_primary_breadth_table_body.tex",
+          "before_sha256": "e60e9df5ca6bc24ee9b2e42f8eca5664ed6e114d2fca36f86faa4f50af3ad589",
+          "after_sha256": "e60e9df5ca6bc24ee9b2e42f8eca5664ed6e114d2fca36f86faa4f50af3ad589"
+        },
+        {
+          "path": "results/e121_fixed_bank_survival_bootstrap_table_body.tex",
+          "before_sha256": "0282f253e549620dfed79707561380b7c634d5f91002455bcea1a7cba7f75cce",
+          "after_sha256": "0282f253e549620dfed79707561380b7c634d5f91002455bcea1a7cba7f75cce"
+        },
+        {
+          "path": "results/e121_fixed_bank_survival_sequence_table_body.tex",
+          "before_sha256": "35bafe5bc916f448873965e3cb29547e7c01c9eea2b3cb6b45c085314b6af95d",
+          "after_sha256": "35bafe5bc916f448873965e3cb29547e7c01c9eea2b3cb6b45c085314b6af95d"
+        },
+        {
+          "path": "results/e121_fixed_bank_survival_table_body.tex",
+          "before_sha256": "bad19eb78ba198240bf5cbc850f006e358e4f1afbe6be9dd9e6200c992b2ce3d",
+          "after_sha256": "bad19eb78ba198240bf5cbc850f006e358e4f1afbe6be9dd9e6200c992b2ce3d"
+        },
+        {
+          "path": "results/latest_results_20260911.json",
+          "before_sha256": null,
+          "after_sha256": "4e9733ccb53cc09534a1c08b4cb6c8aa0ba089c6ffc1fb29dc60e81a6db1b7e0"
+        },
+        {
+          "path": "results/latest_results_20260911_effects_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "6e4d461e9c4b753aac6bce0290639d5920ec1aaf7322b528ecc309e27c2c1795"
+        },
+        {
+          "path": "results/latest_results_20260911_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "fa175af6467c6cba2653593a18441de597e44ccb0a48aba20cc676ecad88cfec"
+        },
+        {
+          "path": "results/level2_factorial_contrasts_20260911.json",
+          "before_sha256": null,
+          "after_sha256": "a05f353a34f0c0b54c149fb55c2c739f48b88f3b0c473563d71072d1185fb3f1"
+        },
+        {
+          "path": "results/level2_factorial_contrasts_20260911_table_body.tex",
+          "before_sha256": null,
+          "after_sha256": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+        },
+        {
+          "path": "results/modebench_level_comparison_snapshot.json",
+          "before_sha256": "11f3b57cf0b3ee0933694f115c3c70d5e2d1e0c92aafe4e5abab14c3c71c79a0",
+          "after_sha256": "9ee8bc6a06f5adebdf4bc239658970ec3301bcb21588b7f6fdf8d75a63af49ca"
+        }
+      ],
+      "source_sha256_before": "96023ab51c30b00b0057c91d255ed0a345dc6fb8b48a18d894a96ef72f9a3309",
+      "source_sha256_after": "f9924ffab8db6c4492a78505828211c5353b1ae035d591ea19c26a40dbf20eed",
+      "workshop_sources_before": {
+        "main.tex": "3012ef8db32371014364ac307e7eab800f92cd72b6c3b984461cc34e18fc5d62",
+        "appendix.tex": "2261a41ae510934db2d8a5470e52b930b0b2b506d7f72b343f6ff0ae5ad97aef",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "workshop_sources_after": {
+        "main.tex": "53afd7aaeffa7fcc3c0524a0d13b9ac8b1afd586c5d706b4ab9bd7743e7e51b4",
+        "appendix.tex": "86d9a34efb2ca8fb58a14eca6781a0a151e7a81fc0842517197180c2394dd5ae",
+        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+      },
+      "audit": "paper/audits/figure_refresh_20260911/workshop_sync",
+      "recorded_at_utc": "2026-09-11T06:55:16.504556+00:00"
+    }
+  ],
+  "workshop_title": "More than One Way to Skin a Cat: Preserving Verified Modes in RLVR",
+  "presentation_history": [
+    {
+      "date": "2026-09-05",
+      "reason": "Remove the Figure 4 in-graphic paired-seed footnote and add 5pt below the panel B heading; the caption retains the paired-seed explanation.",
+      "file": "figures/experiment1_retention_comparator_matrix.pdf",
+      "superseded_sha256": "b2774ba4595e05bf42c6154fa0797dc8eae12beb651765859a801fd1f5efea1c",
+      "updated_sha256": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb",
+      "unchanged_data_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+      "renderer": "ops/exp_scaling/plot_paper_experiment1_composite.py"
+    },
+    {
+      "date": "2026-09-06",
+      "reason": "Separate adjacent Countdown/Python tick labels and preserve the panel B heading gap.",
+      "file": "figures/experiment1_retention_comparator_matrix.pdf",
+      "superseded_sha256": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb",
+      "updated_sha256": "4f877601012512072ab8bc1473650f767e6260b35c1abbc2500605fa0ece9b66",
+      "unchanged_data_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+      "renderer": "ops/exp_scaling/plot_paper_experiment1_composite.py"
+    },
+    {
+      "date": "2026-09-06",
+      "reason": "Move the capacity annotation inside panel B below the title.",
+      "file": "figures/replay_mechanism_telemetry_qwen05b.pdf",
+      "superseded_sha256": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14",
+      "updated_sha256": "0b5fc1554fedaa0ef47d9f1503da7021422e6eeffe840ec65a3dd9d8f0aa2915",
+      "unchanged_data_sha256": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+      "renderer": "ops/exp_scaling/plot_paper_replay_mechanism_telemetry.py"
+    },
+    {
+      "date": "2026-09-06",
+      "reason": "Figure 6B compares Level 1 and Level 2 across all five domains at matched checkpoints; Pantry is explicitly initial-only. Frozen selection independently verified.",
+      "file": "figures/modebench_level_admission.pdf",
+      "superseded_sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+      "updated_sha256": "8c220afd8a34e4bc2f182463a9d58b915f95b3b7e32bb73aba2755fe986108eb",
+      "audit": "paper/audits/figure6_all_domain_interim_20260906/independent_validation.json"
+    },
+    {
+      "date": "2026-09-06",
+      "reason": "Figure 6B compares Level 1 and Level 2 across all five domains at matched checkpoints; Pantry is explicitly initial-only. Frozen selection independently verified.",
+      "file": "figures/modebench_level_admission.json",
+      "superseded_sha256": "33316b0553134d08c9952253e258b5ad74d96846381f19d049e707b43ff8e611",
+      "updated_sha256": "6f27cb5b4380f840ad112742dba72e5e71b15a8c66b4c9761e8e8f85436ce257",
+      "audit": "paper/audits/figure6_all_domain_interim_20260906/independent_validation.json"
+    },
+    {
+      "date": "2026-09-06",
+      "reason": "Figure 6B compares Level 1 and Level 2 across all five domains at matched checkpoints; Pantry is explicitly initial-only. Frozen selection independently verified.",
+      "file": "results/modebench_level_comparison_snapshot.json",
+      "superseded_sha256": null,
+      "updated_sha256": "3439418b62456f1c7ff424d450886016a491ce9085f185cb465d851cc6fd8ad4",
+      "audit": "paper/audits/figure6_all_domain_interim_20260906/independent_validation.json"
+    }
+  ],
+  "workshop_sources": {
+    "main.tex": "53afd7aaeffa7fcc3c0524a0d13b9ac8b1afd586c5d706b4ab9bd7743e7e51b4",
+    "appendix.tex": "86d9a34efb2ca8fb58a14eca6781a0a151e7a81fc0842517197180c2394dd5ae",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+  }
+}

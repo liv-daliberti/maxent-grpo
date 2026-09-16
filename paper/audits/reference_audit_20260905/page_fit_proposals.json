@@ -1,0 +1,62 @@
+{
+  "scope": "Proposals only; no TeX edits or build performed. Only paragraphs changed by the reference audit are targeted. Rendered-line savings require the final build; word savings are a rough guide.",
+  "first_four_total_words_saved": 85,
+  "all_five_total_words_saved": 96,
+  "proposals": [
+    {
+      "section": "introduction opening",
+      "source_line": 134,
+      "old_text": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation \\citep{guo2025deepseekr1}.\nPrior work reports declining policy entropy and output diversity during\nreasoning RL \\citep{cui2025entropy,dang2025diversity}. A conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. We show that accuracy can rise while support\nover distinct verified output modes contracts. Repeated sampling and\nverifier-guided selection use multiple proposals\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nConcentration on one correct mode leaves fewer verified alternatives for a\nselector; it need not reduce pass@$K$ at fixed per-sample correctness.\n",
+      "proposed_text": "Reinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{guo2025deepseekr1}. Reasoning RL can reduce policy\nentropy and output diversity \\citep{cui2025entropy,dang2025diversity}.\nA correctness-only reward treats repeated and distinct successes alike; we\nshow that accuracy can rise while verified-mode support contracts.\nRepeated sampling supplies proposals for verifier-guided selection\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nConcentration leaves fewer verified alternatives, without necessarily reducing\npass@$K$ at fixed per-sample correctness.\n",
+      "old_whitespace_word_count": 87,
+      "proposed_whitespace_word_count": 62,
+      "words_saved": 25,
+      "same_citations_in_same_order": true,
+      "optional": false
+    },
+    {
+      "section": "related work: verifiable support",
+      "source_line": 213,
+      "old_text": "Repeated sampling and verifier-guided selection depend on the proposal\ndistribution \\citep{brown2024monkeys,snell2024testtime}. Prior work reports\nreduced sampled output diversity under RLHF or reasoning RL\n\\citep{kirk2024understanding,dang2025diversity}, declining policy entropy\n\\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR\nmodels \\citep{yue2025rlvrlimit}. These measures differ from within-prompt\nexecution-key breadth. Semantic clustering infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key.\n\n",
+      "proposed_text": "Sampling-based selection depends on the proposal distribution\n\\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output\ndiversity under RLHF or reasoning RL \\citep{kirk2024understanding,dang2025diversity},\ndeclining policy entropy \\citep{cui2025entropy}, and reduced high-budget problem\ncoverage for tested RLVR models \\citep{yue2025rlvrlimit}. These metrics differ from\nwithin-prompt execution-key breadth. Semantic clustering infers answer\nequivalence \\citep{farquhar2024detecting}; \\mb{} defines keys by accepting execution.\n\n",
+      "old_whitespace_word_count": 69,
+      "proposed_whitespace_word_count": 53,
+      "words_saved": 16,
+      "same_citations_in_same_order": true,
+      "optional": false
+    },
+    {
+      "section": "related work: replay and persistent memory",
+      "source_line": 233,
+      "old_text": "Experience replay reuses past experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP reuses successful\nreasoning trajectories \\citep{zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Novelty search rewards behavioral novelty\n\\citep{lehman2011novelty}, while MAP-Elites retains one elite per behavior-descriptor\ncell \\citep{mouret2015illuminating}. Our replay bank uses the execution key\nas the descriptor inside a policy-gradient update.\n\n",
+      "proposed_text": "Replay reuses experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP replays successful reasoning\ntrajectories \\citep{zhang2025rlep}. ReplayDr.GRPO retains one exemplar per executed\nkey and samples keys uniformly, regardless of discovery frequency.\nNovelty search rewards behavioral novelty \\citep{lehman2011novelty}; MAP-Elites\nretains one elite per descriptor cell \\citep{mouret2015illuminating}.\nOur replay bank uses execution keys as descriptors within policy-gradient updates.\n\n",
+      "old_whitespace_word_count": 74,
+      "proposed_whitespace_word_count": 54,
+      "words_saved": 20,
+      "same_citations_in_same_order": true,
+      "optional": false
+    },
+    {
+      "section": "mechanism opening",
+      "source_line": 321,
+      "old_text": "A binary reward identifies success but is indifferent among successful keys.\nGRPO \\citep{shao2024deepseekmath} and Dr.GRPO \\citep{liu2025understanding}\ncenter that reward within each sampled group, assigning every\ncorrect response the same task credit regardless of its execution key. Key\nfrequency is therefore the remaining asymmetry: a common correct mode appears\nin more updates, while an absent mode supplies no direct signal.\n\n",
+      "proposed_text": "GRPO \\citep{shao2024deepseekmath} and Dr.GRPO \\citep{liu2025understanding}\ncenter binary rewards within sampled groups, giving correct responses equal\ntask credit regardless of execution key. Common correct modes therefore appear\nin more updates; absent modes supply no direct signal.\n\n",
+      "old_whitespace_word_count": 59,
+      "proposed_whitespace_word_count": 35,
+      "words_saved": 24,
+      "same_citations_in_same_order": true,
+      "optional": false
+    },
+    {
+      "section": "optional MaxRL estimator explanation",
+      "source_line": 450,
+      "old_text": "When successes are scarce, their weight increases; failures receive $-1$.\nAll-failure and all-success groups have zero task advantage. This is the\ncentered binary MaxRL estimator \\citep{tajwar2026maxrl}. Lemma~\\ref{lem:maxrl-mean}\nderives its on-policy mean objective over budgets $k=1,\\ldots,G-1$.\nIt is applied only to fresh on-policy rows.\n\n",
+      "proposed_text": "Applied only to fresh on-policy rows, this centered binary MaxRL estimator\n\\citep{tajwar2026maxrl} assigns failures $-1$ when $m>0$ and zero advantages\nto all-failure or all-success groups. Lemma~\\ref{lem:maxrl-mean} derives its\nmean objective for $k=1,\\ldots,G-1$.\n\n",
+      "old_whitespace_word_count": 43,
+      "proposed_whitespace_word_count": 32,
+      "words_saved": 11,
+      "same_citations_in_same_order": true,
+      "optional": true
+    }
+  ]
+}

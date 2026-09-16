@@ -1,0 +1,25 @@
+{
+  "fragment_sha256": {
+    "semantic.tex": "d22d0adac5174dca7bd63c629695dbfc1406a5886c7faee7fa54c3f6c7f8b090",
+    "short_disclosures.tex": "c3b6528567ac78b2ee558b361a101f4a7bf9e8ebf63b8f6352f9c02f66d79fbb",
+    "mechanism.tex": "e8cd48639ece7d479c487be3a19be51403289e306606d04dcb0e858d5f42054d",
+    "theory.tex": "a7294308fb10c50cc375360d3822b23fd66bc515dda9d32c82e23bb6b8eac50d",
+    "short_frontmatter.tex": "b7641f4822e46a10cae0bd84e196cd7d77eb500792a098a33c62f050d22290f9",
+    "algorithm.tex": "3ed3bf328bb990e19b5a351f698642a3e3e81f2f1a7c8e3c635cd664ea806659",
+    "reproducibility.tex": "a4fe9a012683b86930dfd3f2c458b5076c9b33bdeb36c44353cdc721ecb9dedd",
+    "results.tex": "8cfef41ef67d3cfd25d78bca0991957ed3d40ded073fdbec7d7481e398d8b8cb",
+    "benchmark.tex": "2188d82cd28dace8bbd31d26701e0d4180c54d58ff2b784a6270e844293db7ba"
+  },
+  "active_figures": 15,
+  "supplementary_figures": 9,
+  "removed_figures": [
+    "sustained_auc_effects_qwen05b",
+    "verified_support_discovery_two_scale_effects",
+    "replay_mechanism_telemetry_qwen05b"
+  ],
+  "assembled_source_sha256": {
+    "paper/main.tex": "c0cdc1a1313fed695278bf2d98a542e5dcccadadd760458fd4f39e8290503a91",
+    "paper/mathai2026/main.tex": "7319d6046671725ea1566f620c19f3688cf39987612a254b9474965fc4cc201a",
+    "paper/mathai2026/appendix.tex": "ae2ee9db301beaecd2844771006b8d641798349044376e41b437edf140b2c5ae"
+  }
+}

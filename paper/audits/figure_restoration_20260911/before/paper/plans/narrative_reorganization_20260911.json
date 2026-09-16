@@ -1,0 +1,10 @@
+{
+  "status": "proposal_written",
+  "manuscripts_modified": false,
+  "evaluations_launched": false,
+  "base_validation": "paper/audits/claim_theory_alignment_20260911/final_validation.json",
+  "plans": {
+    "paper/plans/narrative_reorganization_20260911.md": "215318ce892201809d76eaf42e485a7036bfacf8611337b524177afa1da0961b",
+    "paper/plans/crosslevel_evidence_and_options_20260911.md": "adddae36734f93b821e46c5d650e9313638a920b312cf158d45a14b3d25fa365"
+  }
+}

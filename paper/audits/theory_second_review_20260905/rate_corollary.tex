@@ -1,0 +1,47 @@
+\begin{corollary}[Collapse rate as correctness approaches one]
+\label{cor:collapse-error-rate}
+Under Theorem~\ref{thm:shared-correctness}, fix finite $\lambda\ge0$
+and suppose the initial correct-mode maximum is unique. For every other
+correct mode $c$,
+\begin{equation}
+ \lim_{P\uparrow1}\frac{\log q_c^{(\lambda)}(P)}{\log(1-P)}
+ =\frac{1}{\lambda+1+1/n}.
+ \label{eq:collapse-error-exponent}
+\end{equation}
+Thus $q_c^{(\lambda)}(P)=(1-P)^{1/(\lambda+1+1/n)+o(1)}$:
+larger fixed $\lambda$ reduces the decay exponent, but every minority mode
+still vanishes. This is a logarithmic asymptotic relation, not an exact
+finite-accuracy power law.
+\end{corollary}
+
+\begin{proof}
+Theorem~\ref{thm:shared-correctness} gives $q\to\mathbf e_{c^\star}$,
+so $S_q\to1$. The incorrect conditional flow in
+Equation~\eqref{eq:shared-correctness-clock} preserves ordering and makes
+$r_{\min}$ nondecreasing. For $h=\log(r_{\max}/r_{\min})$,
+\[
+ h'=-(r_{\max}-r_{\min})
+ =-r_{\min}(e^h-1)\le-r_{\min}(0)h.
+\]
+Hence $r\to(1/n,\ldots,1/n)$ and $S_r\to1/n$, including trivially $n=1$.
+Integrating $d\log q_c/d\tau=q_c-S_q$ and the correctness-clock equation
+and taking time averages yields
+\[
+ \frac{\log q_c(\tau)}{\tau}\to-1,
+ \qquad
+ \frac{\log(P(\tau)/(1-P(\tau)))}{\tau}
+ \to\lambda+1+1/n.
+\]
+Since $\log(1-P)=\log P-\log(P/(1-P))$ and $\log P\to0$, their ratio proves
+Equation~\eqref{eq:collapse-error-exponent}.
+\end{proof}
+
+\paragraph{Correctness alone does not imply collapse.}
+The independent-logit component matters. With purely shared geometry
+$\mathsf K=\lambda vv^\top$, $\lambda>0$, all correct logits move equally,
+so $q(t)=q(0)$ while
+$\dot P=\lambda c_G(P)P^2(1-P)^2>0$ and $P\to1$.
+For $\mathsf K=aI+bvv^\top$ with fixed $a>0$ and $b\ge0$, time rescaling
+instead recovers Theorem~\ref{thm:shared-correctness} with $\lambda=b/a$.
+Thus persistent mode-specific amplification, not increasing correctness by
+itself, drives this collapse result.

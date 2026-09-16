@@ -1,0 +1,72 @@
+{
+  "status": "editorial_changes_validated_full_grid_pending",
+  "long_main_pages": 9,
+  "workshop_main_pages": 4,
+  "terminal_comparison": "frozen cohort and values unchanged; historical development admission no longer plotted",
+  "requested_grid": {
+    "domains": 5,
+    "levels": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "qwen_sizes": [
+      "0.5B",
+      "3B",
+      "7B",
+      "14B"
+    ],
+    "points": 100,
+    "ready_for_collection": 60,
+    "blocked_on_admitted_test_release": 40,
+    "registry": "artifacts/modebench_base_level_grid_20260911/registry.json",
+    "collection_status": "artifacts/modebench_base_level_grid_20260911/collection_status.json",
+    "submitted_jobs": {
+      "other_models": 31252444,
+      "pilot14b": 31252443,
+      "remaining14b": 31252445
+    },
+    "validated_complete_cells_at_check": 1,
+    "first_cell_original_grader_replay": {
+      "attempts": 4096,
+      "discrepancies": 0
+    },
+    "first_real_plot_preview": "artifacts/modebench_base_level_grid_20260911/first_measurement_preview.png"
+  },
+  "temperature_expansion": {
+    "status": "user_choice_pending_no_api_calls",
+    "proposed_prompts": 480,
+    "additional_requests": 14400
+  },
+  "files": {
+    "paper/main.tex": "3ff9a2cfe154737f522883573c8e289fbc07cef9410a6fc21eb76e895f5d3332",
+    "paper/main.pdf": "4fab49c6df97041fbd2f4624b11975db5af397fea5f84862808b696da5cb3403",
+    "paper/main-with-figures.pdf": "4fab49c6df97041fbd2f4624b11975db5af397fea5f84862808b696da5cb3403",
+    "paper/main-body.pdf": "57c55ce714115b0541121478ad56ea4b120472aaca532e43b602c71a8aea3eb9",
+    "paper/mathai2026/main.tex": "a1f4d8b45a19c8f2a482984107477ae51b1161420718df9bafd537baf6dd1ec4",
+    "paper/mathai2026/appendix.tex": "80b6cfac95429696250f47f2e1b8e75d9f30b453ad25d30646572a1167ba4685",
+    "paper/mathai2026/main.pdf": "a489b39a30e769ce374bdf972b1608b150401db1bc6c8f9809c3ddc1dc3abf5e",
+    "paper/mathai2026/mathai2026-source.zip": "38e5efe1b1900fe6c24310a4915e23f22cf7478ff495c950f203559e18bcd4b0",
+    "paper/figures/modebench_level_admission.pdf": "8030573144c704d40c64a2e99032c1db7331c1c99aafa423e8c76fb7a48173f8",
+    "paper/figures/modebench_level_admission.png": "bbcc3eaaf2b6a883f689a7d55b25386e9720baa5ddfb6b542774bbc79be09efd",
+    "paper/figures/modebench_level_admission.json": "c0dc2755796fd5bf41dae8f3dc942a35de861d60e4271d07a1f671dfa4b2a39e",
+    "ops/exp_scaling/plot_paper_modebench_levels.py": "83d42ec69a699ebcb7bd022777b48034a5b02e128963d115b152921447a1ae1b",
+    "ops/evaluate_modebench_base_grid.py": "016f740d1ed35094899592dc9f3b22f4d5287682ad8e6893acb098e5f31448d8",
+    "ops/plot_paper_modebench_base_grid.py": "3eb91a2ad9f0c2bca442fb716cc444d104890c54b1a3da47b81d0b96d3f75a5f",
+    "artifacts/modebench_base_level_grid_20260911/registry.json": "381dd2bfc6020dd150a771c8b1e92bae330a24abacbd98834407d4cf37f4bbde",
+    "artifacts/modebench_base_level_grid_20260911/collection_v3/plan.json": "edb5e50f00f4cc03c470648924e66dc896ed57b13de87714cc1117ab3908cb4b",
+    "artifacts/modebench_base_level_grid_20260911/collection_v3/independent_preflight_audit.json": "0133872288a5e12d530a45da4654249d97c15d8ba05b8458558b3c09352afd75",
+    "artifacts/modebench_base_level_grid_20260911/figure_tests.log": "9484d74b2d56ac46237a57c62f7b69b9fe694a8616f415b57da8cefa0a6a7c15",
+    "artifacts/modebench_base_level_grid_20260911/collection_v3/startup_observations_20260912T001325Z.json": "45343090a4d8e48901753b3a4aa29c951fad75030400ffc4da79926c34732d43",
+    "artifacts/modebench_base_level_grid_20260911/first_measurement_preview.json": "0faf4867382e05362e1cd0b50d717a07b9ad7cee4a0f70b00ffdc6d9a74b38b7",
+    "artifacts/modebench_base_level_grid_20260911/figure_source_first_measurement.json": "cdd5fbd8c4935afa01148d438326fe5702edf1349ed905909eb56ef4e95c0417"
+  },
+  "validation_tests": {
+    "editorial_and_sync": 53,
+    "terminal_comparison": 17,
+    "base_grid_evaluator_and_unchanged_helpers": 77,
+    "base_grid_figure": 27
+  }
+}

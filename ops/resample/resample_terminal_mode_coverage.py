@@ -45,15 +45,25 @@ ENGINE_CONTRACT = {'vllm_version': '0.8.4', 'engine': 'V0',
 
 
 def receipt_stamp(cell: dict) -> str:
-    """Identify a receipt uniquely, including the level it was evaluated on.
+    """Identify a receipt uniquely: the level it was evaluated on, and the
+    context it was read under.
 
     Without the level, a Level-3 measurement of a cell writes to the same name
     as its Level-1 measurement: the second is skipped as already done, or worse
     overwrites the first. The same policy measured on two test sets is two
     results, not one.
+
+    The same argument applies to the context. A cell measured on a widened
+    surface is a different measurement from the same cell on the trained one,
+    and the two have to be able to coexist -- otherwise the narrow proof holds
+    the name and the widened surface can never be proven at all. Only widened
+    cells carry the suffix, so every existing receipt keeps its name.
     """
-    return '__'.join((str(cell['level']), str(cell['scale']), str(cell['domain']),
-                      str(cell['method']), f"s{cell['seed']}"))
+    parts = [str(cell['level']), str(cell['scale']), str(cell['domain']),
+             str(cell['method']), f"s{cell['seed']}"]
+    if cell.get('context_widening'):
+        parts.append(f"w{cell['eval_config']['max_model_len']}")
+    return '__'.join(parts)
 
 
 def require(ok: bool, message: str) -> None:

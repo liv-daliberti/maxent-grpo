@@ -1,0 +1,14 @@
+{
+  "paper/main.pdf": {
+    "main_pages": 9,
+    "main_body_mentions_verified": true,
+    "sha256": "526531858a800f01663672c971c6c925756139274aa907cf7b5e63ee3f386453",
+    "table1_model_icons": 7,
+    "icons_visually_verified": true
+  },
+  "paper/mathai2026/main.pdf": {
+    "main_pages": 4,
+    "main_body_mentions_verified": true,
+    "sha256": "b90308515ba1c30bfc7a3d28f892aae2da161767e9f59e7b48b056ef53046212"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "paper/main.tex": "b4e4aa20db33c9bd0c6a8f2e52cc334505ca09cd45814c9daba8dfb97fd87c04",
+  "paper/main.pdf": "20e1323041ecd2a97630ef812b4eb83c1f562dfb69a7a7eaffbd7883c62d7832",
+  "paper/main-body.pdf": "c053bf1db374c62a9675e39abfb0350c33c17d7c8a6093435b2742d1a1ac8b0e",
+  "paper/mathai2026/main.tex": "954379ff68458e50639634c4d0c5fb70d1f19135d3e1efc4327aa58c47827063",
+  "paper/mathai2026/appendix.tex": "ca2b5643b3417b8e062b8e7637885368cb6ecba9cdca06754ba8b159ff26cc3c",
+  "paper/mathai2026/main.pdf": "d432c7764479f9c616bc6f225140689a5f40349ce46ab172c74508f44f393673",
+  "paper/mathai2026/mathai2026-source.zip": "3e397e58547672595f022b562ee01298b5ca9d9cabd153f385a5f2f04596d542",
+  "paper/results/completed_3b_and_level2_20260911.md": "764e31621eb928e3c6480fe1e6efa73d33792c1a5efdf4926d50cbba410899c5",
+  "paper/results/latest_results_20260911.json": "a7dc2ea998888cb4586b236d9df4e6d039f75688a515b4e18728895c8d146f81",
+  "paper/results/current_campaign_results_20260911.json": "2d898fdeaf7829e5c151e4faa9bfd691fc66b854e315b2d1ab08f80674dd46a1",
+  "paper/results/modebench_level_comparison_snapshot.json": "b9c0522b56ac632c600f28898abdb143ad026b851ed9c1b67b8dc5f1dfd1d379",
+  "paper/results/training_curve_snapshot_20260911.json": "479d6bb83ae60d1f3ee9653fe2016701663b7b869fd197a0b111a7ed1e389e72",
+  "ops/exp_scaling/plot_paper_e118_all_scale_progress.py": "19084e3f90384de24cb2ef931c8dabe25e0126f76e73239b493c90e9bb0cc080",
+  "ops/exp_scaling/build_paper_training_curve_snapshot.py": "518c79fc6c82375a59215c02fc11a0626280887ec35b8fcf02c966156d070154",
+  "ops/check_paper_current_contract.py": "649ece2ed91d9d2e29f7b99a9fc4596c8400aff23fcfaf0d38e9530283864429",
+  "tests/test_e118_integrity_seed_tracks.py": "85bd753d7fa01be357ac5744695d65a672d5e92987595d89c137149f61ac2b04",
+  "tests/test_paper_training_curve_snapshot.py": "646a37042a38123c2226c8ce71a83cc0204089680f593df0a6ae1de598dff95d"
+}

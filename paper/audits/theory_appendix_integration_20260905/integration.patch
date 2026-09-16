@@ -1,0 +1,2312 @@
+--- before/paper/main.tex
++++ after/paper/main.tex
+@@ -782,8 +782,8 @@
+ and adds to MaxRL. Both MaxRL endpoints improve in every Qwen2.5-0.5B domain
+ and in Falcon3-1B within-seed cross-domain averages, with variable domain support effects.
+ 
+-\textbf{Limitations.} Theory studies idealized mean flows. Retention assumes
+-fixed discovered banks; Python's bank cannot cover all modes. Banked-mode
++\textbf{Limitations.} Theory studies idealized mean flows. Optimizer and
++admission extensions are conditional; Python's bank cannot cover all modes. Banked-mode
+ survival and size-dependent update geometry remain unmeasured
+ (Appendices~\ref{app:ablations} and~\ref{app:theory-size}). Some controls have
+ little fresh task signal, leaving correctness mechanisms unresolved
+@@ -875,14 +875,23 @@
+ exact entropy regularization from bounded sampled surprisal.
+ Lemma~\ref{lem:replay-gradient-availability} distinguishes a fresh task signal
+ from a replay signal. The retention theorem and its fixed-bank limit then
+-identify exactly which stored modes survive. Finally,
+-Lemma~\ref{lem:shared-exemplar-retention} states the energy condition needed
+-to extend retention to complete exemplars in a shared model.
++identify exactly which stored modes survive. The natural-gradient comparison
++in Section~\ref{app:theory-natural-gradient} makes the role of update geometry
++explicit, while Section~\ref{app:theory-entropy-comparison} relates exact entropy
++to replay through their distinct relative-entropy objectives.
++Lemma~\ref{lem:shared-exemplar-retention} then states the energy condition
++needed for complete exemplars in a shared model. The remaining sections extend
++that condition to controlled stochastic updates and changing banks, and derive
++sharp per-mode certificates and valid finite-sample interpretations
++(Sections~\ref{app:theory-optimizer}--\ref{app:theory-survival-certificates}).
++Each extension states its additional assumptions and the established
++literature tools used in its proof.
+ 
+ Here $G$ counts training rollouts, $K$ counts evaluation draws, $m,n$ count
+-correct and incorrect categories, and $k$ is the bank size. Time $t$ is
+-continuous optimization time; $\tau$ is a reparameterized learning clock.
+-Neither is a wall-clock or GPU-runtime prediction. ``Collapse'' refers to
++correct and incorrect categories, and $k$ is the bank size. In the mean-flow results, $t$ is
++continuous optimization time and $\tau$ is a reparameterized learning clock.
++The later stochastic and admission results use explicitly defined update or
++opportunity indices. None is a wall-clock or GPU-runtime prediction. ``Collapse'' refers to
+ limiting concentration: finite softmax logits already give positive
+ probabilities at every finite time. A uniform lower bound for all future
+ times is the stronger retention property proved below.
+@@ -1304,6 +1313,107 @@
+ mean updates, and zero reference KL; it does not cover shared-prompt
+ interference, adaptive optimizer effects, or finite-step stochastic training.
+ 
++\subsection{An exact optimizer comparison from information geometry}
++\label{app:theory-natural-gradient}
++
++Natural gradient on the categorical simplex uses the Fisher metric, also
++called the Shahshahani metric in evolutionary dynamics
++\citep[Sections~2.3 and~3.1]{harper2009informationgeometry}. Its gradient
++formula gives an exact comparison with the Euclidean-logit collapse result
++in Theorem~\ref{thm:grpo-collapse}. We derive the specialization below so
++that the dependence on optimizer geometry is explicit.
++
++\begin{theorem}[Natural-gradient selection and replay]
++\label{ext:thm-natural-replay}
++Retain the finite categorical setup and start from an interior distribution
++$p(0)$ with $0<P(0)<1$. Let $\Psi\in C^2([0,1])$ satisfy
++$c(P):=\Psi'(P)>0$ on $[0,1]$. Choose a nonempty fixed bank
++$\mathcal B\subseteq\mathcal C$, positive weights $w_b$ summing to one over
++$\mathcal B$, and extend them by zero to a vector $\bar w$ on
++$\mathcal A$. Exact Fisher natural-gradient ascent of
++\[
++ \mathcal J(p)=\Psi(P)+\rho\sum_{b\in\mathcal B}w_b\log p_b,
++ \qquad \rho\ge0,
++\]
++induces
++\begin{align}
++ \dot p_i&=c(P)p_i(\mathbf 1\{i\in\mathcal C\}-P)
++                     +\rho(\bar w_i-p_i),
++ \label{ext:eq-natural-p}\\
++ \dot P&=(1-P)(c(P)P+\rho),
++ &\dot q_c&=\frac{\rho}{P}(\bar w_c-q_c).
++ \label{ext:eq-natural-Pq}
++\end{align}
++For $\rho=0$, $P(t)\to1$ while $q(t)=q(0)$: correctness learning preserves
++all relative probabilities among correct modes. For $\rho>0$, define
++$A(t)=\int_0^t\rho/P(s)\,ds$. Every correct mode satisfies
++\begin{equation}
++ q_c(t)=\bar w_c+(q_c(0)-\bar w_c)e^{-A(t)},
++ \qquad A(t)\ge\rho t.
++ \label{ext:eq-natural-conditional-solution}
++\end{equation}
++Furthermore,
++\begin{equation}
++ 1-P(t)\le(1-P(0))e^{-\rho t},
++ \qquad
++ p_b(t)\ge P(0)\min\{q_b(0),w_b\}>0
++ \quad (b\in\mathcal B,t\ge0).
++ \label{ext:eq-natural-retention}
++\end{equation}
++Thus full-support replay sends the conditional distribution to its bank
++target, whereas an incomplete bank still loses unbanked correct modes in the
++limit.
++\end{theorem}
++
++\begin{proof}
++For tangent vectors $u,v$ with zero coordinate sum, the categorical Fisher
++metric is $g_p(u,v)=\sum_i u_iv_i/p_i$. The tangent vector
++\[
++ v_i=p_i\left(\partial_i\mathcal J-
++                  \sum_jp_j\partial_j\mathcal J\right)
++\]
++has zero sum and satisfies $g_p(v,u)=\sum_i\partial_i\mathcal J\,u_i$
++for every tangent $u$. It is therefore the natural gradient. Here
++\[
++ \partial_i\mathcal J=c(P)\mathbf 1\{i\in\mathcal C\}
++                   +\rho\bar w_i/p_i,
++ \qquad
++ \sum_i p_i\partial_i\mathcal J=c(P)P+\rho,
++\]
++which proves Equation~\eqref{ext:eq-natural-p}. Summing over correct
++categories gives the $P$ equation. Differentiating $q_c=p_c/P$ then gives
++the $q$ equation in~\eqref{ext:eq-natural-Pq}; the correctness terms cancel.
++
++The $P$ equation makes $P$ nondecreasing. If $\rho=0$, $q$ is constant;
++if $\rho>0$, solving its linear equation gives
++Equation~\eqref{ext:eq-natural-conditional-solution}. Since $P\le1$, this
++also gives $A(t)\ge\rho t$. Incorrect coordinates satisfy
++$\dot p_i=-(c(P)P+\rho)p_i$ and remain positive at every finite time.
++Correct conditional coordinates remain positive by the explicit solution,
++and $P\ge P(0)>0$. Because $c$ is bounded on $[0,1]$ and
++$\rho/P\le\rho/P(0)$, these formulas extend the interior solution to every
++finite time.
++
++For $\rho=0$, $P$ increases and cannot tend to a limit below one: at any
++such limit $(1-P)c(P)P$ would stay positive. For $\rho>0$,
++$\dot P\ge\rho(1-P)$ yields the correctness bound in
++Equation~\eqref{ext:eq-natural-retention}. Each banked $q_b(t)$ lies between
++$q_b(0)$ and $w_b$, so multiplication by $P(t)\ge P(0)$ proves the
++probability floor. Finally, $A(t)\to\infty$ gives $q_c(t)\to\bar w_c$, so unbanked
++correct modes have zero limiting mass.
++\end{proof}
++
++The smooth potentials with positive derivatives in
++Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} satisfy the premises. The Fisher-gradient formula
++is established information geometry; the result above is its elementary
++specialization to correctness selection plus replay toward a fixed target.
++It makes the scope of the collapse claim concrete: increasing correctness
++alone does not force a loss of conditional support under every optimization
++geometry. The theorem concerns the exact categorical Fisher flow. It gives
++no guarantee for approximate natural gradient, a shared neural Fisher
++matrix, PPO, or AdamW, and its time variable is an ideal optimization clock
++rather than elapsed training time.
++
+ \subsection{Exact entropy and sampled surprisal have different guarantees}
+ \label{app:theory-entropy}
+ The preceding collapse theorem has no entropy term. It does not imply collapse
+@@ -1400,6 +1510,86 @@
+ particular bounded estimator. Unsampled probabilities can also change through
+ softmax normalization or shared parameters. Exact entropy is outside the
+ uniformly bounded-score premise because its surprisal is unbounded near zero.
++
++\subsection{Exact conditional entropy and replay target the same optimum}
++\label{app:theory-entropy-comparison}
++
++The distinction between confidence penalties and label smoothing is a known
++choice of KL direction \citep[Section~3.2]{pereyra2017confidencepenalty}.
++Log-barrier regularization has also been studied in policy-gradient theory
++\citep[Section~5.2]{agarwal2021policygradient}. Here we specialize those
++identities to a target supported on verified correct modes. The resulting
++comparison separates an objective's maximizer from what its value certifies
++about a rare mode.
++
++Let $u_c=1/m$ on all $m\ge2$ correct categories, retain $P>0$ and
++$q_c=p_c/P$, and write $H(q)=-\sum_cq_c\log q_c$, with $0\log0=0$.
++
++\begin{lemma}[Full-support objective comparison]
++\label{ext:lem-entropy-objectives}
++For a bank containing every correct category with a uniform categorical
++replay target,
++\begin{align}
++ H(q)&=\log m-\operatorname{KL}(q\|u),
++ \label{ext:eq-conditional-entropy-kl}\\
++ R_u(p):=-\frac1m\sum_{c\in\mathcal C}\log p_c
++ &=\log m-\log P+\operatorname{KL}(u\|q).
++ \label{ext:eq-uniform-replay-kl}
++\end{align}
++If $\Psi$ is continuous and strictly increasing on $[0,1]$, then for all
++$\beta,\rho>0$, both objectives
++\[
++ \Psi(P)+\beta H(q)
++ \qquad\text{and}\qquad
++ \Psi(P)-\rho R_u(p)
++\]
++have the unique maximizing categorical distribution $P=1,q=u$. Maximization
++is over the closed simplex with $P>0$; replay loss is $+\infty$ if a protected
++coordinate is zero. This identifies the optimum; convergence of conditional-entropy
++flow or stochastic updates is not asserted.
++\end{lemma}
++
++\begin{proof}
++Expanding the KL divergences gives the first identity. Substitution of
++$p_c=Pq_c$ into $R_u$ gives the second. In the first objective,
++$H(q)\le\log m$, with equality only at $q=u$; after choosing this $q$,
++strict increase of $\Psi$ selects $P=1$. The second objective is
++\[
++ \Psi(P)+\rho\log P-\rho\log m
++       -\rho\operatorname{KL}(u\|q).
++\]
++Its terms depending on $P$ increase strictly, while the last term is
++maximized only at $q=u$. At $P=1$ all incorrect probabilities are zero,
++so the resulting full categorical distribution is unique.
++\end{proof}
++
++Full-output entropy $H(p)$ is a different comparator. Its Gibbs optimum in
++Lemma~\ref{lem:entropy-scope} follows the standard entropy-conjugacy
++calculation \citep[Section~2.2]{geist2019regmdp}. That optimum assigns positive
++incorrect mass for fixed $\beta>0$ under linear correctness reward. By
++contrast, Lemma~\ref{ext:lem-entropy-objectives} shows that exact
++\emph{conditional} entropy has no such loss of correctness at its global
++optimum. The historical semantic score used in the experiments is not an
++exact gradient of either entropy objective.
++
++Existing literature also gives discrete-time guarantees for an exact
++comparator. Under their finite-bandit setup and step-size conditions,
++\citet[Lemma~13 and Theorem~5]{mei2020softmaxpg} prove positive
++probability floors and geometric convergence for exact tabular
++entropy-regularized policy gradient. The Dr.GRPO reduction has the linear
++reward vector $a\mathbf 1_{\mathcal C}$ with $a=(G-1)/G\in(0,1)$, which
++satisfies their bounded-reward premise. This linear-reward result does not
++directly cover the nonlinear finite-group MaxRL potential, the historical
++semantic estimator, a clipped PPO surrogate, or AdamW.
++
++The KL directions explain a difference between certificates:
++$\operatorname{KL}(u\|q)$ diverges if any protected coordinate vanishes,
++whereas $\operatorname{KL}(q\|u)$ stays finite. In particular, losing one
++mode and allocating mass uniformly to the remaining modes leaves
++$H(q)=\log(m-1)$. Section~\ref{app:theory-survival-certificates} gives the
++sharp entropy threshold and stronger replay-based probability bounds.
++This comparison concerns objective level sets; it does not assert that exact
++entropy dynamics lose a mode.
+ 
+ \subsection{When replay supplies a signal that fresh groups lack}
+ \label{app:theory-gradient-availability}
+@@ -1726,8 +1916,9 @@
+  =\sum_{b\in\mathcal B}[1-(1-w_b)^K]\le k,
+ \]
+ with the same expression along deterministic iterates. Thus the bank itself
+-sets an asymptotic support ceiling in this model. Extending this limit to
+-changing banks or stochastic neural updates requires separate analysis.
++sets an asymptotic support ceiling in this model. The later stochastic and changing-bank results give conditional
++retention bounds under additional energy assumptions; they do not extend this
++fixed-bank convergence limit to arbitrary neural training.
+ 
+ \subsection{From categorical modes to complete replayed responses}
+ \label{app:theory-exemplar-bridge}
+@@ -1792,20 +1983,629 @@
+ The energy floors can make this budget impractically large; asymptotic
+ retention does not imply visibility in an eight-draw evaluation.
+ 
++\subsection{Retention under discrete stochastic optimizer updates}
++\label{app:theory-optimizer}
++
++Lemma~\ref{lem:shared-exemplar-retention} converts a deterministic energy
++ceiling into complete-exemplar protection. We next replace pathwise descent
++with a controlled conditional drift, allowing shared parameters, noise,
++bias, and predictable preconditioning. The descent estimate follows the
++variable-metric analysis of \citet[Section~2]{wang2017sqn}; the trajectory
++bound uses Ville's nonnegative-supermartingale inequality, as stated by
++\citet[Lemma~1]{howard2020timeuniform}. These are standard ingredients;
++the result below applies them to the verified-response potential.
++
++\begin{theorem}[Conditional stochastic exemplar retention]
++\label{ext:thm-stochastic-retention}
++Fix finitely many complete verified responses $(x_j,e_j)$ realizing keys
++$b_j$, with lengths $L_j>0$ and weights $\alpha_j>0$. Define
++\[
++ R(\theta)=\sum_j\frac{\alpha_j}{L_j}
++             [-\log\pi_\theta(e_j\mid x_j)],\qquad
++ F(\theta)=R(\theta)-J(\theta),\qquad J(\theta)\le J_{\max}<\infty.
++\]
++Assume $F$ is differentiable with globally $L_F$-Lipschitz gradient and
++$\theta_0$ is deterministic with finite $F(\theta_0)$. Relative to the
++history filtration $(\mathcal F_t)$, consider
++\[
++ \theta_{t+1}=\theta_t-\eta_t H_t(g_t+b_t+\xi_t),
++ \qquad g_t=\nabla F(\theta_t).
++\]
++The variables $\theta_t,\eta_t,H_t,b_t$ are $\mathcal F_t$-measurable,
++$0\preceq H_t\preceq MI$, $\eta_t>0$, and $\eta_t L_FM\le1$.
++The noise satisfies $\mathbb E[\xi_t\mid\mathcal F_t]=0$ and has finite
++conditional second moment. Suppose deterministic $d_t\ge0$ satisfy
++\begin{equation}
++ \frac{\eta_t}{2}\|b_t\|_{H_t}^{2}
++ +\frac{L_F\eta_t^2}{2}
++       \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\le d_t,
++ \qquad \|u\|_H^2=u^\top Hu.
++ \label{ext:eq-optimizer-budget}
++\end{equation}
++For $N\in\mathbb N\cup\{\infty\}$ with
++$B_N=\sum_{t<N}d_t<\infty$, write $D_0=F(\theta_0)+J_{\max}\ge0$.
++For every $0<\delta<1$, with probability at least $1-\delta$, the following
++holds simultaneously for all integer $t\le N$ and all protected exemplars:
++\begin{equation}
++ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
++ \ge\exp\!\left[-\frac{L_j(D_0+B_N)}{\alpha_j\delta}\right].
++ \label{ext:eq-stochastic-retention}
++\end{equation}
++For $N=\infty$, each protected probability also has an almost surely
++positive, potentially random, infimum over all iterations. The likelihood
++must include the complete response and its termination event, or a fixed
++deterministic horizon, under the sampling law whose key probability is bounded.
++\end{theorem}
++\begin{proof}
++Smoothness, conditional centering of $\xi_t$, and
++$H_t^2\preceq MH_t$ imply
++\begin{align*}
++ \mathbb E[F(\theta_{t+1})\mid\mathcal F_t]
++ &\le F(\theta_t)-\eta_tg_t^\top H_t(g_t+b_t)
++       +\frac{\eta_t}{2}\|g_t+b_t\|_{H_t}^2\\
++ &\hspace{1.5em}+\frac{L_F\eta_t^2}{2}
++          \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\\
++ &\le F(\theta_t)-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+d_t.
++\end{align*}
++The bias cross term cancels when the square is expanded. Since
++$F+J_{\max}\ge R\ge0$, the process
++\[
++ X_t=F(\theta_t)+J_{\max}+\sum_{s=t}^{N-1}d_s
++\]
++is a nonnegative supermartingale, using the convergent infinite tail when
++$N=\infty$. Its initial value is $D_0+B_N$. For $D_0+B_N>0$, Ville's
++inequality gives
++$\Pr(\sup_{t\le N}X_t\ge(D_0+B_N)/\delta)\le\delta$.
++If $D_0+B_N=0$, nonnegativity gives $X_t=0$ almost surely instead.
++Every nonnegative summand of $R(\theta_t)\le X_t$ obeys the same ceiling.
++Exponentiation therefore yields~\eqref{ext:eq-stochastic-retention}
++without a union factor over exemplars. A complete-exemplar event is contained
++in its verified-key event. For $N=\infty$, the same maximal bound gives
++$\Pr(\sup_tX_t\ge u)\le(D_0+B_\infty)/u$ for $u>0$.
++Letting $u\to\infty$ proves $\sup_tX_t<\infty$ almost surely and hence
++random positive all-time floors.
++\end{proof}
++
++\paragraph{Finite and infinite horizons.}
++With zero bias and uniformly bounded noise variance, the cost in
++\eqref{ext:eq-optimizer-budget} is $O(\eta_t^2)$, so square-summable steps
++suffice for an infinite-horizon budget. Bias instead contributes
++$O(\eta_t\|b_t\|^2)$. Constant steps with persistent variance yield the
++finite-horizon result, with a budget that can grow with $N$; this argument
++does not give infinite-horizon protection in that regime. The classical
++almost-supermartingale framework of \citet{robbins1971almost} supplies
++related convergence tools, but the proof above needs only the displayed
++drift and maximal inequality. No positive lower eigenvalue of $H_t$ is
++needed for retention alone, and the theorem does not assert stationarity,
++parameter convergence, or a useful evaluation-scale probability floor.
++
++\begin{corollary}[Sharper confidence dependence under bounded noise]
++\label{ext:cor-bounded-noise-retention}
++Under the assumptions of Theorem~\ref{ext:thm-stochastic-retention},
++suppose $b_t=0$, $N<\infty$,
++and $\eta_t$ is deterministic. Let deterministic bounds $G_t,s_t<\infty$
++satisfy $\|g_t\|_2\le G_t$ and $\|\xi_t\|_2\le s_t$ almost surely. Define
++\[
++ c_t=\eta_tMG_ts_t,\quad V_N=\sum_{t<N}c_t^2,\quad
++ Q_N=\frac{L_FM^2}{2}\sum_{t<N}\eta_t^2s_t^2.
++\]
++For every $0<\delta<1$, with probability at least $1-\delta$,
++simultaneously for all $t\le N$ and $j$,
++\begin{equation}
++ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
++ \ge\exp\!\left[-\frac{L_j}{\alpha_j}
++   \left(D_0+Q_N+\sqrt{2V_N\log(1/\delta)}\right)\right].
++ \label{ext:eq-bounded-noise-retention}
++\end{equation}
++\end{corollary}
++\begin{proof}
++The pathwise smoothness estimate gives
++\[
++ F(\theta_{t+1})-F(\theta_t)
++ \le-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+Z_{t+1}
++       +\frac{L_F\eta_t^2M^2s_t^2}{2},
++\]
++where
++\[
++ Z_{t+1}=-\eta_t g_t^\top H_t(I-L_F\eta_tH_t)\xi_t.
++\]
++Predictability makes $Z_{t+1}$ a martingale difference. The spectral bounds
++imply $0\preceq I-L_F\eta_tH_t\preceq I$, so $|Z_{t+1}|\le c_t$.
++Conditional Hoeffding's lemma therefore makes
++\[
++ \exp\!\left(\lambda\sum_{s<t}Z_{s+1}
++              -\frac{\lambda^2}{2}\sum_{s<t}c_s^2\right),\qquad\lambda>0,
++\]
++a nonnegative supermartingale starting at one. This standard exponential
++construction is reviewed by \citet{howard2020timeuniform}. Ville's inequality
++and optimization over $\lambda$ yield
++\[
++ \Pr\!\left(\max_{t\le N}\sum_{s<t}Z_{s+1}
++              >\sqrt{2V_N\log(1/\delta)}\right)\le\delta
++\]
++when $V_N>0$; when $V_N=0$, the sum is identically zero. Sum the drift inequalities, drop the nonpositive gradient terms,
++and apply the summand bound from Theorem~\ref{ext:thm-stochastic-retention}.
++\end{proof}
++
++\paragraph{Relation to stochastic policy-gradient guarantees.}
++\citet{zhang2021reinforce} analyze stochastic tabular REINFORCE with a
++state-action log barrier, phased step and regularization schedules, and
++policy mixing. Their regret guarantees provide a related stochastic
++policy-gradient precedent; they do not provide a fixed per-response floor
++for our replay bank. For the implemented optimizer, a current-gradient Adam
++second moment is not predictable relative to that gradient's noise.
++Momentum, clipping, prompt scheduling, and changing banks likewise require
++separate bias or energy control. The counterexamples of
++\citet{reddi2018adam} explain why an unrestricted Adam guarantee cannot be
++assumed; they do not establish failure of these runs. The hypotheses above
++have not been established for the experiments' AdamW/PPO updates. In
++particular, positive replay weight and a small nominal learning rate do not
++verify the smoothness, predictability, or accumulated-error conditions.
++
++\subsection{Discovery, admission, and retention through bank changes}
++\label{app:theory-discovery-admission}
++
++Retention begins only after a verified key enters active memory. Archive
++exploration separates discovery from reliable return to a discovered state
++\citep{ecoffet2021return}; replay with behavioral cloning supplies a related
++empirical mechanism for reducing forgetting \citep{rolnick2019replay}.
++Neither result is a theorem that every execution key enters a finite bank
++or maintains a positive probability thereafter. We state the additional
++admission and energy conditions explicitly.
++
++\paragraph{Actual insertion is the relevant event.}
++Fix a prompt and count opportunities according to a specified schedule.
++An opportunity can be a prompt-local query or a global update; the resulting
++bounds concern that opportunity count. The admission probability includes
++verification, capacity, scheduling, and candidate selection. For example,
++$G$ conditionally independent samples with unconditional accepted-key probability $p_b$
++contain key $b$ with probability $1-(1-p_b)^G$. This is its admission
++probability only if the key remains eligible and insertion is guaranteed
++whenever it appears. The following argument permits adaptive histories;
++its probability foundation is conditional Borel--Cantelli
++\citep[Theorem~4.3.4]{durrett2019probability}.
++
++\begin{lemma}[Conditional admission hazards]
++\label{ext:lem-admission-hazards}
++Fix a key $b$ not initially banked. Let $(\mathcal F_n)_{n\ge0}$ contain the
++complete history after each opportunity, and let $\tau_b$ be the first
++opportunity at which a verified representative of $b$ is inserted into active
++replay memory, with $\tau_b=\infty$ if this never happens. Define
++\[
++ h_{b,n}=\Pr(\tau_b=n\mid\mathcal F_{n-1}),\qquad
++ H_{b,N}=\sum_{n=1}^N h_{b,n}.
++\]
++The stopped hazard $h_{b,n}$ is zero after an earlier admission. For $a\ge0$,
++\begin{equation}
++ \Pr(\tau_b>N,\ H_{b,N}\ge a)\le e^{-a},\qquad
++ \Pr(\tau_b=\infty,\ H_{b,\infty}=\infty)=0.
++ \label{ext:eq-admission-hazards}
++\end{equation}
++If deterministic $\underline h_{b,n}\in[0,1]$ satisfy
++$h_{b,n}\ge\underline h_{b,n}$ on $\{\tau_b\ge n\}$, then
++\begin{equation}
++ \Pr(\tau_b>N)\le\prod_{n=1}^N(1-\underline h_{b,n})
++ \le\exp\!\left(-\sum_{n=1}^N\underline h_{b,n}\right).
++ \label{ext:eq-admission-floors}
++\end{equation}
++For finitely many targets, summing over initially missing keys bounds
++non-admission by $N$.
++\end{lemma}
++\begin{proof}
++Set $Z_N=\mathbf1\{\tau_b>N\}\exp(H_{b,N})$ and $Z_0=1$. Earlier admission
++is known at time $n-1$, and both $h_{b,n}$ and $Z_{n-1}$ vanish there.
++On survival through $n-1$,
++\[
++ \mathbb E[Z_n\mid\mathcal F_{n-1}]
++ =Z_{n-1}e^{h_{b,n}}(1-h_{b,n})\le Z_{n-1}.
++\]
++Thus $Z_n$ is a nonnegative supermartingale. Markov's inequality proves the
++finite-hazard bound. Since $\mathbb E Z_N\le1$, Fatou's lemma excludes a
++positive-probability event on which survival continues forever and
++$H_{b,N}\to\infty$, which would force $Z_N\to\infty$. With deterministic
++hazard floors, conditioning gives
++\[
++ \Pr(\tau_b>n)\le(1-\underline h_{b,n})\Pr(\tau_b>n-1).
++\]
++Iteration and a union bound prove the claims without independence across
++opportunities.
++\end{proof}
++
++Positive probability at every opportunity is insufficient. Independent
++opportunities with admission probabilities $(n+1)^{-2}>0$ give
++\[
++ \Pr(\tau=\infty)=\prod_{n=1}^\infty
++ \left(1-\frac1{(n+1)^2}\right)=\frac12.
++\]
++A non-evicting capacity-$K_{\rm cap}$ bank also gives every unbanked key zero admission
++hazard once full. For a fixed sampling law with no such gates, discovery
++reduces to coupon collection, with incorrect responses acting as null
++coupons. \citet[Theorems~2--3]{anceaume2015coupon} show that, at fixed total
++non-null mass, uniform independent sampling minimizes collection time in
++stochastic order. This comparison concerns a fixed independent sampling
++law; the adaptive admission bounds above supply the appropriate statement
++when the training history changes sampling or eligibility.
++
++\paragraph{Charge changes in the replay objective.}
++A key's admission must preserve a representative with positive loss weight.
++The energy can change when bank membership or weights change, so descent
++between admissions alone is insufficient. We account for those changes
++explicitly, following the general switched-energy viewpoint of
++\citet{branicky1998multiple}. The following elementary bound is proved
++directly and does not invoke an equilibrium-stability theorem for neural
++training.
++
++\begin{lemma}[Retention with a finite switching-energy budget]
++\label{ext:lem-switching-retention}
++Let $t_0<t_1<\cdots$ be switching times, with finitely many switches on every
++bounded time interval. On interval $r$, define
++\[
++ \begin{aligned}
++ F_r(\theta)&=\sum_{j:d_{rj}>0}d_{rj}\ell_j(\theta)-J(\theta),\\
++ \ell_j(\theta)&=-\log\pi_\theta(e_j\mid x_j),\qquad
++ J(\theta)\le J_{\max}<\infty.
++ \end{aligned}
++\]
++Each interval uses a finite collection of complete verified exemplars with
++nonnegative coefficients; zero coefficients denote absent exemplars.
++Assume finite initial energy, continuity of parameters at switches,
++nonincrease of $F_r$ within interval $r$, and the finite positive-jump budget
++\begin{equation}
++ A:=\sum_{r\ge1}
++   [F_r(\theta(t_r))-F_{r-1}(\theta(t_r))]_+<\infty.
++ \label{ext:eq-switching-budget}
++\end{equation}
++If exemplar $j$ is protected from interval $r_j$ onward and
++$d_{rj}\ge\underline d_j>0$ for all $r\ge r_j$, let
++$D=F_0(\theta(t_0))+A+J_{\max}$. Then
++\begin{equation}
++ p_{\theta(t)}(b_j\mid x_j)\ge\pi_{\theta(t)}(e_j\mid x_j)
++ \ge\exp(-D/\underline d_j)>0\qquad(t\ge t_{r_j}).
++ \label{ext:eq-switching-retention}
++\end{equation}
++Each likelihood uses the complete verified-response probability under the
++sampling law being bounded. For mean-token loss, $d_{rj}=\alpha_{rj}/L_j$,
++with fixed length $L_j>0$.
++\end{lemma}
++\begin{proof}
++Induction over interval descents and switch jumps gives
++$F_r(\theta(t))\le F_0(\theta(t_0))+A$. Consequently
++$\sum_jd_{rj}\ell_j(\theta(t))\le D$. Each summand is nonnegative, so a
++protected exemplar satisfies $\ell_j(\theta(t))\le D/\underline d_j$.
++The key event contains its exemplar event, so exponentiation proves
++the bound.
++\end{proof}
++
++If admission preserves old coefficients, the jump equals the weighted
++surprisal of the newly added exemplars at their admission probabilities.
++Uniform categorical replay with fixed total dose $\rho$ instead dilutes old
++weights. For a size-$k$ bank, write
++$R_k=-k^{-1}\sum_{b\in\mathcal B_k}\log p_b$; adding one new key gives
++\[
++ \Delta F=\frac{\rho}{k+1}[-\log p_{\rm new}-R_k].
++\]
++Old coefficients decrease from $\rho/k$ to $\rho/(k+1)$ but stay at least
++$\rho/K_{\rm cap}$ under capacity $K_{\rm cap}$. Finitely many admissions with positive
++admission-time probabilities and no eviction therefore have finite total
++switching cost in the exact descent model. Changing a representative must
++also be charged to the objective jump. A key-level version of
++Lemma~\ref{ext:lem-switching-retention} follows by requiring at least one
++complete representative of that key with coefficient bounded below on every
++subsequent interval; the same nonnegative-summand proof applies even if the
++representative changes.
++
++\begin{corollary}[Conditional discovery followed by retention]
++\label{ext:cor-discovery-retention}
++Suppose one prompt's entire correct support $\mathcal C$ is finite, of size
++$m$ no larger than bank capacity. Admissions do not evict keys, and every
++missing key $b$ has conditional admission hazard at least $\epsilon r_b$ at
++every opportunity, for constants $\epsilon>0$, $r_b>0$, and
++$\epsilon r_b\le1$. Assume the switching-energy conditions of
++Lemma~\ref{ext:lem-switching-retention}, including a finite positive-jump
++budget and persistent positive coefficients for admitted complete exemplars.
++Then full correct coverage is reached in finitely many opportunities almost
++surely. Thereafter each correct key has a uniform-in-time positive
++probability floor. At horizon $N$,
++\begin{equation}
++ \Pr(\text{full coverage by }N)
++ \ge 1-\sum_{b\in\mathcal C}e^{-N\epsilon r_b}.
++ \label{ext:eq-discovery-retention}
++\end{equation}
++If every $r_b\ge\gamma>0$, this is at least $1-me^{-N\epsilon\gamma}$.
++\end{corollary}
++\begin{proof}
++Apply Lemma~\ref{ext:lem-admission-hazards} to the initially missing keys and
++take a union bound. The failure bound tends to zero. Finite support and
++non-eviction imply a finite almost-sure opportunity index of simultaneous
++full coverage. Lemma~\ref{ext:lem-switching-retention} protects each admitted
++complete exemplar and hence its key; after full coverage this applies to
++all correct keys.
++\end{proof}
++
++A fixed full-support proposal mixture supplies the assumed hazard floor if
++it is queried at every counted opportunity and insertion is guaranteed
++whenever a missing key appears. Capacity must accommodate the entire
++admissible correct support, including keys competing for the same slots.
++Finite-temperature sampling, bounded search attempts, or recurrent replay
++scheduling alone do not establish this admission floor or the energy
++budget. The probability bound~\eqref{ext:eq-discovery-retention} controls
++admission by a finite opportunity count; the subsequent retention floors
++can depend on the realized training history. The corollary establishes
++neither uniform key probabilities nor convergence of the neural optimizer.
++
++\subsection{Sharp per-mode certificates and finite-sample interpretation}
++\label{app:theory-survival-certificates}
++
++The energy bounds above can be sharpened by using probability normalization.
++We give self-contained applications of relative-entropy data processing and
++Pinsker's inequality \citep[Theorems~9 and~31]{vanerven2014renyi}; binary-KL inversion is also a
++standard statistical-learning tool \citep{garivier2011klucb}. These certificates
++concern a specified probability distribution. Applying one at a checkpoint
++requires a valid loss bound there; applying it throughout training additionally
++requires a uniform energy bound. Neither application establishes descent for
++the implemented neural optimizer. All logarithms are natural.
++
++\subsubsection{A sharp certificate from normalized replay cross entropy}
++
++Write $H(w)=-\sum_b w_b\log w_b$, $h_2(a)=H((a,1-a))$, and
++\[
++ \operatorname{kl}(a,r)
++ =a\log\frac{a}{r}+(1-a)\log\frac{1-a}{1-r},
++\]
++with the usual endpoint conventions. For $0<a<1$ and $D\ge0$, let
++$\ell_-(a,D)$ be the unique $r\in(0,a]$ satisfying
++$\operatorname{kl}(a,r)=D$; set $\ell_-(1,D)=e^{-D}$.
++
++\begin{theorem}[Sharp normalized replay certificate]
++\label{ext:sharp-replay-certificate}
++Let $\mathcal B$ be a finite nonempty bank, let $w_b>0$ with
++$\sum_{b\in\mathcal B}w_b=1$, and let $p$ be a probability distribution on
++an alphabet containing $\mathcal B$. Suppose
++\[
++ R_w(p)=-\sum_{b\in\mathcal B}w_b\log p_b\le C<\infty,
++ \qquad D=C-H(w).
++\]
++Then $D\ge0$ and, for every $b\in\mathcal B$,
++\begin{equation}
++ \label{ext:binary-kl-retention}
++ p_b\ge\ell_-(w_b,D)>0.
++\end{equation}
++This coordinate bound is sharp on the closed probability simplex whenever
++an outcome other than $b$ is available. Moreover,
++\[
++ p(\mathcal B)\ge e^{-D},\qquad
++ p_b\ge\max\{0,w_b-\sqrt{D/2}\}.
++\]
++For $w_b<1$, the positive bound
++$p_b\ge\exp[-(D+h_2(w_b))/w_b]$ is also valid.
++\end{theorem}
++\begin{proof}
++Extend $w$ by zero off the bank, obtaining $\bar w$. Then
++\[
++ 0\le\operatorname{KL}(\bar w\|p)=R_w(p)-H(w)\le D.
++\]
++For $a=w_b$ and $r=p_b$, the log-sum inequality on the complementary
++outcomes gives
++\[
++ \sum_{j\ne b}\bar w_j\log\frac{\bar w_j}{p_j}
++ \ge(1-a)\log\frac{1-a}{1-r},
++\]
++so $\operatorname{kl}(a,r)\le D$. For $0<a<1$, its derivative in $r$ is
++$(r-a)/(r(1-r))<0$ on $(0,a)$; it diverges at zero and vanishes at $r=a$.
++Thus $r<\ell_-(a,D)$ is impossible. Equality is attained by choosing
++$r=\ell_-(a,D)$, $p_j=(1-r)w_j/(1-a)$ on the remaining banked outcomes,
++and zero mass off the bank. For $a=1$, the inequality is
++$-\log p_b\le D$, with equality obtained by placing the remaining mass on
++another outcome. If the entire alphabet has one outcome, necessarily
++$p_b=1$. For $D>0$, equality can be approached with positive off-bank
++probabilities by increasing $r$ slightly and sending off-bank mass to zero. At $D=0$, feasibility
++instead forces $p=\bar w$ exactly.
++
++Let $s=p(\mathcal B)$ and $\widetilde p_b=p_b/s$. The decomposition
++\[
++ \operatorname{KL}(\bar w\|p)
++ =-\log s+\operatorname{KL}(w\|\widetilde p)\ge-\log s
++\]
++proves the total-mass bound. For fixed $r\in(0,1)$,
++$\partial_a^2\operatorname{kl}(a,r)=1/[a(1-a)]\ge4$, whereas its value
++and first derivative vanish at $a=r$. Hence
++$\operatorname{kl}(a,r)\ge2(a-r)^2$, including endpoints by continuity,
++which proves the Pinsker bound. Finally,
++\[
++ \operatorname{kl}(a,r)
++ =-h_2(a)-a\log r-(1-a)\log(1-r)
++ \ge-h_2(a)-a\log r
++\]
++Combining this inequality with $\operatorname{kl}(a,r)\le D$ yields the
++positive exponential coordinate bound.
++\end{proof}
++
++For the categorical potential argument behind
++Eq.~\eqref{eq:replay-retention-bound} and its positive-weight extension,
++one may substitute
++\[
++ C=R_w(p(T))+
++ \frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
++\]
++Normalization improves the termwise certificate $p_b\ge e^{-C/w_b}$.
++As a hypothetical example, a uniform bank of 16 with
++$C=\log16+0.01$ yields $p_b\ge0.0339712$, while the termwise bound is
++approximately $4.62\times10^{-20}$. These are illustrative mathematical
++inputs, not measured replay losses. A large excess cross entropy can still
++make even the sharp bound too small to be useful.
++
++\subsubsection{What a scalar entropy value can certify}
++
++\begin{theorem}[Sharp entropy threshold for all-mode retention]
++\label{ext:entropy-retention-threshold}
++Let $q$ be a distribution on a known alphabet of $m\ge2$ possible modes,
++allowing zero coordinates. A scalar bound $H(q)\ge h_0$, with
++$0\le h_0\le\log m$, implies a strictly positive uniform coordinate floor
++if and only if $h_0>\log(m-1)$. In that case the sharp floor is
++$q_b\ge r_m(h_0)$ for every $b$, where $r_m(h_0)\in(0,1/m]$ uniquely solves
++\[
++ h_2(r)+(1-r)\log(m-1)=h_0,
++\]
++where $m$ counts all possible modes, including those absent from the
++evaluation sample.
++\end{theorem}
++\begin{proof}
++Fix $r=q_b<1$. Splitting off that coordinate gives
++\[
++ H(q)=h_2(r)+(1-r)H\!\left(\frac{q_{-b}}{1-r}\right)
++ \le h_2(r)+(1-r)\log(m-1)=:f_m(r).
++\]
++Uniform remaining coordinates attain equality. On $0<r<1/m$,
++$f_m'(r)=\log[(1-r)/(r(m-1))]>0$, with
++$f_m(0)=\log(m-1)$ and $f_m(1/m)=\log m$. Thus a coordinate below the
++stated root contradicts $H(q)\ge h_0$; a coordinate equal to one already
++exceeds the root. The distribution with one coordinate at the root and the
++others uniform proves sharpness. Conversely, if $h_0\le\log(m-1)$, one
++zero coordinate with the rest uniform satisfies the entropy bound. Even
++restricting to strictly positive coordinates permits arbitrarily small
++values by approximation.
++\end{proof}
++
++For uniform $u$, $H(q)=\log m-\operatorname{KL}(q\|u)$, and data processing
++gives $\operatorname{kl}(q_b,1/m)\le\operatorname{KL}(q\|u)$. A forward-KL
++budget therefore excludes every missing coordinate precisely when it is
++below $\log[m/(m-1)]$. At the threshold, one missing coordinate is possible,
++whereas $\operatorname{KL}(u\|q)=\infty$. This compares level sets; it does
++not assert that an exact-entropy gradient flow loses modes. Conditional
++entropy alone also leaves total correct mass unconstrained, and entropy
++estimated from a finite sample is not the exact $H(q)$ of a known alphabet.
++
++\subsubsection{From complete-response likelihood to an execution key}
++
++\begin{corollary}[Response-to-key certificate]
++\label{ext:response-key-certificate}
++Fix one prompt $x$, one checkpoint, and distinct complete responses $e_j$
++with verified keys $b_j$. Give them weights $w_j>0$ summing to one, and put
++$W_b=\sum_{j:b_j=b}w_j$. Under a fixed decoding law, suppose
++\[
++ -\sum_j w_j\log\pi(e_j\mid x)\le C<\infty.
++\]
++For every represented key $b$,
++\[
++ \operatorname{kl}(W_b,p(b\mid x))\le C-H(w),\qquad
++ p(b\mid x)\ge\ell_-(W_b,C-H(w))>0.
++\]
++Individually, $p(b_j\mid x)\ge\pi(e_j\mid x)$.
++\end{corollary}
++\begin{proof}
++The distinct complete responses are disjoint events. Extend their target
++weights by zero to the full response alphabet; include invalid outcomes
++and, if necessary, nontermination as additional outcomes so that the policy
++law is normalized. The resulting response-level relative entropy is
++$-\sum_jw_j\log\pi(e_j\mid x)-H(w)\le C-H(w)$. Apply the log-sum inequality
++within each execution-key event and then within its binary partition into
++key $b$ and all other outcomes. The target assigns mass $W_b$ to the first
++event and the policy assigns $p(b\mid x)$, so the resulting divergence is
++$\operatorname{kl}(W_b,p(b\mid x))$. The inverse argument of
++Theorem~\ref{ext:sharp-replay-certificate} proves the floor. Finally, each
++complete-response event is contained in its verified-key event, proving
++the individual bound used in Lemma~\ref{lem:shared-exemplar-retention}.
++\end{proof}
++
++The probability being scored must include EOS or another specified
++termination event, or a fixed deterministic horizon. It must use the same
++prompt formatting, temperature, vocabulary mask, top-$p$/top-$k$ rule,
++response-truncation rule, and verifier as the probability being bounded.
++A prefix likelihood is insufficient because its continuations can produce
++other keys or invalid outputs. All likelihoods entering one cross entropy
++must use the same checkpoint. For a complete sequence of length $L_j$ and
++mean-token log score $\bar\ell_j$, its probability is
++$\exp(L_j\bar\ell_j)$, not $\exp(\bar\ell_j)$.
++
++Length-normalized loss requires normalization before the theorem applies:
++with $a_j=\alpha_j/L_j$, $A=\sum_j a_j$, and $w_j=a_j/A$,
++\[
++ \sum_j\alpha_j\frac{-\log\pi(e_j\mid x)}{L_j}=A R_w.
++\]
++Thus an upper bound $D_0$ on this loss supplies $C=D_0/A$; uniform weights
++on mean-token scores generally give inverse-length target weights on
++complete responses. Different prompts require separate conditional
++calculations or an explicitly normalized joint prompt mixture. A change
++in one exemplar's likelihood need not equal the change in its whole key's
++probability. Approximate log scores need controlled numerical error to
++supply rigorous numerical certificates.
++
++\subsubsection{Finite observations and repeated checkpoint measurement}
++
++At a frozen checkpoint, for a key specified before sampling, $N$ independent
++draws under the same decoding law give
++$X\sim\operatorname{Binomial}(N,p_b)$. Exact binomial-tail inversion gives
++one-sided confidence bounds \citep{clopper1934binomial}. If $X=0$, the
++one-sided $(1-\alpha)$ upper bound and lower bound are respectively
++\[
++ U_0=1-\alpha^{1/N},\qquad 0.
++\]
++Indeed, $\Pr_{p_b}(X=0)=(1-p_b)^N<\alpha$ whenever $p_b>U_0$; for nonzero
++counts, the full confidence procedure uses the corresponding binomial-tail
++inversion. As hypothetical examples, zero sightings in 32 draws give an
++upper bound of $0.08937$ at the one-sided 95\% level, or $0.16495$ when
++Bonferroni protects 16 prespecified keys simultaneously. Two sightings in
++32 draws instead give a one-sided 95\% lower bound of about $0.01122$ for
++one prespecified key. The upper and lower examples are separate one-sided
++limits; a joint interval requires allocation to both tails. Zero sightings
++do not establish exact extinction.
++
++For repeated inspection of draws from a fixed policy, a confidence sequence
++can provide validity under optional stopping \citep{howard2021confidence}.
++For fixed beta-mixture parameters $a_0,b_0>0$, let $S_t$ be the number of
++successes in $t$ independent Bernoulli draws and let $\mathrm B$ denote
++the beta function. Define
++\[
++ M_t(p)=\frac{\mathrm B(S_t+a_0,t-S_t+b_0)}
++ {\mathrm B(a_0,b_0)p^{S_t}(1-p)^{t-S_t}},\qquad
++ \mathcal I_t=\{p\in(0,1):M_t(p)<1/\alpha\}.
++\]
++For each true $p\in(0,1)$, the numerator integrates the likelihood under a
++fixed beta distribution. Hence $M_t(p)$ is a mixture of likelihood-ratio
++martingales, is nonnegative, and has initial value one. The nonnegative
++martingale maximal inequality therefore gives
++$\Pr_p(\exists t:p\notin\mathcal I_t)\le\alpha$. Error allocations across
++a fixed roster of keys make coverage simultaneous by a union bound;
++independence across keys is unnecessary.
++
++This construction requires a fixed Bernoulli probability. Counts from
++different prompts, seeds, or changing checkpoints cannot be pooled to
++certify the current checkpoint's probability. Separate frozen-checkpoint
++measurements can instead allocate error across prespecified
++prompt--key--checkpoint statements. Repeated deterministic teacher-forced
++scores are not independent Bernoulli observations, and choosing identities
++after inspecting the same samples also needs selection-aware inference.
++A probability bound at observed checkpoints alone makes no claim about
++unobserved intervening or subsequent training states.
++
++For an unknown catalogue, missing mass is the total probability of categories
++not yet observed under a fixed iid law. Concentration results address this
++quantity \citep{mcallester2003missing,berend2013missing}; it is neither the
++number of missing modes nor proof of their extinction. Such bounds do not
++certify each named key, and stationary missing-mass formulas do not directly
++apply to a history generated by changing policies. Named-key binomial counts
++provide the direct measurement of per-mode visibility.
++
+ \begin{remark}[Exact scope of the ReplayMaxRL guarantee]
+-The replay-component theorem is a conditional post-discovery retention result, not an end-to-end
+-discovery theorem. Without full coverage the retention bound protects only
+-$\mathcal B$; Lemma~\ref{lem:replay-finite-steps} further shows that a frozen
+-incomplete bank can exclude unbanked correct modes in the categorical limit.
+-Capacity 16 can therefore truncate the protected support. The categorical proof treats each stored exemplar as its execution
+-category and uses $\log p_b$, whereas the language-model implementation uses a
+-length-normalized teacher-forced exemplar score. The parameterized energy
+-argument above preserves the fixed-bank retention bound, but it does not
+-guarantee neural optimization reaches full coverage or uniformity. Lemma~\ref{lem:shared-exemplar-retention} permits shared prompts and
+-parameters when a fixed joint potential decreases and the replay score is a
+-complete-response likelihood. The implemented stochastic, clipped, alternating
+-updates have no such descent guarantee here; their retention must be tested
+-empirically. These limits motivate the matched factorial comparisons and direct retention measurements.
++The categorical replay theorem protects represented bank modes after discovery;
++it is not an unconditional end-to-end guarantee for a language model.
++Without full coverage it protects only $\mathcal B$, and
++Lemma~\ref{lem:replay-finite-steps} shows that a frozen incomplete bank can
++exclude unbanked correct modes in the categorical limit. Capacity 16 can
++therefore truncate protected support. The admission results above identify
++sufficient coverage and switching conditions; they do not establish those
++conditions for the implemented proposal and insertion machinery.
++
++The categorical proof uses $\log p_b$, whereas the implementation uses
++length-normalized teacher-forced exemplar scores. The complete-exemplar bridge
++and stochastic extension permit shared parameters under explicit joint-energy
++and update-error assumptions. They do not prove uniform neural key
++probabilities or verify those assumptions for the current clipped, alternating
++AdamW updates. The sharper certificates require correctly normalized complete
++likelihoods under the decoding law being bounded. Finally, exact entropy and
++exact categorical natural gradient have their own protection guarantees;
++collapse is a property of the stated update model, not of every procedure that
++optimizes correctness or entropy. These results motivate direct per-mode survival measurements.
+ \end{remark}
+ 
+ \section{Supporting Measurements and Direct Comparators}
+--- before/paper/example_paper.bib
++++ after/paper/example_paper.bib
+@@ -1005,3 +1005,206 @@
+   primaryClass = {cs.CL},
+   url          = {https://arxiv.org/abs/2507.07451}
+ }
++
++
++% Primary-source-verified theoretical extensions, September 5, 2026.
++@article{wang2017sqn,
++  author = {Wang, Xiao and Ma, Shiqian and Goldfarb, Donald and Liu, Wei},
++  title = {Stochastic Quasi-Newton Methods for Nonconvex Stochastic Optimization},
++  journal = {SIAM Journal on Optimization},
++  volume = {27},
++  number = {2},
++  pages = {927--956},
++  year = {2017},
++  doi = {10.1137/15M1053141},
++  url = {https://doi.org/10.1137/15M1053141}
++}
++
++@article{howard2020timeuniform,
++  author = {Howard, Steven R. and Ramdas, Aaditya and McAuliffe, Jon and Sekhon, Jasjeet},
++  title = {Time-uniform {Chernoff} bounds via nonnegative supermartingales},
++  journal = {Probability Surveys},
++  volume = {17},
++  pages = {257--317},
++  year = {2020},
++  doi = {10.1214/18-PS321},
++  url = {https://doi.org/10.1214/18-PS321}
++}
++
++@incollection{robbins1971almost,
++  author = {Robbins, Herbert and Siegmund, David},
++  title = {A Convergence Theorem for Non Negative Almost Supermartingales and Some Applications},
++  booktitle = {Optimizing Methods in Statistics},
++  pages = {233--257},
++  publisher = {Academic Press},
++  year = {1971},
++  doi = {10.1016/B978-0-12-604550-5.50015-8},
++  url = {https://doi.org/10.1016/B978-0-12-604550-5.50015-8}
++}
++
++@inproceedings{reddi2018adam,
++  author = {Reddi, Sashank J. and Kale, Satyen and Kumar, Sanjiv},
++  title = {On the Convergence of {Adam} and Beyond},
++  booktitle = {International Conference on Learning Representations},
++  year = {2018},
++  url = {https://openreview.net/forum?id=ryQu7f-RZ}
++}
++
++@inproceedings{zhang2021reinforce,
++  author = {Zhang, Junzi and Kim, Jongho and O'Donoghue, Brendan and Boyd, Stephen},
++  title = {Sample Efficient Reinforcement Learning with {REINFORCE}},
++  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
++  volume = {35},
++  pages = {10887--10895},
++  year = {2021},
++  doi = {10.1609/aaai.v35i12.17300},
++  url = {https://stanford.edu/~boyd/papers/conv_reinforce.html}
++}
++
++@book{durrett2019probability,
++  author = {Durrett, Rick},
++  title = {Probability: Theory and Examples},
++  edition = {5},
++  publisher = {Cambridge University Press},
++  year = {2019},
++  url = {https://sites.math.duke.edu/~rtd/PTE/PTE5_011119.pdf}
++}
++
++@misc{anceaume2015coupon,
++  author = {Anceaume, Emmanuelle and Busnel, Yann and Schulte-Geers, Ernst and Sericola, Bruno},
++  title = {Optimization results for a generalized coupon collector problem},
++  year = {2015},
++  eprint = {1504.03878},
++  archivePrefix = {arXiv},
++  url = {https://arxiv.org/abs/1504.03878}
++}
++
++@article{branicky1998multiple,
++  author = {Branicky, Michael S.},
++  title = {Multiple {Lyapunov} Functions and Other Analysis Tools for Switched and Hybrid Systems},
++  journal = {IEEE Transactions on Automatic Control},
++  volume = {43},
++  number = {4},
++  pages = {475--482},
++  year = {1998},
++  url = {https://people.ece.ubc.ca/moishi/eece571m/articles/Branicky98.pdf}
++}
++@article{pereyra2017confidencepenalty,
++  author        = {Pereyra, Gabriel and Tucker, George and Chorowski, Jan and Kaiser, {\L}ukasz and Hinton, Geoffrey},
++  title         = {Regularizing Neural Networks by Penalizing Confident Output Distributions},
++  journal       = {arXiv preprint arXiv:1701.06548},
++  year          = {2017},
++  eprint        = {1701.06548},
++  archivePrefix = {arXiv},
++  primaryClass  = {cs.NE},
++  url           = {https://arxiv.org/abs/1701.06548}
++}
++
++@article{agarwal2021policygradient,
++  author  = {Agarwal, Alekh and Kakade, Sham M. and Lee, Jason D. and Mahajan, Gaurav},
++  title   = {On the Theory of Policy Gradient Methods: Optimality, Approximation, and Distribution Shift},
++  journal = {Journal of Machine Learning Research},
++  volume  = {22},
++  number  = {98},
++  pages   = {1--76},
++  year    = {2021},
++  url     = {https://jmlr.org/papers/v22/19-736.html}
++}
++
++@inproceedings{mei2020softmaxpg,
++  author    = {Mei, Jincheng and Xiao, Chenjun and Szepesv{\'a}ri, Csaba and Schuurmans, Dale},
++  title     = {On the Global Convergence Rates of Softmax Policy Gradient Methods},
++  booktitle = {Proceedings of the 37th International Conference on Machine Learning},
++  series    = {Proceedings of Machine Learning Research},
++  volume    = {119},
++  pages     = {6820--6829},
++  publisher = {{PMLR}},
++  year      = {2020},
++  url       = {https://proceedings.mlr.press/v119/mei20b.html}
++}
++
++@article{harper2009informationgeometry,
++  author        = {Harper, Marc},
++  title         = {Information Geometry and Evolutionary Game Theory},
++  journal       = {arXiv preprint arXiv:0911.1383},
++  year          = {2009},
++  eprint        = {0911.1383},
++  archivePrefix = {arXiv},
++  primaryClass  = {cs.IT},
++  url           = {https://arxiv.org/abs/0911.1383}
++}
++@article{vanerven2014renyi,
++  author = {van Erven, Tim and Harremo{\"e}s, Peter},
++  title = {{R\'enyi} Divergence and {Kullback--Leibler} Divergence},
++  journal = {IEEE Transactions on Information Theory},
++  year = {2014},
++  doi = {10.1109/TIT.2014.2320500},
++  eprint = {1206.2459},
++  archivePrefix = {arXiv},
++  primaryClass = {cs.IT},
++  url = {https://arxiv.org/abs/1206.2459v2}
++}
++
++@inproceedings{garivier2011klucb,
++  author = {Garivier, Aur{\'e}lien and Capp{\'e}, Olivier},
++  title = {The {KL-UCB} Algorithm for Bounded Stochastic Bandits and Beyond},
++  booktitle = {Proceedings of the 24th Annual Conference on Learning Theory},
++  series = {Proceedings of Machine Learning Research},
++  volume = {19},
++  pages = {359--376},
++  publisher = {PMLR},
++  year = {2011},
++  url = {https://proceedings.mlr.press/v19/garivier11a.html}
++}
++
++@article{clopper1934binomial,
++  author = {Clopper, C. J. and Pearson, E. S.},
++  title = {The Use of Confidence or Fiducial Limits Illustrated in the Case of the Binomial},
++  journal = {Biometrika},
++  volume = {26},
++  number = {4},
++  pages = {404--413},
++  year = {1934},
++  doi = {10.1093/biomet/26.4.404},
++  url = {https://academic.oup.com/biomet/article-abstract/26/4/404/291538}
++}
++
++@article{howard2021confidence,
++  author = {Howard, Steven R. and Ramdas, Aaditya and McAuliffe, Jon and Sekhon, Jasjeet},
++  title = {Time-uniform, nonparametric, nonasymptotic confidence sequences},
++  journal = {The Annals of Statistics},
++  volume = {49},
++  number = {2},
++  pages = {1055--1080},
++  year = {2021},
++  doi = {10.1214/20-AOS1991},
++  eprint = {1810.08240},
++  archivePrefix = {arXiv},
++  primaryClass = {math.ST},
++  url = {https://arxiv.org/abs/1810.08240}
++}
++
++@article{mcallester2003missing,
++  author = {McAllester, David and Ortiz, Luis},
++  title = {Concentration Inequalities for the Missing Mass and for Histogram Rule Error},
++  journal = {Journal of Machine Learning Research},
++  volume = {4},
++  pages = {895--911},
++  year = {2003},
++  url = {https://jmlr.org/papers/volume4/mcallester03a/mcallester03a.pdf}
++}
++
++@article{berend2013missing,
++  author = {Berend, Daniel and Kontorovich, Aryeh},
++  title = {On the concentration of the missing mass},
++  journal = {Electronic Communications in Probability},
++  volume = {18},
++  number = {3},
++  pages = {1--7},
++  year = {2013},
++  doi = {10.1214/ECP.v18-2359},
++  eprint = {1210.3248},
++  archivePrefix = {arXiv},
++  primaryClass = {math.PR},
++  url = {https://arxiv.org/abs/1210.3248}
++}
+--- before/paper/README.md
++++ after/paper/README.md
+@@ -44,20 +44,28 @@
+ 
+ ## Theory guarantee
+ 
+-The appendix analyzes prompt-isolated, continuous mean flow with independently
+-trained categorical logits, finite on-policy groups, and zero reference KL.
+-Under these assumptions a unique initially most probable correct mode becomes
+-dominant. This is a conditional mechanism, not a general theorem about finite
+-PPO or Adam training in neural networks.
+-
+-For a fixed verified bank and constant positive replay dose, a potential bound
+-keeps each banked categorical probability uniformly positive, including at
+-infinite time. The bound can be numerically tiny. With complete coverage,
+-independent logits converge to the replay target; it is uniform for equal
+-categorical weights. The implemented length-normalized exemplar loss requires
+-a separate weighting argument and does not guarantee uniform learned key
+-probabilities. Discovery, capacity truncation, cross-prompt interference, and
+-finite stochastic optimization remain outside these guarantees.
++The appendix first analyzes prompt-isolated categorical mean flow with
++independently trained logits, finite on-policy groups, and zero reference KL.
++A unique initially most probable correct mode becomes dominant under this
++update geometry. Exact categorical natural gradient instead preserves the
++conditional correct-mode ratios, and exact entropy has distinct protection
++guarantees. Collapse claims therefore specify the update and entropy estimator.
++
++For a fixed verified bank and constant positive replay dose, the categorical
++potential gives all-time positive probability floors and convergence to the
++bank target. Complete-response energy bounds extend protection to shared
++parameters. The appendix now gives conditional stochastic-update guarantees,
++admission bounds and retention across controlled bank changes, and sharp
++per-mode certificates from normalized replay cross entropy. Each result includes
++its proof, assumptions, and relevant primary literature.
++
++These extensions do not certify current AdamW/PPO updates or guarantee that the
++finite bank discovers every correct mode. Mean-token exemplar scores need the
++stated length and complete-response normalization before they bound sampling
++probabilities. Theoretical floors may be tiny; actual per-mode survival still
++requires checkpoint measurements. See the
++[appendix integration record](audits/theory_appendix_integration_20260905.md)
++for the added results and validation.
+ 
+ ## ModeBench
+ 
+--- before/paper/mathai2026/appendix.tex
++++ after/paper/mathai2026/appendix.tex
+@@ -531,14 +531,23 @@
+ exact entropy regularization from bounded sampled surprisal.
+ Lemma~\ref{lem:replay-gradient-availability} distinguishes a fresh task signal
+ from a replay signal. The retention theorem and its fixed-bank limit then
+-identify exactly which stored modes survive. Finally,
+-Lemma~\ref{lem:shared-exemplar-retention} states the energy condition needed
+-to extend retention to complete exemplars in a shared model.
++identify exactly which stored modes survive. The natural-gradient comparison
++in Section~\ref{app:theory-natural-gradient} makes the role of update geometry
++explicit, while Section~\ref{app:theory-entropy-comparison} relates exact entropy
++to replay through their distinct relative-entropy objectives.
++Lemma~\ref{lem:shared-exemplar-retention} then states the energy condition
++needed for complete exemplars in a shared model. The remaining sections extend
++that condition to controlled stochastic updates and changing banks, and derive
++sharp per-mode certificates and valid finite-sample interpretations
++(Sections~\ref{app:theory-optimizer}--\ref{app:theory-survival-certificates}).
++Each extension states its additional assumptions and the established
++literature tools used in its proof.
+ 
+ Here $G$ counts training rollouts, $K$ counts evaluation draws, $m,n$ count
+-correct and incorrect categories, and $k$ is the bank size. Time $t$ is
+-continuous optimization time; $\tau$ is a reparameterized learning clock.
+-Neither is a wall-clock or GPU-runtime prediction. ``Collapse'' refers to
++correct and incorrect categories, and $k$ is the bank size. In the mean-flow results, $t$ is
++continuous optimization time and $\tau$ is a reparameterized learning clock.
++The later stochastic and admission results use explicitly defined update or
++opportunity indices. None is a wall-clock or GPU-runtime prediction. ``Collapse'' refers to
+ limiting concentration: finite softmax logits already give positive
+ probabilities at every finite time. A uniform lower bound for all future
+ times is the stronger retention property proved below.
+@@ -960,6 +969,107 @@
+ mean updates, and zero reference KL; it does not cover shared-prompt
+ interference, adaptive optimizer effects, or finite-step stochastic training.
+ 
++\subsection{An exact optimizer comparison from information geometry}
++\label{app:theory-natural-gradient}
++
++Natural gradient on the categorical simplex uses the Fisher metric, also
++called the Shahshahani metric in evolutionary dynamics
++\citep[Sections~2.3 and~3.1]{harper2009informationgeometry}. Its gradient
++formula gives an exact comparison with the Euclidean-logit collapse result
++in Theorem~\ref{thm:grpo-collapse}. We derive the specialization below so
++that the dependence on optimizer geometry is explicit.
++
++\begin{theorem}[Natural-gradient selection and replay]
++\label{ext:thm-natural-replay}
++Retain the finite categorical setup and start from an interior distribution
++$p(0)$ with $0<P(0)<1$. Let $\Psi\in C^2([0,1])$ satisfy
++$c(P):=\Psi'(P)>0$ on $[0,1]$. Choose a nonempty fixed bank
++$\mathcal B\subseteq\mathcal C$, positive weights $w_b$ summing to one over
++$\mathcal B$, and extend them by zero to a vector $\bar w$ on
++$\mathcal A$. Exact Fisher natural-gradient ascent of
++\[
++ \mathcal J(p)=\Psi(P)+\rho\sum_{b\in\mathcal B}w_b\log p_b,
++ \qquad \rho\ge0,
++\]
++induces
++\begin{align}
++ \dot p_i&=c(P)p_i(\mathbf 1\{i\in\mathcal C\}-P)
++                     +\rho(\bar w_i-p_i),
++ \label{ext:eq-natural-p}\\
++ \dot P&=(1-P)(c(P)P+\rho),
++ &\dot q_c&=\frac{\rho}{P}(\bar w_c-q_c).
++ \label{ext:eq-natural-Pq}
++\end{align}
++For $\rho=0$, $P(t)\to1$ while $q(t)=q(0)$: correctness learning preserves
++all relative probabilities among correct modes. For $\rho>0$, define
++$A(t)=\int_0^t\rho/P(s)\,ds$. Every correct mode satisfies
++\begin{equation}
++ q_c(t)=\bar w_c+(q_c(0)-\bar w_c)e^{-A(t)},
++ \qquad A(t)\ge\rho t.
++ \label{ext:eq-natural-conditional-solution}
++\end{equation}
++Furthermore,
++\begin{equation}
++ 1-P(t)\le(1-P(0))e^{-\rho t},
++ \qquad
++ p_b(t)\ge P(0)\min\{q_b(0),w_b\}>0
++ \quad (b\in\mathcal B,t\ge0).
++ \label{ext:eq-natural-retention}
++\end{equation}
++Thus full-support replay sends the conditional distribution to its bank
++target, whereas an incomplete bank still loses unbanked correct modes in the
++limit.
++\end{theorem}
++
++\begin{proof}
++For tangent vectors $u,v$ with zero coordinate sum, the categorical Fisher
++metric is $g_p(u,v)=\sum_i u_iv_i/p_i$. The tangent vector
++\[
++ v_i=p_i\left(\partial_i\mathcal J-
++                  \sum_jp_j\partial_j\mathcal J\right)
++\]
++has zero sum and satisfies $g_p(v,u)=\sum_i\partial_i\mathcal J\,u_i$
++for every tangent $u$. It is therefore the natural gradient. Here
++\[
++ \partial_i\mathcal J=c(P)\mathbf 1\{i\in\mathcal C\}
++                   +\rho\bar w_i/p_i,
++ \qquad
++ \sum_i p_i\partial_i\mathcal J=c(P)P+\rho,
++\]
++which proves Equation~\eqref{ext:eq-natural-p}. Summing over correct
++categories gives the $P$ equation. Differentiating $q_c=p_c/P$ then gives
++the $q$ equation in~\eqref{ext:eq-natural-Pq}; the correctness terms cancel.
++
++The $P$ equation makes $P$ nondecreasing. If $\rho=0$, $q$ is constant;
++if $\rho>0$, solving its linear equation gives
++Equation~\eqref{ext:eq-natural-conditional-solution}. Since $P\le1$, this
++also gives $A(t)\ge\rho t$. Incorrect coordinates satisfy
++$\dot p_i=-(c(P)P+\rho)p_i$ and remain positive at every finite time.
++Correct conditional coordinates remain positive by the explicit solution,
++and $P\ge P(0)>0$. Because $c$ is bounded on $[0,1]$ and
++$\rho/P\le\rho/P(0)$, these formulas extend the interior solution to every
++finite time.
++
++For $\rho=0$, $P$ increases and cannot tend to a limit below one: at any
++such limit $(1-P)c(P)P$ would stay positive. For $\rho>0$,
++$\dot P\ge\rho(1-P)$ yields the correctness bound in
++Equation~\eqref{ext:eq-natural-retention}. Each banked $q_b(t)$ lies between
++$q_b(0)$ and $w_b$, so multiplication by $P(t)\ge P(0)$ proves the
++probability floor. Finally, $A(t)\to\infty$ gives $q_c(t)\to\bar w_c$, so unbanked
++correct modes have zero limiting mass.
++\end{proof}
++
++The smooth potentials with positive derivatives in
++Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} satisfy the premises. The Fisher-gradient formula
++is established information geometry; the result above is its elementary
++specialization to correctness selection plus replay toward a fixed target.
++It makes the scope of the collapse claim concrete: increasing correctness
++alone does not force a loss of conditional support under every optimization
++geometry. The theorem concerns the exact categorical Fisher flow. It gives
++no guarantee for approximate natural gradient, a shared neural Fisher
++matrix, PPO, or AdamW, and its time variable is an ideal optimization clock
++rather than elapsed training time.
++
+ \subsection{Exact entropy and sampled surprisal have different guarantees}
+ \label{app:theory-entropy}
+ The preceding collapse theorem has no entropy term. It does not imply collapse
+@@ -1056,6 +1166,86 @@
+ particular bounded estimator. Unsampled probabilities can also change through
+ softmax normalization or shared parameters. Exact entropy is outside the
+ uniformly bounded-score premise because its surprisal is unbounded near zero.
++
++\subsection{Exact conditional entropy and replay target the same optimum}
++\label{app:theory-entropy-comparison}
++
++The distinction between confidence penalties and label smoothing is a known
++choice of KL direction \citep[Section~3.2]{pereyra2017confidencepenalty}.
++Log-barrier regularization has also been studied in policy-gradient theory
++\citep[Section~5.2]{agarwal2021policygradient}. Here we specialize those
++identities to a target supported on verified correct modes. The resulting
++comparison separates an objective's maximizer from what its value certifies
++about a rare mode.
++
++Let $u_c=1/m$ on all $m\ge2$ correct categories, retain $P>0$ and
++$q_c=p_c/P$, and write $H(q)=-\sum_cq_c\log q_c$, with $0\log0=0$.
++
++\begin{lemma}[Full-support objective comparison]
++\label{ext:lem-entropy-objectives}
++For a bank containing every correct category with a uniform categorical
++replay target,
++\begin{align}
++ H(q)&=\log m-\operatorname{KL}(q\|u),
++ \label{ext:eq-conditional-entropy-kl}\\
++ R_u(p):=-\frac1m\sum_{c\in\mathcal C}\log p_c
++ &=\log m-\log P+\operatorname{KL}(u\|q).
++ \label{ext:eq-uniform-replay-kl}
++\end{align}
++If $\Psi$ is continuous and strictly increasing on $[0,1]$, then for all
++$\beta,\rho>0$, both objectives
++\[
++ \Psi(P)+\beta H(q)
++ \qquad\text{and}\qquad
++ \Psi(P)-\rho R_u(p)
++\]
++have the unique maximizing categorical distribution $P=1,q=u$. Maximization
++is over the closed simplex with $P>0$; replay loss is $+\infty$ if a protected
++coordinate is zero. This identifies the optimum; convergence of conditional-entropy
++flow or stochastic updates is not asserted.
++\end{lemma}
++
++\begin{proof}
++Expanding the KL divergences gives the first identity. Substitution of
++$p_c=Pq_c$ into $R_u$ gives the second. In the first objective,
++$H(q)\le\log m$, with equality only at $q=u$; after choosing this $q$,
++strict increase of $\Psi$ selects $P=1$. The second objective is
++\[
++ \Psi(P)+\rho\log P-\rho\log m
++       -\rho\operatorname{KL}(u\|q).
++\]
++Its terms depending on $P$ increase strictly, while the last term is
++maximized only at $q=u$. At $P=1$ all incorrect probabilities are zero,
++so the resulting full categorical distribution is unique.
++\end{proof}
++
++Full-output entropy $H(p)$ is a different comparator. Its Gibbs optimum in
++Lemma~\ref{lem:entropy-scope} follows the standard entropy-conjugacy
++calculation \citep[Section~2.2]{geist2019regmdp}. That optimum assigns positive
++incorrect mass for fixed $\beta>0$ under linear correctness reward. By
++contrast, Lemma~\ref{ext:lem-entropy-objectives} shows that exact
++\emph{conditional} entropy has no such loss of correctness at its global
++optimum. The historical semantic score used in the experiments is not an
++exact gradient of either entropy objective.
++
++Existing literature also gives discrete-time guarantees for an exact
++comparator. Under their finite-bandit setup and step-size conditions,
++\citet[Lemma~13 and Theorem~5]{mei2020softmaxpg} prove positive
++probability floors and geometric convergence for exact tabular
++entropy-regularized policy gradient. The Dr.GRPO reduction has the linear
++reward vector $a\mathbf 1_{\mathcal C}$ with $a=(G-1)/G\in(0,1)$, which
++satisfies their bounded-reward premise. This linear-reward result does not
++directly cover the nonlinear finite-group MaxRL potential, the historical
++semantic estimator, a clipped PPO surrogate, or AdamW.
++
++The KL directions explain a difference between certificates:
++$\operatorname{KL}(u\|q)$ diverges if any protected coordinate vanishes,
++whereas $\operatorname{KL}(q\|u)$ stays finite. In particular, losing one
++mode and allocating mass uniformly to the remaining modes leaves
++$H(q)=\log(m-1)$. Section~\ref{app:theory-survival-certificates} gives the
++sharp entropy threshold and stronger replay-based probability bounds.
++This comparison concerns objective level sets; it does not assert that exact
++entropy dynamics lose a mode.
+ 
+ \subsection{When replay supplies a signal that fresh groups lack}
+ \label{app:theory-gradient-availability}
+@@ -1382,8 +1572,9 @@
+  =\sum_{b\in\mathcal B}[1-(1-w_b)^K]\le k,
+ \]
+ with the same expression along deterministic iterates. Thus the bank itself
+-sets an asymptotic support ceiling in this model. Extending this limit to
+-changing banks or stochastic neural updates requires separate analysis.
++sets an asymptotic support ceiling in this model. The later stochastic and changing-bank results give conditional
++retention bounds under additional energy assumptions; they do not extend this
++fixed-bank convergence limit to arbitrary neural training.
+ 
+ \subsection{From categorical modes to complete replayed responses}
+ \label{app:theory-exemplar-bridge}
+@@ -1448,20 +1639,629 @@
+ The energy floors can make this budget impractically large; asymptotic
+ retention does not imply visibility in an eight-draw evaluation.
+ 
++\subsection{Retention under discrete stochastic optimizer updates}
++\label{app:theory-optimizer}
++
++Lemma~\ref{lem:shared-exemplar-retention} converts a deterministic energy
++ceiling into complete-exemplar protection. We next replace pathwise descent
++with a controlled conditional drift, allowing shared parameters, noise,
++bias, and predictable preconditioning. The descent estimate follows the
++variable-metric analysis of \citet[Section~2]{wang2017sqn}; the trajectory
++bound uses Ville's nonnegative-supermartingale inequality, as stated by
++\citet[Lemma~1]{howard2020timeuniform}. These are standard ingredients;
++the result below applies them to the verified-response potential.
++
++\begin{theorem}[Conditional stochastic exemplar retention]
++\label{ext:thm-stochastic-retention}
++Fix finitely many complete verified responses $(x_j,e_j)$ realizing keys
++$b_j$, with lengths $L_j>0$ and weights $\alpha_j>0$. Define
++\[
++ R(\theta)=\sum_j\frac{\alpha_j}{L_j}
++             [-\log\pi_\theta(e_j\mid x_j)],\qquad
++ F(\theta)=R(\theta)-J(\theta),\qquad J(\theta)\le J_{\max}<\infty.
++\]
++Assume $F$ is differentiable with globally $L_F$-Lipschitz gradient and
++$\theta_0$ is deterministic with finite $F(\theta_0)$. Relative to the
++history filtration $(\mathcal F_t)$, consider
++\[
++ \theta_{t+1}=\theta_t-\eta_t H_t(g_t+b_t+\xi_t),
++ \qquad g_t=\nabla F(\theta_t).
++\]
++The variables $\theta_t,\eta_t,H_t,b_t$ are $\mathcal F_t$-measurable,
++$0\preceq H_t\preceq MI$, $\eta_t>0$, and $\eta_t L_FM\le1$.
++The noise satisfies $\mathbb E[\xi_t\mid\mathcal F_t]=0$ and has finite
++conditional second moment. Suppose deterministic $d_t\ge0$ satisfy
++\begin{equation}
++ \frac{\eta_t}{2}\|b_t\|_{H_t}^{2}
++ +\frac{L_F\eta_t^2}{2}
++       \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\le d_t,
++ \qquad \|u\|_H^2=u^\top Hu.
++ \label{ext:eq-optimizer-budget}
++\end{equation}
++For $N\in\mathbb N\cup\{\infty\}$ with
++$B_N=\sum_{t<N}d_t<\infty$, write $D_0=F(\theta_0)+J_{\max}\ge0$.
++For every $0<\delta<1$, with probability at least $1-\delta$, the following
++holds simultaneously for all integer $t\le N$ and all protected exemplars:
++\begin{equation}
++ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
++ \ge\exp\!\left[-\frac{L_j(D_0+B_N)}{\alpha_j\delta}\right].
++ \label{ext:eq-stochastic-retention}
++\end{equation}
++For $N=\infty$, each protected probability also has an almost surely
++positive, potentially random, infimum over all iterations. The likelihood
++must include the complete response and its termination event, or a fixed
++deterministic horizon, under the sampling law whose key probability is bounded.
++\end{theorem}
++\begin{proof}
++Smoothness, conditional centering of $\xi_t$, and
++$H_t^2\preceq MH_t$ imply
++\begin{align*}
++ \mathbb E[F(\theta_{t+1})\mid\mathcal F_t]
++ &\le F(\theta_t)-\eta_tg_t^\top H_t(g_t+b_t)
++       +\frac{\eta_t}{2}\|g_t+b_t\|_{H_t}^2\\
++ &\hspace{1.5em}+\frac{L_F\eta_t^2}{2}
++          \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\\
++ &\le F(\theta_t)-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+d_t.
++\end{align*}
++The bias cross term cancels when the square is expanded. Since
++$F+J_{\max}\ge R\ge0$, the process
++\[
++ X_t=F(\theta_t)+J_{\max}+\sum_{s=t}^{N-1}d_s
++\]
++is a nonnegative supermartingale, using the convergent infinite tail when
++$N=\infty$. Its initial value is $D_0+B_N$. For $D_0+B_N>0$, Ville's
++inequality gives
++$\Pr(\sup_{t\le N}X_t\ge(D_0+B_N)/\delta)\le\delta$.
++If $D_0+B_N=0$, nonnegativity gives $X_t=0$ almost surely instead.
++Every nonnegative summand of $R(\theta_t)\le X_t$ obeys the same ceiling.
++Exponentiation therefore yields~\eqref{ext:eq-stochastic-retention}
++without a union factor over exemplars. A complete-exemplar event is contained
++in its verified-key event. For $N=\infty$, the same maximal bound gives
++$\Pr(\sup_tX_t\ge u)\le(D_0+B_\infty)/u$ for $u>0$.
++Letting $u\to\infty$ proves $\sup_tX_t<\infty$ almost surely and hence
++random positive all-time floors.
++\end{proof}
++
++\paragraph{Finite and infinite horizons.}
++With zero bias and uniformly bounded noise variance, the cost in
++\eqref{ext:eq-optimizer-budget} is $O(\eta_t^2)$, so square-summable steps
++suffice for an infinite-horizon budget. Bias instead contributes
++$O(\eta_t\|b_t\|^2)$. Constant steps with persistent variance yield the
++finite-horizon result, with a budget that can grow with $N$; this argument
++does not give infinite-horizon protection in that regime. The classical
++almost-supermartingale framework of \citet{robbins1971almost} supplies
++related convergence tools, but the proof above needs only the displayed
++drift and maximal inequality. No positive lower eigenvalue of $H_t$ is
++needed for retention alone, and the theorem does not assert stationarity,
++parameter convergence, or a useful evaluation-scale probability floor.
++
++\begin{corollary}[Sharper confidence dependence under bounded noise]
++\label{ext:cor-bounded-noise-retention}
++Under the assumptions of Theorem~\ref{ext:thm-stochastic-retention},
++suppose $b_t=0$, $N<\infty$,
++and $\eta_t$ is deterministic. Let deterministic bounds $G_t,s_t<\infty$
++satisfy $\|g_t\|_2\le G_t$ and $\|\xi_t\|_2\le s_t$ almost surely. Define
++\[
++ c_t=\eta_tMG_ts_t,\quad V_N=\sum_{t<N}c_t^2,\quad
++ Q_N=\frac{L_FM^2}{2}\sum_{t<N}\eta_t^2s_t^2.
++\]
++For every $0<\delta<1$, with probability at least $1-\delta$,
++simultaneously for all $t\le N$ and $j$,
++\begin{equation}
++ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
++ \ge\exp\!\left[-\frac{L_j}{\alpha_j}
++   \left(D_0+Q_N+\sqrt{2V_N\log(1/\delta)}\right)\right].
++ \label{ext:eq-bounded-noise-retention}
++\end{equation}
++\end{corollary}
++\begin{proof}
++The pathwise smoothness estimate gives
++\[
++ F(\theta_{t+1})-F(\theta_t)
++ \le-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+Z_{t+1}
++       +\frac{L_F\eta_t^2M^2s_t^2}{2},
++\]
++where
++\[
++ Z_{t+1}=-\eta_t g_t^\top H_t(I-L_F\eta_tH_t)\xi_t.
++\]
++Predictability makes $Z_{t+1}$ a martingale difference. The spectral bounds
++imply $0\preceq I-L_F\eta_tH_t\preceq I$, so $|Z_{t+1}|\le c_t$.
++Conditional Hoeffding's lemma therefore makes
++\[
++ \exp\!\left(\lambda\sum_{s<t}Z_{s+1}
++              -\frac{\lambda^2}{2}\sum_{s<t}c_s^2\right),\qquad\lambda>0,
++\]
++a nonnegative supermartingale starting at one. This standard exponential
++construction is reviewed by \citet{howard2020timeuniform}. Ville's inequality
++and optimization over $\lambda$ yield
++\[
++ \Pr\!\left(\max_{t\le N}\sum_{s<t}Z_{s+1}
++              >\sqrt{2V_N\log(1/\delta)}\right)\le\delta
++\]
++when $V_N>0$; when $V_N=0$, the sum is identically zero. Sum the drift inequalities, drop the nonpositive gradient terms,
++and apply the summand bound from Theorem~\ref{ext:thm-stochastic-retention}.
++\end{proof}
++
++\paragraph{Relation to stochastic policy-gradient guarantees.}
++\citet{zhang2021reinforce} analyze stochastic tabular REINFORCE with a
++state-action log barrier, phased step and regularization schedules, and
++policy mixing. Their regret guarantees provide a related stochastic
++policy-gradient precedent; they do not provide a fixed per-response floor
++for our replay bank. For the implemented optimizer, a current-gradient Adam
++second moment is not predictable relative to that gradient's noise.
++Momentum, clipping, prompt scheduling, and changing banks likewise require
++separate bias or energy control. The counterexamples of
++\citet{reddi2018adam} explain why an unrestricted Adam guarantee cannot be
++assumed; they do not establish failure of these runs. The hypotheses above
++have not been established for the experiments' AdamW/PPO updates. In
++particular, positive replay weight and a small nominal learning rate do not
++verify the smoothness, predictability, or accumulated-error conditions.
++
++\subsection{Discovery, admission, and retention through bank changes}
++\label{app:theory-discovery-admission}
++
++Retention begins only after a verified key enters active memory. Archive
++exploration separates discovery from reliable return to a discovered state
++\citep{ecoffet2021return}; replay with behavioral cloning supplies a related
++empirical mechanism for reducing forgetting \citep{rolnick2019replay}.
++Neither result is a theorem that every execution key enters a finite bank
++or maintains a positive probability thereafter. We state the additional
++admission and energy conditions explicitly.
++
++\paragraph{Actual insertion is the relevant event.}
++Fix a prompt and count opportunities according to a specified schedule.
++An opportunity can be a prompt-local query or a global update; the resulting
++bounds concern that opportunity count. The admission probability includes
++verification, capacity, scheduling, and candidate selection. For example,
++$G$ conditionally independent samples with unconditional accepted-key probability $p_b$
++contain key $b$ with probability $1-(1-p_b)^G$. This is its admission
++probability only if the key remains eligible and insertion is guaranteed
++whenever it appears. The following argument permits adaptive histories;
++its probability foundation is conditional Borel--Cantelli
++\citep[Theorem~4.3.4]{durrett2019probability}.
++
++\begin{lemma}[Conditional admission hazards]
++\label{ext:lem-admission-hazards}
++Fix a key $b$ not initially banked. Let $(\mathcal F_n)_{n\ge0}$ contain the
++complete history after each opportunity, and let $\tau_b$ be the first
++opportunity at which a verified representative of $b$ is inserted into active
++replay memory, with $\tau_b=\infty$ if this never happens. Define
++\[
++ h_{b,n}=\Pr(\tau_b=n\mid\mathcal F_{n-1}),\qquad
++ H_{b,N}=\sum_{n=1}^N h_{b,n}.
++\]
++The stopped hazard $h_{b,n}$ is zero after an earlier admission. For $a\ge0$,
++\begin{equation}
++ \Pr(\tau_b>N,\ H_{b,N}\ge a)\le e^{-a},\qquad
++ \Pr(\tau_b=\infty,\ H_{b,\infty}=\infty)=0.
++ \label{ext:eq-admission-hazards}
++\end{equation}
++If deterministic $\underline h_{b,n}\in[0,1]$ satisfy
++$h_{b,n}\ge\underline h_{b,n}$ on $\{\tau_b\ge n\}$, then
++\begin{equation}
++ \Pr(\tau_b>N)\le\prod_{n=1}^N(1-\underline h_{b,n})
++ \le\exp\!\left(-\sum_{n=1}^N\underline h_{b,n}\right).
++ \label{ext:eq-admission-floors}
++\end{equation}
++For finitely many targets, summing over initially missing keys bounds
++non-admission by $N$.
++\end{lemma}
++\begin{proof}
++Set $Z_N=\mathbf1\{\tau_b>N\}\exp(H_{b,N})$ and $Z_0=1$. Earlier admission
++is known at time $n-1$, and both $h_{b,n}$ and $Z_{n-1}$ vanish there.
++On survival through $n-1$,
++\[
++ \mathbb E[Z_n\mid\mathcal F_{n-1}]
++ =Z_{n-1}e^{h_{b,n}}(1-h_{b,n})\le Z_{n-1}.
++\]
++Thus $Z_n$ is a nonnegative supermartingale. Markov's inequality proves the
++finite-hazard bound. Since $\mathbb E Z_N\le1$, Fatou's lemma excludes a
++positive-probability event on which survival continues forever and
++$H_{b,N}\to\infty$, which would force $Z_N\to\infty$. With deterministic
++hazard floors, conditioning gives
++\[
++ \Pr(\tau_b>n)\le(1-\underline h_{b,n})\Pr(\tau_b>n-1).
++\]
++Iteration and a union bound prove the claims without independence across
++opportunities.
++\end{proof}
++
++Positive probability at every opportunity is insufficient. Independent
++opportunities with admission probabilities $(n+1)^{-2}>0$ give
++\[
++ \Pr(\tau=\infty)=\prod_{n=1}^\infty
++ \left(1-\frac1{(n+1)^2}\right)=\frac12.
++\]
++A non-evicting capacity-$K_{\rm cap}$ bank also gives every unbanked key zero admission
++hazard once full. For a fixed sampling law with no such gates, discovery
++reduces to coupon collection, with incorrect responses acting as null
++coupons. \citet[Theorems~2--3]{anceaume2015coupon} show that, at fixed total
++non-null mass, uniform independent sampling minimizes collection time in
++stochastic order. This comparison concerns a fixed independent sampling
++law; the adaptive admission bounds above supply the appropriate statement
++when the training history changes sampling or eligibility.
++
++\paragraph{Charge changes in the replay objective.}
++A key's admission must preserve a representative with positive loss weight.
++The energy can change when bank membership or weights change, so descent
++between admissions alone is insufficient. We account for those changes
++explicitly, following the general switched-energy viewpoint of
++\citet{branicky1998multiple}. The following elementary bound is proved
++directly and does not invoke an equilibrium-stability theorem for neural
++training.
++
++\begin{lemma}[Retention with a finite switching-energy budget]
++\label{ext:lem-switching-retention}
++Let $t_0<t_1<\cdots$ be switching times, with finitely many switches on every
++bounded time interval. On interval $r$, define
++\[
++ \begin{aligned}
++ F_r(\theta)&=\sum_{j:d_{rj}>0}d_{rj}\ell_j(\theta)-J(\theta),\\
++ \ell_j(\theta)&=-\log\pi_\theta(e_j\mid x_j),\qquad
++ J(\theta)\le J_{\max}<\infty.
++ \end{aligned}
++\]
++Each interval uses a finite collection of complete verified exemplars with
++nonnegative coefficients; zero coefficients denote absent exemplars.
++Assume finite initial energy, continuity of parameters at switches,
++nonincrease of $F_r$ within interval $r$, and the finite positive-jump budget
++\begin{equation}
++ A:=\sum_{r\ge1}
++   [F_r(\theta(t_r))-F_{r-1}(\theta(t_r))]_+<\infty.
++ \label{ext:eq-switching-budget}
++\end{equation}
++If exemplar $j$ is protected from interval $r_j$ onward and
++$d_{rj}\ge\underline d_j>0$ for all $r\ge r_j$, let
++$D=F_0(\theta(t_0))+A+J_{\max}$. Then
++\begin{equation}
++ p_{\theta(t)}(b_j\mid x_j)\ge\pi_{\theta(t)}(e_j\mid x_j)
++ \ge\exp(-D/\underline d_j)>0\qquad(t\ge t_{r_j}).
++ \label{ext:eq-switching-retention}
++\end{equation}
++Each likelihood uses the complete verified-response probability under the
++sampling law being bounded. For mean-token loss, $d_{rj}=\alpha_{rj}/L_j$,
++with fixed length $L_j>0$.
++\end{lemma}
++\begin{proof}
++Induction over interval descents and switch jumps gives
++$F_r(\theta(t))\le F_0(\theta(t_0))+A$. Consequently
++$\sum_jd_{rj}\ell_j(\theta(t))\le D$. Each summand is nonnegative, so a
++protected exemplar satisfies $\ell_j(\theta(t))\le D/\underline d_j$.
++The key event contains its exemplar event, so exponentiation proves
++the bound.
++\end{proof}
++
++If admission preserves old coefficients, the jump equals the weighted
++surprisal of the newly added exemplars at their admission probabilities.
++Uniform categorical replay with fixed total dose $\rho$ instead dilutes old
++weights. For a size-$k$ bank, write
++$R_k=-k^{-1}\sum_{b\in\mathcal B_k}\log p_b$; adding one new key gives
++\[
++ \Delta F=\frac{\rho}{k+1}[-\log p_{\rm new}-R_k].
++\]
++Old coefficients decrease from $\rho/k$ to $\rho/(k+1)$ but stay at least
++$\rho/K_{\rm cap}$ under capacity $K_{\rm cap}$. Finitely many admissions with positive
++admission-time probabilities and no eviction therefore have finite total
++switching cost in the exact descent model. Changing a representative must
++also be charged to the objective jump. A key-level version of
++Lemma~\ref{ext:lem-switching-retention} follows by requiring at least one
++complete representative of that key with coefficient bounded below on every
++subsequent interval; the same nonnegative-summand proof applies even if the
++representative changes.
++
++\begin{corollary}[Conditional discovery followed by retention]
++\label{ext:cor-discovery-retention}
++Suppose one prompt's entire correct support $\mathcal C$ is finite, of size
++$m$ no larger than bank capacity. Admissions do not evict keys, and every
++missing key $b$ has conditional admission hazard at least $\epsilon r_b$ at
++every opportunity, for constants $\epsilon>0$, $r_b>0$, and
++$\epsilon r_b\le1$. Assume the switching-energy conditions of
++Lemma~\ref{ext:lem-switching-retention}, including a finite positive-jump
++budget and persistent positive coefficients for admitted complete exemplars.
++Then full correct coverage is reached in finitely many opportunities almost
++surely. Thereafter each correct key has a uniform-in-time positive
++probability floor. At horizon $N$,
++\begin{equation}
++ \Pr(\text{full coverage by }N)
++ \ge 1-\sum_{b\in\mathcal C}e^{-N\epsilon r_b}.
++ \label{ext:eq-discovery-retention}
++\end{equation}
++If every $r_b\ge\gamma>0$, this is at least $1-me^{-N\epsilon\gamma}$.
++\end{corollary}
++\begin{proof}
++Apply Lemma~\ref{ext:lem-admission-hazards} to the initially missing keys and
++take a union bound. The failure bound tends to zero. Finite support and
++non-eviction imply a finite almost-sure opportunity index of simultaneous
++full coverage. Lemma~\ref{ext:lem-switching-retention} protects each admitted
++complete exemplar and hence its key; after full coverage this applies to
++all correct keys.
++\end{proof}
++
++A fixed full-support proposal mixture supplies the assumed hazard floor if
++it is queried at every counted opportunity and insertion is guaranteed
++whenever a missing key appears. Capacity must accommodate the entire
++admissible correct support, including keys competing for the same slots.
++Finite-temperature sampling, bounded search attempts, or recurrent replay
++scheduling alone do not establish this admission floor or the energy
++budget. The probability bound~\eqref{ext:eq-discovery-retention} controls
++admission by a finite opportunity count; the subsequent retention floors
++can depend on the realized training history. The corollary establishes
++neither uniform key probabilities nor convergence of the neural optimizer.
++
++\subsection{Sharp per-mode certificates and finite-sample interpretation}
++\label{app:theory-survival-certificates}
++
++The energy bounds above can be sharpened by using probability normalization.
++We give self-contained applications of relative-entropy data processing and
++Pinsker's inequality \citep[Theorems~9 and~31]{vanerven2014renyi}; binary-KL inversion is also a
++standard statistical-learning tool \citep{garivier2011klucb}. These certificates
++concern a specified probability distribution. Applying one at a checkpoint
++requires a valid loss bound there; applying it throughout training additionally
++requires a uniform energy bound. Neither application establishes descent for
++the implemented neural optimizer. All logarithms are natural.
++
++\subsubsection{A sharp certificate from normalized replay cross entropy}
++
++Write $H(w)=-\sum_b w_b\log w_b$, $h_2(a)=H((a,1-a))$, and
++\[
++ \operatorname{kl}(a,r)
++ =a\log\frac{a}{r}+(1-a)\log\frac{1-a}{1-r},
++\]
++with the usual endpoint conventions. For $0<a<1$ and $D\ge0$, let
++$\ell_-(a,D)$ be the unique $r\in(0,a]$ satisfying
++$\operatorname{kl}(a,r)=D$; set $\ell_-(1,D)=e^{-D}$.
++
++\begin{theorem}[Sharp normalized replay certificate]
++\label{ext:sharp-replay-certificate}
++Let $\mathcal B$ be a finite nonempty bank, let $w_b>0$ with
++$\sum_{b\in\mathcal B}w_b=1$, and let $p$ be a probability distribution on
++an alphabet containing $\mathcal B$. Suppose
++\[
++ R_w(p)=-\sum_{b\in\mathcal B}w_b\log p_b\le C<\infty,
++ \qquad D=C-H(w).
++\]
++Then $D\ge0$ and, for every $b\in\mathcal B$,
++\begin{equation}
++ \label{ext:binary-kl-retention}
++ p_b\ge\ell_-(w_b,D)>0.
++\end{equation}
++This coordinate bound is sharp on the closed probability simplex whenever
++an outcome other than $b$ is available. Moreover,
++\[
++ p(\mathcal B)\ge e^{-D},\qquad
++ p_b\ge\max\{0,w_b-\sqrt{D/2}\}.
++\]
++For $w_b<1$, the positive bound
++$p_b\ge\exp[-(D+h_2(w_b))/w_b]$ is also valid.
++\end{theorem}
++\begin{proof}
++Extend $w$ by zero off the bank, obtaining $\bar w$. Then
++\[
++ 0\le\operatorname{KL}(\bar w\|p)=R_w(p)-H(w)\le D.
++\]
++For $a=w_b$ and $r=p_b$, the log-sum inequality on the complementary
++outcomes gives
++\[
++ \sum_{j\ne b}\bar w_j\log\frac{\bar w_j}{p_j}
++ \ge(1-a)\log\frac{1-a}{1-r},
++\]
++so $\operatorname{kl}(a,r)\le D$. For $0<a<1$, its derivative in $r$ is
++$(r-a)/(r(1-r))<0$ on $(0,a)$; it diverges at zero and vanishes at $r=a$.
++Thus $r<\ell_-(a,D)$ is impossible. Equality is attained by choosing
++$r=\ell_-(a,D)$, $p_j=(1-r)w_j/(1-a)$ on the remaining banked outcomes,
++and zero mass off the bank. For $a=1$, the inequality is
++$-\log p_b\le D$, with equality obtained by placing the remaining mass on
++another outcome. If the entire alphabet has one outcome, necessarily
++$p_b=1$. For $D>0$, equality can be approached with positive off-bank
++probabilities by increasing $r$ slightly and sending off-bank mass to zero. At $D=0$, feasibility
++instead forces $p=\bar w$ exactly.
++
++Let $s=p(\mathcal B)$ and $\widetilde p_b=p_b/s$. The decomposition
++\[
++ \operatorname{KL}(\bar w\|p)
++ =-\log s+\operatorname{KL}(w\|\widetilde p)\ge-\log s
++\]
++proves the total-mass bound. For fixed $r\in(0,1)$,
++$\partial_a^2\operatorname{kl}(a,r)=1/[a(1-a)]\ge4$, whereas its value
++and first derivative vanish at $a=r$. Hence
++$\operatorname{kl}(a,r)\ge2(a-r)^2$, including endpoints by continuity,
++which proves the Pinsker bound. Finally,
++\[
++ \operatorname{kl}(a,r)
++ =-h_2(a)-a\log r-(1-a)\log(1-r)
++ \ge-h_2(a)-a\log r
++\]
++Combining this inequality with $\operatorname{kl}(a,r)\le D$ yields the
++positive exponential coordinate bound.
++\end{proof}
++
++For the categorical potential argument behind
++Eq.~\eqref{eq:replay-retention-bound} and its positive-weight extension,
++one may substitute
++\[
++ C=R_w(p(T))+
++ \frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
++\]
++Normalization improves the termwise certificate $p_b\ge e^{-C/w_b}$.
++As a hypothetical example, a uniform bank of 16 with
++$C=\log16+0.01$ yields $p_b\ge0.0339712$, while the termwise bound is
++approximately $4.62\times10^{-20}$. These are illustrative mathematical
++inputs, not measured replay losses. A large excess cross entropy can still
++make even the sharp bound too small to be useful.
++
++\subsubsection{What a scalar entropy value can certify}
++
++\begin{theorem}[Sharp entropy threshold for all-mode retention]
++\label{ext:entropy-retention-threshold}
++Let $q$ be a distribution on a known alphabet of $m\ge2$ possible modes,
++allowing zero coordinates. A scalar bound $H(q)\ge h_0$, with
++$0\le h_0\le\log m$, implies a strictly positive uniform coordinate floor
++if and only if $h_0>\log(m-1)$. In that case the sharp floor is
++$q_b\ge r_m(h_0)$ for every $b$, where $r_m(h_0)\in(0,1/m]$ uniquely solves
++\[
++ h_2(r)+(1-r)\log(m-1)=h_0,
++\]
++where $m$ counts all possible modes, including those absent from the
++evaluation sample.
++\end{theorem}
++\begin{proof}
++Fix $r=q_b<1$. Splitting off that coordinate gives
++\[
++ H(q)=h_2(r)+(1-r)H\!\left(\frac{q_{-b}}{1-r}\right)
++ \le h_2(r)+(1-r)\log(m-1)=:f_m(r).
++\]
++Uniform remaining coordinates attain equality. On $0<r<1/m$,
++$f_m'(r)=\log[(1-r)/(r(m-1))]>0$, with
++$f_m(0)=\log(m-1)$ and $f_m(1/m)=\log m$. Thus a coordinate below the
++stated root contradicts $H(q)\ge h_0$; a coordinate equal to one already
++exceeds the root. The distribution with one coordinate at the root and the
++others uniform proves sharpness. Conversely, if $h_0\le\log(m-1)$, one
++zero coordinate with the rest uniform satisfies the entropy bound. Even
++restricting to strictly positive coordinates permits arbitrarily small
++values by approximation.
++\end{proof}
++
++For uniform $u$, $H(q)=\log m-\operatorname{KL}(q\|u)$, and data processing
++gives $\operatorname{kl}(q_b,1/m)\le\operatorname{KL}(q\|u)$. A forward-KL
++budget therefore excludes every missing coordinate precisely when it is
++below $\log[m/(m-1)]$. At the threshold, one missing coordinate is possible,
++whereas $\operatorname{KL}(u\|q)=\infty$. This compares level sets; it does
++not assert that an exact-entropy gradient flow loses modes. Conditional
++entropy alone also leaves total correct mass unconstrained, and entropy
++estimated from a finite sample is not the exact $H(q)$ of a known alphabet.
++
++\subsubsection{From complete-response likelihood to an execution key}
++
++\begin{corollary}[Response-to-key certificate]
++\label{ext:response-key-certificate}
++Fix one prompt $x$, one checkpoint, and distinct complete responses $e_j$
++with verified keys $b_j$. Give them weights $w_j>0$ summing to one, and put
++$W_b=\sum_{j:b_j=b}w_j$. Under a fixed decoding law, suppose
++\[
++ -\sum_j w_j\log\pi(e_j\mid x)\le C<\infty.
++\]
++For every represented key $b$,
++\[
++ \operatorname{kl}(W_b,p(b\mid x))\le C-H(w),\qquad
++ p(b\mid x)\ge\ell_-(W_b,C-H(w))>0.
++\]
++Individually, $p(b_j\mid x)\ge\pi(e_j\mid x)$.
++\end{corollary}
++\begin{proof}
++The distinct complete responses are disjoint events. Extend their target
++weights by zero to the full response alphabet; include invalid outcomes
++and, if necessary, nontermination as additional outcomes so that the policy
++law is normalized. The resulting response-level relative entropy is
++$-\sum_jw_j\log\pi(e_j\mid x)-H(w)\le C-H(w)$. Apply the log-sum inequality
++within each execution-key event and then within its binary partition into
++key $b$ and all other outcomes. The target assigns mass $W_b$ to the first
++event and the policy assigns $p(b\mid x)$, so the resulting divergence is
++$\operatorname{kl}(W_b,p(b\mid x))$. The inverse argument of
++Theorem~\ref{ext:sharp-replay-certificate} proves the floor. Finally, each
++complete-response event is contained in its verified-key event, proving
++the individual bound used in Lemma~\ref{lem:shared-exemplar-retention}.
++\end{proof}
++
++The probability being scored must include EOS or another specified
++termination event, or a fixed deterministic horizon. It must use the same
++prompt formatting, temperature, vocabulary mask, top-$p$/top-$k$ rule,
++response-truncation rule, and verifier as the probability being bounded.
++A prefix likelihood is insufficient because its continuations can produce
++other keys or invalid outputs. All likelihoods entering one cross entropy
++must use the same checkpoint. For a complete sequence of length $L_j$ and
++mean-token log score $\bar\ell_j$, its probability is
++$\exp(L_j\bar\ell_j)$, not $\exp(\bar\ell_j)$.
++
++Length-normalized loss requires normalization before the theorem applies:
++with $a_j=\alpha_j/L_j$, $A=\sum_j a_j$, and $w_j=a_j/A$,
++\[
++ \sum_j\alpha_j\frac{-\log\pi(e_j\mid x)}{L_j}=A R_w.
++\]
++Thus an upper bound $D_0$ on this loss supplies $C=D_0/A$; uniform weights
++on mean-token scores generally give inverse-length target weights on
++complete responses. Different prompts require separate conditional
++calculations or an explicitly normalized joint prompt mixture. A change
++in one exemplar's likelihood need not equal the change in its whole key's
++probability. Approximate log scores need controlled numerical error to
++supply rigorous numerical certificates.
++
++\subsubsection{Finite observations and repeated checkpoint measurement}
++
++At a frozen checkpoint, for a key specified before sampling, $N$ independent
++draws under the same decoding law give
++$X\sim\operatorname{Binomial}(N,p_b)$. Exact binomial-tail inversion gives
++one-sided confidence bounds \citep{clopper1934binomial}. If $X=0$, the
++one-sided $(1-\alpha)$ upper bound and lower bound are respectively
++\[
++ U_0=1-\alpha^{1/N},\qquad 0.
++\]
++Indeed, $\Pr_{p_b}(X=0)=(1-p_b)^N<\alpha$ whenever $p_b>U_0$; for nonzero
++counts, the full confidence procedure uses the corresponding binomial-tail
++inversion. As hypothetical examples, zero sightings in 32 draws give an
++upper bound of $0.08937$ at the one-sided 95\% level, or $0.16495$ when
++Bonferroni protects 16 prespecified keys simultaneously. Two sightings in
++32 draws instead give a one-sided 95\% lower bound of about $0.01122$ for
++one prespecified key. The upper and lower examples are separate one-sided
++limits; a joint interval requires allocation to both tails. Zero sightings
++do not establish exact extinction.
++
++For repeated inspection of draws from a fixed policy, a confidence sequence
++can provide validity under optional stopping \citep{howard2021confidence}.
++For fixed beta-mixture parameters $a_0,b_0>0$, let $S_t$ be the number of
++successes in $t$ independent Bernoulli draws and let $\mathrm B$ denote
++the beta function. Define
++\[
++ M_t(p)=\frac{\mathrm B(S_t+a_0,t-S_t+b_0)}
++ {\mathrm B(a_0,b_0)p^{S_t}(1-p)^{t-S_t}},\qquad
++ \mathcal I_t=\{p\in(0,1):M_t(p)<1/\alpha\}.
++\]
++For each true $p\in(0,1)$, the numerator integrates the likelihood under a
++fixed beta distribution. Hence $M_t(p)$ is a mixture of likelihood-ratio
++martingales, is nonnegative, and has initial value one. The nonnegative
++martingale maximal inequality therefore gives
++$\Pr_p(\exists t:p\notin\mathcal I_t)\le\alpha$. Error allocations across
++a fixed roster of keys make coverage simultaneous by a union bound;
++independence across keys is unnecessary.
++
++This construction requires a fixed Bernoulli probability. Counts from
++different prompts, seeds, or changing checkpoints cannot be pooled to
++certify the current checkpoint's probability. Separate frozen-checkpoint
++measurements can instead allocate error across prespecified
++prompt--key--checkpoint statements. Repeated deterministic teacher-forced
++scores are not independent Bernoulli observations, and choosing identities
++after inspecting the same samples also needs selection-aware inference.
++A probability bound at observed checkpoints alone makes no claim about
++unobserved intervening or subsequent training states.
++
++For an unknown catalogue, missing mass is the total probability of categories
++not yet observed under a fixed iid law. Concentration results address this
++quantity \citep{mcallester2003missing,berend2013missing}; it is neither the
++number of missing modes nor proof of their extinction. Such bounds do not
++certify each named key, and stationary missing-mass formulas do not directly
++apply to a history generated by changing policies. Named-key binomial counts
++provide the direct measurement of per-mode visibility.
++
+ \begin{remark}[Exact scope of the ReplayMaxRL guarantee]
+-The replay-component theorem is a conditional post-discovery retention result, not an end-to-end
+-discovery theorem. Without full coverage the retention bound protects only
+-$\mathcal B$; Lemma~\ref{lem:replay-finite-steps} further shows that a frozen
+-incomplete bank can exclude unbanked correct modes in the categorical limit.
+-Capacity 16 can therefore truncate the protected support. The categorical proof treats each stored exemplar as its execution
+-category and uses $\log p_b$, whereas the language-model implementation uses a
+-length-normalized teacher-forced exemplar score. The parameterized energy
+-argument above preserves the fixed-bank retention bound, but it does not
+-guarantee neural optimization reaches full coverage or uniformity. Lemma~\ref{lem:shared-exemplar-retention} permits shared prompts and
+-parameters when a fixed joint potential decreases and the replay score is a
+-complete-response likelihood. The implemented stochastic, clipped, alternating
+-updates have no such descent guarantee here; their retention must be tested
+-empirically. These limits motivate the matched factorial comparisons and direct retention measurements.
++The categorical replay theorem protects represented bank modes after discovery;
++it is not an unconditional end-to-end guarantee for a language model.
++Without full coverage it protects only $\mathcal B$, and
++Lemma~\ref{lem:replay-finite-steps} shows that a frozen incomplete bank can
++exclude unbanked correct modes in the categorical limit. Capacity 16 can
++therefore truncate protected support. The admission results above identify
++sufficient coverage and switching conditions; they do not establish those
++conditions for the implemented proposal and insertion machinery.
++
++The categorical proof uses $\log p_b$, whereas the implementation uses
++length-normalized teacher-forced exemplar scores. The complete-exemplar bridge
++and stochastic extension permit shared parameters under explicit joint-energy
++and update-error assumptions. They do not prove uniform neural key
++probabilities or verify those assumptions for the current clipped, alternating
++AdamW updates. The sharper certificates require correctly normalized complete
++likelihoods under the decoding law being bounded. Finally, exact entropy and
++exact categorical natural gradient have their own protection guarantees;
++collapse is a property of the stated update model, not of every procedure that
++optimizes correctness or entropy. These results motivate direct per-mode survival measurements.
+ \end{remark}
+ 
+ \section{Supporting Measurements and Direct Comparators}
+@@ -2738,10 +3538,12 @@
+ \section{Limitations and Disclosures}
+ \label{app:limitations}
+ 
+-Appendix~\ref{app:theory}'s categorical results are
+-post-discovery mean-flow guarantees: replay protects banked modes, and
+-convergence to uniform conditional correct mass requires full verified
+-coverage, which Python's bank capacity precludes. ModeBench measures
++Appendix~\ref{app:theory} gives categorical collapse and retention
++results, plus conditional extensions to stochastic updates and bank admission.
++These require the stated geometry, energy, and coverage assumptions; they do
++not certify the implemented neural optimizer. Convergence to uniform correct
++mass in the categorical uniform-replay model requires full verified coverage,
++which Python's bank capacity precludes. ModeBench measures
+ task-defined executable support on small synthetic tasks rather than free-form
+ reasoning diversity or downstream utility. Experiments fix \(G=16\), zero
+ reference KL, no token-entropy bonus, and a single decoding protocol; dynamic
+--- before/paper/mathai2026/example_paper.bib
++++ after/paper/mathai2026/example_paper.bib
+@@ -1005,3 +1005,206 @@
+   primaryClass = {cs.CL},
+   url          = {https://arxiv.org/abs/2507.07451}
+ }
++
++
++% Primary-source-verified theoretical extensions, September 5, 2026.
++@article{wang2017sqn,
++  author = {Wang, Xiao and Ma, Shiqian and Goldfarb, Donald and Liu, Wei},
++  title = {Stochastic Quasi-Newton Methods for Nonconvex Stochastic Optimization},
++  journal = {SIAM Journal on Optimization},
++  volume = {27},
++  number = {2},
++  pages = {927--956},
++  year = {2017},
++  doi = {10.1137/15M1053141},
++  url = {https://doi.org/10.1137/15M1053141}
++}
++
++@article{howard2020timeuniform,
++  author = {Howard, Steven R. and Ramdas, Aaditya and McAuliffe, Jon and Sekhon, Jasjeet},
++  title = {Time-uniform {Chernoff} bounds via nonnegative supermartingales},
++  journal = {Probability Surveys},
++  volume = {17},
++  pages = {257--317},
++  year = {2020},
++  doi = {10.1214/18-PS321},
++  url = {https://doi.org/10.1214/18-PS321}
++}
++
++@incollection{robbins1971almost,
++  author = {Robbins, Herbert and Siegmund, David},
++  title = {A Convergence Theorem for Non Negative Almost Supermartingales and Some Applications},
++  booktitle = {Optimizing Methods in Statistics},
++  pages = {233--257},
++  publisher = {Academic Press},
++  year = {1971},
++  doi = {10.1016/B978-0-12-604550-5.50015-8},
++  url = {https://doi.org/10.1016/B978-0-12-604550-5.50015-8}
++}
++
++@inproceedings{reddi2018adam,
++  author = {Reddi, Sashank J. and Kale, Satyen and Kumar, Sanjiv},
++  title = {On the Convergence of {Adam} and Beyond},
++  booktitle = {International Conference on Learning Representations},
++  year = {2018},
++  url = {https://openreview.net/forum?id=ryQu7f-RZ}
++}
++
++@inproceedings{zhang2021reinforce,
++  author = {Zhang, Junzi and Kim, Jongho and O'Donoghue, Brendan and Boyd, Stephen},
++  title = {Sample Efficient Reinforcement Learning with {REINFORCE}},
++  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
++  volume = {35},
++  pages = {10887--10895},
++  year = {2021},
++  doi = {10.1609/aaai.v35i12.17300},
++  url = {https://stanford.edu/~boyd/papers/conv_reinforce.html}
++}
++
++@book{durrett2019probability,
++  author = {Durrett, Rick},
++  title = {Probability: Theory and Examples},
++  edition = {5},
++  publisher = {Cambridge University Press},
++  year = {2019},
++  url = {https://sites.math.duke.edu/~rtd/PTE/PTE5_011119.pdf}
++}
++
++@misc{anceaume2015coupon,
++  author = {Anceaume, Emmanuelle and Busnel, Yann and Schulte-Geers, Ernst and Sericola, Bruno},
++  title = {Optimization results for a generalized coupon collector problem},
++  year = {2015},
++  eprint = {1504.03878},
++  archivePrefix = {arXiv},
++  url = {https://arxiv.org/abs/1504.03878}
++}
++
++@article{branicky1998multiple,
++  author = {Branicky, Michael S.},
++  title = {Multiple {Lyapunov} Functions and Other Analysis Tools for Switched and Hybrid Systems},
++  journal = {IEEE Transactions on Automatic Control},
++  volume = {43},
++  number = {4},
++  pages = {475--482},
++  year = {1998},
++  url = {https://people.ece.ubc.ca/moishi/eece571m/articles/Branicky98.pdf}
++}
++@article{pereyra2017confidencepenalty,
++  author        = {Pereyra, Gabriel and Tucker, George and Chorowski, Jan and Kaiser, {\L}ukasz and Hinton, Geoffrey},
++  title         = {Regularizing Neural Networks by Penalizing Confident Output Distributions},
++  journal       = {arXiv preprint arXiv:1701.06548},
++  year          = {2017},
++  eprint        = {1701.06548},
++  archivePrefix = {arXiv},
++  primaryClass  = {cs.NE},
++  url           = {https://arxiv.org/abs/1701.06548}
++}
++
++@article{agarwal2021policygradient,
++  author  = {Agarwal, Alekh and Kakade, Sham M. and Lee, Jason D. and Mahajan, Gaurav},
++  title   = {On the Theory of Policy Gradient Methods: Optimality, Approximation, and Distribution Shift},
++  journal = {Journal of Machine Learning Research},
++  volume  = {22},
++  number  = {98},
++  pages   = {1--76},
++  year    = {2021},
++  url     = {https://jmlr.org/papers/v22/19-736.html}
++}
++
++@inproceedings{mei2020softmaxpg,
++  author    = {Mei, Jincheng and Xiao, Chenjun and Szepesv{\'a}ri, Csaba and Schuurmans, Dale},
++  title     = {On the Global Convergence Rates of Softmax Policy Gradient Methods},
++  booktitle = {Proceedings of the 37th International Conference on Machine Learning},
++  series    = {Proceedings of Machine Learning Research},
++  volume    = {119},
++  pages     = {6820--6829},
++  publisher = {{PMLR}},
++  year      = {2020},
++  url       = {https://proceedings.mlr.press/v119/mei20b.html}
++}
++
++@article{harper2009informationgeometry,
++  author        = {Harper, Marc},
++  title         = {Information Geometry and Evolutionary Game Theory},
++  journal       = {arXiv preprint arXiv:0911.1383},
++  year          = {2009},
++  eprint        = {0911.1383},
++  archivePrefix = {arXiv},
++  primaryClass  = {cs.IT},
++  url           = {https://arxiv.org/abs/0911.1383}
++}
++@article{vanerven2014renyi,
++  author = {van Erven, Tim and Harremo{\"e}s, Peter},
++  title = {{R\'enyi} Divergence and {Kullback--Leibler} Divergence},
++  journal = {IEEE Transactions on Information Theory},
++  year = {2014},
++  doi = {10.1109/TIT.2014.2320500},
++  eprint = {1206.2459},
++  archivePrefix = {arXiv},
++  primaryClass = {cs.IT},
++  url = {https://arxiv.org/abs/1206.2459v2}
++}
++
++@inproceedings{garivier2011klucb,
++  author = {Garivier, Aur{\'e}lien and Capp{\'e}, Olivier},
++  title = {The {KL-UCB} Algorithm for Bounded Stochastic Bandits and Beyond},
++  booktitle = {Proceedings of the 24th Annual Conference on Learning Theory},
++  series = {Proceedings of Machine Learning Research},
++  volume = {19},
++  pages = {359--376},
++  publisher = {PMLR},
++  year = {2011},
++  url = {https://proceedings.mlr.press/v19/garivier11a.html}
++}
++
++@article{clopper1934binomial,
++  author = {Clopper, C. J. and Pearson, E. S.},
++  title = {The Use of Confidence or Fiducial Limits Illustrated in the Case of the Binomial},
++  journal = {Biometrika},
++  volume = {26},
++  number = {4},
++  pages = {404--413},
++  year = {1934},
++  doi = {10.1093/biomet/26.4.404},
++  url = {https://academic.oup.com/biomet/article-abstract/26/4/404/291538}
++}
++
++@article{howard2021confidence,
++  author = {Howard, Steven R. and Ramdas, Aaditya and McAuliffe, Jon and Sekhon, Jasjeet},
++  title = {Time-uniform, nonparametric, nonasymptotic confidence sequences},
++  journal = {The Annals of Statistics},
++  volume = {49},
++  number = {2},
++  pages = {1055--1080},
++  year = {2021},
++  doi = {10.1214/20-AOS1991},
++  eprint = {1810.08240},
++  archivePrefix = {arXiv},
++  primaryClass = {math.ST},
++  url = {https://arxiv.org/abs/1810.08240}
++}
++
++@article{mcallester2003missing,
++  author = {McAllester, David and Ortiz, Luis},
++  title = {Concentration Inequalities for the Missing Mass and for Histogram Rule Error},
++  journal = {Journal of Machine Learning Research},
++  volume = {4},
++  pages = {895--911},
++  year = {2003},
++  url = {https://jmlr.org/papers/volume4/mcallester03a/mcallester03a.pdf}
++}
++
++@article{berend2013missing,
++  author = {Berend, Daniel and Kontorovich, Aryeh},
++  title = {On the concentration of the missing mass},
++  journal = {Electronic Communications in Probability},
++  volume = {18},
++  number = {3},
++  pages = {1--7},
++  year = {2013},
++  doi = {10.1214/ECP.v18-2359},
++  eprint = {1210.3248},
++  archivePrefix = {arXiv},
++  primaryClass = {math.PR},
++  url = {https://arxiv.org/abs/1210.3248}
++}
+--- before/paper/mathai2026/snapshot.json
++++ after/paper/mathai2026/snapshot.json
+@@ -1,11 +1,11 @@
+ {
+   "source": "paper/main.tex",
+-  "source_sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
++  "source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+   "snapshot_date": "2026-09-05",
+   "template_url": "https://mathai-2026.github.io/files/mathai_neurips2026_template.zip",
+   "style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+   "copied_files": {
+-    "example_paper.bib": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
++    "example_paper.bib": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+     "figures/baseline_collapse_precheck.pdf": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+     "figures/direct_baseline_learning_curves_static_strip.pdf": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+     "figures/direct_comparator_endpoint_effects.pdf": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+@@ -139,6 +139,26 @@
+         "historical semantic predictor decomposition and code-matched entropy-gradient counterexample"
+       ],
+       "audit": "../audits/theory_second_review_20260905.md"
++    },
++    {
++      "date": "2026-09-05",
++      "kind": "integrate attributed theoretical extensions into both appendices",
++      "previous_source_sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
++      "source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
++      "previous_bibliography_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
++      "bibliography_sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
++      "experimental_results_changed": false,
++      "figures_changed": false,
++      "workshop_main_text_changed": false,
++      "changes": [
++        "conditional stochastic retention and sharper bounded-noise finite-horizon bound",
++        "adaptive admission hazards and retention with controlled bank changes",
++        "exact conditional-entropy and full-support replay objective comparison",
++        "exact categorical Fisher natural-gradient comparison",
++        "sharp per-mode KL certificates, entropy threshold, complete-response mapping and sampling inference",
++        "primary-source attribution and theory roadmap/scope cross-references"
++      ],
++      "audit": "../audits/theory_appendix_integration_20260905.md"
+     }
+   ],
+   "workshop_title": "More than One Way to Skin a Cat: Preserving Verified Modes in RLVR",
+--- before/paper/mathai2026/README.md
++++ after/paper/mathai2026/README.md
+@@ -112,3 +112,11 @@
+ requests, and the recorded snapshot correction history for source hashes.
+ 
+ The September 5 review also adds a deterministic finite-step categorical replay lemma with an explicit step-size bound. It proves convergence to the fixed bank weights and makes the incomplete-bank limitation explicit: unbanked correct modes have zero limiting mass in this idealized model. See the [independent proof review](../audits/finite_step_categorical_replay_independent_review_20260905.md); this does not extend the guarantee to stochastic neural optimizers.
++
++The subsequent September 5 appendix expansion integrates the controlled
++stochastic retention theorem, conditional admission and changing-bank results,
++exact-entropy objective comparison, categorical natural-gradient comparison,
++and sharp per-mode survival certificates. Each includes relevant literature
++attribution and explicit application limits. The four-page workshop main text
++is preserved. Both versions include matching new bibliography entries; see the
++[appendix integration record](../audits/theory_appendix_integration_20260905.md).

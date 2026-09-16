@@ -1,0 +1,24 @@
+--- before/check_submission.py
++++ paper/mathai2026/check_submission.py
+@@ -111,6 +111,12 @@
+     require(len(pages) > 4 and re.search(r'\bReferences\b', pages[4]) is not None,
+             'references should begin on page 5')
+     require('Anonymous Author(s)' in pages[0], 'submission must use anonymous mode')
++    first_page = ' '.join(pages[0].split())
++    require('Submitted to The 6th Workshop on Mathematical Reasoning and AI '
++            '(NeurIPS 2026). Do not distribute.' in first_page,
++            'missing MATH-AI workshop submission notice')
++    require('Submitted to 40th Conference' not in first_page,
++            'generic NeurIPS conference notice remains')
+     for i, page in enumerate(pages[:4], 1):
+         require('??' not in page, f'unresolved reference on page {i}')
+ 
+@@ -146,7 +152,7 @@
+         }, indent=2, sort_keys=True) + '\n')
+     print('PASS: 4 content pages; all 6 main figures; 7 supplementary figures;')
+     print('      Figure 1 is on page 1; references start on page 5;')
+-    print('      anonymous template unchanged;')
++    print('      MATH-AI submission footer; anonymous mode and official style intact;')
+     print('      referenced inputs and source hashes complete; compiled artifact current;')
+     print('      snapshot assets intact; no unresolved references or overfull boxes.')
+ 

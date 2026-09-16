@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-09-05T22:47:24.409790+00:00",
+  "files": {
+    "paper/main.tex": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+    "paper/main.pdf": "f80275f502bc2f4bc5ae760c5064b92802017efff996295b1b7ee32956b341cc",
+    "paper/example_paper.bib": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+    "paper/mathai2026/main.tex": "5ce26f5259c0cf685514d040f3dd028ca40898a56b23200edb32d15a6061a11e",
+    "paper/mathai2026/appendix.tex": "b0c2f07a13db509efaeedcd4b5faef7e2e500f134dcc44a27acf120a3dfec51b",
+    "paper/mathai2026/main.pdf": "99ee48654577f70cb7add1a1bb15f2b9bb7de8b5c4dad9ac953c4a3ce0616019",
+    "paper/mathai2026/example_paper.bib": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+    "paper/mathai2026/preamble.tex": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3",
+    "paper/mathai2026/snapshot.json": "6356c6896f66083268a29a69770af4be8c5cc82dd4289bbe2f2a03aac71adaa1",
+    "paper/mathai2026/README.md": "db7f29ed79c9d45a72d62fc8b0503f0c88896a427ac1eb51061ab38b798ace7d",
+    "paper/README.md": "cebce9341ecb5ad806aa38150bd1c8e86365196794542358241ebffe21689e1f"
+  }
+}

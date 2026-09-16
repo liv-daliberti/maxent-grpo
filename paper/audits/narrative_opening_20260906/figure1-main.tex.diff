@@ -1,0 +1,72 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -19,6 +19,16 @@
+ learning to find them.
+ \end{abstract}
+ 
++\begin{figure}[!htbp]
++\centering
++\includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
++\caption{\textbf{Correctness can rise while alternatives disappear.}
++One graph admits six valid colorings. Bars pool four eight-sample draws from
++matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces 22/32 correct from one
++mode; ReplayMaxRL produces 32/32 across four.}
++\label{fig:story}
++\end{figure}
++
+ \section{Preserving alternatives for mathematical agents}
+ \label{sec:introduction}\label{sec:collapse}
+ Consider a mathematical agent whose first attempt fails a check. It may repair
+@@ -34,15 +44,6 @@
+ one. Accuracy can therefore improve even as the range of verified outputs shrinks. In our runs, these two trends occur together
+ (Figure~\ref{fig:story}).
+ 
+-\begin{figure}[!htbp]
+-\centering
+-\includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
+-\caption{\textbf{Correctness can rise while alternatives disappear.}
+-One graph admits six valid colorings. Bars pool four eight-sample draws from
+-matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces 22/32 correct from one
+-mode; ReplayMaxRL produces 32/32 across four.}
+-\label{fig:story}
+-\end{figure}
+ 
+ The loss also appears across our datasets. Averaged over five domains, eight
+ passes of Dr.GRPO reduce the initial number of verified alternatives beyond
+@@ -50,10 +51,7 @@
+ $71.6\%$ at Falcon3-1B, and $41.5\%$ at Qwen2.5-3B
+ (Appendix Figure~\ref{fig:baseline-precheck}).
+ 
+-Finding a successful output leaves a further question: will training keep
+-that success available? Our approach uses executable
+-identities to tell verified outputs apart, then reuses those identities to
+-remember alternatives after they become rare.
++We therefore ask how training can keep discovered alternatives available.
+ 
+ \section{\mb{} makes output identity executable}
+ \label{sec:modebench}
+@@ -77,9 +75,7 @@
+ 
+ \section{ReplayMaxRL: learn from new samples and remember successes}
+ \label{sec:method}\label{sec:maxrl-method}\label{sec:replay}
+-These keys let us store distinct verified solutions and revisit them when
+-they are absent from fresh rollouts. ReplayMaxRL combines these replay
+-updates with MaxRL learning from new samples
++ReplayMaxRL learns from new samples and revisits earlier verified successes
+ (Figure~\ref{fig:verified-support-story}).
+ 
+ \begin{figure}[!htbp]
+@@ -108,10 +104,9 @@
+ Appendix~\ref{app:theory} analyzes collapse and retention in idealized categorical models.
+ 
+ \noindent\textbf{Related work.} Prior work studies diversity collapse
+-\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success
+-replay \citep{zhang2025rlep}. Our focus is execution-defined identity for
+-measuring and retaining verified alternatives. Appendix~\ref{sec:related}
+-gives the full discussion.
++\citep{cui2025entropy,dang2025diversity} and success replay \citep{zhang2025rlep}.
++We focus on executable identity for measurement and memory
++(Appendix~\ref{sec:related}).
+ 
+ \section{Does memory preserve verified output support?}
+ \label{sec:experiments}\label{sec:results}

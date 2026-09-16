@@ -1,0 +1,513 @@
+--- before/paper/main.tex
++++ after/paper/main.tex
+@@ -131,17 +131,15 @@
+ \section{Introduction}
+ \label{sec:introduction}
+ 
+-Reinforcement learning with verifiable rewards (RLVR) scales outcome
+-supervision through executable validation
+-\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier
+-records only correctness: repeated copies and different successful outputs
+-receive the same scalar reward. A policy can therefore become more accurate as
+-its support over verified output modes contracts
+-\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation
+-weakens repeated sampling, best-of-$K$, and verifier-guided selection: once one
+-output dominates training, additional samples reproduce the familiar rather
+-than extend the set available to a selector
++Reinforcement learning with verifiable rewards (RLVR) trains from executable
++correctness feedback \citep{guo2025deepseekr1}. Reasoning RL can reduce policy
++entropy and output diversity \citep{cui2025entropy,dang2025diversity}.
++A correctness-only reward treats repeated and distinct successes alike; we
++show that accuracy can rise while verified-mode support contracts.
++Repeated sampling supplies proposals for verifier-guided selection
+ \citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.
++Concentration leaves fewer verified alternatives, without necessarily reducing
++pass@$K$ at fixed per-sample correctness.
+ Figure~\ref{fig:story} exhibits this failure on one prompt;
+ Appendix Figure~\ref{fig:baseline-precheck} shows it is systematic. Eight passes of
+ unmodified Dr.GRPO or GRPO remove $99\%$ and $98\%$ of the base model's
+@@ -210,32 +208,31 @@
+ \label{sec:related}
+ 
+ \noindent\textbf{Verifiable learning and output support.}
+-Repeated sampling and verifier-guided selection depend on proposal support
+-\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can
+-narrow that support
+-\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.
+-Semantic clustering typically infers when generations express the same answer
+-\citep{farquhar2024detecting}. \mb{} instead lets accepting execution define
+-the equivalence relation, yielding an exact behavioral key.
++Sampling-based selection depends on the proposal distribution
++\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output
++diversity under RLHF or reasoning RL \citep{kirk2024understanding,dang2025diversity},
++declining policy entropy \citep{cui2025entropy}, and reduced high-budget problem
++coverage for tested RLVR models \citep{yue2025rlvrlimit}. These metrics differ from
++within-prompt execution-key breadth. Semantic clustering infers answer
++equivalence \citep{farquhar2024detecting}; \mb{} defines keys by accepting execution.
+ 
+ \noindent\textbf{Sampling-aware exploration.}
+ Outcome bonuses, entropy control, set objectives, distribution matching, and
+ uniform-correct objectives encourage broader verified-output support
+ \citep{song2025outcome,chen2025passktraining,li2025divergence,
+-li2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly
+-optimizes best@\(k\) objectives through the rollout budget, while ArgMaxRL
+-extends the construction to continuous rewards \citep{tajwar2026maxrl}.
+-Because our task rewards are binary, the MaxRL method is the exact binary special
+-case; ReplayMaxRL tests whether explicit mode memory adds support beyond this
+-sampling-aware fresh-rollout objective.
++li2026setpo,li2026distribution,lochab2026ucpo}. MaxRL combines
++best@\(k\) objectives across sampling budgets \citep{tajwar2026maxrl}.
++For our binary rewards, best@\(k\) equals pass@\(k\); ReplayMaxRL tests
++whether explicit mode memory adds support beyond this fresh-rollout objective.
+ 
+ \noindent\textbf{Replay and persistent memory.}
+-Experience replay preserves successful trajectories
+-\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and
+-samples uniformly over keys, making equal retention an explicit target rather
+-than depending on how often each success occurs. Quality-diversity search similarly keeps one elite per
+-behavior descriptor \citep{lehman2011novelty,mouret2015illuminating}; our replay
+-bank uses the execution key as that descriptor inside a policy-gradient update.
++Replay reuses experience and can mitigate forgetting
++\citep{lin1992selfimproving,rolnick2019replay}; RLEP replays successful reasoning
++trajectories \citep{zhang2025rlep}. ReplayDr.GRPO retains one exemplar per executed
++key and samples keys uniformly, regardless of discovery frequency.
++Novelty search rewards behavioral novelty \citep{lehman2011novelty}; MAP-Elites
++retains one elite per descriptor cell \citep{mouret2015illuminating}.
++Our replay bank uses execution keys as descriptors within policy-gradient updates.
+ 
+ \section{Correctness and Verified Support}
+ \label{sec:collapse}
+@@ -316,11 +313,10 @@
+ \subsection{Why binary rewards amplify common modes}
+ \label{sec:collapse-mechanism}
+ 
+-A binary reward identifies success but is indifferent among successful keys.
+-GRPO and Dr.GRPO center that reward within each sampled group, assigning every
+-correct response the same task credit regardless of its execution key. Key
+-frequency is therefore the remaining asymmetry: a common correct mode appears
+-in more updates, while an absent mode supplies no direct signal.
++GRPO \citep{shao2024deepseekmath} and Dr.GRPO \citep{liu2025understanding}
++center binary rewards within sampled groups, giving correct responses equal
++task credit regardless of execution key. Common correct modes therefore appear
++in more updates; absent modes supply no direct signal.
+ 
+ A categorical reduction makes this feedback loop explicit. Let $p_c$ denote
+ the probability of correct mode $c$ and
+@@ -444,10 +440,10 @@
+     0, & m=0.
+   \end{cases}
+ \]
+-When successes are scarce, their weight increases; failures receive $-1$.
+-All-failure and all-success groups have zero task advantage. This is the
+-binary special case of ArgMaxRL and optimizes best@\(k\) across sampling
+-budgets \citep{tajwar2026maxrl}. It is applied only to fresh on-policy rows.
++Applied only to fresh on-policy rows, this centered binary MaxRL estimator
++\citep{tajwar2026maxrl} assigns failures $-1$ when $m>0$ and zero advantages
++to all-failure or all-success groups. Lemma~\ref{lem:maxrl-mean} derives its
++mean objective for $k=1,\ldots,G-1$.
+ 
+ \subsection{Preservation with key-balanced verified replay}
+ \label{sec:replay}
+@@ -550,7 +546,7 @@
+ derivative; the control executes the same bank code with zero replay gradient. Fully matched
+ Qwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO
+ normalization; UCPO on-policy advantage redistribution
+-\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay
++\citep{lochab2026ucpo}; our frequency-weighted RLEP-Dr adaptation
+ \citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.
+ Figure~\ref{fig:cross-scale-terminal-effects}B compares them with
+ ReplayDr.GRPO. The semantic estimator is defined only as a comparator in
+@@ -944,6 +940,10 @@
+ $\E[M(G-M)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
+ \end{proof}
+ 
++The next lemma specializes the practical-estimator analysis of
++\citet[Section~4.3 and Appendix~D, Theorem~5]{tajwar2026maxrl}
++to our categorical notation; we include the derivation for completeness.
++
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \label{lem:maxrl-mean}
+ Let MaxRL assign
+@@ -1001,6 +1001,11 @@
+ \subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+ \label{app:theory-collapse}
+ 
++Prior work studies objective-induced outcome collapse and inverse-probability
++correction \citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse
++through sampling bias and gradient amplification \citep[Section~4]{lochab2026ucpo}.
++Here we connect our group estimators to a standard categorical flow and then study
++persistent replay over execution-defined keys.
+ Consider the infinitesimal expected-update flow
+ $\dot z=\E[\widehat g_G]=c_G(P)\nabla_zP$. This is the clean mean-field limit
+ of fresh on-policy groups and the first-order PPO update. By Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately
+@@ -1072,8 +1077,8 @@
+  \le-\frac{1-\xi_c(0)}{m}.
+ \]
+ Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
+-Normalization gives $q_{c^\star}=1/(1+\sum_{c\ne c^\star}\xi_c)\to1$,
+-proving the claim directly.
++Every competing mode vanishes relative to $c^\star$; normalization then
++yields $q_{c^\star}\to1$, establishing the claimed single-mode limit.
+ \end{proof}
+ 
+ \begin{corollary}[Ties are nongeneric]
+--- before/paper/example_paper.bib
++++ after/paper/example_paper.bib
+@@ -99,7 +99,7 @@
+   year      = {2016},
+   eprint    = {1606.01868},
+   archivePrefix = {arXiv},
+-  primaryClass  = {cs.LG},
++  primaryClass  = {cs.AI},
+   url       = {https://arxiv.org/abs/1606.01868}
+ }
+ 
+@@ -172,7 +172,8 @@
+   eprint        = {2602.02710},
+   archivePrefix = {arXiv},
+   primaryClass  = {cs.LG},
+-  url           = {https://arxiv.org/abs/2602.02710}
++  url           = {https://arxiv.org/abs/2602.02710v3},
++  note = {Version 3}
+ }
+ 
+ @misc{gspo2025,
+@@ -181,7 +182,7 @@
+   year         = {2025},
+   eprint       = {2507.18071},
+   archivePrefix = {arXiv},
+-  primaryClass = {cs.CL},
++  primaryClass = {cs.LG},
+   url          = {https://arxiv.org/abs/2507.18071}
+ }
+ 
+@@ -191,7 +192,7 @@
+   year         = {2025},
+   eprint       = {2505.23433},
+   archivePrefix = {arXiv},
+-  primaryClass = {cs.CL},
++  primaryClass = {cs.LG},
+   url          = {https://arxiv.org/abs/2505.23433}
+ }
+ 
+@@ -556,7 +557,7 @@
+   doi     = {10.1137/21M1456789},
+   eprint  = {2105.11066},
+   archivePrefix = {arXiv},
+-  primaryClass  = {math.OC}
++  primaryClass  = {cs.LG}
+ }
+ 
+ @inproceedings{vieillard2020kl,
+@@ -730,18 +731,18 @@
+ 
+ @misc{maa_invitational,
+   author       = {{Mathematical Association of America}},
+-  title        = {American Invitational Mathematics Examination ({AIME})},
++  title        = {MAA Invitational Competitions},
+   howpublished = {\url{https://maa.org/maa-invitational-competitions/}},
+-  year         = {2024},
+-  note         = {MAA Invitational Competitions. Accessed July 2026}
++  year         = {n.d.},
++  note         = {American Invitational Mathematics Examination (AIME) section. Accessed September 5, 2026}
+ }
+ 
+ @misc{maa_amc,
+   author       = {{Mathematical Association of America}},
+   title        = {American Mathematics Competitions ({AMC})},
+   howpublished = {\url{https://maa.org/student-programs/amc/}},
+-  year         = {2024},
+-  note         = {Accessed July 2026}
++  year         = {n.d.},
++  note         = {Accessed September 5, 2026}
+ }
+ 
+ @inproceedings{he2024olympiadbench,
+@@ -941,7 +942,7 @@
+   author    = {Hu, Edward J. and Jain, Moksh and Elmoznino, Eric and Kaddar, Younesse and Lajoie, Guillaume and Bengio, Yoshua and Malkin, Nikolay},
+   booktitle = {International Conference on Learning Representations},
+   year      = {2024},
+-  url       = {https://arxiv.org/abs/2310.04363}
++  url       = {https://arxiv.org/abs/2310.04363v2}
+ }
+ 
+ @article{bengio2023gflownet,
+@@ -956,7 +957,7 @@
+ 
+ @misc{zhu2025flowrl,
+   title        = {{FlowRL}: Matching Reward Distributions for {LLM} Reasoning},
+-  author       = {Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Zhou, Che and Qi, Youbang and Ding, Ermo and Cheng, Yuxin and Zhou, Bowen},
++  author       = {Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Jiang, Che and Sun, Youbang and Hua, Ermo and Zuo, Yuxin and Lv, Xingtai and Zhang, Qizheng and Chen, Lin and Shao, Fanghao and Xue, Bo and Song, Yunchong and Yang, Zhenjie and Cui, Ganqu and Ding, Ning and Gao, Jianfeng and Liu, Xiaodong and Zhou, Bowen and Mei, Hongyuan and Lin, Zhouhan},
+   year         = {2025},
+   eprint       = {2509.15207},
+   archivePrefix= {arXiv},
+--- before/paper/mathai2026/main.tex
++++ after/paper/mathai2026/main.tex
+@@ -19,9 +19,9 @@
+ \section{Correct answers can conceal the loss of alternatives}
+ \label{sec:introduction}\label{sec:collapse}
+ Reinforcement learning with verifiable rewards (RLVR) trains from executable
+-correctness feedback \citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding
++correctness feedback \citep{guo2025deepseekr1}, rewarding
+ familiar and new correct solutions alike. In mathematical search, losing
+-alternatives limits what repeated sampling can supply to a verifier
++alternatives narrows the verified candidate set available from repeated sampling
+ \citep{brown2024monkeys,snell2024testtime}. Figure~\ref{fig:story} shows this
+ failure: correctness rises while sampled alternatives disappear.
+ 
+@@ -93,8 +93,9 @@
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+ \end{equation}
+-Equal averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields
+-ReplayDr.GRPO \citep{liu2025understanding}. Appendix~\ref{app:algorithm} gives
++Equal averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
++which debiases GRPO \citep{shao2024deepseekmath}, yields our ReplayDr.GRPO.
++Appendix~\ref{app:algorithm} gives
+ the full update. Appendix~\ref{app:theory} proves categorical collapse and
+ replay retention (Theorems~\ref{thm:grpo-collapse} and~\ref{thm:replay-retention}).
+ 
+--- before/paper/mathai2026/appendix.tex
++++ after/paper/mathai2026/appendix.tex
+@@ -339,7 +339,7 @@
+ banks, schedules, and realized workloads depend on each policy. Fully matched
+ Qwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO
+ normalization; UCPO on-policy advantage redistribution
+-\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay
++\citep{lochab2026ucpo}; our frequency-weighted RLEP-Dr adaptation
+ \citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.
+ Figure~\ref{fig:cross-scale-terminal-effects}B compares them with
+ ReplayDr.GRPO. The semantic estimator is defined only as a comparator in
+@@ -472,11 +472,13 @@
+ \label{sec:related}
+ 
+ \noindent\textbf{Verifiable learning and output support.}
+-Repeated sampling and verifier-guided selection depend on proposal support
+-\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can
+-narrow that support
+-\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.
+-Semantic clustering typically infers when generations express the same answer
++Repeated sampling and verifier-guided selection depend on the proposal
++distribution \citep{brown2024monkeys,snell2024testtime}. Prior work reports
++reduced sampled output diversity under RLHF or reasoning RL
++\citep{kirk2024understanding,dang2025diversity}, declining policy entropy
++\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR
++models \citep{yue2025rlvrlimit}. These measures differ from within-prompt
++execution-key breadth. Semantic clustering infers when generations express the same answer
+ \citep{farquhar2024detecting}. \mb{} instead lets accepting execution define
+ the equivalence relation, yielding an exact behavioral key.
+ 
+@@ -484,20 +486,20 @@
+ Outcome bonuses, entropy control, set objectives, distribution matching, and
+ uniform-correct objectives encourage broader verified-output support
+ \citep{song2025outcome,chen2025passktraining,li2025divergence,
+-li2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly
+-optimizes best@\(k\) objectives through the rollout budget, while ArgMaxRL
+-extends the construction to continuous rewards \citep{tajwar2026maxrl}.
+-Because our task rewards are binary, the MaxRL method is the exact binary special
+-case; ReplayMaxRL tests whether explicit mode memory adds support beyond this
+-sampling-aware fresh-rollout objective.
++li2026setpo,li2026distribution,lochab2026ucpo}. MaxRL combines
++best@\(k\) objectives across sampling budgets \citep{tajwar2026maxrl}.
++For our binary rewards, best@\(k\) equals pass@\(k\); ReplayMaxRL tests
++whether explicit mode memory adds support beyond this fresh-rollout objective.
+ 
+ \noindent\textbf{Replay and persistent memory.}
+-Experience replay preserves successful trajectories
+-\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and
++Experience replay reuses past experience and can mitigate forgetting
++\citep{lin1992selfimproving,rolnick2019replay}; RLEP reuses successful
++reasoning trajectories \citep{zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and
+ samples uniformly over keys, making equal retention an explicit target rather
+-than depending on how often each success occurs. Quality-diversity search similarly keeps one elite per
+-behavior descriptor \citep{lehman2011novelty,mouret2015illuminating}; our replay
+-bank uses the execution key as that descriptor inside a policy-gradient update.
++than depending on how often each success occurs. Novelty search rewards behavioral novelty
++\citep{lehman2011novelty}, while MAP-Elites retains one elite per behavior-descriptor
++cell \citep{mouret2015illuminating}. Our replay bank uses the execution key
++as the descriptor inside a policy-gradient update.
+ 
+ 
+ 
+@@ -588,6 +590,10 @@
+ $\E[M(G-M)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
+ \end{proof}
+ 
++The next lemma specializes the practical-estimator analysis of
++\citet[Section~4.3 and Appendix~D, Theorem~5]{tajwar2026maxrl}
++to our categorical notation; we include the derivation for completeness.
++
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \label{lem:maxrl-mean}
+ Let MaxRL assign
+@@ -645,6 +651,11 @@
+ \subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+ \label{app:theory-collapse}
+ 
++Prior work studies objective-induced outcome collapse and inverse-probability
++correction \citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse
++through sampling bias and gradient amplification \citep[Section~4]{lochab2026ucpo}.
++Here we connect our group estimators to a standard categorical flow and then study
++persistent replay over execution-defined keys.
+ Consider the infinitesimal expected-update flow
+ $\dot z=\E[\widehat g_G]=c_G(P)\nabla_zP$. This is the clean mean-field limit
+ of fresh on-policy groups and the first-order PPO update. By Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately
+@@ -716,8 +727,8 @@
+  \le-\frac{1-\xi_c(0)}{m}.
+ \]
+ Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
+-Normalization gives $q_{c^\star}=1/(1+\sum_{c\ne c^\star}\xi_c)\to1$,
+-proving the claim directly.
++Every competing mode vanishes relative to $c^\star$; normalization then
++yields $q_{c^\star}\to1$, establishing the claimed single-mode limit.
+ \end{proof}
+ 
+ \begin{corollary}[Ties are nongeneric]
+@@ -2002,9 +2013,10 @@
+ \]
+ Mixed groups assign failures advantage $-1$ and increase the weight of each
+ success when successes are scarce. All-correct and all-failure groups have
+-zero task advantage. This is the binary special case of ArgMaxRL and
+-optimizes a harmonic mixture of best@\(k\) for $k=1,\ldots,G-1$
+-\citep{tajwar2026maxrl}. It is applied only to fresh on-policy responses;
++zero task advantage. This is the centered binary MaxRL estimator
++\citep{tajwar2026maxrl}. Lemma~\ref{lem:maxrl-mean} derives its on-policy
++mean objective: a harmonic mixture of pass@\(k\) for $k=1,\ldots,G-1$.
++It is applied only to fresh on-policy responses;
+ replay exemplars enter through the separate verified-likelihood loss.
+ 
+ \subsection{State and optimizer update}
+--- before/paper/mathai2026/example_paper.bib
++++ after/paper/mathai2026/example_paper.bib
+@@ -99,7 +99,7 @@
+   year      = {2016},
+   eprint    = {1606.01868},
+   archivePrefix = {arXiv},
+-  primaryClass  = {cs.LG},
++  primaryClass  = {cs.AI},
+   url       = {https://arxiv.org/abs/1606.01868}
+ }
+ 
+@@ -172,7 +172,8 @@
+   eprint        = {2602.02710},
+   archivePrefix = {arXiv},
+   primaryClass  = {cs.LG},
+-  url           = {https://arxiv.org/abs/2602.02710}
++  url           = {https://arxiv.org/abs/2602.02710v3},
++  note = {Version 3}
+ }
+ 
+ @misc{gspo2025,
+@@ -181,7 +182,7 @@
+   year         = {2025},
+   eprint       = {2507.18071},
+   archivePrefix = {arXiv},
+-  primaryClass = {cs.CL},
++  primaryClass = {cs.LG},
+   url          = {https://arxiv.org/abs/2507.18071}
+ }
+ 
+@@ -191,7 +192,7 @@
+   year         = {2025},
+   eprint       = {2505.23433},
+   archivePrefix = {arXiv},
+-  primaryClass = {cs.CL},
++  primaryClass = {cs.LG},
+   url          = {https://arxiv.org/abs/2505.23433}
+ }
+ 
+@@ -556,7 +557,7 @@
+   doi     = {10.1137/21M1456789},
+   eprint  = {2105.11066},
+   archivePrefix = {arXiv},
+-  primaryClass  = {math.OC}
++  primaryClass  = {cs.LG}
+ }
+ 
+ @inproceedings{vieillard2020kl,
+@@ -730,18 +731,18 @@
+ 
+ @misc{maa_invitational,
+   author       = {{Mathematical Association of America}},
+-  title        = {American Invitational Mathematics Examination ({AIME})},
++  title        = {MAA Invitational Competitions},
+   howpublished = {\url{https://maa.org/maa-invitational-competitions/}},
+-  year         = {2024},
+-  note         = {MAA Invitational Competitions. Accessed July 2026}
++  year         = {n.d.},
++  note         = {American Invitational Mathematics Examination (AIME) section. Accessed September 5, 2026}
+ }
+ 
+ @misc{maa_amc,
+   author       = {{Mathematical Association of America}},
+   title        = {American Mathematics Competitions ({AMC})},
+   howpublished = {\url{https://maa.org/student-programs/amc/}},
+-  year         = {2024},
+-  note         = {Accessed July 2026}
++  year         = {n.d.},
++  note         = {Accessed September 5, 2026}
+ }
+ 
+ @inproceedings{he2024olympiadbench,
+@@ -941,7 +942,7 @@
+   author    = {Hu, Edward J. and Jain, Moksh and Elmoznino, Eric and Kaddar, Younesse and Lajoie, Guillaume and Bengio, Yoshua and Malkin, Nikolay},
+   booktitle = {International Conference on Learning Representations},
+   year      = {2024},
+-  url       = {https://arxiv.org/abs/2310.04363}
++  url       = {https://arxiv.org/abs/2310.04363v2}
+ }
+ 
+ @article{bengio2023gflownet,
+@@ -956,7 +957,7 @@
+ 
+ @misc{zhu2025flowrl,
+   title        = {{FlowRL}: Matching Reward Distributions for {LLM} Reasoning},
+-  author       = {Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Zhou, Che and Qi, Youbang and Ding, Ermo and Cheng, Yuxin and Zhou, Bowen},
++  author       = {Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Jiang, Che and Sun, Youbang and Hua, Ermo and Zuo, Yuxin and Lv, Xingtai and Zhang, Qizheng and Chen, Lin and Shao, Fanghao and Xue, Bo and Song, Yunchong and Yang, Zhenjie and Cui, Ganqu and Ding, Ning and Gao, Jianfeng and Liu, Xiaodong and Zhou, Bowen and Mei, Hongyuan and Lin, Zhouhan},
+   year         = {2025},
+   eprint       = {2509.15207},
+   archivePrefix= {arXiv},
+--- before/paper/mathai2026/snapshot.json
++++ after/paper/mathai2026/snapshot.json
+@@ -1,11 +1,11 @@
+ {
+   "source": "paper/main.tex",
+-  "source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
++  "source_sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
+   "snapshot_date": "2026-09-05",
+   "template_url": "https://mathai-2026.github.io/files/mathai_neurips2026_template.zip",
+   "style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+   "copied_files": {
+-    "example_paper.bib": "96ecce3e3ada4e1545447850e285e2c43a9b7ee887f4c1ef50d4131989c3b1cf",
++    "example_paper.bib": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+     "figures/baseline_collapse_precheck.pdf": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+     "figures/direct_baseline_learning_curves_static_strip.pdf": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+     "figures/direct_comparator_endpoint_effects.pdf": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+@@ -98,6 +98,27 @@
+         "global smoothness, deterministic finite-step retention and fixed incomplete-bank probability limit"
+       ],
+       "audit": "../audits/mathematical_review_20260905.md"
++    },
++    {
++      "date": "2026-09-05",
++      "kind": "reference authenticity and citation usage audit",
++      "previous_source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
++      "source_sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
++      "previous_bibliography_sha256": "96ecce3e3ada4e1545447850e285e2c43a9b7ee887f4c1ef50d4131989c3b1cf",
++      "bibliography_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
++      "experimental_results_changed": false,
++      "figures_changed": false,
++      "bibliography_entries_checked": 93,
++      "original_cited_sources": 28,
++      "final_cited_sources": 29,
++      "changes": [
++        "correct GRPO/Dr.GRPO attribution and distinguish our replay variants",
++        "separate literature diversity metrics and candidate breadth from fixed-correctness pass@K",
++        "remove ArgMaxRL misattribution; credit MaxRL version3 Theorem5",
++        "credit prior outcome-collapse analysis and distinguish replay/archive methods",
++        "repair FlowRL author list, four arXiv categories, two undated web citations, and two version links"
++      ],
++      "audit": "../audits/reference_audit_20260905.md"
+     }
+   ],
+   "workshop_title": "More than One Way to Skin a Cat: Preserving Verified Modes in RLVR",

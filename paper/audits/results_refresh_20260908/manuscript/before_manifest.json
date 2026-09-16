@@ -1,0 +1,7 @@
+{
+  "paper/main.tex": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+  "paper/mathai2026/main.tex": "e4c835c82b33b892a2686c3ce3ea8615f0f5e4a07ee846b98d051552cac5d9ec",
+  "paper/mathai2026/appendix.tex": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+  "ops/check_paper_current_contract.py": "f087d6e86b5f0030a77dcafb5888db1cdaa3f66328a7ae7c5d9c0ea489c7d848",
+  "ops/exp_scaling/plot_paper_e118_all_scale_progress.py": "b3da307ebaaf82f37e3d1800329612ccb9f1717f7bcf5f5010735712fce79317"
+}

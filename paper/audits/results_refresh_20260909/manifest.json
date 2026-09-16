@@ -1,0 +1,20 @@
+{
+  "builder": {
+    "path": "ops/exp_scaling/build_paper_latest_results.py",
+    "sha256": "cd07d0d835076c98d3e4128cbc9005da99be7d2d0341783ce534822b63f52eb7"
+  },
+  "generated_at_utc": "2026-09-09T17:43:25.140189+00:00",
+  "outputs": {
+    "paper/audits/results_refresh_20260909/latest_endpoints.json": "3fdb29841d58ce368bde7c7f54defc75822429d1ba5e9bd47a0e6aefe7e9db12",
+    "paper/results/latest_results_20260909.json": "048c9adde4e56ead61e6236e2c81f1e4052ee25ec244d3b59c90fc612aad42ec",
+    "paper/results/latest_results_20260909_effects_table_body.tex": "d0de9b1cea18817f102863bf7e9bac8d0e312b41a55f2d17d0c468126f33462d",
+    "paper/results/latest_results_20260909_table_body.tex": "4454de34ddceeed7f8af25b081e5e9f9ea7a2140c979c8944dc57e8351aa74c9"
+  },
+  "preserved_inputs": {
+    "all_25_treatment_endpoints_revalidated_unchanged": true,
+    "path": "paper/results/e120_frequency_progress.json",
+    "sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab",
+    "terminal_cells": 25
+  },
+  "schema": "paper-latest-results-manifest-v1"
+}

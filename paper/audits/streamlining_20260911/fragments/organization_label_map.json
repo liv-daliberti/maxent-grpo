@@ -1,0 +1,77 @@
+{
+  "owned_fragments": {
+    "benchmark.tex": [
+      "app:data",
+      "app:experimental-design",
+      "app:domain-overview",
+      "app:data-inventory",
+      "tab:tasks",
+      "app:data-materialization",
+      "tab:materialization-identities",
+      "app:data-pantry",
+      "app:python",
+      "app:python-language",
+      "app:python-process",
+      "app:python-identity",
+      "app:data-levels",
+      "app:repro-run-contract",
+      "app:comparison-design",
+      "tab:run-contract",
+      "app:prompts",
+      "app:prompt-graph",
+      "app:prompt-countdown",
+      "app:prompt-python",
+      "app:prompt-mathir",
+      "app:prompt-pantry"
+    ],
+    "algorithm.tex": [
+      "app:algorithm",
+      "app:replay-objective",
+      "app:binary-maxrl",
+      "app:algorithm-update",
+      "alg:verified-replay-update",
+      "app:algorithm-bank",
+      "app:algorithm-schedule",
+      "app:algorithm-control"
+    ],
+    "reproducibility.tex": [
+      "app:reproducibility",
+      "app:source-integrity",
+      "app:repro-artifacts",
+      "app:repro-code",
+      "app:archived-models",
+      "app:repro-recovery"
+    ],
+    "short_frontmatter.tex": [
+      "app:metrics",
+      "sec:collapse-metrics"
+    ],
+    "short_disclosures.tex": [
+      "sec:related",
+      "app:limitations",
+      "sec:ai-use"
+    ]
+  },
+  "redirects": {
+    "app:comparison-design": "app:repro-run-contract (retained as an alias)",
+    "app:replay-objective": "app:algorithm (retained as an alias)",
+    "sec:shared-protocol": "app:repro-run-contract (short appendix only; keep existing long main label)",
+    "sec:collapse-mechanism": "app:theory (short appendix only; keep existing long main label)",
+    "sec:retention-design": "app:program-registry (short appendix only; keep existing long main label)",
+    "sec:factorial-design": "app:program-registry (short appendix only; keep existing long main label)",
+    "sec:levels-design": "app:data-levels (short appendix only; keep existing long main label)",
+    "eq:replay-bank-decomposition": "app:algorithm (short appendix only; keep existing long main equation)",
+    "tab:archive-model-map": "app:archived-models (replace Table reference with Appendix reference)"
+  },
+  "prompt_block_sha256": "78a0ba41fbf141dacfdb7703040a4516d725edfb3ae94926b7259cd0435647e6",
+  "prompt_block_bytes": 5644,
+  "prompt_block_identical_to_archived_long": true,
+  "frozen_sources": [
+    "before/paper/main.tex",
+    "before/paper/mathai2026/appendix.tex"
+  ],
+  "validation": {
+    "dataset_backed_prompt_render": "PASS: all five blocks match",
+    "pantry_level2_development_exception": "Verified in var/data/modebench_harder_v2_matched_r5/identity.json: 128 rows, 64 reference rows, histogram_scale_factor=2"
+  }
+}

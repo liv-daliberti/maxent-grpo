@@ -457,29 +457,29 @@ def pair_legend_handles(*, include_untrained: bool = False) -> list[Line2D]:
     if include_untrained:
         handles.append(
             Line2D(
-                [0], [0], marker="D", linestyle="none", markersize=4.8,
+                [0], [0], marker="D", linestyle="none", markersize=4.0,
                 markerfacecolor="#6B7280", markeredgecolor="#6B7280",
                 label="Untrained",
             )
         )
     handles.extend([
         Line2D(
-            [0], [0], marker="s", linestyle="none", markersize=5.2,
+            [0], [0], marker="s", linestyle="none", markersize=4.3,
             markerfacecolor=style.WHITE, markeredgecolor=style.COMPARATOR,
             markeredgewidth=1.2, label="MaxRL",
         ),
         Line2D(
-            [0], [0], marker="s", linestyle="none", markersize=5.4,
+            [0], [0], marker="s", linestyle="none", markersize=4.5,
             markerfacecolor=style.ABLATION, markeredgecolor=style.ABLATION,
             label="Re:Max (ours)",
         ),
         Line2D(
-            [0], [0], marker="o", linestyle="none", markersize=5.4,
+            [0], [0], marker="o", linestyle="none", markersize=4.5,
             markerfacecolor=style.WHITE, markeredgecolor=style.CONTROL,
             markeredgewidth=1.2, label="Dr.GRPO",
         ),
         Line2D(
-            [0], [0], marker="o", linestyle="none", markersize=5.6,
+            [0], [0], marker="o", linestyle="none", markersize=4.7,
             markerfacecolor=style.ADAPTIVE, markeredgecolor=style.ADAPTIVE,
             label="Re:Dr (ours)",
         ),
@@ -707,7 +707,7 @@ def draw_cross_domain_panel(
                     )
                     axis.plot(
                         [control, replay], [seed_y, seed_y], linestyle="none",
-                        marker=marker, markersize=2.2, markerfacecolor=style.WHITE,
+                        marker=marker, markersize=1.9, markerfacecolor=style.WHITE,
                         markeredgecolor=start_color, markeredgewidth=0.45,
                         alpha=0.38, zorder=3,
                     )
@@ -728,8 +728,8 @@ def draw_cross_domain_panel(
                 # as one question -- what did training do, with and without
                 # memory -- instead of a single path through the control.
                 arrow_rows = (
-                    (start_mean, start_color, -0.055, 5.7, style.WHITE, start_color),
-                    (finish_mean, finish_color, 0.055, 6.0, finish_color, finish_color),
+                    (start_mean, start_color, -0.055, 4.7, style.WHITE, start_color),
+                    (finish_mean, finish_color, 0.055, 5.0, finish_color, finish_color),
                 )
                 for value, colour, shift, size, face, edge in arrow_rows:
                     axis.annotate(
@@ -753,7 +753,7 @@ def draw_cross_domain_panel(
                     color="#6B7280", linewidth=0.9, zorder=5,
                 )
                 axis.plot(
-                    initial_mean, y, marker="D", linestyle="none", markersize=5.0,
+                    initial_mean, y, marker="D", linestyle="none", markersize=4.2,
                     markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=6,
                 )
             else:
@@ -773,16 +773,16 @@ def draw_cross_domain_panel(
                     zorder=4,
                 )
                 axis.plot(
-                    initial_mean, y, marker="D", linestyle="none", markersize=5.0,
+                    initial_mean, y, marker="D", linestyle="none", markersize=4.2,
                     markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=5,
                 )
                 axis.plot(
-                    start_mean, y, marker=marker, linestyle="none", markersize=5.7,
+                    start_mean, y, marker=marker, linestyle="none", markersize=4.7,
                     markerfacecolor=style.WHITE, markeredgecolor=start_color,
                     markeredgewidth=1.35, zorder=5,
                 )
                 axis.plot(
-                    finish_mean, y, marker=marker, linestyle="none", markersize=6.0,
+                    finish_mean, y, marker=marker, linestyle="none", markersize=5.0,
                     markerfacecolor=finish_color, markeredgecolor=finish_color,
                     markeredgewidth=1.0, zorder=6,
                 )
@@ -795,6 +795,19 @@ def draw_cross_domain_panel(
          "pmd": "correct-mode diversity"}[metric],
         fontsize=7.0, labelpad=2,
     )
+    if metric == "pass8":
+        # Five ticks crowd a panel this narrow; the ends and the midpoint are
+        # what the arrows are read against.
+        axis.set_xticks([0.0, 0.5, 1.0])
+    # The panels sit close together, so the two labels facing the gutter are
+    # justified away from it instead of centred on their spines, which would
+    # overlap. Everything else stays centred on its tick.
+    figure_canvas = axis.get_figure()
+    figure_canvas.canvas.draw()
+    labels = axis.get_xticklabels()
+    if labels:
+        labels[-1 if metric == "pass8" else 0].set_horizontalalignment(
+            "right" if metric == "pass8" else "left")
 
 
 def distinct_axis_upper(record: dict, scales: tuple[str, ...]) -> float:
@@ -813,7 +826,7 @@ def render_main_figure(record: dict, absolute_averages: dict) -> None:
     # tick labels.
     style.apply_rcparams(font_size=7.4)
     figure, axes = plt.subplots(
-        1, 2, figsize=(3.62, 2.62), gridspec_kw={"wspace": 0.24},
+        1, 2, figsize=(3.62, 2.50), gridspec_kw={"wspace": 0.12},
     )
     descriptive = record["descriptive_available_domain_average"]
     draw_cross_domain_panel(
@@ -844,9 +857,9 @@ def render_main_figure(record: dict, absolute_averages: dict) -> None:
     )
     axes[1].tick_params(labelleft=False)
     figure.legend(
-        handles=pair_legend_handles(include_untrained=True), ncol=3,
-        loc="upper center", bbox_to_anchor=(0.56, 1.005), frameon=False,
-        fontsize=6.1, columnspacing=0.55, handletextpad=0.25,
+        handles=pair_legend_handles(include_untrained=True), ncol=5,
+        loc="upper center", bbox_to_anchor=(0.55, 1.01), frameon=False,
+        fontsize=5.8, columnspacing=0.42, handletextpad=0.22,
     )
     maxrl_note = (
         "3B MaxRL: all five seeds across all five domains; equal domain weights within seed."
@@ -866,7 +879,7 @@ def render_main_figure(record: dict, absolute_averages: dict) -> None:
         "panel_b_domain_averages": "B averages each scale's support-eligible domains --- "
                                    + pmd_note + ".",
     }
-    figure.subplots_adjust(top=0.78, bottom=0.145, left=0.235, right=0.995)
+    figure.subplots_adjust(top=0.825, bottom=0.152, left=0.235, right=0.995)
     for extension in ("pdf", "png"):
         figure.savefig(
             OUT.with_suffix("." + extension), dpi=220,
@@ -899,9 +912,9 @@ def render_appendix_figure(record: dict, absolute_averages: dict) -> None:
             )
         axes[row, 1].tick_params(labelleft=False)
     figure.legend(
-        handles=pair_legend_handles(include_untrained=True), ncol=3,
-        loc="upper center", bbox_to_anchor=(0.56, 1.005), frameon=False,
-        fontsize=6.1, columnspacing=0.55, handletextpad=0.25,
+        handles=pair_legend_handles(include_untrained=True), ncol=5,
+        loc="upper center", bbox_to_anchor=(0.55, 1.01), frameon=False,
+        fontsize=5.8, columnspacing=0.42, handletextpad=0.22,
     )
     figure.text(
         0.99, 0.013, "Solid: n=5; dashed: available paired seeds (descriptive).",

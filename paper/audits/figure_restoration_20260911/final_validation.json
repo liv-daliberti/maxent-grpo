@@ -1,0 +1,60 @@
+{
+  "status": "complete",
+  "validated_at_utc": "2026-09-11T22:51:05.419644+00:00",
+  "user_preference": "Original figures and original main-text roles restored; newer quantitative figures retained as supporting evidence",
+  "iclr": {
+    "main_pages": 9,
+    "total_pages": 82,
+    "main_figures": 8,
+    "supplementary_figures": 17,
+    "references_start_page": 10,
+    "original_figure_roles_and_order": true
+  },
+  "workshop": {
+    "main_pages": 4,
+    "total_pages": 77,
+    "main_figures": 7,
+    "supplementary_figures": 18,
+    "references_start_page": 5,
+    "original_figure_pages": [
+      1,
+      2,
+      2,
+      3,
+      3,
+      4,
+      4
+    ]
+  },
+  "checks": {
+    "editorial_regression_tests": 45,
+    "current_scientific_contract": "passed",
+    "main_length": "passed",
+    "natural_prose_line_fill_blocks": 321,
+    "prompt_ablation_reconstruction": "passed",
+    "discovery_curve_reconstruction": "passed",
+    "workshop_standalone_build_and_source_bundle": "passed",
+    "overleaf_fresh_extraction": "passed",
+    "formal_statement_proof_blocks_per_edition_unchanged": 18,
+    "original_pdf_figures_unchanged": 19,
+    "new_training_or_generation": false
+  },
+  "build_note": "One post-compilation PDF read reported a transient trailer/xref error; the completed PDF is readable and the full scientific/page/typography checks passed on retry without source or evidence changes. The original build log is retained.",
+  "artifacts": {
+    "paper/main.tex": "2a75f8a498337c6b90d085c022fe2d690814a4e792456339bf7a2c434fdaaff8",
+    "paper/main.pdf": "c5029a0ee1d65856a1f0ad0a5da54b12e8f1296681727bfd6bd937aff4f90eaf",
+    "paper/main-body.pdf": "a1215610720b40f8ec248ee8cee34ce455320ed7e6d051b877297b562f2a9e29",
+    "paper/main-with-figures.pdf": "c5029a0ee1d65856a1f0ad0a5da54b12e8f1296681727bfd6bd937aff4f90eaf",
+    "paper/mathai2026/main.tex": "eb97e2e2d0731e6c8d68d939bb72c6fd840a9c102f1eb727b3053a0379640e77",
+    "paper/mathai2026/appendix.tex": "367c17f07ea574813495952030ba46603536c782c6bfb86ec572bb1702807375",
+    "paper/mathai2026/main.pdf": "947a1b3ca0cef4604f4896df0012a2c1263a313bbaf02b3853efe9a6d60839a6",
+    "paper/mathai2026/snapshot.json": "bd2720e56316a891cb4d2600ca849c01253e7b786ef59383ac77de3987f6158f",
+    "paper/mathai2026/build_receipt.json": "9110547bf8ff8372e5731ddefb5072b88cf87a87e9b71b071f9fb90e0e51ec29",
+    "paper/mathai2026/mathai2026-source.zip": "63e18a2ba348c5ec47f3765b2f5ea26468348c25f1e6ec3ba115d15e7a942f88",
+    "paper/mathai2026/mathai2026-overleaf.zip": "42af9ddf117344054ce4435dd14c3a6e73df940cdd49d1860c0825a61a2125a5",
+    "paper/FIGURE_MANIFEST.md": "052e79ee7a8ae889984a11a5d38de310d193d5c9c0aaa26c1b4bf25e2cd672c3",
+    "paper/FIGURE_DATA_AUDIT.md": "355ac7b4dfaba0327c2852cdb61637988a11b6a6fb4b99ccc6148b4f0eb4b052",
+    "ops/check_paper_current_contract.py": "27113d1ecf79569ca8bf97c8e3a8772bef4c1a1d6ea95acdcde2b5b5b0548b9e",
+    "ops/check_paper_main_length.py": "d88fba9ed97011cef7632219c69350d58ba08baae4d6c3a0eb5cd4fa117068fb"
+  }
+}

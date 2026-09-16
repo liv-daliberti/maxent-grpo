@@ -1,0 +1,200 @@
+{
+  "schema": "gpt56-all-levels-paper-build-audit-v1",
+  "status": "complete",
+  "completed_at_utc": "2026-09-13T00:22:07.799375+00:00",
+  "current_manuscript": {
+    "path": "paper/main.tex",
+    "sha256": "f2bd251737bd03edd038ce2aada73ccef273bd94cede04415a3b23a1962ccd76"
+  },
+  "current_pdf": {
+    "path": "paper/main.pdf",
+    "sha256": "b8fc76d08706f6cffa1d262d9f46cc82a91aa314bc1ccdc126209b53c41550cf"
+  },
+  "analysis": {
+    "path": "artifacts/modebench_discovery_all_levels_sol512_20260912/analysis/analysis.json",
+    "sha256": "54eac7ed94822927abb926f267b35b98a24f581088b8ea102dda41196ba58e62"
+  },
+  "collection_audit": {
+    "path": "artifacts/modebench_discovery_all_levels_sol512_20260912/collection_completion_audit.json",
+    "sha256": "971d179a2b9117bc5ee631388ce7c6a1457f919bd2a2910c09c70d2c60d1090a"
+  },
+  "credential_cleanup": {
+    "path": "artifacts/modebench_discovery_all_levels_sol512_20260912/credential_cleanup.json",
+    "sha256": "822fb1d74829018abf5a7e8a5eed178dc6b5bee3d509001b46d52d89f2174421"
+  },
+  "frozen_code": {
+    "path": "artifacts/modebench_discovery_all_levels_sol512_20260912/final_analysis_code/manifest.json",
+    "sha256": "ad0cebdd6e3ffa046681a4f507779b90397c27acdab80fc6f37ad999d2c8e2f3"
+  },
+  "figure": 8,
+  "figure_page": 8,
+  "appendix": "N.3",
+  "appendix_pages": [
+    97,
+    98
+  ],
+  "main_pages": 9,
+  "pdf_pages": 100,
+  "main_figures": 8,
+  "main_tables": 1,
+  "preserved_proof_blocks": 18,
+  "responses": 122880,
+  "prompts": 240,
+  "cells": 15,
+  "draws_per_prompt": 512,
+  "checks": {
+    "targeted_tests_passed": 142,
+    "full_current_contract": "pass",
+    "line_fill_blocks": 391,
+    "main_length": "pass",
+    "domain_prompts": "pass",
+    "prompt_ablation": "pass",
+    "prior_discovery_curves": "pass",
+    "inference_followups": "pass",
+    "overfull_boxes": 0,
+    "unresolved_references": 0,
+    "main_and_appendix_visual_review": "pass"
+  },
+  "retained_files": [
+    {
+      "source": "/tmp/gpt56_all_levels_final_current_contract.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_final_current_contract.log",
+      "sha256": "06b65cfd15ce79443a218878f4600f69c49855bcc7d4d398bbb29f0a8356c89b"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_final_tests.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_final_tests.log",
+      "sha256": "12c034bda1f67a56400cb3350ee2c2ac137bf67de4fcd3fdbd7a646a4f343310"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_final_line_fill.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_final_line_fill.log",
+      "sha256": "3a6b8d4e47add647f5d82b783a8c8e4e2a0478616be4d120c59642215b166f2b"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_final_length.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_final_length.log",
+      "sha256": "10b2d13c793a164c1a851ebf6aebec2f4de38efd8aa8cb1deb9a718d520c6ccf"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_domain_prompts_check.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_domain_prompts_check.log",
+      "sha256": "a80a015fd0b5b2d3d4af172d9c64d59865001de4de2f6c5a11edb385a1f885e1"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_prompt_ablation_check.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_prompt_ablation_check.log",
+      "sha256": "6716044be476d37dec239aec84d1cf8a3e5220e9de941d009d1e90c965e7ce92"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_old_discovery_check.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_old_discovery_check.log",
+      "sha256": "4a05f037edfd78bcaa96ea267008dc9260cba04eb231e986dca89672f667fb59"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_inference_check.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_inference_check.log",
+      "sha256": "a7feaa877f104004cb3aa431cf95945515cff9d73fbd59b470f9189852343bac"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_grading_watch.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_grading_watch.log",
+      "sha256": "ad0c7c3b57b9650bfa21d2f2bfd42c4554da9c2fe2a0f29510b7d7c7f89fc2ee"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_analysis_watch.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/checks/gpt56_all_levels_analysis_watch.log",
+      "sha256": "9b80907fa77ebd387515ab0cc06a2ff548a383103f6ca5d2af0534a5c5f3cc76"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/main.tex",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/main.tex",
+      "sha256": "f2bd251737bd03edd038ce2aada73ccef273bd94cede04415a3b23a1962ccd76"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/main.pdf",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/main.pdf",
+      "sha256": "b8fc76d08706f6cffa1d262d9f46cc82a91aa314bc1ccdc126209b53c41550cf"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/main.aux",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/main.aux",
+      "sha256": "e20a68274e300d7569b9d2cfbc99af59f6bf20d8914ae0080d40a8ce6094d41f"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/main.log",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/main.log",
+      "sha256": "d87d4b373e80a0430c18408625d8e5584f8f4125e050235f4cddbd9c11f4f17e"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/Makefile",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/Makefile",
+      "sha256": "f4ad0988480d6554efd6dc6385a0bbb67964cb8de2f7e6555748ffd63a86bfab"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/ops/check_paper_current_contract.py",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/ops/check_paper_current_contract.py",
+      "sha256": "9743bb1a5af952765d45b8a38f8324bc72c95ed560933b2cddf5de7a0c39c26b"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/ops/check_paper_main_length.py",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/ops/check_paper_main_length.py",
+      "sha256": "ba4ea8626db183fc815a89e8ffe5a3f731970b3729431b93b413220a72a093a1"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/ops/check_paper_line_fill.py",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/ops/check_paper_line_fill.py",
+      "sha256": "bb60a108ef2ee5f5ecfb26ab920bee7dd770fc31eeb210edbf44e1ba3d655814"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/tests/test_paper_current_editorial_contract.py",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/tests/test_paper_current_editorial_contract.py",
+      "sha256": "994d5fab669a457d6e40110fc10f6cd60a3bfcf1f028a3cbeb58c9bfe5c67522"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/tests/test_paper_main_length.py",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/tests/test_paper_main_length.py",
+      "sha256": "c86414ce977ef91347fcec11045ad1137198f98a6be92b2120678f092a7eb15d"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/figures/gpt56_all_levels_sampling_budget.pdf",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/figures/gpt56_all_levels_sampling_budget.pdf",
+      "sha256": "751357a7af606f1a76716f04ee6b9ebe7b69ac5dcf68b595af3c62c5f030bb83"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/figures/gpt56_all_levels_sampling_budget.png",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/figures/gpt56_all_levels_sampling_budget.png",
+      "sha256": "bfda90cbe934822063375b1989300cadb88e69ac73ed76192b128db4e77a3555"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/figures/gpt56_all_levels_sampling_budget.json",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/figures/gpt56_all_levels_sampling_budget.json",
+      "sha256": "1bd9053e8b04cb9e58990613ac46ec53fc13936c7281d29458447842ab08413d"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/results/gpt56_all_levels_sampling_20260912.tex",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/results/gpt56_all_levels_sampling_20260912.tex",
+      "sha256": "8e722d9ce78796558bc76d463d48b76ffc4b7a9bf8fa31e17bd3f27f4f1c5731"
+    },
+    {
+      "source": "/n/fs/similarity/maxent-grpo/paper/results/gpt56_all_levels_sampling_20260912.json",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/paper/results/gpt56_all_levels_sampling_20260912.json",
+      "sha256": "79ec1254f6a36a0b7497feef7c08793737b67ec4a6d75161b038f58f6e3cb6d4"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_final_page8.png",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/visual_review/gpt56_all_levels_final_page8.png",
+      "sha256": "f31cc8445ab97a8a0e42f5c55b3bbf5b0b4369f3431d4b4e89b1673b31fbc2d9"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_final_appendix-097.png",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/visual_review/gpt56_all_levels_final_appendix-097.png",
+      "sha256": "421b765e8e75892ff21c0beeee6a3782d6649d59e7111fc30a787d90ee80adbf"
+    },
+    {
+      "source": "/tmp/gpt56_all_levels_final_appendix-098.png",
+      "copy": "paper/audits/gpt56_all_levels_512_20260912/final_build/visual_review/gpt56_all_levels_final_appendix-098.png",
+      "sha256": "2c8fac7e62107934ba589c817634cf9f20f56658985d1a651e50a01622383c27"
+    }
+  ]
+}

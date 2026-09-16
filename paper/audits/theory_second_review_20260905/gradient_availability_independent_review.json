@@ -1,0 +1,20 @@
+{
+  "reviewed_at": "2026-09-05T21:10:42.465228+00:00",
+  "reviewer": "/root/e120_health",
+  "verdict": "PASS",
+  "file": "paper/audits/theory_second_review_20260905/gradient_availability.tex",
+  "sha256": "7dd6eb120fbd55ba0663b89b19d95693c60902f523a4492728a2a41a818c1950",
+  "checks": [
+    "Disjoint all-correct/all-incorrect events give h_G exactly.",
+    "A mixed group requires each class; union bounds give G*min(P,1-P).",
+    "Opportunity wording avoids asserting a nonzero lower gradient magnitude.",
+    "Replay softmax gradient is rho_w*(w_extended-p) for normalized fixed weights.",
+    "Rare banked coordinate lower bound rho_w*w_b/2 is exact.",
+    "Uniform k-bank limiting norm rho_w*sqrt(1-1/k) is exact.",
+    "A stochastic exemplar draw is correctly distinguished from the bank expectation.",
+    "Nonzero logit coordinate is not claimed to survive arbitrary neural Jacobian projection.",
+    "Mixed-group probability need not increase with replay; h_G peaks at one half."
+  ],
+  "findings": [],
+  "mutations": "Only this audit file; reviewed gradient-availability fragment unchanged."
+}

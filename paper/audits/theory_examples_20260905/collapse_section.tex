@@ -1,0 +1,118 @@
+\subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+\label{app:theory-collapse}
+
+Prior work studies objective-induced outcome collapse and inverse-probability
+correction \citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse
+through sampling bias and gradient amplification \citep[Section~4]{lochab2026ucpo}.
+Here we connect our group estimators to a standard categorical flow and then study
+persistent replay over execution-defined keys.
+Consider the infinitesimal expected-update flow
+$\dot z=\E[\widehat g_G]=c_G(P)\nabla_zP$. This is the clean mean-field limit
+of fresh on-policy groups and the first-order PPO update. By Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately
+removes sampling noise; the result below therefore identifies a structural
+instability rather than blaming finite batches.
+
+The conditional correct-mode flow derived below is a standard
+frequency-dependent replicator system with fitness $f_c(q)=q_c$
+\citep{hofbauer1998evolutionary}; the following
+theorem is not claimed as a new replicator-dynamics result. Its role is to show
+that the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that
+familiar winner-take-all flow under the paper's categorical assumptions.
+
+\paragraph{A local view of the instability.}
+For $q=(0.60,0.30,0.10)$ in \hyperref[ex:theory-running]{the running example},
+$\sum_cq_c^2=0.46$. In the effective time $\tau$ defined in the proof,
+Equation~\eqref{eq:grpo-replicator} gives
+\[
+ \frac{dq}{d\tau}=(0.084,-0.048,-0.036),\qquad
+ \frac{d}{d\tau}\log\frac{q_1}{q_2}=0.30.
+\]
+The two less common modes lose their share of successful outputs even while
+correctness increases. This calculation is local; the theorem establishes
+that the imbalance persists all the way to the single-mode limit.
+
+\begin{theorem}[Standard replicator specialization for binary-reward RL]
+\label{thm:grpo-collapse}
+Start from finite logits with $0<P(0)<1$. If the conditional correct-mode
+distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+\[
+  P(t)\longrightarrow1,
+  \qquad
+  q_{c^\star}(t)\longrightarrow1,
+  \qquad
+  q_c(t)\longrightarrow0\quad(c\ne c^\star).
+\]
+Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single
+correct execution mode for generic initial conditions, even though every mode
+in $\mathcal C$ has exactly the same reward.
+\end{theorem}
+
+\begin{proof}
+For a correct mode $c$ and incorrect category $a$,
+\[
+  \dot z_c=c_G(P)p_c(1-P),
+  \qquad
+  \dot z_a=-c_G(P)p_aP.
+\]
+Also $\dot P=c_G(P)\lVert\nabla_zP\rVert_2^2>0$. If $P$ converged to an
+interior value, continuity and positivity of $c_G$, together with
+\[
+ \lVert\nabla_zP\rVert_2^2
+ \ge P^2(1-P)^2\left(\frac1m+\frac1n\right),
+\]
+would keep $\dot P$ bounded away from zero, a contradiction. Hence $P\to1$.
+
+Define the effective optimization time
+\[
+  \tau(t)=\int_0^t c_G(P(s))P(s)(1-P(s))\,ds.
+\]
+If $\tau(\infty)<\infty$, every correct and incorrect logit would have finite
+total variation, because the absolute velocity of each is at most $\dot\tau$.
+All logits would then converge to finite values, contradicting $P\to1$.
+Therefore $\tau(t)\to\infty$, leaving infinite effective time for the
+correct-simplex dynamics below.
+
+On the correct simplex, changing from $t$ to $\tau$ gives the replicator flow
+\begin{equation}
+  \frac{dq_c}{d\tau}
+  =q_c\left(q_c-\sum_{d\in\mathcal C}q_d^2\right),
+  \qquad
+  \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
+  \label{eq:grpo-replicator}
+\end{equation}
+The initially unique maximum remains the unique maximum. For $c\ne c^\star$,
+set $\xi_c=q_c/q_{c^\star}$, so $\xi_c(0)<1$ and $\xi_c$ is nonincreasing.
+Since $q_{c^\star}\ge1/m$,
+\[
+ \frac{d\log\xi_c}{d\tau}
+ =-q_{c^\star}(1-\xi_c)
+ \le-\frac{1-\xi_c(0)}{m}.
+\]
+Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
+Every competing mode vanishes relative to $c^\star$; normalization then
+yields $q_{c^\star}\to1$, establishing the claimed single-mode limit.
+\end{proof}
+
+\begin{corollary}[Ties are nongeneric]
+\label{cor:grpo-ties}
+If exactly $k<m$ correct modes tie for the largest initial probability, symmetry
+preserves the tie and the flow converges to the uniform distribution on those
+$k$ modes while eliminating the rest. Only the exactly uniform initialization preserves all $m$ correct modes
+in the limit; a tie among $1<k<m$ maxima yields partial collapse onto those
+$k$ modes. Any perturbation creating a unique maximum gives single-mode
+collapse by Theorem~\ref{thm:grpo-collapse}.
+\end{corollary}
+
+\paragraph{An exact tie is a different initial condition.}
+Starting instead from $q=(0.45,0.45,0.10)$ gives the limit
+$(0.50,0.50,0)$. Changing the initialization to $(0.451,0.449,0.10)$ makes
+the first mode the unique winner. Thus an exactly symmetric two-mode limit
+does not imply robustness to a small imbalance in the initial policy.
+
+Finite groups also introduce sampling effects: a mode absent from
+a group has no sampled response of its own carrying a score term,
+all-correct groups have zero task advantage, and sampling noise can break exact
+ties. Softmax normalization and shared parameters can still change an
+unsampled mode's probability. These facts are not needed for
+the theorem.
+

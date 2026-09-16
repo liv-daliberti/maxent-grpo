@@ -1,0 +1,1647 @@
+--- before/paper/main.tex
++++ after/paper/main.tex
+@@ -81,8 +81,7 @@
+ 
+ 
+ 
+-\title{There's More Than One Way:\\
+-Mode Collapse in RLVR \& ModeBench}
++\title{Mode Collapse in RLVR \& ModeBench}
+ 
+ \author{Anonymous Authors}
+ 
+@@ -91,10 +90,9 @@
+ \maketitle
+ 
+ \begin{abstract}
+-A model can learn to answer a problem more reliably while losing alternative
+-correct solutions. Reinforcement learning with verifiable rewards (RLVR)
+-provides little feedback about this loss: a repeated success and a different
+-success receive the same reward. We introduce \mb{}, five executable domains
++A model can answer more reliably while losing alternative correct solutions.
++With binary rewards, reinforcement learning with verifiable rewards (RLVR)
++gives a repeated success and a different success the same feedback. We introduce \mb{}, five executable domains
+ that identify distinct verified outputs for the same prompt, and ReplayMaxRL,
+ which combines learning from fresh samples with memory of verified successes.
+ The same execution keys serve both measurement and replay: each retained key
+@@ -105,7 +103,7 @@
+ show where this evidence remains incomplete. Hosted-model evaluation also finds
+ accurate answers concentrated on few verified modes. An idealized analysis explains
+ why binary rewards can amplify common modes and how replay can counter that
+-pressure. The results separate success from preserving verified alternatives.
++pressure. Together, these results distinguish reliable answering from the availability of verified alternatives.
+ \end{abstract}
+ 
+ \begin{figure}[H]
+@@ -133,7 +131,7 @@
+ happens to the range of successful behaviors it can produce?
+ 
+ Reinforcement learning with verifiable rewards (RLVR) uses executable
+-correctness feedback to improve a model \citep{guo2025deepseekr1}. That feedback
++correctness feedback to improve a model \citep{guo2025deepseekr1}. A binary reward
+ does not distinguish a familiar correct solution from another correct solution
+ to the same problem. The model can therefore become more accurate while its
+ verified outputs concentrate on fewer alternatives. Figure~\ref{fig:story}
+@@ -219,20 +217,21 @@
+ beyond the first correct output in a sampled set. This decomposition helps
+ interpret a breadth gain but does not hold correctness fixed. None of these
+ finite-sample measurements identifies the total number of positive-probability
+-modes or proves that an unobserved mode has become impossible.
+-Appendix~\ref{app:metric-details} gives the full definitions and reference policies.
++modes or proves that an unobserved mode has become impossible. At fixed
++correctness, a more concentrated allocation reduces expected breadth in the
++majorization sense (Lemma~\ref{lem:success-breadth}); increasing correctness
++alone can also increase it. Appendix~\ref{app:metric-details} gives the derivation.
+ 
+ \subsection{Harder tasks with the same notion of a mode}
+ \label{sec:levels-design}
+ 
+-The benchmark has two disjoint levels for the training experiments. Level 2
+-adds structural difficulty while retaining each domain's validator, key,
+-training/evaluation sizes, and valid-mode-count histograms on those splits.
+-For example, Graph hides more vertices and Countdown requires more operands.
+-Frozen-model evaluation checks that the harder level remains solvable. This
+-lets us change task difficulty without changing what counts as a distinct
+-success; the construction and admission checks appear in
+-Appendix~\ref{app:data-levels}.
++The training experiments use two disjoint levels with the same validators
++and execution keys. Level 2 adds structural difficulty: Graph hides more
++vertices and Countdown requires more operands. Valid-mode-count histograms
++match the designated construction references, and frozen-model development
++evaluation checks solvability. The terminal test populations differ between
++levels, so their contrast does not isolate difficulty at fixed test-set
++support (Appendix~\ref{app:data-levels}).
+ 
+ \section{ReplayMaxRL: Learn from New Samples and Remember Successes}
+ \label{sec:method}
+@@ -303,18 +302,20 @@
+ 
+ Common correct modes appear in more on-policy updates than rare correct modes,
+ although both receive the same binary reward. In an isolated softmax model
+-with independently trained logits, the mean updates of GRPO, Dr.GRPO, and
+-binary MaxRL amplify an initial imbalance and generically concentrate on one
+-correct mode. A fixed replay bank changes this flow: persistent likelihood
+-training supplies a qualitative probability floor for its stored modes
+-(Appendix~\ref{app:theory}).
++with one independently trained logit per canonical outcome and common
++length normalization, Euclidean mean flows for GRPO, Dr.GRPO, and binary
++MaxRL concentrate on the initially most probable correct mode when it is
++unique (Theorem~\ref{thm:grpo-collapse}). A fixed bank with constant positive
++replay dose supplies a qualitative probability floor for its banked modes
++(Theorem~\ref{thm:replay-retention}).
+ 
+ Theory studies idealized mean flows. The result explains a pressure that replay
+ can counter; it does not certify the implemented neural optimizer. A finite
+ bank protects only admitted modes in the ideal analysis, and its probability
+-floor can be too small to yield observable samples. Our experiments therefore
+-measure held-out support directly and separately inspect fixed-exemplar score
+-trajectories. They do not infer universal preservation from the theorem.
++floor can be too small to yield observable samples. In this same fixed-bank
++flow, unbanked correct modes can vanish. Our experiments therefore measure
++held-out sampled breadth and inspect exemplar-score trajectories separately.
++Appendix~\ref{app:claim-basis} identifies the basis and scope of each central claim.
+ 
+ \section{Experimental Design}
+ \label{sec:experiments}
+@@ -437,20 +438,21 @@
+ Figure~\ref{fig:level2-admission} compares the four domains with complete
+ factorials at Qwen2.5-0.5B. Their aggregate moves toward greater correctness
+ and sampled support with replay under either fresh objective, at both levels.
+-The levels preserve the mode definition and the distribution of valid-mode
+-counts while changing task structure, so the comparison tests more than a different key
+-definition. PantryPlan remains outside this aggregate because its Level-2
+-factorial is incomplete.
++The levels share mode definitions but use separate test populations;
++the within-level replay comparisons control prompts and fresh objectives.
++PantryPlan remains outside this aggregate because its Level-2 factorial is
++incomplete.
+ 
+ \begin{figure}[!htbp]
+   \centering
+   \includegraphics[width=.98\linewidth]{figures/modebench_level_admission.pdf}
+   \caption{\textbf{Replay across difficulty levels at Qwen2.5-0.5B.}
+-  Open/filled markers denote Level 1/2. (A) Frozen-model success in all five
++  Open/filled markers denote Level 1/2. (A) Frozen-model development admission in all five
+   domains. (B) Terminal means over Graph, Countdown, Python, and MathIR,
+   weighted equally within each of five paired seeds. Both levels and all four
+   methods share this completed cohort. Partial PantryPlan arm counts are
+-  reported separately (Appendix~\ref{app:level2-interim}).}
++  reported in Appendix~\ref{app:level2-interim}, with the construction and test
++  populations distinguished in Appendix~\ref{app:data-levels}.}
+   \label{fig:level2-admission}
+ \end{figure}
+ 
+@@ -458,8 +460,8 @@
+ improve correctness and raw support substantially on the harder problem.
+ The other completed domains' correctness and raw-support intervals include
+ zero. We therefore interpret the aggregate as evidence that replay can remain
+-useful under this controlled increase in difficulty, not as a universal gain
+-on harder tasks. Appendix~\ref{app:levels-numerical-detail} reports the Graph
++useful on these harder tasks; the cross-level comparison does not isolate a
++causal difficulty effect or establish universal improvement. Appendix~\ref{app:levels-numerical-detail} reports the Graph
+ estimates, and Appendix~\ref{app:level2-interim} gives all fresh-objective
+ and replay-interaction contrasts.
+ 
+@@ -487,8 +489,9 @@
+   \label{fig:hosted-verified-breadth}
+ \end{figure}
+ 
+-These inference-only comparisons do not identify a training cause or a
+-model-size effect. Benchmark levels need not become harder for every deployment.
++These exploratory comparisons describe the evaluated deployment and prompt
++configurations; they do not identify a training cause or a model-size effect.
++Higher benchmark levels need not lower correctness for every evaluated deployment.
+ 
+ A matched subset tests four temperatures with GPT-5.6 Sol
+ (Figure~\ref{fig:gpt56-temperature-curve}). Non-default temperatures require
+@@ -653,13 +656,48 @@
+ \texttt{pass@8} is two probability points, whereas $.02$ in
+ \texttt{distinct@8} is $.02$ expected verified keys.
+ 
+-For a fixed prompt, write $\mu_c(x)=\Pr[V(Y,s_x)=c]$. Independence gives
+-\[
+- \texttt{pass@}K(x)=1-(1-P_\theta^+(x))^K,\qquad
+- \texttt{distinct@}K(x)=\sum_{c\in\mathcal C_x}[1-(1-\mu_c(x))^K].
+-\]
+-These identities apply before averaging over prompts; applying the nonlinear
+-formula to an average success probability generally gives a different result.
++\begin{lemma}[Success and sampled breadth]
++\label{lem:success-breadth}
++Fix a prompt, a finite or countable valid-key set, and $K\ge1$ independent
++draws from the same fixed sampling law. Let
++$\mu_c=\Pr[V(Y,s_x)=c]$ and $P=\sum_c\mu_c$. Then
++\begin{equation}
++ S_K:=\texttt{pass@}K=1-(1-P)^K,\qquad
++ B_K:=\texttt{distinct@}K=\sum_c[1-(1-\mu_c)^K].
++ \label{eq:success-breadth-identities}
++\end{equation}
++For a finite valid-key set of size $m\ge1$ and $P>0$, write $q_c=\mu_c/P$.
++At fixed $P$, $B_K$ is Schur-concave in $q$: if $q$ majorizes $q'$
++(its decreasingly sorted partial sums are at least those of $q'$), then
++$B_K(P,q)\le B_K(P,q')$. In particular,
++\begin{equation}
++ 1-(1-P)^K\le B_K(P,q)\le m[1-(1-P/m)^K].
++ \label{eq:fixed-success-breadth-bounds}
++\end{equation}
++For $K\ge2$, the lower bound is attained only by concentration on one key,
++and the upper bound only by uniform $q$. For $K=1$, $B_1=P$ for every $q$.
++At fixed $q$, increasing $P$ cannot decrease $B_K$.
++\end{lemma}
++\begin{proof}
++All $K$ draws fail with probability $(1-P)^K$. For each key $c$, its
++appearance indicator has expectation $1-(1-\mu_c)^K$; summing indicators
++gives the second identity, also for countably many keys by nonnegativity.
++For fixed $P>0$ and $K\ge2$, the function
++$f(v)=1-(1-Pv)^K$ is strictly concave on $[0,1]$.
++Transferring mass from a larger coordinate to a smaller one without reversing
++their order increases $\sum_c f(q_c)$; successive such transfers give the
++majorization assertion. The point mass and uniform vector are its extreme
++cases, giving the bounds and equality conditions. Finally,
++$\partial B_K/\partial P=K\sum_c q_c(1-Pq_c)^{K-1}\ge0$,
++which proves monotonicity in correctness.
++\end{proof}
++
++These are promptwise identities, before averaging over prompts. In particular,
++applying the nonlinear formula to a mean correctness generally changes the
++result. They explain the shared measurement in the training and hosted
++studies: success depends on total correct mass; sampled breadth also depends
++on its allocation. More breadth alone proves neither greater conditional
++diversity nor better success, and neither metric establishes downstream utility.
+ 
+ Raw \texttt{distinct@}$K$ measures sampled coverage, not the total number of
+ positive-probability modes. For an uninformed reference, suppose a finite
+@@ -856,14 +894,20 @@
+ \subsection{Matched Level-2 construction}
+ \label{app:data-levels}
+ 
+-Level 2 changes problem structure while preserving the Level-1 verifier,
+-canonicalizer, training/evaluation sizes, and exact training/evaluation
+-histograms of valid-mode counts. Its 384/128/128
+-training/development/evaluation identities are disjoint from every Level-1
+-and Level-2 split. Development histograms also match, except that Pantry
+-scales its 64-row Level-1 histogram by two for 128 Level-2 rows. Thus the
+-evaluated comparison changes difficulty without changing the amount of
+-valid support.
++Level 2 changes problem structure while preserving the verifier and
++canonicalizer. Its 384/128/128 training/development/evaluation rows have
++disjoint identities across the Level-1 and Level-2 splits. Training histograms
++match the native Level-1 training sets. Development and evaluation histograms
++match designated Level-1 development and confirmation reserves in Graph,
++Countdown, Python, and MathIR; Pantry uses native references, with its
++64-row development histogram doubled to 128 rows.
++
++These construction reserves are not the native Level-1 terminal test sets.
++The displayed terminal evaluations have different valid-key histograms
++between levels in Graph, Countdown, and Python. Cross-level changes therefore
++combine task structure and test population; they do not isolate difficulty
++at fixed test-set support. Replay comparisons remain paired within each
++level on the same prompts, seeds, fresh objective, and training budget.
+ 
+ \begin{center}
+ \small
+@@ -880,9 +924,9 @@
+ \end{tabularx}
+ \end{center}
+ 
+-Before treatment training, frozen Qwen2.5-0.5B evaluation admitted a Level-2
+-domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
+-its Level-1 value under identical decoding. The released matched-level
++Before treatment training, frozen Qwen2.5-0.5B development evaluation admitted
++a Level-2 domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
++its construction-reference Level-1 value under identical decoding. The matched-level
+ identity manifest records support histograms, row hashes, construction
+ seeds, disjointness checks, and these admission receipts.
+ 
+@@ -1431,7 +1475,8 @@
+ each has all five seeds at step 3,072 for both levels and all four methods.
+ Means average those four domains equally within each seed, then the five
+ seed means. This is a descriptive 20-cell comparison, not a five-domain
+-estimate; the two levels have separate held-out prompts. At Level 2,
++estimate; the levels have separate held-out prompts, with the population
++differences in Appendix~\ref{app:data-levels}. At Level 2,
+ PantryPlan has three Dr.GRPO, three ReplayDr.GRPO, one MaxRL, and one
+ ReplayMaxRL terminal endpoint. Its only terminal pairs are Dr.GRPO/replay
+ seeds 43 and 46, with no common four-arm seed. Independently available
+@@ -1504,7 +1549,7 @@
+ 
+ \paragraph{Level-2 Graph endpoint detail.}
+ \label{app:levels-numerical-detail}
+-The matched construction lowers frozen-model \texttt{pass@8} from $.438$
++The development admission comparison lowers frozen-model \texttt{pass@8} from $.438$
+ to $.148$. At pass 8, Dr.GRPO/MaxRL reach $.202/.434$, versus $.763/.739$
+ with their replay variants. The paired correctness gains are $+.561$ and
+ $+.305$ (unadjusted 95\% Student-$t$ intervals $[+.445,+.677]$ and
+@@ -1588,7 +1633,7 @@
+   \caption{\textbf{Direct alternatives produce local rather than uniform
+   final gains.} Each effect subtracts the same-seed Dr.GRPO control
+   from the comparator after eight passes. Effects are shown for \texttt{pass@8} and
+-  correctness-adjusted breadth. Circles are paired seeds; diamonds and 95\%
++  extra verified modes beyond the first success. Circles are paired seeds; diamonds and 95\%
+   Student-\(t\) intervals appear only for complete five-seed blocks. Exact
+   \(n\) is printed, and unsupported comparisons remain blank rather than
+   being extrapolated or imputed at any seed.}
+@@ -1725,8 +1770,8 @@
+ \begin{figure}[t]
+   \centering
+   \includegraphics[width=\linewidth]{figures/baseline_collapse_precheck.pdf}
+-  \caption{\textbf{Both verifier-only objectives reduce verified solution
+-  breadth, at every scale.} Bars split \texttt{distinct@8} into the first correct
++  \caption{\textbf{Verifier-only training reduces average extra verified modes
++  at each tested scale.} Bars split \texttt{distinct@8} into the first correct
+   mode and every verified mode beyond it, at training pass 0 and pass 8, for
+   unmodified Dr.GRPO then GRPO in each panel. All 150 evaluations are complete at five
+   seeds and four fixed \(K=8\) draws; whiskers are the seed range and pass 0 is
+@@ -1901,49 +1946,141 @@
+ 
+ % Concise theory for both papers; full derivations are preserved in
+ % paper/audits/streamlining_20260911/full_theory.tex.
++\section{Claims and Their Evidential Basis}
++\label{app:claim-basis}
++
++The training and hosted studies share a measurement question: how is correct
++probability allocated among verified alternatives? They supply different
++kinds of evidence. The table states the basis of each central claim and the
++inference it supports; motivating downstream benefits remain hypotheses.
++
++\begin{table}[H]
++\centering
++\small
++\setlength{\tabcolsep}{5pt}
++\renewcommand{\arraystretch}{1.16}
++\begin{tabularx}{\linewidth}{@{}p{.21\linewidth}p{.22\linewidth}X@{}}
++\toprule
++\textbf{Claim} & \textbf{Identifiable basis} & \textbf{Scope of the inference} \\
++\midrule
++Success and breadth differ & Identity and concavity: Lemma~\ref{lem:success-breadth} &
++At fixed correctness, concentration in majorization order lowers expected breadth.
++More correct samples can also raise the raw mode count. \\
++Uniform categorical replay balances mass & Identity: Equation~\eqref{eq:replay-bank-decomposition} &
++Likelihood replay already contains a balancing term. This neither requires a
++separate balance loss nor equates exemplar scores with key probabilities. \\
++Binary reward can induce collapse & Conditional theorem: Theorem~\ref{thm:grpo-collapse} &
++Independent canonical-outcome logits, common length normalization, Euclidean
++mean flow, and a unique initial winner; no neural-optimizer guarantee. \\
++Replay remains available when fresh gradients vanish & Conditional score calculation:
++Appendix~\ref{app:theory-gradient-availability} &
++Equal-reward groups have zero centered task update; bank scoring need not.
++An available gradient does not ensure improvement after a shared-parameter update. \\
++Persistent replay protects banked modes & Conditional theorem and corollary:
++Theorem~\ref{thm:replay-retention}, Corollary~\ref{cor:replay-no-collapse} &
++Fixed bank, fixed positive dose, and the stated mean flow yield probability
++floors. Uniformity needs full coverage and equal categorical weights;
++unbanked modes may vanish. \\
++Exemplar loss can bound key probability & Conditional lemma:
++Lemma~\ref{lem:shared-exemplar-retention} &
++A bounded joint potential and complete-response likelihood under the same
++sampling law protect those prompts. Neither held-out transfer nor visibility
++in eight draws follows. \\
++Replay improves measured endpoints & Controlled comparisons:
++Figures~\ref{fig:cross-scale-terminal-effects} and~\ref{fig:maxrl-factorial} &
++Paired replay additions isolate the implemented intervention within the
++reported model/domain cohorts. Partial 3B summaries are descriptive;
++individual-mode retention is not identified. \\
++Equal key weights can aid breadth & Controlled weighting comparison:
++Appendix~\ref{app:frequency-replay-progress} &
++Uniform versus fresh-frequency weighting changes extra sampled modes in the
++reported cohorts; the average correctness contrast is inconclusive. \\
++Replay can help on Level 2 & Controlled within-level comparisons:
++Figure~\ref{fig:level2-admission} &
++Four complete domains support within-level replay effects. Separate terminal
++test splits prevent a pure cross-level difficulty-effect interpretation. \\
++Fixed exemplars show heterogeneous score changes & Exploratory longitudinal finding:
++Appendix~\ref{app:fixed-bank-survival} &
++Central scores improve while a tail declines. No matched no-replay bank arm
++identifies a causal retention effect or exact key probabilities. \\
++Accurate hosted outputs can be concentrated & Exploratory deployment comparison:
++Appendix~\ref{app:hosted-comparison} &
++Observed correctness and breadth describe the stated protocols. They do not
++identify RLVR as the cause, a model-size effect, or training-time collapse. \\
++Temperature changes observed breadth & Exploratory matched-prompt comparison:
++Appendix~\ref{app:gpt56-temperature} &
++Four temperature settings describe one deployment and reasoning profile.
++The best observed point does not establish an optimal sampling temperature in general. \\
++\bottomrule
++\end{tabularx}
++\caption{\textbf{What each central claim rests on.} Identities concern the
++sampling law, theorems specify conditional dynamics, and experiments support
++the stated intervention or exploratory observation. All reported intervals
++are nominal and unadjusted.}
++\label{tab:claim-basis}
++\end{table}
++
++The before/after verifier-training precheck is a longitudinal checkpoint
++comparison (Appendix~\ref{app:pre-rl-regression}). Its extra-mode declines
++are measured changes in the registered runs, not proof of zero probability
++for lost keys or a universal decrease in raw breadth across domains.
++
+ \section{Mode Collapse and Verified Replay}
+ \label{app:theory}
+ 
+-This appendix establishes the categorical claims behind the method: centered
+-binary-reward estimators amplify a pre-existing imbalance among correct modes,
++Under the explicit categorical assumptions below, centered binary-reward
++estimators amplify a pre-existing imbalance among correct modes,
+ whereas persistent verified replay supplies a loss barrier for banked modes.
+ The complete-response argument then states what would be needed to transfer
+ that protection to a language model. These results concern idealized update
+ rules; they do not certify the implemented AdamW/PPO trajectories.
+ 
+-\subsection{Categorical reduction and mean updates}
++\subsection{Categorical abstraction and mean updates}
+ \label{app:theory-grpo-mean}
+ 
+-Fix one prompt and a finite response alphabet
++Fix one isolated prompt and a finite category set
+ $\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, with $m\ge2$ correct
+-execution modes and $n\ge1$ incorrect categories. Let
+-$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+-$q_c=p_c/P$. Thus $P$ measures correctness and $q$ the distribution among
+-correct modes. Throughout the mean-flow analysis, logits are finite initially,
+-$0<P(0)<1$, explicit reference KL is zero, and the prompt is isolated.
++execution modes and $n\ge1$ incorrect categories. Assign one independently
++optimized logit to each category, including one logit per canonical correct
++mode, and set $p_a=\operatorname{softmax}(z)_a$,
++$P=\sum_{c\in\mathcal C}p_c$, and $q_c=p_c/P$. Thus $P$ measures correctness
++and $q$ the conditional distribution among correct modes. Logits are finite
++initially, $0<P(0)<1$, and explicit reference KL is zero. The collapse result
++uses Euclidean infinitesimal expected updates in these logits, without
++optimizer preconditioning, momentum, or another regularizer.
++
++A language model induces probabilities over canonical outcomes, but this
++identification of probabilities does not identify its update geometry.
++Aggregating several response strings into a mode does not generally commute
++with gradient flow in response logits. One independent logit per canonical
++outcome is therefore an explicit abstraction, not a reduction proved for the
++neural policy or its validator equivalence classes.
+ 
+ Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+-write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
+-can be written, at the on-policy point where the PPO ratio equals one, as
++write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. At the on-policy
++point where the PPO ratio equals one, consider the common-length estimator
+ \begin{equation}
+   \widehat g_G
+   =\frac1G\sum_{i=1}^G
+    w(M)\left(R_i-\frac{M}{G}\right)\nabla_z\log p_{A_i}.
+   \label{eq:group-estimator}
+ \end{equation}
+-For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
+-binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
+-on mixed groups. We absorb the same fixed response-length normalizer in both
+-variants; response-dependent row normalization is outside this reduction.
+-In either case $0<w(\ell)<\infty$ for $\ell\in\{1,\ldots,G-1\}$.
+-We define the entire update as zero on all-equal groups, without evaluating an
+-undefined reciprocal standard deviation; likewise, $w(M)M(G-M)$ below is
+-defined as zero when $M=0$ or $M=G$. We take explicit reference KL to be zero, as
+-in the experiments.
++For the Dr.GRPO abstraction, $w(M)=1$ after absorbing the shared positive
++length scale. Reward-standardized GRPO with equal or common response-length
++normalization takes $w(M)$ to be the reciprocal group reward standard
++deviation on mixed groups (with a fixed numerical stabilizer if used).
++Standard variable-length GRPO also weights each response by its own inverse
++length \citep{shao2024deepseekmath,liu2025understanding}; that factor cannot
++generally be absorbed into $w(M)$ and is outside the equivalence proved here.
++In either included case, $0<w(\ell)<\infty$ for
++$\ell\in\{1,\ldots,G-1\}$. We define the entire update as zero on all-equal
++groups without evaluating an undefined reciprocal standard deviation;
++likewise, $w(M)M(G-M)$ below is defined as zero when $M=0$ or $M=G$. All
++advantages and normalization weights are detached in the score estimator.
+ 
+ \begin{lemma}[A group baseline does not remove frequency amplification]
+ \label{lem:grpo-mean}
+-For $0<P<1$, the expected group update is
++For $0<P<1$, the expected update in Equation~\eqref{eq:group-estimator} is
+ \begin{equation}
+   \E[\widehat g_G]
+   =c_G(P)\nabla_z P,
+@@ -1952,9 +2089,9 @@
+   \frac{\E\!\big[w(M)M(G-M)\big]}{G^2P(1-P)}>0.
+   \label{eq:expected-group-gradient}
+ \end{equation}
+-For Dr.GRPO, $c_G(P)=(G-1)/G$. Hence reward centering and binary reward
+-standardization change the speed, but not the expected direction, of the
+-binary-reward policy gradient.
++For the Dr.GRPO abstraction, $c_G(P)=(G-1)/G$. Group centering and reward
++standardization rescale the expected gradient without changing its direction
++under these assumptions.
+ \end{lemma}
+ 
+ \begin{proof}
+@@ -1996,9 +2133,12 @@
+ 
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \label{lem:maxrl-mean}
+-Let MaxRL assign
++Under the same categorical and common-length assumptions, let MaxRL assign
+ $A_i^{\mathrm{MaxRL}}=GR_i/M-1$ when $M>0$ and zero when $M=0$, as in
+-Section~\ref{sec:maxrl-method}. At the on-policy point, its expected update is
++Section~\ref{sec:maxrl-method}. For
++$\widehat g_G^{\mathrm{MaxRL}}=G^{-1}\sum_i
++ A_i^{\mathrm{MaxRL}}\nabla_z\log p_{A_i}$ at the on-policy point, the
++expected update is
+ \begin{equation}
+   \E[\widehat g_G^{\mathrm{MaxRL}}]
+   =c_G^{\mathrm{MaxRL}}(P)\nabla_zP,
+@@ -2052,8 +2192,10 @@
+ \subsection{Winner-take-all collapse in the categorical mean flow}
+ \label{app:theory-collapse}
+ 
+-Consider $\dot z=c_G(P)\nabla_zP$, with any of the three smooth positive
+-functions established above. This infinitesimal expected-update model removes
++Consider $\dot z=c_G(P)\nabla_zP$, with any of the smooth positive
++coefficients established above: Dr.GRPO, common-length reward-standardized
++GRPO, or the specified centered binary MaxRL estimator. This infinitesimal
++expected-update model removes
+ sampling noise and retains independently trained Euclidean logits. The
+ conditional dynamics reduce to the standard frequency-dependent replicator
+ system with fitness $f_c(q)=q_c$ \citep{hofbauer1998evolutionary}. The result is
+@@ -2063,7 +2205,8 @@
+ 
+ \begin{theorem}[Standard replicator specialization for binary-reward RL]
+ \label{thm:grpo-collapse}
+-Start from finite logits with $0<P(0)<1$. If the conditional correct-mode
++Under the independent-logit mean-flow assumptions above, start from finite
++logits with $0<P(0)<1$. If the conditional correct-mode
+ distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+ \[
+   P(t)\longrightarrow1,
+@@ -2072,12 +2215,17 @@
+   \qquad
+   q_c(t)\longrightarrow0\quad(c\ne c^\star).
+ \]
+-Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single
+-correct execution mode for generic initial conditions, even though every mode
+-in $\mathcal C$ has exactly the same reward.
++Thus these categorical mean flows converge to a single correct execution
++mode for generic initial conditions, even though every mode in $\mathcal C$
++has exactly the same reward. This is an asymptotic statement within the
++specified update geometry, not a claim of finite-time support loss or a
++convergence guarantee for the stochastic neural optimizers used in our experiments.
+ \end{theorem}
+ 
+ \begin{proof}
++The coefficient $c_G$ is smooth and bounded on $[0,1]$, and the softmax
++reward gradient is bounded. Thus the logit flow exists for all finite times
++and cannot develop infinite logits at finite time.
+ For a correct mode $c$ and incorrect category $a$,
+ \[
+   \dot z_c=c_G(P)p_c(1-P),
+@@ -2131,39 +2279,50 @@
+ every finite time, so finite-time positivity alone is not a retention result.
+ 
+ \paragraph{Dependence on optimization geometry.}
+-For a smooth parameterization $z=z(\theta)$, Euclidean parameter flow instead
++For a smooth parameterization $z=z(\theta)$ with Jacobian
++$J_\theta=\partial z/\partial\theta$, Euclidean parameter flow instead
+ induces $\dot z=c_G(P)J_\theta J_\theta^\top\nabla_zP$. The independently
+ trained logit theorem uses $J_\theta J_\theta^\top=I$ and does not automatically
+-extend to arbitrary shared parameters or another optimization metric.
+-Parameter count alone does not specify this geometry. The empirical scale
++extend to arbitrary shared parameters or another optimization metric. Equal
++binary reward alone does not force this winner selection: the categorical
++natural-gradient reward flow can be represented by
++$\dot z_a=c_G(P)(R_a-P)$, which gives identical velocities to correct logits
++and preserves their ratios. Here $R_a=\1[a\in\mathcal C]$.
++Parameter count alone does not specify the optimization geometry. The empirical
++scale
+ comparisons also change pretrained models and learning-rate schedules; they
+ neither measure the geometry nor identify the cause of cross-scale differences.
++The theorem supplies a mechanism to test in controlled training; it cannot
++identify the training history or cause of concentration in a hosted model.
+ 
+ \subsection{A replay signal when fresh groups supply none}
+ \label{app:theory-gradient-availability}
+ 
+ \begin{lemma}[Fresh-group starvation and replay signal]
+ \label{lem:replay-gradient-availability}
+-Fix a categorical policy with correctness probability $P$, and draw $G\ge2$
+-fresh responses independently. For GRPO, Dr.GRPO, and the implemented centered
+-MaxRL estimator, the probability of a mixed-reward group is
++Fix the categorical policy above with correctness probability $P$, and draw
++$G\ge2$ fresh categories independently. The probability of a mixed-reward
++group is
+ \[
+  h_G(P)=1-P^G-(1-P)^G\le G\min\{P,1-P\}.
+ \]
+-Every all-equal group has zero fresh task gradient. Thus $h_G$ is the
+-probability of an opportunity for a nonzero task gradient, rather than a
+-lower bound on the gradient magnitude.
+-
+-For a fixed bank with normalized positive weights $w_b$, let
++Every all-equal group has zero fresh task component for
++Equation~\eqref{eq:group-estimator} and the specified centered MaxRL
++estimator. A nonzero fresh task component therefore requires a mixed group,
++so its probability is at most $h_G$. This gives no lower bound on gradient
++magnitude and says nothing about other loss terms, clipping, or an optimizer step carrying momentum across successive updates.
++
++For a nonempty fixed verified bank $\mathcal B\subseteq\mathcal C$ with
++normalized positive weights $w_b$, let
+ $R_w=-\sum_b w_b\log p_b$ and $\rho_w>0$. Extend $w$ by zero outside the
+ bank to obtain $\bar w$. The deterministic replay ascent vector is
+ \[
+- v^{\rm replay}=-\rho_w\nabla R_w=\rho_w(\bar w-p).
+-\]
+-It vanishes only at $p=\bar w$. In particular, if $p_b\le w_b/2$ for a banked
++ v^{\rm replay}=-\rho_w\nabla R_w=\rho_w(\bar w-p),
++\]
++which vanishes only at $p=\bar w$. In particular, if $p_b\le w_b/2$ for a banked
+ mode, then $v^{\rm replay}_b\ge\rho_w w_b/2$, even when $b$ is absent from the
+-fresh group. For a uniform bank of $k\ge2$ modes, as $p\to\mathbf e_b$ at
+-one banked correct mode, $h_G(P)\to0$ whereas
++fresh group. For a uniform bank of $k\ge2$ modes and fixed $\rho_w>0$, as
++$p\to\mathbf e_b$ at one banked correct mode, $h_G(P)\to0$ whereas
+ $\|v^{\rm replay}\|_2\to\rho_w\sqrt{1-1/k}>0$.
+ The replay norm therefore stays positive as fresh task-signal opportunities vanish.
+ \end{lemma}
+@@ -2195,9 +2354,11 @@
+ 
+ \begin{lemma}[Bounded sampled scores have no probability-independent boundary force]
+ \label{lem:sampled-score-bound}
+-Condition on the training history, draw $A_1,\ldots,A_G$ independently from
+-$p$, and let $a_i$ be any detached, possibly group-dependent advantages with
+-$|a_i|\le B$. At the on-policy point define
++In the same independent-logit model, condition on the training history, draw
++$A_1,\ldots,A_G$ independently from $p$, and let $a_i$ be any detached,
++possibly group-dependent advantages with $|a_i|\le B$. To interpret the
++bound uniformly as $p_b\to0$, assume a finite $B$ independent of that limit.
++At the on-policy point define
+ \[
+  \widehat g=\frac1G\sum_{i=1}^G a_i(\mathbf e_{A_i}-p).
+ \]
+@@ -2220,10 +2381,14 @@
+ The replay formula follows by differentiating $-\sum_b w_b\log p_b$.
+ \end{proof}
+ 
+-The bound does not prove inevitable collapse or rule out retention by a
+-particular bounded estimator. An unsampled mode can still change through
+-softmax normalization or shared parameters. Exact entropy is outside the
+-uniformly bounded-score premise because its surprisal is unbounded near zero.
++The bound compares the isolated logit-gradient components. It does not prove
++inevitable collapse, rule out retention by a bounded estimator, or guarantee
++that replay dominates the full update. An unsampled mode can still change
++through softmax normalization or shared parameters. Exact entropy is outside
++the uniformly bounded-score premise because its surprisal is unbounded near
++zero; the lemma is not an impossibility result for entropy regularization.
++Nor does the absence of a mode from a finite sample establish zero probability.
++
+ 
+ \subsection{Fixed-bank replay and qualitative retention}
+ \label{app:theory-replay}
+@@ -2264,9 +2429,9 @@
+ 
+ \begin{theorem}[Verified replay prevents banked-mode extinction]
+ \label{thm:replay-retention}
+-Suppose that after time $T$ the nonempty verified bank $\mathcal B$ is fixed,
+-fits within replay capacity, and receives a fixed positive effective replay
+-dose $\rho$. Under~\eqref{eq:replay-mean-flow}, define
++Suppose logits are finite at time $T$ and thereafter the nonempty verified
++bank $\mathcal B$ is fixed, fits within replay capacity, and receives a
++fixed positive effective replay dose $\rho$. Under~\eqref{eq:replay-mean-flow}, define
+ \[
+   C_T
+   =R_{\mathcal B}(z(T))
+@@ -2284,7 +2449,9 @@
+ \end{theorem}
+ 
+ \begin{proof}
+-Along the flow,
++The smooth vector field has bounded velocity because $c_G$,
++$\nabla_zP$, and $\nabla_zR_{\mathcal B}$ are bounded, so finite initial
++logits give a flow for every finite $t\ge T$. Along this flow,
+ \[
+   \frac{d}{dt}F_{\mathcal B}(z(t))
+   =-\lVert\nabla_zF_{\mathcal B}(z(t))\rVert_2^2\le0.
+@@ -2309,6 +2476,15 @@
+ bound in the stated ideal flow, not practical visibility or a prediction for
+ the experimental replay loss. The effective dose also depends on relative
+ fresh/replay frequencies, not the replay coefficient alone.
++
++A common nonnegative, locally integrable rate $\eta(t)$ multiplying both
++terms of~\eqref{eq:replay-mean-flow} preserves the energy bound, since
++$\dot F_{\mathcal B}=-\eta(t)\|\nabla F_{\mathcal B}\|_2^2\le0$.
++The convergence statements below additionally require
++$\int_T^\infty\eta(t)\,dt=\infty$ and then follow by reparameterizing
++optimization time. Infinitely many replay visits alone establish neither
++this condition nor a fixed replay-to-fresh weighting. Different time-varying
++relative weights are outside the fixed-potential argument.
+ 
+ \paragraph{Full coverage and the categorical target.}
+ \begin{corollary}[Conditional full-coverage categorical limit]
+@@ -2415,7 +2591,10 @@
+ The learner scores a particular response string, while evaluation groups
+ strings by execution key. Event containment provides a conditional bridge:
+ one complete verified response is one way of producing its key. This bridge
+-also makes the loss's length factor explicit.
++also makes the loss's length factor explicit. Here
++$p_\theta(b\mid x)=\Pr_{Y\sim\pi_\theta(\cdot\mid x)}[V(Y,s_x)=b]$
++is the unconditional probability of producing key $b$, rather than the
++probability conditional on correctness.
+ 
+ \begin{lemma}[Retention from a joint exemplar potential]
+ \label{lem:shared-exemplar-retention}
+@@ -2451,11 +2630,15 @@
+ weights and $J_{\max}=\sum_x\nu_x\Psi_x(1)$. The lemma does not establish
+ this descent condition for stochastic, clipped, alternating AdamW updates,
+ and it neither implies uniform neural key probabilities nor requires them.
++Its bound applies only to the listed exemplar--prompt pairs. Shared
++parameters do not extend it to held-out prompts; transfer to those prompts
++remains an empirical question.
+ 
+ The scored probability must describe the complete response, including its
+ termination event or a fixed deterministic horizon, under the same prompt,
+ temperature, masks, truncation rules, and verifier as the sampling law being
+-bounded. A prefix score or score under another decoding law is insufficient.
++bounded. A prefix score or a score under another decoding law does not
++supply this bound without a separate event or likelihood comparison.
+ For a complete response of length $L$ and mean-token log score $s$, its
+ probability is $e^{Ls}$, not $e^s$. A change in this exemplar's likelihood
+ need not equal the change in its whole key's probability.
+@@ -2502,9 +2685,10 @@
+ show that exact conditional entropy and categorical replay both favor a
+ uniform conditional target. With strictly increasing correctness potential
+ $\Psi$, both $\Psi(P)+\beta H(q)$ and $\Psi(P)-\rho R_u(p)$ have the unique
+-global optimum $P=1,q=u$ on the simplex with $P>0$, for positive coefficients. This follows directly
+-from nonnegativity of KL and increasing $\Psi$; it does not assert
+-convergence of either neural update. The KL direction distinguishes their
++global optimum $P=1,q=u$ in probability space on the simplex with $P>0$,
++for positive coefficients. This is a boundary limit for finite-logit softmax
++policies. The optimum follows from nonnegativity of KL and increasing
++$\Psi$; it does not assert convergence of either neural update. The KL direction distinguishes their
+ loss level sets \citep{pereyra2017confidencepenalty,agarwal2021policygradient}:
+ replay loss diverges when a protected coordinate vanishes, whereas
+ conditional entropy can remain $\log(m-1)$ with one missing mode.
+@@ -2523,12 +2707,19 @@
+ sampling probability alone does not establish eventual admission. Once a
+ non-evicting capacity-16 bank fills, an unbanked key can remain ineligible.
+ Changing membership or exemplar weights changes the loss being bounded, so
+-fixed-bank descent cannot simply be carried across those changes.
+-
+-For noisy discrete updates, a valid extension would require control of the
+-joint loss's upward drift, optimizer bias, and accumulated error. A positive
+-replay coefficient or small nominal learning rate does not establish these
+-conditions. Current-gradient Adam moments, clipping, momentum, prompt
++fixed-bank descent cannot simply be carried across those changes. In
++particular, the fixed-weight argument does not cover a target whose weights
++continue to change with fresh observation counts.
++
++For a fixed joint potential, a discrete bound
++$F(\theta_{n+1})\le F(\theta_n)+\epsilon_n$ with
++$\epsilon_n\ge0$ and $\sum_{n\ge n_0}\epsilon_n=E<\infty$ would extend
++Lemma~\ref{lem:shared-exemplar-retention}, using
++$D=F(\theta_{n_0})+J_{\max}+E$ for steps $n\ge n_0$.
++This follows by telescoping and bounds retention, not convergence. The noisy
++optimizer would need a separate argument establishing such control of the
++joint loss's upward drift. A positive replay coefficient or small nominal
++learning rate does not establish it. Adam moments, clipping, momentum, prompt
+ scheduling, and bank changes are not covered by the exact-flow proofs.
+ The experiments have not established the required joint-energy or
+ update-error assumptions. The mathematical contribution is the stated
+@@ -2536,6 +2727,7 @@
+ and longitudinal exemplar scores remain separate measurements.
+ 
+ % Shared scientific provenance; operational inventories remain in the repository.
++
+ \section{Source Integrity and Reproducibility}
+ \label{app:reproducibility}
+ 
+--- before/paper/mathai2026/main.tex
++++ after/paper/mathai2026/main.tex
+@@ -1,52 +1,47 @@
+ \input{preamble}
+-\title{More than One Way to Skin a Cat:\\
+-Preserving Verified Modes in RLVR}
++\title{Mode Collapse in RLVR \& ModeBench}
+ \author{Anonymous Authors}
+ \begin{document}
+ \maketitle
+ 
+ \begin{abstract}
+ Correctness alone does not reveal how many successful solutions a model can
+-produce. We introduce \mb{}, five executable domains that distinguish correct
+-outputs for the same problem. Replaying verified outputs during Dr.GRPO and
+-MaxRL improves held-out correctness and sampled breadth across model scales
+-and on harder tasks. An inference-only comparison also finds concentrated
+-outputs in highly accurate hosted models. These results distinguish discovering
+-a successful behavior from keeping it available.
++produce. We introduce \mb{}, five executable domains that identify task-defined
++verified modes. Matched replay comparisons improve average held-out correctness
++and sampled breadth, with heterogeneous effects and incomplete larger-model
++and harder-task cohorts. Hosted evaluations also find accurate but concentrated
++outputs. Categorical analysis explains how binary rewards can amplify common
++modes and how fixed-bank replay can oppose that pressure under stated assumptions.
+ \end{abstract}
+ 
+ \begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
+-\caption{\textbf{Correctness can rise while alternatives disappear.}
++\caption{\textbf{Correctness can rise while sampled alternatives narrow.}
+ One graph admits six valid colorings. Bars pool four eight-sample draws from
+ matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces 22/32 correct from one
+-mode; ReplayMaxRL produces 32/32 across four.}
++mode; ReplayMaxRL produces 32/32 across four. This illustration changes both
++the fresh objective and replay; Figure~\ref{fig:maxrl-factorial} separates them.}
+ \label{fig:story}
+ \end{figure}
+ 
+ \section{Preserving alternatives for mathematical agents}
+ \label{sec:introduction}\label{sec:collapse}
+-Mathematical agents use tools and verifiers to search and revise
+-\citep{brown2024monkeys,snell2024testtime}, but can exploit alternative
+-computations only if the model proposes them. Reinforcement learning with
+-verifiable rewards (RLVR) gives familiar and newly discovered correct outputs
+-the same reward \citep{guo2025deepseekr1}. Accuracy can therefore improve while
+-verified outputs narrow (Figure~\ref{fig:story}).
++Mathematical agents can check alternative computations only if the model
++proposes them \citep{brown2024monkeys,snell2024testtime}. In reinforcement
++learning with verifiable rewards (RLVR), binary correctness feedback rewards
++familiar and new successes equally \citep{guo2025deepseekr1}. Accuracy can
++therefore improve while sampled verified outputs narrow (Figure~\ref{fig:story}).
+ 
+-We study how to keep discovered successes available: store verified outputs
+-by identity and revisit them during training. This separates finding a
+-successful behavior from preserving alternatives to it.
++We store verified outputs by identity and revisit them during training.
+ 
+ \section{\mb{} makes output identity executable}
+ \label{sec:modebench}
+-\href{https://huggingface.co/datasets/od2961/ModeBench\#level-1}{\mb{}} assigns each accepted output an exact, executable identity: a canonical
+-key whose distinct values define verified \emph{modes}
+-(Figure~\ref{fig:modebench-examples}). Keys capture computation routes in
+-Countdown and MathIR, tested program behaviors in Python, and valid
+-configurations in Graph and PantryPlan. Cosmetic aliases merge; distinct routes
+-can share an answer (key rules: Appendix~\ref{app:domain-overview}). This measures
+-task-defined output support; it does not establish diversity of latent reasoning strategies.
++\href{https://huggingface.co/datasets/od2961/ModeBench\#level-1}{\mb{}} assigns each accepted output a canonical key defining its verified \emph{mode}
++(Figure~\ref{fig:modebench-examples}): computation routes in Countdown/MathIR,
++tested behaviors in Python, and configurations in Graph/PantryPlan. Aliases
++merge; distinct routes can share an answer (Appendix~\ref{app:domain-overview}).
++Sampled modes do not identify total support or latent reasoning diversity.
+ 
+ \begin{figure}[!htbp]
+ \centering
+@@ -57,7 +52,7 @@
+ \label{fig:modebench-examples}
+ \end{figure}
+ 
+-\section{ReplayMaxRL: learn from new samples and remember successes}
++\section{ReplayMaxRL: fresh learning with verified memory}
+ \label{sec:method}\label{sec:maxrl-method}\label{sec:replay}
+ ReplayMaxRL combines MaxRL's sampling-aware learning from new samples
+ \citep{tajwar2026maxrl} with replay of earlier verified successes
+@@ -76,7 +71,7 @@
+ \begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
+-\caption{\textbf{Replay improves correctness and verified support across scales.}
++\caption{\textbf{Replay effects on correctness and sampled breadth across scales.}
+ (A) ReplayDr.GRPO minus Dr.GRPO. (B) Qwen2.5-0.5B alternatives and the initial
+ model minus Dr.GRPO. Daggers indicate four pairs; otherwise five. Averages use
+ shared seeds; intervals: Appendix~\ref{app:supporting}. Models: \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E78/README.md\#models}{0.5B}, \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E79/README.md\#models}{1B}, \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E80-R1/README.md\#models}{3B}.}
+@@ -90,18 +85,17 @@
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+ \end{equation}
+-Equal key weights keep rare discoveries active. ReplayDr.GRPO replaces MaxRL
+-with Dr.GRPO \citep{liu2025understanding}, a debiased GRPO
+-\citep{shao2024deepseekmath}. Full update: Appendix~\ref{app:algorithm};
+-idealized retention guarantee: Appendix~\ref{app:theory-replay}.
+-
+-Related work on collapse and replay appears in Appendix~\ref{sec:related}.
++Equal weights revisit keys regardless of discovery frequency. ReplayDr.GRPO
++uses Dr.GRPO \citep{liu2025understanding} for fresh updates. Fixed-bank replay
++bounds probabilities away from zero in categorical mean flows, not neural
++training or observable sampling (Appendices~\ref{app:theory-replay},~\ref{app:algorithm}).
+ 
+ \section{Does memory preserve verified output support?}
+ \label{sec:experiments}\label{sec:results}
+ We report the chance of any correct output (\texttt{pass@8}), mean distinct
+-verified modes (\texttt{distinct@8}), and their difference, \emph{extra modes}.
+-Breadth remains coupled to correctness.
++verified modes (\texttt{distinct@8}), and their difference, \emph{extra modes}
++beyond the first success. Counts remain coupled to correctness; eight samples
++do not identify total positive-probability support.
+ 
+ Five registered seeds train for eight passes. Each domain has 128 held-out
+ prompts with four eight-sample draws; none enter the bank. Controls use the same
+@@ -112,12 +106,12 @@
+ 
+ 
+ 
+-\noindent\textbf{Replay improves held-out correctness and support.}
++\noindent\textbf{Replay improves average correctness and sampled breadth.}
+ \label{sec:results-retention}
+-ReplayDr.GRPO improves domain-averaged correctness and support at each model
+-scale (Figure~\ref{fig:cross-scale-terminal-effects}).
++ReplayDr.GRPO improves both domain averages at each scale
++(Figure~\ref{fig:cross-scale-terminal-effects}).
+ Uniform key weighting adds $.32$ extra modes over \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E120-R1/README.md\#models}{frequency weighting},
+-across Qwen2.5-0.5B domains
++on average at Qwen2.5-0.5B; its correctness contrast is inconclusive
+ (Appendix~\ref{app:frequency-replay-progress}).
+ 
+ \begin{figure}[!htbp]
+@@ -131,43 +125,46 @@
+ \label{fig:maxrl-factorial}
+ \end{figure}
+ 
+-\noindent\textbf{Replay improves both Dr.GRPO and MaxRL.}
++\noindent\textbf{Replay complements both fresh objectives on average.}
+ \label{sec:results-maxrl}
+-Adding replay improves average correctness and verified support under both
++Adding replay improves average correctness and sampled breadth under both
+ objectives at Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}).
+-The Qwen2.5-3B summary uses partial seed sets without an interval (Appendix~\ref{app:maxrl-scale-extensions}).
++The Qwen2.5-3B MaxRL summary uses partial seed sets without an interval
++(Appendix~\ref{app:maxrl-scale-extensions}).
+ 
+ \begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\linewidth]{figures/modebench_level_admission.pdf}
+ \caption{\textbf{Replay across difficulty levels with Qwen2.5-0.5B-Instruct.}
+-Open/filled markers: Level 1/2. (A) Frozen-model success.
++Open/filled markers: Level 1/2. (A) Frozen-model development admission.
+ (B) Terminal means weight four complete domains equally within five paired
+ seeds, shared across both levels and all methods. Pantry arm counts remain
+ separate (Appendix~\ref{app:level2-interim}). \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E119/README.md\#models}{Archived models}.}
+ \label{fig:level2-admission}
+ \end{figure}
+ 
+-\noindent\textbf{Replaying stored solutions also helps on harder problems.}
++\noindent\textbf{Replay gains extend to the harder-level average.}
+ \label{sec:results-levels}
+-\href{https://huggingface.co/datasets/od2961/ModeBench\#level-2}{Level 2} preserves validators, keys, and training/evaluation support histograms.
+-Across four complete five-seed factorials, replay improves mean correctness
+-and support (Figure~\ref{fig:level2-admission}); PantryPlan remains partial.
++\href{https://huggingface.co/datasets/od2961/ModeBench\#level-2}{Level 2} retains validators and keys. Its construction reserves differ from
++the native Level-1 terminal tests. Four complete five-seed factorials show
++positive mean replay effects on correctness and sampled breadth within Level 2 (Figure~\ref{fig:level2-admission}); PantryPlan remains partial.
+ Benefits vary: Countdown adds $.017$ extra modes under ReplayMaxRL,
+ but its correctness interval includes zero
+ (Appendix~\ref{app:current-campaign-results}).
+ 
+-\noindent\textbf{Hosted models concentrate despite high accuracy.}
++\noindent\textbf{Accurate hosted outputs can remain concentrated.}
+ \label{sec:hosted-concentration}
+-Seven deployments show few verified modes across five domains and three levels
+-(Figure~\ref{fig:hosted-verified-breadth}). A no-reasoning GPT temperature sweep
+-raises aggregate pass@8 and breadth through $T=1.5$ (Appendix~\ref{app:gpt56-temperature}). These
+-inference-only results do not establish training or model-size effects.
++Seven deployments vary in breadth across five domains and three levels;
++accurate Graph and MathIR outputs often revisit few modes
++(Figure~\ref{fig:hosted-verified-breadth}). A no-reasoning GPT sweep raises
++aggregate pass@8 and breadth through $T=1.5$
++(Appendix~\ref{app:gpt56-temperature}). Prompt and provider settings differ;
++these observations identify neither training causes nor model-size effects.
+ 
+ \noindent\textbf{Conclusion and limits.}
+ \label{sec:conclusion}\label{sec:discussion}\label{sec:limitations}
+-Replay improves correctness and sampled breadth, but retains only discovered
+-modes. Fixed-bank scores still have a declining tail
++Replay can improve correctness and sampled breadth; only admitted exemplars
++receive replay. Fixed-bank scores still have a declining tail
+ (Appendix~\ref{app:fixed-bank-survival}). Exact mode probabilities, causal
+ accuracy mechanisms and benefits under changed constraints remain unverified.
+ 
+@@ -175,10 +172,9 @@
+ \centering
+ \includegraphics[width=\linewidth]{figures/hosted_verified_breadth.pdf}
+ \caption{\textbf{High accuracy need not imply broad verified outputs.}
+-Each cell uses 128 held-out prompts and eight stateless draws. All responses
+-count after frozen formatting normalization; Opus 5 Python uses separately
+-evaluated revised wording without a system message. Original outputs and
+-protocol comparisons:
++Each cell uses all eight stateless draws on 128 prompts after frozen
++formatting normalization. Opus 5 Python uses revised wording without a system
++message, precluding a common-prompt ranking. Original protocols:
+ Appendix~\ref{app:hosted-comparison}.}
+ \label{fig:hosted-verified-breadth}\label{main:lastpage}
+ \end{figure}
+--- before/paper/mathai2026/appendix.tex
++++ after/paper/mathai2026/appendix.tex
+@@ -68,12 +68,50 @@
+ The samplewise inequality $F_K\le\1[D_K>0]\le D_K$ gives
+ $\texttt{mean@}K\le\texttt{pass@}K\le\texttt{distinct@}K$,
+ but changes in the count and probability have different units.
+-For a fixed prompt, $\mu_c(x)=\Pr[V(Y,s_x)=c]$ gives
+-\[
+- \texttt{pass@}K(x)=1-(1-P_\theta^+(x))^K,\qquad
+- \texttt{distinct@}K(x)=\sum_{c\in\mathcal C_x}[1-(1-\mu_c(x))^K].
+-\]
+-These identities apply before averaging over prompts. Raw
++\begin{lemma}[Success and sampled breadth]
++\label{lem:success-breadth}
++Fix a prompt, a finite or countable valid-key set, and $K\ge1$ independent
++draws from the same fixed sampling law. Let
++$\mu_c=\Pr[V(Y,s_x)=c]$ and $P=\sum_c\mu_c$. Then
++\begin{equation}
++ S_K:=\texttt{pass@}K=1-(1-P)^K,\qquad
++ B_K:=\texttt{distinct@}K=\sum_c[1-(1-\mu_c)^K].
++ \label{eq:success-breadth-identities}
++\end{equation}
++For a finite valid-key set of size $m\ge1$ and $P>0$, write $q_c=\mu_c/P$.
++At fixed $P$, $B_K$ is Schur-concave in $q$: if $q$ majorizes $q'$
++(its decreasingly sorted partial sums are at least those of $q'$), then
++$B_K(P,q)\le B_K(P,q')$. In particular,
++\begin{equation}
++ 1-(1-P)^K\le B_K(P,q)\le m[1-(1-P/m)^K].
++ \label{eq:fixed-success-breadth-bounds}
++\end{equation}
++For $K\ge2$, the lower bound is attained only by concentration on one key,
++and the upper bound only by uniform $q$. For $K=1$, $B_1=P$ for every $q$.
++At fixed $q$, increasing $P$ cannot decrease $B_K$.
++\end{lemma}
++\begin{proof}
++All $K$ draws fail with probability $(1-P)^K$. For each key $c$, its
++appearance indicator has expectation $1-(1-\mu_c)^K$; summing indicators
++gives the second identity, also for countably many keys by nonnegativity.
++For fixed $P>0$ and $K\ge2$, the function
++$f(v)=1-(1-Pv)^K$ is strictly concave on $[0,1]$.
++Transferring mass from a larger coordinate to a smaller one without reversing
++their order increases $\sum_c f(q_c)$; successive such transfers give the
++majorization assertion. The point mass and uniform vector are its extreme
++cases, giving the bounds and equality conditions. Finally,
++$\partial B_K/\partial P=K\sum_c q_c(1-Pq_c)^{K-1}\ge0$,
++which proves monotonicity in correctness.
++\end{proof}
++
++These are promptwise identities, before averaging over prompts. In particular,
++applying the nonlinear formula to a mean correctness generally changes the
++result. They explain the shared measurement in the training and hosted
++studies: success depends on total correct mass; sampled breadth also depends
++on its allocation. More breadth alone proves neither greater conditional
++diversity nor better success, and neither metric establishes downstream utility.
++
++Raw
+ \texttt{distinct@}$K$ measures sampled coverage, not total
+ positive-probability support. Uniform independent sampling from $N$ finite
+ actions, with $n_c$ aliases of valid key $c$, gives
+@@ -85,6 +123,37 @@
+ $\E[D_K-\1[D_K>0]]$ counts extra verified modes beyond the first. This
+ interpretive decomposition remains coupled to correctness and is neither
+ a third primary endpoint nor a success-matched diversity measure.
++
++\subsection{Why balance within the replay bank}
++\label{app:replay-metric-alignment}
++
++Uniform sampling over keys prevents discovery frequency from determining replay
++frequency. To explain its relationship to the evaluation metric, we first
++analyze an equal-weight categorical surrogate, without length normalization.
++A stored response's probability need not equal its key's total probability.
++For $C=|\mathcal B_x|$ banked keys, write $p(c)$ for their probabilities
++and $q_{\mathcal B}$ for their total mass. Then
++\begin{equation}
++ -\frac1C\sum_{c\in\mathcal B_x}\log p(c)
++ =-\log q_{\mathcal B}+\log C+
++   \mathrm{KL}\!\left(U_C\,\|\,
++   p(c\mid c\in\mathcal B_x)\right).
++ \label{eq:replay-bank-decomposition}
++\end{equation}
++The objective rewards greater banked verified mass and a more balanced
++conditional distribution, aligning with \texttt{pass@}$K$ and
++\texttt{distinct@}$K$. The combined update need not improve both at every step. Indeed banked-key coverage contributes
++$\sum_c[1-(1-p(c))^K]$ to expected \texttt{distinct@}$K$; at fixed
++$q_{\mathcal B}$ and $C$, concavity makes it largest under uniform allocation,
++while $1-(1-q_{\mathcal B})^K$, the probability of any banked key, depends
++only on total mass. This deliberate objective--metric alignment motivates
++treating held-out \texttt{pass@}$K$ as co-primary. Uniformity also maximizes the
++smallest conditional banked-key mass, making equal retention explicit. Banks
++contain only training-prompt responses; evaluation responses never enter
++training.
++
++
++
+ 
+ % Shared long-paper and workshop benchmark/protocol appendix.
+ \section{Benchmark and Evaluation Protocol}
+@@ -227,14 +296,20 @@
+ \subsection{Matched Level-2 construction}
+ \label{app:data-levels}
+ 
+-Level 2 changes problem structure while preserving the Level-1 verifier,
+-canonicalizer, training/evaluation sizes, and exact training/evaluation
+-histograms of valid-mode counts. Its 384/128/128
+-training/development/evaluation identities are disjoint from every Level-1
+-and Level-2 split. Development histograms also match, except that Pantry
+-scales its 64-row Level-1 histogram by two for 128 Level-2 rows. Thus the
+-evaluated comparison changes difficulty without changing the amount of
+-valid support.
++Level 2 changes problem structure while preserving the verifier and
++canonicalizer. Its 384/128/128 training/development/evaluation rows have
++disjoint identities across the Level-1 and Level-2 splits. Training histograms
++match the native Level-1 training sets. Development and evaluation histograms
++match designated Level-1 development and confirmation reserves in Graph,
++Countdown, Python, and MathIR; Pantry uses native references, with its
++64-row development histogram doubled to 128 rows.
++
++These construction reserves are not the native Level-1 terminal test sets.
++The displayed terminal evaluations have different valid-key histograms
++between levels in Graph, Countdown, and Python. Cross-level changes therefore
++combine task structure and test population; they do not isolate difficulty
++at fixed test-set support. Replay comparisons remain paired within each
++level on the same prompts, seeds, fresh objective, and training budget.
+ 
+ \begin{center}
+ \small
+@@ -251,9 +326,9 @@
+ \end{tabularx}
+ \end{center}
+ 
+-Before treatment training, frozen Qwen2.5-0.5B evaluation admitted a Level-2
+-domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
+-its Level-1 value under identical decoding. The released matched-level
++Before treatment training, frozen Qwen2.5-0.5B development evaluation admitted
++a Level-2 domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
++its construction-reference Level-1 value under identical decoding. The matched-level
+ identity manifest records support histograms, row hashes, construction
+ seeds, disjointness checks, and these admission receipts.
+ 
+@@ -762,7 +837,8 @@
+ each has all five seeds at step 3,072 for both levels and all four methods.
+ Means average those four domains equally within each seed, then the five
+ seed means. This is a descriptive 20-cell comparison, not a five-domain
+-estimate; the two levels have separate held-out prompts. At Level 2,
++estimate; the levels have separate held-out prompts, with the population
++differences in Appendix~\ref{app:data-levels}. At Level 2,
+ PantryPlan has three Dr.GRPO, three ReplayDr.GRPO, one MaxRL, and one
+ ReplayMaxRL terminal endpoint. Its only terminal pairs are Dr.GRPO/replay
+ seeds 43 and 46, with no common four-arm seed. Independently available
+@@ -905,7 +981,7 @@
+   \caption{\textbf{Direct alternatives produce local rather than uniform
+   final gains.} Each effect subtracts the same-seed Dr.GRPO control
+   from the comparator after eight passes. Effects are shown for \texttt{pass@8} and
+-  correctness-adjusted breadth. Circles are paired seeds; diamonds and 95\%
++  extra verified modes beyond the first success. Circles are paired seeds; diamonds and 95\%
+   Student-\(t\) intervals appear only for complete five-seed blocks. Exact
+   \(n\) is printed, and unsupported comparisons remain blank rather than
+   being extrapolated or imputed at any seed.}
+@@ -1042,8 +1118,8 @@
+ \begin{figure}[t]
+   \centering
+   \includegraphics[width=\linewidth]{figures/baseline_collapse_precheck.pdf}
+-  \caption{\textbf{Both verifier-only objectives reduce verified solution
+-  breadth, at every scale.} Bars split \texttt{distinct@8} into the first correct
++  \caption{\textbf{Verifier-only training reduces average extra verified modes
++  at each tested scale.} Bars split \texttt{distinct@8} into the first correct
+   mode and every verified mode beyond it, at training pass 0 and pass 8, for
+   unmodified Dr.GRPO then GRPO in each panel. All 150 evaluations are complete at five
+   seeds and four fixed \(K=8\) draws; whiskers are the seed range and pass 0 is
+@@ -1256,49 +1332,141 @@
+ 
+ % Concise theory for both papers; full derivations are preserved in
+ % paper/audits/streamlining_20260911/full_theory.tex.
++\section{Claims and Their Evidential Basis}
++\label{app:claim-basis}
++
++The training and hosted studies share a measurement question: how is correct
++probability allocated among verified alternatives? They supply different
++kinds of evidence. The table states the basis of each central claim and the
++inference it supports; motivating downstream benefits remain hypotheses.
++
++\begin{table}[H]
++\centering
++\small
++\setlength{\tabcolsep}{5pt}
++\renewcommand{\arraystretch}{1.16}
++\begin{tabularx}{\linewidth}{@{}p{.21\linewidth}p{.22\linewidth}X@{}}
++\toprule
++\textbf{Claim} & \textbf{Identifiable basis} & \textbf{Scope of the inference} \\
++\midrule
++Success and breadth differ & Identity and concavity: Lemma~\ref{lem:success-breadth} &
++At fixed correctness, concentration in majorization order lowers expected breadth.
++More correct samples can also raise the raw mode count. \\
++Uniform categorical replay balances mass & Identity: Equation~\eqref{eq:replay-bank-decomposition} &
++Likelihood replay already contains a balancing term. This neither requires a
++separate balance loss nor equates exemplar scores with key probabilities. \\
++Binary reward can induce collapse & Conditional theorem: Theorem~\ref{thm:grpo-collapse} &
++Independent canonical-outcome logits, common length normalization, Euclidean
++mean flow, and a unique initial winner; no neural-optimizer guarantee. \\
++Replay remains available when fresh gradients vanish & Conditional score calculation:
++Appendix~\ref{app:theory-gradient-availability} &
++Equal-reward groups have zero centered task update; bank scoring need not.
++An available gradient does not ensure improvement after a shared-parameter update. \\
++Persistent replay protects banked modes & Conditional theorem and corollary:
++Theorem~\ref{thm:replay-retention}, Corollary~\ref{cor:replay-no-collapse} &
++Fixed bank, fixed positive dose, and the stated mean flow yield probability
++floors. Uniformity needs full coverage and equal categorical weights;
++unbanked modes may vanish. \\
++Exemplar loss can bound key probability & Conditional lemma:
++Lemma~\ref{lem:shared-exemplar-retention} &
++A bounded joint potential and complete-response likelihood under the same
++sampling law protect those prompts. Neither held-out transfer nor visibility
++in eight draws follows. \\
++Replay improves measured endpoints & Controlled comparisons:
++Figures~\ref{fig:cross-scale-terminal-effects} and~\ref{fig:maxrl-factorial} &
++Paired replay additions isolate the implemented intervention within the
++reported model/domain cohorts. Partial 3B summaries are descriptive;
++individual-mode retention is not identified. \\
++Equal key weights can aid breadth & Controlled weighting comparison:
++Appendix~\ref{app:frequency-replay-progress} &
++Uniform versus fresh-frequency weighting changes extra sampled modes in the
++reported cohorts; the average correctness contrast is inconclusive. \\
++Replay can help on Level 2 & Controlled within-level comparisons:
++Figure~\ref{fig:level2-admission} &
++Four complete domains support within-level replay effects. Separate terminal
++test splits prevent a pure cross-level difficulty-effect interpretation. \\
++Fixed exemplars show heterogeneous score changes & Exploratory longitudinal finding:
++Appendix~\ref{app:fixed-bank-survival} &
++Central scores improve while a tail declines. No matched no-replay bank arm
++identifies a causal retention effect or exact key probabilities. \\
++Accurate hosted outputs can be concentrated & Exploratory deployment comparison:
++Appendix~\ref{app:hosted-comparison} &
++Observed correctness and breadth describe the stated protocols. They do not
++identify RLVR as the cause, a model-size effect, or training-time collapse. \\
++Temperature changes observed breadth & Exploratory matched-prompt comparison:
++Appendix~\ref{app:gpt56-temperature} &
++Four temperature settings describe one deployment and reasoning profile.
++The best observed point does not establish an optimal sampling temperature in general. \\
++\bottomrule
++\end{tabularx}
++\caption{\textbf{What each central claim rests on.} Identities concern the
++sampling law, theorems specify conditional dynamics, and experiments support
++the stated intervention or exploratory observation. All reported intervals
++are nominal and unadjusted.}
++\label{tab:claim-basis}
++\end{table}
++
++The before/after verifier-training precheck is a longitudinal checkpoint
++comparison (Appendix~\ref{app:pre-rl-regression}). Its extra-mode declines
++are measured changes in the registered runs, not proof of zero probability
++for lost keys or a universal decrease in raw breadth across domains.
++
+ \section{Mode Collapse and Verified Replay}
+ \label{app:theory}
+ 
+-This appendix establishes the categorical claims behind the method: centered
+-binary-reward estimators amplify a pre-existing imbalance among correct modes,
++Under the explicit categorical assumptions below, centered binary-reward
++estimators amplify a pre-existing imbalance among correct modes,
+ whereas persistent verified replay supplies a loss barrier for banked modes.
+ The complete-response argument then states what would be needed to transfer
+ that protection to a language model. These results concern idealized update
+ rules; they do not certify the implemented AdamW/PPO trajectories.
+ 
+-\subsection{Categorical reduction and mean updates}
++\subsection{Categorical abstraction and mean updates}
+ \label{app:theory-grpo-mean}
+ 
+-Fix one prompt and a finite response alphabet
++Fix one isolated prompt and a finite category set
+ $\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, with $m\ge2$ correct
+-execution modes and $n\ge1$ incorrect categories. Let
+-$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+-$q_c=p_c/P$. Thus $P$ measures correctness and $q$ the distribution among
+-correct modes. Throughout the mean-flow analysis, logits are finite initially,
+-$0<P(0)<1$, explicit reference KL is zero, and the prompt is isolated.
++execution modes and $n\ge1$ incorrect categories. Assign one independently
++optimized logit to each category, including one logit per canonical correct
++mode, and set $p_a=\operatorname{softmax}(z)_a$,
++$P=\sum_{c\in\mathcal C}p_c$, and $q_c=p_c/P$. Thus $P$ measures correctness
++and $q$ the conditional distribution among correct modes. Logits are finite
++initially, $0<P(0)<1$, and explicit reference KL is zero. The collapse result
++uses Euclidean infinitesimal expected updates in these logits, without
++optimizer preconditioning, momentum, or another regularizer.
++
++A language model induces probabilities over canonical outcomes, but this
++identification of probabilities does not identify its update geometry.
++Aggregating several response strings into a mode does not generally commute
++with gradient flow in response logits. One independent logit per canonical
++outcome is therefore an explicit abstraction, not a reduction proved for the
++neural policy or its validator equivalence classes.
+ 
+ Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+-write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
+-can be written, at the on-policy point where the PPO ratio equals one, as
++write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. At the on-policy
++point where the PPO ratio equals one, consider the common-length estimator
+ \begin{equation}
+   \widehat g_G
+   =\frac1G\sum_{i=1}^G
+    w(M)\left(R_i-\frac{M}{G}\right)\nabla_z\log p_{A_i}.
+   \label{eq:group-estimator}
+ \end{equation}
+-For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
+-binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
+-on mixed groups. We absorb the same fixed response-length normalizer in both
+-variants; response-dependent row normalization is outside this reduction.
+-In either case $0<w(\ell)<\infty$ for $\ell\in\{1,\ldots,G-1\}$.
+-We define the entire update as zero on all-equal groups, without evaluating an
+-undefined reciprocal standard deviation; likewise, $w(M)M(G-M)$ below is
+-defined as zero when $M=0$ or $M=G$. We take explicit reference KL to be zero, as
+-in the experiments.
++For the Dr.GRPO abstraction, $w(M)=1$ after absorbing the shared positive
++length scale. Reward-standardized GRPO with equal or common response-length
++normalization takes $w(M)$ to be the reciprocal group reward standard
++deviation on mixed groups (with a fixed numerical stabilizer if used).
++Standard variable-length GRPO also weights each response by its own inverse
++length \citep{shao2024deepseekmath,liu2025understanding}; that factor cannot
++generally be absorbed into $w(M)$ and is outside the equivalence proved here.
++In either included case, $0<w(\ell)<\infty$ for
++$\ell\in\{1,\ldots,G-1\}$. We define the entire update as zero on all-equal
++groups without evaluating an undefined reciprocal standard deviation;
++likewise, $w(M)M(G-M)$ below is defined as zero when $M=0$ or $M=G$. All
++advantages and normalization weights are detached in the score estimator.
+ 
+ \begin{lemma}[A group baseline does not remove frequency amplification]
+ \label{lem:grpo-mean}
+-For $0<P<1$, the expected group update is
++For $0<P<1$, the expected update in Equation~\eqref{eq:group-estimator} is
+ \begin{equation}
+   \E[\widehat g_G]
+   =c_G(P)\nabla_z P,
+@@ -1307,9 +1475,9 @@
+   \frac{\E\!\big[w(M)M(G-M)\big]}{G^2P(1-P)}>0.
+   \label{eq:expected-group-gradient}
+ \end{equation}
+-For Dr.GRPO, $c_G(P)=(G-1)/G$. Hence reward centering and binary reward
+-standardization change the speed, but not the expected direction, of the
+-binary-reward policy gradient.
++For the Dr.GRPO abstraction, $c_G(P)=(G-1)/G$. Group centering and reward
++standardization rescale the expected gradient without changing its direction
++under these assumptions.
+ \end{lemma}
+ 
+ \begin{proof}
+@@ -1351,9 +1519,12 @@
+ 
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \label{lem:maxrl-mean}
+-Let MaxRL assign
++Under the same categorical and common-length assumptions, let MaxRL assign
+ $A_i^{\mathrm{MaxRL}}=GR_i/M-1$ when $M>0$ and zero when $M=0$, as in
+-Section~\ref{sec:maxrl-method}. At the on-policy point, its expected update is
++Section~\ref{sec:maxrl-method}. For
++$\widehat g_G^{\mathrm{MaxRL}}=G^{-1}\sum_i
++ A_i^{\mathrm{MaxRL}}\nabla_z\log p_{A_i}$ at the on-policy point, the
++expected update is
+ \begin{equation}
+   \E[\widehat g_G^{\mathrm{MaxRL}}]
+   =c_G^{\mathrm{MaxRL}}(P)\nabla_zP,
+@@ -1407,8 +1578,10 @@
+ \subsection{Winner-take-all collapse in the categorical mean flow}
+ \label{app:theory-collapse}
+ 
+-Consider $\dot z=c_G(P)\nabla_zP$, with any of the three smooth positive
+-functions established above. This infinitesimal expected-update model removes
++Consider $\dot z=c_G(P)\nabla_zP$, with any of the smooth positive
++coefficients established above: Dr.GRPO, common-length reward-standardized
++GRPO, or the specified centered binary MaxRL estimator. This infinitesimal
++expected-update model removes
+ sampling noise and retains independently trained Euclidean logits. The
+ conditional dynamics reduce to the standard frequency-dependent replicator
+ system with fitness $f_c(q)=q_c$ \citep{hofbauer1998evolutionary}. The result is
+@@ -1418,7 +1591,8 @@
+ 
+ \begin{theorem}[Standard replicator specialization for binary-reward RL]
+ \label{thm:grpo-collapse}
+-Start from finite logits with $0<P(0)<1$. If the conditional correct-mode
++Under the independent-logit mean-flow assumptions above, start from finite
++logits with $0<P(0)<1$. If the conditional correct-mode
+ distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+ \[
+   P(t)\longrightarrow1,
+@@ -1427,12 +1601,17 @@
+   \qquad
+   q_c(t)\longrightarrow0\quad(c\ne c^\star).
+ \]
+-Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single
+-correct execution mode for generic initial conditions, even though every mode
+-in $\mathcal C$ has exactly the same reward.
++Thus these categorical mean flows converge to a single correct execution
++mode for generic initial conditions, even though every mode in $\mathcal C$
++has exactly the same reward. This is an asymptotic statement within the
++specified update geometry, not a claim of finite-time support loss or a
++convergence guarantee for the stochastic neural optimizers used in our experiments.
+ \end{theorem}
+ 
+ \begin{proof}
++The coefficient $c_G$ is smooth and bounded on $[0,1]$, and the softmax
++reward gradient is bounded. Thus the logit flow exists for all finite times
++and cannot develop infinite logits at finite time.
+ For a correct mode $c$ and incorrect category $a$,
+ \[
+   \dot z_c=c_G(P)p_c(1-P),
+@@ -1486,39 +1665,50 @@
+ every finite time, so finite-time positivity alone is not a retention result.
+ 
+ \paragraph{Dependence on optimization geometry.}
+-For a smooth parameterization $z=z(\theta)$, Euclidean parameter flow instead
++For a smooth parameterization $z=z(\theta)$ with Jacobian
++$J_\theta=\partial z/\partial\theta$, Euclidean parameter flow instead
+ induces $\dot z=c_G(P)J_\theta J_\theta^\top\nabla_zP$. The independently
+ trained logit theorem uses $J_\theta J_\theta^\top=I$ and does not automatically
+-extend to arbitrary shared parameters or another optimization metric.
+-Parameter count alone does not specify this geometry. The empirical scale
++extend to arbitrary shared parameters or another optimization metric. Equal
++binary reward alone does not force this winner selection: the categorical
++natural-gradient reward flow can be represented by
++$\dot z_a=c_G(P)(R_a-P)$, which gives identical velocities to correct logits
++and preserves their ratios. Here $R_a=\1[a\in\mathcal C]$.
++Parameter count alone does not specify the optimization geometry. The empirical
++scale
+ comparisons also change pretrained models and learning-rate schedules; they
+ neither measure the geometry nor identify the cause of cross-scale differences.
++The theorem supplies a mechanism to test in controlled training; it cannot
++identify the training history or cause of concentration in a hosted model.
+ 
+ \subsection{A replay signal when fresh groups supply none}
+ \label{app:theory-gradient-availability}
+ 
+ \begin{lemma}[Fresh-group starvation and replay signal]
+ \label{lem:replay-gradient-availability}
+-Fix a categorical policy with correctness probability $P$, and draw $G\ge2$
+-fresh responses independently. For GRPO, Dr.GRPO, and the implemented centered
+-MaxRL estimator, the probability of a mixed-reward group is
++Fix the categorical policy above with correctness probability $P$, and draw
++$G\ge2$ fresh categories independently. The probability of a mixed-reward
++group is
+ \[
+  h_G(P)=1-P^G-(1-P)^G\le G\min\{P,1-P\}.
+ \]
+-Every all-equal group has zero fresh task gradient. Thus $h_G$ is the
+-probability of an opportunity for a nonzero task gradient, rather than a
+-lower bound on the gradient magnitude.
+-
+-For a fixed bank with normalized positive weights $w_b$, let
++Every all-equal group has zero fresh task component for
++Equation~\eqref{eq:group-estimator} and the specified centered MaxRL
++estimator. A nonzero fresh task component therefore requires a mixed group,
++so its probability is at most $h_G$. This gives no lower bound on gradient
++magnitude and says nothing about other loss terms, clipping, or an optimizer step carrying momentum across successive updates.
++
++For a nonempty fixed verified bank $\mathcal B\subseteq\mathcal C$ with
++normalized positive weights $w_b$, let
+ $R_w=-\sum_b w_b\log p_b$ and $\rho_w>0$. Extend $w$ by zero outside the
+ bank to obtain $\bar w$. The deterministic replay ascent vector is
+ \[
+- v^{\rm replay}=-\rho_w\nabla R_w=\rho_w(\bar w-p).
+-\]
+-It vanishes only at $p=\bar w$. In particular, if $p_b\le w_b/2$ for a banked
++ v^{\rm replay}=-\rho_w\nabla R_w=\rho_w(\bar w-p),
++\]
++which vanishes only at $p=\bar w$. In particular, if $p_b\le w_b/2$ for a banked
+ mode, then $v^{\rm replay}_b\ge\rho_w w_b/2$, even when $b$ is absent from the
+-fresh group. For a uniform bank of $k\ge2$ modes, as $p\to\mathbf e_b$ at
+-one banked correct mode, $h_G(P)\to0$ whereas
++fresh group. For a uniform bank of $k\ge2$ modes and fixed $\rho_w>0$, as
++$p\to\mathbf e_b$ at one banked correct mode, $h_G(P)\to0$ whereas
+ $\|v^{\rm replay}\|_2\to\rho_w\sqrt{1-1/k}>0$.
+ The replay norm therefore stays positive as fresh task-signal opportunities vanish.
+ \end{lemma}
+@@ -1550,9 +1740,11 @@
+ 
+ \begin{lemma}[Bounded sampled scores have no probability-independent boundary force]
+ \label{lem:sampled-score-bound}
+-Condition on the training history, draw $A_1,\ldots,A_G$ independently from
+-$p$, and let $a_i$ be any detached, possibly group-dependent advantages with
+-$|a_i|\le B$. At the on-policy point define
++In the same independent-logit model, condition on the training history, draw
++$A_1,\ldots,A_G$ independently from $p$, and let $a_i$ be any detached,
++possibly group-dependent advantages with $|a_i|\le B$. To interpret the
++bound uniformly as $p_b\to0$, assume a finite $B$ independent of that limit.
++At the on-policy point define
+ \[
+  \widehat g=\frac1G\sum_{i=1}^G a_i(\mathbf e_{A_i}-p).
+ \]
+@@ -1575,10 +1767,14 @@
+ The replay formula follows by differentiating $-\sum_b w_b\log p_b$.
+ \end{proof}
+ 
+-The bound does not prove inevitable collapse or rule out retention by a
+-particular bounded estimator. An unsampled mode can still change through
+-softmax normalization or shared parameters. Exact entropy is outside the
+-uniformly bounded-score premise because its surprisal is unbounded near zero.
++The bound compares the isolated logit-gradient components. It does not prove
++inevitable collapse, rule out retention by a bounded estimator, or guarantee
++that replay dominates the full update. An unsampled mode can still change
++through softmax normalization or shared parameters. Exact entropy is outside
++the uniformly bounded-score premise because its surprisal is unbounded near
++zero; the lemma is not an impossibility result for entropy regularization.
++Nor does the absence of a mode from a finite sample establish zero probability.
++
+ 
+ \subsection{Fixed-bank replay and qualitative retention}
+ \label{app:theory-replay}
+@@ -1619,9 +1815,9 @@
+ 
+ \begin{theorem}[Verified replay prevents banked-mode extinction]
+ \label{thm:replay-retention}
+-Suppose that after time $T$ the nonempty verified bank $\mathcal B$ is fixed,
+-fits within replay capacity, and receives a fixed positive effective replay
+-dose $\rho$. Under~\eqref{eq:replay-mean-flow}, define
++Suppose logits are finite at time $T$ and thereafter the nonempty verified
++bank $\mathcal B$ is fixed, fits within replay capacity, and receives a
++fixed positive effective replay dose $\rho$. Under~\eqref{eq:replay-mean-flow}, define
+ \[
+   C_T
+   =R_{\mathcal B}(z(T))
+@@ -1639,7 +1835,9 @@
+ \end{theorem}
+ 
+ \begin{proof}
+-Along the flow,
++The smooth vector field has bounded velocity because $c_G$,
++$\nabla_zP$, and $\nabla_zR_{\mathcal B}$ are bounded, so finite initial
++logits give a flow for every finite $t\ge T$. Along this flow,
+ \[
+   \frac{d}{dt}F_{\mathcal B}(z(t))
+   =-\lVert\nabla_zF_{\mathcal B}(z(t))\rVert_2^2\le0.
+@@ -1664,6 +1862,15 @@
+ bound in the stated ideal flow, not practical visibility or a prediction for
+ the experimental replay loss. The effective dose also depends on relative
+ fresh/replay frequencies, not the replay coefficient alone.
++
++A common nonnegative, locally integrable rate $\eta(t)$ multiplying both
++terms of~\eqref{eq:replay-mean-flow} preserves the energy bound, since
++$\dot F_{\mathcal B}=-\eta(t)\|\nabla F_{\mathcal B}\|_2^2\le0$.
++The convergence statements below additionally require
++$\int_T^\infty\eta(t)\,dt=\infty$ and then follow by reparameterizing
++optimization time. Infinitely many replay visits alone establish neither
++this condition nor a fixed replay-to-fresh weighting. Different time-varying
++relative weights are outside the fixed-potential argument.
+ 
+ \paragraph{Full coverage and the categorical target.}
+ \begin{corollary}[Conditional full-coverage categorical limit]
+@@ -1770,7 +1977,10 @@
+ The learner scores a particular response string, while evaluation groups
+ strings by execution key. Event containment provides a conditional bridge:
+ one complete verified response is one way of producing its key. This bridge
+-also makes the loss's length factor explicit.
++also makes the loss's length factor explicit. Here
++$p_\theta(b\mid x)=\Pr_{Y\sim\pi_\theta(\cdot\mid x)}[V(Y,s_x)=b]$
++is the unconditional probability of producing key $b$, rather than the
++probability conditional on correctness.
+ 
+ \begin{lemma}[Retention from a joint exemplar potential]
+ \label{lem:shared-exemplar-retention}
+@@ -1806,11 +2016,15 @@
+ weights and $J_{\max}=\sum_x\nu_x\Psi_x(1)$. The lemma does not establish
+ this descent condition for stochastic, clipped, alternating AdamW updates,
+ and it neither implies uniform neural key probabilities nor requires them.
++Its bound applies only to the listed exemplar--prompt pairs. Shared
++parameters do not extend it to held-out prompts; transfer to those prompts
++remains an empirical question.
+ 
+ The scored probability must describe the complete response, including its
+ termination event or a fixed deterministic horizon, under the same prompt,
+ temperature, masks, truncation rules, and verifier as the sampling law being
+-bounded. A prefix score or score under another decoding law is insufficient.
++bounded. A prefix score or a score under another decoding law does not
++supply this bound without a separate event or likelihood comparison.
+ For a complete response of length $L$ and mean-token log score $s$, its
+ probability is $e^{Ls}$, not $e^s$. A change in this exemplar's likelihood
+ need not equal the change in its whole key's probability.
+@@ -1857,9 +2071,10 @@
+ show that exact conditional entropy and categorical replay both favor a
+ uniform conditional target. With strictly increasing correctness potential
+ $\Psi$, both $\Psi(P)+\beta H(q)$ and $\Psi(P)-\rho R_u(p)$ have the unique
+-global optimum $P=1,q=u$ on the simplex with $P>0$, for positive coefficients. This follows directly
+-from nonnegativity of KL and increasing $\Psi$; it does not assert
+-convergence of either neural update. The KL direction distinguishes their
++global optimum $P=1,q=u$ in probability space on the simplex with $P>0$,
++for positive coefficients. This is a boundary limit for finite-logit softmax
++policies. The optimum follows from nonnegativity of KL and increasing
++$\Psi$; it does not assert convergence of either neural update. The KL direction distinguishes their
+ loss level sets \citep{pereyra2017confidencepenalty,agarwal2021policygradient}:
+ replay loss diverges when a protected coordinate vanishes, whereas
+ conditional entropy can remain $\log(m-1)$ with one missing mode.
+@@ -1878,12 +2093,19 @@
+ sampling probability alone does not establish eventual admission. Once a
+ non-evicting capacity-16 bank fills, an unbanked key can remain ineligible.
+ Changing membership or exemplar weights changes the loss being bounded, so
+-fixed-bank descent cannot simply be carried across those changes.
+-
+-For noisy discrete updates, a valid extension would require control of the
+-joint loss's upward drift, optimizer bias, and accumulated error. A positive
+-replay coefficient or small nominal learning rate does not establish these
+-conditions. Current-gradient Adam moments, clipping, momentum, prompt
++fixed-bank descent cannot simply be carried across those changes. In
++particular, the fixed-weight argument does not cover a target whose weights
++continue to change with fresh observation counts.
++
++For a fixed joint potential, a discrete bound
++$F(\theta_{n+1})\le F(\theta_n)+\epsilon_n$ with
++$\epsilon_n\ge0$ and $\sum_{n\ge n_0}\epsilon_n=E<\infty$ would extend
++Lemma~\ref{lem:shared-exemplar-retention}, using
++$D=F(\theta_{n_0})+J_{\max}+E$ for steps $n\ge n_0$.
++This follows by telescoping and bounds retention, not convergence. The noisy
++optimizer would need a separate argument establishing such control of the
++joint loss's upward drift. A positive replay coefficient or small nominal
++learning rate does not establish it. Adam moments, clipping, momentum, prompt
+ scheduling, and bank changes are not covered by the exact-flow proofs.
+ The experiments have not established the required joint-energy or
+ update-error assumptions. The mathematical contribution is the stated
+@@ -1891,6 +2113,7 @@
+ and longitudinal exemplar scores remain separate measurements.
+ 
+ % Shared scientific provenance; operational inventories remain in the repository.
++
+ \section{Source Integrity and Reproducibility}
+ \label{app:reproducibility}
+ 
+--- before/paper/README.md
++++ after/paper/README.md
+@@ -1,6 +1,6 @@
+ # ModeBench and ReplayMaxRL papers
+ 
+-The [long ICLR manuscript](main.pdf), **There's More Than One Way: Mode Collapse in RLVR & ModeBench**, is built from [main.tex](main.tex).
++The [long ICLR manuscript](main.pdf), **Mode Collapse in RLVR & ModeBench**, is built from [main.tex](main.tex).
+ Its scientific main is nine pages, including all eight main figures, with
+ references starting on page ten. A [main-text-only PDF](main-body.pdf) is also
+ available. The build checks every main
+@@ -256,3 +256,7 @@
+ `ops/build_frontier_temperature_paper.py`, and `ops/build_frontier_retry_paper.py`.
+ Each export authenticates its independent source audit and frozen condition
+ files. Numerical uncertainty and provider outcomes accompany the figures.
++
++## Claim and theory alignment
++
++Both papers share a claim-by-claim evidence map, the success–breadth lemma, and the complete conditional theory. The [correction and verification record](audits/claim_theory_alignment_20260911/README.md) explains the assumptions and the construction-reserve versus terminal-test distinction in the Level-2 comparison.
+--- before/paper/mathai2026/README.md
++++ after/paper/mathai2026/README.md
+@@ -1,6 +1,6 @@
+ # MATH-AI NeurIPS 2026 workshop version
+ 
+-**More than One Way to Skin a Cat: Preserving Verified Modes in RLVR**
++**Mode Collapse in RLVR & ModeBench**
+ 
+ [main.pdf](main.pdf) is the anonymous submission: four pages of main content,
+ then references and supplementary material. The official workshop style remains
+@@ -79,8 +79,8 @@
+ prompt comparisons remain in the appendix. The source record and figure
+ sidecar bind both evidence sets and each displayed denominator.
+ 
+-The GPT-5.6 Sol temperature curve is a supplementary figure here (page 30),
+-with a brief main-text finding; it is Figure 8 on page 8 of the long paper.
++The GPT-5.6 Sol temperature curve is a supplementary figure here,
++with a brief main-text finding; it is Figure 8 in the long paper.
+ All four temperature conditions use reasoning `none` and retain 960 draws each.
+ Its two panels plot empirical `pass@8` against mean `distinct@8`, overall and
+ by level. `pass@8` is the fraction of prompts with at least one correct answer
+@@ -93,3 +93,7 @@
+ The appendices also include Grok/Kimi temperature sensitivity and the separate
+ three-request Python retry diagnostic, without changing the fixed-draw main
+ comparison.
++
++## Claim and theory alignment
++
++Both papers share a claim-by-claim evidence map, the success–breadth lemma, and the complete conditional theory. The [correction and verification record](../audits/claim_theory_alignment_20260911/README.md) explains the assumptions and the construction-reserve versus terminal-test distinction in the Level-2 comparison.
+--- before/ops/check_paper_current_contract.py
++++ after/ops/check_paper_current_contract.py
+@@ -336,9 +336,15 @@
+                 f"absolute-reference disclosure missing {token!r}")
+ 
+     for token in (
++        r"\title{Mode Collapse in RLVR \& ModeBench}",
++        r"\label{lem:success-breadth}",
++        r"\label{eq:success-breadth-identities}",
++        r"\label{eq:fixed-success-breadth-bounds}",
++        r"\label{app:claim-basis}",
++        r"\label{lem:shared-exemplar-retention}",
+         r"\label{lem:maxrl-mean}",
+         r"\label{thm:grpo-collapse}",
+-        "Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single correct execution mode",
++        "Thus these categorical mean flows converge to a single correct execution mode",
+         r"\label{thm:replay-retention}",
+         r"p_b(t)\ge \exp(-kC_T)>0",
+         r"\label{cor:replay-no-collapse}",

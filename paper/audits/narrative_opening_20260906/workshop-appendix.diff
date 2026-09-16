@@ -1,0 +1,65 @@
+--- before/appendix.tex
++++ paper/mathai2026/appendix.tex
+@@ -119,7 +119,7 @@
+   \qquad
+   F_K=K^{-1}\sum_i \1[V(Y_i,s_x)\neq\bot].
+ \]
+-ModeBench reports three averages with different units. \texttt{distinct@}$K
++\mb{} reports three averages with different units. \texttt{distinct@}$K
+ =\E[D_K]$ is an expected count in $[0,K]$ of unique verified keys;
+ \texttt{pass@}$K=\Pr[D_K>0]$ and \texttt{mean@}$K=\E[F_K]$ are probabilities
+ in $[0,1]$. For every draw, $F_K\le\1[D_K>0]\le D_K$; hence
+@@ -269,7 +269,7 @@
+   order aliases (18.19 modes per evaluation prompt).
+ \end{list}
+ 
+-ModeBench targets task-defined executable output support. ReplayMaxRL stores
++\mb{} targets task-defined executable output support. ReplayMaxRL stores
+ one verified exemplar per observed task-defined key and samples uniformly over
+ those keys.
+ Appendices~\ref{app:prompts}, \ref{app:python}, and~\ref{app:data} give the
+@@ -362,7 +362,7 @@
+ \subsection{Experiment 3: transfer to a harder matched level}
+ \label{sec:levels-design}
+ 
+-ModeBench Level 2 preserves each domain's validator,
++\mb{} Level 2 preserves each domain's validator,
+ canonical key, split sizes, and split-wise valid-mode-count histogram while
+ changing structure: four hidden Graph vertices, four Countdown operands, four
+ Python cases including a value above 96, variable-on-both-sides MathIR
+@@ -3571,7 +3571,7 @@
+ \subsection{Matched Level-2 construction}
+ \label{app:data-levels}
+ 
+-ModeBench currently releases two levels for each domain. Level 2 changes the
++\mb{} currently releases two levels for each domain. Level 2 changes the
+ problem structure while preserving the Level-1 verifier, canonicalizer, split
+ sizes, and exact per-split histogram of valid-mode counts. Its 384/128/128
+ train/development/evaluation identities are disjoint from every Level-1 and
+@@ -3800,7 +3800,7 @@
+ \subsection{Matched design}
+ \label{app:scale-matrix}
+ 
+-The scale extensions preserve the five ModeBench domains, paired initialization
++The scale extensions preserve the five \mb{} domains, paired initialization
+ and data identities, eight-pass horizon, evaluation grid, verifier, bank
+ capacity, replay scheduling code, and recovery rules. Registered seeds are
+ 55--59 for Falcon3-1B and 70--74 for Qwen2.5-3B. The Falcon Countdown
+@@ -4095,7 +4095,7 @@
+ Every reported figure has an adjacent machine-readable record containing its
+ source paths, exact seed set, checkpoint rule, displayed values, and SHA-256
+ hashes. \path{paper/FIGURE_MANIFEST.md} maps figures to builders and versioned
+-records. The ModeBench example renderer re-executes every displayed coloring,
++records. The \mb{} example renderer re-executes every displayed coloring,
+ factorization, arithmetic transition, and pantry allocation. Result builders
+ abort on missing matched comparisons or source-hash drift rather than carrying a
+ shallower checkpoint forward.
+@@ -4131,7 +4131,7 @@
+ These require the stated geometry, energy, and coverage assumptions; they do
+ not certify the implemented neural optimizer. Convergence to uniform correct
+ mass in the categorical uniform-replay model requires full verified coverage,
+-which Python's bank capacity precludes. ModeBench measures
++which Python's bank capacity precludes. \mb{} measures
+ task-defined executable support on small synthetic tasks rather than free-form
+ reasoning diversity or downstream utility. Experiments fix \(G=16\), zero
+ reference KL, no token-entropy bonus, and a single decoding protocol; dynamic

@@ -1,0 +1,21 @@
+--- before/ops/exp_scaling/plot_paper_replay_mechanism_telemetry.py
++++ ops/exp_scaling/plot_paper_replay_mechanism_telemetry.py
+@@ -373,12 +373,14 @@
+         "B  Late occupancy versus capacity", fontsize=style.TITLE_FONT, pad=3
+     )
+     axes[0, 1].set_xlim(0.0, 16.7)
+-    axes[0, 1].text(
+-        16.0,
+-        4.52,
++    axes[0, 1].annotate(
+         "capacity 16",
++        xy=(16.0, 0.97),
++        xycoords=axes[0, 1].get_xaxis_transform(),
++        xytext=(-3, 0),
++        textcoords="offset points",
+         ha="right",
+-        va="bottom",
++        va="top",
+         color=style.MUTED,
+         fontsize=style.SMALL_FONT,
+     )

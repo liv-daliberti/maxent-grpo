@@ -1,0 +1,96 @@
+{
+  "deck": "presentation/verified_mode_support_story.pptx",
+  "storyboard": "presentation/STORYBOARD.md",
+  "slides": [
+    {
+      "number": 1,
+      "title": "When eight samples become eight copies",
+      "source": "Paper abstract and Figure 1"
+    },
+    {
+      "number": 2,
+      "title": "Accuracy can look perfect while support disappears",
+      "source": "paper/figures/modecollapse_story.png"
+    },
+    {
+      "number": 3,
+      "title": "Binary correctness hides answer identity",
+      "source": "paper/figures/modebench_examples.png"
+    },
+    {
+      "number": 4,
+      "title": "Why GRPO concentrates correct modes",
+      "source": "Paper Section 2 and Appendix A"
+    },
+    {
+      "number": 5,
+      "title": "One execution key repairs two different failures",
+      "source": "paper/figures/verified_support_story.png"
+    },
+    {
+      "number": 6,
+      "title": "Two questions, two matched tests",
+      "source": "Paper experimental design and evidence ledger"
+    },
+    {
+      "number": 7,
+      "title": "Retention is the strongest result: 75 / 75",
+      "source": "paper/figures/cross_scale_terminal_endpoint_effects.json"
+    },
+    {
+      "number": 8,
+      "title": "The honest split: extra support vs. accuracy rescue",
+      "source": "paper/figures/cross_scale_terminal_endpoint_effects.json"
+    },
+    {
+      "number": 9,
+      "title": "Discovery adds breadth beyond replay\u2014unevenly",
+      "source": "paper/figures/verified_support_discovery_two_scale_effects.json"
+    },
+    {
+      "number": 10,
+      "title": "Three takeaways\u2014and the boundary",
+      "source": "Paper conclusion and evidence policy"
+    },
+    {
+      "number": 11,
+      "title": "Only replay is uniform; alternatives are local",
+      "source": "paper/figures/direct_comparator_endpoint_effects.json"
+    },
+    {
+      "number": 12,
+      "title": "Where excess breadth appears, it persists through training",
+      "source": "paper/figures/sustained_auc_effects_qwen05b.json"
+    },
+    {
+      "number": 13,
+      "title": "The retention mechanism is small and measurable",
+      "source": "paper/figures/replay_mechanism_telemetry_qwen05b.json"
+    }
+  ],
+  "validation": {
+    "slides": 13,
+    "zip_ok": true,
+    "shape_overflows": [],
+    "bytes": 1698935
+  },
+  "evidence_sha256": {
+    "paper/figures/cross_scale_terminal_endpoint_effects.json": "d645b08413ec7b225c82886fc62867a02fb7c27dff5ea395e60c56b171e6966e",
+    "paper/figures/verified_support_discovery_two_scale_effects.json": "047acff65846c5a9bbb5f6926ee10049e79bcb827b43d82797d0575b120eb7e8",
+    "paper/figures/sustained_auc_effects_qwen05b.json": "ccc8c6717c8b1470a6e299cdf33b2799769e90bed27e1fc6864dee4485e01700",
+    "paper/figures/replay_mechanism_telemetry_qwen05b.json": "11de7efaed121f3723fa19374ae798f79d559751489ddccb2bfec350fb54b4e5",
+    "paper/figures/direct_comparator_endpoint_effects.json": "5a91ae64ab7d373f1e61826f4ac0e335a78bc8f05fdd47a847a457a74df5200e",
+    "paper/figures/modecollapse_story.png": "ec7f7c9a290ebdf1b1bd3498be2f5c9b4c9d4e08e0533ca1dcf372bf9799c9b6",
+    "paper/figures/modebench_examples.png": "5cca302cab55b4609ec0b909e6fd72a8751e5f65e0b57536c540c4536457c702",
+    "paper/figures/verified_support_story.png": "3c6ee83e857f96305aa6d9557f35329291557859ab41d04b113ce0fbd2d1ee22"
+  },
+  "derived_figures": {
+    "headline": "presentation/figures/headline_75_pairs.png",
+    "scatter": "presentation/figures/accuracy_vs_breadth_effects.png",
+    "discovery": "presentation/figures/verified_support_discovery_effects.png",
+    "auc": "presentation/figures/sustained_auc_effects.png",
+    "telemetry": "presentation/figures/replay_mechanism_telemetry.png",
+    "comparators": "presentation/figures/direct_comparator_heatmap.png"
+  },
+  "claim_boundary": "Retention is the complete 75-pair core; discovery is a 49-endpoint exploratory bundled contrast; adjusted breadth separates added modes from added correctness."
+}

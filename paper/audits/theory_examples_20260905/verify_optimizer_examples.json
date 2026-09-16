@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "scope": "Hypothetical examples only; no empirical measurements or optimizer certification.",
+  "arithmetic_precision_decimal_digits": 50,
+  "results": {
+    "complete_response": {
+      "scored_tokens_including_termination": 4,
+      "conditional_token_probability": 0.5,
+      "mean_log_likelihood": -0.6931471805599453,
+      "exp_mean_log_likelihood": 0.5,
+      "complete_response_probability": 0.0625,
+      "energy_D": 0.6931471805599453,
+      "energy_floor_for_alpha_1_L_4": 0.0625,
+      "two_disjoint_response_key_floor": 0.09375
+    },
+    "finite_visibility": {
+      "single_key_probability": 0.0625,
+      "appearance_probability_in_8_draws": 0.4032805261667818,
+      "number_of_protected_keys": 4,
+      "sufficient_95_percent_draw_budget": 71,
+      "exponential_union_bound_at_71": 0.04730186103638647,
+      "exact_union_bound_at_71": 0.04092800875605713
+    },
+    "toy_optimizer": {
+      "objective": "-log(sigmoid(theta)); one complete Bernoulli response; J=0",
+      "initial_theta": 0,
+      "initial_energy": 0.6931471805599453,
+      "global_smoothness_bound": 0.25,
+      "gradient_norm_bound": 1.0,
+      "preconditioner": 1.0,
+      "noise": "independent centered Rademacher +/- 0.1",
+      "constant_step": 0.1,
+      "confidence": 0.95,
+      "step_noise_budget": 1.25e-05,
+      "B_100_constant_steps": 0.00125,
+      "B_infinity_constant_steps": "diverges",
+      "B_infinity_steps_0_1_over_t_plus_1": 2.056167583560283e-05,
+      "basic_floor_through_100_updates": 9.301280136378599e-07,
+      "V_100": 0.01,
+      "Q_100": 0.00125,
+      "sharp_energy_ceiling": 0.939171863628027,
+      "sharp_floor_through_100_updates": 0.39095146246207874
+    },
+    "admission": {
+      "number_of_possible_correct_keys": 4,
+      "per_missing_key_generation_floor": 0.04,
+      "conditional_insertion_floor": 0.5,
+      "actual_admission_hazard_floor": 0.02,
+      "sufficient_95_percent_opportunity_count": 220,
+      "failure_union_bound_at_220": 0.049109359612273765,
+      "two_slot_capacity_covers_four_keys": false
+    },
+    "switching_cost": {
+      "replay_dose": 0.3,
+      "old_key_probabilities": [
+        0.25,
+        0.25
+      ],
+      "new_key_probability": 0.0625,
+      "old_mean_surprisal": 1.3862943611198906,
+      "new_mean_surprisal": 1.8483924814931876,
+      "energy_jump": 0.13862943611198905,
+      "old_coefficient": 0.15,
+      "new_coefficient": 0.1,
+      "coefficient_floor_at_capacity_3": 0.1
+    },
+    "formal_preservation": {
+      "exemplar_bridge_section.tex": {
+        "formal_blocks": 2,
+        "all_existing_citations_preserved": true
+      },
+      "optimizer_section.tex": {
+        "formal_blocks": 4,
+        "all_existing_citations_preserved": true
+      },
+      "discovery_section.tex": {
+        "formal_blocks": 6,
+        "all_existing_citations_preserved": true
+      }
+    }
+  },
+  "staging_sha256": {
+    "exemplar_bridge_section.tex": "d76992649c56d6aa3cd7f74713d0b4cdd88ea42157e534e35c99467de050c344",
+    "optimizer_section.tex": "f99eb7b4427b946147379937c75d29944339fedbec1edad383bd0744fb47629b",
+    "discovery_section.tex": "0452ebc03aec0b33befb8c90bcbac83242ce0b513dfd9a3e5afbfd827a617ac4"
+  }
+}

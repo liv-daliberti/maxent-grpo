@@ -1,0 +1,11 @@
+{
+  "paper/main.tex": "1e62b81f634a16b43892b9f9646e58b78b1225fd9a6585bf2d3efa63fa2f37c8",
+  "paper/main.pdf": "e769fd55f9800cb1e89b1d32a8964ebbdc66768d0bdde1ef3e14970f6af3168c",
+  "paper/main.aux": "254f4c9e80a3068b4cf0349de568925d326f7d06dc49b4bf53c4314d41f8f554",
+  "paper/main-body.pdf": "8036a52fee3d8d10b9749cb498bffd7e0da0b388e38e53d60c2a106615edf0ee",
+  "paper/README.md": "86933bd1e1c39631a1ef6bd1594c96df902baefccc3be03ea66a286915015c69",
+  "ops/build_frontier_paper_comparison.py": "d35f4ed45b772b5c004664849fbb647c5f2fbdba32b760a408a9caddf27dbf7a",
+  "paper/results/frontier_comparison_20260911.json": "186576d17331306db8802afac437f057aef05356d7c376840a800c742cc2bbf7",
+  "paper/results/frontier_comparison_20260911_motivation.tex": "43b903f7daf326918ef9fa64f87f4e83d880e0f814a348d2ef98aa480669d754",
+  "artifacts/frontier_models_comparison_20260911/PROTOCOL.md": "2619b848e49f3710816cf0becbbff97440212dd3c78f60f59f3c9302409fba11"
+}

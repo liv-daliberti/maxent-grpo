@@ -1,0 +1,69 @@
+{
+  "additional_prompts": 360,
+  "additional_responses": 14400,
+  "api_calls_during_analysis": 0,
+  "authenticated_responses": 19200,
+  "authorization": "User approved the proposed 480-prompt / 14,400-additional-response expansion: Okay... do it?",
+  "bindings": {
+    "artifacts/frontier_temperature_20260911/GPT56_PASS8_FRONTIER_EXPANDED480.json": "7381e45af7088282906c4ee8eb4b8846731aa20e1537298d779fa43055d09e08",
+    "artifacts/frontier_temperature_20260911/GPT56_TEMPERATURE_CURVE_EXPANDED480.json": "3fc0bfc31062e0982b985f0dbd2b622b8e9a707fc7d35e8e42b557b97e1f93c0",
+    "artifacts/frontier_temperature_20260911/gpt56_expanded480_analysis_code_v2/manifest.json": "2ab463913778536a06364f8b59fa03f1932557a44579cfd48911ad13bf306f6d",
+    "artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/azure_destination_review.json": "70625262fc64ac1d451795cab1191e0802d857088d73c3da1a73974ce009ccc6",
+    "artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/collection_v1/authorization.json": "68e23a8e1900e6bcdc7bcc0394893a2e2bfeab5b60446dec3f31155e4d8e1430",
+    "artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/collection_v1/manifest.json": "2f614a0e603572ed032583238ae28b6a54474905c1a4bd52d28a879981bf120c",
+    "artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/plan.json": "80211566250851ae3726e36fa076855c4a35206606cd52ac97edb4d4e1991213"
+  },
+  "cohort_design": {
+    "additional_prompts": 360,
+    "additional_responses": 14400,
+    "domains": 5,
+    "draws_per_prompt": 8,
+    "levels": [
+      1,
+      2,
+      3
+    ],
+    "prompts": 480,
+    "prompts_per_domain_level": 32,
+    "retained_prompts": 120,
+    "retained_responses": 4800,
+    "selection": "Extend the original outcome-independent within-cell row-hash ranking; preserve the existing prefix and measurements.",
+    "temperatures": [
+      0,
+      0.5,
+      1,
+      1.5,
+      2
+    ]
+  },
+  "combined_prompts": 480,
+  "combined_responses": 19200,
+  "credential_handling": "Entered through hidden terminal input; kept in process memory and request authentication header, not persisted to a credential file.",
+  "failed_sample_slots": 0,
+  "initial_automatic_rejection": "Resolved by read-only proof that the synthetic prompt text had already been sent successfully to the same Azure endpoint, followed by approval of the identical launch command.",
+  "new_responses_collected": 14400,
+  "original_prompts": 120,
+  "original_responses_retained": 4800,
+  "publication_verification": {
+    "path": "paper/audits/gpt56_expanded480_20260911/publication_verification.json",
+    "sha256": "248f4fdf02d8d89c03aa5c0f9918276258e6a3b7e3b3127d4b68e496fa46dd81"
+  },
+  "reasoning_effort": "none",
+  "recorded_at_utc": "2026-09-12T00:47:09.748755+00:00",
+  "reporting_plan": {
+    "grading": "Original frozen strict and formatting-normalized verifier",
+    "primary_display": "Empirical pass@8 and distinct@8, retaining zero-success groups",
+    "sensitivity": "Report original120 and additional360 separately, including paired T2 minus T1.5; do not identify cohort differences as causal time effects.",
+    "uncertainty": "20,000 paired whole-prompt bootstrap replicates stratified by domain and level",
+    "unsupported_conditions": "Temperature2.5 and non-default temperatures with medium reasoning were rejected by this Azure deployment; no unsupported figure points."
+  },
+  "status": "temperature_expansion_published_and_verified",
+  "temperatures": [
+    0,
+    0.5,
+    1,
+    1.5,
+    2
+  ],
+  "updated_at_utc": "2026-09-12T01:09:28.381567+00:00"
+}

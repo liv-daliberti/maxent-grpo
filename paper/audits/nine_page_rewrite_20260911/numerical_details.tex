@@ -1,0 +1,61 @@
+% Frozen numeric sources; values checked against paired seed records.
+% paper/figures/e118_all_scale_factorial_progress.json sha256=3f1298c96cee98740e878a20237950e17cbde8c4c896fabad4aa3e245b78ceee
+% paper/results/core_terminal_endpoints.json sha256=549447008b5a261d7f718160652e5ea8098bd823851d01cf195d1f9614d02176
+% paper/figures/modebench_level_admission.json sha256=4f7e2b5f1431b119192209b9dfdc522736038c201d389f0f78deb067306763ca
+% paper/audits/results_refresh_20260911/latest_endpoints.json sha256=fc75f6323dbaa58886789a5f177838fd453ca29d49645477e7135c48d9fc30bc
+\subsection{Numerical details of the main comparisons}
+\label{app:main-numerical-details}
+
+Here $P=\texttt{pass@8}$ is a probability and $D=\texttt{distinct@8}$ an
+expected verified-mode count per prompt; extra modes are $B=D-P$.
+All trained endpoints are at pass 8. Brackets below are unadjusted paired
+95\% Student-$t$ intervals over training seeds, conditional on the fixed
+benchmark. Cross-domain summaries are descriptive and do not estimate a
+model-size trend.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Five-domain replay contrasts behind Figure~\ref{fig:maxrl-factorial}.}
+  Each effect is replay minus its fresh objective. Domains are averaged
+  equally within each displayed seed before averaging seeds. MaxRL rows
+  retain their stored paired intervals; Dr.GRPO rows retain point summaries.
+  Falcon Dr.GRPO uses the same four seeds across every domain.}
+  \label{tab:cross-domain-replay-details}
+  \scriptsize
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lllrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Objective} & \textbf{Seeds}
+      & $\Delta P$ & $\Delta D$ \\
+    \midrule
+    Qwen2.5-0.5B & Dr.GRPO & 43--47 & $+.337$ & $+.999$ \\
+     & MaxRL & 43--47 & $+.307\;[+.208,+.406]$ & $+.991\;[+.815,+1.167]$ \\
+    Falcon3-1B & Dr.GRPO & 55--58 & $+.442$ & $+.774$ \\
+     & MaxRL & 55--59 & $+.133\;[+.043,+.223]$ & $+.228\;[+.094,+.361]$ \\
+    Qwen2.5-3B & Dr.GRPO & 70--74 & $+.279$ & $+.559$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The 3B MaxRL/ReplayMaxRL arm means are $.550/.695$ on $P$ and
+$.765/1.113$ on $D$. These average five domain-specific paired means
+equally: Graph and Python use seeds 70--74, Countdown and MathIR use
+70, 71, and 74, and Pantry uses 72. They have no common cross-domain seed
+set or interval; they are not the five-seed Dr.GRPO cohort in the table.
+
+For Level-1 Qwen2.5-0.5B Dr.GRPO/replay, the extra-mode contrasts on
+Countdown, Python, and MathIR are respectively $+.959$ $[+.863,+1.054]$,
+$+.043$ $[-.077,+.164]$, and $+.030$ $[+.001,+.060]$, each on paired
+seeds 43--47. The intervals use within-domain seed differences; the small
+Python and MathIR effects distinguish correctness gains from extra modes.
+
+On Graph, Figure~\ref{fig:level2-admission}A's separate frozen-model
+admission references are $P=.438$ at Level 1 and $.148$ at Level 2.
+At the Level-2 terminal checkpoint, Dr.GRPO/MaxRL have $P=.202/.434$,
+versus $.763/.739$ with replay; the replay arms have $D=1.243/1.214$.
+All four methods use seeds 43--47. Their paired correctness gains are
+$+.561$ $[+.445,+.677]$ and $+.305$ $[+.250,+.360]$, respectively.
+Across those ten replay and ten non-replay runs, the lowest replay
+correctness is $.711$, above the highest non-replay value $.477$.
+These are observed seed extrema, not population bounds; the arm contrasts
+do not establish that extra modes cause the correctness gains.

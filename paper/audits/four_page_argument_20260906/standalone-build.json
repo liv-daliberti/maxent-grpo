@@ -1,0 +1,23 @@
+{
+  "archive": "/n/fs/similarity/maxent-grpo/paper/mathai2026/mathai2026-source.zip",
+  "archive_sha256": "dca7a03a51190bbb5ca15d9a139ec1415f4e4b8dfac1b9a87cfe01dff0ad2935",
+  "archive_unchanged_during_verification": true,
+  "archived_main_matches_current": true,
+  "archived_main_still_matches_current": true,
+  "check_submission": "PASS",
+  "current_pdf_sha256": "1524c5fbe8551c87f0b7c452083717c5324ea9b8bc503f1e2e4a41e5244b0ebd",
+  "extracted_directory": "/tmp/mathai-final-standalone-v3td3hqg",
+  "file_count": 54,
+  "first_four_pdf_pages_text_exactly_equal": true,
+  "first_four_text_sha256": "03827669a062c225d163890bcf757f3f5d21ad20c88cbaf458183efa501c3d04",
+  "log": "/n/fs/similarity/maxent-grpo/paper/audits/four_page_argument_20260906/standalone-build.log",
+  "main_content_pages": 4,
+  "main_figures": 6,
+  "make_exit_code": 0,
+  "references_begin_page": 5,
+  "source_sha256": "11ae6b3e2292a844461e9649efcd3a8d8b60b66e5cef6bd3a86c6ff34a44f478",
+  "standalone_pdf_sha256": "90e71fbc6b3ef026cf1ab502ecd982c22a3f0603d89534fa0cb0d6f9af5c188d",
+  "supplementary_figures": 7,
+  "total_pages": 60,
+  "verified_at_utc": "2026-09-06T18:00:05.060348+00:00"
+}

@@ -19,6 +19,8 @@ FIGURES = \
 	figures/replay_factorial_effects.pdf \
 	figures/replay_key_weighting.pdf \
 	figures/replay_bank_balance.pdf \
+	figures/replay_bank_decomposition.pdf \
+	figures/frontier_level_grid.pdf \
 	figures/replay_level2_effects.pdf \
 	figures/modecollapse_story.pdf \
 	figures/baseline_collapse_precheck.pdf \
@@ -110,6 +112,7 @@ GPT56_DISCOVERY_RESULTS = results/gpt56_all_levels32_sampling_20260913.tex resul
 RESULTS = $(GPT56_DISCOVERY_RESULTS) results/discovery_hosted_interpretation_20260912.tex results/discovery_hosted_interpretation_20260912.json $(HOSTED_REASONING_ASSETS) results/semantic_current_summary_20260912.tex results/semantic_current_summary_20260912.json $(INFERENCE_FOLLOWUPS) $(HOSTED_LEVEL_SUMMARY) $(wildcard results/conditional_concentration_20260912*.tex results/conditional_concentration_20260912.json) \
 	results/core_terminal_endpoints.json results/core_terminal_endpoints_table_body.tex \
 	results/mode_diversity_retention_matrix.json results/pmd_retention_macros.tex \
+	results/domain_support.json results/domain_support_macros.tex \
 	results/retention_matrix_panel_a_table_body.tex results/retention_matrix_panel_b_table_body.tex \
 	results/absolute_support_references.json results/absolute_support_references_table_body.tex \
 	results/baseline_collapse_precheck.json results/baseline_collapse_precheck_table_body.tex \
@@ -143,6 +146,15 @@ figures/gpt56_all_levels32_sampling_budget.pdf figures/gpt56_all_levels32_sampli
 
 figures/replay_bank_balance.pdf figures/replay_bank_balance.png figures/replay_bank_balance.json &: ../ops/plot_paper_replay_bank_balance.py ../ops/paper_style.py
 	$(DATA_PYTHON) ../ops/plot_paper_replay_bank_balance.py
+
+results/domain_support.json results/domain_support_macros.tex &: ../ops/build_paper_domain_support_macros.py
+	$(DATA_PYTHON) ../ops/build_paper_domain_support_macros.py
+
+figures/frontier_level_grid.pdf figures/frontier_level_grid.png figures/frontier_level_grid.json &: ../ops/plot_paper_frontier_level_grid.py ../ops/plot_paper_mode_diversity_levels.py ../ops/paper_style.py results/mode_diversity_frontier_points.json
+	$(DATA_PYTHON) ../ops/plot_paper_frontier_level_grid.py
+
+figures/replay_bank_decomposition.pdf figures/replay_bank_decomposition.png figures/replay_bank_decomposition.json results/replay_bank_decomposition_macros.tex &: ../ops/plot_paper_replay_bank_decomposition.py ../ops/paper_style.py results/replay_bank_decomposition_measured.json
+	$(DATA_PYTHON) ../ops/plot_paper_replay_bank_decomposition.py
 
 $(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) $(RESULTS) $(PROMPT_ABLATION_ASSETS) $(DISCOVERY_CURVE_ASSETS) $(ANALYSIS_SCRIPTS) | prompt-ablation discovery-curves inference-followups
 	$(DATA_PYTHON) ../ops/check_paper_current_contract.py

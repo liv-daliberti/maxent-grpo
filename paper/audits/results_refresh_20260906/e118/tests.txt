@@ -1,0 +1,2 @@
+python -m pytest -q tests/test_paper_core_endpoint_integrity.py tests/test_e118_integrity_seed_tracks.py
+17 passed in 0.76s

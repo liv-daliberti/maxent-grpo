@@ -33,15 +33,25 @@ PLACEMENT = {
 
 
 def receipt_stamp(cell: dict) -> str:
-    """Identify a receipt uniquely, including the level it was evaluated on.
+    """Identify a receipt uniquely: the level it was evaluated on, and the
+    context it was read under.
 
     Without the level, a Level-3 measurement of a cell writes to the same name
     as its Level-1 measurement: the second is skipped as already done, or worse
     overwrites the first. The same policy measured on two test sets is two
     results, not one.
+
+    The same argument applies to the context. A cell measured on a widened
+    surface is a different measurement from the same cell on the trained one,
+    and the two have to be able to coexist -- otherwise the narrow proof holds
+    the name and the widened surface can never be proven at all. Only widened
+    cells carry the suffix, so every existing receipt keeps its name.
     """
-    return '__'.join((str(cell['level']), str(cell['scale']), str(cell['domain']),
-                      str(cell['method']), f"s{cell['seed']}"))
+    parts = [str(cell['level']), str(cell['scale']), str(cell['domain']),
+             str(cell['method']), f"s{cell['seed']}"]
+    if cell.get('context_widening'):
+        parts.append(f"w{cell['eval_config']['max_model_len']}")
+    return '__'.join(parts)
 
 
 def ranges(indices: list[int]) -> str:
@@ -148,6 +158,20 @@ def main() -> None:
                         help='skip the reproduction gate; only for debugging')
     parser.add_argument('--job-tag', default=None,
                         help='override the job-name stem, to tell cohorts apart in squeue')
+    parser.add_argument('--partition', default=None,
+                        help='override the placement partition. The site reroutes '
+                             'this script to cs regardless of --partition unless an '
+                             'account is given, so pair it with --account.')
+    parser.add_argument('--account', default=None,
+                        help='slurm account; needed for the mltheory partition')
+    parser.add_argument('--nodelist', default=None,
+                        help='pin to specific nodes, e.g. an idle one the general '
+                             'queue is not reaching')
+    parser.add_argument('--mem', default=None,
+                        help='override the sbatch memory request. The default 64G in '
+                             'the slurm script is ~6x the measured 10G a cell uses, '
+                             'which blocks scheduling on a memory-tight node while '
+                             'GPUs sit idle. Size it from seff, not from caution.')
     parser.add_argument('--exclude-domain', action='append', default=[],
                         help='hold a domain back; repeatable. Use when one '
                              'domain awaits a measurement decision and the rest '
@@ -198,12 +222,21 @@ def main() -> None:
 
     plan = []
     for gpu, indices in sorted(pending.items()):
-        placement = PLACEMENT[gpu]
+        placement = dict(PLACEMENT[gpu])
+        if args.partition:
+            placement['partition'] = args.partition
+            placement.pop('nodelist', None)
+        if args.account:
+            placement['account'] = args.account
+        if args.nodelist:
+            placement['nodelist'] = args.nodelist
         command = ['sbatch', f'--partition={placement["partition"]}']
         if 'account' in placement:
             command.append(f'--account={placement["account"]}')
         if 'nodelist' in placement:
             command.append(f'--nodelist={placement["nodelist"]}')
+        if args.mem:
+            command.append(f'--mem={args.mem}')
         command += [f'--gres=gpu:{gpu}:1',
                     f'--array={ranges(sorted(indices))}%{args.max_concurrent}',
                     f'--job-name=pmd-{args.job_tag or args.mode[:4]}-{gpu}',

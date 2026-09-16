@@ -1,0 +1,129 @@
+\subsection{Uniform versus fresh-frequency replay: registered breadth analysis}
+\label{app:frequency-replay-progress}
+
+E120-R1 changes the within-bank target weights: fresh-frequency replay
+weights retained keys in proportion to their validator-positive fresh-rollout
+counts, while matched ReplayDr.GRPO weights retained keys uniformly. Both
+arms use the same bank construction and update code; their subsequent
+policy-dependent bank contents can differ. We retain the snapshot generated
+on September 4, 2026 at 15:40:26 UTC (11:40:26 EDT): 25/45 treatment cells
+have exact step-3,072 endpoints, comprising all five Qwen2.5-0.5B domains
+on seeds 43--47. The larger-model extensions are outside this frozen analysis.
+
+\paragraph{Registered estimands and paired uncertainty.}
+Write $P=\texttt{pass@8}$, $D=\texttt{distinct@8}$, and $B=D-P$.
+For each successful eight-sample set, $B$ counts verified modes beyond its
+first correct mode; failed sets contribute zero. It is an unconditional
+extra-mode count, not diversity conditioned on equal correctness.
+The preregistered primary contrast is $\Delta B=B_{\rm uniform}-B_{\rm frequency}$;
+$\Delta P=P_{\rm uniform}-P_{\rm frequency}$ is the co-primary correctness
+endpoint. Positive effects favor uniform weighting. The registration also
+specifies all five seed values and the full five-domain mean
+(\path{paper/preregistration/e120_frequency_weighted_replay_ablation_20260902.md}).
+We compute each contrast within its matched seed. For the five-domain
+summary, we first average the five domain effects within each seed and then
+average the five resulting seed means, giving each domain equal weight.
+
+Table~\ref{tab:e120-primary-breadth} reports paired percentile bootstrap
+95\% intervals over training seeds. We enumerate all $5^5=3{,}125$ ordered
+resamples of the five paired seed records, including repetitions, and use
+linearly interpolated 2.5th and 97.5th percentiles. For the domain average,
+a resampled seed carries its entire five-domain vector, preserving the
+observed pairing across domains. Endpoints and the five-domain average were
+preregistered; the seed-resampling unit, exact enumeration, and percentile
+convention are implementation choices documented in this analysis. These
+nominal intervals use only five seeds, are not adjusted across domains or
+endpoints, and do not resample evaluation prompts or domains. They quantify
+seed variability within the fixed benchmark rather than uncertainty over a
+population of reasoning tasks.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Uniform replay retains more extra correct modes.}
+  Every row uses five paired Qwen2.5-0.5B seeds at pass 8. Effects are
+  uniform minus fresh-frequency replay; $\Delta B$ is the registered
+  extra-mode contrast and $\Delta P$ its co-primary correctness contrast.
+  Intervals are paired seed-bootstrap percentile intervals. The final row
+  averages domains within seed before estimating uncertainty.}
+  \label{tab:e120-primary-breadth}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    \textbf{Domain} & $\Delta B$ & \textbf{95\% interval}
+      & $\Delta P$ & \textbf{95\% interval} \\
+    \midrule
+    \input{results/e120_primary_breadth_table_body.tex}
+  \end{tabular}
+\end{table}
+
+Uniform replay increases extra modes by $+.596$ on Graph, $+.639$ on
+Countdown, and $+.298$ on PantryPlan; all three bootstrap intervals exclude
+zero and all five seeds have positive breadth effects in each domain.
+MathIR ($+.019$) and Python ($+.037$) remain inconclusive. The registered
+five-domain mean is $+.318$ extra modes per prompt, with interval
+$[+.272,+.358]$; all five within-seed domain averages are positive.
+The corresponding mean correctness difference is $+.010$
+($[-.119,+.139]$). That wide interval establishes neither a correctness gain
+nor noninferiority or equivalence. Table~\ref{tab:e120-primary-seeds} exposes
+the variation: Python correctness effects range from $-.781$ to $+.828$,
+whereas its extra-mode effects are small in four seeds. Thus uniform weighting
+has a breadth advantage concentrated in Graph, Countdown, and PantryPlan;
+these results do not establish universal accuracy safety or downstream utility.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{All registered paired seed effects for the weighting ablation.}
+  Each entry is $\Delta B/\Delta P$, uniform minus fresh-frequency replay.
+  The final row averages the five domains within the indicated seed.
+  Three-decimal rounding is for display; the accompanying JSON retains
+  every full-precision effect and bootstrap interval, including the registered
+  five-domain average.}
+  \label{tab:e120-primary-seeds}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    \textbf{Domain} & \textbf{Seed 43} & \textbf{Seed 44}
+      & \textbf{Seed 45} & \textbf{Seed 46} & \textbf{Seed 47} \\
+    \midrule
+    \input{results/e120_primary_breadth_seeds_table_body.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Supporting raw endpoints.}
+For continuity with the frozen result artifact,
+Table~\ref{tab:e120-frequency-progress} retains the original
+\emph{frequency-minus-uniform} sign for raw $P$ and $D$; its sign is opposite
+to the primary tables above. These raw endpoints and their existing
+Student-$t$ intervals are supporting descriptions, not substitutes for the
+registered breadth estimand and bootstrap analysis.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Supporting raw endpoints in the original contrast direction.}
+  Effects are fresh-frequency minus uniform replay on the displayed five
+  seeds. $\Delta P$ is the raw \texttt{pass@8} difference and $\Delta D$ the
+  raw \texttt{distinct@8} difference. The frozen machine-readable artifact
+  also retains paired, unadjusted 95\% Student-$t$ intervals for all five
+  terminal domain blocks.}
+  \label{tab:e120-frequency-progress}
+  \small
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    \textbf{Domain} & $n$ & \textbf{Seeds} & $\Delta P$ & $\Delta D$ \\
+    \midrule
+    \input{results/e120_frequency_progress_table_body.tex}
+  \end{tabular}
+\end{table}
+
+On this original scale, fresh-frequency replay reduces raw
+\texttt{distinct@8} on Graph by $-.6625$ ($[-.808,-.517]$), Countdown by
+$-.661$ ($[-.838,-.483]$), and PantryPlan by $-.341$ ($[-.564,-.117]$).
+MathIR is near zero, $-.014$ ($[-.160,+.132]$), while Python is heterogeneous,
+$+.040$ ($[-.926,+1.006]$). The registered primary analysis above separates
+the extra-mode component of these raw differences. It supports key balancing
+for retained sampled breadth in the stated domains, without identifying the
+survival history of any individual banked mode. Falcon3-1B and Qwen2.5-3B
+have no terminal E120-R1 cells in this frozen snapshot.
+

@@ -1,0 +1,158 @@
+{
+  "runtime": "3.11.7 (main, Dec 15 2023, 18:12:31) [GCC 11.2.0]",
+  "differences": [
+    {
+      "path": "/blocks/0/contrasts/replay_maxrl_minus_replay_drgrpo/summaries/pass8/student_t_95/0",
+      "recorded": -0.062128274095525765,
+      "python311": -0.06212827409552577,
+      "absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "path": "/blocks/0/contrasts/replay_maxrl_minus_replay_drgrpo/summaries/pass8/student_t_95/1",
+      "recorded": 0.016034524095525762,
+      "python311": 0.01603452409552577,
+      "absolute_difference": 6.938893903907228e-18
+    },
+    {
+      "path": "/blocks/0/contrasts/factorial_interaction/summaries/breadth8/student_t_95/1",
+      "recorded": -0.0034300369151455817,
+      "python311": -0.003430036915145568,
+      "absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "path": "/blocks/1/contrasts/replay_drgrpo_minus_drgrpo/summaries/mean8/student_t_95/0",
+      "recorded": -0.0770795569901874,
+      "python311": -0.07707955699018741,
+      "absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "path": "/blocks/1/contrasts/replay_drgrpo_minus_drgrpo/summaries/mean8/student_t_95/1",
+      "recorded": 0.04446236949018739,
+      "python311": 0.044462369490187406,
+      "absolute_difference": 1.3877787807814457e-17
+    },
+    {
+      "path": "/blocks/2/arm_summaries/replay_drgrpo/mean8/student_t_95/0",
+      "recorded": 0.7644896474851592,
+      "python311": 0.7644896474851594,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/2/arm_summaries/replay_drgrpo/mean8/student_t_95/1",
+      "recorded": 0.9976197275148408,
+      "python311": 0.9976197275148407,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/2/arm_summaries/replay_maxrl/distinct8/student_t_95/0",
+      "recorded": 0.5701601035956939,
+      "python311": 0.570160103595694,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/2/arm_summaries/replay_maxrl/distinct8/student_t_95/1",
+      "recorded": 1.4790586464043063,
+      "python311": 1.479058646404306,
+      "absolute_difference": 2.220446049250313e-16
+    },
+    {
+      "path": "/blocks/2/arm_summaries/replay_maxrl/breadth8/student_t_95/0",
+      "recorded": -0.2954133844239449,
+      "python311": -0.29541338442394477,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/2/arm_summaries/replay_maxrl/breadth8/student_t_95/1",
+      "recorded": 0.644632134423945,
+      "python311": 0.6446321344239447,
+      "absolute_difference": 2.220446049250313e-16
+    },
+    {
+      "path": "/blocks/2/contrasts/replay_drgrpo_minus_drgrpo/summaries/mean8/student_t_95/0",
+      "recorded": -0.048010352514840746,
+      "python311": -0.04801035251484072,
+      "absolute_difference": 2.7755575615628914e-17
+    },
+    {
+      "path": "/blocks/2/contrasts/replay_maxrl_minus_maxrl/summaries/distinct8/student_t_95/0",
+      "recorded": -0.24233989640430614,
+      "python311": -0.24233989640430603,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/2/contrasts/replay_maxrl_minus_maxrl/summaries/breadth8/student_t_95/0",
+      "recorded": -0.2954133844239449,
+      "python311": -0.29541338442394477,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/2/contrasts/replay_maxrl_minus_maxrl/summaries/breadth8/student_t_95/1",
+      "recorded": 0.644632134423945,
+      "python311": 0.6446321344239447,
+      "absolute_difference": 2.220446049250313e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_maxrl_minus_replay_drgrpo/summaries/distinct8/student_t_95/0",
+      "recorded": -0.15752103508520165,
+      "python311": -0.15752103508520168,
+      "absolute_difference": 2.7755575615628914e-17
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_maxrl_minus_replay_drgrpo/summaries/distinct8/student_t_95/1",
+      "recorded": 0.08798978508520167,
+      "python311": 0.0879897850852017,
+      "absolute_difference": 2.7755575615628914e-17
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_drgrpo_minus_drgrpo/summaries/pass8/student_t_95/0",
+      "recorded": -0.0022911965772516307,
+      "python311": -0.0022911965772517418,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_drgrpo_minus_drgrpo/summaries/pass8/student_t_95/1",
+      "recorded": 0.9874474465772516,
+      "python311": 0.9874474465772517,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_drgrpo_minus_drgrpo/summaries/distinct8/student_t_95/0",
+      "recorded": -0.0022911965772516307,
+      "python311": -0.0022911965772517418,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_drgrpo_minus_drgrpo/summaries/distinct8/student_t_95/1",
+      "recorded": 0.9874474465772516,
+      "python311": 0.9874474465772517,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_drgrpo_minus_drgrpo/summaries/mean8/student_t_95/0",
+      "recorded": 0.036874307474678014,
+      "python311": 0.0368743074746779,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_drgrpo_minus_drgrpo/summaries/mean8/student_t_95/1",
+      "recorded": 0.9814850675253219,
+      "python311": 0.981485067525322,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_maxrl_minus_maxrl/summaries/distinct8/student_t_95/0",
+      "recorded": -0.2751274238504915,
+      "python311": -0.2751274238504914,
+      "absolute_difference": 1.1102230246251565e-16
+    },
+    {
+      "path": "/blocks/3/contrasts/replay_maxrl_minus_maxrl/summaries/distinct8/student_t_95/1",
+      "recorded": 0.6243461738504915,
+      "python311": 0.6243461738504914,
+      "absolute_difference": 1.1102230246251565e-16
+    }
+  ],
+  "only_student_t_interval_last_bits": true,
+  "paper310_contract_passed": true,
+  "resolution": "Pin current-contract Makefile checks to DATA_PYTHON, preserving all numerical data and exact checks."
+}

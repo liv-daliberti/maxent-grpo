@@ -1,0 +1,42 @@
+{
+  "main_pages": 4,
+  "main_figure_pages": [
+    1,
+    2,
+    2,
+    2,
+    3,
+    3,
+    4,
+    4
+  ],
+  "main_figure3": {
+    "number": "3",
+    "page": 2
+  },
+  "appendix_figure": {
+    "number": "9",
+    "page": 20
+  },
+  "frozen_source_files": 67,
+  "diagnostics": {
+    "undefined": 0,
+    "multiply defined": 0,
+    "Overfull": 0,
+    "LaTeX Error": 0,
+    "Fatal error": 0
+  },
+  "pdf_sha256": "b26e821239fc6f7819d3202ac85cfed810132a21e69a588ba20e275eba086da8",
+  "visual_review": {
+    "reviewed_pages": [
+      2,
+      20
+    ],
+    "plot_caption_axis_and_legend_text_readable": true,
+    "marker_or_caption_clipping_observed": false,
+    "domain_backgrounds_match_figure2": true,
+    "main_python_points_overlap_at_measured_coordinates": true,
+    "canonical_workshop_files_modified": false,
+    "review_status": "isolated layout review; canonical submission validation remains separate"
+  }
+}

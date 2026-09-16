@@ -1,0 +1,13 @@
+{
+  "paper/main.tex": "e1598f8900b8c84f24c6c98644929701e742471fc0acb2e027d4a42658770f1d",
+  "paper/README.md": "3c42a796b2f676c6ea11fe92bd52689bd17370d27838a504218e0e0ce1b5d1d4",
+  "paper/Makefile": "be09a7ef8a3cc62f68c8fc5616baddb61fa3ef56092651a81c1503194130c520",
+  "paper/mathai2026/main.tex": "5c1ae33b37c7fc36e680b018a2596e9138e572a323a62d9a6f8d91e9b6f55836",
+  "paper/mathai2026/appendix.tex": "4735c4b57c1a7b42100eb19a9a8b211d302321a9a248ea54af0bccd71c6a02ca",
+  "paper/mathai2026/preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52",
+  "paper/mathai2026/README.md": "f96867900359ae112c80d02dea59131f0e9a5b6597499aedfb422cf1ea668e9d",
+  "paper/mathai2026/Makefile": "efff88d657f06f01ae9a9c5abd3017f6b90696ed9b8403c46eb309d7bdcb5289",
+  "ops/check_paper_current_contract.py": "aab59d63201a4d9d2e15a94afb929ec2d212727654a56e27fe4a35b72e10ddd8",
+  "ops/check_paper_main_length.py": "799b5c44d31ac454658f4420d33ef5a8dfa773804c8a539473aa3607c4044345",
+  "tests/test_paper_canonical_focus.py": "94f93fb759aa6ddbbdaa8708608d4d73a9ae8124ee80874efa113ea12b602137"
+}

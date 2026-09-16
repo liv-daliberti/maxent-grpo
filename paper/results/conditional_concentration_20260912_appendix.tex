@@ -34,17 +34,12 @@ monotonicity for the implemented neural optimizer or a corresponding
 monotonic decrease under finite-bank replay.
 
 \paragraph{Estimator and identifiable population.}
-For $R\ge2$ correct samples with per-key counts $n_c$, use the pair statistic
-\begin{equation}
- \widehat C=\frac{\sum_c n_c(n_c-1)}{R(R-1)}.
- \label{eq:training-collision-estimator}
-\end{equation}
-For independent samples from one fixed prompt and policy, conditioning on
-$R=r$ leaves $r$ independent correct labels with distribution $q$. Every
-ordered pair therefore agrees with probability $C(q)$, proving
-$\E[\widehat C\mid R=r]=C(q)$ for $r\ge2$. This is a promptwise identity;
-it does not prove unbiasedness after joint selection using other conditions
-or dependent prompts. We leave $R<2$ undefined, rather than assigning a
+The pair statistic is the one defined in App.~\ref{app:metric-sampling}, read
+here in the collision orientation, $\widehat C=1-\widehat{\pmd}$, over a prompt's
+$R\ge2$ correct samples: the contrast this analysis reports is about
+concentration, so the orientation that rises with it is the one to print. Its
+promptwise unbiasedness, and the limits of that identity under joint selection,
+are established there. We leave $R<2$ undefined, rather than assigning a
 concentration value to insufficient correct observations.
 
 For each paired training seed $s$, let $E_s$ contain exactly the prompts with

@@ -1,0 +1,146 @@
+[
+  {
+    "label": "app:theory-grpo-mean",
+    "illustration": "Three correct modes, equal reward, sixfold logit increments",
+    "full": {
+      "section": "A.1",
+      "page": 14
+    },
+    "workshop": {
+      "section": "E.1",
+      "page": 13
+    }
+  },
+  {
+    "label": "app:theory-collapse",
+    "illustration": "Local minority loss and the effect of breaking an exact tie",
+    "full": {
+      "section": "A.2",
+      "page": 16
+    },
+    "workshop": {
+      "section": "E.2",
+      "page": 15
+    }
+  },
+  {
+    "label": "app:theory-size",
+    "illustration": "Same correctness with different remaining breadth; positive decay exponents",
+    "full": {
+      "section": "A.3",
+      "page": 17
+    },
+    "workshop": {
+      "section": "E.3",
+      "page": 16
+    }
+  },
+  {
+    "label": "app:theory-natural-gradient",
+    "illustration": "Fisher geometry preserves ratios; replay replenishes the rare mode",
+    "full": {
+      "section": "A.4",
+      "page": 19
+    },
+    "workshop": {
+      "section": "E.4",
+      "page": 18
+    }
+  },
+  {
+    "label": "app:theory-entropy",
+    "illustration": "Exact full entropy preserves a small incorrect mass too",
+    "full": {
+      "section": "A.5",
+      "page": 21
+    },
+    "workshop": {
+      "section": "E.5",
+      "page": 20
+    }
+  },
+  {
+    "label": "app:theory-entropy-comparison",
+    "illustration": "Same conditional spread, different correctness and replay loss",
+    "full": {
+      "section": "A.6",
+      "page": 22
+    },
+    "workshop": {
+      "section": "E.6",
+      "page": 21
+    }
+  },
+  {
+    "label": "app:theory-gradient-availability",
+    "illustration": "Rare keys can receive replay despite near-certain absence from fresh groups",
+    "full": {
+      "section": "A.7",
+      "page": 23
+    },
+    "workshop": {
+      "section": "E.7",
+      "page": 22
+    }
+  },
+  {
+    "label": "app:theory-replay",
+    "illustration": "A loss barrier, inverse-length weights, and an initially improving unbanked mode",
+    "full": {
+      "section": "A.8",
+      "page": 24
+    },
+    "workshop": {
+      "section": "E.8",
+      "page": 23
+    }
+  },
+  {
+    "label": "app:theory-exemplar-bridge",
+    "illustration": "Complete-response probability and the draw budget needed to observe protection",
+    "full": {
+      "section": "A.9",
+      "page": 27
+    },
+    "workshop": {
+      "section": "E.9",
+      "page": 26
+    }
+  },
+  {
+    "label": "app:theory-optimizer",
+    "illustration": "Noise budgets and the stronger finite-horizon probability floor",
+    "full": {
+      "section": "A.10",
+      "page": 28
+    },
+    "workshop": {
+      "section": "E.10",
+      "page": 27
+    }
+  },
+  {
+    "label": "app:theory-discovery-admission",
+    "illustration": "Admission opportunities, capacity gates, and bank-switch costs",
+    "full": {
+      "section": "A.11",
+      "page": 31
+    },
+    "workshop": {
+      "section": "E.11",
+      "page": 29
+    }
+  },
+  {
+    "label": "app:theory-survival-certificates",
+    "illustration": "Sharp floors, entropy hiding missing modes, key aggregation, and finite observations",
+    "full": {
+      "section": "A.12",
+      "page": 33
+    },
+    "workshop": {
+      "section": "E.12",
+      "page": 32
+    }
+  }
+]

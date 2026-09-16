@@ -1,0 +1,10 @@
+{
+  "pptx": "/n/fs/similarity/maxent-grpo/presentation/verified_mode_support_story.pptx",
+  "manifest": "/n/fs/similarity/maxent-grpo/presentation/deck_manifest.json",
+  "validation": {
+    "slides": 15,
+    "zip_ok": true,
+    "shape_overflows": [],
+    "bytes": 1974111
+  }
+}

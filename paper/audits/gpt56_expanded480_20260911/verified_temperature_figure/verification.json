@@ -1,0 +1,14 @@
+{
+  "status": "complete",
+  "created_at_utc": "2026-09-12T01:17:11.091027+00:00",
+  "prompts": 480,
+  "responses": 19200,
+  "native_and_grade_reconstruction_passed": true,
+  "source_reconstruction_log": "paper/audits/level3_neutral_repair_20260911/parent_rebuild_settled.log",
+  "bindings": {
+    "paper/figures/gpt56_temperature_curve.pdf": "7fd54ac51ae7a82116cf911bf394786babb5f9f3862d57143daab58c1a9bad07",
+    "paper/figures/gpt56_temperature_curve.png": "db93872fb911a61fa42ce5f8d10a2bb08c39c65dca1db22e32ce81e9531e8efa",
+    "paper/figures/gpt56_temperature_curve.json": "2851936a8ced6d28c66c3026aa0d77de4fc24e6b35dfbc761a36ede535dce01d",
+    "paper/results/gpt56_temperature_curve_20260911_appendix.tex": "4be27126952dd86936f51742295058c9163e92310e553f28bf72ff64db3b39aa"
+  }
+}

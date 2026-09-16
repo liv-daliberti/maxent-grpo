@@ -1,0 +1,250 @@
+{
+  "status": "PASS",
+  "cases": 24,
+  "scope": "Numerical corroboration of independent full-probability ODE/reduced closed-form solutions, not a proof or neural-optimizer experiment.",
+  "max_q_error": 2.4503399309594442e-11,
+  "max_P_error": 9.91994264509799e-11,
+  "max_fisher_identity_error": 5.065392549852277e-16,
+  "records": [
+    {
+      "m": 2,
+      "n": 1,
+      "bank_size": 1,
+      "kind": "DrGRPO",
+      "rho": 0.0,
+      "q_closed_form_max_error": 3.885780586188048e-16,
+      "P_reduction_max_error": 5.590972129709826e-12,
+      "fisher_pseudoinverse_error": 6.938893903907228e-18
+    },
+    {
+      "m": 2,
+      "n": 1,
+      "bank_size": 1,
+      "kind": "DrGRPO",
+      "rho": 0.03,
+      "q_closed_form_max_error": 8.767431225464861e-12,
+      "P_reduction_max_error": 6.149436515556772e-11,
+      "fisher_pseudoinverse_error": 1.942890293094024e-16
+    },
+    {
+      "m": 2,
+      "n": 1,
+      "bank_size": 1,
+      "kind": "DrGRPO",
+      "rho": 0.7,
+      "q_closed_form_max_error": 6.79067913011977e-13,
+      "P_reduction_max_error": 5.455302876100632e-12,
+      "fisher_pseudoinverse_error": 2.220446049250313e-16
+    },
+    {
+      "m": 2,
+      "n": 1,
+      "bank_size": 1,
+      "kind": "MaxRL",
+      "rho": 0.0,
+      "q_closed_form_max_error": 2.220446049250313e-16,
+      "P_reduction_max_error": 5.525691015861867e-12,
+      "fisher_pseudoinverse_error": 3.885780586188048e-16
+    },
+    {
+      "m": 2,
+      "n": 1,
+      "bank_size": 1,
+      "kind": "MaxRL",
+      "rho": 0.03,
+      "q_closed_form_max_error": 1.9980544996300864e-14,
+      "P_reduction_max_error": 5.504485756091526e-12,
+      "fisher_pseudoinverse_error": 5.551115123125783e-17
+    },
+    {
+      "m": 2,
+      "n": 1,
+      "bank_size": 1,
+      "kind": "MaxRL",
+      "rho": 0.7,
+      "q_closed_form_max_error": 3.2657765380861292e-12,
+      "P_reduction_max_error": 5.494271704264975e-12,
+      "fisher_pseudoinverse_error": 3.3306690738754696e-16
+    },
+    {
+      "m": 3,
+      "n": 2,
+      "bank_size": 2,
+      "kind": "DrGRPO",
+      "rho": 0.0,
+      "q_closed_form_max_error": 2.220446049250313e-16,
+      "P_reduction_max_error": 9.91994264509799e-11,
+      "fisher_pseudoinverse_error": 1.1102230246251565e-16
+    },
+    {
+      "m": 3,
+      "n": 2,
+      "bank_size": 2,
+      "kind": "DrGRPO",
+      "rho": 0.03,
+      "q_closed_form_max_error": 8.270217843886485e-12,
+      "P_reduction_max_error": 6.251488215980316e-11,
+      "fisher_pseudoinverse_error": 8.326672684688674e-17
+    },
+    {
+      "m": 3,
+      "n": 2,
+      "bank_size": 2,
+      "kind": "DrGRPO",
+      "rho": 0.7,
+      "q_closed_form_max_error": 2.4503399309594442e-11,
+      "P_reduction_max_error": 1.3027690037858974e-11,
+      "fisher_pseudoinverse_error": 3.885780586188048e-16
+    },
+    {
+      "m": 3,
+      "n": 2,
+      "bank_size": 2,
+      "kind": "MaxRL",
+      "rho": 0.0,
+      "q_closed_form_max_error": 3.3306690738754696e-16,
+      "P_reduction_max_error": 5.593969731876314e-12,
+      "fisher_pseudoinverse_error": 3.0531133177191805e-16
+    },
+    {
+      "m": 3,
+      "n": 2,
+      "bank_size": 2,
+      "kind": "MaxRL",
+      "rho": 0.03,
+      "q_closed_form_max_error": 4.717892743144603e-13,
+      "P_reduction_max_error": 5.536904268410581e-12,
+      "fisher_pseudoinverse_error": 1.1102230246251565e-16
+    },
+    {
+      "m": 3,
+      "n": 2,
+      "bank_size": 2,
+      "kind": "MaxRL",
+      "rho": 0.7,
+      "q_closed_form_max_error": 2.428224288308911e-12,
+      "P_reduction_max_error": 5.4042326169678745e-12,
+      "fisher_pseudoinverse_error": 1.249000902703301e-16
+    },
+    {
+      "m": 5,
+      "n": 3,
+      "bank_size": 4,
+      "kind": "DrGRPO",
+      "rho": 0.0,
+      "q_closed_form_max_error": 2.7755575615628914e-16,
+      "P_reduction_max_error": 6.870248814294655e-11,
+      "fisher_pseudoinverse_error": 1.5265566588595902e-16
+    },
+    {
+      "m": 5,
+      "n": 3,
+      "bank_size": 4,
+      "kind": "DrGRPO",
+      "rho": 0.03,
+      "q_closed_form_max_error": 3.1190605653819148e-12,
+      "P_reduction_max_error": 3.8428704662862856e-11,
+      "fisher_pseudoinverse_error": 1.1102230246251565e-16
+    },
+    {
+      "m": 5,
+      "n": 3,
+      "bank_size": 4,
+      "kind": "DrGRPO",
+      "rho": 0.7,
+      "q_closed_form_max_error": 1.0212941603526815e-12,
+      "P_reduction_max_error": 5.435429883959841e-12,
+      "fisher_pseudoinverse_error": 1.942890293094024e-16
+    },
+    {
+      "m": 5,
+      "n": 3,
+      "bank_size": 4,
+      "kind": "MaxRL",
+      "rho": 0.0,
+      "q_closed_form_max_error": 2.7755575615628914e-16,
+      "P_reduction_max_error": 5.5960791556231015e-12,
+      "fisher_pseudoinverse_error": 8.326672684688674e-17
+    },
+    {
+      "m": 5,
+      "n": 3,
+      "bank_size": 4,
+      "kind": "MaxRL",
+      "rho": 0.03,
+      "q_closed_form_max_error": 3.45330535000965e-13,
+      "P_reduction_max_error": 5.517808432387028e-12,
+      "fisher_pseudoinverse_error": 1.1102230246251565e-16
+    },
+    {
+      "m": 5,
+      "n": 3,
+      "bank_size": 4,
+      "kind": "MaxRL",
+      "rho": 0.7,
+      "q_closed_form_max_error": 1.768307722471718e-12,
+      "P_reduction_max_error": 5.471290087655234e-12,
+      "fisher_pseudoinverse_error": 5.065392549852277e-16
+    },
+    {
+      "m": 7,
+      "n": 1,
+      "bank_size": 6,
+      "kind": "DrGRPO",
+      "rho": 0.0,
+      "q_closed_form_max_error": 1.3877787807814457e-16,
+      "P_reduction_max_error": 5.5101478935171144e-12,
+      "fisher_pseudoinverse_error": 6.938893903907228e-17
+    },
+    {
+      "m": 7,
+      "n": 1,
+      "bank_size": 6,
+      "kind": "DrGRPO",
+      "rho": 0.03,
+      "q_closed_form_max_error": 2.4424906541753444e-14,
+      "P_reduction_max_error": 5.416889159448601e-12,
+      "fisher_pseudoinverse_error": 2.949029909160572e-17
+    },
+    {
+      "m": 7,
+      "n": 1,
+      "bank_size": 6,
+      "kind": "DrGRPO",
+      "rho": 0.7,
+      "q_closed_form_max_error": 6.513123373963481e-13,
+      "P_reduction_max_error": 5.4853899200679734e-12,
+      "fisher_pseudoinverse_error": 1.942890293094024e-16
+    },
+    {
+      "m": 7,
+      "n": 1,
+      "bank_size": 6,
+      "kind": "MaxRL",
+      "rho": 0.0,
+      "q_closed_form_max_error": 3.3306690738754696e-16,
+      "P_reduction_max_error": 5.56599211165576e-12,
+      "fisher_pseudoinverse_error": 7.37257477290143e-17
+    },
+    {
+      "m": 7,
+      "n": 1,
+      "bank_size": 6,
+      "kind": "MaxRL",
+      "rho": 0.03,
+      "q_closed_form_max_error": 2.917110997202599e-14,
+      "P_reduction_max_error": 5.432099214885966e-12,
+      "fisher_pseudoinverse_error": 5.4643789493269423e-17
+    },
+    {
+      "m": 7,
+      "n": 1,
+      "bank_size": 6,
+      "kind": "MaxRL",
+      "rho": 0.7,
+      "q_closed_form_max_error": 3.053668429231493e-13,
+      "P_reduction_max_error": 5.42477174292344e-12,
+      "fisher_pseudoinverse_error": 1.6653345369377348e-16
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+% Standalone fragment: requires amsmath, amssymb, amsthm, hyperref,
+% and a theorem environment. No labels from either manuscript are required.
+\paragraph{Stochastic retention with a controlled energy budget.}
+The argument combines a standard variable-metric descent estimate
+(\href{https://doi.org/10.1137/15M1053141}{Wang et al., 2017, Section 2})
+with the nonnegative-supermartingale maximal inequality
+(\href{https://doi.org/10.1214/18-PS321}{Howard et al., 2020, Lemma 1}).
+The probability consequence for protected exemplars is derived here; it is
+not an existing theorem about Adam or language-model replay.
+
+\begin{theorem}[Optimizer-aware conditional exemplar retention]
+Fix finitely many complete verified responses $(x_j,e_j)$ with keys $b_j$,
+lengths $L_j>0$, and weights $\alpha_j>0$. Let
+\[
+ R(\theta)=\sum_j\frac{\alpha_j}{L_j}
+             [-\log\pi_\theta(e_j\mid x_j)],\qquad
+ F(\theta)=R(\theta)-J(\theta),\qquad J(\theta)\le J_{\max}<\infty.
+\]
+Assume $F$ is differentiable with globally $L_F$-Lipschitz gradient,
+and take deterministic $\theta_0$ with finite $F(\theta_0)$. Relative to a filtration
+$(\mathcal F_t)$, consider
+\[
+ \theta_{t+1}=\theta_t-\eta_t H_t(g_t+b_t+\xi_t),\qquad
+ g_t=\nabla F(\theta_t).
+\]
+Here $\theta_t,\eta_t,H_t,b_t$ are $\mathcal F_t$-measurable,
+$0\preceq H_t\preceq MI$, $\eta_t>0$, $\eta_tL_FM\le1$, and
+$\mathbb E[\xi_t\mid\mathcal F_t]=0$ with finite conditional second moment.
+Suppose deterministic numbers $d_t\ge0$ bound
+\[
+ \frac{\eta_t}{2}\|b_t\|_{H_t}^2
+ +\frac{L_F\eta_t^2}{2}
+       \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\le d_t,
+ \qquad \|u\|_H^2=u^\top Hu.
+\]
+For $N\in\mathbb N\cup\{\infty\}$ with
+$B_N=\sum_{t<N}d_t<\infty$, put
+$D_0=F(\theta_0)+J_{\max}\ge0$. For every $0<\delta<1$,
+\[
+ \Pr\!\left(
+  \forall t\le N,\ \forall j:\quad
+  p_{\theta_t}(b_j\mid x_j)
+  \ge\pi_{\theta_t}(e_j\mid x_j)
+  \ge\exp\!\left[-\frac{L_j(D_0+B_N)}{\alpha_j\delta}\right]
+ \right)\ge1-\delta.
+\]
+When $N=\infty$, each protected probability also has an almost surely
+positive, potentially random, infimum over all iterations.
+\end{theorem}
+
+\begin{proof}
+Smoothness, conditional centering of $\xi_t$, and
+$H_t^2\preceq MH_t$ give
+\begin{align*}
+ \mathbb E[F(\theta_{t+1})\mid\mathcal F_t]
+ &\le F(\theta_t)-\eta_tg_t^\top H_t(g_t+b_t)
+       +\frac{\eta_t}{2}\|g_t+b_t\|_{H_t}^2
+       +\frac{L_F\eta_t^2}{2}
+          \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\\
+ &\le F(\theta_t)-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+d_t.
+\end{align*}
+The cross term involving $b_t$ cancels on expanding the square.
+Since $F+J_{\max}\ge R\ge0$, the adapted process
+\[
+ X_t=F(\theta_t)+J_{\max}+\sum_{s=t}^{N-1}d_s
+\]
+is a nonnegative supermartingale; for $N=\infty$ use the infinite tail.
+Its initial value is $D_0+B_N$. The maximal inequality yields
+$\Pr(\sup_{t\le N}X_t\ge(D_0+B_N)/\delta)\le\delta$.
+If $D_0+B_N=0$, nonnegativity instead gives $X_t=0$ almost surely.
+Every nonnegative summand of $R(\theta_t)\le X_t$ obeys the same bound,
+and exponentiation proves the simultaneous exemplar floors without a
+union factor over $j$. Each complete-exemplar event is contained in its
+verified-key event. For $N=\infty$, the same maximal inequality, with a
+threshold tending to infinity, gives $\sup_tX_t<\infty$ almost surely.
+\end{proof}
+
+\paragraph{Finite and infinite horizons are different.}
+Unbiased bounded-variance updates have $d_t=O(\eta_t^2)$; square-summable
+steps therefore suffice for the infinite-horizon energy budget.
+A persistent bias instead costs $O(\eta_t\|b_t\|^2)$.
+Constant steps and persistent variance give only the stated finite-horizon
+bound unless additional structure controls accumulated noise.
+No positive lower eigenvalue of $H_t$ is needed for retention alone;
+this theorem does not assert parameter convergence or optimality.
+The likelihood must include the complete response and termination event
+under the sampling law whose key probability is bounded.
+
+\paragraph{Scope for adaptive implementations.}
+A current-gradient Adam second moment is not predictable with respect to
+that gradient's noise, and momentum, clipping, bank changes and cyclic
+prompt scheduling need separate error or energy control. Positive replay
+weight and a small nominal learning rate do not verify these assumptions.
+\href{https://arxiv.org/html/1904.09237v1}{Reddi et al. (2018)} provide
+counterexamples to unrestricted Adam convergence; this does not itself
+prove replay failure in the present application. The bound above is
+conditional and can be numerically weak, particularly for long exemplars
+or small replay weights.

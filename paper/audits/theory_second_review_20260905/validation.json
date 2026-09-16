@@ -1,0 +1,207 @@
+{
+  "status": "PASS",
+  "validated_at_utc": "2026-09-05T21:30:04.531618+00:00",
+  "scope": "Second theory review only; final presentation edits retain independently reviewed mathematics.",
+  "build_checks": {
+    "full": {
+      "required_build_passed": true,
+      "main_text_pages": 9,
+      "references_start_page": 10,
+      "final_latex_log_no_overfull_or_unresolved_references": true
+    },
+    "workshop": {
+      "required_build_passed": true,
+      "main_text_pages": 4,
+      "references_start_page": 5,
+      "final_latex_log_no_overfull_or_unresolved_references": true
+    },
+    "source_bundle": {
+      "files": 42,
+      "all_entries_match_current_files": true
+    }
+  },
+  "core_theory_identical_except_two_document_cross_references": true,
+  "main_prose_blocks_checked": 197,
+  "visual_inspection_sections": [
+    "exact entropy and bounded sampled scores",
+    "complete-response scope and finite evaluation visibility"
+  ],
+  "bibliography_unchanged_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+  "workshop_main_text_unchanged": true,
+  "frozen_asset_count": 28,
+  "frozen_assets_unchanged": true,
+  "proof_verification": {
+    "collapse_rate_cases": 20,
+    "collapse_rate_max_late_interval_slope_error": 1.865174681370263e-14,
+    "entropy_gradient_cases": 48,
+    "entropy_gradient_max_finite_difference_error": 7.48619777279913e-11,
+    "minimum_logit_barrier_cases": 48,
+    "historical_predictor_singleton_cases": 5,
+    "finite_group_leakage_cases": 36,
+    "bounded_score_expectation_cases": 9,
+    "implementation_source_sha256": "9beb17aaf73f6023e5b2bfbbb847f8ebaf0e65721b83eecd45f1979f3d5d2b6d"
+  },
+  "files": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
+      "bytes": 150715
+    },
+    {
+      "path": "paper/main.pdf",
+      "sha256": "9dfca724a66fc07fe9c292313922047050309b71272706043af0864ec00ca083",
+      "bytes": 910516,
+      "pages": 42
+    },
+    {
+      "path": "paper/mathai2026/main.tex",
+      "sha256": "5ce26f5259c0cf685514d040f3dd028ca40898a56b23200edb32d15a6061a11e",
+      "bytes": 11060
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "sha256": "2106ad9d3ddb53d68ee931b42b6c24a8cf5be8ceb5f98bcabfdb8806871aaacf",
+      "bytes": 137592
+    },
+    {
+      "path": "paper/mathai2026/main.pdf",
+      "sha256": "368a14787b7437691bf4ecdef5b147b82cb01a7a1ffd82be0c20d15c58cb2c90",
+      "bytes": 987318,
+      "pages": 43
+    },
+    {
+      "path": "paper/mathai2026/snapshot.json",
+      "sha256": "7694cef5307a87f3a4c756005fc94558699f48aad064f7ca3dca11b4390fac34",
+      "bytes": 11214
+    },
+    {
+      "path": "paper/mathai2026/mathai2026-source.zip",
+      "sha256": "48111e9dc857a33581a834a512c1739789cfc599c8b59dd0d4810e150afeef62",
+      "bytes": 652019
+    },
+    {
+      "path": "paper/audits/theory_second_changes_20260905.patch",
+      "sha256": "3828211eca7a2c4ebb642ec4c42904c3617bfd58a4644f6c507a5129339d7487",
+      "bytes": 51410
+    },
+    {
+      "path": "paper/audits/theory_second_review_20260905.md",
+      "sha256": "d1c61b5b7e88743bdf40e8ef41a2d0edd035eeddb533eb952a68f8c5c1a70e9b",
+      "bytes": 12911
+    }
+  ],
+  "frozen_assets": [
+    {
+      "path": "example_paper.bib",
+      "sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d"
+    },
+    {
+      "path": "figures/baseline_collapse_precheck.pdf",
+      "sha256": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84"
+    },
+    {
+      "path": "figures/direct_baseline_learning_curves_static_strip.pdf",
+      "sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d"
+    },
+    {
+      "path": "figures/direct_comparator_endpoint_effects.pdf",
+      "sha256": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633"
+    },
+    {
+      "path": "figures/e118_all_scale_factorial_progress.pdf",
+      "sha256": "243da8937637b24271f184ecc0312e3b5431494f7061a38b45f38a2eea0122d6"
+    },
+    {
+      "path": "figures/e118_scale_extensions_appendix.pdf",
+      "sha256": "615bec3c98d0c1bfb36b1896661052e765ea6cd4af7dc6b0ef825440fd1fa964"
+    },
+    {
+      "path": "figures/experiment1_retention_comparator_matrix.pdf",
+      "sha256": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb"
+    },
+    {
+      "path": "figures/modebench_examples.pdf",
+      "sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6"
+    },
+    {
+      "path": "figures/modebench_level_admission.pdf",
+      "sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7"
+    },
+    {
+      "path": "figures/modecollapse_story.pdf",
+      "sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965"
+    },
+    {
+      "path": "figures/replay_mechanism_telemetry_qwen05b.pdf",
+      "sha256": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14"
+    },
+    {
+      "path": "figures/sustained_auc_effects_qwen05b.pdf",
+      "sha256": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba"
+    },
+    {
+      "path": "figures/verified_support_discovery_two_scale_effects.pdf",
+      "sha256": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a"
+    },
+    {
+      "path": "figures/verified_support_story.pdf",
+      "sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09"
+    },
+    {
+      "path": "results/absolute_support_references_table_body.tex",
+      "sha256": "c42b4c64d6d2c743bd99a2e87eddc8a280ce4760420b72a660f09e04dd518f31"
+    },
+    {
+      "path": "results/baseline_collapse_precheck_table_body.tex",
+      "sha256": "1e5b8fce5f904a2bb50082e2fa86e5239af40f2f256674e854324c9fe1b693a9"
+    },
+    {
+      "path": "results/core_terminal_endpoints_table_body.tex",
+      "sha256": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189"
+    },
+    {
+      "path": "results/e120_frequency_progress_table_body.tex",
+      "sha256": "d353706bda93667ceeac8749cee16ced53a4f182e3d7e425c57749acc93679bd"
+    },
+    {
+      "path": "figures/baseline_collapse_precheck.json",
+      "sha256": "3a6d185553a3846215d6d54c7956417df44f67780937b7ad2fd8fbdf6e17398c"
+    },
+    {
+      "path": "figures/direct_baseline_learning_curves_static_strip.json",
+      "sha256": "05206086602080a88d4f470d167984589e745ad918e1c7d5b14991d988d873d5"
+    },
+    {
+      "path": "figures/direct_comparator_endpoint_effects.json",
+      "sha256": "00a2994663c3118d89cdf6a07a7b386f0672af7294d98726145f4d1f449ff8b2"
+    },
+    {
+      "path": "figures/e118_all_scale_factorial_progress.json",
+      "sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d"
+    },
+    {
+      "path": "figures/e118_scale_extensions_appendix.json",
+      "sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d"
+    },
+    {
+      "path": "figures/experiment1_retention_comparator_matrix.json",
+      "sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221"
+    },
+    {
+      "path": "figures/modebench_level_admission.json",
+      "sha256": "33316b0553134d08c9952253e258b5ad74d96846381f19d049e707b43ff8e611"
+    },
+    {
+      "path": "figures/replay_mechanism_telemetry_qwen05b.json",
+      "sha256": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf"
+    },
+    {
+      "path": "figures/sustained_auc_effects_qwen05b.json",
+      "sha256": "937bea939e93ab33731322c0ca752a62d14e90d8b061d69424f66e0810031cf7"
+    },
+    {
+      "path": "figures/verified_support_discovery_two_scale_effects.json",
+      "sha256": "595bebe294aa8f528adb024c9f05f9fe64716aada4055e0fc9f9538c6165fd2c"
+    }
+  ]
+}

@@ -1,0 +1,231 @@
+\input{preamble}
+\title{Mode Collapse in RLVR \& ModeBench}
+\author{Anonymous Authors}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Correctness alone cannot reveal whether a model keeps producing the same
+successful solution. \mb{} makes verified output identity executable across
+five domains. Saved training outputs reveal increased conditional concentration
+in Graph and PantryPlan under GRPO and Dr.GRPO across three model scales.
+Canonical replay reduces this concentration and improves domain-average
+held-out correctness and sampled breadth in controlled comparisons.
+A categorical analysis explains a concentration pressure and a conditional
+replay guarantee; a key-weighting experiment tests the proposed intervention.
+Hosted evaluations establish broader relevance, while harder tasks and
+sampling sensitivities delimit the findings.
+\end{abstract}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/concentration_story.pdf}
+\caption{\textbf{Training concentrates correct outputs; replay can reduce concentration.}
+Graph and PantryPlan at three scales. Before/after contrasts compare each
+baseline with its own initial checkpoint; replay contrasts hold the fresh
+objective fixed. Primary estimates and disjoint-stream sensitivities retain
+separate eligible populations. Intervals describe five measured seed means;
+full populations, coverage, and exceptions appear in
+Appendix~\ref{app:conditional-concentration}.}
+\label{fig:concentration-story}
+\end{figure}
+
+\section{\mb{} separates success from concentration}
+\label{sec:introduction}\label{sec:modebench}
+Mathematical agents need alternative successful computations for search and
+cross-checking \citep{brown2024monkeys,snell2024testtime}. Binary rewards in
+reinforcement learning with verifiable rewards (RLVR) distinguish success
+from failure, but give familiar and newly discovered successes the same reward
+\citep{guo2025deepseekr1}. We therefore measure both whether a model succeeds
+and which successful outputs it proposes.
+
+\href{https://huggingface.co/datasets/od2961/ModeBench}{\mb{}} assigns accepted
+outputs canonical keys: computation routes in Countdown and MathIR, tested
+behaviors in Python, and configurations in Graph and PantryPlan.
+Cosmetic aliases merge; different routes may share an answer
+(Appendix~\ref{app:domain-overview}). These task-defined modes do not identify
+latent reasoning or total policy support.
+
+
+
+For a fixed prompt, let $P$ be correct-output probability and $q_c$ the
+conditional probability of correct key $c$, defined when $P>0$.
+\texttt{pass@8} estimates the chance of any success; \texttt{distinct@8}
+estimates the number of different verified modes found in eight attempts.
+Their difference counts \emph{extra modes} beyond the first success and
+remains coupled to correctness. Correct-pair collision separates the
+conditional distribution conceptually:
+\begin{equation}
+ C(q)=\sum_c q_c^2,\qquad B_2=2P-P^2C(q),
+ \label{eq:workshop-collision-bridge}
+\end{equation}
+where $B_2$ is expected breadth in two independent attempts.
+At fixed $P$, lower collision means higher $B_2$; observed collision one
+only means the sampled correct outputs share a key
+(Appendix~\ref{app:conditional-concentration}).
+
+
+
+\section{Observed concentration and a replay response}
+\label{sec:collapse}\label{sec:method}\label{sec:replay}\label{sec:maxrl-method}
+\textbf{Concentration rises in the clearest measurable domains.}
+Across Graph and PantryPlan, all twelve GRPO/Dr.GRPO before/after comparisons
+show increased collision, with nominal intervals above zero
+(Figure~\ref{fig:concentration-story}). Per-sample correctness also rises on
+these same eligible prompts. Both disjoint-stream orientations agree in
+eleven comparisons; Falcon Graph with GRPO is the exception. Python's initial
+outputs provide no jointly eligible prompts, some Countdown comparisons have
+only one or two per seed, and several MathIR conditions already have observed
+collision one. The evidence supports concentration in the stated tasks,
+without identifying literal disappearance of modes.
+
+\textbf{The diagnostic requires an explicit sampling population.}
+With $R\ge2$ correct observations and key counts $n_c$, we use
+$\widehat C=\sum_c n_c(n_c-1)/[R(R-1)]$. Under a fixed prompt and iid sampling,
+$\E[\widehat C\mid R]=C$. Saved sampling groups reuse nominal random streams:
+four groups of eight yield eleven distinct identifiers under the audited
+sampler mapping. We select the earliest output per identifier without
+consulting its key. Paired means weight jointly eligible prompts equally,
+then training seeds equally. Disjoint 5/6-stream orientations and fixed-prompt
+sensitivities remain descriptive because streams also recur across prompts.
+The retrospective analysis and a source-census extension made after its first
+results are documented in Appendix~\ref{app:conditional-concentration}.
+
+\textbf{Conditional theory explains a pressure that replay can oppose.}
+Fix one isolated prompt with finitely many categories, at least two correct
+and one incorrect, finite initial logits ($0<P<1$), and groups of size $G\ge2$.
+With independent canonical-outcome logits, Euclidean infinitesimal on-policy
+updates, common length normalization, and no KL penalty, the categorical
+mean updates for Dr.GRPO and the implemented MaxRL estimator induce the
+same conditional flow up to positive time scaling:
+\begin{equation}
+ \frac{dq_c}{d\tau}=q_c(q_c-C),\qquad
+ \frac{dC}{d\tau}=2\operatorname{Var}_{c\sim q}(q_c)\ge0.
+ \label{eq:workshop-collision-flow}
+\end{equation}
+Unequal positive masses therefore become more concentrated; a unique leading
+correct mode attracts the conditional mass asymptotically. This is a theorem
+about the specified geometry, rather than a guarantee for neural optimization
+(Appendices~\ref{app:theory-grpo-mean}--\ref{app:theory-collapse}).
+
+We retain one policy-generated exemplar $e_c$ for each admitted key in a
+prompt-specific bank $\mathcal B_x$. For a nonempty bank, replay averages
+their token-normalized log likelihoods:
+\begin{equation}
+ L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+\end{equation}
+ReplayDr.GRPO uses Dr.GRPO for fresh updates \citep{liu2025understanding};
+ReplayMaxRL uses MaxRL \citep{tajwar2026maxrl}. Equal key weights revisit modes
+regardless of discovery frequency. In the categorical geometry, positive
+fixed-bank replay weights bound admitted probabilities away from zero.
+The neural loss and growing bank do not inherit that unconditional guarantee;
+undiscovered modes receive no replay
+(Appendices~\ref{app:theory-replay},~\ref{app:algorithm}).
+
+\textbf{Replay changes the observed conditional distribution.}
+ReplayDr.GRPO lowers collision in all six Graph/PantryPlan comparisons, with
+both disjoint orientations agreeing. MaxRL replay also lowers primary
+collision in these tasks, but Falcon and 3B Graph have split-direction
+exceptions. Eligible-prompt per-sample correctness falls in these replay
+comparisons. Lower collision therefore does not mean correctness was held
+fixed, nor that the initial distribution was recovered; the full-test
+correctness and breadth outcomes below answer a separate question.
+
+\section{Controlled tests of canonical replay}
+\label{sec:experiments}\label{sec:results}
+Five registered seeds train for eight passes. Each domain has 128 held-out
+prompts with four intact eight-output groups; held-out outputs never enter
+the bank. No-replay controls run the same bank code with zero replay gradient.
+We cross the fresh objective (Dr.GRPO or MaxRL) with replay at
+Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B. Thus replay effects compare the
+same fresh objective, and estimator effects compare the same replay condition.
+Direct GRPO, UCPO \citep{lochab2026ucpo}, success-replay, and semantic-entropy
+comparisons remain in Appendix~\ref{app:supporting}.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/replay_factorial_effects.pdf}
+\caption{\textbf{Replay effects on full-test success and sampled breadth.}
+Terminal replay-minus-control contrasts hold Dr.GRPO or MaxRL fixed across
+all five domains and three scales. Every MaxRL cell has five paired seeds;
+one Dr.GRPO cell has four. Domain averages use shared seeds. These outcomes
+use all held-out prompts, unlike collision's eligible populations.
+Appendix~\ref{app:current-campaign-results} retains exact cohorts and intervals.}
+\label{fig:replay-factorial-effects}
+\end{figure}
+
+\textbf{Replay complements both fresh objectives on average.}
+\label{sec:results-retention}\label{sec:results-maxrl}
+Replay increases domain-average \texttt{pass@8} and \texttt{distinct@8} under
+both objectives at every scale (Figure~\ref{fig:replay-factorial-effects}).
+All fifteen MaxRL domain-by-scale comparisons have five paired seeds.
+At 3B, its five-domain means rise from $.547$ to $.701$ for \texttt{pass@8}
+and $.744$ to $1.107$ for \texttt{distinct@8} with replay.
+The factorial also exposes exceptions: Falcon Graph has lower sampled
+breadth under ReplayMaxRL despite slightly higher \texttt{pass@8}.
+Neither the averages nor higher raw breadth establish uniform conditional
+deconcentration across domains.
+
+\textbf{Weighting keys equally changes what replay preserves.}
+A matched Qwen2.5-0.5B experiment fixes the fresh objective and compares
+uniform key weights with weights proportional to fresh discovery frequency.
+Uniform weighting adds $.318$ extra modes on the five-domain mean, with paired
+bootstrap interval $[.272,.358]$; its \texttt{pass@8} contrast is $.010$ with
+interval $[-.119,.139]$ (Figure~\ref{fig:replay-key-weighting}).
+This supports balancing discovered keys rather than repeatedly following
+their observed frequency. The wide correctness interval does not establish
+accuracy equivalence, and extra modes remain correctness-coupled
+(Appendix~\ref{app:frequency-replay-progress}).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/replay_key_weighting.pdf}
+\caption{\textbf{Uniform versus frequency-weighted replay.}
+Paired Qwen2.5-0.5B contrasts show \texttt{pass@8} and extra modes in each
+domain and the equal-domain mean. Intervals use paired-seed bootstrap with
+five seeds; the mean resamples whole seed vectors, not domains as independent
+replicates. Uniform weighting increases average extra modes, while its
+average correctness effect remains uncertain.}
+\label{fig:replay-key-weighting}
+\end{figure}
+
+\section{Hosted relevance and harder-task limits}
+\label{sec:hosted-concentration}\label{sec:results-levels}
+Seven hosted deployments evaluated across five domains and three levels
+also produce accurate but concentrated outputs, particularly in Graph and
+MathIR (Appendix~\ref{app:hosted-comparison},
+Figure~\ref{fig:hosted-verified-breadth}). A separate no-reasoning GPT
+temperature sweep improves aggregate success and breadth through $T=1.5$
+(Appendix~\ref{app:gpt56-temperature}). These observations establish the
+relevance of verified alternatives beyond the training suite. Different
+provider and prompt settings prevent a common-prompt ranking or an inference
+about which training procedure caused a deployment's concentration.
+
+Level 2 keeps validators and canonical keys while using harder task
+instances. Four complete five-seed factorials show positive mean replay
+effects on success and sampled breadth within that level; PantryPlan remains
+partial (Appendix~\ref{app:level2-interim}). Its sparse concentration
+contrasts include increases under replay. Level construction and evaluation
+populations differ, so the within-level comparisons do not identify a causal
+effect of increasing difficulty.
+
+\textbf{Conclusion and limits.}
+\label{sec:conclusion}\label{sec:discussion}\label{sec:limitations}
+\mb{} makes success and verified-output concentration separately observable.
+The training suite supplies evidence of concentration and a controlled
+replay response; the conditional theory explains why preserving discovered
+keys can matter. Replay improves average full-test success and sampled
+breadth, but benefits vary by task, metric, and observable population.
+Finite outputs cannot establish total support, recover every rare mode, or
+validate the categorical guarantee for neural training.
+\label{main:lastpage}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{example_paper}
+\clearpage
+\appendix
+\input{appendix}
+\end{document}

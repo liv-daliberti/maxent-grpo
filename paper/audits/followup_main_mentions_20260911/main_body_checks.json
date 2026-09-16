@@ -1,0 +1,16 @@
+{
+  "paper/main.tex": {
+    "source_sha256": "006fd1a0e83c941588d24feac7037b11e8102cf8eee2a90ca9a198c0fb914ce6",
+    "prompt_reference_in_main": true,
+    "sampling_reference_in_main": true,
+    "selected_level2_level3_scope": true,
+    "fresh_64_draw_result": true
+  },
+  "paper/mathai2026/main.tex": {
+    "source_sha256": "f46c6332666e78be432c2c6baff4ae608c34c06dcb45700c4d043732c5231d14",
+    "prompt_reference_in_main": true,
+    "sampling_reference_in_main": true,
+    "selected_level2_level3_scope": true,
+    "fresh_64_draw_result": true
+  }
+}

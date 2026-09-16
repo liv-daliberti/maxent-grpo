@@ -1,0 +1,13 @@
+{
+  "status": "workshop_build_passed",
+  "exit_code": 0,
+  "main_pages": 4,
+  "bindings": {
+    "paper/mathai2026/main.pdf": "d77331848aacec4b9e792fdd0537b3ce4c1f474fa0cba3fbcfddfc838fb65e89",
+    "paper/mathai2026/build_receipt.json": "cdd09fca9e650775aa63730171d2e2ac7ec4434ec069bd8f5d5cb825e331941a",
+    "paper/mathai2026/snapshot.json": "cdf2cd1eea43ea5a9bb8cdeeb9cbce3909ee69873888a3b1443dbf3ba4592279",
+    "paper/mathai2026/mathai2026-source.zip": "41ebaf3ab10f19783b7a5f832aac3c698822638ab16229f3eea4d2dd83072d18",
+    "paper/figures/gpt56_temperature_curve.pdf": "7fd54ac51ae7a82116cf911bf394786babb5f9f3862d57143daab58c1a9bad07",
+    "paper/figures/gpt56_temperature_curve.json": "2851936a8ced6d28c66c3026aa0d77de4fc24e6b35dfbc761a36ede535dce01d"
+  }
+}

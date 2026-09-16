@@ -1,0 +1,318 @@
+{
+  "original_figure_artifacts": [
+    {
+      "path": "paper/figures/baseline_collapse_precheck.json",
+      "sha256": "3a6d185553a3846215d6d54c7956417df44f67780937b7ad2fd8fbdf6e17398c",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/baseline_collapse_precheck.pdf",
+      "sha256": "0559ed7e72b5464337034b75cad05adfba9a3a7df2b636780466b4dbaa86b298",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/baseline_collapse_precheck.png",
+      "sha256": "09a0c58621b209630524a59c11f0d5ecb44de5a39d127da1906989ea1c930be5",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_baseline_learning_curves_pass8.json",
+      "sha256": "83957558f6b24087a361f90cb034affa69c0dc33d696424ca91fa86203010857",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_baseline_learning_curves_pass8.pdf",
+      "sha256": "19ddfdfe8f851f8898c3e6adc5e2d51b936b6750cf7d8a0129e82e5d76b49527",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_baseline_learning_curves_pass8.png",
+      "sha256": "49c30d6b5d505e64c472ba27eddf831c1e984a37751aace7da6a559fc7d9225c",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_baseline_learning_curves_static_strip.json",
+      "sha256": "e9cbc3df08471fda3006d4fcf1d69f8dc898ac9790c09a55096db2ef4786756a",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_baseline_learning_curves_static_strip.pdf",
+      "sha256": "3bdd8b1a990007e77b1c07a7af33a6436b1038f4039856b067cb0d2d7a99a4e3",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_baseline_learning_curves_static_strip.png",
+      "sha256": "adf9433619259a1d03e4a65046bc9993bf1dab37ff37307fa96ee87eb4f06042",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_comparator_endpoint_effects.json",
+      "sha256": "53cb67af8003499dda81e478e14349aacf51b8150c85ff50dcbf142c2b293957",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_comparator_endpoint_effects.pdf",
+      "sha256": "4cf652860eda2c3f66109bb57847f94e3397c7d9965f564d578be5589c5c9ef9",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/direct_comparator_endpoint_effects.png",
+      "sha256": "c47e3c8537af74bccaf711021ade1b81d4176d0249ae0a7d5801b8faa2a92622",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e118_all_scale_factorial_progress.json",
+      "sha256": "3d669307ca701721230e682d1ed5c46c9f1ac620eb7072f42a8ce30de7624471",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e118_all_scale_factorial_progress.pdf",
+      "sha256": "1f0b4ce6dbb4277933fb0f8eaa668abbde28d6443c14105bff8d306f1eb743d0",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e118_all_scale_factorial_progress.png",
+      "sha256": "c4a60e69c0c8fbe9d28f9a92bf8654878dde4c83a5e402ab68458e34ce3be6f3",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e118_scale_extensions_appendix.json",
+      "sha256": "3d669307ca701721230e682d1ed5c46c9f1ac620eb7072f42a8ce30de7624471",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e118_scale_extensions_appendix.pdf",
+      "sha256": "33bb4c7b678d514882366d4a6f9eb24e3fcc3801ef533e0fc97bcd151ed01352",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e118_scale_extensions_appendix.png",
+      "sha256": "88f8df4237ba15c0417ceb36f9d2ac34f0b3c91ba0a941876114924c4c26d0df",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e121_fixed_bank_survival.pdf",
+      "sha256": "1bd7c1e98054d4512a1e3275f6344e800358929efa561a1864c932dbb1652654",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/e121_fixed_bank_survival.png",
+      "sha256": "c675e0f5129da0f6f0078c89776666f7ce28b1d4387d27c0ced46ffd8c23a5ee",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/experiment1_retention_comparator_matrix.json",
+      "sha256": "43d9f0a65a1ced50752b8f39942051a6a9288384342e6f0c02bcc6cb530cdc74",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/experiment1_retention_comparator_matrix.pdf",
+      "sha256": "07f8a9e475d82ef5505e84ac02c74406abaed1a21ccead1b0a53ef2b6cc4fa24",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/experiment1_retention_comparator_matrix.png",
+      "sha256": "901c8a930a1357fe8e038ecbd64ad44e9a3a9f8c0ad74babe71c5fe2ddfffa5f",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/factorial_training_curves_distinct8.json",
+      "sha256": "3cea9061aa43768efb182b949fdff0f604a9cdf1d653cd52acd0054df7c0f237",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/factorial_training_curves_distinct8.pdf",
+      "sha256": "4e19895a7bbab45f1861962520ed8b1fc655ff2f1020d72c46d7acfb80386527",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/factorial_training_curves_distinct8.png",
+      "sha256": "a2997ee60e442d6ad43fd24a0084fb4f8054206475c9ed4523e135b9668854ab",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/factorial_training_curves_pass8.json",
+      "sha256": "f86293057a90734d62ff06456c399b52753c2eb6c50b0a063caa24042b743381",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/factorial_training_curves_pass8.pdf",
+      "sha256": "d088382d32b5d5faade7eff0a6f4c55f7341705280889d8ad8ea6a018c655c65",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/factorial_training_curves_pass8.png",
+      "sha256": "3f6a6b3751a862d826582626fa9ec401ab83776a3d119d016304adc8e3f06051",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/frontier_comparison_20260911_graph.json",
+      "sha256": "9acb8c59b19e908b131daf8fefe9296c6d2c074fd57313e25008836ba3baffdc",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/frontier_comparison_20260911_graph.pdf",
+      "sha256": "6237cfca147825a09bff9da3e77dbd0fd8271d60f1646a0eb9a37681b9cb144f",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/frontier_comparison_20260911_graph.png",
+      "sha256": "937a9b6f5f17b54d3577ec73d8cf7aee44ed01f83fb8e4a39759f0e1da40fe09",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/gpt56_temperature_curve.json",
+      "sha256": "0b1f0450708f2a2c777ffa0ef32875933a55517b92fa5c39877945ba7d273fc1",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/gpt56_temperature_curve.pdf",
+      "sha256": "305975b62511cc34fb9a417f69722ae0bfcb0ff4f4d821296f8abb0cbb294ede",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/gpt56_temperature_curve.png",
+      "sha256": "19fef531f09d686f8a785ecfa3c025f8cce030c69d43702686dd37c9fa7e517f",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/hosted_verified_breadth.json",
+      "sha256": "168a910878196b698c0b6eea2df187cfdfdd2fc255e3ef56d8473ee07283ab77",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/hosted_verified_breadth.pdf",
+      "sha256": "7872845ceef7baeaad3411ce4993c256316ff4aaf80fe07ebec756e80a4d631d",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/hosted_verified_breadth.png",
+      "sha256": "4f66709139cae6396f8f382d35221f9a88ef474005ad850a6b2036d064b29901",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/level2_factorial_training_curves.json",
+      "sha256": "64561a6ea50be54453c8b4f8595b814d1e03d541c7e7a1d1239c71200adfb797",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/level2_factorial_training_curves.pdf",
+      "sha256": "fd02f39795255a34a55951fd50af71e79bcba7bf40a23deb96a43bf9aafbfd96",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/level2_factorial_training_curves.png",
+      "sha256": "d75902a2bc1a20f1d6e2323891037b2b1f017f689a7c00ecdd607a8531ed8daa",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_examples.pdf",
+      "sha256": "f133dfe8cc046d72625579e0b2b57a89d107c6197d9f48eeaa882efa0180cea6",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_examples.png",
+      "sha256": "808b156f5fc733947991f5448e48e46745095f7b7d2b91e8f18931717a6c95af",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_level_admission.json",
+      "sha256": "e20ae9905d81a0b00538638ccc7e65b20b18e1434189fabf5398e86011bb871c",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_level_admission.pdf",
+      "sha256": "8b013d52ce44585a024a320c363a30a45227ba01b74b851701907d6ae369e046",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_level_admission.png",
+      "sha256": "c49b77c1f2b8a719659acb01e07cd0eb9a81ae7a6151cf5cba3c3463e66e3e8a",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_prompt_ablation_local.json",
+      "sha256": "7eda6fae8389eca64c2d6f6818c56639ff6f0bf20fb0a35f912cf12dfeb1e0b0",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_prompt_ablation_local.pdf",
+      "sha256": "65727706ac770d3cb01fe77058a8e938d9ac5b35258a14c715a67df0b7d67d1d",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modebench_prompt_ablation_local.png",
+      "sha256": "88bb50c8fea97e46916ba180b2971c5611db35dda59e9f4f01b47f058d456ddd",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modecollapse_story.pdf",
+      "sha256": "5a76c90b0ca002ce7d59b5e6af8254f311ee74f6d6c77d00b5b3ccfcc99715ac",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/modecollapse_story.png",
+      "sha256": "8bcc7cae9eb937fbab1fbb4fba458a9b8bc341c9fc30e76b242625a2c7116d03",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/verified_support_story.pdf",
+      "sha256": "7acd8dfa012e841857950261e4fcba937468c66609c6fe41e012c16a6f45dea8",
+      "unchanged": true
+    },
+    {
+      "path": "paper/figures/verified_support_story.png",
+      "sha256": "07d095b57f6dcd6c283f42d555bbcf418920209707abbb8bdef5d7257e441e0f",
+      "unchanged": true
+    }
+  ],
+  "original_pdf_count": 19,
+  "proofs": {
+    "paper/main.tex": {
+      "byte_exact_blocks": 18,
+      "sha256_counts": {
+        "c289bc7593d59448e035ccfc34c6b674c3cfa81735aedf9d94b49c34750fee34": 1,
+        "ff5e149e436598d887e45428e2e637db0be4dcfdef7b7c70dccb7ee49aefc691": 1,
+        "04fcf5b919b5e40839db8ab000255c713dae90305ee60245feb2d959de009f2e": 1,
+        "289e0bf0932c30ac168b8d628ad45e9d3328bf028c96129b3a646c3621677600": 1,
+        "f796717441a1f374e9c8fd61a91878a3ec91b4263431c59efb4e90b8ef796b14": 1,
+        "b8c92ec82e9d94f87e52a8e2a4a3750b5d61096ab5b1c6912039c98bbb35dd4e": 1,
+        "005cdccdd9490d07ea04289ac2415b38f34d5fa8c654d0c74ec114d54d178aa0": 1,
+        "ebf5440896143353c4cc42bcf170902bc0a1ad8a76919a5f436ae7624b236e79": 1,
+        "7b111108c37cbb3f57787fac123c3350b7a49cc5bf12ba9d634f4e069ddb8bd0": 1,
+        "0695feb4e3e68f3aa37140590adfeecf5b4636231df886fe5f96b13be32d5531": 1,
+        "e40285e8dc642c13cf11e988f435d507b307c89ea61edc61a5bd674c5f305f8e": 1,
+        "9b809fa79a0e8cd28c823c8e99a634d8d043fd17078de44bf9477d587edd4d6c": 1,
+        "20cb2467d6ac7126ba7763afc867137399afaa79ea700182e17a3e9c0e7d20fb": 1,
+        "0063f50964791cf3da23745c009d5587a0afb45af7fb503773da9010f822d956": 1,
+        "d3f9f66443bbaa6bcf8787908a8f876635944fc49cbe1ed5e1c5bad1a255a589": 1,
+        "48397058b2834546d4d6e84f40c11a06f8013e6639eaaacd4f6473649892d240": 1,
+        "1e4318cd8e9199e9ed0880a470f6d1d0426e916be2e552655b40e86b4c1f5f94": 1,
+        "c960e2be8e137044c671523225dc7a39bdf91fac8d3ae53d23a2721c97cfc60a": 1
+      }
+    },
+    "paper/mathai2026/appendix.tex": {
+      "byte_exact_blocks": 18,
+      "sha256_counts": {
+        "c289bc7593d59448e035ccfc34c6b674c3cfa81735aedf9d94b49c34750fee34": 1,
+        "ff5e149e436598d887e45428e2e637db0be4dcfdef7b7c70dccb7ee49aefc691": 1,
+        "04fcf5b919b5e40839db8ab000255c713dae90305ee60245feb2d959de009f2e": 1,
+        "289e0bf0932c30ac168b8d628ad45e9d3328bf028c96129b3a646c3621677600": 1,
+        "f796717441a1f374e9c8fd61a91878a3ec91b4263431c59efb4e90b8ef796b14": 1,
+        "b8c92ec82e9d94f87e52a8e2a4a3750b5d61096ab5b1c6912039c98bbb35dd4e": 1,
+        "005cdccdd9490d07ea04289ac2415b38f34d5fa8c654d0c74ec114d54d178aa0": 1,
+        "ebf5440896143353c4cc42bcf170902bc0a1ad8a76919a5f436ae7624b236e79": 1,
+        "7b111108c37cbb3f57787fac123c3350b7a49cc5bf12ba9d634f4e069ddb8bd0": 1,
+        "0695feb4e3e68f3aa37140590adfeecf5b4636231df886fe5f96b13be32d5531": 1,
+        "e40285e8dc642c13cf11e988f435d507b307c89ea61edc61a5bd674c5f305f8e": 1,
+        "9b809fa79a0e8cd28c823c8e99a634d8d043fd17078de44bf9477d587edd4d6c": 1,
+        "20cb2467d6ac7126ba7763afc867137399afaa79ea700182e17a3e9c0e7d20fb": 1,
+        "0063f50964791cf3da23745c009d5587a0afb45af7fb503773da9010f822d956": 1,
+        "d3f9f66443bbaa6bcf8787908a8f876635944fc49cbe1ed5e1c5bad1a255a589": 1,
+        "48397058b2834546d4d6e84f40c11a06f8013e6639eaaacd4f6473649892d240": 1,
+        "1e4318cd8e9199e9ed0880a470f6d1d0426e916be2e552655b40e86b4c1f5f94": 1,
+        "c960e2be8e137044c671523225dc7a39bdf91fac8d3ae53d23a2721c97cfc60a": 1
+      }
+    }
+  }
+}

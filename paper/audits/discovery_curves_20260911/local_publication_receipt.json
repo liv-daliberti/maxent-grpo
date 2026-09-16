@@ -1,0 +1,90 @@
+{
+  "schema": "discovery-complete-local-publication-v1",
+  "status": "complete_local_publication_hosted_collecting",
+  "at_utc": "2026-09-11T22:52:02.771981+00:00",
+  "local_checkpoints": 25,
+  "local_responses": 110592,
+  "source_report_sha256": "a1b438c1cc4b3b40dbd45c9a5d5456360f3bbcd8a284062e66ad104deccecf2a",
+  "main_pages": 9,
+  "references_start_page": 10,
+  "total_parent_pages": 82,
+  "workshop_main_pages": 4,
+  "figures_per_manuscript": 25,
+  "local_raw_grade_corrections": 1,
+  "local_normalization_rescues": 0,
+  "independent_point_estimates_checked": 11352,
+  "validation_logs": [
+    "parent_build_local_v2.log",
+    "workshop_build_local_v1.log",
+    "observed_endpoint_review.log",
+    "standalone_build.log"
+  ],
+  "scope_note": "Only the complete local panel is published here. All registered hosted cohorts are collecting; no preliminary model subset is presented as complete frontier evidence. Concurrent figure-restoration edits are preserved.",
+  "files": [
+    {
+      "source": "paper/main.tex",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/main.tex",
+      "sha256": "2a75f8a498337c6b90d085c022fe2d690814a4e792456339bf7a2c434fdaaff8"
+    },
+    {
+      "source": "paper/main.pdf",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/main.pdf",
+      "sha256": "c5029a0ee1d65856a1f0ad0a5da54b12e8f1296681727bfd6bd937aff4f90eaf"
+    },
+    {
+      "source": "paper/main-body.pdf",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/main-body.pdf",
+      "sha256": "a1215610720b40f8ec248ee8cee34ce455320ed7e6d051b877297b562f2a9e29"
+    },
+    {
+      "source": "paper/README.md",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/README.md",
+      "sha256": "4e6d9c5da9bc0e42dcad698380fd7530a9efb58215cfc7b4affa0cfda60d6f5e"
+    },
+    {
+      "source": "paper/FIGURE_MANIFEST.md",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/FIGURE_MANIFEST.md",
+      "sha256": "052e79ee7a8ae889984a11a5d38de310d193d5c9c0aaa26c1b4bf25e2cd672c3"
+    },
+    {
+      "source": "paper/FIGURE_DATA_AUDIT.md",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/FIGURE_DATA_AUDIT.md",
+      "sha256": "355ac7b4dfaba0327c2852cdb61637988a11b6a6fb4b99ccc6148b4f0eb4b052"
+    },
+    {
+      "source": "paper/mathai2026/main.tex",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/main.tex",
+      "sha256": "eb97e2e2d0731e6c8d68d939bb72c6fd840a9c102f1eb727b3053a0379640e77"
+    },
+    {
+      "source": "paper/mathai2026/appendix.tex",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/appendix.tex",
+      "sha256": "367c17f07ea574813495952030ba46603536c782c6bfb86ec572bb1702807375"
+    },
+    {
+      "source": "paper/mathai2026/main.pdf",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/main.pdf",
+      "sha256": "947a1b3ca0cef4604f4896df0012a2c1263a313bbaf02b3853efe9a6d60839a6"
+    },
+    {
+      "source": "paper/mathai2026/snapshot.json",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/snapshot.json",
+      "sha256": "bd2720e56316a891cb4d2600ca849c01253e7b786ef59383ac77de3987f6158f"
+    },
+    {
+      "source": "paper/mathai2026/build_receipt.json",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/build_receipt.json",
+      "sha256": "9110547bf8ff8372e5731ddefb5072b88cf87a87e9b71b071f9fb90e0e51ec29"
+    },
+    {
+      "source": "paper/mathai2026/mathai2026-source.zip",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/mathai2026-source.zip",
+      "sha256": "63e18a2ba348c5ec47f3765b2f5ea26468348c25f1e6ec3ba115d15e7a942f88"
+    },
+    {
+      "source": "paper/mathai2026/README.md",
+      "archive": "paper/audits/discovery_curves_20260911/local_publication/paper/mathai2026/README.md",
+      "sha256": "b2ec2963cf2a43c3db3e196c10d56f68b0af055c8e3da190a6affbd264d58a72"
+    }
+  ]
+}

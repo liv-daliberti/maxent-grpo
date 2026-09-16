@@ -1,0 +1,13 @@
+{
+  "paper/main.tex": "ad718125fba12b715f9bf9f2e7e70e86710208dfc89a6445f0884b4c9dc0b170",
+  "paper/main.pdf": "4dc2a7207e5e2104ec659a9163c3657a605fe05b6d17cb2169961a8910693f60",
+  "paper/README.md": "57c10e0ae54f26ee76f103bf9f0f827fef962021a3066c697418a1259e034619",
+  "paper/FIGURE_MANIFEST.md": "b89249a3fd8964cb08e777a7e78e6768fbcabdb11f78b33c4add0ab96a093b28",
+  "ops/check_paper_current_contract.py": "a1db56514e5c6b4290822a8d7b68d4b8341ffea6db0dd135a4462dea03b5b1a3",
+  "paper/results/latest_results_20260910.json": "dbaaf327e1765cbf2dc2d39d64599b69b17333487efb44762ffc09709f4b9d60",
+  "paper/results/current_campaign_results_20260910.json": "e24e037e270f78f7c6daa7deda57d899812c7fdb983bccf1f71b78721e2cc5c3",
+  "paper/results/current_campaign_results_20260910.md": "87278cd699dba4d1fbc530c4c0bb81d397c23eb0a83871ee6fe5a8cc9a8d76c8",
+  "paper/figures/e118_all_scale_factorial_progress.json": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418",
+  "paper/figures/modebench_level_admission.json": "21af1b6a793145cdfd8180f0d8050d110b2ded910755a6358965df215ab6d6f0",
+  "paper/results/modebench_level_comparison_snapshot.json": "11f3b57cf0b3ee0933694f115c3c70d5e2d1e0c92aafe4e5abab14c3c71c79a0"
+}

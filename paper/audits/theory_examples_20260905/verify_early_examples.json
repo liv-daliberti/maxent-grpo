@@ -1,0 +1,74 @@
+{
+  "status": "PASS",
+  "scope": "Illustrative finite categorical calculations only, not measurements of training runs. Full group enumeration and independent full-logit/reduced-ODE agreement corroborate displayed values.",
+  "group_count": 256,
+  "p": [
+    0.3,
+    0.15,
+    0.05,
+    0.5
+  ],
+  "q": [
+    0.6000000000000001,
+    0.30000000000000004,
+    0.10000000000000002
+  ],
+  "correctness_gradient": [
+    0.15,
+    0.075,
+    0.025,
+    -0.24999999999999997
+  ],
+  "expected_group_gradients": {
+    "drgrpo": [
+      0.11250000000000002,
+      0.05625,
+      0.018749999999999992,
+      -0.18749999999999986
+    ],
+    "maxrl": [
+      0.2625,
+      0.13124999999999992,
+      0.04374999999999999,
+      -0.43750000000000006
+    ]
+  },
+  "conditional_q_prime": [
+    0.08399999999999999,
+    -0.048000000000000036,
+    -0.03600000000000002
+  ],
+  "parameterization_examples": [
+    {
+      "lambda": 0.0,
+      "q_at_P09": [
+        0.7426464696769631,
+        0.20479938126386094,
+        0.05255414905917596
+      ],
+      "rarest_q_floor": 0.01924500897298752,
+      "distinct8_at_P09": 2.125234067540775,
+      "pass8_at_P09": 0.99999999,
+      "asymptotic_exponent": 0.5,
+      "independent_full_ODE_q_error": 1.7430501486614958e-14
+    },
+    {
+      "lambda": 4.0,
+      "q_at_P09": [
+        0.6355780688882362,
+        0.27860679617439704,
+        0.08581513493736681
+      ],
+      "rarest_q_floor": 0.0662337782140526,
+      "distinct8_at_P09": 2.3738601623666558,
+      "pass8_at_P09": 0.99999999,
+      "asymptotic_exponent": 0.16666666666666666,
+      "independent_full_ODE_q_error": 1.7541523789077473e-14
+    }
+  ],
+  "parameter_replication_h4_speed_factors": {
+    "gamma0": 4,
+    "gammaHalf": 1,
+    "gamma1": 0.25
+  }
+}

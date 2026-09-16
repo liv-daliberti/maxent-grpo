@@ -1,0 +1,10 @@
+{
+  "status": "pass",
+  "pdf_sha256": "665cb4cd1204feecf5a56eeb8ff2a65d2667a566d6654d4323c689f0a84b0a94",
+  "checks": {
+    "main_pages": 9,
+    "natural_prose_blocks": 329,
+    "minimum_final_line_fraction": 0.5
+  },
+  "note": "Read-only checks after temperature appendix caption re-render. PDF may receive further reference-settling compilation; authenticate this hash before reusing this check."
+}

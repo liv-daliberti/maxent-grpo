@@ -1,0 +1,52 @@
+% Workshop only: compact context and required author statements.
+\section{Related Work}
+\label{sec:related}
+
+Repeated sampling and verifier-guided selection depend on the proposal
+distribution \citep{brown2024monkeys,snell2024testtime}. Prior work studies
+diversity loss in alignment and reasoning \citep{kirk2024understanding,dang2025diversity},
+entropy dynamics \citep{cui2025entropy}, and high-budget coverage
+\citep{yue2025rlvrlimit}. Semantic clustering \citep{farquhar2024detecting}
+addresses open-ended outputs; \mb{} instead uses executable identity keys.
+Sampling-aware objectives promote useful proposal sets
+\citep{song2025outcome,chen2025passktraining,li2025divergence,li2026setpo,li2026distribution,lochab2026ucpo}.
+MaxRL optimizes best-of-$k$ success \citep{tajwar2026maxrl}, which equals
+pass@\(k\) for binary rewards. Replay has a long history in reinforcement
+and continual learning \citep{lin1992selfimproving,rolnick2019replay}; RLEP
+reuses successful reasoning traces \citep{zhang2025rlep}. Our bank retains
+one policy exemplar per verified key and weights keys uniformly, connecting
+persistent success memory to novelty and quality-diversity search
+\citep{lehman2011novelty,mouret2015illuminating}.
+
+\section{Limitations and Disclosures}
+\label{app:limitations}
+
+The categorical theory depends on its stated geometry, energy, and coverage
+assumptions; it does not certify the implemented neural optimizer. Uniform
+correct mass requires full verified coverage, which Python's capacity-16
+bank generally precludes. The benchmark measures task-defined executable
+support on synthetic tasks, not free-form reasoning diversity or downstream
+utility. Experiments fix $G=16$, zero reference KL, no token-entropy bonus,
+and one decoding protocol. The current results state every partial seed
+intersection and its uncertainty limits; intervals condition on the frozen
+prompts and evaluation requests.
+
+\subsection{AI Use Statement}
+\label{sec:ai-use}
+Generative AI assisted manuscript preparation, mathematical analysis, and
+supporting code. The authors reviewed and verified the resulting content
+and take responsibility for the final manuscript.
+
+\subsection{Ethics Statement}
+The benchmark and experiment-specific data are synthetic; this study
+collects no human-subject or personal data. More verified modes are not
+inherently better: a distinct execution can be costly or risky despite
+passing a validator. Applications should report correctness, invalidity,
+and relevant costs alongside mode counts.
+
+\subsection{Reproducibility Statement}
+Claims use versioned results and fixed source-admission rules. Missing
+required results and aggregate drift cause validation to fail.
+Appendix~\ref{app:data} specifies split identities and evaluation settings;
+Appendix~\ref{app:reproducibility} links frozen scientific records, model
+exports, and reproduction procedures.

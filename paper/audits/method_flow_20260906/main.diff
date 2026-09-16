@@ -1,0 +1,25 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -74,7 +74,8 @@
+ 
+ \section{ReplayMaxRL: learn from new samples and remember successes}
+ \label{sec:method}\label{sec:maxrl-method}\label{sec:replay}
+-ReplayMaxRL learns from new samples and revisits earlier verified successes
++ReplayMaxRL combines MaxRL's sampling-aware learning from new samples
++\citep{tajwar2026maxrl} with replay of earlier verified successes
+ (Figure~\ref{fig:verified-support-story}).
+ 
+ \begin{figure}[!htbp]
+@@ -87,10 +88,8 @@
+ \label{fig:verified-support-story}
+ \end{figure}
+ 
+-MaxRL trains policy $\pi_\theta$ for success within $k$ samples across sampling
+-budgets \citep{tajwar2026maxrl}. Each training prompt $x$ keeps one
+-policy-generated exemplar $e_c$ per admitted key in bank $\mathcal B_x$.
+-With $|e_c|$ its token length, recurrent replay minimizes
++Bank $\mathcal B_x$ stores one policy-generated exemplar $e_c$ of token length
++$|e_c|$ per admitted key for prompt $x$. Replay trains policy $\pi_\theta$ with
+ \begin{equation}
+ L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.

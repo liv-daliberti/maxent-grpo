@@ -1,0 +1,49 @@
+{
+  "created_at": "2026-09-11T18:26:23.987907+00:00",
+  "request": "Temperature frontier between empirical pass@8 and distinct@8, with complete original frontier-model evaluations across Levels1\u20133.",
+  "new_api_calls": 0,
+  "completed_original_model_responses": 107520,
+  "completed_temperature_responses": 3840,
+  "matched_medium_reference_responses": 960,
+  "metric": "Empirical any-correct indicator for all complete8-draw prompt groups; no aggregate pass1 extrapolation.",
+  "validation": {
+    "focused_tests_passed": 31,
+    "original_analysis_bindings_verified": 77,
+    "independent_temperature_and_reference_raw_receipts_verified": 4800,
+    "original_models_complete_and_frozen_summary_consistent": 7,
+    "iclr_main_pages": 9,
+    "iclr_temperature_figure_page": 8,
+    "iclr_figures": 8,
+    "iclr_current_contract": "passed, including exact pass@8 report reconstruction",
+    "iclr_line_fill": {
+      "status": "passed",
+      "blocks": 257
+    },
+    "workshop_submission": "passed:4 main pages,7main+11supplementary figures, current source hashes, no unresolved references or overfull boxes",
+    "workshop_source_zip_files": 113,
+    "main_body_text_matches_first_nine_pages": true,
+    "qpdf_structure": "passed",
+    "figure_visual_review": "passed; distinct pass@8 axis and non-overlapping labels"
+  },
+  "original_accuracy_analysis": {
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/GPT56_TEMPERATURE_CURVE.json",
+    "sha256": "32686ed275c2bea19edb44be7b97f8a20acb499b8965ee23b4dc6b840dac0623"
+  },
+  "sha256": {
+    "paper/main.pdf": "03560fa5515da1db06acdaa08f128b7a796be8b5fea4aa135099a1a394c711a0",
+    "paper/main-body.pdf": "c08c31c735a674933281d57334d1766f504079fb0849cd7f692545b1a396133e",
+    "paper/mathai2026/main.pdf": "14a561fb3280244b41bf3ba5cc04f34081dc66da4995a557e4728b90554118e2",
+    "paper/mathai2026/mathai2026-source.zip": "b8884fef66f77144261a6506e5ace445d850e4ebc5bb3b7e27dc684325fbdc44",
+    "paper/figures/gpt56_temperature_curve.pdf": "305975b62511cc34fb9a417f69722ae0bfcb0ff4f4d821296f8abb0cbb294ede",
+    "paper/figures/gpt56_temperature_curve.png": "19fef531f09d686f8a785ecfa3c025f8cce030c69d43702686dd37c9fa7e517f",
+    "paper/figures/gpt56_temperature_curve.json": "0b1f0450708f2a2c777ffa0ef32875933a55517b92fa5c39877945ba7d273fc1",
+    "ops/analyze_gpt56_pass8_frontier.py": "ec5c313b79e0667d03f75b3a1923e7577ba2cb230c6e222650ebf1681a890815",
+    "ops/plot_paper_gpt56_temperature_curve.py": "62a8f1272153b3e0d67538f17d6b4bcc8c866fa40a79fa91ad859f26d9211e3c",
+    "artifacts/frontier_temperature_20260911/GPT56_PASS8_FRONTIER.json": "c34e7a99bebad50d6cc6d837fb5cf26562957a6aa9429bf263af211cc0a0f915",
+    "artifacts/frontier_temperature_20260911/GPT56_PASS8_FRONTIER.md": "19beb8b23f93c2452842a8c87ee5624a3ac9b743d7b2f5a7c1e3b90a89ac6e4e",
+    "artifacts/frontier_temperature_20260911/GPT56_PASS8_FRONTIER.csv": "bd89a71bd67c28ef54a2a92850d8934dbf53003dba6d78a4081d2b9a9f3e6815",
+    "artifacts/frontier_temperature_20260911/PASS8_FINDINGS.md": "f1ff6bfe081ba0864ed5abe58ebca0f1aee88ec8b0f8e9c6b9bca043bd577afe",
+    "artifacts/frontier_temperature_20260911/pass8_frontier/original_model_baselines.json": "586ac8197e1dbcbf3bb6471bf41e627dfebbbb7dbebe0c7b156c2c9ad054ffca",
+    "artifacts/frontier_temperature_20260911/pass8_frontier/original_model_baselines.csv": "ac23817ce19996277e25cfb58818752338b6449df73d8d5707bde4ff1b60b93a"
+  }
+}

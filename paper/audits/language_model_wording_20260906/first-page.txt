@@ -1,0 +1,69 @@
+                               More than One Way to Skin a Cat:
+                               Preserving Verified Modes in RLVR
+
+
+                                                                              Anonymous Author(s)
+                                                                                  Affiliation
+                                                                                   Address
+                                                                                    email
+
+
+
+                                                                                              Abstract
+
+ 1                A language model can become more accurate on mathematical problems while los-
+ 2                ing alternative correct solutions. To measure this loss, we introduce M ODE B ENCH,
+ 3                a benchmark of five executable domains that distinguishes different correct out-
+ 4                puts for the same problem. We then show that ReplayMaxRL, which combines
+ 5                sampling-aware reinforcement learning with a memory of previously verified out-
+ 6                puts, improves held-out correctness while preserving a broader repertoire. We find
+ 7                gains from replay with both Dr.GRPO and MaxRL, across three and two model
+ 8                scales, respectively, and on a harder graph-coloring task. These results distinguish
+ 9                discovering a successful behavior from keeping it available.
+
+
+      A Color the three blank nodes;                                                     B Qwen2.5-3B                           C Qwen2.5-3B
+        connected nodes must differ.                                                       Dr.GRPO                                ReplayMaxRL (ours)
+                                                       fixed-seed samples (of 32)
+
+
+
+
+                                                                                          3    3   3    2   2    1   1    1      3   3    3    3   3    3   3    4
+                                                                                    32
+         4          1            5
+
+                                                                                    24
+              2           3
+
+                                                                                    16
+      CIRCLE FILL = VERTEX COLOR                   →
+      OPTION LABEL = SOLUTION MODE (6 VALID)
+                                                                                    8
+      Option A       1     2      3      4     5
+
+      Option B       1     2      3      4     5                                    0
+                                                                                          0   0.5 1.5 2      4 4.5 6      6.5    0   0.5 1.5 2      4 4.5 6      6.5
+      Option C       1     2      3      4     5                                                 training pass (of 6.5)                 training pass (of 6.5)
+
+         ⋮
+      Option F       1     2      3      4     5                                               mode A       mode B         mode C         other valid       invalid
+
+
+     Figure 1: Correctness can rise while alternatives disappear. One graph admits six valid colorings.
+     Bars pool four eight-sample draws from matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces
+     22/32 correct from one mode; ReplayMaxRL produces 32/32 across four.
+
+
+10   1       Preserving alternatives for mathematical agents
+
+11   Training a language model to solve mathematical problems more accurately may also change which
+12   correct solutions it can still produce. That distinction matters for a mathematical agent: a different
+13   computation or proof idea may offer a way forward when a familiar route fails or constraints change.
+14   Tools and verifiers can guide search and revision [Brown et al., 2024, Snell et al., 2024], but a verifier
+15   cannot select an alternative the model never proposes.
+16   Correctness feedback can hide the loss of these options. Reinforcement learning with verifiable
+17   rewards (RLVR) reinforces correct outputs [Guo et al., 2025]. A familiar solution earns the same
+
+     Submitted to 40th Conference on Neural Information Processing Systems (NeurIPS 2026). Do not distribute.
+

@@ -1,0 +1,3473 @@
+Reasoning with Exploration:An Entropy Perspective
+Report GitHub Issue
+×
+Title:
+Content selection saved. Describe the issue below:
+Description:
+Submit without GitHub
+Submit in GitHub
+arXiv is now an independent nonprofit!
+Learn more
+×
+Back to arXiv
+Why HTML?
+Report Issue
+Back to Abstract
+Download PDF
+Abstract
+1
+Introduction
+2
+Preliminary Analysis: Entropy and Exploratory Reasoning
+Pivotal Tokens
+Reflective Actions
+Rare Behaviors Emergent During RL
+3
+Method
+3.1
+RL Baselines: PPO and GRPO
+Proximal Policy Optimization (PPO)
+Group Relative Policy Optimization (GRPO)
+3.2
+Encouraging Exploratory Reasoning via Entropy-based Advantage
+Entropy-Based Advantage Shaping
+Robustness of Entropy-Based Advantage: Avoiding Over-Encouragement
+Comparison with Entropy Regularization
+4
+Experiment Settings
+Backbone Models
+RL Training Configuration
+Evaluation Benchmarks and Metrics
+5
+Results
+6
+Analysis
+6.1
+RL Training Process
+Training Reward
+Response Length
+Overall Entropy
+Entropy-Based Advantage
+6.2
+Exploratory Reasoning Dynamics
+Pivotal Tokens and Reflective Actions
+Response Length and Repetition Rate
+Case Study
+7
+Related Work
+Exploration in Reinforcement Learning
+Training Signals in Reinforcement Fine-Tuning
+8
+Conclusion
+References
+A
+Extended Preliminary Analysis
+B
+Experiment Settings
+Training Data and Reward Function
+RL Training Configuration
+C
+Case Study
+License: arXiv.org perpetual non-exclusive license
+arXiv:2506.14758v4 [cs.CL] 08 Nov 2025
+Reasoning with Exploration:
+An Entropy Perspective
+Daixuan Cheng  Shaohan Huang  Xuekai Zhu  Bo Dai
+Affiliation:
+RUC
+Affiliation:
+MSRA
+Affiliation:
+BIGAI
+Wayne Xin Zhao  Zhenliang Zhang  Furu Wei
+Affiliation:
+RUC
+Affiliation:
+MSRA
+Affiliation:
+BIGAI
+Affiliation:
+SJTU
+Abstract
+Balancing exploration and exploitation is a central goal in reinforcement learning (RL). Despite recent advances in enhancing large language model (LLM) reasoning, most methods lean toward exploitation, and increasingly encounter performance plateaus. In this work, we revisit entropy—a signal of exploration in RL—and examine its relationship to exploratory reasoning in LLMs. Through empirical analysis, we uncover positive correlations between high-entropy regions and three types of exploratory reasoning actions: (1) pivotal tokens that determine or connect logical steps, (2) reflective actions such as self-verification and correction, and (3) rare behaviors under-explored by the base LLMs. Motivated by this, we introduce a minimal modification to standard RL with only one line of code: augmenting the advantage function with an entropy-based term. Unlike traditional maximum-entropy methods which encourage exploration by promoting uncertainty, we encourage exploration by promoting longer and deeper reasoning chains. Notably, our method achieves significant gains on the Pass@
+K
+K
+metric—an upper-bound estimator of LLM reasoning capabilities—even when evaluated with extremely large
+K
+K
+values, pushing the boundaries of LLM reasoning.
+Figure 1:
+Top
+: We augment the advantage in PPO
+(
+Schulman et al., 2017b
+)
+or GRPO
+(
+Shao et al., 2024
+)
+with a minimal per-token entropy-based term.
+Bottom
+: Our entropy-based advantage effectively encourages exploratory reasoning in LLMs, achieving superior Pass@
+K
+K
+performance even with extremely large
+K
+K
+values.
+1
+Introduction
+Recent reinforcement learning methods for large language models (LLMs), particularly those using verifiable rewards (RLVR;
+Lambert et al., 2024
+), typically rely on signals that reflect output accuracy to guide training. These approaches have proven effective in enhancing reasoning by reinforcing correct outputs and discouraging incorrect ones
+(
+Guo et al., 2025
+)
+. However, as training progresses under purely accuracy-driven objectives, these benefits often diminish. LLMs tend to converge on narrow and over-optimized behaviors, gradually losing their incentive to explore alternative strategies. This lack of exploration weakens the model’s capacity for sustained, multi-step reasoning, causing performance to plateau or even regress, especially in complex or underspecified settings
+(
+Yu et al., 2025
+;
+Cui et al., 2025b
+)
+.
+In traditional RL, exploration plays a vital role alongside exploitation by encouraging the policy model to explore alternative strategies and avoid overfitting. A common metric for measuring exploration is entropy, which quantifies uncertainty in the policy’s action distribution
+(
+Haarnoja et al., 2018
+;
+Ziebart et al., 2008
+)
+. Motivated by this, we investigate the relationship between entropy and exploratory reasoning in LLMs, and uncover strong correlations: (1) Pivotal tokens that guide or connect reasoning steps—such as
+first
+,
+because
+, and
+however
+—consistently exhibit higher entropy; (2) Reflective actions
+(
+Shah et al., 2025
+)
+, such as self-verification and error correction, tend to emerge under high-entropy conditions; (3) During RL training, rare or under-explored solutions also coincide with elevated entropy. Together, these findings suggest entropy can be a valuable signal for recognizing exploratory reasoning behaviors in LLMs.
+Based on these findings, we propose incorporating entropy as an auxiliary term to encourage exploratory reasoning during RL training. While traditional maximum entropy methods encourage exploration by promoting uncertainty
+(
+O’Donoghue et al., 2016
+)
+, our approach takes a different path to balance exploration and exploitation: we introduce a clipped, gradient-detached entropy term into the advantage function of standard RL algorithms. Clipping ensures that the entropy term neither dominates nor reverses the sign of the original advantage, while gradient detachment preserves the original optimization direction. This design amplifies exploratory reasoning behaviors that emerge under uncertainty while maintaining the original policy gradient flow. Moreover, because of the intrinsic tension between entropy and confidence, the entropy-based term naturally diminishes as confidence increases—encouraging exploration in early stages while avoiding over-encouragement as training progresses. Furthermore, our method is extremely simple, requiring only one line of code to seamlessly integrate into existing RLVR training pipelines
+(
+Sheng et al., 2024
+)
+.
+We validate our method on mainstream RLVR algorithms, GRPO
+(
+Shao et al., 2024
+)
+and PPO
+(
+Schulman et al., 2017b
+)
+, and observe distinct benefits. First, it amplifies exploratory reasoning behaviors—such as the use of pivotal tokens and reflective actions—by decreasing the policy’s uncertainty at these decision points. Second, it encourages the generation of longer, more exploratory responses without increasing the repetition rate, enabling coherent multi-step reasoning. Consequently, our method consistently improves Pass@
+1
+1
+accuracy across different benchmarks. We further increase the number of attempts
+K
+K
+per question to evaluate Pass@
+K
+K
+—a metric recently regarded as an upper-bound estimator of reasoning capability
+(
+Yue et al., 2025a
+)
+. As shown in Figure
+1
+, our method achieves substantial improvements even at large
+K
+K
+, pushing the boundaries of LLM reasoning. In summary, the key contributions of this work are as follows:
+•
+We investigate and reveal a strong correlation between entropy and exploratory reasoning in LLMs, showing that pivotal tokens, reflective actions, and rare behaviors emerge with higher entropy.
+•
+We propose a minimal yet effective method that augments the standard RL advantage with a clipped, gradient-detached entropy term, encouraging exploration by fostering longer and deeper reasoning chains while preserving the original policy optimization direction.
+•
+We validate our method on mainstream RLVR algorithms: GRPO and PPO, achieving consistent gains on Pass@
+1
+1
+and substantial improvements on Pass@
+K
+K
+, pushing the boundaries of reasoning.
+Figure 2:
+Entropy Visualization and Comparison between Exploratory Reasoning and Others
+. We categorize tokens/actions/behaviors based on their role in the reasoning process. In the visualization, tokens with higher entropy appear in bold and larger sizes, with colors denoting different reasoning roles. In the comparison, we show average entropy values across different categories.
+2
+Preliminary Analysis: Entropy and Exploratory Reasoning
+We examine
+entropy
+—a core signal of exploration in RL
+(
+Schulman et al., 2017a
+;
+Haarnoja et al., 2018
+;
+Nachum et al., 2017
+)
+—and its relationship with exploratory reasoning in LLMs. We begin by visualizing token-level entropy in the responses of Qwen2.5-Base-7B
+(
+Yang et al., 2024a
+)
+on mathematical reasoning tasks
+(
+MAA, 2025
+)
+. As shown in Figure
+2
+, we observe that high-entropy tokens consistently correspond to different reasoning dynamics compared to low-entropy ones. Based on this observation, we categorize exploratory reasoning-related content—including both tokens and sentences—to support the following analysis
+1
+1
+1
+We also conduct a parallel analysis using a fine-tuned LLM—DeepSeek-R1-Distill-Qwen-1.5B
+(
+Guo et al., 2025
+)
+—on code reasoning tasks, yielding consistent observations (see Appendix
+A
+).
+.
+Pivotal Tokens
+Figure
+2
+shows that pivotal reasoning tokens (e.g.,
+first
+,
+recall
+,
+thus
+) tend to have higher entropy. These tokens serve as logical connectors, marking decision points where the model determines the flow and structure of reasoning. To quantify this observation, we compute the average entropy of commonly occurring pivotal tokens across all responses and compare it to that of the remaining tokens. These include causal terms (e.g.,
+because
+,
+therefore
+), contrastive markers (e.g.,
+however
+,
+although
+), sequential terms (e.g.,
+first
+,
+then
+), and reasoning verbs (e.g.,
+suggest
+,
+demonstrate
+). Results on the right of Figure
+2
+confirm a statistically significant increase in entropy for these pivotal tokens. Similar observations have also been noted in concurrent work
+(
+Wang et al., 2025a
+;
+Qian et al., 2025
+)
+, where such tokens are referred to as forking tokens or information peaks.
+Reflective Actions
+Reflection is a form of meta-cognition that involves examining generated information, evaluating the underlying reasoning, and adapting future behavior accordingly
+(
+Shah et al., 2025
+)
+. In this work, we focus on self-reflection, where the model assesses and comments on its own outputs. This is illustrated in the visualization in Figure
+2
+, where the LLM assigns higher entropy to sentences such as “Let’s verify if this is correct…”.
+Figure 3:
+Behavior Clustering
+. t-SNE projection of response embeddings. Base denotes the pre-RL model outputs; RL Other and RL Rare represent common and rare behaviors after RL, respectively.
+To quantify this behavior, we segment each response into sentences, compute the average entropy for each one, and use regular expressions to identify reflective actions—specifically, sentences containing keywords such as “verify” or “check”. As shown in the comparison in Figure
+2
+, these reflective sentences consistently exhibit higher average entropy, suggesting that self-reflection tends to occur under greater uncertainty. To the best of our knowledge, this is the first analysis linking entropy to self-reflection in LLMs.
+Rare Behaviors Emergent During RL
+We further examine whether under-explored or emergent behaviors—those rarely exhibited by the base model—are associated with distinct entropy patterns during RL. In the visualization (Figure
+2
+), such behaviors include converting logarithmic systems into systems of linear equations, which are less frequently observed in the base model’s outputs. To quantify this, we perform RL training on the base model (see Section
+4
+for configurations), and define rare behaviors as sentences that semantically isolated from the base model’s output distribution. We embed all response sentences using SBERT
+(
+Reimers & Gurevych, 2019
+)
+and, for each RL-generated sentence, compute the average distance to its
+k
+=
+5
+k=5
+nearest base-model neighbors. Sentences in the top 10% of this distance metric are labeled as rare. Behavior clusters are visualized in Figure
+3
+. As shown in the comparison in Figure
+2
+, these rare behaviors exhibit higher entropy, revealing a strong correlation between semantic novelty and predictive uncertainty.
+3
+Method
+Our analysis reveals a strong correlation between entropy and exploratory reasoning in LLMs, motivating us to actively encourage high-entropy actions during training. To this end, we propose an advantage shaping method that augments the per-token advantage with a term based on its entropy. This entropy-based term serves as a robust, self-regulating signal that guides learning without altering the original gradient flow of the base RL algorithm.
+Let
+q
+q
+denote a question sampled from a dataset
+𝒟
+\mathcal{D}
+, and let
+o
+=
+(
+o
+1
+,
+o
+2
+,
+…
+,
+o
+|
+o
+|
+)
+o=(o_{1},o_{2},\dots,o_{|o|})
+be the corresponding output response generated by a policy model
+π
+θ
+\pi_{\theta}
+. Our method is compatible with mainstream policy optimization algorithms such as Proximal Policy Optimization (PPO;
+Schulman et al., 2017b
+) and Group Relative Policy Optimization (GRPO;
+Shao et al., 2024
+). We begin by briefly reviewing these methods before introducing our entropy-based advantage shaping method.
+3.1
+RL Baselines: PPO and GRPO
+Proximal Policy Optimization (PPO)
+PPO optimizes the policy by maximizing the following clipped surrogate objective:
+𝒥
+PPO
+​
+(
+θ
+)
+=
+𝔼
+q
+∼
+𝒟
+,
+o
+∼
+π
+θ
+old
+​
+(
+O
+∣
+q
+)
+​
+{
+∑
+t
+=
+1
+|
+o
+|
+min
+⁡
+[
+ρ
+t
+​
+(
+θ
+)
+​
+A
+t
+,
+clip
+⁡
+(
+ρ
+t
+​
+(
+θ
+)
+,
+1
+−
+ϵ
+low
+,
+1
++
+ϵ
+high
+)
+​
+A
+t
+]
+}
+,
+\displaystyle\mathcal{J}_{\mathrm{PPO}}(\theta)=\mathbb{E}_{q\sim\mathcal{D},\,o\sim\pi_{\theta_{\text{old}}}(O\mid q)}\left\{\sum_{t=1}^{|o|}\min\left[\rho_{t}(\theta)A_{t},\,\mathrm{clip}(\rho_{t}(\theta),1-\epsilon_{\mathrm{low}},1+\epsilon_{\mathrm{high}})A_{t}\right]\right\},
+(1)
+where
+ρ
+t
+​
+(
+θ
+)
+=
+π
+θ
+​
+(
+o
+t
+∣
+q
+,
+o
+<
+t
+)
+π
+θ
+old
+​
+(
+o
+t
+∣
+q
+,
+o
+<
+t
+)
+\rho_{t}(\theta)=\frac{\pi_{\theta}(o_{t}\mid q,o_{<t})}{\pi_{\theta_{\text{old}}}(o_{t}\mid q,o_{<t})}
+denotes the likelihood ratio between the current and old policy models, and
+A
+t
+A_{t}
+is the advantage, typically computed using Generalized Advantage Estimation (GAE;
+Schulman et al., 2015
+. We omit the length normalization term, as our implementation adopts a token-level policy loss without per-response normalization. The loss is averaged across all tokens in a training batch to mitigate implicit length bias
+(
+Liu et al., 2025
+;
+Zeng et al., 2025
+)
+. The clipping range
+ϵ
+low
+\epsilon_{\mathrm{low}}
+and
+ϵ
+high
+\epsilon_{\mathrm{high}}
+stabilizes policy updates by preventing excessively large changes. While standard PPO uses symmetric clipping (i.e.,
+ϵ
+low
+=
+ϵ
+high
+\epsilon_{\mathrm{low}}=\epsilon_{\mathrm{high}}
+), recent work
+(
+Yu et al., 2025
+)
+suggests that slightly increasing
+ϵ
+high
+\epsilon_{\mathrm{high}}
+can help avoid entropy collapse.
+The gradient of the PPO objective is (we omit
+min
+\min
+and
+clip
+\mathrm{clip}
+operations under the single-update-per-rollout assumption
+(
+Shao et al., 2024
+)
+):
+∇
+θ
+𝒥
+PPO
+​
+(
+θ
+)
+\displaystyle\nabla_{\theta}\mathcal{J}_{\mathrm{PPO}}(\theta)
+=
+𝔼
+q
+∼
+𝒟
+,
+o
+∼
+π
+θ
+old
+​
+(
+O
+∣
+q
+)
+​
+[
+∑
+t
+=
+1
+|
+o
+|
+A
+t
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+o
+t
+∣
+q
+,
+o
+<
+t
+)
+]
+.
+\displaystyle=\mathbb{E}_{q\sim\mathcal{D},\,o\sim\pi_{\theta_{\text{old}}}(O\mid q)}\left[\sum_{t=1}^{|o|}A_{t}\nabla_{\theta}\log\pi_{\theta}(o_{t}\mid q,o_{<t})\right].
+(2)
+Group Relative Policy Optimization (GRPO)
+GRPO is an alternative to GAE-based PPO that avoids learning a separate value function by using the average reward of multiple sampled outputs, produced in response to the same question, as the baseline. Formally, for each question
+q
+q
+, a group of
+G
+G
+outputs
+{
+o
+1
+,
+o
+2
+,
+…
+,
+o
+G
+}
+\{o_{1},o_{2},\dots,o_{G}\}
+is sampled from the old policy
+π
+θ
+old
+\pi_{\theta_{\text{old}}}
+, a reward model is then used to score the outputs, yielding
+G
+G
+rewards
+{
+r
+1
+,
+r
+2
+,
+…
+,
+r
+G
+}
+\{r_{1},r_{2},\dots,r_{G}\}
+correspondingly. These scores are then normalized as:
+r
+~
+i
+=
+r
+i
+−
+mean
+​
+(
+{
+r
+1
+,
+r
+2
+,
+…
+,
+r
+G
+}
+)
+std
+​
+(
+{
+r
+1
+,
+r
+2
+,
+…
+,
+r
+G
+}
+)
+.
+\displaystyle\tilde{r}_{i}=\frac{r_{i}-\text{mean}(\{r_{1},r_{2},\dots,r_{G}\})}{\text{std}(\{r_{1},r_{2},\dots,r_{G}\})}.
+(3)
+Recently, GRPO has been widely used in outcome-supervised settings
+(
+Guo et al., 2025
+)
+, where the normalized reward is assigned at the end of each output
+o
+i
+o_{i}
+, and every token in
+o
+i
+o_{i}
+receives the same advantage, i.e.,
+A
+i
+,
+t
+=
+r
+~
+i
+{A}_{i,t}=\tilde{r}_{i}
+. The policy is then optimized using the PPO objective in Equation
+2
+with these group-relative advantages. A KL penalty term between the trained policy and a reference policy may be added to the loss
+(
+Schulman, 2020
+)
+.
+3.2
+Encouraging Exploratory Reasoning via Entropy-based Advantage
+Entropy-Based Advantage Shaping
+To encourage exploratory reasoning, we propose an entropy-guided advantage shaping method. The key idea is to inject an entropy-based term into the advantage function during policy optimization.
+For each token
+o
+t
+o_{t}
+in an output
+o
+o
+, the entropy of the current policy over the vocabulary
+𝒱
+\mathcal{V}
+is:
+ℋ
+t
+=
+−
+∑
+v
+∈
+𝒱
+π
+θ
+(
+v
+∣
+q
+,
+o
+<
+t
+)
+log
+π
+θ
+(
+v
+∣
+q
+,
+o
+<
+t
+)
+.
+\displaystyle\mathcal{H}_{t}=-\sum_{v\in\mathcal{V}}\pi_{\theta}(v\mid q,o_{<t})\log\pi_{\theta}(v\mid q,o_{<t}).
+(4)
+We then define an entropy-based advantage term
+ψ
+⁡
+(
+ℋ
+t
+)
+\psi(\mathcal{H}_{t})
+and use it to shape the advantage:
+ψ
+⁡
+(
+ℋ
+t
+)
+=
+min
+⁡
+(
+α
+⋅
+ℋ
+t
+detach
+,
+|
+A
+t
+|
+κ
+)
+,
+where
+​
+α
+>
+0
+​
+and
+​
+κ
+>
+1
+,
+\displaystyle\psi(\mathcal{H}_{t})=\min\left({\color[rgb]{0.8398,0.1523,0.1563}\alpha}\cdot{\color[rgb]{0.1211,0.4648,0.707}\mathcal{H}^{\mathrm{detach}}_{t}},~\frac{|A_{t}|}{{\color[rgb]{0.1328,0.5469,0.1328}\kappa}}\right),\quad\text{where }{\color[rgb]{0.8398,0.1523,0.1563}\alpha}>0\text{ and }{\color[rgb]{0.1328,0.5469,0.1328}\kappa}>1,
+(5)
+A
+t
+shaped
+=
+A
+t
++
+ψ
+⁡
+(
+ℋ
+t
+)
+.
+\displaystyle A^{\mathrm{shaped}}_{t}=A_{t}+\psi(\mathcal{H}_{t}).
+(6)
+Here,
+α
+\alpha
+is the scaling coefficient, and
+κ
+\kappa
+controls the clipping threshold. This clipping ensures that the entropy-based term
+ψ
+⁡
+(
+ℋ
+t
+)
+≤
+|
+A
+t
+|
+κ
+\psi(\mathcal{H}_{t})\leq\frac{|A_{t}|}{{\color[rgb]{0.1328,0.5469,0.1328}\kappa}}
+, so it does not dominate the advantage. Moreover, when
+A
+t
+<
+0
+A_{t}<0
+, this constraint ensures that adding the entropy-based term does not reverse the sign of the advantage—thus preserving the original optimization direction. Crucially, the entropy term
+ℋ
+t
+detach
+\mathcal{H}^{\mathrm{detach}}_{t}
+is detached from the computational graph during backpropagation, acting as a fixed offset to the original advantage. This adjusts the magnitude of the update without altering the gradient flow. As a result, the policy gradient retains a format similar to that of PPO in Equation
+2
+, where only the advantage
+A
+t
+A_{t}
+is replaced with the shaped one:
+∇
+θ
+𝒥
+PPO
+shaped
+​
+(
+θ
+)
+\displaystyle\nabla_{\theta}\mathcal{J}^{\mathrm{shaped}}_{\mathrm{PPO}}(\theta)
+=
+𝔼
+q
+∼
+𝒟
+,
+o
+∼
+π
+θ
+old
+​
+(
+O
+∣
+q
+)
+​
+[
+∑
+t
+=
+1
+|
+o
+|
+(
+A
+t
++
+ψ
+⁡
+(
+ℋ
+t
+)
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+o
+t
+∣
+q
+,
+o
+<
+t
+)
+]
+.
+\displaystyle=\mathbb{E}_{q\sim\mathcal{D},\,o\sim\pi_{\theta_{\text{old}}}(O\mid q)}\left[\sum_{t=1}^{|o|}(A_{t}+\psi(\mathcal{H}_{t}))\nabla_{\theta}\log\pi_{\theta}(o_{t}\mid q,o_{<t})\right].
+(7)
+Our shaping method can be seamlessly integrated into existing RL training pipelines using only a single line of code. Specifically, after computing the advantages with PPO or GRPO, we add the entropy-based advantage term before calculating the policy loss, as follows
+2
+2
+2
+To be specific, this corresponds to a one-line code insertion in the
+update_policy
+function of
+verl/workers/actor/dp_actor.py
+file when using the veRL framework
+(
+Sheng et al., 2024
+)
+.
+:
+Entropy-Based Advantage Shaping (PyTorch Implementation)
+# Compute advantages as in PPO or GRPO
+adv = compute_advantages(...)
+# Apply entropy-based term for advantage shaping
+adv += torch.min(
+alpha
+*
+entropy.detach()
+,
+adv.abs()/
+kappa
+)
+# Use the shaped advantages to compute the policy loss
+loss = compute_policy_loss(adv, ...)
+Robustness of Entropy-Based Advantage: Avoiding Over-Encouragement
+Prior work
+(
+Chen et al., 2025
+)
+attempts to enhance reasoning by rewarding the policy based on the frequency of reasoning-like tokens, but this leads to reward hacking—the policy model repeatedly generates such tokens to exploit the reward without performing true reasoning. In contrast, our method naturally avoids such over-encouragement due to the intrinsic tension between entropy and confidence. As shown in Figure
+4
+, our method initially assigns high advantage to tokens with high-entropy distributions but gradually reduces the entropy-based advantage as model confidence increases over training iterations.
+Figure 4:
+Dynamics of Entropy-Based Advantage
+. High entropy initially largely amplifies the advantage, accelerating confidence gain and leading to reduced entropy-based shaping in subsequent steps.
+Formally, let
+k
+k
+denote the training iteration and
+t
+t
+denote the token position within the output response. The policy model parameters are updated via gradient ascent:
+θ
+k
++
+1
+=
+θ
+k
++
+η
+​
+∇
+θ
+𝒥
+​
+(
+θ
+k
+)
+,
+\displaystyle\theta_{k+1}=\theta_{k}+\eta\,\nabla_{\theta}\mathcal{J}(\theta_{k}),
+(8)
+where
+η
+\eta
+is the learning rate, and the policy gradient
+∇
+θ
+𝒥
+​
+(
+θ
+k
+)
+\nabla_{\theta}\mathcal{J}(\theta_{k})
+(Equation
+7
+) uses the shaped advantage
+A
+k
+,
+t
+shaped
+=
+A
+k
+,
+t
++
+ψ
+⁡
+(
+ℋ
+k
+,
+t
+)
+A^{\mathrm{shaped}}_{k,t}=A_{k,t}+\psi(\mathcal{H}_{k,t})
+which is positively correlated with the detached entropy
+ℋ
+k
+,
+t
+detach
+{\color[rgb]{0.1211,0.4648,0.707}\mathcal{H}^{\mathrm{detach}}_{k,t}}
+(Equation
+5
+). When the original advantage
+A
+k
+,
+t
+>
+0
+A_{k,t}>0
+, higher entropy leads to a stronger update on the selected token
+o
+t
+o_{t}
+, largely increasing its likelihood
+π
+θ
+(
+o
+t
+∣
+⋅
+)
+\pi_{\theta}(o_{t}\mid\cdot)
+and thus sharpening the output distribution. According to the entropy definition in Equation
+4
+, a sharper distribution lowers entropy, which in turn reduces the entropy-based advantage
+ψ
+⁡
+(
+ℋ
+t
+)
+\psi(\mathcal{H}_{t})
+and weakens subsequent updates. This self-regulating effect is empirically validated in Figure
+7
+.
+Comparison with Entropy Regularization
+In traditional RL, it is common to add an entropy regularizer to the gradient to prevent the policy from becoming overly deterministic
+(
+O’Donoghue et al., 2016
+)
+. Practically, this means adding an entropy loss term to the policy loss. To clarify the distinction between our method and entropy regularization, we present a comparison in Table
+1
+.
+Entropy regularization explicitly adds an entropy term
+∑
+t
+ℋ
+t
+\sum_{t}\mathcal{H}_{t}
+to the objective, scaled by a coefficient
+β
+\beta
+. Since
+ℋ
+t
+\mathcal{H}_{t}
+depends on the current policy
+π
+θ
+\pi_{\theta}
+, this introduces an additional gradient component
+∇
+θ
+ℋ
+t
+\nabla_{\theta}\mathcal{H}_{t}
+, encouraging higher-entropy policies during training.
+In contrast, our method modifies the advantage function by adding a clipped entropy term
+ℋ
+t
+detach
+\mathcal{H}_{t}^{\mathrm{detach}}
+, which is detached from the computation graph. As a result,
+∇
+θ
+ℋ
+t
+detach
+=
+0
+\nabla_{\theta}{\color[rgb]{0.1211,0.4648,0.707}\mathcal{H}_{t}^{\mathrm{detach}}}=0
+, and the entropy term influences optimization only through the adjusted advantage values. Thus, our method preserves the original RL optimization dynamics. This makes it fundamentally distinct from—and even orthogonal to—entropy regularization.
+Entropy Regularization
+Entropy-Based Adv. Shaping
+Training Objective
+𝒥
+=
+𝒥
+PPO
++
+β
+​
+∑
+t
+ℋ
+t
+\mathcal{J}=\mathcal{J}_{\mathrm{PPO}}+\beta\sum_{t}\mathcal{H}_{t}
+𝒥
+=
+𝒥
+PPO
+​
+(
+A
+t
+shaped
+)
+\mathcal{J}=\mathcal{J}_{\mathrm{PPO}}(A^{\mathrm{shaped}}_{t})
+Policy Gradient
+∑
+t
+A
+t
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+o
+t
+)
++
+β
+​
+∑
+t
+∇
+θ
+ℋ
+t
+\sum_{t}A_{t}\nabla_{\theta}\log\pi_{\theta}(o_{t})+\beta\sum_{t}\nabla_{\theta}\mathcal{H}_{t}
+∑
+t
+A
+t
+shaped
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+o
+t
+)
+\sum_{t}A^{\mathrm{shaped}}_{t}\nabla_{\theta}\log\pi_{\theta}(o_{t})
+Entropy Gradient Flow
+∇
+θ
+ℋ
+t
+≠
+0
+\nabla_{\theta}\mathcal{H}_{t}\neq 0
+∇
+θ
+ℋ
+t
+detach
+=
+0
+\nabla_{\theta}{\color[rgb]{0.1211,0.4648,0.707}\mathcal{H}_{t}^{\mathrm{detach}}}=0
+Table 1:
+Comparison of gradient behavior between entropy regularization and our entropy-based advantage shaping. We present simplified expressions that omit PPO’s
+min
+\min
+/
+clip
+\mathrm{clip}
+operations and batch normalization.
+𝒥
+PPO
+​
+(
+A
+t
+shaped
+)
+\mathcal{J}_{\mathrm{PPO}}(A^{\mathrm{shaped}}_{t})
+denotes the PPO objective computed with shaped advantages.
+4
+Experiment Settings
+Backbone Models
+We conduct experiments on two base models: the general-purpose Qwen2.5-Base-7B
+(
+Yang et al., 2024a
+)
+and its domain-adapted variant Qwen2.5-Math-Base-7B
+(
+Yang et al., 2024b
+)
+. We also initially attempted RL training from Llama-series LLMs
+(
+AI@Meta, 2024
+)
+using vanilla GRPO or PPO, but observed that the LLMs abandoned intermediate reasoning chains within just a few training iterations. This observation aligns with
+Gandhi et al. (2025)
+that Llama LLMs inherently lack reasoning behaviors and likely require pre-training on reasoning traces prior to RL training.
+RL Training Configuration
+Our training data are sourced from DAPO
+(
+Yu et al., 2025
+)
+. We use output reward that assigns +1 for correct final answers and -1 otherwise. We conduct experiments on GRPO and PPO using the veRL framework
+(
+Sheng et al., 2024
+)
+. To build strong baselines, we adopt several techniques from DAPO and VAPO
+(
+Yue et al., 2025b
+)
+, including Clip-Higher, Token-level Loss, Critic-Pretraining, and Group-Sampling. Detailed hyperparameters are in Appendix
+B
+. Building on these RL baselines, we apply our proposed entropy-based advantage. We fix
+κ
+\kappa
+to
+2
+2
+throughout all experiments, and set
+α
+\alpha
+to
+0.4
+0.4
+for GRPO and
+0.1
+0.1
+for PPO.
+Evaluation Benchmarks and Metrics
+We evaluate on AIME 2025/2024
+(
+MAA, 2025
+)
+, AMC 2023
+(
+MAA, 2023
+)
+and MATH500
+(
+Hendrycks et al., 2021
+)
+, using a rollout temperature of
+0.6
+0.6
+, a maximum response length of
+8
+​
+K
+8K
+tokens, and top-
+p
+p
+sampling with
+p
+=
+0.95
+p=0.95
+. Each dataset is evaluated multiple times, and we report the average Pass@
+1
+1
+accuracy. Following
+Yue et al. (2025a)
+, we also assess reasoning ability boundaries using the Pass@
+K
+K
+metric: for each question, if at least one of
+K
+K
+sampled model outputs passes verification, Pass@
+K
+=
+1
+K=1
+; otherwise
+0
+0
+. To mitigate variance, we adopt the unbiased estimation method proposed by
+Chen et al. (2021)
+. For the small and challenging benchmark AIME 2024/2025 (30 examples per year), we scale
+K
+K
+to a large value of 256. For the larger and less challenging benchmarks AMC 2023 (83 examples) and MATH500 (500 examples), we set
+K
+=
+128
+K=128
+and
+K
+=
+16
+K=16
+, respectively, because LLMs already achieve near-perfect results with small
+K
+K
+, and their size makes large
+K
+K
+computationally expensive.
+5
+Results
+As shown in Table
+2
+, our method consistently outperforms the baselines across benchmarks and RL algorithms, achieving superior average performance even compared to strong existing approaches
+(
+Cui et al., 2025a
+;
+Liu et al., 2025
+;
+Chu et al., 2025
+)
+. Moreover, this advantage extends to Pass@
+K
+K
+—a metric for estimating the reasoning capacity of LLMs. As shown in Figure
+5
+, our method continues to deliver improvements even at large
+K
+K
+values, where most baselines plateau.
+On benchmarks such as AIME2024, AMC2023, and MATH500, we observe a similar phenomenon reported in
+Yue et al. (2025a)
+: although RL-trained models consistently outperform their base models in terms of average Pass@
+1
+1
+performance, the base models can surpass RL-finetuned ones in Pass@
+K
+K
+when
+K
+K
+becomes sufficiently large. This indicates that conventional RL fine-tuning may inadvertently limit the exploratory capacity of the model. Our method effectively mitigates this issue. Notably, on AIME2025—the most challenging benchmark in our evaluation, released after the training data cutoff of the base models—our method not only outperforms the RL baselines but also exceeds the performance ceiling of the base model. This highlights the potential of our approach to break through the inherent limitations of base models and push the boundaries of LLM reasoning.
+AIME25
+AIME24
+AMC23
+MATH500
+Pass@256
+Pass@1
+Pass@256
+Pass@1
+Pass@128
+Pass@1
+Pass@16
+Pass@1
+Qwen2.5-Base
+50.0
+2.2
+66.7
+5.2
+90.4
+28.3
+88.8
+54.4
++ GRPO
+50.0
+10.7
+46.7
+11.9
+91.6
+55.6
+65.4
+55.3
++ GRPO w/ Entropy Adv.
+53.3
+11.8
+56.7
+12.6
+91.6
+57.8
+74.0
+58.5
+Δ
+\Delta
++3.3
++1.1
++10.0
++0.7
++0.0
++2.2
++8.6
++3.2
++ PPO
+43.3
+7.9
+46.7
+14.2
+85.5
+51.8
+68.4
+57.9
++ PPO w/ Entropy Adv.
+56.7
+11.7
+50.0
+16.8
+88.0
+56.1
+75.2
+60.9
+Δ
+\Delta
++13.4
++3.8
++3.3
++2.6
++2.5
++4.3
++6.8
++3.0
+Qwen2.5-Math
+50.7
+4.4
+70.0
+10.7
+90
+34.4
+88.6
+47.5
+Qwen2.5-Math-Ins†
+-
+-
+-
+13.3
+-
+50.6
+-
+79.8
+Eurus-2-PRIME
+-
+-
+-
+26.7
+-
+57.8
+-
+79.2
+Oat-Zero†
+-
+-
+-
+30.0
+-
+55.4
+-
+80.6
+GPG†
+-
+-
+-
+33.3
+-
+65.0
+-
+80.0
++ GRPO
+57.4
+16.3
+83.3
+30.9
+92.8
+66.9
+94.6
+83.0
++ GRPO w/ Entropy Adv.
+63.6
+17.6
+80.0
+33.7
+95.2
+69.8
+94.8
+83.1
+Δ
+\Delta
++6.2
++1.3
+-3.3
++2.8
++2.4
++2.9
++0.2
++ 0.1
+Table 2:
+Pass@K and Pass@1 Performance
+. †: results from
+Chu et al. (2025)
+. “+ GRPO” and “+ PPO” indicate RL training from the base models, while “w/ Entropy Adv.” denotes applying our entropy-based advantage to the corresponding RL algorithms.
+Δ
+\Delta
+denotes the performance difference between without and with applying our method.
+Figure 5:
+Pass@K Performance
+of the LLMs with different RL algorithms.
+6
+Analysis
+We conduct a detailed analysis to understand the impact of our method on RL training for LLMs. Specifically, we track key metrics—including reward, response length, entropy, and our entropy-based advantage—throughout training (Figure
+6
+and
+7
+), as well as reasoning dynamics during testing (Figure
+8
+and
+9
+). Furthermore, we provide a comprehensive comparison between our method and traditional entropy regularization.
+6.1
+RL Training Process
+Training Reward
+As shown on the left of Figure
+8
+, we observe steady upward trends across all three methods. Notably, RL with Entropy-based Advantage yields slightly higher rewards in the later stages of training, indicating a stronger and more sustained improvement over time.
+Response Length
+Figure
+8
+(middle) indicates that while the response length of RL baseline shows a steady increase before 1000 steps, it slightly declines thereafter. In contrast, augmenting the RL baseline with our entropy-based advantage sustains the upward trend in response length beyond 1000 steps, surpassing both the RL baseline and RL with Entropy Regularizer. This may reflect stronger reasoning capabilities, as the LLM tends to spend more time (i.e., generate more tokens) to explore and reach the correct answer
+(
+Guo et al., 2025
+)
+.
+Overall Entropy
+Both the RL baseline and our method exhibit a decreasing trend throughout training, reflecting increasing model confidence. However, neither shows signs of entropy collapse. This is likely due to the use of the “clip-higher” technique in the RL baseline, which prevents the gradients of low-probability tokens from being clipped. Specifically, at step 2000, the entropy of the RL baseline is 0.34, and that of our method is 0.17. As a reference, in an ablation where “clip-higher” is removed, entropy drops to 0.03—a level typically considered as entropy collapse
+(
+Yu et al., 2025
+;
+Cui et al., 2025b
+)
+.
+Figure 6:
+Metrics during RL training.
+The RL baseline is GRPO; “RL w/ Entropy Reg.” applies entropy regularization; “RL w/ Entropy Adv.” applies entropy-based advantage shaping; “RL w/o Clip-Higher” removes the clip-higher technique from the RL baseline (i.e.,
+ϵ
+high
+=
+ϵ
+low
+=
+0.2
+\epsilon_{\mathrm{high}}=\epsilon_{\mathrm{low}}=0.2
+). “Entropy Adv. Ratio” denotes the ratio of entropy-based advantage to the original advantage.
+AIME25
+AIME24
+AMC23
+MATH500
+Pass@256
+Pass@1
+Pass@256
+Pass@1
+Pass@128
+Pass@1
+Pass@16
+Pass@1
+RL w/ Entropy Reg.
+50.0
+9.3
+50.0
+16.0
+90.4
+54.3
+70.4
+57.4
+RL w/ Entropy Adv.
+53.3
+11.8
+56.7
+12.6
+91.6
+57.8
+74.0
+58.5
+Table 3:
+Comparison of model performance trained with RL (i.e., GRPO) using entropy regularization vs. entropy-based advantage shaping
+In contrast, although adding an entropy regularizer to the RL training objective increases entropy during training, it shows a sudden spike after step 1500, indicating unstable optimization. The corresponding testing performance comparison between our method and entropy regularization is shown in Table
+3
+, highlighting our method’s superiority in promoting stable training while improving reasoning performance.
+Figure 7:
+Ratio of Entropy-Based Advantage
+to the original advantage (i.e.,
+ψ
+⁡
+(
+ℋ
+t
+)
+|
+A
+t
+|
+\frac{\psi(\mathcal{H}_{t})}{|A_{t}|}
+).
+Our method does not aim to increase token entropy uniformly. Instead, it promotes exploratory reasoning behaviors by amplifying high-entropy actions and gradually builds confidence (reflected by lower entropy) at these points. We further analyze this in the next subsection on exploratory reasoning dynamics.
+Entropy-Based Advantage
+Figure
+7
+shows the ratio of the entropy-based advantage to the original advantage.
+As training progresses and the model gains confidence, the entropy-based advantage decreases. This supports our hypothesis that the intrinsic tension between model confidence and entropy naturally encourages exploration in uncertain regions, while gradually reducing the entropy-based advantage once sufficient confidence is achieved—thereby preventing over-encouragement.
+Figure 8:
+Comparison of Pivotal Tokens (left), Reflection Actions (middle), and Response Length and Repetition (right)
+on the testing task between the baseline RL algorithm—GRPO (grey)—and RL with entropy advantage (purple/blue/orange), evaluated across training process.
+Figure 9:
+Response Comparison
+between RL-trained LLMs with and without entropy-based advantage shaping. Certain portions are omitted and the completion version is in Appendix
+C
+.
+6.2
+Exploratory Reasoning Dynamics
+We further analyze the reasoning dynamics of the RL-trained models on the testing benchmarks to validate whether encouraging high-entropy actions during training can effectively enhance the model’s exploratory reasoning capabilities.
+Pivotal Tokens and Reflective Actions
+As shown in Figure
+8
+, applying our entropy-based advantage successfully reinforces the model’s ability to generate pivotal tokens and reflective actions. These regions exhibit much lower entropy, indicating increased model confidence when producing such actions. Consequently, we observe significantly higher counts of pivotal tokens and reflective actions compared to the baseline.
+Response Length and Repetition Rate
+On the right side of Figure
+8
+, we also observe a substantial increase in response length across testing benchmarks. Additionally, we record the n-gram-based repetition rate of generated responses and find that our method yields much longer responses while maintaining a repetition rate comparable to that of the RL baseline, demonstrating its ability to scale effectively at test time without increasing redundancy.
+Case Study
+Figure
+9
+presents example responses from the RL-trained models. Compared to the baseline, our method produces more accurate and mathematically rigorous solutions. The model explicitly lists problem constraints, performs systematic case analysis (e.g., odd vs. even list lengths), and dynamically adjusts its approach when initial attempts fail. For instance, it iterates through candidate values (e.g.,
+n
+=
+5
+,
+6
+,
+…
+n=5,6,\ldots
+) while ensuring constraints are satisfied at each step. This structured and persistent reasoning process leads to valid final answers, whereas the baseline often overlooks key conditions and produces incorrect solutions.
+7
+Related Work
+Exploration in Reinforcement Learning
+Exploration has long been a central theme in RL
+(
+Li et al., 2025
+)
+, addressed through theoretical frameworks
+(
+Cai et al., 2020
+;
+Agarwal et al., 2020
+;
+Ishfaq et al., 2021
+)
+, as well as empirical heuristics
+(
+Burda et al., 2019
+;
+Pathak et al., 2017
+;
+Raileanu & Rocktäschel, 2020
+;
+Henaff et al., 2022
+)
+. Motivated by the use of entropy to guide exploration
+(
+Haarnoja et al., 2018
+;
+Schulman et al., 2017b
+;
+Ziebart et al., 2008
+)
+, we investigate its role in LLM reasoning by treating entropy as an advantage-shaping signal to reinforce exploratory reasoning behaviors. A concurrent work
+(
+Gao et al., 2025
+)
+also studies exploration-driven reasoning but adopts a different approach by designing custom metrics rather than using entropy. Other concurrent studies incorporate an entropy regularizer
+(
+He et al., 2025
+;
+Wang et al., 2025b
+)
+to the training objective, while our method focuses on the advantage function, providing an orthogonal perspective.
+Training Signals in Reinforcement Fine-Tuning
+Reinforcement fine-tuning of LLMs can leverage supervised and/or unsupervised training signals
+(
+Shao et al., 2025
+)
+. Supervised methods, such as RLHF
+(
+Ouyang et al., 2022
+)
+and RLVR, rely on reward signals derived from human feedback or verifiable correctness, and have proven effective in aligning model behavior and solving deterministic tasks. In contrast, unsupervised approaches reduce dependence on human annotations by leveraging consistency-based signals
+(
+Prasad et al., 2024
+;
+Zuo et al., 2025
+)
+or entropy minimization
+(
+Zhang et al., 2025
+;
+Agarwal et al., 2025
+)
+.
+Chen et al. (2025)
+incorporates uncertainty-aware weighting into RL using semantic entropy. Our work focuses on unsupervised signals with a specific emphasis on exploration, employing entropy to shape the advantage and encourage exploratory reasoning.
+8
+Conclusion
+This work investigates reasoning with exploration to encourage longer and deeper reasoning chains in LLMs, through the lens of entropy. We begin by analyzing the relationship between entropy and exploratory reasoning, revealing that pivotal tokens, reflective actions, and rare behaviors consistently align with regions of higher entropy. Motivated by these findings, we introduce a minimal modification to standard RL algorithms by augmenting the advantage function with a clipped, gradient-detached entropy term. This design fosters exploration by promoting longer and deeper reasoning, while preserving the original policy optimization direction. We validate our method on mainstream RLVR algorithms, GRPO and PPO, and observe substantial improvements in Pass@
+K
+K
+across diverse benchmarks—highlighting a promising direction for exploration-aware LLM training.
+Acknowledgments
+The first author would like to thank Hongzhao Xie, Yexin Li, and Yuxian Gu for helpful discussions.
+References
+Agarwal et al. (2020)
+Alekh Agarwal, Sham Kakade, Mikael Henaff, and Wen Sun.
+Pc-pg: Policy cover directed exploration for provable policy gradient
+learning.
+In
+Advances in Neural Information Processing Systems
+, 2020.
+Agarwal et al. (2025)
+Shivam Agarwal, Zimin Zhang, Lifan Yuan, Jiawei Han, and Hao Peng.
+The unreasonable effectiveness of entropy minimization in llm
+reasoning.
+arXiv preprint arXiv:2505.15134
+, 2025.
+AI@Meta (2024)
+AI@Meta.
+Llama 3 model card, 2024.
+URL
+https://github.com/meta-llama/llama3/blob/main/MODEL_CARD.md
+.
+Burda et al. (2019)
+Yuri Burda, Harrison Edwards, Amos Storkey, and Oleg Klimov.
+Exploration by random network distillation.
+In
+Proceedings of the 7th International Conference on Learning
+Representations
+, 2019.
+Cai et al. (2020)
+Qi Cai, Zhuoran Yang, Chi Jin, and Zhaoran Wang.
+Provably efficient exploration in policy optimization.
+In
+Proceedings of the 37th International Conference on Machine
+Learning
+, 2020.
+Chen et al. (2021)
+Mark Chen, Jerry Tworek, Heewoo Jun, Qiming Yuan, Henrique Ponde De Oliveira
+Pinto, Jared Kaplan, Harri Edwards, Yuri Burda, Nicholas Joseph, Greg
+Brockman, et al.
+Evaluating large language models trained on code.
+arXiv preprint arXiv:2107.03374
+, 2021.
+Chen et al. (2025)
+Zhipeng Chen, Yingqian Min, Beichen Zhang, Jie Chen, Jinhao Jiang, Daixuan
+Cheng, Wayne Xin Zhao, Zheng Liu, Xu Miao, Yang Lu, et al.
+An empirical study on eliciting and improving r1-like reasoning
+models.
+arXiv preprint arXiv:2503.04548
+, 2025.
+Chu et al. (2025)
+Xiangxiang Chu, Hailang Huang, Xiao Zhang, Fei Wei, and Yong Wang.
+Gpg: A simple and strong reinforcement learning baseline for model
+reasoning.
+arXiv preprint arXiv:2504.02546
+, 2025.
+Cui et al. (2025a)
+Ganqu Cui, Lifan Yuan, Zefan Wang, Hanbin Wang, Wendi Li, Bingxiang He, Yuchen
+Fan, Tianyu Yu, Qixin Xu, Weize Chen, et al.
+Process reinforcement through implicit rewards.
+arXiv preprint arXiv:2502.01456
+, 2025a.
+Cui et al. (2025b)
+Ganqu Cui, Yuchen Zhang, Jiacheng Chen, Lifan Yuan, Zhi Wang, Yuxin Zuo,
+Haozhan Li, Yuchen Fan, Huayu Chen, Weize Chen, et al.
+The entropy mechanism of reinforcement learning for reasoning
+language models.
+arXiv preprint arXiv:2505.22617
+, 2025b.
+Gandhi et al. (2025)
+Kanishk Gandhi, Ayush Chakravarthy, Anikait Singh, Nathan Lile, and Noah D
+Goodman.
+Cognitive behaviors that enable self-improving reasoners, or, four
+habits of highly effective stars.
+arXiv preprint arXiv:2503.01307
+, 2025.
+Gao et al. (2025)
+Jingtong Gao, Ling Pan, Yejing Wang, Rui Zhong, Chi Lu, Qingpeng Cai, Peng
+Jiang, and Xiangyu Zhao.
+Navigate the unknown: Enhancing llm reasoning with intrinsic
+motivation guided exploration.
+arXiv preprint arXiv:2505.17621
+, 2025.
+Guo et al. (2025)
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu,
+Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al.
+Deepseek-r1: Incentivizing reasoning capability in llms via
+reinforcement learning.
+arXiv preprint arXiv:2501.12948
+, 2025.
+Haarnoja et al. (2018)
+Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, and Sergey Levine.
+Soft actor-critic: Off-policy maximum entropy deep reinforcement
+learning with a stochastic actor.
+In
+Proceedings of the 35th International Conference on Machine
+Learning
+. PMLR, 2018.
+He et al. (2025)
+Jujie He, Jiacai Liu, Chris Yuhao Liu, Rui Yan, Chaojie Wang, Peng Cheng,
+Xiaoyu Zhang, Fuxiang Zhang, Jiacheng Xu, Wei Shen, et al.
+Skywork open reasoner 1 technical report.
+arXiv preprint arXiv:2505.22312
+, 2025.
+Henaff et al. (2022)
+Mikael Henaff, Roberta Raileanu, Minqi Jiang, and Tim Rocktäschel.
+Exploration via elliptical episodic bonuses.
+In
+Advances in Neural Information Processing Systems
+, 2022.
+Hendrycks et al. (2021)
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric
+Tang, Dawn Song, and Jacob Steinhardt.
+Measuring mathematical problem solving with the math dataset.
+arXiv preprint arXiv:2103.03874
+, 2021.
+HuggingFace (2025)
+HuggingFace.
+Math-verify, 2025.
+URL
+https://github.com/huggingface/Math-Verify
+.
+Ishfaq et al. (2021)
+Haque Ishfaq, Qiwen Cui, Viet Nguyen, Alex Ayoub, Yang Zhuoran, Zhaoran Wang,
+Doina Precup, and F. Lin Yang.
+Randomized exploration for reinforcement learning with general value
+function approximation.
+In
+Proceedings of the 38th International Conference on Machine
+Learning
+, 2021.
+Jain et al. (2024)
+Naman Jain, King Han, Alex Gu, Wen-Ding Li, Fanjia Yan, Tianjun Zhang, Sida
+Wang, Armando Solar-Lezama, Koushik Sen, and Ion Stoica.
+Livecodebench: Holistic and contamination free evaluation of large
+language models for code.
+CoRR
+, abs/2403.07974, 2024.
+URL
+https://doi.org/10.48550/arXiv.2403.07974
+.
+Lambert et al. (2024)
+Nathan Lambert, Jacob Morrison, Valentina Pyatkin, Shengyi Huang, Hamish
+Ivison, Faeze Brahman, Lester James V Miranda, Alisa Liu, Nouha Dziri, Shane
+Lyu, et al.
+T
+\
+\backslash
+” ulu 3: Pushing frontiers in open language model
+post-training.
+arXiv preprint arXiv:2411.15124
+, 2024.
+Li et al. (2025)
+Yexin Li, Pring Wong, Hanfang Zhang, Shuo Chen, and Siyuan Qi.
+Cae: Repurposing the critic as an explorer in deep reinforcement
+learning.
+arXiv preprint arXiv:2503.18980
+, 2025.
+Liu et al. (2025)
+Zichen Liu, Changyu Chen, Wenjun Li, Penghui Qi, Tianyu Pang, Chao Du, Wee Sun
+Lee, and Min Lin.
+Understanding r1-zero-like training: A critical perspective.
+arXiv preprint arXiv:2503.20783
+, 2025.
+Luo et al. (2025)
+Michael Luo, Sijun Tan, Roy Huang, Ameen Patel, Alpay Ariyak, Qingyang Wu,
+Xiaoxiang Shi, Rachel Xin, Colin Cai, Maurice Weber, Ce Zhang, Li Erran Li,
+Raluca Ada Popa, and Ion Stoica.
+Deepcoder: A fully open-source 14b coder at o3-mini level.
+https://github.com/agentica-project/rllm
+, 2025.
+Notion Blog.
+MAA (2023)
+MAA.
+American mathematics competitions - amc.
+https://maa.org/
+, 2023.
+MAA (2025)
+MAA.
+American invitational mathematics examination - aime.
+https://maa.org/
+, 2025.
+Nachum et al. (2017)
+Ofir Nachum, Mohammad Norouzi, Kelvin Xu, and Dale Schuurmans.
+Bridging the gap between value and policy based reinforcement
+learning.
+Advances in neural information processing systems
+, 30, 2017.
+O’Donoghue et al. (2016)
+Brendan O’Donoghue, Rémi Munos, Koray Kavukcuoglu, and Volodymyr Mnih.
+Pgq: Combining policy gradient and q-learning.
+CoRR
+, 2016.
+Ouyang et al. (2022)
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela
+Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, et al.
+Training language models to follow instructions with human feedback.
+Advances in neural information processing systems
+,
+35:27730–27744, 2022.
+Pathak et al. (2017)
+Deepak Pathak, Pulkit Agrawal, Alexei A. Efros, and Trevor Darrell.
+Curiosity-driven exploration by self-supervised prediction.
+In
+Proceedings of the 34th International Conference on Machine
+Learning
+. PMLR, 2017.
+Prasad et al. (2024)
+Archiki Prasad, Weizhe Yuan, Richard Yuanzhe Pang, Jing Xu, Maryam
+Fazel-Zarandi, Mohit Bansal, Sainbayar Sukhbaatar, Jason Weston, and Jane Yu.
+Self-consistency preference optimization.
+arXiv preprint arXiv:2411.04109
+, 2024.
+Qian et al. (2025)
+Chen Qian, Dongrui Liu, Haochen Wen, Zhen Bai, Yong Liu, and Jing Shao.
+Demystifying reasoning dynamics with mutual information: Thinking
+tokens are information peaks in llm reasoning.
+arXiv preprint arXiv:2506.02867
+, 2025.
+Raileanu & Rocktäschel (2020)
+Roberta Raileanu and Tim Rocktäschel.
+Ride: Rewarding impact-driven exploration for procedurally-generated
+environments.
+In
+Proceedings of the 8th International Conference on Learning
+Representations
+, 2020.
+Reimers & Gurevych (2019)
+Nils Reimers and Iryna Gurevych.
+Sentence-bert: Sentence embeddings using siamese bert-networks.
+arXiv preprint arXiv:1908.10084
+, 2019.
+Schulman (2020)
+John Schulman.
+Approximating kl divergence, 2020.
+URL
+http://joschu.net/blog/kl-approx.html
+.
+Schulman et al. (2015)
+John Schulman, Philipp Moritz, Sergey Levine, Michael Jordan, and Pieter
+Abbeel.
+High-dimensional continuous control using generalized advantage
+estimation.
+arXiv preprint arXiv:1506.02438
+, 2015.
+Schulman et al. (2017a)
+John Schulman, Xi Chen, and Pieter Abbeel.
+Equivalence between policy gradients and soft q-learning.
+arXiv preprint arXiv:1704.06440
+, 2017a.
+Schulman et al. (2017b)
+John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+Proximal policy optimization algorithms.
+arXiv preprint arXiv: 1707.06347v2
+, 2017b.
+Shah et al. (2025)
+Darsh J Shah, Peter Rushton, Somanshu Singla, Mohit Parmar, Kurt Smith, Yash
+Vanjani, Ashish Vaswani, Adarsh Chaluvaraju, Andrew Hojel, Andrew Ma, et al.
+Rethinking reflection in pre-training.
+arXiv preprint arXiv:2504.04022
+, 2025.
+Shao et al. (2025)
+Rulin Shao, Shuyue Stella Li, Rui Xin, Scott Geng, Yiping Wang, Sewoong Oh,
+Simon Shaolei Du, Nathan Lambert, Sewon Min, Ranjay Krishna, Yulia Tsvetkov,
+Hannaneh Hajishirzi, Pang Wei Koh, and Luke Zettlemoyer.
+Spurious rewards: Rethinking training signals in rlvr, 2025.
+URL
+https://arxiv.org/abs/2506.10947
+.
+Shao et al. (2024)
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei
+Zhang, Mingchuan Zhang, YK Li, Y Wu, et al.
+Deepseekmath: Pushing the limits of mathematical reasoning in open
+language models.
+arXiv preprint arXiv:2402.03300
+, 2024.
+Sheng et al. (2024)
+Guangming Sheng, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang,
+Yanghua Peng, Haibin Lin, and Chuan Wu.
+Hybridflow: A flexible and efficient rlhf framework.
+arXiv preprint arXiv: 2409.19256
+, 2024.
+Wang et al. (2025a)
+Shenzhi Wang, Le Yu, Chang Gao, Chujie Zheng, Shixuan Liu, Rui Lu, Kai Dang,
+Xionghui Chen, Jianxin Yang, Zhenru Zhang, et al.
+Beyond the 80/20 rule: High-entropy minority tokens drive effective
+reinforcement learning for llm reasoning.
+arXiv preprint arXiv:2506.01939
+, 2025a.
+Wang et al. (2025b)
+Yiping Wang, Qing Yang, Zhiyuan Zeng, Liliang Ren, Lucas Liu, Baolin Peng, Hao
+Cheng, Xuehai He, Kuan Wang, Jianfeng Gao, et al.
+Reinforcement learning for reasoning in large language models with
+one training example.
+arXiv preprint arXiv:2504.20571
+, 2025b.
+Yang et al. (2024a)
+An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu,
+Chengyuan Li, Dayiheng Liu, Fei Huang, Haoran Wei, Huan Lin, Jian Yang,
+Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxi Yang, Jingren Zhou, Junyang
+Lin, Kai Dang, Keming Lu, Keqin Bao, Kexin Yang, Le Yu, Mei Li, Mingfeng Xue,
+Pei Zhang, Qin Zhu, Rui Men, Runji Lin, Tianhao Li, Tingyu Xia, Xingzhang
+Ren, Xuancheng Ren, Yang Fan, Yang Su, Yichang Zhang, Yu Wan, Yuqiong Liu,
+Zeyu Cui, Zhenru Zhang, and Zihan Qiu.
+Qwen2.5 technical report.
+CoRR
+, abs/2412.15115, 2024a.
+Yang et al. (2024b)
+An Yang, Beichen Zhang, Binyuan Hui, Bofei Gao, Bowen Yu, Chengpeng Li,
+Dayiheng Liu, Jianhong Tu, Jingren Zhou, Junyang Lin, Keming Lu, Mingfeng
+Xue, Runji Lin, Tianyu Liu, Xingzhang Ren, and Zhenru Zhang.
+Qwen2.5-math technical report: Toward mathematical expert model via
+self-improvement.
+CoRR
+, abs/2409.12122, 2024b.
+Yu et al. (2025)
+Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu Yue, Tiantian
+Fan, Gaohong Liu, Lingjun Liu, Xin Liu, et al.
+Dapo: An open-source llm reinforcement learning system at scale.
+arXiv preprint arXiv:2503.14476
+, 2025.
+Yue et al. (2025a)
+Yang Yue, Zhiqi Chen, Rui Lu, Andrew Zhao, Zhaokai Wang, Shiji Song, and Gao
+Huang.
+Does reinforcement learning really incentivize reasoning capacity in
+llms beyond the base model?
+arXiv preprint arXiv:2504.13837
+, 2025a.
+Yue et al. (2025b)
+Yu Yue, Yufeng Yuan, Qiying Yu, Xiaochen Zuo, Ruofei Zhu, Wenyuan Xu, Jiaze
+Chen, Chengyi Wang, TianTian Fan, Zhengyin Du, et al.
+Vapo: Efficient and reliable reinforcement learning for advanced
+reasoning tasks.
+arXiv preprint arXiv:2504.05118
+, 2025b.
+Zeng et al. (2025)
+Weihao Zeng, Yuzhen Huang, Qian Liu, Wei Liu, Keqing He, Zejun Ma, and Junxian
+He.
+Simplerl-zoo: Investigating and taming zero reinforcement learning
+for open base models in the wild.
+arXiv preprint arXiv:2503.18892
+, 2025.
+Zhang et al. (2025)
+Qingyang Zhang, Haitao Wu, Changqing Zhang, Peilin Zhao, and Yatao Bian.
+Right question is already half the answer: Fully unsupervised llm
+reasoning incentivization.
+arXiv preprint arXiv:2504.05812
+, 2025.
+Ziebart et al. (2008)
+Brian D Ziebart, Andrew L Maas, J Andrew Bagnell, Anind K Dey, et al.
+Maximum entropy inverse reinforcement learning.
+In
+Aaai
+, volume 8, pp.  1433–1438. Chicago, IL, USA, 2008.
+Zuo et al. (2025)
+Yuxin Zuo, Kaiyan Zhang, Li Sheng, Shang Qu, Ganqu Cui, Xuekai Zhu, Haozhan Li,
+Yuchen Zhang, Xinwei Long, Ermo Hua, et al.
+Ttrl: Test-time reinforcement learning.
+arXiv preprint arXiv:2504.16084
+, 2025.
+Chen et al. (2025)
+Minghan Chen, Guikun Chen, Wenguan Wang, and Yi Yang.
+Seed-grpo: Semantic entropy enhanced grpo for uncertainty-aware policy optimization.
+arXiv preprint arXiv:2505.12346
+, 2025.
+Appendix A
+Extended Preliminary Analysis
+Section
+2
+analyzes Qwen2.5-Base on mathematical domain. We further validate our findings using DeepSeek-R1-Distill-Qwen-1.5B on code domain; the evaluation benchmark is LiveCodeBench
+(
+Jain et al., 2024
+)
+, and the RL training configuration follows DeepCoder
+(
+Luo et al., 2025
+)
+. DeepSeek-R1-Distill-Qwen-1.5B is fine-tuned from Qwen2.5-Math-1.5B on large-scale, high-quality long-chain reasoning data distilled from DeepSeek-R1-671B, and already exhibits strong long-chain reasoning capabilities. Figure
+10
+shows consistent results: pivotal tokens, reflective actions, and rare behaviors exhibit higher entropy. This demonstrates that our entropy-related observations hold across domains, even with LLMs that already demonstrate strong reasoning performance.
+Figure 10:
+Entropy Comparison between Exploratory Reasoning and Others
+using DeepSeek-R1-Distill-Qwen-1.5B on code domain.
+Appendix B
+Experiment Settings
+Training Data and Reward Function
+For Qwen2.5-Base-7B, we use DAPO’s original prompt template and verifier; for Qwen2.5-Math-Base-7B, we append the suffix
+\nPlease reason step by step, and put your final answer within \boxed{}.
+to each question and employ Math-Verify
+(
+HuggingFace, 2025
+)
+as the verifier.
+RL Training Configuration
+For both GRPO and PPO, we use the hyperparameters in Table
+4
+, without using entropy or KL losses. For PPO only, the critic is trained with a learning rate of
+2
+​
+e
+−
+6
+2\text{e}^{-6}
+, with a 10-step pre-training applied before initiating policy updates. We use GAE with
+λ
+=
+1.0
+\lambda=1.0
+and
+γ
+=
+1.0
+\gamma=1.0
+.
+Hyperparameter
+Value
+Optimizer
+AdamW
+Policy learning rate
+1
+​
+e
+−
+6
+1\text{e}^{-6}
+Training batch size
+512 prompts
+Samples per prompt
+8
+Mini-batch size
+32 prompts
+Policy updates per rollout
+16
+Max response length
+8K tokens
+Rollout temperature
+1.0
+Clip range
+ϵ
+low
+\epsilon_{\text{low}}
+,
+ϵ
+high
+\epsilon_{\text{high}}
+0.2
+0.2
+,
+0.28
+0.28
+Table 4:
+RL Hyperparameters
+Appendix C
+Case Study
+Question and Ground Truth
+Question:
+A list of positive integers has the following properties: (1) The sum of the items in the list is 30; (2) The unique mode of the list is 9; (3) The median of the list is a positive integer that does not appear in the list itself. Find the sum of the squares of all the items in the list.
+Ground Truth:
+236
+Response from RL Baseline                                                               Total Length: 725 Tokens
+To find the sum of the squares of all items in the list that satisfies the given properties, let’s analyze the requirements step-by-step:
+1. The sum of the integers in the list must be equal to 30.
+2. The unique mode of the list is 9.
+3. The median of the integer list is a positive integer that does not appear in the list.
+Let’s denote the list as
+a
+1
+,
+a
+2
+,
+…
+,
+a
+n
+a_{1},a_{2},\ldots,a_{n}
+where
+a
+1
+≤
+a
+2
+≤
+⋯
+≤
+a
+n
+a_{1}\leq a_{2}\leq\cdots\leq a_{n}
+.
+The mode of the list being unique and equal to 9 implies that 9 must appear the most frequently in the list; no other integer in the list appears as frequently as 9.
+The median of the list is a positive integer not found in the list. Depending on whether the list has an odd or even number of elements, the median will be the middle element in the sorted list or the average of two middle elements, respectively.
+Now let’s consider the possible list structures based on these properties. Since 9 must be the unique mode, 9 must appear more frequently than any other integer in the list. Let’s consider the possible sizes of the list and the appearances of 9.
+Let’s guess the list might be something like:
+•   Suppose the list has an odd number of elements, let
+n
+=
+2
+​
+k
++
+1
+n=2k+1
+. The median would be the element in the middle position.
+•   Suppose the median is
+m
+m
+, and
+m
+≠
+a
+1
+,
+a
+2
+,
+…
+,
+a
+n
+m\neq a_{1},a_{2},\ldots,a_{n}
+.
+Let’s consider the list with these properties:
+•   The list might include several 9’s. Let’s start by considering the minimal configurations:
+•   Suppose the list has exactly three 9’s because then 9 appears with the highest frequency and other numbers must sum correctly. Thus the list will look like: 9, 9, 9, …along with other integers summing up correctly.
+We need to find a configuration where the sum is 30, and the median does not appear, unique mode is 9, and the median is integers in the list.
+Let’s try constructing such a list:
+•   Let’s say the list has a number of 9’s (let’s assume
+3
+×
+9
+=
+27
+3\times 9=27
+), then we need the rest to sum to
+3
+≤
+3
+3\leq 3
+.
+•   Let’s try constructing a specific list configuration manually. Suppose the list is; [1, 9, 9, 9, 7]:
+Sum is
+1
++
+9
++
+9
++
+9
++
+7
+=
+35
+1+9+9+9+7=35
+which is not correct.
+Let’s try another configuration:
+•   Let’s try a list with sum 30: [1, 9, 9, 9, 7]: Sum is 30 correct.
+•   Let’s check the median is not in the list and unique mode is 9 is unique correctly.
+•   The final valid list sum correctly would be: Let’s do correct summing and checking properties correctly:
+Sum correctly would be 30:
+One possible valid list correctly is: [1, 9, 9, 9, 7]: Sums correctly. Correct sum properties and correctly summed properties correctly would sum correctly.
+Answer: 251
+Response from RL w/ Entropy Advantage (Part 1)                        Total Length: 3023 Tokens
+To solve this problem, we will systematically analyze the given conditions and construct the list of positive integers that meets all the criteria.
+1. Sum of the items in the list is 30:
+Sum
+=
+30
+\text{Sum}=30
+2. The unique mode of the list is 9:
+Mode
+=
+9
+and
+9
+​
+appears more frequently than any other number
+\text{Mode}=9\quad\text{and}\quad 9\text{~appears more frequently than any other number}
+3. The median of the list is a positive integer that does not appear in the list itself:
+Median is a positive integer
+and
+Median
+∉
+list
+\text{Median is a positive integer}\quad\text{and}\quad\text{Median}\notin\text{list}
+Let’s start by denoting the list of positive integers as
+a
+1
+,
+a
+2
+,
+…
+,
+a
+n
+a_{1},a_{2},\ldots,a_{n}
+where
+n
+n
+is the number of elements in the list, and the list is sorted in ascending order (
+a
+1
+≤
+a
+2
+≤
+⋯
+≤
+a
+n
+a_{1}\leq a_{2}\leq\cdots\leq a_{n}
+).
+Step-by-Step Analysis:
+Step 1: Understanding the Mode
+Since the mode is 9 and it is unique, 9 must appear more frequently than any other number in the list. Let’s say 9 appears
+k
+k
+times. Therefore,
+k
+k
+is the highest frequency of any number in the list.
+Step 2: Understanding the Median
+The median is the middle value of the list when it is sorted. Since the median is a positive integer that does not appear in the list, it must be the average of the two middle numbers if
+n
+n
+is even, or it must be the middle number if
+n
+n
+is odd.
+Step 3: Setting Up the List
+Let’s start by assuming the smallest possible values for the other numbers while maintaining the mode as 9.
+Case Analysis:
+Case 1:
+n
+n
+is odd
+If
+n
+n
+is odd, the median is the middle number
+a
+n
++
+1
+2
+a_{\frac{n+1}{2}}
+. Since the median is a positive integer not in the list,
+a
+n
++
+1
+2
+≠
+9
+a_{\frac{n+1}{2}}\neq 9
+.
+Case 2:
+n
+n
+is even
+If
+n
+n
+is even, the median is the average of the two middle numbers
+a
+n
+2
++
+a
+n
+2
++
+1
+2
+\frac{a_{\frac{n}{2}}+a_{\frac{n}{2}+1}}{2}
+. Since the median is a positive integer not in the list,
+a
+n
+2
++
+a
+n
+2
++
+1
+2
+≠
+9
+\frac{a_{\frac{n}{2}}+a_{\frac{n}{2}+1}}{2}\neq 9
+.
+Constructing the List
+Let’s start by trying small values for
+n
+n
+and see if we can satisfy all conditions.
+Trying
+n
+=
+5
+n=5
+If
+n
+=
+5
+n=5
+, the median is
+a
+3
+a_{3}
+. Since
+a
+3
+a_{3}
+is a positive integer not in the list,
+a
+3
+≠
+9
+a_{3}\neq 9
+. The list looks like:
+a
+1
+,
+a
+2
+,
+9
+,
+a
+4
+,
+a
+5
+a_{1},a_{2},9,a_{4},a_{5}
+The sum is:
+a
+1
++
+a
+2
++
+9
++
+a
+4
++
+a
+5
+=
+30
+a_{1}+a_{2}+9+a_{4}+a_{5}=30
+Since 9 is the mode,
+a
+1
+,
+a
+2
+,
+a
+4
+,
+a_{1},a_{2},a_{4},
+and
+a
+5
+a_{5}
+cannot all be 9 (as 9 would not be the unique mode). Let’s try some values:
+•   If
+a
+1
+=
+a
+2
+=
+a
+4
+=
+a
+5
+=
+1
+a_{1}=a_{2}=a_{4}=a_{5}=1
+(smallest possible values):
+1
++
+1
++
+9
++
+1
++
+1
+=
+13
+(
+not equal to
+​
+30
+)
+1+1+9+1+1=13\quad(\text{not equal to }30)
+•   If
+a
+1
+=
+a
+2
+=
+a
+4
+=
+1
+a_{1}=a_{2}=a_{4}=1
+and
+a
+5
+=
+2
+a_{5}=2
+:
+1
++
+1
++
+9
++
+1
++
+2
+=
+14
+(
+not equal to
+​
+30
+)
+1+1+9+1+2=14\quad(\text{not equal to }30)
+Response from RL w/ Entropy Advantage (Part 2)                        Total Length: 3023 Tokens
+•   If
+a
+1
+=
+a
+2
+=
+1
+a_{1}=a_{2}=1
+and
+a
+4
+=
+a
+5
+=
+2
+a_{4}=a_{5}=2
+:
+1
++
+1
++
+9
++
+2
++
+2
+=
+15
+(
+not equal to
+​
+30
+)
+1+1+9+2+2=15\quad(\text{not equal to }30)
+•   If
+a
+1
+=
+1
+a_{1}=1
+and
+a
+2
+=
+a
+4
+=
+a
+5
+=
+2
+a_{2}=a_{4}=a_{5}=2
+:
+1
++
+2
++
+9
++
+2
++
+2
+=
+16
+(
+not equal to
+​
+30
+)
+1+2+9+2+2=16\quad(\text{not equal to }30)
+We need to find a better combination. Let’s try increasing the values while maintaining the mode and unique mode properties.
+Trying
+n
+=
+6
+n=6
+If
+n
+=
+6
+n=6
+, the median is the average of
+a
+3
+a_{3}
+and
+a
+4
+a_{4}
+. Since the median is a positive integer not in the list,
+a
+3
++
+a
+4
+2
+≠
+9
+\frac{a_{3}+a_{4}}{2}\neq 9
+. The list looks like:
+a
+1
+,
+a
+2
+,
+a
+3
+,
+9
+,
+9
+,
+a
+6
+a_{1},a_{2},a_{3},9,9,a_{6}
+The sum is:
+a
+1
++
+a
+2
++
+a
+3
++
+9
++
+9
++
+a
+6
+=
+30
+a_{1}+a_{2}+a_{3}+9+9+a_{6}=30
+Since 9 is the mode,
+a
+1
+,
+a
+2
+,
+a
+3
+,
+a_{1},a_{2},a_{3},
+and
+a
+6
+a_{6}
+cannot all be different. Let’s try some values:
+•   If
+a
+1
+=
+a
+2
+=
+1
+a_{1}=a_{2}=1
+and
+a
+3
+=
+a
+6
+=
+2
+a_{3}=a_{6}=2
+:
+1
++
+1
++
+2
++
+9
++
+9
++
+2
+=
+24
+(
+not equal to
+​
+30
+)
+1+1+2+9+9+2=24\quad(\text{not equal to }30)
+•   If
+a
+1
+=
+1
+a_{1}=1
+and
+a
+2
+=
+a
+3
+=
+2
+a_{2}=a_{3}=2
+and
+a
+6
+=
+3
+a_{6}=3
+:
+1
++
+2
++
+2
++
+9
++
+9
++
+3
+=
+26
+(
+not equal to
+​
+30
+)
+1+2+2+9+9+3=26\quad(\text{not equal to }30)
+•   If
+a
+1
+=
+1
+a_{1}=1
+and
+a
+2
+=
+2
+a_{2}=2
+and
+a
+3
+=
+a
+6
+=
+3
+a_{3}=a_{6}=3
+:
+1
++
+2
++
+3
++
+9
++
+9
++
+3
+=
+27
+(
+not equal to
+​
+30
+)
+1+2+3+9+9+3=27\quad(\text{not equal to }30)
+•   If
+a
+1
+=
+2
+a_{1}=2
+and
+a
+2
+=
+2
+a_{2}=2
+and
+a
+3
+=
+a
+6
+=
+3
+a_{3}=a_{6}=3
+:
+2
++
+2
++
+3
++
+9
++
+9
++
+3
+=
+28
+(
+not equal to
+​
+30
+)
+2+2+3+9+9+3=28\quad(\text{not equal to }30)
+•   If
+a
+1
+=
+1
+a_{1}=1
+and
+a
+2
+=
+3
+a_{2}=3
+and
+a
+3
+=
+5
+a_{3}=5
+and
+a
+6
+=
+6
+a_{6}=6
+:
+1
++
+3
++
+5
++
+9
++
+9
++
+6
+=
+33
+(
+not equal to
+​
+30
+)
+1+3+5+9+9+6=33\quad(\text{not equal to }30)
+After testing several combinations, let’s try a different approach by starting with a known mode and ensuring the sum is met.
+Trying
+n
+=
+7
+n=7
+If
+n
+=
+7
+n=7
+, the median is
+a
+4
+a_{4}
+. Since the median is a positive integer not in the list,
+a
+4
+≠
+9
+a_{4}\neq 9
+. The list looks like:
+a
+1
+,
+a
+2
+,
+a
+3
+,
+9
+,
+9
+,
+9
+,
+a
+7
+a_{1},a_{2},a_{3},9,9,9,a_{7}
+The sum is:
+a
+1
++
+a
+2
++
+a
+3
++
+9
++
+9
++
+9
++
+a
+7
+=
+30
+a_{1}+a_{2}+a_{3}+9+9+9+a_{7}=30
+Since 9 is the mode, we need to balance the remaining values. Let’s try:
+•
+a
+1
+=
+a
+2
+=
+a
+3
+=
+1
+a_{1}=a_{2}=a_{3}=1
+:
+1
++
+1
++
+1
++
+9
++
+9
++
+9
++
+a
+7
+=
+30
+1+1+1+9+9+9+a_{7}=30
+30
++
+a
+7
+=
+30
+30+a_{7}=30
+a
+7
+=
+0
+(
+not valid since
+​
+a
+7
+​
+must be positive
+)
+a_{7}=0\quad(\text{not valid since }a_{7}\text{ must be positive})
+•
+a
+1
+=
+a
+2
+=
+1
+a_{1}=a_{2}=1
+and
+a
+3
+=
+2
+a_{3}=2
+:
+1
++
+1
++
+2
++
+9
++
+9
++
+9
++
+a
+7
+=
+30
+1+1+2+9+9+9+a_{7}=30
+31
++
+a
+7
+=
+30
+31+a_{7}=30
+a
+7
+=
+−
+1
+(
+not valid since
+​
+a
+7
+​
+must be positive
+)
+a_{7}=-1\quad(\text{not valid since }a_{7}\text{ must be positive})
+After testing several more combinations, let’s try a different approach by starting with a known mode and ensuring the sum is met while satisfying all conditions.
+Response from RL w/ Entropy Advantage (Part 3)                        Total Length: 3023 Tokens
+Trying
+n
+=
+8
+n=8
+If
+n
+=
+8
+n=8
+, the median is the average of
+a
+4
+a_{4}
+and
+a
+5
+a_{5}
+. Since the median is a positive integer not in the list,
+a
+4
++
+a
+5
+2
+≠
+9
+\frac{a_{4}+a_{5}}{2}\neq 9
+. The list looks like:
+a
+1
+,
+a
+2
+,
+a
+3
+,
+9
+,
+9
+,
+9
+,
+a
+6
+,
+a
+7
+a_{1},a_{2},a_{3},9,9,9,a_{6},a_{7}
+The sum is:
+a
+1
++
+a
+2
++
+a
+3
++
+9
++
+9
++
+9
++
+a
+6
++
+a
+7
+=
+30
+a_{1}+a_{2}+a_{3}+9+9+9+a_{6}+a_{7}=30
+Since 9 is the mode, we need to balance the remaining values. Let’s try:
+•
+a
+1
+=
+a
+2
+=
+a
+3
+=
+1
+a_{1}=a_{2}=a_{3}=1
+:
+1
++
+1
++
+1
++
+9
++
+9
++
+9
++
+a
+6
++
+a
+7
+=
+30
+1+1+1+9+9+9+a_{6}+a_{7}=30
+3
++
+27
++
+a
+6
++
+a
+7
+=
+30
+3+27+a_{6}+a_{7}=30
+30
++
+a
+6
++
+a
+7
+=
+30
+30+a_{6}+a_{7}=30
+a
+6
++
+a
+7
+=
+0
+(
+not valid since
+​
+a
+6
+​
+and
+​
+a
+7
+​
+must be positive
+)
+a_{6}+a_{7}=0\quad(\text{not valid since }a_{6}\text{ and }a_{7}\text{ must be positive})
+After testing several more combinations, let’s try
+n
+=
+6
+n=6
+again with a different strategy:
+•   Let’s try
+a
+1
+=
+a
+2
+=
+1
+a_{1}=a_{2}=1
+,
+a
+3
+=
+2
+a_{3}=2
+,
+a
+4
+=
+9
+a_{4}=9
+, and
+a
+5
+a_{5}
+and
+a
+6
+a_{6}
+need to be chosen such that the sum is 30 and 9 is the unique mode. The list looks like:
+1
+,
+1
+,
+2
+,
+9
+,
+a
+5
+,
+a
+6
+1,1,2,9,a_{5},a_{6}
+The sum is:
+1
++
+1
++
+2
++
+9
++
+a
+5
++
+a
+6
+=
+30
+1+1+2+9+a_{5}+a_{6}=30
+13
++
+a
+5
++
+a
+6
+=
+30
+13+a_{5}+a_{6}=30
+a
+5
++
+a
+6
+=
+17
+a_{5}+a_{6}=17
+Since 9 is the unique mode,
+a
+5
+a_{5}
+and
+a
+6
+a_{6}
+cannot be 9. Let’s try other values:
+•   If
+a
+5
+=
+7
+a_{5}=7
+and
+a
+6
+=
+10
+a_{6}=10
+:
+1
++
+1
++
+2
++
+9
++
+7
++
+10
+=
+30
+1+1+2+9+7+10=30
+This works. The list is:
+1
+,
+1
+,
+2
+,
+9
+,
+7
+,
+10
+1,1,2,9,7,10
+•   Mode is 9 (unique)
+•   Median is
+2
++
+7
+2
+=
+4.5
+\frac{2+7}{2}=4.5
+(not in list, integer condition satisfied)
+Now, we need to find the sum of the squares of all the items in the list:
+1
+2
++
+1
+2
++
+2
+2
++
+9
+2
++
+7
+2
++
+10
+2
+1^{2}+1^{2}+2^{2}+9^{2}+7^{2}+10^{2}
+1
++
+1
++
+4
++
+81
++
+49
++
+100
+1+1+4+81+49+100
+1
++
+1
++
+4
++
+81
++
+49
++
+100
+=
+236
+1+1+4+81+49+100=236
+Answer:
+236
+\boxed{236}
+Experimental support, please
+view the build logs
+for errors. Generated by
+L
+A
+T
+E
+xml
+.
+Instructions for reporting errors
+We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:
+Click the "Report Issue"
+(
+)
+button, located in the page header.
+Tip:
+You can select the relevant text first, to include it in your report.
+Our team has already identified
+the following issues
+. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.
+Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+list of packages that need conversion
+, and welcome
+developer contributions
+.
+We gratefully acknowledge support from
+        our
+major funders
+,
+member institutions
+,
+,
+        and all contributors.
+About
+·
+Help
+·
+Contact
+·
+Subscribe
+·
+Copyright
+·
+Privacy
+·
+Accessibility
+·
+Operational Status
+(opens in new tab)
+Major funding support from

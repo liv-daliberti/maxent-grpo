@@ -1,0 +1,213 @@
+{
+  "admission_rows": [
+    {
+      "domain": "Graph coloring",
+      "level1_pass8": 0.4375,
+      "level2_pass8": 0.1484375
+    },
+    {
+      "domain": "Countdown",
+      "level1_pass8": 0.1484375,
+      "level2_pass8": 0.109375
+    },
+    {
+      "domain": "Python factors",
+      "level1_pass8": 0.90625,
+      "level2_pass8": 0.734375
+    },
+    {
+      "domain": "MathIR",
+      "level1_pass8": 0.265625,
+      "level2_pass8": 0.1875
+    },
+    {
+      "domain": "PantryPlan",
+      "level1_pass8": 0.265625,
+      "level2_pass8": 0.25
+    }
+  ],
+  "levels": [
+    1,
+    2
+  ],
+  "metric": "empirical pass@8",
+  "model": "Qwen2.5-0.5B-Instruct",
+  "outputs": {
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_level_construction.pdf": "03854a3a165b6ca5e1cb926f7fa7a70cb8ba479d4b7923c364feb7cd79fa91cf",
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_level_construction.png": "2cab7822631fa9c2e10f555d7259eb09a0a6f7607b6120af4ba32b61e46a0a23"
+  },
+  "population": "historical development admission; not the held-out all-level grid",
+  "protocol": {
+    "contract": "Each frozen model/domain cell uses one recorded protocol identically for its paired Level-1 and Level-2 evaluation; shared sample count, temperature, top-p, generation-token budget, chat-template mode, dtype, and full-row setting are invariant across all cells. Domain/model-specific prompt, syntax, and context-length profiles are frozen before this final run.",
+    "per_cell": {
+      "countdown": {
+        "falcon-1b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "countdown_shallow_v6",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317200,
+          "syntax_profile": "countdown_legal_v3",
+          "temperature": 1.0,
+          "top_p": 1.0
+        },
+        "qwen-0.5b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317100,
+          "syntax_profile": "countdown_legal_v3",
+          "temperature": 1.0,
+          "top_p": 1.0
+        }
+      },
+      "graph_coloring": {
+        "falcon-1b": {
+          "dtype": "float16",
+          "max_model_len": 1024,
+          "max_tokens": 192,
+          "prompt_profile": "boxed_direct_v1",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5217201,
+          "syntax_profile": "none",
+          "temperature": 1.0,
+          "top_p": 1.0
+        },
+        "qwen-0.5b": {
+          "dtype": "float16",
+          "max_model_len": 1024,
+          "max_tokens": 192,
+          "prompt_profile": "boxed_direct_v1",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5217101,
+          "syntax_profile": "none",
+          "temperature": 1.0,
+          "top_p": 1.0
+        }
+      },
+      "mathir": {
+        "falcon-1b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317202,
+          "syntax_profile": "domain_legal_v1",
+          "temperature": 1.0,
+          "top_p": 1.0
+        },
+        "qwen-0.5b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317102,
+          "syntax_profile": "domain_legal_v1",
+          "temperature": 1.0,
+          "top_p": 1.0
+        }
+      },
+      "pantry": {
+        "falcon-1b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317203,
+          "syntax_profile": "domain_legal_v1",
+          "temperature": 1.0,
+          "top_p": 1.0
+        },
+        "qwen-0.5b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317103,
+          "syntax_profile": "domain_legal_v1",
+          "temperature": 1.0,
+          "top_p": 1.0
+        }
+      },
+      "python_factors": {
+        "falcon-1b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317201,
+          "syntax_profile": "domain_legal_v1",
+          "temperature": 1.0,
+          "top_p": 1.0
+        },
+        "qwen-0.5b": {
+          "dtype": "float16",
+          "max_model_len": 2048,
+          "max_tokens": 192,
+          "prompt_profile": "hybrid_solver_v4",
+          "prompt_template": "model_native_chat_template",
+          "row_limit": 0,
+          "sample_count": 8,
+          "seed": 5317101,
+          "syntax_profile": "domain_legal_v1",
+          "temperature": 1.0,
+          "top_p": 1.0
+        }
+      }
+    },
+    "shared": {
+      "dtype": "float16",
+      "max_tokens": 192,
+      "prompt_template": "model_native_chat_template",
+      "row_limit": 0,
+      "sample_count": 8,
+      "temperature": 1.0,
+      "top_p": 1.0
+    }
+  },
+  "renderer": {
+    "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_modebench_level_construction.py",
+    "sha256": "41c01930095b9b21907aac596ff24fcbdbdf277e9dc1d5f502218c7c507b2b96",
+    "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
+    "style_sha256": "8f1f9dcdbea3baa2593f3dcca9baaff33df5a605019f4f8b76ed3fe53ff88a50"
+  },
+  "schema": "modebench-level-construction-v1",
+  "snapshot_path": "/n/fs/similarity/maxent-grpo/paper/results/modebench_level_comparison_snapshot.json",
+  "sources": {
+    "/n/fs/similarity/maxent-grpo/paper/results/modebench_level_comparison_snapshot.json": "b9c0522b56ac632c600f28898abdb143ad026b851ed9c1b67b8dc5f1dfd1d379",
+    "/n/fs/similarity/maxent-grpo/var/results/modebench_level2_r5_frozen_repeat1/admission_fairness_report.json": "1a73becd7a959d12ab375e3cc41f2ff2b14886a5071dc1f3dd7291963f8585f9"
+  },
+  "viability_gate": {
+    "freeze": "before treatment training",
+    "harder_than_level1": "level2_pass_at_8 < level1_pass_at_8",
+    "maximum": 0.9,
+    "metric": "pass@8",
+    "minimum": 0.1
+  }
+}

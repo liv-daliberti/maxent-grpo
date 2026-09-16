@@ -1,0 +1,7 @@
+{
+  "reason": "Restore the bootstrap seed promised by the frozen five-domain protocol before final analysis. Preview-stage seed20260912 was an implementation mismatch. Point estimates and sampling decisions are unchanged; final intervals use the protocol seed20260911. Earlier stage reports and activation evidence are preserved.",
+  "previous_analyzer": "paper/audits/gpt56_sampling_budget_20260912/analyzer_before_bootstrap_seed_correction.py",
+  "previous_sha256": "2a8c4b3038db2c2d7e0b1b99bfcbaa950e6ffc5eb3daa3cd0af34493d642c20a",
+  "protocol": "artifacts/modebench_discovery_five_domains_sol_20260912/protocol.json",
+  "final_seed": 20260911
+}

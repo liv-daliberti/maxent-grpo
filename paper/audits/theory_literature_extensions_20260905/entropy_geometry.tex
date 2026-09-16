@@ -1,0 +1,69 @@
+\section{Exact entropy and replay: the same target can have different protection}
+\label{sec:entropy-geometry}
+The KL-direction distinction is established in the label-smoothing literature
+\cite[Section~3.2]{pereyra2017}. The corresponding log-barrier regularizer is
+also analyzed for policy gradient \cite[Section~5.2]{agarwal2021}. Our
+specialization concerns a target restricted to verified modes, rather than
+uniform regularization over every action. A stored bank supplies a target
+that can be scored even when fresh sampling misses it.
+
+Let $\mathcal C$ contain $m\ge2$ correct categories, let
+$P=\sum_{c\in\mathcal C}p_c>0$, $q_c=p_c/P$, and let $u_c=1/m$.
+Write $H(q)=-\sum_cq_c\log q_c$, with $0\log0=0$.
+\begin{proposition}[Full-support objective comparison]
+\label{prop:entropy-objectives}
+For a full correct-mode bank with a uniform categorical target,
+\[
+ H(q)=\log m-\KL(q\|u),\qquad
+ R_u(p):=-\frac1m\sum_{c\in\mathcal C}\log p_c
+ =\log m-\log P+\KL(u\|q).
+\]
+If $\Psi$ is continuous and strictly increasing on $[0,1]$, then for any
+$\beta,\rho>0$, both
+\[
+ \Psi(P)+\beta H(q)
+ \quad\hbox{and}\quad
+ \Psi(P)-\rho R_u(p)
+\]
+have the unique maximizing distribution $P=1,q=u$ on the closed simplex
+(with the conditional-entropy objective considered on $P>0$).
+This is a statement about global maximizers, not about convergence of
+stochastic updates or conditional-entropy gradient flow.
+\end{proposition}
+\begin{proof}
+Substitute $p_c=Pq_c$ into $R_u$, and expand both KL divergences.
+Since $H(q)\le\log m$, equality only at $q=u$, maximizing the first
+objective selects $q=u$ and then $P=1$. The second is
+$\Psi(P)+\rho\log P-\rho\log m-\rho\KL(u\|q)$; its first two terms
+increase strictly with $P$, while the last is maximized only at $q=u$.
+At that point there is zero incorrect mass, so the distribution is unique.
+\end{proof}
+
+Full-output entropy is a different comparator. For a linear correctness
+potential $aP$, exact maximization of $aP+\beta H(p)$ gives
+\[
+ p_i^*=\frac{\exp(a\mathbf1\{i\in\mathcal C\}/\beta)}
+ {m\exp(a/\beta)+n},
+\]
+where $n\ge1$ is the number of incorrect categories. This is the standard
+entropy/conjugacy calculation \cite[Section~2.2]{geist2019}. It has
+$P^*<1$, whereas exact conditional entropy has no such loss of correctness
+at its global optimum. The experimental historical semantic score is not
+an exact gradient of either objective.
+
+Existing discrete-time theory is stronger than merely finding an optimum:
+Mei et al. prove positive action-probability floors and geometric convergence
+for their exact tabular entropy-regularized policy-gradient update
+\cite[Lemma~13 and Theorem~5]{mei2020}. This provides relevant prior theory
+for an exact finite categorical comparator, not for the historical predictor,
+clipped PPO, or AdamW. For the paper's Dr.GRPO reduction the reward vector is
+$a\mathbf1_{\mathcal C}$ with $a=(G-1)/G\in(0,1)$, so their bandit reward
+assumption applies. Their linear-reward theorem does not directly cover the
+nonlinear finite-group MaxRL potential.
+
+The converse directions of KL explain a certificate difference:
+$\KL(u\|q)$ diverges if any protected coordinate vanishes, while
+$\KL(q\|u)$ remains finite. For example, losing one mode and distributing
+mass uniformly over the rest leaves $H(q)=\log(m-1)$. Section~\ref{sec:survival}
+quantifies this sharply. This level-set fact does not imply that exact
+entropy dynamics necessarily lose a mode.

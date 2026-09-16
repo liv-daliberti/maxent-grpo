@@ -1,0 +1,16 @@
+{
+  "status": "pass_after_readme_clarification",
+  "checks": [
+    "All20 plotted points agree with expanded480 source",
+    "All40 strict/normalized appendix rows agree with source",
+    "Combined, original120, additional360 contrasts agree",
+    "Workshop figure JSON and appendix agree with parent",
+    "Unsupported conditions and historical-medium exclusion are accurate"
+  ],
+  "readme_changes": [
+    "Use65.62% to match generated rounding of exact65.625%",
+    "Clarify older deployment-support report refers to historical120-prompt appendix"
+  ],
+  "api_calls": 0,
+  "paper_asset_changes": false
+}

@@ -1,0 +1,29 @@
+{
+  "status": "source and figure validation passed; parent build integration pending",
+  "validation": [
+    "ops/check_paper_current_contract.py passed",
+    "29 tests passed: latest-results gates, E118 seed tracks, evaluation coverage, frozen E120 primary"
+  ],
+  "files": {
+    "paper/main.tex": "dd1eaec5fca9710e4326f006d51b597eb8e89aed17759faf826bd1ba7b88b2a0",
+    "paper/mathai2026/main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+    "paper/mathai2026/appendix.tex": "0f0b6ed19e3b3eca5e9344b36216ab2d0afe7ba60a94a5aa68710e533d19a7d2",
+    "ops/check_paper_current_contract.py": "dab9f50123ffe0eb668232165a3559f802bad2b1dd8f58dc0b660050bb7e9cda",
+    "ops/exp_scaling/build_paper_latest_results.py": "cd07d0d835076c98d3e4128cbc9005da99be7d2d0341783ce534822b63f52eb7",
+    "ops/exp_scaling/plot_paper_e118_all_scale_progress.py": "ea9a9225798e6eb487c3a7ae619e5a4faec5cd5d26694182bf038c1a08130cba",
+    "tests/test_paper_latest_results.py": "a95aa98c959007defed165d5490b280268902484498cfea3d6e7495d825489ed",
+    "paper/results/latest_results_20260908.json": "a65f0e88ff924623241d44d31b5fd497a3950cc472f1326158669d8f1a38ac0e",
+    "paper/results/latest_results_20260908_table_body.tex": "c5c357069965383a4761559403a99d668f01910d641e52f9b40bc4129c436471",
+    "paper/results/latest_results_20260908_effects_table_body.tex": "513a8bdcaec6609c21ea8d69f5b824f211ae3f121e9136ecffbe57855cb55391",
+    "paper/figures/e118_all_scale_factorial_progress.pdf": "cf7cd1a070384b9c0c8afd318c0d3dc280f3a8b5e14c04dcaf2d49dbb26f6dd8",
+    "paper/figures/e118_all_scale_factorial_progress.png": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+    "paper/figures/e118_all_scale_factorial_progress.json": "9c2fe31accdbc5b037fd5df09bbe969917d102ea7afff460f9be84ef26eafe1a",
+    "paper/figures/e118_scale_extensions_appendix.pdf": "4905611e8b7d9c9254a277c8b1dcfbff2056b9ffa861bb8207b99481a77b781c",
+    "paper/figures/e118_scale_extensions_appendix.png": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+    "paper/figures/e118_scale_extensions_appendix.json": "9c2fe31accdbc5b037fd5df09bbe969917d102ea7afff460f9be84ef26eafe1a",
+    "paper/figures/modebench_level_admission.pdf": "f96b8b5154a7f3b2d7b9db57f513e861567e398eaad3f601c33f43e193d46074",
+    "paper/figures/modebench_level_admission.png": "4049f618620e08965132465ba677d6e5ecdeec0d1725d7dd706c9e3d83b0c8db",
+    "paper/figures/modebench_level_admission.json": "29bfa454b3e629d09e78c55c224484851783a8e16dcaf6c1431a57e04da01f45"
+  },
+  "preserved_e120_sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab"
+}

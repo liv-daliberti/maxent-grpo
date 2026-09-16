@@ -1,0 +1,367 @@
+% Shared long-paper and workshop benchmark/protocol appendix.
+\section{Benchmark and Evaluation Protocol}
+\label{app:data}
+\label{app:experimental-design}
+\label{app:domain-overview}
+\label{app:data-inventory}
+
+\mb{} defines correctness and identity through the same executable validator:
+invalid outputs receive reward zero and no key; valid outputs receive reward
+one and a canonical execution key. Neither the complete valid-key catalogue
+nor its size is supplied to training, replay, scheduling, or stopping.
+Table~\ref{tab:tasks} specifies the five domains and which surface forms merge.
+The \href{https://huggingface.co/datasets/od2961/ModeBench}{public dataset}
+preserves each domain's split roles and construction identity. This paper's
+training comparisons use Levels 1 and 2; the separate Level-3 release does
+not imply completed Level-3 training results.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{\mb{}.} Correctness and identity come from
+  one executable path; training starts without the mode catalogue.
+  \emph{Valid modes} is the mean number of correct execution modes per
+  evaluation prompt, exact over the released multi-answer split. Every domain
+  trains on 384 prompts and evaluates on a fixed 128-prompt split;
+  the exact prompt each policy receives is reproduced verbatim in
+  Appendix~\ref{app:prompts} for a direct, byte-level audit of the evaluation
+  interface.}
+  \label{tab:tasks}
+  \footnotesize
+  \setlength{\tabcolsep}{5pt}
+  \renewcommand{\arraystretch}{1.08}
+  \begin{tabularx}{\linewidth}{@{}l
+      >{\hsize=1.25\hsize}Y
+      >{\hsize=.8\hsize}Y
+      >{\hsize=.95\hsize}Y
+      r@{}}
+    \toprule
+    \textbf{Domain} & \textbf{Generated answer / check} &
+    \textbf{Executed key} & \textbf{Aliases that merge} &
+    \textbf{valid modes} \\
+    \midrule
+    Graph coloring & Complete assignment; check fixed colors and edges &
+    Color vector & Spacing only & 6.27 \\
+    \addlinespace[2pt]
+    Countdown & Parse operands; execute exactly &
+    Normalized AST & Commutative order & 4.52 \\
+    \addlinespace[2pt]
+    Python factors & Execute restricted lambda externally &
+    Return vector & Source programs with same behavior & 229.44 \\
+    \addlinespace[2pt]
+    MathIR & Execute bounded action program &
+    State trajectory & Programs with the same states & 5.00 \\
+    \addlinespace[2pt]
+    PantryPlan & Exact ingredient allocation; check all bounds &
+    Ingredient support & Quantity and ordering aliases & 18.19 \\
+    \bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Split identities and executable validation}
+\label{app:data-materialization}
+
+Every domain uses 384 training and 128 disjoint evaluation prompts.
+Python materialization independently executes at least two functions with
+different valid keys for every row; MathIR executes every certified route
+through the same interpreter used for model outputs.
+
+\begin{table}[H]
+\centering
+\caption{Deterministic materialization identities. Hashes bind the released rows to their executable checks; the full hashes and construction records accompany the data.}
+\label{tab:materialization-identities}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+& \textbf{Python factors} & \textbf{MathIR action menu} \\
+\midrule
+Training rows & 384 & 384 \\
+Evaluation rows & 128 & 128 \\
+Exact modes per prompt & 16--3,600 & 5 \\
+Training-row SHA-256 & \texttt{bcfa9acc\ldots37cf7} & \texttt{bfc98362\ldots5d3835} \\
+Evaluation-row SHA-256 & \texttt{be0f621c\ldots94d183} & \texttt{df5783dd\ldots328b96} \\
+Gold catalogue supplied to policy & no & no \\
+Training-bank initialization & empty & empty \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{PantryPlan.}
+\label{app:data-pantry}
+The deterministic v2 release has 384/64/128 training/development/evaluation
+prompts across four formulation families. Exact support ranges from 8 to 45;
+the 128 evaluation prompts contain 2,328 feasible supports, averaging
+$18.1875$. Training and evaluation row hashes are
+\texttt{a4883c5e\ldots a757f} and \texttt{5d81ba8d\ldots5923}.
+The validator checks exact inventory, serving steps, mass, nutrient bounds,
+and dietary tags; identity is ingredient support. A verified allocation is
+not a claim of palatability, cookability, or safety.
+
+\subsection{Python execution contract}
+\label{app:python}
+\label{app:python-language}
+
+Candidates are stripped, limited to 240 characters and 64 AST nodes, and
+parsed in expression mode. The only accepted form is \texttt{lambda n: EXPR}
+with exactly one ordinary argument named \texttt{n}: no defaults,
+positional-only, keyword, or variadic arguments. Integer literals have
+absolute value at most 10,000. The expression grammar permits \texttt{n},
+\texttt{+}, \texttt{-}, \texttt{*}, floor division, remainder, integer
+comparisons, Boolean \texttt{and}/\texttt{or}, unary plus/minus/\texttt{not},
+and conditionals. Boolean and non-integer literals, calls, imports,
+attributes, comprehensions, containers, subscripts, assignment, loops, and
+other identifiers are rejected. Task specifications contain two to eight
+distinct integers in $[4,1000]$ and at least two valid behavior vectors.
+
+\paragraph{External execution.}
+\label{app:python-process}
+The trainer never executes candidate code. A locked parent client launches
+an isolated Python \texttt{-I} process in a fresh session, with a persistent
+JSON-lines worker accepting only restricted source and trusted task JSON.
+The worker repeats the AST checks, compiles the expression with empty
+\texttt{\_\_builtins\_\_}, and executes the frozen inputs under a
+0.25-second real-time alarm; the parent enforces a separate one-second
+response deadline. A valid response contains the integer vector and key.
+Timeouts, empty or malformed responses, broken pipes, non-integer outputs,
+and failed divisor checks yield $\bot$ and zero reward. Broken pipes,
+operating-system errors, and malformed responses permit one clean worker
+restart; a timed-out request remains failed. Worker stdout is never parsed
+as a candidate answer, and exceptions never produce a key.
+
+\paragraph{Behavioral identity.}
+\label{app:python-identity}
+For every frozen input $n_j$, the returned $d_j$ must be an integer but not a
+Boolean, satisfy $1<d_j<n_j$, and divide $n_j$ exactly. All checks must pass.
+The key is the ordered vector
+$\texttt{python\_factor:}d_1\texttt{,}\cdots\texttt{,}d_m$;
+programs merge exactly when their vectors agree. The exact support count
+$\prod_j|\{d:1<d<n_j,\ d\mid n_j\}|$ is used only for dataset validation.
+
+\subsection{Matched Level-2 construction}
+\label{app:data-levels}
+
+Level 2 changes problem structure while preserving the Level-1 verifier,
+canonicalizer, training/evaluation sizes, and exact training/evaluation
+histograms of valid-mode counts. Its 384/128/128
+training/development/evaluation identities are disjoint from every Level-1
+and Level-2 split. Development histograms also match, except that Pantry
+scales its 64-row Level-1 histogram by two for 128 Level-2 rows. Thus the
+evaluated comparison changes difficulty without changing the amount of
+valid support.
+
+\begin{center}
+\small
+\begin{tabularx}{.96\linewidth}{@{}lYY@{}}
+\toprule
+\textbf{Domain} & \textbf{Level 1} & \textbf{Level 2 structural change} \\
+\midrule
+Graph coloring & Three hidden vertices & Four hidden vertices \\
+Countdown & Three operands & Four operands, with values up to 14 \\
+Python factors & Four executed cases, all at most 96 & Four cases, including a value above 96 \\
+MathIR & One-sided linear families & Variable-on-both-sides families \\
+PantryPlan & Base dietary/composition constraints & More active dietary exclusions and tighter composition \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Before treatment training, frozen Qwen2.5-0.5B evaluation admitted a Level-2
+domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
+its Level-1 value under identical decoding. The released matched-level
+identity manifest records support histograms, row hashes, construction
+seeds, disjointness checks, and these admission receipts.
+
+\subsection{Training and evaluation settings}
+\label{app:repro-run-contract}
+\label{app:comparison-design}
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Matched run contract.} Settings and systems changes are
+  shared by methods within each model--domain--seed comparison, including
+  the zero-weight replay control.}
+  \label{tab:run-contract}
+  \small
+  \begin{tabularx}{\linewidth}{@{}P{.23\linewidth}Y@{}}
+    \toprule
+    \textbf{Component} & \textbf{Setting} \\
+    \midrule
+    Data & 384 training and 128 disjoint evaluation prompts per domain and
+      level; no evaluation row enters training or replay. \\
+    Fresh rollouts & $G=16$, temperature 1, top-$p=1$; one prompt group per update. \\
+    Optimization & Eight passes (3,072 updates), one PPO epoch,
+      $\beta_{\mathrm{KL}}=0$; paired initialization, prompt stream,
+      optimizer, hardware class, and checkpoint cadence. \\
+    Evaluation & Passes $0,.5,\ldots,8$; four fixed temperature-1,
+      top-$p=1$, $K=8$ draws per prompt, plus a separate temperature-0
+      greedy trace. No best-checkpoint selection. \\
+    Replay & Capacity $M=16$ per prompt; one round-robin bank per update;
+      $\lambda_{\mathrm{replay}}=.10$. Controls execute the same code with
+      an exact-zero replay derivative; realized banks and workloads can differ. \\
+    Training seeds & Qwen2.5-0.5B: 43--47; Falcon3-1B: 55--59;
+      Qwen2.5-3B: 70--74. \\
+    Learning rate & Qwen-0.5B and Falcon-1B: constant $2\times10^{-7}$,
+      with optimizer-state offload for Falcon. Qwen-3B: cosine decay with
+      $10^{-7}$ peak, $10^{-8}$ floor, and 10\% warmup. \\
+    Response tokens & Graph and Countdown: 192; Python: 192/512/192
+      at 0.5B/1B/3B; MathIR: 64/128/64; PantryPlan: 8. \\
+    Evaluation seeds & Base 610100/610200/610300/610400/76299 for
+      Graph/Countdown/Python/MathIR/PantryPlan; draw $d$ uses base plus $d$. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\begin{center}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Base model} & \textbf{Pinned revision} \\
+\midrule
+Qwen2.5-0.5B-Instruct & {\scriptsize\texttt{7ae557604adf67be50417f59c2c2f167def9a775}} \\
+Falcon3-1B-Instruct & {\scriptsize\texttt{28ba2251970a01dd1edc7ba7dad2eb71216ccfdf}} \\
+Qwen2.5-3B-Instruct & {\scriptsize\texttt{aa8e72537993ba99e69dfaafa59ed015b17504d1}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Responses are independent within each evaluation draw. For each training
+seed, metrics average over all 128 prompts and four draws; raw responses
+and draw-level records are retained. The co-primary terminal outcomes are
+\texttt{pass@8} and raw \texttt{distinct@8}; \texttt{mean@8} is diagnostic.
+Evaluation never supplies training data, bank entries, checkpoint selection,
+or a stopping rule. Complete paired five-seed blocks receive nominal
+pointwise 95\% Student-$t$ intervals; partial primary intersections report
+exact counts and descriptive means without intervals. Intervals condition
+on the frozen prompts and evaluation requests. Domain averages are
+explicitly labeled, and no missing terminal result is replaced by a
+shallower checkpoint. Source admission and curve gaps follow
+Appendix~\ref{app:source-integrity}; comparison-specific intersections and
+the replay-weighting bootstrap are specified with their results.
+
+\section{Exact Domain Prompts}
+\label{app:prompts}
+
+Each domain uses one system message and one user message, with no few-shot
+examples. The same template renders training and evaluation for every
+method. These are the first rows of the frozen evaluation splits, including
+the exported chat-template wrapper. The checked generator
+\path{ops/check_paper_domain_prompts.py} reproduces them from the datasets.
+A two-space continuation indent marks display wrapping: joining it to the
+previous line with one space recovers the original string. The PantryPlan
+listing retains its real newlines.
+
+% BEGIN generated by ops/check_paper_domain_prompts.py
+
+\subsection{Graph coloring}
+\label{app:prompt-graph}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/graph_coloring_modebench_v2}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+Color this graph with vertices 1 through 6. The undirected edges are: (1,2), (1,3), (3,5),
+  (3,6), (4,6), (5,6). Assign each vertex one color from {1, 2, 3} so that no edge has the
+  same color on both endpoints. A partial coloring is 2??1?2, where ? means uncolored.
+  Keep every shown digit fixed. There are exactly 3 question marks. Return exactly one
+  final answer and no explanation: exactly 3 digits, each one 1, 2, or 3, for the missing
+  positions from left to right, inside \boxed{}.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{Countdown}
+\label{app:prompt-countdown}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/exact_countdown_easy3_probe}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+Using the numbers [3, 6, 9], create an arithmetic expression that equals 18. Use each
+  given number exactly once. You may use +, -, *, /, and parentheses. Return exactly one
+  final answer and no explanation: the expression inside \boxed{}.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{Python factors}
+\label{app:prompt-python}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/python_factor_modebench_v1}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+Write one pure Python function with the exact form lambda n: EXPR. An external Python tool
+  will call it once for each n in [18, 82, 91, 93]. For every call, return an integer d
+  satisfying 1 < d < n and n % d == 0. Different valid return vectors are different
+  solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean
+  operators, and conditional expressions; calls, imports, attributes, containers, and
+  other names are forbidden. Return exactly the one-line lambda inside \boxed{} and no
+  explanation.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{MathIR action menu}
+\label{app:prompt-mathir}
+
+\noindent Template \texttt{qwen\_boxed}; 384 training and 128 evaluation\linebreak rows in \path{var/data/mathir_action_menu_v1}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only the final answer inside \boxed{}. Do not explain.<|im_end|>
+<|im_start|>user
+MathIR linear-menu-v1. Solve for x by choosing an executable action sequence. Every
+  selected action is applied exactly to BOTH sides of the current equation, followed by
+  exact simplification. Bindings: a=2, b=-9, c=-1. Initial equation: x/a + b = c. Action
+  menu: A means div(a); B means add(b); C means sub(b); D means sub(c); E means
+  sub(mul(a,b)); F means mul(a). Choose 1-4 action IDs. Illegal operations, repeated
+  states, and paths that do not finish with x isolated are rejected. Return only the IDs
+  separated by semicolons inside the answer box; for example formatting only: \boxed{A;C}.
+  Do not return x's numeric value.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+\subsection{PantryPlan}
+\label{app:prompt-pantry}
+
+\noindent Template \texttt{qwen\_pantry\_support\_mask}; 384 training and 128 evaluation\linebreak rows in \path{var/data/pantry_plan_modebench_v2}.
+
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=4pt,rulecolor=\color{black!25}]
+<|im_start|>system
+Return only six binary digits and no other text. Each digit maps to the corresponding
+  Pantry row in printed order. A trusted environment will choose exact quantities on
+  precisely the selected rows.<|im_end|>
+<|im_start|>user
+Create one feasible high fiber snack from this frozen pantry.
+Nutrition values are per 100 g. Quantities are exact integer grams.
+
+Pantry:
+- almonds: available=100g, step=25g, minimum-if-used=50g; energy=584kcal, protein=21.5g,
+  fiber=10.8g, sodium=0.0mg; tags=tree_nut
+- banana: available=125g, step=25g, minimum-if-used=50g; energy=97.0kcal, protein=0.74g,
+  fiber=4.62g, sodium=0.0mg; tags=none
+- carrots: available=150g, step=25g, minimum-if-used=50g; energy=45.0kcal, protein=0.941g,
+  fiber=3.1g, sodium=86.6mg; tags=none
+- grape_tomatoes: available=100g, step=25g, minimum-if-used=50g; energy=27.0kcal,
+  protein=0.83g, fiber=2.1g, sodium=6.0mg; tags=none
+- navel_orange: available=150g, step=25g, minimum-if-used=50g; energy=47.0kcal,
+  protein=0.91g, fiber=2.0g, sodium=9.0mg; tags=none
+- sunflower_seeds: available=125g, step=25g, minimum-if-used=50g; energy=571kcal,
+  protein=18.9g, fiber=7.22g, sodium=0.0mg; tags=none
+
+Use 2 to 4 ingredients.
+Forbidden tags: none
+Targets:
+- mass_g: minimum 125, maximum 200
+- energy_kcal: minimum 239.4, maximum 432.25
+- protein_g: minimum 6.423
+- fiber_g: minimum 3.478
+- sodium_mg: maximum 37.6
+
+Choose the ingredient support as a six-bit mask in the exact Pantry row order. Bit 1
+  includes that row and bit 0 excludes it.<|im_end|>
+<|im_start|>assistant
+\end{Verbatim}
+
+% END generated by ops/check_paper_domain_prompts.py

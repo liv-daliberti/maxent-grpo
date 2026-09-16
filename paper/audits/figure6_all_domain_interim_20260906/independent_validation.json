@@ -1,0 +1,163 @@
+{
+  "status": "passed",
+  "verified_utc": "2026-09-06T15:58:26.303716+00:00",
+  "selected_snapshot": "paper/results/modebench_level_comparison_snapshot.json",
+  "selected_snapshot_sha256": "3439418b62456f1c7ff424d450886016a491ce9085f185cb465d851cc6fd8ad4",
+  "selection_summary_sha256": "1d5d6ea0e0a762a03e2194a6dd6f5bbef34763b49649277c5b3e5205bfa589c5",
+  "source_snapshots": {
+    "level1": {
+      "path": "paper/audits/figure6_all_domain_interim_20260906/level1_coverage_snapshot.json",
+      "sha256": "5ca25c9ff36f4647617c4934b10baa06bde2e4a1432740133d2a642b7ec99b4d"
+    },
+    "level2": {
+      "path": "var/artifacts/e119_figure6_coverage_20260906/snapshot.json",
+      "sha256": "6016f2464643a9352860ac0ffc7f1658587589e108b0b6e8af0e7c3e22f54c75"
+    }
+  },
+  "availability_cells_verified": 200,
+  "domain_seed_pairs_verified": 21,
+  "selected_draws_verified": 672,
+  "separate_level2_terminal_draws_verified": 200,
+  "coverage_by_domain": {
+    "graph_coloring": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "step_range": [
+        3072,
+        3072
+      ],
+      "training_pass_range": [
+        8.0,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "countdown": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 960,
+        "44": 192,
+        "45": 96,
+        "46": 192,
+        "47": 96
+      },
+      "step_range": [
+        96,
+        960
+      ],
+      "training_pass_range": [
+        0.25,
+        2.5
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "python_factors": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 1728,
+        "44": 1248,
+        "45": 3072,
+        "46": 960,
+        "47": 3072
+      },
+      "step_range": [
+        960,
+        3072
+      ],
+      "training_pass_range": [
+        2.5,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "mathir": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 1920,
+        "46": 2304,
+        "47": 1632
+      },
+      "step_range": [
+        1632,
+        3072
+      ],
+      "training_pass_range": [
+        4.25,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "pantry_plan": {
+      "n": 1,
+      "seeds": [
+        45
+      ],
+      "steps_by_seed": {
+        "45": 0
+      },
+      "step_range": [
+        0,
+        0
+      ],
+      "training_pass_range": [
+        0.0,
+        0.0
+      ],
+      "initial_checkpoint_only": true,
+      "initial_checkpoint_seeds": [
+        45
+      ]
+    }
+  },
+  "checks": [
+    "all200availability records exactly match frozen inventories",
+    "allqualifying domain/seed pairs included at latest all8-series exact shared step",
+    "every selected metric payload, metadata and origin exactly matches admitted source draw",
+    "allsource prefixes have hashes and origin line numbers within frozen prefix",
+    "K8,4draws,temperature1,128prompts verified for every contribution",
+    "separate terminal draw inventory complete and exact",
+    "withinseed draw means, withindomain seed means, equal five-domain means independently recomputed",
+    "initial-only Pantryseed45 correctly recorded, no other initial contributions",
+    "selection/source integrity validation used frozen records only; live logs not reread"
+  ]
+}

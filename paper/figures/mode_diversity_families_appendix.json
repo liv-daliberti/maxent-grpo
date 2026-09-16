@@ -53,7 +53,7 @@
   },
   "output": "paper/figures/mode_diversity_families_appendix",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_families_appendix.pdf": "6c3dee37ed09c8369090ad2e8bb09339834d80532639a142bcb35efb99b97b81"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_families_appendix.pdf": "0cd1e201883ec7ea989975e7427df97c35f89f7da9dc0a691bf3cd4e917c8881"
   },
   "points": [
     {
@@ -3809,7 +3809,7 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "216d091976d2ac9fbbf643fc4c8655fcaa2a1a087b541c73f5d9200b46d8247d",
+    "sha256": "f128eb1ceece08393e68f0acc1e7a27b7bf4cac678eb9cdb1538de663486d966",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
   },

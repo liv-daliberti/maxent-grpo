@@ -1,0 +1,939 @@
+[
+  {
+    "key": "hofbauer1998evolutionary",
+    "inventory_index": 0,
+    "exists": true,
+    "status": "metadata_verified_usage_source_access_limited",
+    "source_urls": [
+      "https://www.cambridge.org/core/books/evolutionary-games-and-population-dynamics/A8D94EBE6A16837E7CB3CED24E1948F8/listing",
+      "https://www.cambridge.org/core/books/abs/evolutionary-games-and-population-dynamics/replicator-dynamics/AB289B2048495D8AF237C66804C351A4"
+    ],
+    "evidence": {
+      "metadata": "Cambridge confirms Evolutionary Games and Population Dynamics, Josef Hofbauer and Karl Sigmund, Cambridge University Press, 1998. Chapter 7 is Replicator dynamics, pp. 67–85, DOI 10.1017/CBO9781139173179.011; its 2012 online date does not change the book year.",
+      "source_passages": [
+        "Independent equation check: qdot_c=q_c(q_c-sum_j q_j^2) is the replicator form qdot_c=q_c(f_c(q)-sum_j q_j f_j(q)) with f_c(q)=q_c, equivalently identity payoff matrix. The manuscript separately proves its particular limit and reduction."
+      ],
+      "access_notes": [
+        "Publisher chapter listing read, but chapter text/first-page preview access denied. An Imperial-hosted excerpt was inspected and found to be chapter 12, so it is NOT evidence for chapter 7. The standard-form identification is independently checked, not represented as full chapter verification."
+      ],
+      "checked_at_utc": "2026-09-05T20:51:53.627830+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 1012,
+          "assessment": "Mathematically sound standard-form attribution. Exact chapter body not available in this audit; no claim that Hofbauer/Sigmund prove the manuscript-specific GRPO/Dr.GRPO/MaxRL reduction."
+        },
+        {
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 656,
+          "assessment": "Mathematically sound standard-form attribution. Exact chapter body not available in this audit; no claim that Hofbauer/Sigmund prove the manuscript-specific GRPO/Dr.GRPO/MaxRL reduction."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Retain attribution to classical replicator dynamics; adding Chapter 7 is useful. A line-by-line check against the actual chapter text remains access-limited."
+    ]
+  },
+  {
+    "key": "sorensen2024pluralistic",
+    "inventory_index": 1,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.mlr.press/v235/sorensen24a.html"
+    ],
+    "evidence": {
+      "metadata": "Official PMLR record confirms Position: A Roadmap to Pluralistic Alignment; all 12 authors and their order match; ICML 2024, PMLR 235, pp. 46280–46302. No DOI is supplied or needed for this PMLR record.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.628067+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "park2024diversitythought",
+    "inventory_index": 2,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://link.springer.com/article/10.3758/s13428-023-02307-x"
+    ],
+    "evidence": {
+      "metadata": "Publisher confirms Diminished Diversity-of-Thought in a Standard Large Language Model; Peter S. Park, Philipp Schoenegger, Chongyang Zhu; Behavior Research Methods 56(6), 5754–5770, 2024; DOI 10.3758/s13428-023-02307-x. First published 9 January 2024; DOI year string 2023 is not a publication-year error.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.628249+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "wang2025flatten",
+    "inventory_index": 3,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://www.nature.com/articles/s42256-025-00986-z"
+    ],
+    "evidence": {
+      "metadata": "Publisher confirms Large Language Models That Replace Human Participants Can Harmfully Misportray and Flatten Identity Groups; Angelina Wang, Jamie Morgenstern, John P. Dickerson; Nature Machine Intelligence 7, 400–411 (2025), DOI 10.1038/s42256-025-00986-z. Published 17 February 2025.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.628429+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "doshi2024creative",
+    "inventory_index": 4,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://www.science.org/doi/10.1126/sciadv.adn5290",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC11244532/",
+      "https://api.crossref.org/works/10.1126/sciadv.adn5290"
+    ],
+    "evidence": {
+      "metadata": "Publisher-deposited Crossref metadata directly confirms exact title, Anil R. Doshi and Oliver P. Hauser, Science Advances 10(28), article eadn5290, 12 July 2024, DOI 10.1126/sciadv.adn5290. The archived primary article is indexed at PMC11244532.",
+      "source_passages": [],
+      "access_notes": [
+        "Science direct page was intermittently inaccessible; exact metadata was retrieved successfully from Crossref. No substantive use is present to require full-body verification."
+      ],
+      "checked_at_utc": "2026-09-05T20:51:53.628617+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "anderson2024homogenization",
+    "inventory_index": 5,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://scholarcommons.scu.edu/cseng/87/",
+      "https://dl.acm.org/doi/10.1145/3635636.3656204"
+    ],
+    "evidence": {
+      "metadata": "Author-institution repository confirms Homogenization Effects of Large Language Models on Human Creative Ideation; Barrett R. Anderson, Jash Hemant Shah, Max Kreminski; 16th Creativity & Cognition, ACM, pp. 413–425, 2024, DOI 10.1145/3635636.3656204. Publication date 23 June 2024.",
+      "source_passages": [],
+      "access_notes": [
+        "ACM direct access failed; Santa Clara author repository provides the complete bibliographic record."
+      ],
+      "checked_at_utc": "2026-09-05T20:51:53.628796+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "brown2024monkeys",
+    "inventory_index": 6,
+    "exists": true,
+    "status": "verified_usage_clarification",
+    "source_urls": [
+      "https://arxiv.org/abs/2407.21787",
+      "https://arxiv.org/html/2407.21787v3"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Large Language Monkeys: Scaling Inference Compute with Repeated Sampling; all seven authors/order match; arXiv:2407.21787, cs.LG, first submitted 31 July 2024.",
+      "source_passages": [
+        "Sections 1–2 distinguish sample generation from verification and define coverage as the fraction of problems with at least one correct candidate. Section 5 studies sampling diversity. This coverage is across problems, not the number of distinct correct execution keys within a problem."
+      ],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.628976+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 144,
+          "assessment": "The source supports repeated sampling and verifier-based selection, but does not establish that redistributing fixed total correct probability among fewer correct keys necessarily lowers pass@K. For independent samples at per-prompt correctness P, pass@K=1-(1-P)^K. Interpret the sentence as loss of distinct candidate alternatives; the unqualified original claim that this weakens best-of-K accuracy needs narrowing."
+        },
+        {
+          "file": "paper/main.tex",
+          "line": 214,
+          "assessment": "Supported as general motivation: finite-budget sampling and selection depend on the proposal distribution. This is not source evidence for the manuscript-specific execution-key collapse metric or retention theorem."
+        },
+        {
+          "file": "paper/mathai2026/main.tex",
+          "line": 25,
+          "assessment": "Reasonable if alternatives means distinct verified candidates available to a selector. Do not infer a necessary decline in binary success probability from fewer correct modes at fixed P."
+        },
+        {
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 476,
+          "assessment": "Supported as general motivation: finite-budget sampling and selection depend on the proposal distribution. This is not source evidence for the manuscript-specific execution-key collapse metric or retention theorem."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Narrow the introductory best-of-K claim to the set of distinct verified alternatives available to sampling/selection; explicitly avoid a necessary pass@K-drop claim at fixed P. Parent reports this correction is being applied."
+    ]
+  },
+  {
+    "key": "snell2024testtime",
+    "inventory_index": 7,
+    "exists": true,
+    "status": "verified_usage_clarification",
+    "source_urls": [
+      "https://arxiv.org/abs/2408.03314",
+      "https://arxiv.org/html/2408.03314v1"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Scaling LLM Test-Time Compute Optimally Can Be More Effective than Scaling Model Parameters; Charlie Snell, Jaehoon Lee, Kelvin Xu, Aviral Kumar; arXiv:2408.03314, cs.LG, 2024. A later conference version does not invalidate this explicit 2024 preprint citation.",
+      "source_passages": [
+        "Section 2 separates proposal-distribution adaptation from verifier/search methods. Sections 3 and 6 show dependence on problem difficulty, budget, and proposal improvement. The paper does not isolate within-correct-key concentration at fixed correctness."
+      ],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.629166+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 144,
+          "assessment": "The source supports repeated sampling and verifier-based selection, but does not establish that redistributing fixed total correct probability among fewer correct keys necessarily lowers pass@K. For independent samples at per-prompt correctness P, pass@K=1-(1-P)^K. Interpret the sentence as loss of distinct candidate alternatives; the unqualified original claim that this weakens best-of-K accuracy needs narrowing."
+        },
+        {
+          "file": "paper/main.tex",
+          "line": 214,
+          "assessment": "Supported as general motivation: finite-budget sampling and selection depend on the proposal distribution. This is not source evidence for the manuscript-specific execution-key collapse metric or retention theorem."
+        },
+        {
+          "file": "paper/mathai2026/main.tex",
+          "line": 25,
+          "assessment": "Reasonable if alternatives means distinct verified candidates available to a selector. Do not infer a necessary decline in binary success probability from fewer correct modes at fixed P."
+        },
+        {
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 476,
+          "assessment": "Supported as general motivation: finite-budget sampling and selection depend on the proposal distribution. This is not source evidence for the manuscript-specific execution-key collapse metric or retention theorem."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Same introductory scope correction as Brown et al.; proposal improvement and verified-key breadth are related motivations, not interchangeable metrics."
+    ]
+  },
+  {
+    "key": "dang2025diversity",
+    "inventory_index": 8,
+    "exists": true,
+    "status": "metadata_verified_usage_partially_verified",
+    "source_urls": [
+      "https://iclr.cc/virtual/2025/10000515",
+      "https://openreview.net/forum?id=AMiKsHLjQh",
+      "https://openreview.net/pdf?id=AMiKsHLjQh"
+    ],
+    "evidence": {
+      "metadata": "Official ICLR 2025 workshop program confirms Assessing Diversity Collapse in Reasoning; Xingyu Dang, Christina Baek, J. Zico Kolter, Aditi Raghunathan; workshop on Self-Improving Foundation Models without Human Supervision. The supplied OpenReview identifier resolves in indexed primary materials. No evidence of a fabricated reference or incorrect author/year.",
+      "source_passages": [
+        "Official program abstract and indexed primary-paper introductory text discuss diversity collapse during reasoning fine-tuning, including improved pass@1 alongside reduced pass@k and limited recovery by subsequent RL/self-improvement."
+      ],
+      "access_notes": [
+        "OpenReview PDF/body fetches were blocked by access challenges/HTTP 403. Abstract and indexed introduction were checked; the complete experimental methods and results were not accessible. This is an access limitation, not evidence the citation is false."
+      ],
+      "checked_at_utc": "2026-09-05T20:51:53.629352+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 140,
+          "assessment": "Partially supported as analogous accuracy/diversity trade-off. The stronger within-prompt verified-output-mode statement is not established by the inspected source passages and needs the manuscript's own evidence."
+        },
+        {
+          "file": "paper/main.tex",
+          "line": 216,
+          "assessment": "Supports reasoning fine-tuning/self-improvement collapse background. It does not alone establish every RLHF, fine-tuning, and RLVR clause in this grouped citation."
+        },
+        {
+          "file": "paper/mathai2026/main.tex",
+          "line": 102,
+          "assessment": "The broad claim that prior work studies diversity collapse is supported by the official abstract."
+        },
+        {
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 478,
+          "assessment": "Same grouped-citation scope as main.tex: supported for reasoning fine-tuning/self-improvement; complete body not verified."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Use as related reasoning/path or pass@k collapse evidence, not direct measurement of this paper's multiple verified execution keys. Preserve the full-text access limitation in the audit."
+    ]
+  },
+  {
+    "key": "bellemare2016pseudocount",
+    "inventory_index": 9,
+    "exists": true,
+    "status": "unused_minor_metadata_correction",
+    "source_urls": [
+      "https://arxiv.org/abs/1606.01868",
+      "https://proceedings.neurips.cc/paper_files/paper/2016/hash/afda332245e2af431fb7b672a68b659d-Abstract.html"
+    ],
+    "evidence": {
+      "metadata": "Official NeurIPS and arXiv records confirm Unifying Count-Based Exploration and Intrinsic Motivation, all six authors/order, NIPS 29 (2016), arXiv:1606.01868. Primary arXiv category is cs.AI.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.629539+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [
+      {
+        "field": "primaryClass",
+        "inventory_value": "cs.LG",
+        "verified_value": "cs.AI",
+        "severity": "minor_metadata"
+      }
+    ],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": [
+      "Change primaryClass to cs.AI. Parent reports already corrected in shared bibliography."
+    ]
+  },
+  {
+    "key": "rolnick2019replay",
+    "inventory_index": 10,
+    "exists": true,
+    "status": "verified_usage_clarification",
+    "source_urls": [
+      "https://arxiv.org/abs/1811.11682",
+      "https://arxiv.org/html/1811.11682v2"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Experience Replay for Continual Learning, all five authors/order, arXiv:1811.11682 cs.LG, and NeurIPS 2019 publication. The 2018 first-preprint date does not conflict with conference year 2019, volume 32.",
+      "source_passages": [
+        "Sections 3 and 4.5 describe CLEAR: off-policy replay plus behavioral cloning of prior policies/values to reduce forgetting. Reservoir sampling approximates uniform sampling of all past experiences; it is not a success-filtered or canonical-key-uniform memory."
+      ],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.629719+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 234,
+          "assessment": "Original wording is too success-specific for CLEAR: memory covers past experience generally. The manuscript's key-uniform replay comparison remains valid as a distinction."
+        },
+        {
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 496,
+          "assessment": "Original wording is too success-specific for CLEAR: memory covers past experience generally. The manuscript's key-uniform replay comparison remains valid as a distinction."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Replace the success-specific generic replay attribution with reuse of past experience/mitigation of forgetting; cite success-filtered replay separately. Parent reports this split applied."
+    ]
+  },
+  {
+    "key": "lin1992selfimproving",
+    "inventory_index": 11,
+    "exists": true,
+    "status": "verified_usage_clarification",
+    "source_urls": [
+      "https://link.springer.com/article/10.1007/BF00992699",
+      "https://link.springer.com/content/pdf/10.1007/BF00992699.pdf"
+    ],
+    "evidence": {
+      "metadata": "Publisher confirms Self-Improving Reactive Agents Based on Reinforcement Learning, Planning and Teaching; Long-Ji Lin; Machine Learning 8, 293–321 (1992), DOI 10.1007/BF00992699.",
+      "source_passages": [
+        "Section 2.3, printed pp. 298–299, proposes reusing stored transition experiences, including rare or costly experiences. Replay is not restricted to successful trajectories."
+      ],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.629902+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 168,
+          "assessment": "Supported as a conceptual motivation for retaining and reusing useful past experience, including rare events. It does not guarantee permanent retention of each correct mode."
+        },
+        {
+          "file": "paper/main.tex",
+          "line": 234,
+          "assessment": "Success-specific wording exceeds Lin's general transition replay mechanism; use past experiences."
+        },
+        {
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 496,
+          "assessment": "Same success-filtering scope correction as main.tex."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Keep as foundational replay/experience-reuse motivation. Split success-specific replay attribution from this general replay citation."
+    ]
+  },
+  {
+    "key": "mnih2015human",
+    "inventory_index": 12,
+    "exists": true,
+    "status": "verified_with_scope_notes",
+    "source_urls": [
+      "https://www.nature.com/articles/nature14236",
+      "https://web.stanford.edu/class/psych209/Readings/MnihEtAlHassibis15NatureControlDeepRL.pdf"
+    ],
+    "evidence": {
+      "metadata": "Nature metadata and original paper confirm Human-Level Control through Deep Reinforcement Learning; all 19 authors/order match; Nature 518, 529–533 (2015), DOI 10.1038/nature14236.",
+      "source_passages": [
+        "Main text and Methods describe random sampling of stored transitions for data efficiency and decorrelation. Methods explicitly note that finite memory overwrites older transitions and uniform sampling gives all stored transitions equal importance."
+      ],
+      "access_notes": [
+        "Nature page was intermittently inaccessible; the original Nature PDF was downloaded from a Stanford course archive and its main text and Methods replay passages read."
+      ],
+      "checked_at_utc": "2026-09-05T20:51:53.630083+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 168,
+          "assessment": "Supported at the broad mechanism level of reusing stored experience. A literal guarantee that DQN preserves a useful rare mode would be too strong: its finite buffer can overwrite it. The manuscript should describe motivation rather than established per-mode protection."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": [
+      "Treat DQN as foundational replay/reuse motivation, not a guarantee of retaining rare behaviors indefinitely or a success-conditioned memory."
+    ]
+  },
+  {
+    "key": "sutton2018reinforcement",
+    "inventory_index": 13,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://mitpress.mit.edu/9780262039246/reinforcement-learning/",
+      "http://incompleteideas.net/book/the-book-2nd.html"
+    ],
+    "evidence": {
+      "metadata": "MIT Press confirms Reinforcement Learning: An Introduction, Richard S. Sutton and Andrew G. Barto, second edition, 2018; hardcover publication 13 November 2018, ISBN 9780262039246. Author-book URL is conventional; no metadata correction necessary.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.630264+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "schaul2016prioritized",
+    "inventory_index": 14,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/1511.05952"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Prioritized Experience Replay; Tom Schaul, John Quan, Ioannis Antonoglou, David Silver; arXiv:1511.05952 cs.LG, comments explicitly state publication at ICLR 2016. First submission in 2015 does not conflict with cited conference year 2016.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.630443+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "ecoffet2021return",
+    "inventory_index": 15,
+    "exists": true,
+    "status": "verified_supported",
+    "source_urls": [
+      "https://www.nature.com/articles/s41586-020-03157-9",
+      "https://arxiv.org/abs/2004.12919",
+      "https://arxiv.org/html/2004.12919v6"
+    ],
+    "evidence": {
+      "metadata": "Nature confirms First Return, Then Explore; Adrien Ecoffet, Joost Huizinga, Joel Lehman, Kenneth O. Stanley, Jeff Clune; Nature 590, 580–586 (2021), DOI 10.1038/s41586-020-03157-9. Earlier arXiv posting in 2020 is not a publication-year error.",
+      "source_passages": [
+        "Introduction and Methods on detachment describe an archive of promising states/cells, returning to archived states before further exploration, and selecting better trajectories for cells. This directly motivates remembering discovered behavior separately from discovering new behavior."
+      ],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.630632+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": true,
+      "contexts": [
+        {
+          "file": "paper/main.tex",
+          "line": 168,
+          "assessment": "Supported as conceptual discovery-versus-retention motivation. Go-Explore's state/cell archive is not itself an LLM execution-key replay theorem; the manuscript makes the latter contribution separately."
+        }
+      ],
+      "overall": "Each supplied citation occurrence assessed below. Line numbers refer to the frozen inventory, before concurrent editorial corrections."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "reps",
+    "inventory_index": 44,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://ojs.aaai.org/index.php/AAAI/article/view/7727",
+      "https://ojs.aaai.org/index.php/AAAI/article/download/7727/7588"
+    ],
+    "evidence": {
+      "metadata": "Official AAAI metadata/PDF confirm Relative Entropy Policy Search; Jan Peters, Katharina Mülling, Yasemin Altun; AAAI 24(1), pp. 1607–1612 (2010), DOI 10.1609/aaai.v24i1.7727; published 5 July 2010. Accent rendering does not change identity.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.630816+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "mpo",
+    "inventory_index": 45,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/1806.06920",
+      "https://openreview.net/pdf?id=S1ANxQW0b"
+    ],
+    "evidence": {
+      "metadata": "arXiv and indexed official conference PDF confirm Maximum a Posteriori Policy Optimisation; all six authors/order match; ICLR 2018; arXiv:1806.06920 cs.LG. PDF identifies ICLR 2018 publication. The later June arXiv deposit is compatible with the conference date.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.630997+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "vmpo",
+    "inventory_index": 46,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/1909.12238",
+      "https://iclr.cc/virtual_2020/poster_SylOlp4FvH.html",
+      "https://openreview.net/forum?id=SylOlp4FvH"
+    ],
+    "evidence": {
+      "metadata": "Official ICLR 2020 program confirms exact V-MPO title, all 14 authors and order, and conference year 2020. arXiv confirms identifier 1909.12238 and primary category cs.AI. No metadata correction necessary.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.631176+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "mdpo",
+    "inventory_index": 47,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/2005.09814",
+      "https://openreview.net/pdf?id=aBO5SvgSt1"
+    ],
+    "evidence": {
+      "metadata": "arXiv and indexed official final PDF confirm Mirror Descent Policy Optimization; Manan Tomar, Lior Shani, Yonathan Efroni, Mohammad Ghavamzadeh; ICLR 2022, arXiv:2005.09814 cs.LG. The 2020 preprint and 2022 conference dates are compatible.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.631355+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "trpo",
+    "inventory_index": 48,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.mlr.press/v37/schulman15.html",
+      "https://arxiv.org/abs/1502.05477"
+    ],
+    "evidence": {
+      "metadata": "Official PMLR record confirms Trust Region Policy Optimization; Schulman, Levine, Abbeel, Jordan, Moritz in the supplied order; ICML 2015, PMLR 37, pp. 1889–1897, arXiv:1502.05477 cs.LG. Do not reorder authors based on a different version: the supplied order matches the cited proceedings metadata.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.631538+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "schulman2017ppo",
+    "inventory_index": 49,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/1707.06347"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Proximal Policy Optimization Algorithms; John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, Oleg Klimov; arXiv:1707.06347 cs.LG, 2017. Explicit preprint citation is accurate; no invented conference venue.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.631716+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "geist2019regmdp",
+    "inventory_index": 50,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.mlr.press/v97/geist19a.html",
+      "https://arxiv.org/abs/1901.11275"
+    ],
+    "evidence": {
+      "metadata": "Official PMLR and arXiv records confirm A Theory of Regularized Markov Decision Processes; Matthieu Geist, Bruno Scherrer, Olivier Pietquin; ICML 2019, PMLR 97, pp. 2160–2169; arXiv:1901.11275 cs.LG.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.631895+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "zhan2023pmd",
+    "inventory_index": 51,
+    "exists": true,
+    "status": "unused_minor_metadata_correction",
+    "source_urls": [
+      "https://epubs.siam.org/doi/10.1137/21M1456789",
+      "https://arxiv.org/abs/2105.11066",
+      "https://par.nsf.gov/servlets/purl/10424937"
+    ],
+    "evidence": {
+      "metadata": "SIAM publisher metadata confirms exact title, all six authors/order, SIAM Journal on Optimization 33(2), 1061–1091 (2023), DOI 10.1137/21M1456789. The DOI is genuine despite its conspicuous digits. arXiv:2105.11066 has primary category cs.LG, not math.OC.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.632076+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [
+      {
+        "field": "primaryClass",
+        "inventory_value": "math.OC",
+        "verified_value": "cs.LG",
+        "severity": "minor_metadata"
+      }
+    ],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": [
+      "Change primaryClass to cs.LG. Keep the verified DOI, authors, and journal details. Parent reports category correction already applied."
+    ]
+  },
+  {
+    "key": "vieillard2020kl",
+    "inventory_index": 52,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.neurips.cc/paper/2020/hash/8e2c381d4dd04f1c55093f22c59c3a08-Abstract.html",
+      "https://arxiv.org/abs/2003.14089"
+    ],
+    "evidence": {
+      "metadata": "Official NeurIPS record confirms Leverage the Average: An Analysis of KL Regularization in Reinforcement Learning; all six authors/order, NeurIPS 33 (2020). arXiv:2003.14089 cs.LG is the corresponding preprint; its abbreviated title ending in RL does not invalidate the proceedings title.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.632257+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "haarnoja18b",
+    "inventory_index": 53,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.mlr.press/v80/haarnoja18b.html",
+      "https://arxiv.org/abs/1801.01290"
+    ],
+    "evidence": {
+      "metadata": "Official PMLR record confirms exact Soft Actor-Critic title; Tuomas Haarnoja, Aurick Zhou, Pieter Abbeel, Sergey Levine; ICML 2018, PMLR 80, pp. 1861–1870; editors Jennifer Dy and Andreas Krause; arXiv:1801.01290 cs.LG.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.632436+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "achiam2017constrained",
+    "inventory_index": 54,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.mlr.press/v70/achiam17a.html"
+    ],
+    "evidence": {
+      "metadata": "Official PMLR record confirms Constrained Policy Optimization; Joshua Achiam, David Held, Aviv Tamar, Pieter Abbeel; ICML 2017, PMLR 70, pp. 22–31. Title, author order, year, venue, volume, pages, and URL match.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.632617+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "ying2022dual",
+    "inventory_index": 55,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.mlr.press/v151/ying22a.html"
+    ],
+    "evidence": {
+      "metadata": "Official PMLR record confirms A Dual Approach to Constrained Markov Decision Processes with Entropy Regularization; Donghao Ying, Yuhao Ding, Javad Lavaei; AISTATS 2022, PMLR 151, pp. 1887–1909. All supplied fields match.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.632796+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "haarnoja2018algorithms",
+    "inventory_index": 56,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/1812.05905"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Soft Actor-Critic Algorithms and Applications; all 11 authors and order match; arXiv:1812.05905 cs.LG, first submitted December 2018. A January 2019 revision does not invalidate the 2018 preprint year.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.632974+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "levine2018control",
+    "inventory_index": 57,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://arxiv.org/abs/1805.00909"
+    ],
+    "evidence": {
+      "metadata": "arXiv confirms Reinforcement Learning and Control as Probabilistic Inference: Tutorial and Review; Sergey Levine; arXiv:1805.00909 cs.LG, 2018. Exact title, author, year, identifier, and preprint classification match.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.633153+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "ziebart2008maximum",
+    "inventory_index": 58,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://cdn.aaai.org/AAAI/2008/AAAI08-227.pdf"
+    ],
+    "evidence": {
+      "metadata": "Official AAAI paper confirms Maximum Entropy Inverse Reinforcement Learning; Brian D. Ziebart, Andrew Maas, J. Andrew Bagnell, Anind K. Dey; AAAI 2008, pp. 1433–1438. Supplied expanded middle initial for Andrew L. Maas is not a different author. No metadata error found.",
+      "source_passages": [],
+      "access_notes": [],
+      "checked_at_utc": "2026-09-05T20:51:53.633333+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  },
+  {
+    "key": "todorov2006",
+    "inventory_index": 59,
+    "exists": true,
+    "status": "verified_unused",
+    "source_urls": [
+      "https://proceedings.neurips.cc/paper_files/paper/2006/hash/d806ca13ca3449af72a1ea5aedbed26a-Abstract.html",
+      "https://proceedings.neurips.cc/paper_files/paper/2006/file/d806ca13ca3449af72a1ea5aedbed26a-Bibtex.bib",
+      "https://doi.org/10.7551/mitpress/7503.003.0176"
+    ],
+    "evidence": {
+      "metadata": "Official NeurIPS metadata and downloaded BibTeX confirm Linearly-solvable Markov decision problems; Emanuel Todorov; NIPS 19, conference year 2006, MIT Press. Conference-year citation is valid; the later bound-volume publication is commonly dated 2007.",
+      "source_passages": [],
+      "access_notes": [
+        "Official NeurIPS BibTeX leaves pages empty. Supplied 1369–1376 is corroborated bibliographically, but publisher chapter page-range metadata was not directly accessible. No evidence of an incorrect range. DOI 10.7551/mitpress/7503.003.0176 identifies the later bound-volume chapter; do not silently change conference year solely on that date."
+      ],
+      "checked_at_utc": "2026-09-05T20:51:53.633515+00:00",
+      "inventory_sha256": "918f5483d3cc54f5aaeeea85acf815c718dff47c7e1f1f298173a7503c174bf5"
+    },
+    "metadata_issues": [],
+    "usage_assessment": {
+      "used": false,
+      "contexts": [],
+      "overall": "Unused in the supplied manuscript inventory; metadata-only verification."
+    },
+    "recommended_changes": []
+  }
+]

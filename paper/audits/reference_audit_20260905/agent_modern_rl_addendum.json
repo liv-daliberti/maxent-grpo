@@ -1,0 +1,75 @@
+[
+  {
+    "key": "sinha2026expected",
+    "exists": true,
+    "status": "verified_supported_addendum",
+    "source_urls": [
+      "https://arxiv.org/html/2601.21669v1",
+      "https://arxiv.org/abs/2601.21669",
+      "https://icml.cc/virtual/2026/poster/63579"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "original_inventory_unique_cited_keys": 28,
+      "revised_manuscript_unique_cited_keys_reported_by_root": 29,
+      "source_location": "Section 2 and Equation (2); inverse-probability scaling proposal",
+      "distinction": "Equation (2) gives d/dt log(p_i/p_j)=p_i(r_i-R)-p_j(r_j-R). The source studies objective-induced outcome collapse, but universal-collapse wording is too broad: for constant rewards all advantages and gradients vanish. The revised manuscript cites the study and proposed correction, not such a blanket guarantee."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 1005,
+        "status": "supported",
+        "context": "\nPrior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.",
+        "assessment": "The conservative verb studies attributes the topic and inverse-probability correction accurately, without endorsing an unconditional collapse theorem. The next sentence clearly locates this manuscript's role in group-estimator connections and persistent replay over execution-defined keys."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 655,
+        "status": "supported",
+        "context": "\nPrior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.",
+        "assessment": "The conservative verb studies attributes the topic and inverse-probability correction accurately, without endorsing an unconditional collapse theorem. The next sentence clearly locates this manuscript's role in group-estimator connections and persistent replay over execution-defined keys."
+      }
+    ],
+    "recommended_changes": [
+      "Retain the revised conservative wording; no further correction required for these occurrences."
+    ]
+  },
+  {
+    "key": "lochab2026ucpo",
+    "exists": true,
+    "status": "verified_supported_addendum",
+    "source_urls": [
+      "https://arxiv.org/html/2605.00365v1",
+      "https://arxiv.org/abs/2605.00365"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "original_inventory_unique_cited_keys": 28,
+      "revised_manuscript_unique_cited_keys_reported_by_root": 29,
+      "source_location": "Section 4, especially sampling bias and gradient amplification; Sections 5\u20136 for uniform-correct target and method",
+      "distinction": "Prior correctness-indifference/collapse analysis and uniform-correct targets are explicitly credited. The manuscript does not claim those mechanisms or the standard replicator result as new; its stated contribution is the connection for its estimators and persistent execution-defined-key replay."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 1006,
+        "status": "supported",
+        "context": "Prior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.\nConsider the infinitesimal expected-update flow",
+        "assessment": "The explicit Section 4 attribution correctly credits correctness indifference, sampling bias and gradient amplification as prior analysis. The following sentence distinguishes the manuscript's estimator connection and persistent execution-key replay contribution."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 656,
+        "status": "supported",
+        "context": "Prior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.\nConsider the infinitesimal expected-update flow",
+        "assessment": "The explicit Section 4 attribution correctly credits correctness indifference, sampling bias and gradient amplification as prior analysis. The following sentence distinguishes the manuscript's estimator connection and persistent execution-key replay contribution."
+      }
+    ],
+    "recommended_changes": [
+      "Retain the revised conservative wording; no further correction required for these occurrences."
+    ]
+  }
+]

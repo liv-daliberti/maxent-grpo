@@ -1,0 +1,180 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-09-05T21:59:17.485287+00:00",
+  "scope": "Standalone research and proof supplement; numerical checks corroborate algebra and do not establish empirical training survival.",
+  "build": {
+    "command": "pdflatex -interaction=nonstopmode -halt-on-error theory_extensions.tex (twice)",
+    "pages": 11,
+    "warnings": [],
+    "all_inputs_exist": true,
+    "extracted_survival_body_matches_source": true,
+    "source_bundle_verified": true,
+    "local_overview_links_checked": true
+  },
+  "numerical_checks": {
+    "optimizer": {
+      "status": "PASS",
+      "finite_noise_cases": 216,
+      "gradient_finite_difference_max_error": 2.842640012268305e-11,
+      "noise_dependent_preconditioner_counterexample_verified": true
+    },
+    "natural_gradient": {
+      "status": "PASS",
+      "cases": 24,
+      "max_q_error": 2.4503399309594442e-11,
+      "max_P_error": 9.91994264509799e-11,
+      "max_fisher_identity_error": 5.065392549852277e-16
+    },
+    "survival": {
+      "status": "PASS",
+      "sharp_KL_cases": 126,
+      "max_tight_KL_error": 5.329070518200751e-15,
+      "random_cross_entropy_checks": 200,
+      "entropy_threshold_cases": 24,
+      "binomial_coverage_checks": 21
+    }
+  },
+  "proof_reviews": "independent_review.json",
+  "manuscripts_unchanged": {
+    "paper/main.tex": true,
+    "paper/main.pdf": true,
+    "paper/example_paper.bib": true,
+    "paper/mathai2026/main.tex": true,
+    "paper/mathai2026/appendix.tex": true,
+    "paper/mathai2026/main.pdf": true,
+    "paper/mathai2026/example_paper.bib": true,
+    "paper/mathai2026/snapshot.json": true
+  },
+  "artifacts": [
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/README.md",
+      "sha256": "e65fbfb6f62782ff2983e1ce39f50b7c0d0f14ab9a736126fa26d22cbeaf011d",
+      "bytes": 1153
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/theory_extensions.tex",
+      "sha256": "461164c55fe58894eb19c1b49c8fa201f0e73afde5e3b1d70ba342545ab90d61",
+      "bytes": 7887
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/optimizer.tex",
+      "sha256": "2a6d7b99305b2b163363c223636760a882e5cf973a587fdd4765f35f065369ec",
+      "bytes": 4575
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery.tex",
+      "sha256": "6da46fb41b4f14291de07d7d05739de78f2d86e20c60de29c20f10d133b45f9f",
+      "bytes": 7414
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/entropy_geometry.tex",
+      "sha256": "d7d35beea5a0853ea426235ce39effa909451170f5399084e9d6bac1483efb9a",
+      "bytes": 3427
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/survival_body.tex",
+      "sha256": "a2726497a173f5bf170da45d0e2c0c4fe283bea4b5c904847b2e749a8388bd55",
+      "bytes": 10031
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/natural_gradient.tex",
+      "sha256": "84dd16768ef7cc488945c90077c266daa3026e83022bed2a2ecd895a17807a10",
+      "bytes": 3062
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/survival.tex",
+      "sha256": "5cbbd21e512ac3a30fbff5982a284a8cdf26dba283ec9d71444cd7f2bc5bd76e",
+      "bytes": 12296
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/optimizer.bib",
+      "sha256": "6a127c08c1d493f4dbf2187fe422b4eeaff951840a251c94d628a2f8b7265ddd",
+      "bytes": 1798
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/optimizer.md",
+      "sha256": "7a85607e28e1e42b569bb53ba46221598c6fe0a7a19968b400377f8ce12a9d87",
+      "bytes": 15770
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery.md",
+      "sha256": "23f4dacc46240dbfc4365c8def44892087cad569e2dffd1075bad2c1fd10799e",
+      "bytes": 25174
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/survival.md",
+      "sha256": "727eef002440089cee566b12e6acb12689cd58a11aca4d7a1931363b17057d71",
+      "bytes": 12943
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/verify_optimizer_drift.py",
+      "sha256": "8fc045d3746026e6f708f72851fde880527ab0ca881b6e6d4b2ffb521f904b25",
+      "bytes": 3309
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/verify_natural_gradient.py",
+      "sha256": "d9f2a5b9543d1ba954cf80885d8645e9e5cbc89c25605899d08207d1c6bccf83",
+      "bytes": 2579
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/verify_survival.py",
+      "sha256": "3f704a7c49d0c7ecdba63e6ad2d47cbb8f00464402ae3b987f72546a6c5a53d6",
+      "bytes": 5249
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/theory_extensions.pdf",
+      "sha256": "6757f0fb2ba46674acec8a492c76c95b753c0ca0edce062b0d1a6dd7ae23ed3b",
+      "bytes": 373159
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/theory_extensions_source.zip",
+      "sha256": "4eda907ee76a942997b2d7e50c6c23ec249893f302479a549dfdaf523d4e3716",
+      "bytes": 54522
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/verify_optimizer_drift.json",
+      "sha256": "49701311d755557ea31f00202f793dae976d066c7187e60af9e31b5f53101a27",
+      "bytes": 75302
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/verify_natural_gradient.json",
+      "sha256": "d06063caf1f701655554ddb85fed82f7960188680b5c5163ab1c6fd88ca3fe77",
+      "bytes": 6908
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/verify_survival.json",
+      "sha256": "64ebf78e8edadf3d2587d0f593d21f61cba1c0fd0609ee6041ef7d73b3f7e0a0",
+      "bytes": 60279
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery_validation.json",
+      "sha256": "ddb331664684e2ed8d309e1bd13dd0bd2c2ed96a0c6da7da3609f950986498ac",
+      "bytes": 1420
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery_sources.json",
+      "sha256": "f84ab9c6d5a292f33590bfc5bf3d0fa136fc19b332cb02e7bb667cc463ab891d",
+      "bytes": 4388
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/entropy_sources.json",
+      "sha256": "956c53650241d34aeaef64216e7a8eaf6e7aa82837e87d8110a2fb48c85fdd4e",
+      "bytes": 2158
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/independent_review.json",
+      "sha256": "1096744b9e80d9754def6bebae28d457d2f1db4835aff404bf7a3d4a9f52cee0",
+      "bytes": 1929
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/theory_extensions.log",
+      "sha256": "dc55dc3d27b0391470b8b0997cc3462d65949db94b496819c5df93cfda6872b2",
+      "bytes": 20199
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905.md",
+      "sha256": "732dda462391d2f04e8553fad6c7bc64c7edff8b13322262a94fcd3e624f8776",
+      "bytes": 9689
+    }
+  ]
+}

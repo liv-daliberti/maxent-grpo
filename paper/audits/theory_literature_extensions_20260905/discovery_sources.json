@@ -1,0 +1,114 @@
+[
+  {
+    "key": "durrett2019probability",
+    "authors": [
+      "Rick Durrett"
+    ],
+    "title": "Probability: Theory and Examples",
+    "year": 2019,
+    "venue": "Cambridge University Press",
+    "edition": 5,
+    "urls": [
+      "https://sites.math.duke.edu/~rtd/",
+      "https://sites.math.duke.edu/~rtd/PTE/PTE5_011119.pdf"
+    ],
+    "locator": "Theorem4.3.4, pp225\u2013226",
+    "applicability": "Conditional Borel\u2013Cantelli for adapted events; first-admission application is derived independently",
+    "fulltext_snapshot": "paper/audits/theory_literature_extensions_20260905/discovery_sources/durrett2019.pdf",
+    "sha256": "aeac36cbf5e44c53d69fa60a2d29a393e2d0e8c955ee103bd845d925fd910886",
+    "metadata_verified_as_of": "2026-09-05"
+  },
+  {
+    "key": "anceaume2015coupon",
+    "authors": [
+      "Emmanuelle Anceaume",
+      "Yann Busnel",
+      "Ernst Schulte-Geers",
+      "Bruno Sericola"
+    ],
+    "title": "Optimization results for a generalized coupon collector problem",
+    "year": 2015,
+    "venue": "arXiv preprint",
+    "identifier": "arXiv:1504.03878v1",
+    "urls": [
+      "https://arxiv.org/abs/1504.03878",
+      "https://arxiv.org/html/1504.03878v1"
+    ],
+    "locator": "Theorems2\u20133",
+    "applicability": "Fixed iid coupon laws including a null coupon; does not establish adaptive policy/admission bounds",
+    "fulltext_snapshot": "paper/audits/theory_literature_extensions_20260905/discovery_sources/anceaume2015.pdf",
+    "sha256": "37e9748fa996c55c23f257077cb3f67643a6f2b917b93c8483702238ba4d57c8",
+    "metadata_verified_as_of": "2026-09-05"
+  },
+  {
+    "key": "ecoffet2021goexplore",
+    "authors": [
+      "Adrien Ecoffet",
+      "Joost Huizinga",
+      "Joel Lehman",
+      "Kenneth O. Stanley",
+      "Jeff Clune"
+    ],
+    "title": "First return, then explore",
+    "year": 2021,
+    "venue": "Nature",
+    "volume": 590,
+    "pages": "580\u2013586",
+    "doi": "10.1038/s41586-020-03157-9",
+    "identifier": "arXiv:2004.12919v6",
+    "urls": [
+      "https://www.nature.com/articles/s41586-020-03157-9",
+      "https://adrien.ecoffet.com/files/go-explore-nature.pdf",
+      "https://arxiv.org/abs/2004.12919"
+    ],
+    "locator": "Go-Explore algorithm and Fig1; return/archive/robustification discussion",
+    "applicability": "Archive exploration precedent, not a key-probability theorem for teacher-forced LM replay",
+    "fulltext_snapshot": "paper/audits/theory_literature_extensions_20260905/discovery_sources/goexplore_published.pdf",
+    "sha256": "a67f3fed3f1aa292e3aab149afb49328db79e4f33927f526317421f46ee3cca9",
+    "metadata_verified_as_of": "2026-09-05"
+  },
+  {
+    "key": "branicky1998multiple",
+    "authors": [
+      "Michael S. Branicky"
+    ],
+    "title": "Multiple Lyapunov Functions and Other Analysis Tools for Switched and Hybrid Systems",
+    "year": 1998,
+    "venue": "IEEE Transactions on Automatic Control",
+    "volume": 43,
+    "number": 4,
+    "pages": "475\u2013482",
+    "urls": [
+      "https://people.ece.ubc.ca/moishi/eece571m/articles/Branicky98.pdf"
+    ],
+    "locator": "Introduction and Theorem2.3",
+    "applicability": "Switched-system energy/stability precedent; current positive-jump accounting is directly proved, not asserted as the source theorem",
+    "fulltext_snapshot": "paper/audits/theory_literature_extensions_20260905/discovery_sources/branicky1998.pdf",
+    "sha256": "3937d6b42672f1a7c7a66b2d659e5c5fbd482db0512480a81075259235a428f3",
+    "metadata_verified_as_of": "2026-09-05"
+  },
+  {
+    "key": "rolnick2019replay",
+    "authors": [
+      "David Rolnick",
+      "Arun Ahuja",
+      "Jonathan Schwarz",
+      "Timothy P. Lillicrap",
+      "Greg Wayne"
+    ],
+    "title": "Experience Replay for Continual Learning",
+    "year": 2019,
+    "first_arxiv_year": 2018,
+    "venue": "NeurIPS",
+    "identifier": "arXiv:1811.11682v2",
+    "urls": [
+      "https://arxiv.org/abs/1811.11682",
+      "https://arxiv.org/pdf/1811.11682"
+    ],
+    "locator": "CLEAR method and limited-buffer experiments",
+    "applicability": "Empirical replay/behavioral cloning retention precedent, not a uniform per-key probability floor",
+    "fulltext_snapshot": "paper/audits/theory_literature_extensions_20260905/discovery_sources/rolnick2019.pdf",
+    "sha256": "d67eea63e22842c92d9e7f84eb704e3f834bdc5998393853dc4291625d380345",
+    "metadata_verified_as_of": "2026-09-05"
+  }
+]

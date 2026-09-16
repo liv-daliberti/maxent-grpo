@@ -1,0 +1,133 @@
+{
+  "model_sampling": false,
+  "candidate_construction_only": true,
+  "results": [
+    {
+      "min": 4,
+      "max": 120,
+      "insufficient": {
+        "40": {
+          "need": 16,
+          "capacity": 0
+        },
+        "140": {
+          "need": 4,
+          "capacity": 0
+        },
+        "180": {
+          "need": 8,
+          "capacity": 0
+        },
+        "200": {
+          "need": 4,
+          "capacity": 0
+        }
+      },
+      "min_capacity": 0,
+      "supports": 57
+    },
+    {
+      "min": 4,
+      "max": 180,
+      "insufficient": {
+        "40": {
+          "need": 16,
+          "capacity": 0
+        },
+        "140": {
+          "need": 4,
+          "capacity": 0
+        },
+        "180": {
+          "need": 8,
+          "capacity": 0
+        },
+        "200": {
+          "need": 4,
+          "capacity": 0
+        }
+      },
+      "min_capacity": 0,
+      "supports": 57
+    },
+    {
+      "min": 4,
+      "max": 240,
+      "insufficient": {
+        "40": {
+          "need": 16,
+          "capacity": 0
+        },
+        "140": {
+          "need": 4,
+          "capacity": 0
+        },
+        "180": {
+          "need": 8,
+          "capacity": 0
+        },
+        "200": {
+          "need": 4,
+          "capacity": 0
+        }
+      },
+      "min_capacity": 0,
+      "supports": 57
+    },
+    {
+      "min": 4,
+      "max": 360,
+      "insufficient": {
+        "40": {
+          "need": 16,
+          "capacity": 0
+        },
+        "140": {
+          "need": 4,
+          "capacity": 0
+        },
+        "180": {
+          "need": 8,
+          "capacity": 0
+        },
+        "200": {
+          "need": 4,
+          "capacity": 0
+        }
+      },
+      "min_capacity": 0,
+      "supports": 57
+    },
+    {
+      "min": 4,
+      "max": 512,
+      "insufficient": {
+        "40": {
+          "need": 16,
+          "capacity": 0
+        },
+        "140": {
+          "need": 4,
+          "capacity": 0
+        },
+        "180": {
+          "need": 8,
+          "capacity": 0
+        },
+        "200": {
+          "need": 4,
+          "capacity": 0
+        }
+      },
+      "min_capacity": 0,
+      "supports": 57
+    },
+    {
+      "min": 4,
+      "max": 729,
+      "insufficient": {},
+      "min_capacity": 3233,
+      "supports": 60
+    }
+  ]
+}

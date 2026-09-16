@@ -1,0 +1,37 @@
+{
+  "commands": [
+    "python -B ops/exp_scaling/build_paper_latest_results.py --date 2026-09-10 --reuse-audit paper/audits/results_refresh_20260909/latest_endpoints.json --workers 4",
+    "python -B ops/exp_scaling/build_paper_current_campaign_results.py --snapshot paper/results/latest_results_20260910.json --figures",
+    "python -B ops/exp_scaling/build_paper_level2_factorial_contrasts.py --date 2026-09-10"
+  ],
+  "existing_sep10_outputs": [],
+  "observed_at_utc": "2026-09-10T16:49:28.354612+00:00",
+  "preserved_inputs": {
+    "ops/exp_scaling/build_paper_core_terminal_endpoints.py": "237a6620cd46874387f1a0c691f153762680a824c06b4e314d831a4c0103c798",
+    "ops/exp_scaling/build_paper_current_campaign_results.py": "8b7c5d457e173fda13b7b5a8ce180e0fcb030a4e19b4e67b964f64b8c6982eb7",
+    "ops/exp_scaling/build_paper_e78_terminal_results.py": "4d0230d6c46dc3a9ff2245f2098784ab98316f734d420b65956640a8fb6ebc37",
+    "ops/exp_scaling/build_paper_e87_qwen3b_fixed_semantic_results.py": "8d5819c1a34d0699955698cf9d33af06ee15c364ff92a299a83a625a8e61c3a8",
+    "ops/exp_scaling/build_paper_e95_plain_grpo_results.py": "99313818a8e87b9f9f68f3e88663bcd598530556ea9a430bdc52806bd9e2c39d",
+    "ops/exp_scaling/build_paper_latest_results.py": "cd07d0d835076c98d3e4128cbc9005da99be7d2d0341783ce534822b63f52eb7",
+    "ops/exp_scaling/build_paper_level2_factorial_contrasts.py": "088088ebf0c6e45dd1ef3f190554b8ebe2d9a4d9943c3180ab4fe8dfe69f6282",
+    "ops/exp_scaling/build_paper_maxent_factorial_results.py": "e23fbeb6502da04fe09551c96de0cbe8f2fb1307f462c46bb56e6da8f38ca26a",
+    "ops/exp_scaling/build_paper_ucpo_interim_results.py": "d3602ff89dfabafd7b3deb8d86c5262dc7088b3221a065406da69554bb5a6921",
+    "ops/exp_scaling/paper_e119_e120_integrity.py": "8ce365a5cffabd52f58e872920bd530a2b7dbc54164ad76cbef719b95a362329",
+    "paper/audits/results_refresh_20260909/latest_endpoints.json": "3fdb29841d58ce368bde7c7f54defc75822429d1ba5e9bd47a0e6aefe7e9db12",
+    "paper/figures/current_campaign_results_20260909.pdf": "b0617f23c2e90a333f838cf0fcbdef0becfafbd7681036a26291f64f6dc18b86",
+    "paper/figures/current_campaign_results_20260909.png": "e383cbd0ef950548312999ffdf2f1e83b28103f9043208b26f0cbf1be9aa5fd7",
+    "paper/results/current_campaign_results_20260909.csv": "4d3ee409649ffe2cb0030c974c1cff20dd600e452fad65f8726587f14fdea488",
+    "paper/results/current_campaign_results_20260909.json": "4226ed01832dbd3679e63156591d67eb8573ff4130f2ea0a318855ce76fc5474",
+    "paper/results/current_campaign_results_20260909.md": "e6481bc79e0938f51025b54394636d46433ec8cf63b41a3736792b3ca37d1883",
+    "paper/results/current_campaign_results_20260909_coverage_table_body.tex": "629011a8a3de41c1c1d8835bcefa9ffc6889ea3510e3b053c4d97eb14162a152",
+    "paper/results/current_campaign_results_20260909_e118_table_body.tex": "33a45e698fac1f10b8a7508801197c126450704c267c2b8d44a38ca2d21aa341",
+    "paper/results/current_campaign_results_20260909_e119_table_body.tex": "5db8c1465b978ef66eefe975ff356664a03de0ed60c1abfdb1730d06c5d720dc",
+    "paper/results/current_campaign_results_20260909_e120_table_body.tex": "e5c0ea1fc4942e6580d7c355fabb28b99a1232bafedc46ed536db99c745fa41e",
+    "paper/results/e120_frequency_progress.json": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab",
+    "paper/results/latest_results_20260909.json": "048c9adde4e56ead61e6236e2c81f1e4052ee25ec244d3b59c90fc612aad42ec",
+    "paper/results/latest_results_20260909_effects_table_body.tex": "d0de9b1cea18817f102863bf7e9bac8d0e312b41a55f2d17d0c468126f33462d",
+    "paper/results/latest_results_20260909_table_body.tex": "4454de34ddceeed7f8af25b081e5e9f9ea7a2140c979c8944dc57e8351aa74c9",
+    "paper/results/level2_factorial_contrasts_20260909.json": "bcbcbac790ce1e17f58a26e3a7dd9c88f957c0a0a7fd7fcc230c8c33a1a1929e",
+    "paper/results/level2_factorial_contrasts_20260909_table_body.tex": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+  }
+}

@@ -1,0 +1,5238 @@
+Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling
+Report GitHub Issue
+×
+Title:
+Content selection saved. Describe the issue below:
+Description:
+Submit without GitHub
+Submit in GitHub
+arXiv is now an independent nonprofit!
+Learn more
+×
+Back to arXiv
+Why HTML?
+Report Issue
+Back to Abstract
+Download PDF
+Abstract
+1
+Introduction
+2
+Related Work
+2.1
+Mode Collapse in RL and Loss of Diversity
+2.2
+Flow-based methods
+2.3
+Collapse in LLM post-training
+3
+Why Outcome-Level Mode Collapse is Inevitable under Expected Return
+3.1
+Interpretation: a simple positive feedback loop
+4
+Our Method: Inverse Probability Scaling
+4.1
+The scaled objective
+4.2
+Stationary Solution: reward-proportional outcomes
+4.3
+With KL regularization: interpolation instead of collapse prevention
+4.4
+From principle to algorithm: IPS-GRPO
+5
+Experiments
+5.1
+Hyper-Grid Task
+5.2
+HypoSpace Benchmark
+5.3
+Drug Discovery with Chemical Language Models
+5.4
+Ablation: Group Size and Probability Clipping
+6
+Why and How IPS-GRPO Works
+7
+Discussion and Conclusion
+7.1
+Limitations and Future Directions
+7.2
+Conclusion
+References
+A
+Mathematical Discussion
+A.1
+PROOF OF THEOREM 3.1
+A.2
+PROOF FOR THEOREM 4.1
+B
+EXPERIMENT DETAILS
+B.1
+HYPOSPACE
+B.2
+Drug Discovery with Chemical Language Models
+Multi-objective reward function.
+Docking score component.
+Drug-likeness components.
+Hydrogen Bond Donor component
+Synthesizability constraints.
+Final reward definitions.
+Model and reinforcement learning setup.
+C
+RESULTS: 3D VOXELS
+License: CC BY 4.0
+arXiv:2601.21669v1 [cs.LG] 29 Jan 2026
+Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling
+Abhijeet Sinha
+Affiliation:
+National University of Singapore, Singapore
+Correspondence to:
+abhijeet@nus.edu.sg
+Sundari Elango
+Affiliation:
+IIT Madras, India
+Correspondence to:
+sundarielango95@gmail.com
+Dinabo Liu
+Affiliation:
+National University of Singapore, Singapore
+Correspondence to:
+dianbo@nus.edu.sg
+Abstract
+Many reinforcement learning (RL) problems admit multiple terminal solutions of comparable quality, where the goal is not to identify a single optimum but to represent a diverse set of high-quality outcomes. Nevertheless, policies trained by standard expected-return maximization routinely collapse onto a small subset of outcomes, a phenomenon commonly attributed to insufficient exploration or weak regularization. We show that this explanation is incomplete:
+outcome-level mode collapse is a structural consequence of the expected-return objective itself
+. Under idealized learning dynamics, the log-probability ratio between any two outcomes evolves linearly in their reward difference, implying exponential ratio divergence and inevitable collapse—independent of the exploration strategy, entropy regularization, or optimization algorithm. We identify the source of this pathology as the probability multiplier inside the expectation and propose a minimal correction:
+inverse probability scaling
+, which removes outcome-frequency amplification from the learning signal, fundamentally changes the learning dynamics, and
+provably yields reward-proportional terminal distributions
+, preventing collapse in multimodal settings. We instantiate this principle in Group Relative Policy Optimization (GRPO) as a drop-in modification, IPS-GRPO, requiring no auxiliary models or architectural changes. Across different reasoning and molecular generation tasks, IPS-GRPO consistently reduces outcome-level mode collapse while matching or exceeding baseline performance, suggesting that correcting the objective rather than adding exploration heuristics is key to reliable multimodal policy optimization.
+1
+Introduction
+Reinforcement Learning (RL) is increasingly applied to areas where the objective is not to identify a single optimal behaviour, but rather represent a diverse set of equally high quality solutions. Such outcome-multimodal problems arise naturally in applications such as Large Language Model (LLM) post-training,
+(
+Ouyang et al., 2022
+)
+program synthesis
+(
+Simmons-Edler et al., 2018
+)
+, molecular discovery
+(
+Park et al., 2025
+)
+and combinatorial generation tasks
+(
+Grinsztajn et al., 2023
+)
+. In such domains, multiple terminal outcomes achieve comparable reward, and it becomes critical for the RL agent to maintain coverage across these alternatives instead of converging on a single solution
+(
+Romera-Paredes et al., 2024
+;
+Castro et al., 2025
+;
+Novikov et al., 2025
+)
+. However, standard RL objective proves unable to capture the equally valid alternatives, often collapsing onto a narrow subset of outcomes
+(
+Hu et al., 2024
+;
+Gao et al., 2023
+)
+. This phenomenon, referred to as
+outcome-level mode collapse
+(
+GX-Chen et al., 2025
+)
+, yields high expected reward but offers poor coverage of the solution space leading to repetitive or homogenized output. The most prevalent explanation for this behavior is given as insufficient exploration
+(
+Song et al., 2025
+;
+Wang et al., 2025
+)
+, suboptimal regularization
+(
+Wang et al., 2023
+)
+or even poor choice of hyperparameters
+(
+Dohare et al., 2023
+)
+. Thus, the strategies proposed to overcome this, are also on these lines. However, these approaches only delay collapse and do not address the root cause of the phenomenon. Thus, collapse reappears as training progresses and agents still fail to capture the global structure of the reward landscape.
+In this work, we show that existing explanations are fundamentally incomplete and demonstrate that outcome-level mode collapse is a
+structural consequence of expected-return maximization itself
+. Even under ideal conditions with perfect exploration, and no optimization noise, maximizing expected return induces a rich-get-richer feedback loop at the level of terminal outcomes. Outcomes that are sampled slightly more frequently receive disproportionately larger updates, causing probability ratios between outcomes to drift and ultimately collapse onto a small subset of high-reward outcomes. Thus, we suggest that preventing mode collapse requires modifying the learning signal. Motivated by this, we introduce a simple and principled correction:
+inverse probability scaling
+. Instead of weighting each trajectory’s contribution by its probability of occurrence, we rescale terminal rewards by the inverse probability of the corresponding outcome. This removes the probability multiplier inherent in expected-return optimization and hence, fundamentally alters the learning dynamics. Under this correction, the policy converges to a reward-proportional distribution over outcomes:
+π
+i
+∝
+r
+i
+\pi_{i}\propto r_{i}
+, thus the agent is better able to reflect the reward landscape. We instantiate this principle as
+Inverse Probability Scaling
+, a drop-in modification to group-based RL algorithms. We propose a modification to the GRPO algorithm
+(
+Shao et al., 2024
+)
+, by applying this priniciple and term this algorithm as IPS-GRPO. IPS-GRPO requires no auxiliary models, and is fully compatible with existing GRPO pipelines, including PPO-style clipping and KL regularization. We show theoretically and demonstrate empirically that IPS-GRPO consistently mitigates mode collapse across a range of outcome-multimodal benchmarks, including controlled grid environments, structured hypothesis-space inference (HypoSpace), and molecular discovery with chemical language models.
+The main contributions of this work are:
+Problem characterization:
+We identify outcome-level mode collapse as a structural consequence of expected-return maximization in outcome-multimodal RL.
+Theoretical analysis:
+We show this collapse arises from frequency-weighted learning dynamics rather than insufficient exploration or regularization.
+Algorithmic contribution:
+We propose IPS-GRPO, a modification to GRPO that corrects outcome-frequency bias via inverse probability scaling, yielding stable outcome-level distributions.
+Practical applicability:
+IPS-GRPO requires no auxiliary models, adds negligible overhead, and integrates directly with existing GRPO pipelines.
+2
+Related Work
+2.1
+Mode Collapse in RL and Loss of Diversity
+Mode collapse was first observed in Generative Adversarial Networks (GANs)
+(
+Goodfellow et al., 2020
+)
+where the generator covers only a few modes of the data distribution resulting in samples that lack diversity
+(
+Kossale et al., 2022
+)
+. An analogous collapse occurs in RL at the level of policies where even though multiple nearly or equally rewarding trajectories exist, the learned policies often collapse on to a narrow subset of them. This results in reduced policy entropy and loss of diversity in solutions, and has been documented across multiple domains. These failures have motivated a growing body of work that address this collapse by encouraging exploration through a variety of techniques like entropy regularization
+(
+Haarnoja et al., 2018
+;
+Cheng et al., 2025
+;
+Ahmed et al., 2019
+)
+, or by increasing entropy in the training data
+(
+Zhou et al., 2025
+;
+Cui et al., 2025
+)
+, imposing KL constraints between successive policies
+(
+GX-Chen et al., 2025
+;
+Rietz and Stork, 2023
+)
+. Other methods modify rewards via shaping
+(
+An et al., 2025
+)
+, intrinsic motivation
+(
+Davoodabadi et al., 2024
+)
+, or exploration bonuses
+(
+Song et al., 2025
+)
+to bias learning toward underexplored regions of the state space.
+2.2
+Flow-based methods
+A complementary line of work addresses diversity collapse by explicitly targeting distributions over terminal outcomes rather than maximizing expected return. Generative Flow Networks (GFlowNets) enforce flow-balance constraints to sample terminal states proportionally to reward, thereby avoiding mode collapse by construction
+(
+Bengio and others, 2023
+)
+. Flow-based RL methods adapt these ideas to RL settings, using flow conservation or matching objectives to shape terminal distributions
+(
+Zhu et al., 2025
+)
+. Energy-based models pursue a similar goal by defining unnormalized target distributions over outcomes and drawing diverse samples via MCMC or amortized inference
+(
+Chao et al., 2024
+)
+. While effective at preserving diversity, flow-based and energy-based approaches typically rely on specialized objectives, auxiliary networks, learned normalization constants, or non-standard training pipelines. In contrast, our approach operates within standard KL-regularized policy-gradient frameworks and corrects outcome-level collapse by modifying reward attribution rather than enforcing explicit distributional constraints, preserving compatibility with existing RL pipelines.
+2.3
+Collapse in LLM post-training
+Outcome-level collapse has become increasingly apparent
+in RL from human feedback (RLHF) and LLM post-training
+(
+Ouyang et al., 2022
+;
+Bai and others, 2022
+)
+. Empirical studies
+report reduced response diversity, repetitive generations,
+and convergence toward narrow stylistic or semantic modes
+during reward optimization, even when multiple valid responses
+exist
+(
+Kirk et al., 2024
+;
+Slocum et al., 2025
+;
+Padmakumar and He, 2024
+)
+. Similar effects have been observed
+in preference-based fine-tuning, where optimization favors
+high-probability responses preferred by the reward or preference
+model
+(
+Rafailov et al., 2024
+;
+Gao et al., 2023
+)
+. In
+practice, collapse is commonly mitigated through strong KL
+regularization
+(
+Ouyang et al., 2022
+;
+Ziegler et al., 2020
+)
+,
+reward mixing, early stopping
+(
+Stiennon et al., 2020
+)
+, or
+decoding-time heuristics such as nucleus sampling and temperature
+scaling
+(
+Holtzman et al., 2020
+)
+. Several works
+attribute these failures to reward misspecification, reward
+hacking, or excessive KL pressure
+(
+Amodei et al., 2016
+;
+Ouyang et al., 2022
+;
+Rafailov et al., 2024
+;
+Ziegler et al., 2020
+)
+. While these factors contribute, they do not fully explain
+why collapse persists even under careful tuning. Our work offers a complementary perspective: outcome-level
+collapse arises naturally from expected-return optimization
+over terminal outputs, and correcting this feedback at the
+level of reward attribution directly targets response homogenization.
+3
+Why Outcome-Level Mode Collapse is Inevitable under Expected Return
+We show that outcome-level mode collapse is not an artifact of poor exploration,
+finite samples, or optimization noise, but a
+structural property
+of the
+expected-return objective itself. Even under idealized learning dynamics,
+maximizing expected return induces monotonic divergence of outcome probability
+ratios, forcing collapse onto a small subset of outcomes.
+We consider episodic RL with reward only at termination.
+Each trajectory
+τ
+\tau
+deterministically induces a terminal outcome
+o
+=
+ϕ
+⁡
+(
+τ
+)
+∈
+𝒪
+o=\phi(\tau)\in\mathcal{O}
+, and reward depends only on the outcome:
+r
+⁡
+(
+τ
+)
+=
+r
+⁡
+(
+o
+)
+r(\tau)=r(o)
+.
+A policy
+π
+θ
+\pi_{\theta}
+induces a distribution over outcomes
+p
+θ
+(
+o
+)
+=
+Pr
+τ
+∼
+π
+θ
+[
+ϕ
+(
+τ
+)
+=
+o
+]
+p_{\theta}(o)=\Pr_{\tau\sim\pi_{\theta}}[\phi(\tau)=o]
+.
+The standard objective is to maximize expected return,
+J
+⁡
+(
+θ
+)
+=
+𝔼
+τ
+∼
+π
+θ
+​
+[
+r
+⁡
+(
+ϕ
+⁡
+(
+τ
+)
+)
+]
+=
+∑
+o
+∈
+𝒪
+p
+θ
+​
+(
+o
+)
+​
+r
+​
+(
+o
+)
+.
+J(\theta)=\mathbb{E}_{\tau\sim\pi_{\theta}}[r(\phi(\tau))]=\sum_{o\in\mathcal{O}}p_{\theta}(o)\,r(o).
+(1)
+Crucially, reward is always weighted by the policy’s own outcome probability.
+To isolate the effect of the objective, we consider a minimal abstraction:
+an outcome-selection bandit.
+At each step, the policy samples an outcome
+o
+∼
+p
+∈
+Δ
+|
+𝒪
+|
+−
+1
+o\sim p\in\Delta^{|\mathcal{O}|-1}
+and receives reward
+r
+⁡
+(
+o
+)
+r(o)
+.
+This removes state dynamics, exploration issues, and credit assignment.
+Any instability observed here is therefore intrinsic to the objective
+in Eq. (
+1
+). We parameterize
+p
+p
+via logits
+z
+z
+with
+p
+=
+softmax
+⁡
+(
+z
+)
+p=\mathrm{softmax}(z)
+and analyze continuous-time gradient ascent (gradient flow) on
+J
+J
+.
+Theorem 3.1
+.
+Under gradient flow on
+J
+⁡
+(
+z
+)
+=
+∑
+o
+p
+o
+​
+(
+z
+)
+​
+r
+​
+(
+o
+)
+J(z)=\sum_{o}p_{o}(z)\,r(o)
+with a softmax parameterization,
+define the (on-policy) advantage of outcome
+o
+o
+at training time
+t
+t
+as
+a
+t
+​
+(
+o
+)
+=
+r
+⁡
+(
+o
+)
+−
+𝔼
+o
+′
+∼
+p
+t
+​
+[
+r
+⁡
+(
+o
+′
+)
+]
+a_{t}(o)=r(o)-\mathbb{E}_{o^{\prime}\sim p_{t}}[r(o^{\prime})]
+Then for any outcomes
+i
+,
+j
+i,j
+with
+p
+i
+​
+(
+t
+)
+,
+p
+j
+​
+(
+t
+)
+>
+0
+p_{i}(t),p_{j}(t)>0
+,
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+=
+p
+i
+​
+(
+t
+)
+​
+a
+i
+​
+(
+t
+)
+−
+p
+j
+​
+(
+t
+)
+​
+a
+j
+​
+(
+t
+)
+.
+\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}=p_{i}(t)\,a_{i}(t)\;-\;p_{j}(t)\,a_{j}(t).
+(2)
+Equation (
+2
+) holds independently of exploration,
+sampling noise, entropy bonuses, or KL regularization, as long as the objective remains expected return.
+3.1
+Interpretation: a simple positive feedback loop
+Equation (
+2
+) shows that probability ratios are driven by a very simple quantity.
+For each outcome
+o
+o
+, define its update signal as:
+g
+t
+​
+(
+o
+)
+=
+p
+o
+​
+(
+t
+)
+​
+a
+t
+​
+(
+o
+)
+g_{t}(o)\;=\;p_{o}(t)\,a_{t}(o)
+.
+Then the dynamics reduce to
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+=
+g
+t
+​
+(
+i
+)
+−
+g
+t
+​
+(
+j
+)
+.
+\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}\;=\;g_{t}(i)\;-\;g_{t}(j).
+Now consider what happens step by step.
+Step 1: one outcome is slightly ahead.
+At any time
+t
+t
+, there will generically be at least one outcome
+i
+i
+whose update signal
+g
+t
+​
+(
+i
+)
+=
+p
+i
+​
+(
+t
+)
+​
+a
+t
+​
+(
+i
+)
+g_{t}(i)=p_{i}(t)a_{t}(i)
+is larger than that of all other outcomes
+j
+j
+.
+Exact ties require perfectly equal probabilities and advantages and are unstable; in practice they are broken immediately by random initialization or sampling noise.
+Step 2: log-ratios start increasing.
+If for some outcome
+i
+i
+we have:
+g
+t
+​
+(
+i
+)
+>
+g
+t
+​
+(
+j
+)
+for all
+​
+j
+≠
+i
+g_{t}(i)\;>\;g_{t}(j)\quad\text{for all }j\neq i
+.
+Then for every other outcome
+j
+j
+,
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+>
+0
+.
+\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}\;>\;0.
+This means that the ratio
+l
+​
+o
+​
+g
+​
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+log\frac{p_{i}(t)}{p_{j}(t)}
+increases linearly over time. Linear growth of
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+\log\frac{p_{i}(t)}{p_{j}(t)}
+implies exponential growth of
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+\frac{p_{i}(t)}{p_{j}(t)}
+. Thus
+p
+i
+​
+(
+t
+)
+p_{i}(t)
+increases exponentially relative to every other
+p
+j
+​
+(
+t
+)
+p_{j}(t)
+.
+Step 3: positive feedback strengthens the winner.
+As
+p
+i
+​
+(
+t
+)
+p_{i}(t)
+grows, its signal
+g
+t
+​
+(
+i
+)
+=
+p
+i
+​
+(
+t
+)
+​
+a
+t
+​
+(
+i
+)
+g_{t}(i)=p_{i}(t)a_{t}(i)
+also grows, even if the advantage
+a
+t
+​
+(
+i
+)
+a_{t}(i)
+stays constant or is equal to that of other outcomes. At the same time,
+p
+j
+​
+(
+t
+)
+p_{j}(t)
+shrinks for all
+j
+≠
+i
+j\neq i
+, making
+g
+t
+​
+(
+j
+)
+g_{t}(j)
+smaller. This further increases the gap
+g
+t
+​
+(
+i
+)
+−
+g
+t
+​
+(
+j
+)
+g_{t}(i)-g_{t}(j)
+, which increases the growth rate of
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+\log\frac{p_{i}(t)}{p_{j}(t)}
+even more.
+Step 4: a point of no return.
+This creates a positive feedback loop:
+g
+t
+​
+(
+i
+)
+​
+slightly larger
+⇒
+p
+i
+​
+grows faster
+⇒
+g
+t
+​
+(
+i
+)
+=
+p
+i
+​
+a
+i
+​
+becomes even larger
+⇒
+p
+i
+​
+grows even faster
+.
+g_{t}(i)\text{ slightly larger}\;\Rightarrow\;p_{i}\text{ grows faster}\;\Rightarrow\;g_{t}(i)=p_{i}a_{i}\text{ becomes even larger}\;\Rightarrow\;p_{i}\text{ grows even faster}.
+Once this loop starts, the dynamics move irreversibly toward
+p
+i
+​
+(
+t
+)
+=
+1
+p_{i}(t)=1
+.
+There is no mechanism in the expected-return objective that can restore balance.
+This argument does not depend on rewards being unequal.
+Even when rewards (and thus advantages) are equal, the initial probability multiplier
+p
+o
+​
+(
+t
+)
+p_{o}(t)
+ensures that the slightly more likely outcome receives a larger update.
+Because deep RL policies are initialized randomly or with heuristics, such small
+asymmetries are unavoidable.
+Therefore, for softmax policies over terminal outcomes, optimizing expected return
+inevitably leads to outcome-level mode collapse.
+Which outcome wins is determined by the initial values of
+p
+o
+​
+(
+t
+)
+​
+a
+t
+​
+(
+o
+)
+p_{o}(t)a_{t}(o)
+,
+but collapse itself is unavoidable.
+Preventing this behavior requires changing the objective so that probability
+does not multiply its own update.
+(proof for this section is in Appendix
+A
+)
+4
+Our Method: Inverse Probability Scaling
+Our objective is to learn a policy such that for any outcome
+i
+i
+,
+π
+i
+∝
+r
+i
+\pi_{i}\propto r_{i}
+.
+We have seen that the objective of maximizing expected return cannot converge to such a policy over outcomes. We propose a Inverse Probability Scaling (IPS) of rewards as a principle to achieve our objective.
+4.1
+The scaled objective
+The inverse-scaled terminal reward
+r
+~
+θ
+(
+o
+)
+≔
+r
+⁡
+(
+o
+)
+p
+θ
+​
+(
+o
+)
+w
+h
+e
+r
+e
+p
+θ
+(
+o
+)
+=
+Pr
+τ
+∼
+π
+θ
+[
+ϕ
+(
+τ
+)
+=
+o
+]
+.
+\tilde{r}_{\theta}(o)\;\coloneqq\;\frac{r(o)}{p_{\theta}(o)}\quad where\quad p_{\theta}(o)=\Pr_{\tau\sim\pi_{\theta}}[\phi(\tau)=o].
+(3)
+The corresponding IPS-RL objective is
+J
+IPS
+​
+(
+θ
+)
+=
+𝔼
+o
+∼
+p
+π
+​
+[
+r
+~
+​
+(
+o
+)
+]
+=
+𝔼
+o
+∼
+p
+π
+​
+[
+r
+⁡
+(
+o
+)
+p
+θ
+​
+(
+o
+)
+]
+.
+J_{\mathrm{IPS}}(\theta)\;=\;\mathbb{E}_{o\sim p_{\pi}}\!\left[\tilde{r}(o)\right]=\mathbb{E}_{o\sim p_{\pi}}\!\left[\frac{r(o)}{p_{\theta}(o)}\right].
+(4)
+where
+p
+θ
+​
+(
+o
+)
+p_{\theta}(o)
+is a scalar and gradients don’t flow through it.
+IPS fundamentally changes how terminal outcomes are credited in the learning signal.
+4.2
+Stationary Solution: reward-proportional outcomes
+To isolate the effect of the objective, consider the outcome-selection bandit as
+in Section
+3
+, with logits
+z
+∈
+ℝ
+K
+z\in\mathbb{R}^{K}
+and
+p
+=
+softmax
+⁡
+(
+z
+)
+p=\mathrm{softmax}(z)
+. Specializing the derivation in
+Theorem 4.1
+.
+Under gradient flow on
+J
+IPS
+​
+(
+z
+)
+=
+𝔼
+o
+∼
+p
+⁡
+(
+z
+)
+​
+[
+r
+⁡
+(
+o
+)
+p
+o
+​
+(
+z
+)
+]
+J_{\mathrm{IPS}}(z)=\mathbb{E}_{o\sim p(z)}\!\left[\frac{r(o)}{p_{o}(z)}\right]
+with
+p
+=
+softmax
+⁡
+(
+z
+)
+p=\mathrm{softmax}(z)
+and outcome rewards
+{
+r
+⁡
+(
+i
+)
+}
+i
+=
+1
+K
+\{r(i)\}_{i=1}^{K}
+, during the training the logits evolve as
+d
+​
+z
+i
+​
+(
+t
+)
+d
+​
+t
+=
+r
+⁡
+(
+i
+)
+−
+p
+i
+​
+(
+t
+)
+​
+∑
+k
+=
+1
+K
+r
+⁡
+(
+k
+)
+.
+\frac{dz_{i}(t)}{dt}=r(i)\;-\;p_{i}(t)\sum_{k=1}^{K}r(k).
+(5)
+Equivalently, for any
+i
+,
+j
+i,j
+with
+p
+i
+​
+(
+t
+)
+,
+p
+j
+​
+(
+t
+)
+>
+0
+p_{i}(t),p_{j}(t)>0
+,
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+=
+(
+r
+⁡
+(
+i
+)
+−
+r
+⁡
+(
+j
+)
+)
+−
+(
+p
+i
+​
+(
+t
+)
+−
+p
+j
+​
+(
+t
+)
+)
+​
+∑
+k
+=
+1
+K
+r
+⁡
+(
+k
+)
+.
+\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}=\big(r(i)-r(j)\big)-\big(p_{i}(t)-p_{j}(t)\big)\sum_{k=1}^{K}r(k).
+(6)
+The IPS dynamics admit a simple stationary solution with a direct interpretation.
+Corollary 4.2
+(Reward-proportional stationary distribution)
+.
+Assume
+∑
+k
+=
+1
+K
+r
+⁡
+(
+k
+)
+>
+0
+\sum_{k=1}^{K}r(k)>0
+and
+r
+⁡
+(
+i
+)
+≥
+0
+r(i)\geq 0
+for all
+i
+i
+.
+Then the distribution
+p
+i
+⋆
+=
+r
+⁡
+(
+i
+)
+∑
+k
+=
+1
+K
+r
+⁡
+(
+k
+)
+p_{i}^{\star}\;=\;\frac{r(i)}{\sum_{k=1}^{K}r(k)}
+(7)
+is stationary for (
+5
+) and  (
+6
+)
+In particular,
+p
+⋆
+p^{\star}
+satisfies
+r
+⁡
+(
+i
+)
+−
+p
+i
+⋆
+​
+∑
+k
+r
+⁡
+(
+k
+)
+=
+0
+r(i)-p_{i}^{\star}\sum_{k}r(k)=0
+, for all outcome
+i
+i
+.
+Interpretation
+Expected-return optimization amplifies popularity because the learning signal for an outcome is multiplied by its current probability.
+In contrast, IPS cancels this multiplier: at stationarity point solution of our IPS objective, probability mass is allocated
+proportionally to reward
+, preventing outcome-level mode collapse in multimodal settings. (proof for this section is in Appendix
+A
+)
+4.3
+With KL regularization: interpolation instead of collapse prevention
+Most practical policy optimization methods include KL regularization to a
+reference policy
+π
+ref
+\pi_{\mathrm{ref}}
+, either to encourage stochasticity
+(entropy regularization) or to preserve desirable behaviors during fine-tuning.
+Under expected-return optimization, KL regularization is often relied upon to
+counteract outcome-level collapse
+, with the reference policy acting as a source of randomness or as an anchor to a pretrained distribution. However, as shown in
+section
+3
+, the collapse pressure originates from the expected-return objective itself; KL regularization merely opposes this pressure and must be carefully tuned to prevent degeneracy. Under inverse probability scaling, it is no longer required to prevent collapse. Instead, it serves its intended purpose: inducing stochastic exploration when
+π
+ref
+\pi_{\mathrm{ref}}
+is uniform distribution, or preserving proximity to a pretrained or preference-aligned policy during fine-tuning. Consider the KL-regularized IPS objective
+max
+π
+𝔼
+o
+∼
+p
+π
+[
+r
+⁡
+(
+o
+)
+p
+π
+​
+(
+o
+)
+]
+−
+β
+KL
+(
+π
+∥
+π
+ref
+)
+.
+\max_{\pi}\;\mathbb{E}_{o\sim p_{\pi}}\!\left[\frac{r(o)}{p_{\pi}(o)}\right]\;-\;\beta\,\mathrm{KL}\!\left(\pi\,\|\,\pi_{\mathrm{ref}}\right).
+(8)
+Here, the KL term no longer “fights collapse”.
+It simply interpolates between
+(i) the reward-proportional behavior induced by IPS and
+(ii) adherence to the reference policy, with
+β
+\beta
+controlling the trade-off.
+4.4
+From principle to algorithm: IPS-GRPO
+Inverse probability scaling is a general principle: it can be instantiated in any on-policy method by replacing terminal rewards with inverse-scaled rewards.
+We adopt GRPO as a concrete instantiation and refer to the resulting method as
+IPS-GRPO
+.
+We emphasize that the contribution is IPS; GRPO is one compatible choice of optimizer.
+Given a group of
+G
+G
+sampled trajectories
+{
+τ
+g
+}
+g
+=
+1
+G
+\{\tau_{g}\}_{g=1}^{G}
+, let
+o
+g
+=
+ϕ
+⁡
+(
+τ
+g
+)
+o_{g}=\phi(\tau_{g})
+be the terminal outcome.
+For a terminal outcome
+o
+o
+We estimate outcome probabilities by group frequency
+p
+^
+​
+(
+o
+)
+\hat{p}(o)
+and apply a variance-stabilized scaling
+r
+~
+​
+(
+o
+g
+)
+=
+r
+⁡
+(
+o
+g
+)
+max
+⁡
+(
+p
+^
+​
+(
+o
+g
+)
+,
+ϵ
+)
+,
+\tilde{r}(o_{g})\;=\;\frac{r(o_{g})}{\max(\hat{p}(o_{g}),\epsilon)},
+(9)
+where
+ϵ
+>
+0
+\epsilon>0
+prevents extreme weights when
+p
+^
+​
+(
+o
+)
+\hat{p}(o)
+is small.
+Algorithm 1
+IPS-GRPO
+0:
+Policy
+π
+θ
+\pi_{\theta}
+, terminal reward function
+r
+⁡
+(
+o
+)
+r(o)
+, group size
+G
+G
+, clipping
+ϵ
+\epsilon
+1:
+for
+each update
+do
+2:
+Sample
+G
+G
+trajectories
+{
+τ
+g
+}
+g
+=
+1
+G
+∼
+π
+θ
+\{\tau_{g}\}_{g=1}^{G}\sim\pi_{\theta}
+3:
+Extract outcomes
+o
+g
+=
+ϕ
+⁡
+(
+τ
+g
+)
+o_{g}=\phi(\tau_{g})
+and rewards
+r
+g
+=
+r
+⁡
+(
+o
+g
+)
+r_{g}=r(o_{g})
+4:
+Compute empirical outcome frequencies
+p
+^
+(
+o
+)
+=
+1
+G
+∑
+g
+=
+1
+G
+𝟏
+{
+o
+g
+=
+o
+}
+\hat{p}(o)=\frac{1}{G}\sum_{g=1}^{G}\mathbf{1}\{o_{g}=o\}
+5:
+Scale rewards
+r
+~
+g
+=
+r
+g
+/
+max
+⁡
+(
+p
+^
+​
+(
+o
+g
+)
+,
+ϵ
+)
+\tilde{r}_{g}=r_{g}/\max(\hat{p}(o_{g}),\epsilon)
+6:
+Run a standard GRPO update using
+r
+~
+g
+\tilde{r}_{g}
+(all other terms and steps remains unchanged)
+7:
+end
+for
+5
+Experiments
+We evaluate IPS-GRPO in a range of outcome-multimodal settings to assess whether correcting outcome-frequency bias in terminal rewards mitigates outcome-level mode collapse and yields terminal-state distributions that better reflect the underlying reward structure. Our evaluations span three settings: (i) a controlled discrete grid-based task, (ii) post-training of large language models on the Hypospace benchmark
+(
+Chen et al., 2025
+)
+, and (iii) post-training of chemical language models for molecular generation
+(
+Moret et al., 2023
+)
+.
+5.1
+Hyper-Grid Task
+Task setup.
+A discrete
+n
+n
+-dimensional hyper-grid environment with a multimodal terminal reward landscape.
+Episodes begin at
+x
+0
+=
+(
+0
+,
+…
+,
+0
+)
+x_{0}=(0,\dots,0)
+, and actions consist of incrementing a single coordinate by
+1
+1
+or terminating the episode to receive the terminal reward.
+Each episode terminates at a grid coordinate
+x
+∈
+{
+0
+,
+…
+,
+H
+−
+1
+}
+n
+x\in\{0,\ldots,H-1\}^{n}
+, and the reward is defined as
+R
+⁡
+(
+x
+)
+\displaystyle R(x)
+=
+R
+0
++
+R
+1
+​
+∏
+i
+=
+1
+n
+(
+|
+x
+i
+|
+>
+0.5
+)
+\displaystyle=R_{0}+R_{1}\prod_{i=1}^{n}\mathbf{1}\!\left(|x_{i}|>0.5\right)
+(10)
++
+R
+2
+∏
+i
+=
+1
+n
+(
+0.6
+<
+|
+x
+i
+|
+<
+0.8
+)
+,
+\displaystyle+R_{2}\prod_{i=1}^{n}\mathbf{1}\!\left(0.6<|x_{i}|<0.8\right),
+with
+0
+<
+R
+0
+≪
+R
+1
+<
+R
+2
+0<R_{0}\ll R_{1}<R_{2}
+.
+This construction yields
+2
+n
+2^{n}
+symmetric high-reward modes together with an enclosing ring structure, producing a sharply multimodal reward landscape (Figure
+1
+).
+We define the target distribution over terminal states as
+p
+⁡
+(
+o
+)
+∝
+R
+⁡
+(
+o
+)
+p(o)\propto R(o)
+and aim to learn a policy
+π
+\pi
+whose induced terminal-state distribution
+π
+⁡
+(
+o
+)
+\pi(o)
+matches
+p
+⁡
+(
+o
+)
+p(o)
+.
+Since the correct outcome distribution is explicitly known, we evaluate methods using the
+ℓ
+1
+\ell_{1}
+distance between the empirical terminal-outcome distribution and the target distribution. We compare IPS-GRPO against GRPO and FlowRL under identical architectures, optimization settings, and sampling budgets. All of them have entropy regularisation to boost exploration.
+Experiments are conducted with
+R
+0
+=
+0.1
+R_{0}=0.1
+,
+R
+1
+=
+0.5
+R_{1}=0.5
+, and
+R
+2
+=
+2.0
+R_{2}=2.0
+for
+n
+=
+2
+n=2
+and
+n
+=
+4
+n=4
+.
+Results.
+Figure
+1
+shows learned terminal-outcome distributions for the
+n
+=
+2
+n=2
+setting.
+GRPO and FlowRL concentrate the majority of probability mass on a single high-reward mode, exhibiting severe outcome-level mode collapse.
+In contrast, IPS-GRPO distributes probability mass across all symmetric modes and closely matches the target distribution.
+Table
+1
+reports quantitative results.
+Figure 1
+:
+Learned terminal-state distributions on the 2D hyper-grid.
+(a) Target reward-induced distribution
+p
+⁡
+(
+x
+)
+∝
+R
+⁡
+(
+x
+)
+p(x)\propto R(x)
+.
+(b) GRPO and (c) FlowRL collapse onto a single high-reward mode despite multiple symmetric optima.
+(d) IPS-GRPO successfully recovers all modes and closely matches the target distribution.
+Reported values denote
+ℓ
+1
+\ell_{1}
+distance between the learned and target distributions.
+Method
+𝒏
+=
+𝟐
+\boldsymbol{n=2}
+𝒏
+=
+𝟒
+\boldsymbol{n=4}
+GRPO
+2.8
+×
+10
+−
+2
+2.8\times 10^{-2}
+5.2
+×
+10
+−
+4
+5.2\times 10^{-4}
+FlowRL
+2.8
+×
+10
+−
+2
+2.8\times 10^{-2}
+5.2
+×
+10
+−
+4
+5.2\times 10^{-4}
+IPS-GRPO
+3.0
+×
+𝟏𝟎
+−
+𝟑
+\mathbf{3.0\times 10^{-3}}
+3.7
+×
+𝟏𝟎
+−
+𝟒
+\mathbf{3.7\times 10^{-4}}
+Table 1:
+ℓ
+1
+\ell_{1}
+distance between the learned terminal-state distribution and the target distribution on the hyper-grid domain. Lower is better.
+5.2
+HypoSpace Benchmark
+HypoSpace
+is a benchmark for LLMs which has set-valued inference problems with multiple admissible outcomes
+(
+Chen et al., 2025
+)
+. This task is suitable to study the ability of LLMs to generate uniquely valid and different solutions.
+Task setup.
+HypoSpace spans in structural, spatial, and symbolic reasoning:
+(i) causal inference, where agents generate causal graphs consistent with intervention data;
+(ii) 3D voxel reconstruction, where agents reconstruct gravity-consistent structures from top-down projections; and
+(iii) Boolean/DNA interaction, where agents propose Boolean programs consistent with observed phenotypes.
+Across all tasks, the full set of admissible outcomes is finite, allowing exact measurement of coverage.
+Baselines and metric.
+We compare IPS-GRPO against GRPO and FlowRL under identical sampling budgets and reward definitions and KL regularization with the pretrained LLM model.
+We measure performance using
+Recovery Rate
+(RR), defined as the fraction of admissible outcomes recovered by samples from the learned policy of fine-tuned LLM.
+To characterize exploration dynamics, we additionally report the average number of distinct outcomes recovered as a function of the number of samples drawn.
+Results.
+Figure
+2
+shows outcome recovery as a function of sampling budget across all three domains.
+GRPO and FlowRL exhibit early saturation: after a limited number of samples, additional draws yield few new outcomes, indicating premature concentration on a small subset of solutions.
+In contrast, IPS-GRPO continues to recover new outcomes as sampling increases, approaching wider coverage under identical budgets.
+Table
+2
+reports final recovery rates.
+Across all domains, IPS-GRPO achieves substantially higher recovery rate than both baselines. (Experimentation details are given in Appendix
+B.1
+)
+(a)
+Causal inference
+(b)
+3D voxel reconstruction
+(c)
+Boolean/DNA interaction
+Figure 2
+:
+Average number of distinct admissible modes recovered as a function of the number of samples drawn from the trained policy.
+Across all three HypoSpace domains, IPS-GRPO steadily discovers new modes with increased sampling, while GRPO and FlowRL saturate early, indicating outcome-level mode collapse.
+Method
+Causal Inference
+3D Reconstruction
+Boolean/DNA
+GRPO
+16.02
+%
+±
+0.35
+%
+16.02\%\pm 0.35\%
+31.61
+%
+±
+0.01
+%
+31.61\%\pm 0.01\%
+9.50
+%
+±
+0.00
+%
+9.50\%\pm 0.00\%
+FlowRL
+12.82
+%
+±
+0.05
+%
+12.82\%\pm 0.05\%
+26.85
+%
+±
+0.37
+%
+26.85\%\pm 0.37\%
+10.74
+%
+±
+0.00
+%
+10.74\%\pm 0.00\%
+IPS-GRPO
+43.91
+%
+±
+1.39
+%
+\mathbf{43.91\%\pm 1.39\%}
+90.00
+%
+±
+1.24
+%
+\mathbf{90.00\%\pm 1.24\%}
+60.74
+%
+±
+0.78
+%
+\mathbf{60.74\%\pm 0.78\%}
+Table 2:
+Final recovery rate (%) on HypoSpace tasks. Average over 5 random seeds. Higher is better.
+5.3
+Drug Discovery with Chemical Language Models
+We finally apply IPS-GRPO to drug-discovery where diversity and quality of outcome is crucial.
+Chemical Language Models (CLMs) have seen success in discovering molecules in clinical trials.
+We adapt two realistic reward functions from
+(
+Guo et al., 2025
+)
+: SYNTH and ALL-AMIDE that jointly reward binding potency and Synthesizability.
+The core CLM optimization problem is also a reward seeking RL problem with regularization: maximize rewards while staying close to the pretrained “prior” model to ensure chemical validity.
+Unlike traditional RL setting, CLMs are evaluated based on their ability to generate unique molecules given a fixed number of reward function evaluations.
+Which makes generating uniquely different molecules an essential quality for performance of CLMs.
+The REINVENT method
+(
+Olivecrona et al., 2017
+;
+Guo and Schwaller, 2024
+)
+is state-of-the-art RL based method on standard benchmarks
+(
+Gao et al., 2022
+)
+.
+We apply IPS-GRPO as a policy learning algorithm as a replacement in their method.
+Table
+3
+shows IPS-GRPO consistently results in higher Yield (number of unique high reward molecules discovered), and lower OB100 (number of samples needed to collect 100 such high reward molecules). Threshold represents the reward, such that the molecules accepted were above this threshold reward. where rewards is between 0 and 1. Throughout this experiment We see that IPS-GRPO outperforms the existing baseline of REINVENT. (Experimentation details are given in Appendix
+B.2
+)
+Threshold
+Algorithm
+Yield
+↑
+\uparrow
+OB100
+↓
+\downarrow
+SYNTH
+0.80
+REINVENT
+5695
+±
+173
+5695\pm 173
+605
+±
+41
+605\pm 41
+0.80
+IPS-GRPO
+𝟕𝟑𝟕𝟏
+±
+𝟐𝟏𝟐
+\mathbf{7371\pm 212}
+𝟓𝟓𝟒
+±
+𝟑𝟒
+\mathbf{554\pm 34}
+0.85
+REINVENT
+418
+±
+78
+418\pm 78
+2934
+±
+68
+2934\pm 68
+0.85
+IPS-GRPO
+𝟏𝟓𝟖𝟎
+±
+𝟓𝟖
+\mathbf{1580\pm 58}
+𝟏𝟏𝟕𝟖
+±
+𝟒𝟑
+\mathbf{1178\pm 43}
+ALL-AMIDE
+0.80
+REINVENT
+1
+±
+1
+1\pm 1
+>
+5000
+>5000
+0.80
+IPS-GRPO
+𝟏𝟒𝟕𝟖
+±
+𝟏𝟎𝟐
+\mathbf{1478\pm 102}
+𝟕𝟕𝟑
+±
+𝟓𝟏
+\mathbf{773\pm 51}
+0.85
+REINVENT
+0
+0
+>
+5000
+>5000
+0.85
+IPS-GRPO
+𝟐𝟎
+±
+𝟏𝟐
+\mathbf{20\pm 12}
+>
+5000
+>5000
+Table 3:
+Molecular optimization results. Yield denotes the number of unique molecules exceeding the reward threshold; OB100 denotes oracle calls required to find 100 such molecules. The oracle budget for SYNTH is 10,000 and for ALL-AMIDE is 5,000. Average over 3 random seeds
+5.4
+Ablation: Group Size and Probability Clipping
+IPS-GRPO relies on an empirical estimate of outcome probabilities computed within each sampled group.
+Two hyperparameters directly control the quality and stability of this estimate: the group size
+G
+G
+and the probability clipping threshold
+ϵ
+\epsilon
+(Eq.
+9
+).
+We study their effects on performance using the HypoSpace causal inference task, reporting Recovery Rate (RR).
+We vary the group size
+G
+∈
+{
+4
+,
+8
+,
+16
+,
+32
+,
+64
+}
+G\in\{4,8,16,32,64\}
+and the clipping threshold
+ϵ
+∈
+{
+0.01
+,
+0.1
+,
+0.2
+}
+\epsilon\in\{0.01,0.1,0.2\}
+. Increasing
+G
+G
+improves the accuracy of the empirical probability estimate.
+However, for large groups, rare outcomes can receive very small estimated probabilities, leading to large inverse probabilities and unstable updates.
+Probability clipping stabilizes training by bounding smaller probabilities. Larger
+ϵ
+\epsilon
+values reduce variance and improve robustness when outcome probabilities are small, but aggressive clipping biases the probability estimate and weakens the intended inverse-probability correction. This can limit performance when group sizes are small and probability estimates are already coarse.
+The ablation reveals a clear bias–variance trade-off: larger groups improve estimation accuracy but increase sensitivity to small probabilities, while clipping improves stability at the cost of correction fidelity. In practice, moderate group sizes combined with mild clipping provide the best balance (Table
+4
+)
+Group size
+G
+G
+ϵ
+=
+0.01
+\boldsymbol{\epsilon=0.01}
+ϵ
+=
+0.1
+\boldsymbol{\epsilon=0.1}
+ϵ
+=
+0.2
+\boldsymbol{\epsilon=0.2}
+4
+17.63
+±
+0.33
+17.63\pm 0.33
+17.63
+±
+0.33
+17.63\pm 0.33
+17.63
+±
+0.33
+17.63\pm 0.33
+8
+27.50
+±
+0.67
+27.50\pm 0.67
+27.50
+±
+0.67
+27.50\pm 0.67
+41.99
+±
+0.80
+41.99\pm 0.80
+16
+41.02
+±
+0.60
+41.02\pm 0.60
+33.05
+±
+0.62
+33.05\pm 0.62
+43.91
+±
+1.39
+\mathbf{43.91\pm 1.39}
+32
+32.13
+±
+0.42
+32.13\pm 0.42
+35.27
+±
+1.01
+35.27\pm 1.01
+25.62
+±
+1.65
+25.62\pm 1.65
+64
+36.52
+±
+0.32
+36.52\pm 0.32
+39.12
+±
+1.33
+39.12\pm 1.33
+42.19
+±
+0.14
+42.19\pm 0.14
+Table 4:
+Recovery rate (%) on HypoSpace causal inference for different group sizes
+G
+G
+and probability clipping thresholds
+ϵ
+\epsilon
+. Average over 5 random seeds. Higher recovery rate is better.
+6
+Why and How IPS-GRPO Works
+Standard RL objectives conflate an outcome’s quality with its reachability, leading to inevitable collapse.
+We use a controlled grid experiment with two terminal outcomes of equal reward but unequal path multiplicity with Outcome A (35 paths) and Outcome B (7 paths) to illustrate this pathology and our correction. (Figure
+3
+)
+Despite identical rewards, GRPO with entropy regularization rapidly collapses onto the high-multiplicity Outcome A.
+This is not a failure of discovery; both modes are found early in training.
+Instead, the collapse is driven by a structural bias: because each trajectory contributes proportionally to its sampling probability, Outcome A accumulates a larger global gradient signal.
+The trained policy force field reveals that GRPO vectors across most of the state space point toward A, creating a “rich-get-richer” loop that drives the frequency of B to zero.(Figure
+3(d)
+3(c)
+)
+IPS-GRPO with entropy regularization corrects this by scaling rewards by the inverse empirical outcome frequency.
+This cancels the popularity multiplier, effectively decoupling reachability from preference.
+In the policy force field, IPS-GRPO maintains balanced magnitudes toward both outcomes, ensuring they compete solely on reward.(Figure
+3(b)
+)
+The qualitative difference in training dynamics is stark:
+GRPO reaches a winner-take-all state where nearly 100% of samples are A.
+IPS-GRPO maintains stable, comparable frequencies for both A and B throughout training. (Figure
+3(c)
+)
+At the end of training, IPS-GRPO achieves a sampling density that closely matches the target reward distribution.
+While the policy still collapses to a subset of representative paths within each mode, it preserves essential diversity at the outcome level, confirming that IPS shifts the stationary solution of the objective itself.
+(a)
+Sampling density
+(b)
+Policy Force Field
+(c)
+Modes in Group over Training
+(d)
+Path exploration during training
+Figure 3
+:
+Study of IPS-GRPO behaviour against GRPO
+7
+Discussion and Conclusion
+Our work shows outcome-level mode collapse as a structural consequence of the expected-return objective, rather than a failure of exploration, regularization, or optimization.
+We show that maximizing expected return inherently creates a positive feedback loop in which one dominant outcome receives larger updates and grows more dominant over training.
+This mechanism operates even under idealized conditions with perfect exploration and no optimization noise, implying that collapse is inevitable as long as expected return remains the objective.
+From this perspective, entropy regularization, KL constraints, and exploration bonuses do not eliminate collapse; they only oppose it and therefore soften its effects.
+This explains why diversity often degrades late in training in domains such as LLM post-training, despite careful tuning.
+Inverse Probability Scaling (IPS) addresses this issue at its source by removing probability amplification from the learning signal.
+By rescaling terminal rewards by the inverse outcome probability, IPS decouples outcome quality from outcome probability, yielding reward-proportional outcome distributions.
+IPS-GRPO demonstrates that this correction can be implemented within standard group based policy-gradient updates, achieving diversity preservation without any auxiliary models or explicit distribution-matching constraints.
+7.1
+Limitations and Future Directions
+IPS relies on empirical estimates of outcome probabilities computed from finite groups of samples.
+In large or continuous outcome spaces, these estimates can be noisy, requiring probability clipping that introduces a bias–variance trade-off.
+Importantly, IPS is not directly applicable to RL methods that learn policies through Actor-Critic dynamic, such as PPO with learned critics, where updates depend on value estimates rather than explicit outcome frequencies.
+Extending IPS-like corrections to value-based or actor–critic methods remains an open problem.
+Finally, our analysis focuses on terminal rewards; extending IPS to dense-reward or continuous-outcome settings poses additional challenges.
+Table 5
+:
+Summary of the paper’s main claims and where they are supported.
+Claim
+Evidence in This Work
+Expected-return optimization can induce outcome-level mode collapse under idealized learning dynamics.
+Section
+3
+; log-ratio dynamics under gradient flow (
+Theorem
+3.1
+,
+Equation
+2
+).
+Probability-weighted updates contribute to collapse, including in settings with equal rewards.
+Section
+3.1
+; controlled equal-reward experiment (
+Figure
+3
+).
+Inverse Probability Scaling mitigates outcome-frequency amplification at the objective level.
+IPS objective and dynamics in
+Section
+4
+(
+Theorems
+4.1
+and
+4.2
+).
+IPS-GRPO integrates IPS into standard policy-gradient pipelines with minimal modification.
+Algorithm
+1
+; hyper-grid recovery results (
+Figures
+1
+and
+1
+).
+IPS-GRPO yields improved outcome coverage in multimodal reasoning and discovery tasks.
+HypoSpace benchmarks (
+Figures
+2
+and
+2
+); molecular generation (
+Table
+3
+).
+7.2
+Conclusion
+Overall, this work shows that preserving diversity in multimodal RL requires rethinking the objective being optimized. By identifying outcome-level mode collapse as an objective pathology and introducing a minimal correction that removes outcome-frequency amplification, we demonstrate that stable and diverse outcome distributions can be achieved without abandoning standard RL pipelines. This suggests that objective design, not just optimization heuristics, is central to reliable multimodal reinforcement learning.
+References
+Ahmed
+et al.
+(2019)
+Z. Ahmed, N. Le Roux, M. Norouzi, and D. Schuurmans
+Understanding the impact of entropy on policy optimization
+.
+In
+Proceedings of the 36th International Conference on Machine Learning
+,
+K. Chaudhuri and R. Salakhutdinov (Eds.)
+,
+Proceedings of Machine Learning Research
+, Vol.
+97
+,
+pp. 151–160
+.
+External Links:
+Link
+Cited by:
+§2.1
+.
+Amodei
+et al.
+(2016)
+D. Amodei, C. Olah, J. Steinhardt, P. Christiano, J. Schulman, and D. Mané
+Concrete problems in ai safety
+.
+External Links:
+1606.06565
+,
+Link
+Cited by:
+§2.3
+.
+An
+et al.
+(2025)
+C. An, Z. Qin, S. Kong, and C. Flamant
+DeRL: diverse-exploration reinforcement learning for large language models improves mathematical reasoning
+.
+External Links:
+Link
+Cited by:
+§2.1
+.
+Bai
+et al.
+(2022)
+Y. Bai
+et al.
+Constitutional ai: harmlessness from ai feedback
+.
+arXiv preprint arXiv:2212.08073
+.
+Cited by:
+§2.3
+.
+Bengio
+et al.
+(2023)
+Y. Bengio
+et al.
+GFlowNet foundations
+.
+Journal of Machine Learning Research
+24
+.
+Note:
+JMLR 22-0364
+Cited by:
+§2.2
+.
+Castro
+et al.
+(2025)
+P. S. Castro, N. Tomasev, A. Anand, N. Sharma, R. Mohanta, A. Dev, K. Perlin, S. Jain, K. Levin, N. Éltető,
+et al.
+Discovering symbolic cognitive models from human and animal behavior
+.
+bioRxiv
+.
+Note:
+Preprint
+Cited by:
+§1
+.
+Chao
+et al.
+(2024)
+C. Chao, C. Feng, W. Sun, C. Lee, S. See, and C. Lee
+Maximum entropy reinforcement learning via energy-based normalizing flow
+.
+External Links:
+2405.13629
+,
+Link
+Cited by:
+§2.2
+.
+Chen
+et al.
+(2025)
+T. Chen, B. Lin, Z. Yuan, Q. Zou, H. He, Y. Ong, A. Goyal, and D. Liu
+HypoSpace: evaluating llm creativity as set-valued hypothesis generators under underdetermination
+.
+External Links:
+2510.15614
+,
+Link
+Cited by:
+§5.2
+,
+§5
+.
+Cheng
+et al.
+(2025)
+D. Cheng, S. Huang, X. Zhu, B. Dai, W. X. Zhao, Z. Zhang, and F. Wei
+Reasoning with exploration: an entropy perspective
+.
+CoRR
+abs/2506.14758
+.
+External Links:
+Link
+Cited by:
+§2.1
+.
+Cui
+et al.
+(2025)
+G. Cui, Y. Zhang, J. Chen, L. Yuan, Z. Wang, Y. Zuo, H. Li, Y. Fan, H. Chen, W. Chen, Z. Liu, H. Peng, L. Bai, W. Ouyang, Y. Cheng, B. Zhou, and N. Ding
+The entropy mechanism of reinforcement learning for reasoning language models
+.
+External Links:
+2505.22617
+,
+Link
+Cited by:
+§2.1
+.
+Davoodabadi
+et al.
+(2024)
+M. Davoodabadi, N. H. Dijujin, and M. S. Baghshah
+PreND: enhancing intrinsic motivation in reinforcement learning through pre-trained network distillation
+.
+External Links:
+2410.01745
+,
+Link
+Cited by:
+§2.1
+.
+Dohare
+et al.
+(2023)
+S. Dohare, Q. Lan, and A. R. Mahmood
+Overcoming policy collapse in deep reinforcement learning
+.
+In
+Sixteenth European Workshop on Reinforcement Learning
+,
+External Links:
+Link
+Cited by:
+§1
+.
+Gao
+et al.
+(2023)
+L. Gao, J. Schulman, and J. Hilton
+Scaling laws for reward model overoptimization
+.
+In
+Proceedings of the 40th International Conference on Machine Learning
+,
+A. Krause, E. Brunskill, K. Cho, B. Engelhardt, S. Sabato, and J. Scarlett (Eds.)
+,
+Proceedings of Machine Learning Research
+, Vol.
+202
+,
+pp. 10835–10866
+.
+External Links:
+Link
+Cited by:
+§1
+,
+§2.3
+.
+Gao
+et al.
+(2022)
+W. Gao, T. Fu, J. Sun, and C. W. Coley
+Sample efficiency matters: a benchmark for practical molecular optimization
+.
+External Links:
+2206.12411
+,
+Link
+Cited by:
+§5.3
+.
+Goodfellow
+et al.
+(2020)
+I. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu, D. Warde-Farley, S. Ozair, A. Courville, and Y. Bengio
+Generative adversarial networks
+.
+Commun. ACM
+63
+(
+11
+),
+pp. 139–144
+.
+External Links:
+ISSN 0001-0782
+,
+Link
+,
+Document
+Cited by:
+§2.1
+.
+Grinsztajn
+et al.
+(2023)
+N. Grinsztajn, D. Furelos-Blanco, S. Surana, C. Bonnet, and T. D. Barrett
+Winner takes it all: training performant rl populations for combinatorial optimization
+.
+External Links:
+2210.03475
+,
+Link
+Cited by:
+§1
+.
+Guo
+et al.
+(2025)
+J. Guo, V. Sabanza-Gil, Z. Jončev, J. S. Luterbacher, and P. Schwaller
+Generative molecular design with steerable and granular synthesizability control
+.
+External Links:
+2505.08774
+,
+Link
+Cited by:
+§5.3
+.
+Guo and Schwaller (2024)
+J. Guo and P. Schwaller
+Saturn: sample-efficient generative molecular design using memory manipulation
+.
+External Links:
+2405.17066
+,
+Link
+Cited by:
+§5.3
+.
+GX-Chen
+et al.
+(2025)
+A. GX-Chen, J. Prakash, J. Guo, R. Fergus, and R. Ranganath
+KL-regularized reinforcement learning is designed to mode collapse
+.
+arXiv preprint arXiv:2510.20817
+.
+Cited by:
+§1
+,
+§2.1
+.
+Haarnoja
+et al.
+(2018)
+T. Haarnoja, A. Zhou, P. Abbeel, and S. Levine
+Soft actor-critic: off-policy maximum entropy deep reinforcement learning with a stochastic actor
+.
+In
+Proceedings of the 35th International Conference on Machine Learning
+,
+J. Dy and A. Krause (Eds.)
+,
+Proceedings of Machine Learning Research
+, Vol.
+80
+,
+pp. 1861–1870
+.
+External Links:
+Link
+Cited by:
+§2.1
+.
+Holtzman
+et al.
+(2020)
+A. Holtzman, J. Buys, L. Du, M. Forbes, and Y. Choi
+The curious case of neural text degeneration
+.
+External Links:
+1904.09751
+,
+Link
+Cited by:
+§2.3
+.
+Hu
+et al.
+(2024)
+E. J. Hu, M. Jain, E. Elmoznino, Y. Kaddar, G. Lajoie, Y. Bengio, and N. Malkin
+Amortizing intractable inference in large language models
+.
+External Links:
+Link
+Cited by:
+§1
+.
+Kirk
+et al.
+(2024)
+R. Kirk, I. Mediratta, C. Nalmpantis, J. Luketina, E. Hambro, E. Grefenstette, and R. Raileanu
+Understanding the effects of rlhf on llm generalisation and diversity
+.
+External Links:
+2310.06452
+,
+Link
+Cited by:
+§2.3
+.
+Kossale
+et al.
+(2022)
+Y. Kossale, M. Airaj, and A. Darouichi
+Mode collapse in generative adversarial networks: an overview
+.
+In
+2022 8th International Conference on Optimization and Applications (ICOA)
+,
+Vol.
+,
+pp. 1–6
+.
+External Links:
+Document
+Cited by:
+§2.1
+.
+Moret
+et al.
+(2023)
+M. Moret, I. Pachón Angona, L. Cotos, F. Grisoni, D. Merk, and G. Schneider
+Leveraging molecular structure and bioactivity with chemical language models for de novo drug design
+.
+Nature Communications
+14
+,
+pp. 114
+.
+External Links:
+Document
+Cited by:
+§5
+.
+Novikov
+et al.
+(2025)
+A. Novikov, N. Vu, M. Eisenberger, E. Dupont, P. Huang, A. Z. Wagner, S. Shirobokov, B. Kozlovskii, F. J. R. Ruiz, A. Mehrabian,
+et al.
+AlphaEvolve: a coding agent for scientific and algorithmic discovery
+.
+arXiv preprint arXiv:2506.13131
+.
+Cited by:
+§1
+.
+Olivecrona
+et al.
+(2017)
+M. Olivecrona, T. Blaschke, O. Engkvist, and H. Chen
+Molecular de novo design through deep reinforcement learning
+.
+Journal of Cheminformatics
+9
+,
+pp. 48
+.
+Cited by:
+§5.3
+.
+Ouyang
+et al.
+(2022)
+L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C. Zhang, S. Agarwal, K. Slama, A. Ray,
+et al.
+Training language models to follow instructions with human feedback
+.
+Advances in neural information processing systems
+35
+,
+pp. 27730–27744
+.
+Cited by:
+§1
+,
+§2.3
+.
+Padmakumar and He (2024)
+V. Padmakumar and H. He
+Does writing with language models reduce content diversity?
+.
+External Links:
+2309.05196
+,
+Link
+Cited by:
+§2.3
+.
+Park
+et al.
+(2025)
+J. Park, J. Ahn, J. Choi, and J. Kim
+Mol-air: molecular reinforcement learning with adaptive intrinsic rewards for goal-directed molecular generation
+.
+Journal of Chemical Information and Modeling
+65
+(
+5
+),
+pp. 2283–2296
+.
+External Links:
+Document
+Cited by:
+§1
+.
+Rafailov
+et al.
+(2024)
+R. Rafailov, A. Sharma, E. Mitchell, S. Ermon, C. D. Manning, and C. Finn
+Direct preference optimization: your language model is secretly a reward model
+.
+External Links:
+2305.18290
+,
+Link
+Cited by:
+§2.3
+.
+Rietz and Stork (2023)
+F. Rietz and J. A. Stork
+Diversity for contingency: learning diverse behaviors for efficient adaptation and transfer
+.
+External Links:
+2310.07493
+,
+Link
+Cited by:
+§2.1
+.
+Romera-Paredes
+et al.
+(2024)
+B. Romera-Paredes, M. Barekatain, A. Novikov, M. Balog, M. P. Kumar, E. Dupont, F. J. R. Ruiz, J. S. Ellenberg, P. Wang, O. Fawzi,
+et al.
+Mathematical discoveries from program search with large language models
+.
+Nature
+625
+(
+7995
+),
+pp. 468–475
+.
+Cited by:
+§1
+.
+Shao
+et al.
+(2024)
+Z. Shao, P. Wang, Q. Zhu, R. Xu, J. Song, X. Bi, H. Zhang, M. Zhang, Y. K. Li, Y. Wu, and D. Guo
+DeepSeekMath: pushing the limits of mathematical reasoning in open language models
+.
+External Links:
+2402.03300
+,
+Link
+Cited by:
+§1
+.
+Simmons-Edler
+et al.
+(2018)
+R. Simmons-Edler, A. Miltner, and S. Seung
+Program synthesis through reinforcement learning guided tree search
+.
+External Links:
+1806.02932
+,
+Link
+Cited by:
+§1
+.
+Slocum
+et al.
+(2025)
+S. Slocum, A. Parker-Sartori, and D. Hadfield-Menell
+Diverse preference learning for capabilities and alignment
+.
+External Links:
+2511.08594
+,
+Link
+Cited by:
+§2.3
+.
+Song
+et al.
+(2025)
+Y. Song, J. Kempe, and R. Munos
+Outcome-based exploration for llm reasoning
+.
+arXiv preprint arXiv:2509.06941
+.
+Cited by:
+§1
+,
+§2.1
+.
+Stiennon
+et al.
+(2020)
+N. Stiennon, L. Ouyang, J. Wu, D. M. Ziegler, R. Lowe, C. Voss, A. Radford, D. Amodei, and P. Christiano
+Learning to summarize from human feedback
+.
+NeurIPS
+.
+Note:
+arXiv:2009.01325
+Cited by:
+§2.3
+.
+Wang
+et al.
+(2023)
+C. Wang, Y. Jiang, C. Yang, H. Liu, and Y. Chen
+Beyond reverse kl: generalizing direct preference optimization with diverse divergence constraints
+.
+arXiv preprint arXiv:2309.16240
+.
+Cited by:
+§1
+.
+Wang
+et al.
+(2025)
+S. Wang, L. Yu, C. Gao, C. Zheng, S. Liu, R. Lu, K. Dang, X. Chen, J. Yang, Z. Zhang,
+et al.
+Beyond the 80/20 rule: high-entropy minority tokens drive effective reinforcement learning for llm reasoning
+.
+arXiv preprint arXiv:2506.01939
+.
+Cited by:
+§1
+.
+Zhou
+et al.
+(2025)
+R. Zhou, Z. Ni, T. Chen, Z. Liu, Y. Yue, Y. Wang, Y. Wang, J. Liu, and G. Huang
+Co-grpo: co-optimized group relative policy optimization for masked diffusion model
+.
+arXiv preprint arXiv:2512.22288
+.
+Cited by:
+§2.1
+.
+Zhu
+et al.
+(2025)
+X. Zhu, D. Cheng, D. Zhang, H. Li, K. Zhang, C. Jiang, Y. Sun, E. Hua, Y. Zuo, X. Lv, Q. Zhang, L. Chen, F. Shao, B. Xue, Y. Song, Z. Yang, G. Cui, N. Ding, J. Gao, X. Liu, B. Zhou, H. Mei, and Z. Lin
+FlowRL: matching reward distributions for llm reasoning
+.
+arXiv preprint arXiv:2509.15207
+.
+Cited by:
+§2.2
+.
+Ziegler
+et al.
+(2020)
+D. M. Ziegler, N. Stiennon, J. Wu, T. B. Brown, A. Radford, D. Amodei, P. Christiano, and G. Irving
+Fine-tuning language models from human preferences
+.
+External Links:
+1909.08593
+,
+Link
+Cited by:
+§2.3
+.
+Appendix
+Appendix A
+Mathematical Discussion
+A.1
+PROOF OF THEOREM 3.1
+Proof.
+Let
+𝒪
+=
+{
+1
+,
+…
+,
+K
+}
+\mathcal{O}=\{1,\dots,K\}
+.
+At continuous time
+t
+t
+, the parameter is a logit vector
+z
+⁡
+(
+t
+)
+∈
+ℝ
+K
+z(t)\in\mathbb{R}^{K}
+and the
+policy is the softmax distribution
+p
+⁡
+(
+t
+)
+=
+s
+​
+o
+​
+f
+​
+t
+​
+m
+​
+a
+​
+x
+​
+(
+z
+⁡
+(
+t
+)
+)
+,
+p
+i
+​
+(
+t
+)
+=
+e
+z
+i
+​
+(
+t
+)
+∑
+k
+=
+1
+K
+e
+z
+k
+​
+(
+t
+)
+.
+{p(t)=softmax(z(t)),\qquad p_{i}(t)=\frac{e^{z_{i}(t)}}{\sum_{k=1}^{K}e^{z_{k}(t)}}.}
+(1)
+An outcome is sampled on-policy:
+o
+t
+∼
+p
+⁡
+(
+t
+)
+.
+o_{t}\sim p(t).
+A scalar reward
+R
+t
+R_{t}
+is observed with
+𝔼
+⁡
+[
+|
+R
+t
+|
+]
+<
+∞
+\mathbb{E}[|R_{t}|]<\infty
+and conditional mean
+𝔼
+⁡
+[
+R
+t
+∣
+o
+t
+=
+i
+]
+=
+r
+i
+,
+\mathbb{E}[R_{t}\mid o_{t}=i]=r_{i},
+where
+r
+i
+∈
+ℝ
+r_{i}\in\mathbb{R}
+is fixed (independent of
+z
+z
+). Define the expected-return objective
+J
+⁡
+(
+z
+)
+=
+𝔼
+o
+∼
+s
+​
+o
+​
+f
+​
+t
+​
+m
+​
+a
+​
+x
+​
+(
+z
+)
+​
+[
+r
+o
+]
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+r
+k
+,
+{J(z)=\mathbb{E}_{o\sim softmax(z)}[r_{o}]=\sum_{k=1}^{K}p_{k}\,r_{k},}
+(2)
+Along the trajectory
+z
+⁡
+(
+t
+)
+z(t)
+, define the on-policy mean reward and advantage:
+r
+¯
+​
+(
+t
+)
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+,
+a
+i
+​
+(
+t
+)
+=
+r
+i
+−
+r
+¯
+​
+(
+t
+)
+.
+\bar{r}(t)=\sum_{k=1}^{K}p_{k}(t)\,r_{k},\qquad a_{i}(t)=r_{i}-\bar{r}(t).
+Step 1 (sampling-aware gradient accumulation).
+Consider the score-function estimator
+g
+⁡
+(
+t
+)
+:=
+R
+t
+​
+∇
+z
+​
+log
+⁡
+p
+o
+t
+​
+(
+z
+⁡
+(
+t
+)
+)
+.
+g(t):=R_{t}\,\nabla_{z}\log p_{o_{t}}(z(t)).
+Because sampling is on-policy, the expected accumulated contribution of outcome
+k
+k
+is weighted by its sampling
+probability
+p
+k
+​
+(
+t
+)
+p_{k}(t)
+:
+𝔼
+⁡
+[
+g
+⁡
+(
+t
+)
+∣
+z
+⁡
+(
+t
+)
+]
+\displaystyle\mathbb{E}[g(t)\mid z(t)]
+=
+∑
+k
+=
+1
+K
+Pr
+⁡
+[
+o
+t
+=
+k
+∣
+z
+⁡
+(
+t
+)
+]
+​
+𝔼
+​
+[
+R
+t
+∣
+o
+t
+=
+k
+]
+​
+∇
+z
+​
+log
+​
+p
+k
+​
+(
+z
+⁡
+(
+t
+)
+)
+\displaystyle=\sum_{k=1}^{K}\Pr[o_{t}=k\mid z(t)]\,\mathbb{E}[R_{t}\mid o_{t}=k]\;\nabla_{z}\log p_{k}(z(t))
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+​
+∇
+z
+​
+log
+⁡
+p
+k
+​
+(
+z
+⁡
+(
+t
+)
+)
+.
+\displaystyle=\sum_{k=1}^{K}p_{k}(t)\,r_{k}\;\nabla_{z}\log p_{k}(z(t)).
+(A.1)
+Step 2 (softmax log-derivative identity).
+For all
+i
+,
+k
+∈
+{
+1
+,
+…
+,
+K
+}
+i,k\in\{1,\dots,K\}
+,
+∂
+log
+⁡
+p
+k
+​
+(
+z
+)
+∂
+z
+i
+=
+𝟏
+{
+i
+=
+k
+}
+−
+p
+i
+(
+z
+)
+.
+\frac{\partial\log p_{k}(z)}{\partial z_{i}}=\mathbf{1}\{i=k\}-p_{i}(z).
+(A.2)
+Step 3 (compute
+∇
+z
+J
+\nabla_{z}J
+explicitly).
+Using (A.1) and (A.2), for each coordinate
+i
+i
+,
+∂
+J
+⁡
+(
+z
+⁡
+(
+t
+)
+)
+∂
+z
+i
+\displaystyle\frac{\partial J(z(t))}{\partial z_{i}}
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+​
+∂
+log
+⁡
+p
+k
+​
+(
+z
+⁡
+(
+t
+)
+)
+∂
+z
+i
+\displaystyle=\sum_{k=1}^{K}p_{k}(t)\,r_{k}\;\frac{\partial\log p_{k}(z(t))}{\partial z_{i}}
+=
+∑
+k
+=
+1
+K
+p
+k
+(
+t
+)
+r
+k
+(
+𝟏
+{
+i
+=
+k
+}
+−
+p
+i
+(
+t
+)
+)
+\displaystyle=\sum_{k=1}^{K}p_{k}(t)\,r_{k}\;(\mathbf{1}\{i=k\}-p_{i}(t))
+=
+p
+i
+​
+(
+t
+)
+​
+r
+i
+−
+p
+i
+​
+(
+t
+)
+​
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+\displaystyle=p_{i}(t)\,r_{i}-p_{i}(t)\sum_{k=1}^{K}p_{k}(t)\,r_{k}
+=
+p
+i
+​
+(
+t
+)
+​
+(
+r
+i
+−
+r
+¯
+​
+(
+t
+)
+)
+\displaystyle=p_{i}(t)\,(r_{i}-\bar{r}(t))
+=
+p
+i
+​
+(
+t
+)
+​
+a
+i
+​
+(
+t
+)
+.
+\displaystyle=p_{i}(t)\,a_{i}(t).
+(A.3)
+Thus, under gradient flow
+z
+˙
+​
+(
+t
+)
+=
+∇
+z
+J
+​
+(
+z
+⁡
+(
+t
+)
+)
+\dot{z}(t)=\nabla_{z}J(z(t))
+,
+z
+˙
+i
+​
+(
+t
+)
+=
+p
+i
+​
+(
+t
+)
+​
+a
+i
+​
+(
+t
+)
+.
+\boxed{\dot{z}_{i}(t)=p_{i}(t)\,a_{i}(t).}
+(3)
+The factor
+p
+i
+​
+(
+t
+)
+p_{i}(t)
+is precisely the sampling-frequency weight: outcome
+i
+i
+is sampled with probability
+p
+i
+​
+(
+t
+)
+p_{i}(t)
+,
+so its update is accumulated with that frequency (Step 1).
+Step 4 (log-ratio dynamics).
+For softmax,
+log
+⁡
+p
+i
+​
+(
+t
+)
+=
+z
+i
+​
+(
+t
+)
+−
+log
+⁡
+(
+∑
+ℓ
+=
+1
+K
+e
+z
+ℓ
+​
+(
+t
+)
+)
+\log p_{i}(t)=z_{i}(t)-\log\!\bigl(\sum_{\ell=1}^{K}e^{z_{\ell}(t)}\bigr)
+, hence for any
+i
+,
+j
+i,j
+,
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+=
+z
+˙
+i
+​
+(
+t
+)
+−
+z
+˙
+j
+​
+(
+t
+)
+.
+\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}=\dot{z}_{i}(t)-\dot{z}_{j}(t).
+Substituting (3) yields
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+=
+p
+i
+​
+(
+t
+)
+​
+a
+i
+​
+(
+t
+)
+−
+p
+j
+​
+(
+t
+)
+​
+a
+j
+​
+(
+t
+)
+.
+\boxed{\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}=p_{i}(t)\,a_{i}(t)-p_{j}(t)\,a_{j}(t).}
+(4)
+This proves Theorem 3.1.
+∎
+A.2
+PROOF FOR THEOREM 4.1
+Proof.
+we use a stop-gradient copy of the current probabilities.
+At time
+t
+t
+, define
+p
+⁡
+(
+t
+)
+=
+s
+​
+o
+​
+f
+​
+t
+​
+m
+​
+a
+​
+x
+​
+(
+z
+⁡
+(
+t
+)
+)
+,
+p
+¯
+i
+​
+(
+t
+)
+:=
+s
+​
+t
+​
+o
+​
+p
+​
+g
+​
+r
+​
+a
+​
+d
+​
+(
+p
+i
+​
+(
+t
+)
+)
+,
+p(t)=softmax(z(t)),\qquad\bar{p}_{i}(t):=stopgrad(p_{i}(t)),
+so
+p
+¯
+​
+(
+t
+)
+\bar{p}(t)
+is treated as constant with respect to
+z
+z
+when differentiating at time
+t
+t
+.
+Define IPS scaling and the IPS objective:
+r
+~
+​
+(
+o
+)
+=
+r
+o
+p
+¯
+o
+​
+(
+t
+)
+.
+\boxed{\tilde{r}(o)=\frac{r_{o}}{\bar{p}_{o}(t)}.}
+(5)
+J
+IPS
+​
+(
+z
+⁡
+(
+t
+)
+)
+=
+𝔼
+o
+∼
+p
+⁡
+(
+t
+)
+​
+[
+r
+o
+p
+¯
+o
+​
+(
+t
+)
+]
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+p
+¯
+k
+​
+(
+t
+)
+.
+\boxed{J_{\mathrm{IPS}}(z(t))=\mathbb{E}_{o\sim p(t)}\!\left[\frac{r_{o}}{\bar{p}_{o}(t)}\right]=\sum_{k=1}^{K}p_{k}(t)\frac{r_{k}}{\bar{p}_{k}(t)}.}
+(6)
+Step 1 (sampling-aware gradient accumulation).
+With
+o
+t
+∼
+p
+⁡
+(
+t
+)
+o_{t}\sim p(t)
+, the score-function estimator is
+g
+IPS
+​
+(
+t
+)
+=
+r
+o
+t
+p
+¯
+o
+t
+​
+(
+t
+)
+​
+∇
+z
+​
+log
+⁡
+p
+o
+t
+​
+(
+z
+⁡
+(
+t
+)
+)
+.
+g_{\mathrm{IPS}}(t)=\frac{r_{o_{t}}}{\bar{p}_{o_{t}}(t)}\,\nabla_{z}\log p_{o_{t}}(z(t)).
+Taking conditional expectation and using on-policy sampling:
+𝔼
+⁡
+[
+g
+IPS
+​
+(
+t
+)
+∣
+z
+⁡
+(
+t
+)
+]
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+p
+¯
+k
+​
+(
+t
+)
+​
+∇
+z
+​
+log
+⁡
+p
+k
+​
+(
+z
+⁡
+(
+t
+)
+)
+=
+∇
+z
+J
+IPS
+​
+(
+z
+⁡
+(
+t
+)
+)
+,
+\mathbb{E}[g_{\mathrm{IPS}}(t)\mid z(t)]=\sum_{k=1}^{K}p_{k}(t)\frac{r_{k}}{\bar{p}_{k}(t)}\,\nabla_{z}\log p_{k}(z(t))=\nabla_{z}J_{\mathrm{IPS}}(z(t)),
+(A.7)
+since
+p
+¯
+k
+​
+(
+t
+)
+\bar{p}_{k}(t)
+is constant w.r.t.
+z
+z
+at time
+t
+t
+.
+Step 2 (compute the gradient coordinates).
+Let
+w
+k
+​
+(
+t
+)
+=
+r
+k
+/
+p
+¯
+k
+​
+(
+t
+)
+w_{k}(t)=r_{k}/\bar{p}_{k}(t)
+, so
+J
+IPS
+​
+(
+z
+⁡
+(
+t
+)
+)
+=
+∑
+k
+p
+k
+​
+(
+t
+)
+​
+w
+k
+​
+(
+t
+)
+J_{\mathrm{IPS}}(z(t))=\sum_{k}p_{k}(t)w_{k}(t)
+.
+Using
+∂
+p
+k
+/
+∂
+z
+i
+=
+p
+k
+(
+𝟏
+{
+i
+=
+k
+}
+−
+p
+i
+)
+\partial p_{k}/\partial z_{i}=p_{k}(\mathbf{1}\{i=k\}-p_{i})
+,
+∂
+J
+IPS
+​
+(
+z
+​
+(
+t
+)
+)
+∂
+z
+i
+\displaystyle\frac{\partial J_{\mathrm{IPS}}(z(t))}{\partial z_{i}}
+=
+∑
+k
+=
+1
+K
+w
+k
+​
+(
+t
+)
+​
+∂
+p
+k
+​
+(
+z
+​
+(
+t
+)
+)
+∂
+z
+i
+\displaystyle=\sum_{k=1}^{K}w_{k}(t)\frac{\partial p_{k}(z(t))}{\partial z_{i}}
+=
+∑
+k
+=
+1
+K
+w
+k
+(
+t
+)
+p
+k
+(
+t
+)
+(
+𝟏
+{
+i
+=
+k
+}
+−
+p
+i
+(
+t
+)
+)
+\displaystyle=\sum_{k=1}^{K}w_{k}(t)\,p_{k}(t)\,(\mathbf{1}\{i=k\}-p_{i}(t))
+=
+p
+i
+​
+(
+t
+)
+​
+w
+i
+​
+(
+t
+)
+−
+p
+i
+​
+(
+t
+)
+​
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+w
+k
+​
+(
+t
+)
+\displaystyle=p_{i}(t)\,w_{i}(t)-p_{i}(t)\sum_{k=1}^{K}p_{k}(t)\,w_{k}(t)
+=
+p
+i
+​
+(
+t
+)
+​
+w
+i
+​
+(
+t
+)
+−
+p
+i
+​
+(
+t
+)
+​
+J
+IPS
+​
+(
+z
+⁡
+(
+t
+)
+)
+.
+\displaystyle=p_{i}(t)\,w_{i}(t)-p_{i}(t)\,J_{\mathrm{IPS}}(z(t)).
+(A.8)
+Because
+p
+¯
+k
+​
+(
+t
+)
+=
+s
+​
+t
+​
+o
+​
+p
+​
+g
+​
+r
+​
+a
+​
+d
+​
+(
+p
+k
+​
+(
+t
+)
+)
+\bar{p}_{k}(t)=stopgrad(p_{k}(t))
+equals
+p
+k
+​
+(
+t
+)
+p_{k}(t)
+numerically at time
+t
+t
+,
+w
+i
+​
+(
+t
+)
+=
+r
+i
+p
+i
+​
+(
+t
+)
+,
+J
+IPS
+​
+(
+z
+⁡
+(
+t
+)
+)
+=
+∑
+k
+=
+1
+K
+p
+k
+​
+(
+t
+)
+​
+r
+k
+p
+k
+​
+(
+t
+)
+=
+∑
+k
+=
+1
+K
+r
+k
+=
+:
+R
+.
+w_{i}(t)=\frac{r_{i}}{p_{i}(t)},\qquad J_{\mathrm{IPS}}(z(t))=\sum_{k=1}^{K}p_{k}(t)\frac{r_{k}}{p_{k}(t)}=\sum_{k=1}^{K}r_{k}=:R.
+Substituting into (A.8) yields the IPS gradient flow
+z
+˙
+i
+​
+(
+t
+)
+=
+r
+i
+−
+R
+​
+p
+i
+​
+(
+t
+)
+.
+\boxed{\dot{z}_{i}(t)=r_{i}-R\,p_{i}(t).}
+(7)
+Step 3 (log-ratio dynamics).
+As in Appendix A.1,
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+p
+j
+=
+z
+˙
+i
+−
+z
+˙
+j
+\frac{d}{dt}\log\frac{p_{i}}{p_{j}}=\dot{z}_{i}-\dot{z}_{j}
+, so by (7),
+d
+d
+​
+t
+​
+log
+⁡
+p
+i
+​
+(
+t
+)
+p
+j
+​
+(
+t
+)
+=
+(
+r
+i
+−
+r
+j
+)
+−
+(
+p
+i
+​
+(
+t
+)
+−
+p
+j
+​
+(
+t
+)
+)
+​
+R
+.
+\boxed{\frac{d}{dt}\log\frac{p_{i}(t)}{p_{j}(t)}=(r_{i}-r_{j})-(p_{i}(t)-p_{j}(t))R.}
+(8)
+This is Theorem 4.1. In particular, if
+r
+i
+=
+r
+j
+r_{i}=r_{j}
+then the term
+−
+(
+p
+i
+−
+p
+j
+)
+​
+R
+-(p_{i}-p_{j})R
+is a restoring force toward
+p
+i
+=
+p
+j
+p_{i}=p_{j}
+.
+Stationary point.
+Assume
+r
+i
+≥
+0
+r_{i}\geq 0
+and
+R
+=
+∑
+k
+r
+k
+>
+0
+R=\sum_{k}r_{k}>0
+. Define
+p
+i
+⋆
+=
+r
+i
+∑
+k
+=
+1
+K
+r
+k
+=
+r
+i
+R
+.
+\boxed{p_{i}^{\star}=\frac{r_{i}}{\sum_{k=1}^{K}r_{k}}=\frac{r_{i}}{R}.}
+(9)
+Then
+z
+˙
+i
+​
+(
+t
+)
+=
+r
+i
+−
+R
+​
+p
+i
+⋆
+=
+0
+\dot{z}_{i}(t)=r_{i}-Rp_{i}^{\star}=0
+for all
+i
+i
+, so
+p
+⋆
+p^{\star}
+is stationary.
+Global convergence (potential function).
+Define
+Ψ
+⁡
+(
+z
+)
+=
+log
+⁡
+(
+∑
+k
+=
+1
+K
+e
+z
+k
+)
+−
+∑
+k
+=
+1
+K
+p
+k
+⋆
+​
+z
+k
+.
+\Psi(z)=\log\Bigl(\sum_{k=1}^{K}e^{z_{k}}\Bigr)-\sum_{k=1}^{K}p_{k}^{\star}z_{k}.
+Then
+∇
+z
+Ψ
+​
+(
+z
+)
+=
+p
+⁡
+(
+z
+)
+−
+p
+⋆
+\nabla_{z}\Psi(z)=p(z)-p^{\star}
+, and by (7),
+z
+˙
+​
+(
+t
+)
+=
+R
+⁡
+(
+p
+⋆
+−
+p
+⁡
+(
+t
+)
+)
+\dot{z}(t)=R(p^{\star}-p(t))
+. Hence
+d
+d
+​
+t
+​
+Ψ
+​
+(
+z
+⁡
+(
+t
+)
+)
+=
+⟨
+p
+⁡
+(
+t
+)
+−
+p
+⋆
+,
+R
+⁡
+(
+p
+⋆
+−
+p
+⁡
+(
+t
+)
+)
+⟩
+=
+−
+R
+​
+‖
+p
+⁡
+(
+t
+)
+−
+p
+⋆
+‖
+2
+2
+≤
+0
+.
+\frac{d}{dt}\Psi(z(t))=\langle p(t)-p^{\star},\,R(p^{\star}-p(t))\rangle=-R\|p(t)-p^{\star}\|_{2}^{2}\leq 0.
+Therefore
+Ψ
+⁡
+(
+z
+⁡
+(
+t
+)
+)
+\Psi(z(t))
+is nonincreasing and
+∫
+0
+∞
+‖
+p
+⁡
+(
+t
+)
+−
+p
+⋆
+‖
+2
+2
+​
+𝑑
+t
+<
+∞
+\int_{0}^{\infty}\|p(t)-p^{\star}\|_{2}^{2}\,dt<\infty
+,
+which implies
+p
+⁡
+(
+t
+)
+→
+p
+⋆
+p(t)\to p^{\star}
+as
+t
+→
+∞
+t\to\infty
+.
+∎
+Appendix B
+EXPERIMENT DETAILS
+B.1
+HYPOSPACE
+Causal Discovery
+Dataset construction.
+Datasets are synthetically generated by exhaustively enumerating all directed acyclic graphs (DAGs) under fixed structural constraints and grouping them by their intervention signatures.
+Each graph has
+4
+4
+nodes
+{
+A
+,
+B
+,
+C
+,
+D
+}
+\{A,B,C,D\}
+with up to
+6
+6
+directed edges.
+For each graph, observations are produced by perturbing a subset of nodes (3 perturbations per sample) and recording binary effects on all other nodes, determined by causal descendants.
+This yields a finite hypothesis set with exact ground truth coverage.
+Number of nodes
+4
+Max edges
+6
+Observations per sample
+3
+Total samples
+100 (50 train / 50 test)
+3D Structure Reconstruction
+Dataset construction.
+Data are generated by exhaustively enumerating valid voxel structures consistent with gravity and a given top-down projection.
+Top views are created by selecting up to
+3
+3
+occupied cells in a
+3
+×
+3
+3\times 3
+grid.
+For each top view, all height assignments (1 to 3 layers) are enumerated and filtered to satisfy physics constraints: every occupied voxel at layer
+h
+h
+must be supported at layer
+h
+−
+1
+h{-}1
+.
+Each top view corresponds to a finite set of valid 3D hypotheses.
+Grid size
+3
+×
+3
+3\times 3
+Max visible blocks
+3
+Max height
+3
+Blocks fixed
+No (1–3 blocks)
+Total samples
+100 (50 train/50 test)
+Boolean Expression Discovery
+Dataset construction.
+Boolean datasets are generated via exhaustive enumeration of expressions over two variables
+{
+x
+,
+y
+}
+\{x,y\}
+with operators
+AND
+,
+OR
+, and
+NOT
+, up to depth 2.
+Expressions are canonically deduplicated using mechanistic equivalence rules (commutativity, idempotence, and associativity flattening).
+For each partial input–output observation set, all expressions consistent with the induced truth table are treated as valid hypotheses.
+Variables
+2 (
+x
+,
+y
+x,y
+)
+Operators
+AND, OR, NOT
+Max expression depth
+2
+Total Samples
+78 (39 train / 39 test)
+Model and Parameter-Efficient Fine-Tuning
+Base model.
+All experiments use
+Gemma-3 4B Instruct
+as the underlying language model, with 4-bit NF4 quantization and bfloat16 computation.
+LoRA configuration.
+A single LoRA setup is shared across all Hypospace tasks.
+LoRA rank (
+r
+r
+)
+16
+LoRA
+α
+\alpha
+32
+Target modules
+q
+,
+k
+,
+v
+,
+o
+q,k,v,o
+projections
+Dropout
+0.05
+Reward.
+Each generated hypothesis receives a binary reward based on if it is valid. A response is first parsed into a structured hypothesis (graph, 3D structure, or Boolean expression). The hypothesis is validated against the ground truth set by checking structural equivalence using hash-based matching for graphs and structures, and mechanistic keys for Boolean expressions. A reward of 1.0 is assigned only if the hypothesis is valid which matches a ground truth solution. Invalid parses, incorrect hypotheses.
+Evaluation.
+Models are evaluated via
+Cumulative Recovery
+, computed from parallel sampling.
+Hypospace GitHub link
+Hypospace
+B.2
+Drug Discovery with Chemical Language Models
+Multi-objective reward function.
+For both the
+SYNTH
+and
+ALL-AMIDE
+tasks, molecule generation is guided by a multi-parameter optimization (MPO) reward composed of four components: docking score, drug-likeness (QED), hydrogen bond donor count (HBD), and synthesizability. These components are aggregated using a geometric mean with equal weighting,
+R
+final
+=
+∏
+i
+=
+1
+4
+R
+i
+1
+4
+.
+R_{\text{final}}=\prod_{i=1}^{4}R_{i}^{\frac{1}{4}}.
+(11)
+Docking score component.
+Binding affinity is evaluated against the SARS-CoV-2 main protease using QuickVina2-GPU-2.1. Docking is performed on the crystal structure PDB 7UVU, prepared with PDBFixer. For each generated SMILES string, the following pipeline is applied: (i) conversion to an RDKit molecule, (ii) protonation at physiological pH, (iii) conformer generation using ETKDG, (iv) energy minimization with the Universal Force Field (UFF), (v) conversion to PDBQT format via OpenBabel, and (vi) docking with an exhaustiveness of 8000 using a
+20
+×
+20
+×
+20
+​
+Å
+3
+20\times 20\times 20~\text{\AA}^{3}
+search box centered on the reference ligand.
+The raw docking score
+x
+x
+(in kcal/mol, where more negative values indicate stronger binding) is transformed to a normalized reward using a reverse sigmoid:
+R
+dock
+=
+1
+1
++
+10
+k
+⋅
+(
+x
+−
+(
+h
++
+l
+)
+/
+2
+)
+⋅
+10
+h
+−
+l
+,
+R_{\text{dock}}=\frac{1}{1+10^{k\cdot(x-(h+l)/2)\cdot\frac{10}{h-l}}},
+(12)
+with parameters
+l
+=
+−
+16
+l=-16
+,
+h
+=
+0
+h=0
+, and
+k
+=
+0.15
+k=0.15
+, mapping favorable scores close to
+−
+16
+-16
+kcal/mol to rewards near 1.
+Drug-likeness components.
+Drug-likeness is quantified using the RDKit implementation of the Quantitative Estimate of Drug-likeness (QED), yielding values in
+[
+0
+,
+1
+]
+[0,1]
+without further transformation.
+Hydrogen Bond Donor component
+The hydrogen bond donor count is computed using RDKit and evaluated with a step function,
+R
+HBD
+=
+{
+1.0
+,
+0
+≤
+HBD
+≤
+3
+,
+0.0
+,
+otherwise
+,
+R_{\text{HBD}}=\begin{cases}1.0,&0\leq\text{HBD}\leq 3,\\
+0.0,&\text{otherwise},\end{cases}
+(13)
+enforcing a strict constraint.
+Synthesizability constraints.
+Synthesizability is assessed using the Syntheseus retrosynthesis framework with the MEGAN molecular edit graph attention network. Commercially available eMolecules building blocks are used, with a time limit of 180 seconds per molecule.
+For the
+SYNTH
+task, the synthesizability reward is binary and equals 1 if any valid synthesis route is found. For the
+ALL-AMIDE
+task, an additional constraint is imposed: all reactions in the synthesis route must belong to the
+amide
+or
+acylation
+reaction classes, as determined using Rxn-INSIGHT. The reward is set to 1 only if both synthesizability and reaction-class constraints are satisfied.
+Final reward definitions.
+The complete reward functions are given by
+R
+SYNTH
+=
+(
+R
+dock
+⋅
+R
+QED
+⋅
+R
+HBD
+⋅
+R
+synth
+)
+1
+4
+,
+R_{\text{SYNTH}}=\left(R_{\text{dock}}\cdot R_{\text{QED}}\cdot R_{\text{HBD}}\cdot R_{\text{synth}}\right)^{\frac{1}{4}},
+(14)
+and
+R
+ALL-AMIDE
+=
+(
+R
+dock
+⋅
+R
+QED
+⋅
+R
+HBD
+⋅
+R
+synth+amide
+)
+1
+4
+,
+R_{\text{ALL-AMIDE}}=\left(R_{\text{dock}}\cdot R_{\text{QED}}\cdot R_{\text{HBD}}\cdot R_{\text{synth+amide}}\right)^{\frac{1}{4}},
+(15)
+where
+R
+synth+amide
+R_{\text{synth+amide}}
+is non-zero only if a valid synthesis route exists and all reactions satisfy the enforced amide-coupling constraints.
+Model and reinforcement learning setup.
+We run our experiments on the top of the SATURN github repo and use the model trained by them. Saturn Github link[
+https://github.com/schwallergroup/saturn
+].
+The chemical language model is based on a Mamba architecture with 12 layers, hidden dimension 256, RMS normalization, and approximately 5.27M parameters. The model is pretrained on ChEMBL 33 using maximum likelihood estimation with SMILES randomization for 18 epochs. Reinforcement learning fine-tuning follows the REINVENT framework with a batch size of 64, learning rate
+10
+−
+4
+10^{-4}
+, KL coefficient 128, and an oracle budget of 10,000 evaluations. An identical Murcko scaffold diversity filter with bucket size 10 is applied, along with augmented memory and experience replay to promote structural diversity.
+Appendix C
+RESULTS: 3D VOXELS
+We illustrate outcome-level diversity using a single 3D voxel reconstruction instance with a fixed top-view projection over a 3×3 grid and a maximum height of three layers.
+The fine-tuned model is queried using a structured prompt that specifies the top view, enforces gravity and consistency constraints, and requires explicit layer-by-layer reconstruction.
+For this input, multiple distinct 3D voxel structures are prossible, different height assignments satisfy the physics constraints while producing the same top-view projection under an OR operation across layers.
+The prompt given to both models were
+’’’
+
+### TASK DESCRIPTION
+You are an expert 3D reconstruction engine.
+You are given a Top View (2D projection) of a 3x3 grid.
+Your goal is to reconstruct the 3D voxel structure
+(layers of blocks) that matches this view.
+
+Maximum allowed height: 3 layers.
+
+### OBSERVATION
+Top View (1=block visible, 0=empty):
+0 1 0
+0 0 0
+0 1 1
+
+### REQUIRED OUTPUT FORMAT
+You must output the structure layer by layer, starting from the bottom (Layer 1).
+Every layer must be explicitly labeled.
+Do not output raw numbers without ’Layer X:’ labels.
+
+Use exactly this format:
+BEGIN_STRUCTURE
+Structure:
+Layer 1:
+0 0 0
+0 1 0
+0 0 0
+Layer 2:
+0 0 0
+0 1 0
+0 0 0
+END_STRUCTURE
+
+### CONSTRAINTS
+1. Physics: A block at Layer N must have a block directly below it at Layer N-1.
+2. Consistency: The ’OR’ operation of all layers must exactly match the Top View.
+3. Format: You must write ’Layer X:’ before each grid.
+
+Generate the structure now:
+
+’’’
+Despite the small problem size and finite hypothesis space, standard expected-return optimization collapses onto a narrow subset of valid reconstructions. Figure
+4
+In contrast, IPS-based optimization consistently generates a diverse set of valid voxel structures for the same prompt. This demonstrates that IPS preserves diversity at the level of terminal outcomes, even in simple deterministic reasoning problems with fully enumerated solution sets. Figure
+5
+This example provides a concrete qualitative illustration of outcome-level mode collapse and its mitigation: IPS prevents early dominance of a single reconstruction and enables the model to represent the full space of valid 3D hypotheses induced by a fixed observation.
+Figure 4
+:
+voxels generated by GRPO
+Figure 5
+:
+voxels generated by IPS-GRPO
+Experimental support, please
+view the build logs
+for errors. Generated by
+L
+A
+T
+E
+xml
+.
+Instructions for reporting errors
+We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:
+Click the "Report Issue"
+(
+)
+button, located in the page header.
+Tip:
+You can select the relevant text first, to include it in your report.
+Our team has already identified
+the following issues
+. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.
+Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+list of packages that need conversion
+, and welcome
+developer contributions
+.
+We gratefully acknowledge support from
+        our
+major funders
+,
+member institutions
+,
+,
+        and all contributors.
+About
+·
+Help
+·
+Contact
+·
+Subscribe
+·
+Copyright
+·
+Privacy
+·
+Accessibility
+·
+Operational Status
+(opens in new tab)
+Major funding support from

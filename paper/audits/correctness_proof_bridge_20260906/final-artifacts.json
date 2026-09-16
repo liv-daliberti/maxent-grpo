@@ -1,0 +1,16 @@
+{
+  "main_content_pages": 4,
+  "figure_1_page": 1,
+  "main_figures": 6,
+  "supplementary_figures": 7,
+  "official_style_unchanged": true,
+  "workshop_footer_verified": true,
+  "files": {
+    "main.tex": "a38599d67a5ce1e3641fe30f9963fb9c1f2d1b576876f729b067e6f110e757c3",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52",
+    "main.pdf": "02e3bf33b8c65cf8a35fba4743b0e1d0a78b6b2a4766aa7e0c3f1c68c93f8ed7",
+    "snapshot.json": "35ef6b8dffab123633bed19383a188343592ce883134cb12538a8f54ac391168",
+    "check_submission.py": "33731a3e6b76fd0ee0348e4575fa6e354b9e2b977e96cd768f3ba16af20e1d38",
+    "mathai2026-source.zip": "5f6634efed1315a63e3d3eb24dd9f067996950a469c32693eacb54da77600ba4"
+  }
+}

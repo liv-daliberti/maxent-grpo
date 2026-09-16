@@ -1,0 +1,8 @@
+{
+  "paper/main.tex": "f01874e31b75043eca8b34cbfe67d4b5c3ad73663f24d0ec7d3d25bd99ebe2a5",
+  "paper/main.pdf": "d1775773566307db1b8b725dbfb913f4b0ae65ee799254a39592dcc749523d18",
+  "paper/main.aux": "9a762e5a9c8b85acf7b2ccb2bf4f093e3a23125c3c69bf791e6d398f2407a836",
+  "paper/Makefile": "02e47b8677aa68b5c2ef8a8c9c1bec071cfc3096b69ee4d34bc73ec9b64d1393",
+  "paper/README.md": "9287f50f1f391d6a0de1d6c6f3b2ca6b942fbfaa21a5caa86e414606db6fd82f",
+  "ops/check_paper_current_contract.py": "26b975aea3716e47dcf3c6f00e31a8390660181be93dbb216c3601795cfaf502"
+}

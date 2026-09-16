@@ -28,33 +28,51 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RUN = ROOT / 'var/artifacts/pmd_independent_resample_20260915'
-DOMAIN = 'pantry_plan'
-# The longest rendered PantryPlan prompt across both templates and every level is
-# 741 tokens (Falcon3 template, Level 5). 768 clears it with room for the ladder
-# to grow a little; the context keeps the run's own 64-token generation headroom.
-WIDE_PROMPT_MAX = 768
-GENERATION_HEADROOM = 64
-WIDE_MODEL_LEN = WIDE_PROMPT_MAX + GENERATION_HEADROOM
+# Each domain is sized from its own longest rendered prompt, measured across
+# every template and level, with room for the ladder to grow. The context keeps
+# the run's own generation headroom, so only the prompt budget really moves.
+#
+#   PantryPlan  longest 741 (Falcon3 template, Level 5)  -> 768 + 64
+#   MathIR      longest 287 (Falcon3 template, Levels 3-4) -> 320 + 128
+#
+# MathIR overflows for Falcon only: the Falcon3 tokenizer renders the same
+# prompts about thirty-five tokens longer than Qwen's, which is the whole margin
+# at a 256 budget. The Qwen scales stay on their trained surface.
+WIDENED = {
+    'pantry_plan': {'prompt_max': 768, 'headroom': 64, 'scales': None},
+    'mathir': {'prompt_max': 320, 'headroom': 128, 'scales': ('falcon1b',)},
+}
 
 
 def widen(cell: dict) -> dict:
     """A copy of the cell on the widened surface, with the change recorded."""
+    spec = WIDENED[cell['domain']]
+    wide_prompt = spec['prompt_max']
+    wide_len = wide_prompt + spec['headroom']
     out = json.loads(json.dumps(cell))
     config = out['eval_config']
     out['context_widening'] = {
         'from_prompt_max_length': int(config['prompt_max_length']),
-        'to_prompt_max_length': WIDE_PROMPT_MAX,
+        'to_prompt_max_length': wide_prompt,
         'from_max_model_len': int(config['max_model_len']),
-        'to_max_model_len': WIDE_MODEL_LEN,
-        'reason': 'Level 3 and Level 5 PantryPlan prompts exceed the trained '
-                  'context; widened so every level shares one prompt population',
+        'to_max_model_len': wide_len,
+        'reason': 'prompts on the harder levels exceed the trained context; '
+                  'widened so every level shares one prompt population',
         'unchanged': ['prompt_template', 'eval_generate_max_length',
                       'vllm_gpu_ratio', 'canonical_action_task', 'seed policy',
                       'checkpoint'],
     }
-    config['prompt_max_length'] = WIDE_PROMPT_MAX
-    config['max_model_len'] = WIDE_MODEL_LEN
+    config['prompt_max_length'] = wide_prompt
+    config['max_model_len'] = wide_len
     return out
+
+
+def in_scope(cell: dict) -> bool:
+    """Only the domain/scale combinations whose prompts actually overflow."""
+    spec = WIDENED.get(cell['domain'])
+    if spec is None:
+        return False
+    return spec['scales'] is None or cell['scale'] in spec['scales']
 
 
 def build(levels: list[str]) -> dict:
@@ -65,7 +83,7 @@ def build(levels: list[str]) -> dict:
     control = json.loads((RUN / 'cohort_manifest.json').read_text())
     by_template: dict[str, dict] = {}
     for cell in control['cells']:
-        if cell['domain'] != DOMAIN:
+        if not in_scope(cell):
             continue
         if cell.get('prompt_source', 'saved_draws') != 'saved_draws':
             continue
@@ -79,17 +97,19 @@ def build(levels: list[str]) -> dict:
     for level in levels:
         payload = json.loads((RUN / f'levels_cohort_manifest_{level}.json').read_text())
         for cell in payload['cells']:
-            if cell['domain'] != DOMAIN:
+            if not in_scope(cell):
                 continue
             widened = widen(cell)
             widened['role'] = 'measurement'
             cells.append(widened)
     return {
         'schema': 'pmd-resample-cohort-v1',
-        'cohort': 'pantry_wide_context',
+        'cohort': 'wide_context',
         'levels': list(levels),
-        'widened_surface': {'prompt_max_length': WIDE_PROMPT_MAX,
-                            'max_model_len': WIDE_MODEL_LEN},
+        'widened_surface': {d: {'prompt_max_length': v['prompt_max'],
+                                'max_model_len': v['prompt_max'] + v['headroom'],
+                                'scales': list(v['scales']) if v['scales'] else 'all'}
+                            for d, v in WIDENED.items()},
         'surface_controls': control_count,
         'cell_count': len(cells),
         'cells': cells,
@@ -100,7 +120,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--level', action='append', default=None)
     parser.add_argument('--output', type=Path,
-                        default=RUN / 'pantry_wide_cohort_manifest.json')
+                        default=RUN / 'wide_context_cohort_manifest.json')
     args = parser.parse_args()
     payload = build(args.level or ['level3', 'level5'])
     args.output.write_text(json.dumps(payload, indent=1, sort_keys=True) + '\n')

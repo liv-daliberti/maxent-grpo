@@ -1,0 +1,209 @@
+% Generated from survival.tex for the combined note.
+
+
+This section applies standard relative-entropy data processing, binary-divergence
+inversion, and binomial inference to replay retention. The information-theory
+facts are established results \cite{vanerven2014}; binary-KL inversion is also a
+standard tool in statistical learning \cite{garivier2011}. The propositions
+below give self-contained specializations, not claims of new foundational
+inequalities. They distinguish deterministic probability certificates from
+sampling confidence and from training-trajectory guarantees. All logarithms are
+natural. No claim here establishes energy descent for a stochastic neural
+optimizer.
+
+\subsection{A sharp certificate from normalized replay cross entropy}
+For probability vectors, write $H(w)=-\sum_iw_i\log w_i$ and
+\[
+ \kl(a,r)=a\log\frac a r+(1-a)\log\frac{1-a}{1-r},
+\]
+with the usual continuous endpoint conventions. For $0<a<1$ and $D\ge0$,
+define $\ell_-(a,D)$ as the unique $r\in(0,a]$ satisfying
+$\kl(a,r)=D$. Define $\ell_-(1,D)=e^{-D}$.
+
+\begin{proposition}[Sharp replay certificate]
+Let $w_b>0$, $\sum_{b\in B}w_b=1$, and let $p$ be a distribution on an
+alphabet containing the bank $B$. Suppose
+\[
+ R_w(p)=-\sum_{b\in B}w_b\log p_b\le C<\infty,
+ \qquad D=C-H(w).
+\]
+Then $D\ge0$ and every banked coordinate satisfies
+\[
+ p_b\ge\ell_-(w_b,D)>0.
+\]
+The bound is sharp on the closed probability simplex. Furthermore,
+\[
+ p(B)\ge e^{-D},\qquad
+ p_b\ge\max\left\{0,w_b-\sqrt{D/2}\right\}.
+\]
+For $w_b<1$ a simple positive lower bound, weaker than binary inversion, is
+$\exp[-(D+h_2(w_b))/w_b]$, where $h_2(a)=H((a,1-a))$.
+\end{proposition}
+
+\begin{proof}
+Extend $w$ by zero off the bank, writing $\bar w$. Normalization gives
+$\KL(\bar w\|p)=R_w(p)-H(w)\le D$.
+Put $a=w_b$ and $r=p_b$. The log-sum inequality on all other categories gives
+\[
+ \sum_{j\ne b}\bar w_j\log\frac{\bar w_j}{p_j}
+ \ge(1-a)\log\frac{1-a}{1-r},
+\]
+so $\kl(a,r)\le D$. This is data processing under the binary partition
+$\{b\},\{b\}^{\rm c}$. On $r\in(0,a)$ the derivative of $\kl(a,r)$ is
+$(r-a)/(r(1-r))<0$; the divergence tends to infinity at zero and equals zero
+at $r=a$. This proves the inverse bound. Equality is attained by taking
+$p_b=r$ and $p_j=(1-r)w_j/(1-a)$ on the other banked categories, with zero
+mass off the bank. If strict full support is required, this is the limiting
+construction; the infimum is approached as off-bank mass vanishes. The case
+$a=1$ is immediate.
+
+Writing $s=p(B)$ and $\widetilde p_b=p_b/s$ gives
+$\KL(\bar w\|p)=-\log s+\KL(w\|\widetilde p)\ge-\log s$.
+For the coordinate Pinsker bound, fix $r$ and differentiate the binary
+KL twice in its first argument: $\partial_a^2\kl(a,r)=1/[a(1-a)]\ge4$.
+Its value and first derivative vanish at $a=r$, so
+$\kl(a,r)\ge2(a-r)^2$. Finally,
+$\kl(a,r)=-h_2(a)-a\log r-(1-a)\log(1-r)
+\ge-h_2(a)-a\log r$, giving the elementary exponential bound.
+\end{proof}
+
+For the paper's energy inequality, substitute
+$C=R_w(p(T))+[\Psi(1)-\Psi(P(T))]/\rho_w$.
+This improves the existing termwise bound $p_b\ge e^{-C/w_b}$ because it
+uses probability normalization and subtracts target entropy. It can also be
+used at an individual checkpoint if a genuine upper bound on its complete
+bank cross entropy is available; a checkpoint calculation does not prove
+that the same bound holds at later times.
+
+For a uniform bank of 16, $C=\log16+0.01$ certifies
+$p_b\ge0.0339712$, whereas the termwise bound is approximately
+$4.62\times10^{-20}$. These are illustrative mathematical inputs, not
+measured training losses. At excess cross entropy $D=160$, even the sharp
+log lower bound is about $-2563.74$, so normalization cannot rescue an
+intrinsically enormous energy budget.
+
+\subsection{What a scalar entropy value can certify}
+\begin{proposition}[Sharp entropy threshold for all-mode retention]
+Let $q$ be a probability vector on exactly $m\ge2$ possible modes. A scalar
+bound $H(q)\ge h_0$, with $h_0\le\log m$, gives a strictly positive uniform
+coordinate floor if and only if $h_0>\log(m-1)$. In that case
+\[
+ q_b\ge r_m(h_0)\quad\hbox{for every }b,
+\]
+where $r_m(h_0)\in(0,1/m]$ uniquely solves
+\[
+ h_2(r)+(1-r)\log(m-1)=h_0.
+\]
+The certificate is sharp.
+\end{proposition}
+
+\begin{proof}
+Fix $r=q_b$. Splitting off that mode gives
+\[
+ H(q)=h_2(r)+(1-r)H(q_{-b}/(1-r))
+ \le h_2(r)+(1-r)\log(m-1)=:f_m(r).
+\]
+Equality is attained when the other modes are uniform. On $0<r<1/m$,
+$f'_m(r)=\log[(1-r)/(r(m-1))]>0$, with
+$f_m(0)=\log(m-1)$ and $f_m(1/m)=\log m$.
+If $H(q)\ge h_0>\log(m-1)$, a coordinate below the stated root is
+impossible. Conversely, if $h_0\le\log(m-1)$, a distribution with one
+zero coordinate and the rest uniform satisfies the bound. Even restricting
+to positive coordinates permits arbitrarily small values by approximation.
+\end{proof}
+
+For uniform $u$, $H(q)=\log m-\KL(q\|u)$, so the same certificate follows
+from $\kl(q_b,1/m)\le\KL(q\|u)$. It is positive precisely when the
+forward-KL budget is below $\log[m/(m-1)]$. A missing coordinate can have
+$H(q)=\log(m-1)$ and $\KL(q\|u)=\log[m/(m-1)]$, while
+$\KL(u\|q)=\infty$. For $m=16$, the entropy threshold is $\log15$
+(about $2.70805$ nats), only $0.06454$ below $\log16$.
+This distinguishes level sets. It does not say that an exact-entropy gradient
+flow must reach a zero coordinate; exact entropy can prevent extinction
+under suitable dynamics. An empirical entropy estimate with missing modes
+is not an exact value of $H(q)$, and conditional entropy alone does not
+bound total correct or bank mass.
+
+\subsection{When response likelihood yields a key certificate}
+Fix one prompt and finitely many distinct complete responses $e_j$, verified
+to produce keys $b_j$. Put a normalized distribution $w_j$ on these responses,
+and let $W_b=\sum_{j:b_j=b}w_j$. Under a fixed decoding law, the response
+events are disjoint. Extend the exemplar target by zero to every other
+complete response in the policy alphabet. Execution is then a deterministic
+map on this full alphabet; unlisted responses remain distinguishable until
+they are mapped to their keys. Therefore
+\[
+ -\sum_jw_j\log\pi(e_j\mid x)\le C
+ \quad\Longrightarrow\quad
+ \kl(W_b,p(b\mid x))\le C-H(w).
+\]
+Indeed, the response-level KL is $C-H(w)$ or smaller, and deterministic
+execution followed by the binary key indicator is data processing.
+Thus $p(b\mid x)\ge\ell_-(W_b,C-H(w))$. Individually,
+$p(b_j\mid x)\ge\pi(e_j\mid x)$ because the complete-response event is
+contained in its verified-key event.
+
+The likelihood must include EOS or another specified termination event,
+or a fixed deterministic horizon, and must use the same prompt, temperature,
+vocabulary mask, token-truncation rule, and verifier as the probability being
+bounded. A scored prefix is not sufficient: its continuations can produce
+other keys or invalid outputs. A mean-token log score is not a probability;
+for a fixed complete length $L_j$, the sequence probability is
+$\exp(L_j\bar\ell_j)$, not $\exp(\bar\ell_j)$.
+A sum of length-normalized scores first requires normalization:
+if $a_j=\alpha_j/L_j$, $A=\sum_j a_j$, and $w_j=a_j/A$, then
+$\sum_j\alpha_j[-\log\pi(e_j)]/L_j=A R_w$.
+Responses from different prompts do not share one conditional probability
+alphabet; apply this construction prompt by prompt or specify a joint prompt
+mixture explicitly. Approximate numerical log scores additionally require
+controlled numerical error before being called rigorous certificates.
+
+\subsection{Finite samples distinguish detection from extinction}
+At a frozen checkpoint, for a mode specified before sampling, $N$
+independent draws give $X\sim\operatorname{Binomial}(N,p_b)$.
+Exact binomial-tail inversion supplies one-sided confidence bounds
+\cite{clopper1934}. If $X=0$, the one-sided $(1-\alpha)$ upper bound is
+\[
+ U_0=1-\alpha^{1/N},
+\]
+with lower bound zero. This follows directly from
+$\Prb_{p_b}(X=0)=(1-p_b)^N$: for any $p_b>U_0$, the all-zero event has
+probability below $\alpha$. A full upper-confidence procedure uses the
+corresponding binomial-tail inversion for nonzero counts as well.
+
+Zero sightings in 32 draws allow $p_b$ as large as $0.08937$ at the
+one-sided 95\% level. Simultaneous coverage over 16 prespecified modes by
+Bonferroni uses $\alpha/16$ and increases that upper bound to $0.16495$.
+At least 299 zero-count draws are needed to obtain a single-mode 95\%
+upper bound below $.01$; 574 suffice for simultaneous 16-mode coverage.
+These are probability-threshold statements, not proofs of exact extinction.
+For example, two sightings in 32 draws give a one-sided 95\% lower bound
+of about $.01122$ for one prespecified mode.
+
+With repeated inspection of a fixed policy, an anytime-valid confidence
+sequence can avoid invalid optional stopping \cite{howard2021}. One simple
+Bernoulli construction uses a fixed beta mixture, with shape parameters
+$a,b>0$ and cumulative successes $S_t$:
+\[
+ M_t(p)=\frac{\mathrm B(S_t+a,t-S_t+b)}
+ {\mathrm B(a,b)p^{S_t}(1-p)^{t-S_t}},\qquad
+ C_t=\{p:M_t(p)<1/\alpha\}.
+\]
+For each true $p\in(0,1)$, this is an integral of likelihood-ratio martingales,
+so it is a nonnegative mean-one martingale. The maximal inequality for such
+martingales gives
+$\Prb_p(\exists t:p\notin C_t)\le\alpha$.
+Mode-wise error allocations can make this simultaneous over a fixed roster.
+The argument requires a fixed Bernoulli success probability; pooling across
+changing training checkpoints does not certify the current checkpoint's
+probability. Nor do repeated deterministic teacher-forced scores supply
+Bernoulli trials.
+
+For an unknown catalogue, missing mass is the total probability of as-yet
+unobserved categories under a fixed iid sampling law, not their number and
+not evidence that they are extinct. Specialized concentration results address
+that total mass \cite{mcallester2003,berend2013}. They cannot establish the
+survival of each named banked key, and stationary species formulas cannot be
+applied directly to a history generated by changing policies. Named-key
+binomial counts are the direct measurement for per-mode visibility.
+

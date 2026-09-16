@@ -1,0 +1,20 @@
+{
+  "paper/main.pdf": {
+    "main_pages": 9,
+    "main_body_mentions_verified": true,
+    "sha256": "a5e87cf4cc152daf0f924ee7090a2a4a8eeebfb651121ec7ad4521551cf90a7b"
+  },
+  "paper/mathai2026/main.pdf": {
+    "main_pages": 4,
+    "main_body_mentions_verified": true,
+    "sha256": "b90308515ba1c30bfc7a3d28f892aae2da161767e9f59e7b48b056ef53046212"
+  },
+  "paper/main.tex": {
+    "sha256": "b36ce2624e07dbec5424f847e585b4c821e4e534a237d3055ad7c2442a5cf25b",
+    "both_appendix_references_in_main": true
+  },
+  "paper/mathai2026/main.tex": {
+    "sha256": "11d89b76db8b6ff2b9900cc29b1c728ada3e1acf25c286a0e1e7f4fffc7eee80",
+    "both_appendix_references_in_main": true
+  }
+}

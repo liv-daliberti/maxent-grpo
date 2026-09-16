@@ -245,12 +245,13 @@ def build_coverage(payload: dict) -> str:
     front_first = front_last = front_pass = float('nan')
     front_extra: dict[str, dict] = {}
     front_models = 0
+    full: list[str] = []
     if frontier_path.is_file():
         fcells = [c for c in json.loads(frontier_path.read_text())['cells']
                   if c.get('reportable')]
         # The level-to-level decline must be read across levels the whole cohort
-        # covers. Level 4 is one deployment on four domains, so folding it into
-        # this comparison would silently change what the endpoints mean.
+        # covers. The probe levels are one deployment, so folding them into this
+        # comparison would silently change what the endpoints mean.
         cohort = len({c['model'] for c in fcells})
         front_models = cohort
         full = [lev for lev in sorted({c['level'] for c in fcells})
@@ -273,9 +274,13 @@ def build_coverage(payload: dict) -> str:
                     'domains': len({c['domain'] for c in vals})}
 
     # The hosted deployments against the small local models: the comparison the
-    # text makes is that being far more accurate does not buy more modes.
-    front_mean = (statistics.mean(c['pmd'] for c in fcells)
-                  if frontier_path.is_file() and fcells else float('nan'))
+    # text makes is that being far more accurate does not buy more modes. It is
+    # quoted in one sentence with front_pass, so it reads the same whole-cohort
+    # levels: a probe level carried by a single deployment must not tilt the
+    # breadth half of a comparison whose accuracy half excludes it.
+    front_mean = (statistics.mean(c['pmd'] for c in fcells if c['level'] in full)
+                  if frontier_path.is_file() and fcells and full
+                  else float('nan'))
     small = {}
     for model in grid.MODEL_PARAMS:
         if grid.MODEL_PARAMS[model] >= 2.0:
@@ -285,8 +290,16 @@ def build_coverage(payload: dict) -> str:
             small[model] = statistics.mean(vals)
     best = max(small, key=small.get) if small else None
     small_pmd = small[best] if best else float('nan')
+    # Two accuracies, and the manuscript needs the second. The first averages
+    # only the cells where PCMD was reportable, and definedness correlates .99
+    # with accuracy, so it is that model's accuracy on the cells it was already
+    # good at. The second is its accuracy over every cell it was measured on.
+    # PCMD itself has no such choice: it exists only where it is reportable.
     small_pass = (statistics.mean(c['pass8'] for c in reportable
                                   if c['model_label'] == best) if best else float('nan'))
+    small_pass_all = (statistics.mean(c['pass8'] for c in cells
+                                      if c['model_label'] == best)
+                      if best else float('nan'))
 
     # The appendix scale table: how many frozen base models it prints, and the
     # scale trend its caption quotes. A block supports the comparison when PCMD
@@ -372,6 +385,58 @@ def build_coverage(payload: dict) -> str:
     level_span = statistics.median(level_ranges) if level_ranges else float('nan')
     scale_span = statistics.median(scale_ranges) if scale_ranges else float('nan')
 
+    # B.5 claims a recipe moves breadth further at fixed scale than scale moves
+    # it at fixed recipe. That is a comparison across families, so it has to be
+    # taken on the levels every family covers -- only Qwen2.5 reaches Level 5,
+    # and averaging four families over four levels against one over five would
+    # put the level axis inside a recipe contrast.
+    all_cells = [c for c in cells if c['reportable']]
+    families = {m: grid.MODEL_FAMILY[m] for m in grid.MODEL_FAMILY}
+    common_levels = sorted(set.intersection(*(
+        {c['level'] for c in all_cells if families.get(c['model_label']) == fam}
+        for fam in set(families.values()))) ) if all_cells else []
+    # Parameter bands wide enough to hold one model per family, narrow enough
+    # that a band is a matched scale rather than a scale range.
+    def band(model):
+        size = grid.MODEL_PARAMS.get(model)
+        if size is None:
+            return None
+        for lo, hi in ((0.0, 0.5), (0.5, 2.0), (2.0, 4.5), (4.5, 9.0),
+                       (9.0, 16.0), (16.0, 40.0), (40.0, 1e9)):
+            if lo < size <= hi:
+                return (lo, hi)
+        return None
+
+    indexed_all = {(c['model_label'], c['domain'], c['level']): c['pmd']
+                   for c in all_cells}
+    recipe_ranges, within_recipe_ranges = [], []
+    for domain in DOMAINS:
+        for level in common_levels:
+            by_band = {}
+            for model, fam in families.items():
+                value = indexed_all.get((model, domain, level))
+                if value is None or band(model) is None:
+                    continue
+                by_band.setdefault(band(model), {}).setdefault(fam, []).append(value)
+            for entry in by_band.values():
+                # One value per family in the band, so a family with two models
+                # in it cannot widen the recipe contrast on its own.
+                per_family = [statistics.mean(v) for v in entry.values()]
+                if len(per_family) >= 2:
+                    recipe_ranges.append(max(per_family) - min(per_family))
+            by_family = {}
+            for model, fam in families.items():
+                value = indexed_all.get((model, domain, level))
+                if value is not None:
+                    by_family.setdefault(fam, []).append(value)
+            for run in by_family.values():
+                if len(run) >= 2:
+                    within_recipe_ranges.append(max(run) - min(run))
+    recipe_span = (statistics.median(recipe_ranges)
+                   if recipe_ranges else float('nan'))
+    within_recipe_span = (statistics.median(within_recipe_ranges)
+                          if within_recipe_ranges else float('nan'))
+
     # The sharpest case of the split the axis argument makes: at 7B and above,
     # Python is answered almost perfectly and almost always the same way. Both
     # move as the grid fills, so A.2 quotes them through macros.
@@ -397,10 +462,14 @@ def build_coverage(payload: dict) -> str:
              fr'\newcommand{{\MDladdersteps}}{{{ladder_steps_total}}}',
              fr'\newcommand{{\MDlevelspan}}{{{fmt(level_span)}}}',
              fr'\newcommand{{\MDscalespan}}{{{fmt(scale_span)}}}',
+             fr'\newcommand{{\MDrecipespan}}{{{fmt(recipe_span)}}}',
+             fr'\newcommand{{\MDwithinrecipespan}}{{{fmt(within_recipe_span)}}}',
+             fr'\newcommand{{\MDcommonlevels}}{{{len(common_levels)}}}',
              fr'\newcommand{{\MDscalesupport}}{{{scale_support}}}',
              fr'\newcommand{{\MDfrontierpmdmean}}{{{fmt(front_mean)}}}',
              fr'\newcommand{{\MDsmallbestpmd}}{{{fmt(small_pmd)}}}',
              fr'\newcommand{{\MDsmallbestpass}}{{{fmt(small_pass)}}}',
+             fr'\newcommand{{\MDsmallbestpassall}}{{{fmt(small_pass_all)}}}',
              fr'\newcommand{{\MDfrontierpmdlow}}{{{fmt(front_last)}}}',
              fr'\newcommand{{\MDfrontierpmdhigh}}{{{fmt(front_first)}}}',
              fr'\newcommand{{\MDfrontierpass}}{{{fmt(front_pass)}}}',
@@ -435,6 +504,13 @@ def main() -> None:
     parser.add_argument('--output', type=Path, default=OUT)
     args = parser.parse_args()
     payload = json.loads(args.payload.read_text())
+    # Resolve the axes from the payload before anything renders. grid_axes
+    # promises that a level joins once the ramp covers it completely; that
+    # promise was only kept for the coverage macros, which shadowed these
+    # names locally, so the table kept printing four levels while the macros
+    # counted five.
+    global MODELS, LEVELS
+    MODELS, LEVELS = grid_axes(payload['cells'])
     args.output.write_text(build(payload))
     SPLIT_OUT.write_text(build_split(payload))
     COVERAGE.write_text(build_coverage(payload))

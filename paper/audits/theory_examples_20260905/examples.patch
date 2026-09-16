@@ -1,0 +1,1398 @@
+--- before/paper/main.tex
++++ after/paper/main.tex
+@@ -847,45 +847,42 @@
+ \onecolumn
+ \raggedbottom
+ 
+-\section{Why On-Policy RL Can Lose Modes and Verified Replay Retains Them}
++\section{Mode Collapse and Verified Replay}
+ \label{app:theory}
+ 
+ \noindent\emph{Main-body link.} This appendix supplies the formal claims
+ invoked in Sections~\ref{sec:method} and~\ref{sec:results}.
+ 
+-This appendix separates two questions that are easy to conflate: whether a
+-binary-reward group update preserves ratios among already correct modes, and
+-whether verified replay preserves modes the policy has produced
+-and the validator has accepted. The first admits a generic-collapse result in a
+-finite model with independently trained categorical logits. The second necessarily requires a coverage
+-assumption: the replay term directly protects only represented bank modes;
+-it does not by itself guarantee retention of modes never sampled or constructed. We therefore
+-prove support preservation first and state full no-collapse as a coverage
+-corollary. Accordingly, the positive theorem explains the stability mechanism
+-after discovery; it does not prove that a ReplayMaxRL policy will establish its own
+-coverage premise in a language model.
++A binary verifier assigns the same reward to every correct mode, but an
++update can still amplify the most common one. We first explain that mechanism
++in a finite categorical model, then ask what changes when we alter the update
++geometry, add entropy, or replay earlier successes. Replay directly protects
++represented modes; discovery, admission, and reliable neural optimization
++remain separate requirements.
+ 
+ \paragraph{How to read the proof chain.}
+-The group-expectation lemmas first reduce the fresh task update to a positive
+-multiple of the correctness gradient. The collapse theorem then separates
+-that scalar learning clock from the within-correct-mode dynamics. The shared
+-correctness theorem compares those dynamics at matched accuracy, and
+-Corollary~\ref{cor:collapse-error-rate} quantifies their eventual loss.
+-Lemmas~\ref{lem:entropy-scope} and~\ref{lem:sampled-score-bound} separate
+-exact entropy regularization from bounded sampled surprisal.
+-Lemma~\ref{lem:replay-gradient-availability} distinguishes a fresh task signal
+-from a replay signal. The retention theorem and its fixed-bank limit then
+-identify exactly which stored modes survive. The natural-gradient comparison
+-in Section~\ref{app:theory-natural-gradient} makes the role of update geometry
+-explicit, while Section~\ref{app:theory-entropy-comparison} relates exact entropy
+-to replay through their distinct relative-entropy objectives.
+-Lemma~\ref{lem:shared-exemplar-retention} then states the energy condition
+-needed for complete exemplars in a shared model. The remaining sections extend
+-that condition to controlled stochastic updates and changing banks, and derive
+-sharp per-mode certificates and valid finite-sample interpretations
+-(Sections~\ref{app:theory-optimizer}--\ref{app:theory-survival-certificates}).
+-Each extension states its additional assumptions and the established
+-literature tools used in its proof.
++Begin with the three-correct-mode example in
++Section~\ref{app:theory-grpo-mean}. The group calculations reveal why a
++correctness gradient need not balance correct alternatives, and the next
++section turns the local imbalance into an asymptotic collapse theorem.
++Sections~\ref{app:theory-size}--\ref{app:theory-entropy-comparison} then vary
++geometry and entropy: they show both how collapse can slow and why it is not
++a universal consequence of rewarding correctness.
++
++The second part asks what replay adds. Sections~\ref{app:theory-gradient-availability}
++and~\ref{app:theory-replay} separate a missing fresh signal from a persistent
++bank signal, then turn bounded replay loss into protected probabilities.
++The remaining sections connect that argument to complete responses,
++controlled stochastic updates, and actual bank admission. Finally,
++Section~\ref{app:theory-survival-certificates} shows how much those bounds
++can certify and what finite observations can establish about a named mode.
++Each proof states its assumptions and attributes the literature tools it uses.
++
++All worked numbers below are illustrative calculations in the stated models,
++not measurements from the training runs. Unless a new example is introduced,
++the examples reuse the same three correct modes and one incorrect category.
++Comparisons keep the optimized objective, decoding law, and time variable
++explicit, since changing any of these can change the conclusion.
+ 
+ Here $G$ counts training rollouts, $K$ counts evaluation draws, $m,n$ count
+ correct and incorrect categories, and $k$ is the bank size. In the mean-flow results, $t$ is
+@@ -907,6 +904,17 @@
+ $q_c=p_c/P$. Thus $q$ is exactly the conditional correct-mode distribution
+ $p_\theta^+(\cdot\mid x)$ of Section~\ref{sec:collapse}, and $P$ is the correct
+ mass $P_\theta^+(x)$.
++
++\paragraph{Running example: three correct alternatives.}
++\label{ex:theory-running}
++Take three correct modes and one incorrect category, with
++\[
++ p=(0.30,0.15,0.05,0.50),\qquad P=0.50,\qquad q=(0.60,0.30,0.10).
++\]
++Half of all draws succeed, but among successful draws the three modes appear
++in a $6{:}3{:}1$ ratio. Increasing $P$ and balancing $q$ are therefore
++separate goals. We reuse this hypothetical distribution below to distinguish
++the effects of the fresh objective, optimizer geometry, and replay.
+ 
+ Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+ write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
+@@ -1034,6 +1042,21 @@
+ the exact finite-group expectation at the on-policy point; it does not assert
+ unbiasedness of subsequent clipped or adaptive-optimizer updates.
+ 
++\paragraph{What the group normalization changes.}
++For the running example with $G=4$,
++$\nabla_zP=(0.15,0.075,0.025,-0.25)$. The two lemmas give
++\[
++ \begin{aligned}
++ \mathbb E[\widehat g_4^{\rm Dr.GRPO}]&=0.75\,\nabla_zP,\\
++ \mathbb E[\widehat g_4^{\rm MaxRL}]&=1.75\,\nabla_zP.
++ \end{aligned}
++\]
++These are expectations over all possible groups, not updates from one
++particular sample. MaxRL moves faster along the same direction at this
++state, while the most common correct mode receives six times the logit
++increment of the rarest. The next section asks what repeated unequal
++increments do to the relative probabilities of equally rewarded modes.
++
+ \subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+ \label{app:theory-collapse}
+ 
+@@ -1054,6 +1077,18 @@
+ theorem is not claimed as a new replicator-dynamics result. Its role is to show
+ that the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that
+ familiar winner-take-all flow under the paper's categorical assumptions.
++
++\paragraph{A local view of the instability.}
++For $q=(0.60,0.30,0.10)$ in \hyperref[ex:theory-running]{the running example},
++$\sum_cq_c^2=0.46$. In the effective time $\tau$ defined in the proof,
++Equation~\eqref{eq:grpo-replicator} gives
++\[
++ \frac{dq}{d\tau}=(0.084,-0.048,-0.036),\qquad
++ \frac{d}{d\tau}\log\frac{q_1}{q_2}=0.30.
++\]
++The two less common modes lose their share of successful outputs even while
++correctness increases. This calculation is local; the theorem establishes
++that the imbalance persists all the way to the single-mode limit.
+ 
+ \begin{theorem}[Standard replicator specialization for binary-reward RL]
+ \label{thm:grpo-collapse}
+@@ -1126,6 +1161,12 @@
+ $k$ modes. Any perturbation creating a unique maximum gives single-mode
+ collapse by Theorem~\ref{thm:grpo-collapse}.
+ \end{corollary}
++
++\paragraph{An exact tie is a different initial condition.}
++Starting instead from $q=(0.45,0.45,0.10)$ gives the limit
++$(0.50,0.50,0)$. Changing the initialization to $(0.451,0.449,0.10)$ makes
++the first mode the unique winner. Thus an exactly symmetric two-mode limit
++does not imply robustness to a small imbalance in the initial policy.
+ 
+ Finite groups also introduce sampling effects: a mode absent from
+ a group has no sampled response of its own carrying a score term,
+@@ -1240,6 +1281,29 @@
+ under a unique initial maximum.
+ \end{proof}
+ 
++\paragraph{Same accuracy, different remaining breadth.}
++Start from \hyperref[ex:theory-running]{the running example} and stop each idealized flow when
++$P$ first reaches $0.90$. Both policies then have
++$\texttt{pass@8}=1-10^{-8}$. Numerical integration of
++Equation~\eqref{eq:shared-correctness-clock} gives the following illustrative
++values; the probability floors are calculated separately from
++Equation~\eqref{eq:shared-correctness-bound} with $L=\log9$.
++\begin{center}
++\begin{tabular}{@{}rrrr@{}}
++\toprule
++$\lambda$ & Conditional mass $q_3$ & Guaranteed $q_3$ floor & $\texttt{distinct@8}$ \\
++\midrule
++$0$ & $0.05255$ & $0.01924$ & $2.125$ \\
++$4$ & $0.08582$ & $0.06623$ & $2.374$ \\
++\bottomrule
++\end{tabular}
++\end{center}
++The trajectory values are rounded approximations; the displayed floors are
++rounded down. The shared direction preserves more of the initially rare mode
++at the same correctness, but its mass still falls below its initial $0.10$.
++A better finite-accuracy trajectory can therefore coexist with eventual loss,
++as the next corollary makes precise.
++
+ \begin{corollary}[Collapse rate as correctness approaches one]
+ \label{cor:collapse-error-rate}
+ Under Theorem~\ref{thm:shared-correctness}, fix finite $\lambda\ge0$
+@@ -1278,6 +1342,12 @@
+ Equation~\eqref{eq:collapse-error-exponent}.
+ \end{proof}
+ 
++\paragraph{A smaller exponent still permits extinction.}
++With one incorrect category, the minority-mode exponents are $1/2$ at
++$\lambda=0$ and $1/6$ at $\lambda=4$. Both are positive, so both limits
++lose minority modes as $P\uparrow1$. These are asymptotic logarithmic slopes;
++they do not replace the finite-accuracy values in the preceding table.
++
+ \paragraph{Correctness alone does not imply collapse.}
+ The independent-logit component matters. With purely shared geometry
+ $\mathsf K=\lambda vv^\top$, $\lambda>0$, all correct logits move equally,
+@@ -1296,8 +1366,10 @@
+ $\mathsf K=h^{1-2\gamma}I$. Its policy follows exactly the original collapse
+ trajectory with time multiplied by $h^{1-2\gamma}$. Increasing the parameter
+ count therefore makes collapse faster, unchanged, or slower for
+-$\gamma=0,1/2,1$, respectively. A size claim requires assumptions about how
+-additional parameters change the update geometry, not just their number.
++$\gamma=0,1/2,1$, respectively. For example, using $h=4$ multiplies the speed by $4$, $1$, or $1/4$
++under those three normalizations, despite quadrupling the parameter count
++in every case. A size claim therefore requires assumptions about how
++additional parameters change the update geometry.
+ 
+ \paragraph{What this explains and what remains untested.}
+ Theorem~\ref{thm:shared-correctness} connects a specified kind of shared
+@@ -1315,6 +1387,11 @@
+ 
+ \subsection{An exact optimizer comparison from information geometry}
+ \label{app:theory-natural-gradient}
++
++Changing the optimization metric lets us isolate correctness learning from
++changes among correct alternatives. The next result shows both effects in
++separate equations for $P$ and $q$.
++
+ 
+ Natural gradient on the categorical simplex uses the Fisher metric, also
+ called the Shahshahani metric in evolutionary dynamics
+@@ -1403,6 +1480,21 @@
+ correct modes have zero limiting mass.
+ \end{proof}
+ 
++\paragraph{Worked example: the metric changes which modes grow.}
++At the running example's $P(0)=0.5$, $q(0)=(0.6,0.3,0.1)$, and $G=4$,
++Dr.GRPO has $c(P)=3/4$. Without replay, the Fisher flow gives
++$\dot P(0)=0.1875$ and $\dot q(0)=0$: the model learns correctness while
++keeping its correct-mode proportions. With the uniform three-mode target
++$w=(1/3,1/3,1/3)$ and $\rho=0.1$, the same initial distribution instead gives
++\[
++ \dot P(0)=0.2375,\qquad
++ \dot q(0)\approx(-0.05333,\ 0.00667,\ 0.04667).
++\]
++Replay now increases the rare third mode's share among correct responses.
++Equation~\eqref{ext:eq-natural-retention} also guarantees $p_3(t)\ge0.05$
++for all time in this ideal flow. These are instantaneous derivatives and a
++trajectory bound, not the result of taking a discrete optimizer step.
++
+ The smooth potentials with positive derivatives in
+ Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} satisfy the premises. The Fisher-gradient formula
+ is established information geometry; the result above is its elementary
+@@ -1416,6 +1508,12 @@
+ 
+ \subsection{Exact entropy and sampled surprisal have different guarantees}
+ \label{app:theory-entropy}
++
++
++To interpret an entropy ablation, we must specify whether the update
++differentiates exact entropy or applies a bounded score to sampled responses.
++The two lemmas below make that distinction explicit.
++
+ The preceding collapse theorem has no entropy term. It does not imply collapse
+ under exact Shannon-entropy regularization, which has a different vector field.
+ 
+@@ -1471,6 +1569,20 @@
+ first-order conditions give the stated Gibbs distribution.
+ \end{proof}
+ 
++\paragraph{Worked example: exact full entropy preserves incorrect mass too.}
++For a separate hypothetical fixture with two correct categories and one
++incorrect category, take $G=4$, $\Psi(P)=3P/4$, and $\beta=1/4$.
++The reward-to-entropy ratio is $a/\beta=3$, so the lemma gives
++\[
++ p^*=\frac{(e^3,e^3,1)}{2e^3+1}
++       \approx(0.48786,\ 0.48786,\ 0.02429),
++ \qquad P^*\approx0.97571.
++\]
++Both correct modes survive equally, but the incorrect category also retains
++about $2.43\%$ probability. This is the limit of the exact full-output
++entropy flow under the lemma's assumptions; it is not a prediction for the
++historical sampled semantic score.
++
+ This result concerns exact entropy over the finite output categories in the
+ reduction. Entropy over completion strings, conditional verified keys, and
+ sampled token distributions are different objectives. It does not certify a
+@@ -1513,6 +1625,10 @@
+ 
+ \subsection{Exact conditional entropy and replay target the same optimum}
+ \label{app:theory-entropy-comparison}
++
++Two regularizers can favor the same uniform target while assigning different
++penalties to rare modes. The following identities locate that difference.
++
+ 
+ The distinction between confidence penalties and label smoothing is a known
+ choice of KL direction \citep[Section~3.2]{pereyra2017confidencepenalty}.
+@@ -1563,6 +1679,23 @@
+ so the resulting full categorical distribution is unique.
+ \end{proof}
+ 
++\paragraph{Worked example: separate correctness from conditional spread.}
++For the running distribution $p=(0.30,0.15,0.05,0.50)$, the uniform target
++on the three correct modes gives
++\[
++ \begin{aligned}
++ H(q)&\approx\log3-0.20067\approx0.89795,\\
++ R_u(p)&\approx\log3-\log0.5+0.24052\approx2.03228.
++ \end{aligned}
++\]
++The subtracted $0.20067$ is $\operatorname{KL}(q\|u)$; the added $0.24052$
++is $\operatorname{KL}(u\|q)$. Raising $P$ from $0.5$ to $0.9$ while holding
++$q$ fixed leaves $H(q)$ unchanged but reduces replay loss by
++$\log(0.9/0.5)\approx0.58779$. Thus replay's loss measures both correct mass
++and allocation within it; conditional entropy measures only the latter.
++The correctness potential $\Psi(P)$ supplies the first objective's incentive
++to increase $P$.
++
+ Full-output entropy $H(p)$ is a different comparator. Its Gibbs optimum in
+ Lemma~\ref{lem:entropy-scope} follows the standard entropy-conjugacy
+ calculation \citep[Section~2.2]{geist2019regmdp}. That optimum assigns positive
+@@ -1594,6 +1727,10 @@
+ \subsection{When replay supplies a signal that fresh groups lack}
+ \label{app:theory-gradient-availability}
+ 
++High accuracy can remove the reward contrasts that fresh-group learning
++needs. A stored target can still supply a learning signal in that regime.
++
++
+ The collapse theorem concerns an expected direction. A separate question is
+ how often a finite group supplies any task signal, and whether a stored mode
+ must reappear in that group before receiving a nonzero update from the replay objective.
+@@ -1637,6 +1774,20 @@
+ which gives the strictly positive limiting norm for $k\ge2$.
+ \end{proof}
+ 
++\paragraph{Worked example: a rare key need not reappear to receive replay.}
++Consider the hypothetical policy $p=(0.600,0.389,0.001,0.010)$, with the
++first three categories correct, and take $G=16$. Its $P=0.99$ gives
++\[
++ h_{16}(0.99)=1-0.99^{16}-0.01^{16}\approx0.14854.
++\]
++Only about $14.85\%$ of groups offer a fresh task-gradient opportunity.
++The third key is absent with probability $0.999^{16}\approx0.98412$.
++Nevertheless, uniform replay over the three correct keys with $\rho_w=0.1$
++has third logit coordinate
++$v^{\rm replay}_3=0.1(1/3-0.001)\approx0.03323$, including on groups that
++miss that key. The two sampling probabilities describe different events;
++the replay value is the deterministic full-bank vector from the lemma.
++
+ Here the replay vector averages the fixed bank; a stochastic draw of one
+ exemplar has this vector only in expectation. Its nonzero logit coordinate
+ does not guarantee a nonzero neural-parameter gradient after multiplication
+@@ -1647,6 +1798,11 @@
+ 
+ \subsection{Why uniform verified replay prevents extinction}
+ \label{app:theory-replay}
++
++A persistent replay signal becomes a retention guarantee when vanishing
++probability would force a bounded loss to diverge. The next argument makes
++that loss barrier explicit, then shows what changes with unequal weights
++and incomplete coverage.
+ 
+ Let $\mathcal B\subseteq\mathcal C$ be a nonempty fixed bank of $k$ modes that
+ the policy has produced and the validator has accepted. Uniform verified replay
+@@ -1722,6 +1878,19 @@
+ Equation~\eqref{eq:replay-retention-bound} for every time after $T$.
+ \end{proof}
+ 
++\paragraph{Worked example: a rare mode cannot hide inside a bounded loss.}
++In \hyperref[ex:theory-running]{the running example}, bank the first and third correct modes,
++whose probabilities are $.30$ and $.05$. Their uniform replay loss is
++$R_{\mathcal B}=-\tfrac12\log(.30\cdot.05)\approx2.09985$.
++For the illustrative Dr.GRPO choices $G=4$ and $\rho=.30$,
++$C_T=R_{\mathcal B}+(.75)(1-.50)/.30\approx3.34985$, giving a floor
++$p_b\ge e^{-2C_T}\approx0.00123127$. The point is the constraint on the
++loss: if either banked probability fell to $10^{-4}$, its term alone would
++contribute $-\tfrac12\log(10^{-4})\approx4.60517>C_T$.
++The other term is nonnegative and cannot cancel this increase. These are
++hypothetical categorical values; the argument explains the barrier without
++making its conservative floor an experimental prediction.
++
+ This is a qualitative positivity statement, not a useful numerical guarantee.
+ If a prompt receives fresh updates with frequency $\nu_x>0$ and replay with
+ frequency $\mu_x>0$, normalizing time by its fresh-update frequency gives
+@@ -1836,6 +2005,15 @@
+ Equal averaging of per-token exemplar scores does not imply uniform learned
+ key probabilities; the categorical uniformity corollary is not that claim.
+ 
++\paragraph{Worked example: equal key sampling need not imply a uniform target.}
++For three singleton categorical exemplars of lengths $10,20,40$, equal
++averaging of mean-token losses gives $A=7/120$ and
++$w=(4/7,2/7,1/7)$. All three target weights are positive, so each mode is
++protected, but the full-coverage categorical limit assigns the shortest
++exemplar four times the probability of the longest. Equal lengths would
++instead give $(1/3,1/3,1/3)$. This example concerns the loss's induced
++categorical target, not an asserted distribution over actual LM keys.
++
+ The premise $\mathcal B=\mathcal C$ is not a description of the released
+ Python-factors experiments. Their prompts have 16--3,600 valid execution modes
+ (mean 229.44), while the replay bank has capacity 16. Thus the corollary is
+@@ -1920,8 +2098,30 @@
+ retention bounds under additional energy assumptions; they do not extend this
+ fixed-bank convergence limit to arbitrary neural training.
+ 
++\paragraph{Worked example: a safe logit step and an incomplete bank.}
++Return to the two-mode bank above with $\rho_w=.30$, $G=4$, and Dr.GRPO.
++Here $L=.525$, so $\eta=1$ satisfies $0<\eta<2/L\approx3.81$.
++One deterministic logit-gradient step changes the running distribution
++approximately as
++\[
++ (.30,.15,.05,.50)\ \longmapsto\ (.3861,.1643,.0632,.3864),
++\]
++while the potential falls from about $.25496$ to $.09689$.
++Both banked modes gain probability. The unbanked second correct mode also
++gains on this first step, but the lemma's eventual limit is
++$(.50,0,.50,0)$: early improvement of an unbanked mode does not make it
++protected. The step size here belongs to the independent-logit example;
++it is not a recommendation for the neural optimizer.
++
+ \subsection{From categorical modes to complete replayed responses}
+ \label{app:theory-exemplar-bridge}
++
++The categorical analysis protects an execution key, whereas the learner
++scores a particular response string. The bridge is event containment: one
++complete verified response is one way to produce its key. A bound on its
++sequence surprisal therefore protects the key even when many other strings
++realize the same behavior. Length normalization changes the numerical loss
++scale, so its factor must remain explicit in that bound.
+ 
+ \begin{lemma}[Retention from a joint exemplar potential]
+ \label{lem:shared-exemplar-retention}
+@@ -1949,6 +2149,18 @@
+ The complete-response event is a subset of the event producing key $b_j$,
+ which proves the stated lower bound on every protected key's probability.
+ \end{proof}
++
++\paragraph{Example: a token average is not a response probability.}
++Suppose a complete response has four scored tokens, including termination,
++and each token has conditional probability $1/2$ along that response. Its
++mean log likelihood is $-\log2$, but its complete-response probability is
++$(1/2)^4=1/16$; exponentiating the mean gives $1/2$, the geometric mean of
++token probabilities. For a single protected exemplar with $L=4$, $\alpha=1$,
++and joint energy ceiling $D=\log2$, the lemma gives exactly the $1/16$ floor.
++If a different complete response with the same key has probability $1/32$,
++the two disjoint response events together give key probability at least
++$1/16+1/32=3/32$. The exemplar bound can thus be conservative even when its
++sequence probability is known exactly.
+ 
+ Exact gradient flow of a smooth joint potential is one sufficient condition
+ for this monotonicity; the lemma requires only the stated energy inequality.
+@@ -1983,8 +2195,21 @@
+ The energy floors can make this budget impractically large; asymptotic
+ retention does not imply visibility in an eight-draw evaluation.
+ 
++\paragraph{Example: protection can still be hard to observe.}
++A key with probability exactly $1/16$ appears in eight independent draws
++with probability $1-(15/16)^8\approx0.403$. If four keys each have a $1/16$
++floor, the sufficient budget above is
++$\lceil16\log(4/0.05)\rceil=71$ draws for at least $95\%$ probability of
++seeing all four. These hypothetical probabilities distinguish retaining a
++mode from reliably observing it in a short evaluation.
++
+ \subsection{Retention under discrete stochastic optimizer updates}
+ \label{app:theory-optimizer}
++
++For discrete noisy updates, the useful quantity is the total upward drift
++allowed in the joint loss. Controlling that budget permits individual steps
++to increase the loss while keeping a high-probability ceiling on the loss
++over a stated update horizon.
+ 
+ Lemma~\ref{lem:shared-exemplar-retention} converts a deterministic energy
+ ceiling into complete-exemplar protection. We next replace pathwise descent
+@@ -2079,6 +2304,22 @@
+ needed for retention alone, and the theorem does not assert stationarity,
+ parameter convergence, or a useful evaluation-scale probability floor.
+ 
++\paragraph{Example: a noise budget for one protected response.}
++Consider a hypothetical fixed one-token horizon with two possible complete
++responses and
++$\pi_\theta(e)=(1+e^{-\theta})^{-1}$, $L=\alpha=1$, and
++$F=R=-\log\pi_\theta(e)$, with $J=J_{\max}=0$. Start at $\theta_0=0$, so
++$D_0=\log2$. This scalar objective has $L_F=1/4$ and $|g_t|\le1$.
++Take $H_t=1$, zero bias, and independent noise $\xi_t\in\{-0.1,0.1\}$ with
++equal probabilities. At constant step $\eta_t=0.1$, the theorem permits
++$d_t=1/80000$, giving $B_{100}=0.00125$ but $B_\infty=\infty$.
++With $\eta_t=0.1/(t+1)$ instead,
++$B_\infty=\pi^2/480000\approx2.06\times10^{-5}$, which supplies the
++infinite-horizon condition. For the constant-step, 100-update case, the
++$95\%$ probability floor from~\eqref{ext:eq-stochastic-retention} is only
++$\exp[-(\log2+0.00125)/0.05]\approx9.30\times10^{-7}$.
++The next result uses bounded noise to improve this confidence dependence.
++
+ \begin{corollary}[Sharper confidence dependence under bounded noise]
+ \label{ext:cor-bounded-noise-retention}
+ Under the assumptions of Theorem~\ref{ext:thm-stochastic-retention},
+@@ -2126,6 +2367,15 @@
+ when $V_N>0$; when $V_N=0$, the sum is identically zero. Sum the drift inequalities, drop the nonpositive gradient terms,
+ and apply the summand bound from Theorem~\ref{ext:thm-stochastic-retention}.
+ \end{proof}
++
++In the same 100-update example, $G_t=M=1$ and $s_t=0.1$ give
++$V_{100}=0.01$ and $Q_{100}=0.00125$. The sharper $95\%$ floor is therefore
++\[
++ \exp\!\left[-\log2-0.00125-\sqrt{0.02\log20}\right]\approx0.391.
++\]
++Both bounds apply simultaneously to the toy trajectory's first 100 updates;
++the improvement comes from stronger noise assumptions. These toy constants are assigned for the calculation; they do not
++estimate noise or curvature in the language-model runs.
+ 
+ \paragraph{Relation to stochastic policy-gradient guarantees.}
+ \citet{zhang2021reinforce} analyze stochastic tabular REINFORCE with a
+@@ -2144,6 +2394,11 @@
+ 
+ \subsection{Discovery, admission, and retention through bank changes}
+ \label{app:theory-discovery-admission}
++
++Discovery and retention require two separate budgets: enough opportunities
++to admit a missing key, and enough persistent loss weight to protect it
++after admission. Bank growth connects the two because admitting a key can
++also change the objective used to protect earlier keys.
+ 
+ Retention begins only after a verified key enters active memory. Archive
+ exploration separates discovery from reliable return to a discovered state
+@@ -2210,6 +2465,17 @@
+ Iteration and a union bound prove the claims without independence across
+ opportunities.
+ \end{proof}
++
++\paragraph{Example: turn an admission floor into a budget.}
++Suppose a prompt has four possible correct keys and at least four bank slots.
++At each opportunity, every missing key is generated with probability at least
++$0.04$ and inserted, conditional on appearing, with probability at least
++$1/2$. Its actual admission hazard is therefore at least $0.02$. The lemma
++gives $4e^{-0.02N}$ as a failure bound, so
++$N=\lceil\log(4/0.05)/0.02\rceil=220$ opportunities suffice for at least
++$95\%$ probability of full admission. With only two non-evicting slots,
++full admission of those four keys is impossible; after the bank fills, the
++missing keys' admission hazards become zero despite continued generation.
+ 
+ Positive probability at every opportunity is insufficient. Independent
+ opportunities with admission probabilities $(n+1)^{-2}>0$ give
+@@ -2294,6 +2560,19 @@
+ subsequent interval; the same nonnegative-summand proof applies even if the
+ representative changes.
+ 
++\paragraph{Example: adding a rare key has a calculable energy cost.}
++Take $\rho=0.3$ and a two-key categorical bank whose keys each have
++probability $1/4$, so $R_2=\log4$. Add a third key with probability $1/16$,
++without changing the policy at that instant. Then
++\[
++ \Delta F=\frac{0.3}{3}(\log16-\log4)
++          =0.1\log4\approx0.1386.
++\]
++The earlier keys' coefficients decrease from $0.15$ to $0.10$. A
++capacity-three bank still supplies a $0.10$ coefficient floor, but the
++positive jump $0.1386$ must enter the energy budget. This is why retention
++through admission needs both the coefficient floor and the switch cost.
++
+ \begin{corollary}[Conditional discovery followed by retention]
+ \label{ext:cor-discovery-retention}
+ Suppose one prompt's entire correct support $\mathcal C$ is finite, of size
+@@ -2428,11 +2707,18 @@
+  \frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
+ \]
+ Normalization improves the termwise certificate $p_b\ge e^{-C/w_b}$.
+-As a hypothetical example, a uniform bank of 16 with
+-$C=\log16+0.01$ yields $p_b\ge0.0339712$, while the termwise bound is
+-approximately $4.62\times10^{-20}$. These are illustrative mathematical
+-inputs, not measured replay losses. A large excess cross entropy can still
+-make even the sharp bound too small to be useful.
++
++\paragraph{Worked example: normalization turns a tiny floor into a useful one.}
++Suppose hypothetically that a uniform bank of 16 has the certified loss bound
++$C=\log16+0.01$: only $.01$ nat above the target's minimum cross entropy.
++The earlier termwise argument gives approximately $4.62\times10^{-20}$ per
++mode. Accounting for the other fifteen probabilities instead gives
++$p_b\ge0.0339712$, about $3.4\%$ for every mode, against a uniform target of
++$6.25\%$. It also certifies total bank mass at least $e^{-.01}\approx99.00\%$.
++The improvement uses normalization: one probability cannot become very small
++while the others absorb arbitrary mass and keep this loss almost minimal.
++These are mathematical inputs, not measured replay losses. A large excess
++cross entropy can still make even the sharp bound too small to be useful.
+ 
+ \subsubsection{What a scalar entropy value can certify}
+ 
+@@ -2465,6 +2751,18 @@
+ restricting to strictly positive coordinates permits arbitrarily small
+ values by approximation.
+ \end{proof}
++
++\paragraph{Worked example: a reported entropy of $97.7\%$ can hide a missing mode.}
++On a known sixteen-mode alphabet, let one mode have probability zero and the
++other fifteen share mass equally. Then
++\[
++ H(q)=\log15,\qquad \frac{H(q)}{\log16}\approx0.97672.
++\]
++Thus entropy rounds to $97.7\%$ of its maximum although one mode is entirely
++absent. Its forward-KL gap to uniform is only
++$\log(16/15)\approx0.06454$ nat. The theorem requires a strict entropy bound
++above $\log15$ to exclude this example; a nearly maximal scalar entropy by
++itself does not certify all sixteen coordinates.
+ 
+ For uniform $u$, $H(q)=\log m-\operatorname{KL}(q\|u)$, and data processing
+ gives $\operatorname{kl}(q_b,1/m)\le\operatorname{KL}(q\|u)$. A forward-KL
+@@ -2507,6 +2805,21 @@
+ the individual bound used in Lemma~\ref{lem:shared-exemplar-retention}.
+ \end{proof}
+ 
++\paragraph{Worked example: two responses can protect the same key.}
++At a hypothetical checkpoint, two distinct complete responses for key $A$
++each have probability $.20$, a response for key $B$ has probability $.40$,
++and the remaining $.20$ is invalid. Give these three responses target weights
++$w=(1/4,1/4,1/2)$. Their cross entropy satisfies
++$C-H(w)=\log(1.25)\approx.22314$.
++For key $A$, combine the first two target weights to obtain $W_A=1/2$;
++the certificate then gives $p(A)\ge.20$, since
++$\operatorname{kl}(.50,.20)=\log(1.25)$.
++Certifying each response separately and adding the two floors would give only
++about $.1009$. The actual key probability in this constructed example is
++$.20+.20=.40$. Grouping complete responses by their shared execution key
++therefore strengthens the certificate without treating either response as
++the whole key.
++
+ The probability being scored must include EOS or another specified
+ termination event, or a fixed deterministic horizon. It must use the same
+ prompt formatting, temperature, vocabulary mask, top-$p$/top-$k$ rule,
+@@ -2542,13 +2855,19 @@
+ \]
+ Indeed, $\Pr_{p_b}(X=0)=(1-p_b)^N<\alpha$ whenever $p_b>U_0$; for nonzero
+ counts, the full confidence procedure uses the corresponding binomial-tail
+-inversion. As hypothetical examples, zero sightings in 32 draws give an
+-upper bound of $0.08937$ at the one-sided 95\% level, or $0.16495$ when
+-Bonferroni protects 16 prespecified keys simultaneously. Two sightings in
+-32 draws instead give a one-sided 95\% lower bound of about $0.01122$ for
+-one prespecified key. The upper and lower examples are separate one-sided
+-limits; a joint interval requires allocation to both tails. Zero sightings
+-do not establish exact extinction.
++inversion.
++
++\paragraph{Worked example: unseen is not the same as absent.}
++For one key selected before sampling, zero sightings in 32 draws give a
++one-sided 95\% upper confidence bound of about $8.94\%$, with lower bound
++zero. The sample therefore does not establish exact extinction.
++If the claim must cover 16 prespecified keys simultaneously, Bonferroni
++allocates $.05/16$ error to each key; the zero-count upper bound becomes
++about $16.50\%$. Requiring simultaneous coverage makes the certificate weaker.
++Conversely, two sightings in 32 draws have empirical frequency $6.25\%$,
++but their one-sided 95\% lower confidence bound is only about $1.12\%$.
++These hypothetical upper and lower examples are separate one-sided limits;
++a joint interval requires allocation to both tails.
+ 
+ For repeated inspection of draws from a fixed policy, a confidence sequence
+ can provide validity under optional stopping \citep{howard2021confidence}.
+@@ -2578,6 +2897,16 @@
+ A probability bound at observed checkpoints alone makes no claim about
+ unobserved intervening or subsequent training states.
+ 
++\paragraph{Worked example: repeated checkpoints spend an error budget.}
++Suppose the plan specifies 16 keys at each of ten frozen checkpoints, with
++32 new draws per checkpoint. There are 160 key--checkpoint statements.
++Allocating $.05/160$ to each gives simultaneous 95\% coverage by a union
++bound, without requiring the key counts to be independent. A zero count then
++has an upper bound of about $22.29\%$. Pooling all 320 draws would not fix
++this weakness: the ten checkpoints can have different key probabilities.
++The confidence sequence above instead permits repeated inspection and a
++data-dependent stopping time while sampling one fixed checkpoint.
++
+ For an unknown catalogue, missing mass is the total probability of categories
+ not yet observed under a fixed iid law. Concentration results address this
+ quantity \citep{mcallester2003missing,berend2013missing}; it is neither the
+@@ -2585,6 +2914,9 @@
+ certify each named key, and stationary missing-mass formulas do not directly
+ apply to a history generated by changing policies. Named-key binomial counts
+ provide the direct measurement of per-mode visibility.
++For example, a hypothetical missing mass of $.10$ could consist of one
++unseen mode with probability $.10$ or one hundred unseen modes of probability
++$.001$ each; the same aggregate mass does not identify how many keys are missing.
+ 
+ \begin{remark}[Exact scope of the ReplayMaxRL guarantee]
+ The categorical replay theorem protects represented bank modes after discovery;
+--- before/paper/mathai2026/appendix.tex
++++ after/paper/mathai2026/appendix.tex
+@@ -503,45 +503,42 @@
+ 
+ 
+ 
+-\section{Why On-Policy RL Can Lose Modes and Verified Replay Retains Them}
++\section{Mode Collapse and Verified Replay}
+ \label{app:theory}
+ 
+ \noindent\emph{Main-body link.} This appendix supplies the formal claims
+ invoked in Sections~\ref{sec:method} and~\ref{sec:results}.
+ 
+-This appendix separates two questions that are easy to conflate: whether a
+-binary-reward group update preserves ratios among already correct modes, and
+-whether verified replay preserves modes the policy has produced
+-and the validator has accepted. The first admits a generic-collapse result in a
+-finite model with independently trained categorical logits. The second necessarily requires a coverage
+-assumption: the replay term directly protects only represented bank modes;
+-it does not by itself guarantee retention of modes never sampled or constructed. We therefore
+-prove support preservation first and state full no-collapse as a coverage
+-corollary. Accordingly, the positive theorem explains the stability mechanism
+-after discovery; it does not prove that a ReplayMaxRL policy will establish its own
+-coverage premise in a language model.
++A binary verifier assigns the same reward to every correct mode, but an
++update can still amplify the most common one. We first explain that mechanism
++in a finite categorical model, then ask what changes when we alter the update
++geometry, add entropy, or replay earlier successes. Replay directly protects
++represented modes; discovery, admission, and reliable neural optimization
++remain separate requirements.
+ 
+ \paragraph{How to read the proof chain.}
+-The group-expectation lemmas first reduce the fresh task update to a positive
+-multiple of the correctness gradient. The collapse theorem then separates
+-that scalar learning clock from the within-correct-mode dynamics. The shared
+-correctness theorem compares those dynamics at matched accuracy, and
+-Corollary~\ref{cor:collapse-error-rate} quantifies their eventual loss.
+-Lemmas~\ref{lem:entropy-scope} and~\ref{lem:sampled-score-bound} separate
+-exact entropy regularization from bounded sampled surprisal.
+-Lemma~\ref{lem:replay-gradient-availability} distinguishes a fresh task signal
+-from a replay signal. The retention theorem and its fixed-bank limit then
+-identify exactly which stored modes survive. The natural-gradient comparison
+-in Section~\ref{app:theory-natural-gradient} makes the role of update geometry
+-explicit, while Section~\ref{app:theory-entropy-comparison} relates exact entropy
+-to replay through their distinct relative-entropy objectives.
+-Lemma~\ref{lem:shared-exemplar-retention} then states the energy condition
+-needed for complete exemplars in a shared model. The remaining sections extend
+-that condition to controlled stochastic updates and changing banks, and derive
+-sharp per-mode certificates and valid finite-sample interpretations
+-(Sections~\ref{app:theory-optimizer}--\ref{app:theory-survival-certificates}).
+-Each extension states its additional assumptions and the established
+-literature tools used in its proof.
++Begin with the three-correct-mode example in
++Section~\ref{app:theory-grpo-mean}. The group calculations reveal why a
++correctness gradient need not balance correct alternatives, and the next
++section turns the local imbalance into an asymptotic collapse theorem.
++Sections~\ref{app:theory-size}--\ref{app:theory-entropy-comparison} then vary
++geometry and entropy: they show both how collapse can slow and why it is not
++a universal consequence of rewarding correctness.
++
++The second part asks what replay adds. Sections~\ref{app:theory-gradient-availability}
++and~\ref{app:theory-replay} separate a missing fresh signal from a persistent
++bank signal, then turn bounded replay loss into protected probabilities.
++The remaining sections connect that argument to complete responses,
++controlled stochastic updates, and actual bank admission. Finally,
++Section~\ref{app:theory-survival-certificates} shows how much those bounds
++can certify and what finite observations can establish about a named mode.
++Each proof states its assumptions and attributes the literature tools it uses.
++
++All worked numbers below are illustrative calculations in the stated models,
++not measurements from the training runs. Unless a new example is introduced,
++the examples reuse the same three correct modes and one incorrect category.
++Comparisons keep the optimized objective, decoding law, and time variable
++explicit, since changing any of these can change the conclusion.
+ 
+ Here $G$ counts training rollouts, $K$ counts evaluation draws, $m,n$ count
+ correct and incorrect categories, and $k$ is the bank size. In the mean-flow results, $t$ is
+@@ -563,6 +560,17 @@
+ $q_c=p_c/P$. Thus $q$ is exactly the conditional correct-mode distribution
+ $p_\theta^+(\cdot\mid x)$ defined in Appendix~\ref{app:metrics}, and $P$ is the correct
+ mass $P_\theta^+(x)$.
++
++\paragraph{Running example: three correct alternatives.}
++\label{ex:theory-running}
++Take three correct modes and one incorrect category, with
++\[
++ p=(0.30,0.15,0.05,0.50),\qquad P=0.50,\qquad q=(0.60,0.30,0.10).
++\]
++Half of all draws succeed, but among successful draws the three modes appear
++in a $6{:}3{:}1$ ratio. Increasing $P$ and balancing $q$ are therefore
++separate goals. We reuse this hypothetical distribution below to distinguish
++the effects of the fresh objective, optimizer geometry, and replay.
+ 
+ Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+ write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
+@@ -690,6 +698,21 @@
+ the exact finite-group expectation at the on-policy point; it does not assert
+ unbiasedness of subsequent clipped or adaptive-optimizer updates.
+ 
++\paragraph{What the group normalization changes.}
++For the running example with $G=4$,
++$\nabla_zP=(0.15,0.075,0.025,-0.25)$. The two lemmas give
++\[
++ \begin{aligned}
++ \mathbb E[\widehat g_4^{\rm Dr.GRPO}]&=0.75\,\nabla_zP,\\
++ \mathbb E[\widehat g_4^{\rm MaxRL}]&=1.75\,\nabla_zP.
++ \end{aligned}
++\]
++These are expectations over all possible groups, not updates from one
++particular sample. MaxRL moves faster along the same direction at this
++state, while the most common correct mode receives six times the logit
++increment of the rarest. The next section asks what repeated unequal
++increments do to the relative probabilities of equally rewarded modes.
++
+ \subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+ \label{app:theory-collapse}
+ 
+@@ -710,6 +733,18 @@
+ theorem is not claimed as a new replicator-dynamics result. Its role is to show
+ that the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that
+ familiar winner-take-all flow under the paper's categorical assumptions.
++
++\paragraph{A local view of the instability.}
++For $q=(0.60,0.30,0.10)$ in \hyperref[ex:theory-running]{the running example},
++$\sum_cq_c^2=0.46$. In the effective time $\tau$ defined in the proof,
++Equation~\eqref{eq:grpo-replicator} gives
++\[
++ \frac{dq}{d\tau}=(0.084,-0.048,-0.036),\qquad
++ \frac{d}{d\tau}\log\frac{q_1}{q_2}=0.30.
++\]
++The two less common modes lose their share of successful outputs even while
++correctness increases. This calculation is local; the theorem establishes
++that the imbalance persists all the way to the single-mode limit.
+ 
+ \begin{theorem}[Standard replicator specialization for binary-reward RL]
+ \label{thm:grpo-collapse}
+@@ -782,6 +817,12 @@
+ $k$ modes. Any perturbation creating a unique maximum gives single-mode
+ collapse by Theorem~\ref{thm:grpo-collapse}.
+ \end{corollary}
++
++\paragraph{An exact tie is a different initial condition.}
++Starting instead from $q=(0.45,0.45,0.10)$ gives the limit
++$(0.50,0.50,0)$. Changing the initialization to $(0.451,0.449,0.10)$ makes
++the first mode the unique winner. Thus an exactly symmetric two-mode limit
++does not imply robustness to a small imbalance in the initial policy.
+ 
+ Finite groups also introduce sampling effects: a mode absent from
+ a group has no sampled response of its own carrying a score term,
+@@ -896,6 +937,29 @@
+ under a unique initial maximum.
+ \end{proof}
+ 
++\paragraph{Same accuracy, different remaining breadth.}
++Start from \hyperref[ex:theory-running]{the running example} and stop each idealized flow when
++$P$ first reaches $0.90$. Both policies then have
++$\texttt{pass@8}=1-10^{-8}$. Numerical integration of
++Equation~\eqref{eq:shared-correctness-clock} gives the following illustrative
++values; the probability floors are calculated separately from
++Equation~\eqref{eq:shared-correctness-bound} with $L=\log9$.
++\begin{center}
++\begin{tabular}{@{}rrrr@{}}
++\toprule
++$\lambda$ & Conditional mass $q_3$ & Guaranteed $q_3$ floor & $\texttt{distinct@8}$ \\
++\midrule
++$0$ & $0.05255$ & $0.01924$ & $2.125$ \\
++$4$ & $0.08582$ & $0.06623$ & $2.374$ \\
++\bottomrule
++\end{tabular}
++\end{center}
++The trajectory values are rounded approximations; the displayed floors are
++rounded down. The shared direction preserves more of the initially rare mode
++at the same correctness, but its mass still falls below its initial $0.10$.
++A better finite-accuracy trajectory can therefore coexist with eventual loss,
++as the next corollary makes precise.
++
+ \begin{corollary}[Collapse rate as correctness approaches one]
+ \label{cor:collapse-error-rate}
+ Under Theorem~\ref{thm:shared-correctness}, fix finite $\lambda\ge0$
+@@ -934,6 +998,12 @@
+ Equation~\eqref{eq:collapse-error-exponent}.
+ \end{proof}
+ 
++\paragraph{A smaller exponent still permits extinction.}
++With one incorrect category, the minority-mode exponents are $1/2$ at
++$\lambda=0$ and $1/6$ at $\lambda=4$. Both are positive, so both limits
++lose minority modes as $P\uparrow1$. These are asymptotic logarithmic slopes;
++they do not replace the finite-accuracy values in the preceding table.
++
+ \paragraph{Correctness alone does not imply collapse.}
+ The independent-logit component matters. With purely shared geometry
+ $\mathsf K=\lambda vv^\top$, $\lambda>0$, all correct logits move equally,
+@@ -952,8 +1022,10 @@
+ $\mathsf K=h^{1-2\gamma}I$. Its policy follows exactly the original collapse
+ trajectory with time multiplied by $h^{1-2\gamma}$. Increasing the parameter
+ count therefore makes collapse faster, unchanged, or slower for
+-$\gamma=0,1/2,1$, respectively. A size claim requires assumptions about how
+-additional parameters change the update geometry, not just their number.
++$\gamma=0,1/2,1$, respectively. For example, using $h=4$ multiplies the speed by $4$, $1$, or $1/4$
++under those three normalizations, despite quadrupling the parameter count
++in every case. A size claim therefore requires assumptions about how
++additional parameters change the update geometry.
+ 
+ \paragraph{What this explains and what remains untested.}
+ Theorem~\ref{thm:shared-correctness} connects a specified kind of shared
+@@ -971,6 +1043,11 @@
+ 
+ \subsection{An exact optimizer comparison from information geometry}
+ \label{app:theory-natural-gradient}
++
++Changing the optimization metric lets us isolate correctness learning from
++changes among correct alternatives. The next result shows both effects in
++separate equations for $P$ and $q$.
++
+ 
+ Natural gradient on the categorical simplex uses the Fisher metric, also
+ called the Shahshahani metric in evolutionary dynamics
+@@ -1059,6 +1136,21 @@
+ correct modes have zero limiting mass.
+ \end{proof}
+ 
++\paragraph{Worked example: the metric changes which modes grow.}
++At the running example's $P(0)=0.5$, $q(0)=(0.6,0.3,0.1)$, and $G=4$,
++Dr.GRPO has $c(P)=3/4$. Without replay, the Fisher flow gives
++$\dot P(0)=0.1875$ and $\dot q(0)=0$: the model learns correctness while
++keeping its correct-mode proportions. With the uniform three-mode target
++$w=(1/3,1/3,1/3)$ and $\rho=0.1$, the same initial distribution instead gives
++\[
++ \dot P(0)=0.2375,\qquad
++ \dot q(0)\approx(-0.05333,\ 0.00667,\ 0.04667).
++\]
++Replay now increases the rare third mode's share among correct responses.
++Equation~\eqref{ext:eq-natural-retention} also guarantees $p_3(t)\ge0.05$
++for all time in this ideal flow. These are instantaneous derivatives and a
++trajectory bound, not the result of taking a discrete optimizer step.
++
+ The smooth potentials with positive derivatives in
+ Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} satisfy the premises. The Fisher-gradient formula
+ is established information geometry; the result above is its elementary
+@@ -1072,6 +1164,12 @@
+ 
+ \subsection{Exact entropy and sampled surprisal have different guarantees}
+ \label{app:theory-entropy}
++
++
++To interpret an entropy ablation, we must specify whether the update
++differentiates exact entropy or applies a bounded score to sampled responses.
++The two lemmas below make that distinction explicit.
++
+ The preceding collapse theorem has no entropy term. It does not imply collapse
+ under exact Shannon-entropy regularization, which has a different vector field.
+ 
+@@ -1127,6 +1225,20 @@
+ first-order conditions give the stated Gibbs distribution.
+ \end{proof}
+ 
++\paragraph{Worked example: exact full entropy preserves incorrect mass too.}
++For a separate hypothetical fixture with two correct categories and one
++incorrect category, take $G=4$, $\Psi(P)=3P/4$, and $\beta=1/4$.
++The reward-to-entropy ratio is $a/\beta=3$, so the lemma gives
++\[
++ p^*=\frac{(e^3,e^3,1)}{2e^3+1}
++       \approx(0.48786,\ 0.48786,\ 0.02429),
++ \qquad P^*\approx0.97571.
++\]
++Both correct modes survive equally, but the incorrect category also retains
++about $2.43\%$ probability. This is the limit of the exact full-output
++entropy flow under the lemma's assumptions; it is not a prediction for the
++historical sampled semantic score.
++
+ This result concerns exact entropy over the finite output categories in the
+ reduction. Entropy over completion strings, conditional verified keys, and
+ sampled token distributions are different objectives. It does not certify a
+@@ -1169,6 +1281,10 @@
+ 
+ \subsection{Exact conditional entropy and replay target the same optimum}
+ \label{app:theory-entropy-comparison}
++
++Two regularizers can favor the same uniform target while assigning different
++penalties to rare modes. The following identities locate that difference.
++
+ 
+ The distinction between confidence penalties and label smoothing is a known
+ choice of KL direction \citep[Section~3.2]{pereyra2017confidencepenalty}.
+@@ -1219,6 +1335,23 @@
+ so the resulting full categorical distribution is unique.
+ \end{proof}
+ 
++\paragraph{Worked example: separate correctness from conditional spread.}
++For the running distribution $p=(0.30,0.15,0.05,0.50)$, the uniform target
++on the three correct modes gives
++\[
++ \begin{aligned}
++ H(q)&\approx\log3-0.20067\approx0.89795,\\
++ R_u(p)&\approx\log3-\log0.5+0.24052\approx2.03228.
++ \end{aligned}
++\]
++The subtracted $0.20067$ is $\operatorname{KL}(q\|u)$; the added $0.24052$
++is $\operatorname{KL}(u\|q)$. Raising $P$ from $0.5$ to $0.9$ while holding
++$q$ fixed leaves $H(q)$ unchanged but reduces replay loss by
++$\log(0.9/0.5)\approx0.58779$. Thus replay's loss measures both correct mass
++and allocation within it; conditional entropy measures only the latter.
++The correctness potential $\Psi(P)$ supplies the first objective's incentive
++to increase $P$.
++
+ Full-output entropy $H(p)$ is a different comparator. Its Gibbs optimum in
+ Lemma~\ref{lem:entropy-scope} follows the standard entropy-conjugacy
+ calculation \citep[Section~2.2]{geist2019regmdp}. That optimum assigns positive
+@@ -1250,6 +1383,10 @@
+ \subsection{When replay supplies a signal that fresh groups lack}
+ \label{app:theory-gradient-availability}
+ 
++High accuracy can remove the reward contrasts that fresh-group learning
++needs. A stored target can still supply a learning signal in that regime.
++
++
+ The collapse theorem concerns an expected direction. A separate question is
+ how often a finite group supplies any task signal, and whether a stored mode
+ must reappear in that group before receiving a nonzero update from the replay objective.
+@@ -1293,6 +1430,20 @@
+ which gives the strictly positive limiting norm for $k\ge2$.
+ \end{proof}
+ 
++\paragraph{Worked example: a rare key need not reappear to receive replay.}
++Consider the hypothetical policy $p=(0.600,0.389,0.001,0.010)$, with the
++first three categories correct, and take $G=16$. Its $P=0.99$ gives
++\[
++ h_{16}(0.99)=1-0.99^{16}-0.01^{16}\approx0.14854.
++\]
++Only about $14.85\%$ of groups offer a fresh task-gradient opportunity.
++The third key is absent with probability $0.999^{16}\approx0.98412$.
++Nevertheless, uniform replay over the three correct keys with $\rho_w=0.1$
++has third logit coordinate
++$v^{\rm replay}_3=0.1(1/3-0.001)\approx0.03323$, including on groups that
++miss that key. The two sampling probabilities describe different events;
++the replay value is the deterministic full-bank vector from the lemma.
++
+ Here the replay vector averages the fixed bank; a stochastic draw of one
+ exemplar has this vector only in expectation. Its nonzero logit coordinate
+ does not guarantee a nonzero neural-parameter gradient after multiplication
+@@ -1303,6 +1454,11 @@
+ 
+ \subsection{Why uniform verified replay prevents extinction}
+ \label{app:theory-replay}
++
++A persistent replay signal becomes a retention guarantee when vanishing
++probability would force a bounded loss to diverge. The next argument makes
++that loss barrier explicit, then shows what changes with unequal weights
++and incomplete coverage.
+ 
+ Let $\mathcal B\subseteq\mathcal C$ be a nonempty fixed bank of $k$ modes that
+ the policy has produced and the validator has accepted. Uniform verified replay
+@@ -1378,6 +1534,19 @@
+ Equation~\eqref{eq:replay-retention-bound} for every time after $T$.
+ \end{proof}
+ 
++\paragraph{Worked example: a rare mode cannot hide inside a bounded loss.}
++In \hyperref[ex:theory-running]{the running example}, bank the first and third correct modes,
++whose probabilities are $.30$ and $.05$. Their uniform replay loss is
++$R_{\mathcal B}=-\tfrac12\log(.30\cdot.05)\approx2.09985$.
++For the illustrative Dr.GRPO choices $G=4$ and $\rho=.30$,
++$C_T=R_{\mathcal B}+(.75)(1-.50)/.30\approx3.34985$, giving a floor
++$p_b\ge e^{-2C_T}\approx0.00123127$. The point is the constraint on the
++loss: if either banked probability fell to $10^{-4}$, its term alone would
++contribute $-\tfrac12\log(10^{-4})\approx4.60517>C_T$.
++The other term is nonnegative and cannot cancel this increase. These are
++hypothetical categorical values; the argument explains the barrier without
++making its conservative floor an experimental prediction.
++
+ This is a qualitative positivity statement, not a useful numerical guarantee.
+ If a prompt receives fresh updates with frequency $\nu_x>0$ and replay with
+ frequency $\mu_x>0$, normalizing time by its fresh-update frequency gives
+@@ -1492,6 +1661,15 @@
+ Equal averaging of per-token exemplar scores does not imply uniform learned
+ key probabilities; the categorical uniformity corollary is not that claim.
+ 
++\paragraph{Worked example: equal key sampling need not imply a uniform target.}
++For three singleton categorical exemplars of lengths $10,20,40$, equal
++averaging of mean-token losses gives $A=7/120$ and
++$w=(4/7,2/7,1/7)$. All three target weights are positive, so each mode is
++protected, but the full-coverage categorical limit assigns the shortest
++exemplar four times the probability of the longest. Equal lengths would
++instead give $(1/3,1/3,1/3)$. This example concerns the loss's induced
++categorical target, not an asserted distribution over actual LM keys.
++
+ The premise $\mathcal B=\mathcal C$ is not a description of the released
+ Python-factors experiments. Their prompts have 16--3,600 valid execution modes
+ (mean 229.44), while the replay bank has capacity 16. Thus the corollary is
+@@ -1576,8 +1754,30 @@
+ retention bounds under additional energy assumptions; they do not extend this
+ fixed-bank convergence limit to arbitrary neural training.
+ 
++\paragraph{Worked example: a safe logit step and an incomplete bank.}
++Return to the two-mode bank above with $\rho_w=.30$, $G=4$, and Dr.GRPO.
++Here $L=.525$, so $\eta=1$ satisfies $0<\eta<2/L\approx3.81$.
++One deterministic logit-gradient step changes the running distribution
++approximately as
++\[
++ (.30,.15,.05,.50)\ \longmapsto\ (.3861,.1643,.0632,.3864),
++\]
++while the potential falls from about $.25496$ to $.09689$.
++Both banked modes gain probability. The unbanked second correct mode also
++gains on this first step, but the lemma's eventual limit is
++$(.50,0,.50,0)$: early improvement of an unbanked mode does not make it
++protected. The step size here belongs to the independent-logit example;
++it is not a recommendation for the neural optimizer.
++
+ \subsection{From categorical modes to complete replayed responses}
+ \label{app:theory-exemplar-bridge}
++
++The categorical analysis protects an execution key, whereas the learner
++scores a particular response string. The bridge is event containment: one
++complete verified response is one way to produce its key. A bound on its
++sequence surprisal therefore protects the key even when many other strings
++realize the same behavior. Length normalization changes the numerical loss
++scale, so its factor must remain explicit in that bound.
+ 
+ \begin{lemma}[Retention from a joint exemplar potential]
+ \label{lem:shared-exemplar-retention}
+@@ -1605,6 +1805,18 @@
+ The complete-response event is a subset of the event producing key $b_j$,
+ which proves the stated lower bound on every protected key's probability.
+ \end{proof}
++
++\paragraph{Example: a token average is not a response probability.}
++Suppose a complete response has four scored tokens, including termination,
++and each token has conditional probability $1/2$ along that response. Its
++mean log likelihood is $-\log2$, but its complete-response probability is
++$(1/2)^4=1/16$; exponentiating the mean gives $1/2$, the geometric mean of
++token probabilities. For a single protected exemplar with $L=4$, $\alpha=1$,
++and joint energy ceiling $D=\log2$, the lemma gives exactly the $1/16$ floor.
++If a different complete response with the same key has probability $1/32$,
++the two disjoint response events together give key probability at least
++$1/16+1/32=3/32$. The exemplar bound can thus be conservative even when its
++sequence probability is known exactly.
+ 
+ Exact gradient flow of a smooth joint potential is one sufficient condition
+ for this monotonicity; the lemma requires only the stated energy inequality.
+@@ -1639,8 +1851,21 @@
+ The energy floors can make this budget impractically large; asymptotic
+ retention does not imply visibility in an eight-draw evaluation.
+ 
++\paragraph{Example: protection can still be hard to observe.}
++A key with probability exactly $1/16$ appears in eight independent draws
++with probability $1-(15/16)^8\approx0.403$. If four keys each have a $1/16$
++floor, the sufficient budget above is
++$\lceil16\log(4/0.05)\rceil=71$ draws for at least $95\%$ probability of
++seeing all four. These hypothetical probabilities distinguish retaining a
++mode from reliably observing it in a short evaluation.
++
+ \subsection{Retention under discrete stochastic optimizer updates}
+ \label{app:theory-optimizer}
++
++For discrete noisy updates, the useful quantity is the total upward drift
++allowed in the joint loss. Controlling that budget permits individual steps
++to increase the loss while keeping a high-probability ceiling on the loss
++over a stated update horizon.
+ 
+ Lemma~\ref{lem:shared-exemplar-retention} converts a deterministic energy
+ ceiling into complete-exemplar protection. We next replace pathwise descent
+@@ -1735,6 +1960,22 @@
+ needed for retention alone, and the theorem does not assert stationarity,
+ parameter convergence, or a useful evaluation-scale probability floor.
+ 
++\paragraph{Example: a noise budget for one protected response.}
++Consider a hypothetical fixed one-token horizon with two possible complete
++responses and
++$\pi_\theta(e)=(1+e^{-\theta})^{-1}$, $L=\alpha=1$, and
++$F=R=-\log\pi_\theta(e)$, with $J=J_{\max}=0$. Start at $\theta_0=0$, so
++$D_0=\log2$. This scalar objective has $L_F=1/4$ and $|g_t|\le1$.
++Take $H_t=1$, zero bias, and independent noise $\xi_t\in\{-0.1,0.1\}$ with
++equal probabilities. At constant step $\eta_t=0.1$, the theorem permits
++$d_t=1/80000$, giving $B_{100}=0.00125$ but $B_\infty=\infty$.
++With $\eta_t=0.1/(t+1)$ instead,
++$B_\infty=\pi^2/480000\approx2.06\times10^{-5}$, which supplies the
++infinite-horizon condition. For the constant-step, 100-update case, the
++$95\%$ probability floor from~\eqref{ext:eq-stochastic-retention} is only
++$\exp[-(\log2+0.00125)/0.05]\approx9.30\times10^{-7}$.
++The next result uses bounded noise to improve this confidence dependence.
++
+ \begin{corollary}[Sharper confidence dependence under bounded noise]
+ \label{ext:cor-bounded-noise-retention}
+ Under the assumptions of Theorem~\ref{ext:thm-stochastic-retention},
+@@ -1782,6 +2023,15 @@
+ when $V_N>0$; when $V_N=0$, the sum is identically zero. Sum the drift inequalities, drop the nonpositive gradient terms,
+ and apply the summand bound from Theorem~\ref{ext:thm-stochastic-retention}.
+ \end{proof}
++
++In the same 100-update example, $G_t=M=1$ and $s_t=0.1$ give
++$V_{100}=0.01$ and $Q_{100}=0.00125$. The sharper $95\%$ floor is therefore
++\[
++ \exp\!\left[-\log2-0.00125-\sqrt{0.02\log20}\right]\approx0.391.
++\]
++Both bounds apply simultaneously to the toy trajectory's first 100 updates;
++the improvement comes from stronger noise assumptions. These toy constants are assigned for the calculation; they do not
++estimate noise or curvature in the language-model runs.
+ 
+ \paragraph{Relation to stochastic policy-gradient guarantees.}
+ \citet{zhang2021reinforce} analyze stochastic tabular REINFORCE with a
+@@ -1800,6 +2050,11 @@
+ 
+ \subsection{Discovery, admission, and retention through bank changes}
+ \label{app:theory-discovery-admission}
++
++Discovery and retention require two separate budgets: enough opportunities
++to admit a missing key, and enough persistent loss weight to protect it
++after admission. Bank growth connects the two because admitting a key can
++also change the objective used to protect earlier keys.
+ 
+ Retention begins only after a verified key enters active memory. Archive
+ exploration separates discovery from reliable return to a discovered state
+@@ -1866,6 +2121,17 @@
+ Iteration and a union bound prove the claims without independence across
+ opportunities.
+ \end{proof}
++
++\paragraph{Example: turn an admission floor into a budget.}
++Suppose a prompt has four possible correct keys and at least four bank slots.
++At each opportunity, every missing key is generated with probability at least
++$0.04$ and inserted, conditional on appearing, with probability at least
++$1/2$. Its actual admission hazard is therefore at least $0.02$. The lemma
++gives $4e^{-0.02N}$ as a failure bound, so
++$N=\lceil\log(4/0.05)/0.02\rceil=220$ opportunities suffice for at least
++$95\%$ probability of full admission. With only two non-evicting slots,
++full admission of those four keys is impossible; after the bank fills, the
++missing keys' admission hazards become zero despite continued generation.
+ 
+ Positive probability at every opportunity is insufficient. Independent
+ opportunities with admission probabilities $(n+1)^{-2}>0$ give
+@@ -1950,6 +2216,19 @@
+ subsequent interval; the same nonnegative-summand proof applies even if the
+ representative changes.
+ 
++\paragraph{Example: adding a rare key has a calculable energy cost.}
++Take $\rho=0.3$ and a two-key categorical bank whose keys each have
++probability $1/4$, so $R_2=\log4$. Add a third key with probability $1/16$,
++without changing the policy at that instant. Then
++\[
++ \Delta F=\frac{0.3}{3}(\log16-\log4)
++          =0.1\log4\approx0.1386.
++\]
++The earlier keys' coefficients decrease from $0.15$ to $0.10$. A
++capacity-three bank still supplies a $0.10$ coefficient floor, but the
++positive jump $0.1386$ must enter the energy budget. This is why retention
++through admission needs both the coefficient floor and the switch cost.
++
+ \begin{corollary}[Conditional discovery followed by retention]
+ \label{ext:cor-discovery-retention}
+ Suppose one prompt's entire correct support $\mathcal C$ is finite, of size
+@@ -2084,11 +2363,18 @@
+  \frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
+ \]
+ Normalization improves the termwise certificate $p_b\ge e^{-C/w_b}$.
+-As a hypothetical example, a uniform bank of 16 with
+-$C=\log16+0.01$ yields $p_b\ge0.0339712$, while the termwise bound is
+-approximately $4.62\times10^{-20}$. These are illustrative mathematical
+-inputs, not measured replay losses. A large excess cross entropy can still
+-make even the sharp bound too small to be useful.
++
++\paragraph{Worked example: normalization turns a tiny floor into a useful one.}
++Suppose hypothetically that a uniform bank of 16 has the certified loss bound
++$C=\log16+0.01$: only $.01$ nat above the target's minimum cross entropy.
++The earlier termwise argument gives approximately $4.62\times10^{-20}$ per
++mode. Accounting for the other fifteen probabilities instead gives
++$p_b\ge0.0339712$, about $3.4\%$ for every mode, against a uniform target of
++$6.25\%$. It also certifies total bank mass at least $e^{-.01}\approx99.00\%$.
++The improvement uses normalization: one probability cannot become very small
++while the others absorb arbitrary mass and keep this loss almost minimal.
++These are mathematical inputs, not measured replay losses. A large excess
++cross entropy can still make even the sharp bound too small to be useful.
+ 
+ \subsubsection{What a scalar entropy value can certify}
+ 
+@@ -2121,6 +2407,18 @@
+ restricting to strictly positive coordinates permits arbitrarily small
+ values by approximation.
+ \end{proof}
++
++\paragraph{Worked example: a reported entropy of $97.7\%$ can hide a missing mode.}
++On a known sixteen-mode alphabet, let one mode have probability zero and the
++other fifteen share mass equally. Then
++\[
++ H(q)=\log15,\qquad \frac{H(q)}{\log16}\approx0.97672.
++\]
++Thus entropy rounds to $97.7\%$ of its maximum although one mode is entirely
++absent. Its forward-KL gap to uniform is only
++$\log(16/15)\approx0.06454$ nat. The theorem requires a strict entropy bound
++above $\log15$ to exclude this example; a nearly maximal scalar entropy by
++itself does not certify all sixteen coordinates.
+ 
+ For uniform $u$, $H(q)=\log m-\operatorname{KL}(q\|u)$, and data processing
+ gives $\operatorname{kl}(q_b,1/m)\le\operatorname{KL}(q\|u)$. A forward-KL
+@@ -2163,6 +2461,21 @@
+ the individual bound used in Lemma~\ref{lem:shared-exemplar-retention}.
+ \end{proof}
+ 
++\paragraph{Worked example: two responses can protect the same key.}
++At a hypothetical checkpoint, two distinct complete responses for key $A$
++each have probability $.20$, a response for key $B$ has probability $.40$,
++and the remaining $.20$ is invalid. Give these three responses target weights
++$w=(1/4,1/4,1/2)$. Their cross entropy satisfies
++$C-H(w)=\log(1.25)\approx.22314$.
++For key $A$, combine the first two target weights to obtain $W_A=1/2$;
++the certificate then gives $p(A)\ge.20$, since
++$\operatorname{kl}(.50,.20)=\log(1.25)$.
++Certifying each response separately and adding the two floors would give only
++about $.1009$. The actual key probability in this constructed example is
++$.20+.20=.40$. Grouping complete responses by their shared execution key
++therefore strengthens the certificate without treating either response as
++the whole key.
++
+ The probability being scored must include EOS or another specified
+ termination event, or a fixed deterministic horizon. It must use the same
+ prompt formatting, temperature, vocabulary mask, top-$p$/top-$k$ rule,
+@@ -2198,13 +2511,19 @@
+ \]
+ Indeed, $\Pr_{p_b}(X=0)=(1-p_b)^N<\alpha$ whenever $p_b>U_0$; for nonzero
+ counts, the full confidence procedure uses the corresponding binomial-tail
+-inversion. As hypothetical examples, zero sightings in 32 draws give an
+-upper bound of $0.08937$ at the one-sided 95\% level, or $0.16495$ when
+-Bonferroni protects 16 prespecified keys simultaneously. Two sightings in
+-32 draws instead give a one-sided 95\% lower bound of about $0.01122$ for
+-one prespecified key. The upper and lower examples are separate one-sided
+-limits; a joint interval requires allocation to both tails. Zero sightings
+-do not establish exact extinction.
++inversion.
++
++\paragraph{Worked example: unseen is not the same as absent.}
++For one key selected before sampling, zero sightings in 32 draws give a
++one-sided 95\% upper confidence bound of about $8.94\%$, with lower bound
++zero. The sample therefore does not establish exact extinction.
++If the claim must cover 16 prespecified keys simultaneously, Bonferroni
++allocates $.05/16$ error to each key; the zero-count upper bound becomes
++about $16.50\%$. Requiring simultaneous coverage makes the certificate weaker.
++Conversely, two sightings in 32 draws have empirical frequency $6.25\%$,
++but their one-sided 95\% lower confidence bound is only about $1.12\%$.
++These hypothetical upper and lower examples are separate one-sided limits;
++a joint interval requires allocation to both tails.
+ 
+ For repeated inspection of draws from a fixed policy, a confidence sequence
+ can provide validity under optional stopping \citep{howard2021confidence}.
+@@ -2234,6 +2553,16 @@
+ A probability bound at observed checkpoints alone makes no claim about
+ unobserved intervening or subsequent training states.
+ 
++\paragraph{Worked example: repeated checkpoints spend an error budget.}
++Suppose the plan specifies 16 keys at each of ten frozen checkpoints, with
++32 new draws per checkpoint. There are 160 key--checkpoint statements.
++Allocating $.05/160$ to each gives simultaneous 95\% coverage by a union
++bound, without requiring the key counts to be independent. A zero count then
++has an upper bound of about $22.29\%$. Pooling all 320 draws would not fix
++this weakness: the ten checkpoints can have different key probabilities.
++The confidence sequence above instead permits repeated inspection and a
++data-dependent stopping time while sampling one fixed checkpoint.
++
+ For an unknown catalogue, missing mass is the total probability of categories
+ not yet observed under a fixed iid law. Concentration results address this
+ quantity \citep{mcallester2003missing,berend2013missing}; it is neither the
+@@ -2241,6 +2570,9 @@
+ certify each named key, and stationary missing-mass formulas do not directly
+ apply to a history generated by changing policies. Named-key binomial counts
+ provide the direct measurement of per-mode visibility.
++For example, a hypothetical missing mass of $.10$ could consist of one
++unseen mode with probability $.10$ or one hundred unseen modes of probability
++$.001$ each; the same aggregate mass does not identify how many keys are missing.
+ 
+ \begin{remark}[Exact scope of the ReplayMaxRL guarantee]
+ The categorical replay theorem protects represented bank modes after discovery;
+--- before/paper/mathai2026/snapshot.json
++++ after/paper/mathai2026/snapshot.json
+@@ -1,6 +1,6 @@
+ {
+   "source": "paper/main.tex",
+-  "source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
++  "source_sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
+   "snapshot_date": "2026-09-05",
+   "template_url": "https://mathai-2026.github.io/files/mathai_neurips2026_template.zip",
+   "style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+@@ -159,6 +159,25 @@
+         "primary-source attribution and theory roadmap/scope cross-references"
+       ],
+       "audit": "../audits/theory_appendix_integration_20260905.md"
++    },
++    {
++      "date": "2026-09-05",
++      "kind": "worked examples and reader progression throughout the theory appendix",
++      "previous_source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
++      "source_sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
++      "experimental_results_changed": false,
++      "figures_changed": false,
++      "bibliography_changed": false,
++      "main_text_changed": false,
++      "formal_statements_and_proofs_unchanged": true,
++      "changes": [
++        "recurring three-correct-mode categorical example",
++        "worked illustrations throughout all twelve theory subsections",
++        "illustrations in all four survival-certificate subsubsections",
++        "explicit distinction between illustrative values, guaranteed floors and measured training results",
++        "reader roadmap and transitions following the proof chain"
++      ],
++      "audit": "../audits/theory_examples_20260905.md"
+     }
+   ],
+   "workshop_title": "More than One Way to Skin a Cat: Preserving Verified Modes in RLVR",
+--- before/paper/README.md
++++ after/paper/README.md
+@@ -451,3 +451,10 @@
+ attributed to x-Mode Dr.GRPO; incomplete scale extensions license no final claim.
+ 
+ The September 5 review also adds a deterministic finite-step categorical replay lemma with an explicit step-size bound. It proves convergence to the fixed bank weights and makes the incomplete-bank limitation explicit: unbanked correct modes have zero limiting mass in this idealized model. See the [independent proof review](audits/finite_step_categorical_replay_independent_review_20260905.md); this does not extend the guarantee to stochastic neural optimizers.
++
++The theory appendix now uses worked examples throughout its twelve subsections,
++including a recurring three-correct-mode policy and examples for each part of
++the survival analysis. Exact expressions, rounded numerical illustrations,
++and probability guarantees are distinguished explicitly; all example values
++are hypothetical. Formal statements, proofs, and bibliography are preserved.
++See the [examples and readability record](audits/theory_examples_20260905.md) for calculations and checks.
+--- before/paper/mathai2026/README.md
++++ after/paper/mathai2026/README.md
+@@ -120,3 +120,10 @@
+ attribution and explicit application limits. The four-page workshop main text
+ is preserved. Both versions include matching new bibliography entries; see the
+ [appendix integration record](../audits/theory_appendix_integration_20260905.md).
++
++The theory appendix now uses worked examples throughout its twelve subsections,
++including a recurring three-correct-mode policy and examples for each part of
++the survival analysis. Exact expressions, rounded numerical illustrations,
++and probability guarantees are distinguished explicitly; all example values
++are hypothetical. Formal statements, proofs, and bibliography are preserved.
++See the [examples and readability record](../audits/theory_examples_20260905.md) for calculations and checks.

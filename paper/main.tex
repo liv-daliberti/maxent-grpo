@@ -79,6 +79,8 @@
 % Support counts regenerated with the payload; see mode_diversity_coverage.tex.
 \input{results/mode_diversity_coverage.tex}
 \input{results/pmd_retention_macros.tex}
+\input{results/replay_bank_decomposition_macros.tex}
+\input{results/domain_support_macros.tex}
 \definecolor{bettergreen}{RGB}{224,242,226}
 \newcommand{\bettercell}[1]{\cellcolor{bettergreen}#1}
 % Same five tints as each domain's card in Fig.~\ref{fig:modebench-examples}
@@ -364,8 +366,8 @@ domain is built at five levels of difficulty.
 Fig.~\ref{fig:base-levels-all-scales} measures the Qwen2.5-Instruct family
 across those levels at every scale we could run, which holds the training recipe
 fixed and lets size be the only thing that varies. Two things show up at once.
-Harder levels push success down within a scale, and accuracy and breadth move
-independently even before any training: across the untrained measurements \pmd{}
+Harder levels push success down within a scale, and breadth runs mildly against
+accuracy even before any training: across the untrained measurements \pmd{}
 correlates $\MDpmdcorr$ with \texttt{pass@8}. And as the models get bigger they
 get more accurate and answer in fewer ways --- \pmd{} falls with scale in
 \MDscalefall{} of the \MDscalesupport{} domain--level blocks that support the
@@ -374,8 +376,8 @@ comparison, while \texttt{pass@8} rises.
 That second pattern is what the rest of the paper has to explain. If breadth
 simply disappeared with capability there would be little to be done about it,
 but size is not what settles it: at matched parameter count, different recipes
-land at visibly different \pmd{}, and a change of recipe moves the measure
-further at fixed scale than scale moves it at fixed recipe
+land at visibly different \pmd{}, and a recipe swap at fixed scale moves the
+measure about as far as a family's whole scale ladder
 (App.~\ref{sec:families-appendix}). The open question is therefore whether
 narrowing is something a model grows into or something a particular kind of
 training does to it. Section~\ref{sec:collapse-mechanism} gives a reason to
@@ -410,8 +412,8 @@ Level 1 to \MDladderpasslast{} at Level \MDladderrungs{}.
 The frontier models make the separation of the two axes starkest. They
 answer $\MDfrontierpass$ of prompts correctly, far above every open checkpoint
 measured here, yet their mean \pmd{} is $\MDfrontierpmdmean{}$ --- below the
-$\MDsmallbestpmd{}$ of a 1.7B model that answers only $\MDsmallbestpass$ of the
-same prompts.
+$\MDsmallbestpmd{}$ of a 1.7B model that answers $\MDsmallbestpassall$ of its
+own prompts.
 
 \subsection{Concentration in frontier models}
 \label{sec:hosted-concentration}
@@ -456,9 +458,11 @@ establish a limit or rule out rare unseen modes
 (App.~\ref{app:gpt56-all-levels-discovery}).
 
 
-The pattern is not one model's quirk: no deployment we measured reaches even
-one and a half effective verified modes
-(App.~\ref{app:hosted-mode-diversity}). Two interventions widen breadth without
+The pattern is not one model's quirk, and it deepens as the tasks get harder:
+no deployment we measured reaches even one and a half effective verified modes,
+and all seven narrow from Level 1 to Level 3 while answering essentially every
+prompt correctly throughout
+(Fig.~\ref{fig:frontier-level-grid}, App.~\ref{app:hosted-mode-diversity}). Two interventions widen breadth without
 replacing it. Because different models collapse onto different answers, mixing
 responses from two deployments covers more verified modes than either alone
 (App.~\ref{app:cross-model-overlap}); raising temperature widens breadth too,
@@ -617,18 +621,17 @@ baseline: it survives a stronger fresh objective
 \label{sec:results-collapse}
 
 \vspace{-0.9\baselineskip}
-\begin{wrapfigure}{l}{0.50\textwidth}
+\begin{wrapfigure}{l}{0.500\textwidth}
   \centering
-  \includegraphics[width=0.485\textwidth]{figures/concentration_story.pdf}
+  \includegraphics[width=0.485\textwidth]{figures/concentration_story_resampled.pdf}
   \caption{\textbf{Training concentrates verified outputs.} Final minus
-  initial \pmd{} at Qwen2.5-3B under three objectives, five domains; means
-  over five seeds with nominal 95\% intervals. Nine of the thirteen
-  measurable comparisons move left, four sit at zero, none moves right.
-  Open marks name an objective \pmd{} cannot score: the initial Python
-  checkpoint returns two correct responses to no prompt, so those are gaps
-  in the measure, not measured zeros. Other scales:
-  Fig.~\ref{fig:concentration-all-scales}; counts:
-  App.~\ref{app:conditional-concentration}.}
+  initial \pmd{} at Qwen2.5-3B under three objectives, five domains, from the
+  independently seeded resampling: both sides of the difference are measured
+  on the same surface. Marks are means over training seeds with nominal 95\%
+  intervals. Eleven of the twelve measurable comparisons move left; the
+  exception is within half a point of zero. Other scales and every level:
+  Fig.~\ref{fig:concentration-all-scales};
+  counts: App.~\ref{app:conditional-concentration}.}
   \label{fig:concentration-story}
   % wrapfig rounds its reserved lines up; reclaim the rounding so the
   % following text does not sit in a gap.
@@ -653,13 +656,12 @@ banked exemplar does not have to be rediscovered to be trained on
 \textbf{Concentration among correct outputs is separately measurable.}
 Collapsing onto one answer is the extreme; the subtler and more general effect
 is a policy that still succeeds in several ways but increasingly prefers one of
-them. Across all five domains no comparison moves the other way: nine of the
-thirteen \pmd{} can score move toward repetition and four are flat. The flat
-ones are not a weaker version of the same thing. MathIR sits at zero because
-its correct answers were already concentrated before training, and Python is
-unscorable because its initial checkpoint never returns two correct responses
-to the same prompt --- a domain can be past the point where narrowing is
-observable. Where there is breadth to lose, PantryPlan and Graph lose the most.
+them. Across all five domains no comparison moves the other way: eleven of the
+twelve move toward repetition, and the exception sits within half a point of
+zero. The size of the move is a property of the domain rather than of the
+objective: PantryPlan loses forty to fifty points, Graph and Countdown about
+fourteen, MathIR about five. The one flat case is MaxRL on Graph, which holds
+its breadth where both other objectives lose theirs.
 Replay reverses the direction in every matched pair
 (Fig.~\ref{fig:concentration-story}; Apps.~\ref{app:conditional-concentration}
 and~\ref{app:pre-rl-regression}).
@@ -729,10 +731,10 @@ benefit therefore persists beyond MaxRL's sampling-aware fresh objective;
 replay and stronger on-policy learning address complementary parts of the
 training process.
 
-\begin{wrapfigure}{r}{0.50\textwidth}
+\begin{wrapfigure}{r}{0.65\textwidth}
   \centering
   \vspace{-0.9\baselineskip}
-  \includegraphics[width=0.48\textwidth]{figures/e118_all_scale_factorial_progress.pdf}
+  \includegraphics[width=0.63\textwidth]{figures/e118_all_scale_factorial_progress.pdf}
   \caption{\textbf{Replay complements both fresh objectives at multiple
   scales.} Diamonds are initial models; open/filled markers are training
   without/with replay. (A) averages all five domains within seed; faint paths
@@ -761,7 +763,8 @@ frequency --- give local rather than general gains
 same bank, same reuse, modes weighted by how often fresh rollouts rediscovered
 them instead of equally. Equal weighting adds $+.318$ extra modes per prompt
 over it ($[+.272,+.358]$) at no cost in correctness, so refusing to let
-popularity decide rehearsal is the active ingredient, not reuse itself
+popularity decide rehearsal is the active ingredient, and reusing known-good
+outputs is not enough on its own
 (Apps.~\ref{app:ucpo-progress} and~\ref{app:frequency-replay-progress}).
 
 \subsection{Replay transfers to a harder construction}
@@ -909,7 +912,7 @@ The supplement is organized in seven parts, mapped here to their pages.
 \apxsub{\ref{app:data-materialization}}{Split identities and executable validation}{\pageref{app:data-materialization}}
 \apxsub{\ref{app:python}}{Python execution contract}{\pageref{app:python}}
 \apxsub{\ref{app:data-levels}}{Matched Level-2 construction}{\pageref{app:data-levels}}
-\apxsub{\ref{app:base-levels-all-scales}}{Frozen base models across the admitted levels}{\pageref{app:base-levels-all-scales}}
+\apxsub{\ref{app:base-levels-all-scales}}{Frozen base models across all five levels}{\pageref{app:base-levels-all-scales}}
 \apxsub{\ref{sec:families-appendix}}{Other model families at matched scale}{\pageref{sec:families-appendix}}
 \apxsub{\ref{app:repro-run-contract}}{Training and evaluation settings}{\pageref{app:repro-run-contract}}
 \apxsec{\ref{app:prompts}}{Exact Domain Prompts}{\pageref{app:prompts}}
@@ -982,8 +985,9 @@ The supplement is organized in seven parts, mapped here to their pages.
 \section*{Notation}
 \label{app:notation}
 Symbols are used consistently across the benchmark, the algorithm and the
-idealized analysis. Where the same letter carries different meanings in the
-literature we follow this table.
+idealized analysis. Several letters are conventionally overloaded --- $B$, $M$,
+$m$ and $\tau$ each carry more than one meaning in this area --- so this table
+is the paper's usage, and nothing below departs from it.
 
 \begin{table}[H]
 \centering
@@ -1006,12 +1010,14 @@ $Z_i$ & Canonical key of the $i$th draw, or $\bot$ \\
 $C(q)$ & Conditional collision $\sum_c q_c^2$; the concentration measure \\
 \pmd{} & Success-conditional breadth $1-C(q)$; the reported breadth axis \\
 \neff{} & Effective number of verified modes, $1/(1-\pmd{})$ \\
+$K$ & Draws per evaluation group ($K=8$ for every headline number) \\
 $D_K$, $F_K$ & Distinct verified keys, and correct fraction, in $K$ draws \\
 $\bar D_K$ & Expected distinct verified keys, $\E[D_K]=\texttt{distinct@}K$ \\
 $B$ & Extra verified modes, $\texttt{distinct@}K-\texttt{pass@}K$ \\
 \midrule
 \multicolumn{2}{@{}l}{\emph{Algorithm}}\\
-$\mathcal B_x$ & Replay bank for prompt $x$; $k=|\mathcal B_x|$ its size, $M=16$ its capacity \\
+$\mathcal B_x$ & Replay bank for prompt $x$; $M=16$ its capacity \\
+$k$ & Number of keys a bank holds, $k=|\mathcal B_x|\le M$ \\
 $P_{\mathcal B}$ & Total probability mass of banked keys \\
 $e_c$ & Stored exemplar realizing key $c$; $|e_c|$ its token length \\
 $G$ & Fresh rollout group size ($G=16$ in training) \\
@@ -1062,13 +1068,14 @@ The main text writes these two quantities as $P$ and $q_c$, dropping the
 policy and the prompt where they are clear.
 The conditional distribution is defined only when $P_\theta^+(x)>0$;
 when $P_\theta^+(x)=0$, all three sampling metrics below are zero, while
-\pmd{} is undefined rather than zero. That is why a measurement resting on too
-few verified pairs is left blank throughout this supplement rather than filled
-in (App.~\ref{app:registered-endpoints}).
+\pmd{} is undefined rather than zero.
 The first quantity measures correctness. The second describes the distribution
 of verified behaviors conditional on being correct. We call concentration of
 $p_\theta^+$ onto fewer keys \emph{mode collapse}, particularly when
-$P_\theta^+$ remains stable or increases.
+$P_\theta^+$ remains stable or increases. Two thresholds follow from that
+undefinedness, and App.~\ref{app:registered-endpoints} states them: a prompt
+defines \pmd{} only from two verified responses, and a measurement is reported
+only from 30 such prompts.
 Moving correct probability onto keys that already hold more of it can only
 lower $\pmd{}=1-\sum_c q_c^2$ (Lemma~\ref{lem:success-breadth}), so the fall in
 \pmd{} \eqref{eq:main-pmd} reported in the main text is exactly the
@@ -1087,7 +1094,11 @@ that differ:
  =1-\frac{\sum_m n_m(n_m-1)}{K(K-1)},
  \label{eq:main-pmd-estimator}
 \end{equation}
-which is unbiased for \eqref{eq:main-pmd} at every $K\ge2$. Two equivalent
+which is unbiased for \eqref{eq:main-pmd} at every $K\ge2$: conditioning on the
+number of verified draws leaves that many independent labels drawn from $q$, so
+every ordered pair agrees with probability $\sum_c q_c^2$. The identity is
+promptwise, and does not survive joint selection on other conditions or
+dependent prompts. Two equivalent
 readings are sometimes useful: $\mathrm{RarefiedDistinct@}2=1+\pmd$ is the
 expected number of distinct modes in exactly two verified draws, which fixes
 sampling depth rather than success count; and $\neff=1/(1-\pmd)$ is an
@@ -1100,9 +1111,11 @@ policy and prompt rather than of the draw budget, so pooling estimates the
 same quantity from more pairs and defines it far more often --- and a
 reported value is the unweighted mean over the prompts where \pmd{} is
 defined, carried with its across-prompt standard error. Prompts are weighted
-equally on purpose: weighting a prompt by how many verified draws it
-contributed would reintroduce the accuracy dependence \pmd{} exists to
-remove.
+equally on purpose. Weighting a prompt by how many verified draws it
+contributed --- or, equivalently, pooling verified pairs across prompts before
+taking the ratio, as a collision counter naturally does --- lets the prompts a
+policy solves most often dominate the estimate, which reintroduces the accuracy
+dependence \pmd{} exists to remove.
 
 For $K$ independent samples $Y_{1:K}$, let
 \[
@@ -1175,23 +1188,28 @@ action sampling then gives $\sum_c[1-(1-n_c/N)^K]$ expected verified keys.
 The simpler expression $m_x[1-(1-1/N)^K]$ applies when the $m_x$ valid actions
 have distinct keys, as in our reported finite-action references.
 Open-ended program and derivation spaces have no canonical nominal
-``uniform'' generator.
+``uniform'' generator. Table~\ref{tab:absolute-support-references} applies these
+references to the trained policies.
 
 \subsection{Endpoints and the reported breadth axis}
 \label{app:registered-endpoints}
 
-The terminal co-primary endpoints are \texttt{pass@}$K$, the probability of
-finding any correct output, and raw \texttt{distinct@}$K$, the number of
-verified keys found. Both are reported for every model--domain--level block,
-here and in the result tables of App.~\ref{app:supporting}.
+Two terminal endpoints are registered as co-primary, meaning neither is
+subordinate to the other and both are reported wherever either is:
+\texttt{pass@}$K$, the probability of finding any correct output, and raw
+\texttt{distinct@}$K$, the number of verified keys found. Both appear for every
+model--domain--level block, here and in the result tables of
+App.~\ref{app:supporting}.
 
 A separate question is which statistic should carry the breadth axis in the
 figures and the prose. Raw \texttt{distinct@}$K$ is coupled to the number of successful
-draws: by \eqref{eq:main-occupancy} it grows with $P$ at fixed $q$
+draws: by \eqref{eq:success-breadth-identities} it grows with $P$ at fixed $q$
 (Lemma~\ref{lem:success-breadth}), and
 empirically it correlates $\MDdistinctcorr$ with \texttt{pass@8} across the
 \MDcells{} untrained measurements, while \pmd{} correlates $\MDpmdcorr$ on the
-\MDreportable{} of them with sufficient support.
+\MDreportable{} of them with sufficient support. The two coefficients are not
+read on the same population: definedness is itself accuracy-dependent, as the
+support paragraph below sets out.
 Reported as breadth it therefore largely restates correctness, and the
 comparison it invites between a high-\texttt{distinct@8} domain and a
 low-\texttt{distinct@8} one is mostly a comparison of accuracy. We consequently
@@ -1227,6 +1245,9 @@ not reliably measurable there; it does not mean breadth was low.
 
 \begin{table}[!htbp]
   \centering
+  % The document sets \belowcaptionskip to 0pt; this caption sits above a wide
+  % plate and needs the separation to read as a caption rather than a first row.
+  \setlength{\belowcaptionskip}{8pt}
   \caption{\textbf{Success and breadth across \MDgridscales{} frozen Qwen2.5
   base models.} \texttt{pass@8} left, \pmd{} right, on the same 128 held-out
   prompts. Each domain is washed from its own low (red) to its own peak
@@ -1262,9 +1283,8 @@ not reliably measurable there; it does not mean breadth was low.
 \end{table}
 
 \pmd{} is not a new measurement of the saved responses. It is exactly one minus
-the conditional-collision U-statistic
-$\widehat C=\sum_m n_m(n_m-1)/(K(K-1))$ used in the conditional-concentration
-analysis; we report the diversity orientation because a metric that increases
+the conditional-collision U-statistic of
+App.~\ref{app:conditional-concentration}; we report the diversity orientation because a metric that increases
 with breadth reads more directly alongside \texttt{pass@8}. Every \pmd{} value
 is recomputed from canonical keys already stored with the saved responses,
 without resampling or regrading.
@@ -1304,9 +1324,31 @@ conditional distribution, aligning with \texttt{pass@}$K$ and
 banked-key coverage contributes $\sum_c[1-(1-p(c))^K]$ to expected
 \texttt{distinct@}$K$ and, at fixed $P_{\mathcal B}$ and $k$, concavity makes it
 largest under uniform allocation, while $1-(1-P_{\mathcal B})^K$, the
-probability of any banked key, depends only on total mass. Uniformity also
+probability of any banked key, depends only on total mass
+(Fig.~\ref{fig:replay-bank-decomposition}). Uniformity also
 maximizes the smallest conditional banked-key mass, making equal retention
 explicit.
+
+\begin{figure}[!htbp]
+  \centering
+  \includegraphics[width=.86\linewidth]{figures/replay_bank_decomposition.pdf}
+  \caption{\textbf{The decomposition against measured prompts, by domain.}
+  Bands are the closed form above, $\sum_c[1-(1-Pq_c)^{8}]$, evaluated over
+  allocations from a point mass to uniform; at each breadth a band spans only
+  the key counts that can attain it, over the range those prompts realize.
+  Points are \MDbankprompts{} held-out prompts returning at least two verified
+  responses, at the terminal checkpoint of the Qwen2.5-0.5B replay arms, binned
+  by measured verified mass $P$. Panels are the five domains and carry the
+  tints of their cards in Fig.~\ref{fig:modebench-examples}, because a mode
+  means something different in each and the number of keys a prompt can occupy
+  is a property of the domain. Graph and Pantry occupy the full range; Python
+  and MathIR sit at the left edge, MathIR almost entirely so --- nearly every
+  one of its prompts returns a single key, where two correct answers are the
+  same answer. Occupied keys stay far below the bank capacity of $M=16$: what
+  bounds these policies is how many modes they find, not how many the bank can
+  hold.}
+  \label{fig:replay-bank-decomposition}
+\end{figure}
 
 That alignment is deliberate, which is a reason for caution rather than a
 result: the bank objective raises \texttt{distinct@}$K$ by construction, so
@@ -1329,10 +1371,12 @@ training-prompt responses; evaluation responses never enter training.
 \label{app:domain-overview}
 \label{app:data-inventory}
 
-\mb{} defines correctness and identity through the same executable validator:
-invalid outputs receive reward zero and no key; valid outputs receive reward
-one and a canonical execution key. Neither the complete valid-key catalogue
-nor its size is supplied to training, replay, scheduling, or stopping.
+\mb{} takes correctness and identity from one executable validator, the map
+$V(\cdot,s_x)$ of App.~\ref{app:metric-details}: invalid outputs receive reward
+zero and no key, valid outputs reward one and a canonical execution key. What
+matters for the protocol is who may see the catalogue, and the answer is nobody:
+neither its members nor its size reach training, replay, scheduling, or
+stopping.
 Table~\ref{tab:tasks} specifies the five domains and which surface forms merge.
 The \href{https://huggingface.co/datasets/od2961/ModeBench}{public dataset}
 preserves each domain's split roles and construction identity. The training
@@ -1340,14 +1384,15 @@ comparisons reported here use Levels 1 and 2.
 
 \begin{table}[H]
   \centering
-  \caption{\textbf{\mb{}.} Correctness and identity come from
+  \caption{\textbf{\mb{} at Level 1.} Correctness and identity come from
   one executable path; training starts without the mode catalogue.
   \emph{Valid modes} is the mean number of correct execution modes per
-  evaluation prompt, exact over the released multi-answer split. Every domain
-  trains on 384 prompts and evaluates on a fixed 128-prompt split;
-  the exact prompt each policy receives is reproduced verbatim in
-  App.~\ref{app:prompts} for a direct, byte-level audit of the evaluation
-  interface.}
+  evaluation prompt with the per-prompt range beside it, exact over the
+  released Level-1 multi-answer split. Each higher level is a separate
+  construction with its own support distribution
+  (App.~\ref{app:data-levels}). The exact prompt each policy receives is
+  reproduced verbatim in App.~\ref{app:prompts} for a direct, byte-level audit
+  of the evaluation interface.}
   \label{tab:tasks}
   \scriptsize
   \setlength{\tabcolsep}{5pt}
@@ -1360,22 +1405,27 @@ comparisons reported here use Levels 1 and 2.
     \toprule
     \textbf{Domain} & \textbf{Generated answer / check} &
     \textbf{Executed key} & \textbf{Aliases that merge} &
-    \textbf{valid modes} \\
+    \textbf{Valid modes} \\
     \midrule
     Graph coloring & Complete assignment; check fixed colors and edges &
-    Color vector & Spacing only & 6.27 \\
+    Color vector & Spacing only & \MDvmGraphMean{} \\
+      & & & & {\scriptsize\MDvmGraphRange} \\
     \addlinespace[2pt]
     Countdown & Parse operands; execute exactly &
-    Normalized AST & Commutative order & 4.52 \\
+    Normalized AST & Commutative order & \MDvmCountdownMean{} \\
+      & & & & {\scriptsize\MDvmCountdownRange} \\
     \addlinespace[2pt]
     Python factors & Execute restricted lambda externally &
-    Return vector & Source programs with same behavior & 229.44 \\
+    Return vector & Source programs with same behavior & \MDvmPythonMean{} \\
+      & & & & {\scriptsize\MDvmPythonRange} \\
     \addlinespace[2pt]
     MathIR & Execute bounded action program &
-    State trajectory & Programs with the same states & 5.00 \\
+    State trajectory & Programs with the same states & \MDvmMathIRMean{} \\
+      & & & & {\scriptsize\MDvmMathIRRange} \\
     \addlinespace[2pt]
     PantryPlan & Exact ingredient allocation; check all bounds &
-    Ingredient support & Quantity and ordering aliases & 18.19 \\
+    Ingredient support & Quantity and ordering aliases & \MDvmPantryMean{} \\
+      & & & & {\scriptsize\MDvmPantryRange} \\
     \bottomrule
 \end{tabularx}
 \end{table}
@@ -1385,13 +1435,20 @@ comparisons reported here use Levels 1 and 2.
 \label{app:data-materialization}
 
 Every domain uses 384 training and 128 disjoint evaluation prompts.
+PantryPlan and the Level-2 constructions carry development splits besides,
+which no reported result reads (App.~\ref{app:data-levels}).
 Python materialization independently executes at least two functions with
 different valid keys for every row; MathIR executes every certified route
 through the same interpreter used for model outputs.
 
 \begin{table}[H]
 \centering
-\caption{Deterministic materialization identities. Hashes bind the released rows to their executable checks; the full hashes and construction records accompany the data.}
+\caption{\textbf{Deterministic materialization identities.} The two domains
+whose materialization is itself executable, as B.1 describes: Python runs
+functions, MathIR runs certified routes. Hashes bind the released rows to those
+checks, and the full hashes and construction records accompany the data.
+PantryPlan's row hashes follow below. Exact modes per prompt are the training
+split here; Table~\ref{tab:tasks} reports the evaluation split.}
 \label{tab:materialization-identities}
 \small
 \begin{tabular}{@{}lrr@{}}
@@ -1400,11 +1457,9 @@ through the same interpreter used for model outputs.
 \midrule
 Training rows & 384 & 384 \\
 Evaluation rows & 128 & 128 \\
-Exact modes per prompt & 16--3,600 & 5 \\
+Exact modes per prompt (train) & \MDvmPythonTrainRange & \MDvmMathIRTrainRange \\
 Training-row SHA-256 & \texttt{bcfa9acc\ldots37cf7} & \texttt{bfc98362\ldots5d3835} \\
 Evaluation-row SHA-256 & \texttt{be0f621c\ldots94d183} & \texttt{df5783dd\ldots328b96} \\
-Gold catalogue supplied to policy & no & no \\
-Training-bank initialization & empty & empty \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1412,9 +1467,10 @@ Training-bank initialization & empty & empty \\
 \paragraph{PantryPlan.}
 \label{app:data-pantry}
 The deterministic v2 release has 384/64/128 training/development/evaluation
-prompts across four formulation families. Exact support ranges from 8 to 45;
-the 128 evaluation prompts contain 2,328 feasible supports, averaging
-$18.1875$. Training and evaluation row hashes are
+prompts across four formulation families. Exact support ranges from
+\MDvmPantryTrainRange{} over the training split and \MDvmPantryRange{} over
+the 128 evaluation prompts, which
+average \MDvmPantryMean{} feasible supports. Training and evaluation row hashes are
 \texttt{a4883c5e\ldots a757f} and \texttt{5d81ba8d\ldots5923}.
 The validator checks exact inventory, serving steps, mass, nutrient bounds,
 and dietary tags; identity is ingredient support. A verified allocation is
@@ -1433,8 +1489,9 @@ absolute value at most 10,000. The expression grammar permits \texttt{n},
 comparisons, Boolean \texttt{and}/\texttt{or}, unary plus/minus/\texttt{not},
 and conditionals. Boolean and non-integer literals, calls, imports,
 attributes, comprehensions, containers, subscripts, assignment, loops, and
-other identifiers are rejected. Task specifications contain two to eight
-distinct integers in $[4,1000]$ and at least two valid behavior vectors.
+other identifiers are rejected. The specification format admits two to eight distinct integers in
+$[4,1000]$. Every released Level-1 row uses \MDpyCases{} of them, drawn from
+$[\MDpyCaseLo,\MDpyCaseHi]$, and carries at least two valid behavior vectors.
 
 \paragraph{External execution.}
 \label{app:python-process}
@@ -1460,16 +1517,23 @@ $\texttt{python\_factor:}d_1\texttt{,}\cdots\texttt{,}d_m$;
 programs merge exactly when their vectors agree. The exact support count
 $\prod_j|\{d:1<d<n_j,\ d\mid n_j\}|$ is used only for dataset validation.
 
-\subsection{Matched Level-2 construction}
+\subsection{Matched level constructions}
 \label{app:data-levels}
 
+Levels 2 to 5 are separate constructions, each calibrated against a fixed
+Level-1 reference at a larger model, and each admitted on its own terms. What
+they share is the verifier, the canonicalizer and the notion of a mode; what
+grows is the structure to be searched.
+
+\paragraph{Level 2.}
 Level 2 changes problem structure while preserving the verifier and
 canonicalizer. Its 384/128/128 training/development/evaluation rows have
 disjoint identities across the Level-1 and Level-2 splits. Training histograms
 match the native Level-1 training sets. Development and evaluation histograms
 match designated Level-1 development and confirmation reserves in Graph,
-Countdown, Python, and MathIR; Pantry uses native references, with its
-64-row development histogram doubled to 128 rows.
+Countdown, Python, and MathIR; Pantry uses native references, with the counts of its
+64-row development histogram scaled by two to give the 128-row target its
+development split is built to match.
 
 These construction reserves are not the native Level-1 terminal test sets.
 The displayed terminal evaluations have different valid-key histograms
@@ -1478,7 +1542,12 @@ combine task structure and test population; they do not isolate difficulty
 at fixed test-set support. Replay comparisons remain paired within each
 level on the same prompts, seeds, fresh objective, and training budget.
 
-\begin{center}
+\begin{table}[H]
+\centering
+\caption{\textbf{What Level 2 changes.} The verifier, the canonicalizer and the
+notion of a mode are the same at both levels; only the structure to be searched
+grows.}
+\label{tab:level2-structure}
 \small
 \begin{tabularx}{.96\linewidth}{@{}lYY@{}}
 \toprule
@@ -1491,7 +1560,7 @@ MathIR & One-sided linear families & Variable-on-both-sides families \\
 PantryPlan & Base dietary/composition constraints & More active dietary exclusions and tighter composition \\
 \bottomrule
 \end{tabularx}
-\end{center}
+\end{table}
 
 Before treatment training, frozen Qwen2.5-0.5B development evaluation admitted
 a Level-2 domain only when \texttt{pass@8} lay in $[.10,.90]$ and was strictly below
@@ -1516,11 +1585,33 @@ hints (App.~\ref{app:prompt-hint-ablation}), so its difficulty is not
 covered by that match. All reported results use the original datasets and
 prompts.
 
-\subsection{Frozen base models across the admitted levels}
+\paragraph{Levels 4 and 5.}
+Both continue the ladder against the same fixed Qwen2.5-0.5B Level-1 reference
+and the same $.04$ and $.08$ tolerances on pass@1 and pass@8, calibrated at 7B
+and 14B. Level 5 is difficulty-matched in all five domains and carries a
+composite record naming each domain's source and protocol digests. Level 4 is
+admitted with a recorded exception. Four of its domains --- Graph, Countdown,
+Python and PantryPlan --- are difficulty-matched; its MathIR construction is
+not, for a reason that belongs to the target rather than to the search for it. Matching there demands a pass@8/pass@1 ratio of $5.50$; the best
+ratio any construction in this family attains at 7B is $4.16$, against a ceiling
+of $8$ for a homogeneous population, and a ratio of averages cannot exceed its
+best component. No mixture of these constructions reaches the target, so the
+target sits outside the achievable set: MathIR at 7B is far more bimodal than
+its Level-1 reference, with measured heterogeneity gaps of $.169$--$.398$
+against the reference's $.060$, and three further difficulty mechanisms measured
+inert. All five Level-4 datasets are frozen at 384/128/128, verified, and
+disjoint from every other level, and the level is admitted on that basis: a
+target proved unreachable is a property of the construction, not a gap in it.
+What admission does not extend to is a matched-difficulty claim for MathIR,
+which its entries carry as an exception rather than a match.
+Table~\ref{tab:registered-endpoints-appendix} and
+Fig.~\ref{fig:base-levels-all-scales} report both levels accordingly.
+
+\subsection{Frozen base models across all five levels}
 \label{app:base-levels-all-scales}
 
 Fig.~\ref{fig:base-levels-all-scales} reports the frozen Qwen2.5-Instruct
-scales across the admitted levels and five domains;
+scales across all five levels and five domains;
 Fig.~\ref{fig:families-appendix} adds the other three families, for
 \MDcells{} completed measurements in all. Every model uses the same 128 held-out
 prompts within a domain and level, with four independent groups of eight draws
@@ -1528,15 +1619,21 @@ per prompt, so each plotted point rests on 4,096 responses. Each group contribut
 of any verified output to pass@8 and the number of distinct verified canonical
 keys to the registered \distk{}; we average groups within prompts and then
 average prompts. \pmd{} instead pools a prompt's four groups before scoring it,
-because the conditional mode distribution it estimates is a property of the
-policy and prompt rather than of the eight-draw group.
+under the rule and for the reason given in App.~\ref{app:metric-sampling}.
 The four groups remain separate $K=8$ observations throughout this calculation.
 
 These measurements use native chat, $T=1$, top-$p=1$, and a 192-token output
 limit, with boxed-direct Graph answers and the registered hybrid interface
-elsewhere. Level 3 retains its original admitted prompts. These held-out
+elsewhere. Every constructed level is measured on the prompts it was admitted
+with, unchanged. These held-out
 measurements are separate from development fitting and do not imply that
-success decreases monotonically with level for every model and domain.
+success decreases monotonically with level for every model and domain:
+\texttt{pass@8} ends below its Level-1 value in \MDladderfall{} of the
+\MDladdersupport{} model--domain series the ladder supports, not in all of them.
+The two axes also move breadth by different amounts. Taking the median range of
+\pmd{} along a row of the grid, scale moves it \MDscalespan{} at fixed level
+against \MDlevelspan{} for level at fixed scale, so the ladder and the parameter
+count are not interchangeable ways of narrowing how a model answers.
 
 \begin{figure}[!htbp]
   \centering
@@ -1564,37 +1661,25 @@ success decreases monotonically with level for every model and domain.
 
 \begin{figure}[!htbp]
   \centering
-  \includegraphics[width=0.66\linewidth]{figures/concentration_story_all_scales.pdf}
-  \caption{\textbf{Concentration at every scale.}
-  Fig.~\ref{fig:concentration-story} for all three scales rather than
-  Qwen2.5-3B alone: final minus initial \pmd{} under Dr.GRPO, GRPO and MaxRL,
-  five domains by three scales. Marks are means over five seeds with nominal
-  95\% seed intervals; open marks carry fewer than five seeds and no interval,
-  or name an objective \pmd{} cannot score because the initial checkpoint
-  returns two correct responses to no prompt. The scale ordering is the same
-  one Fig.~\ref{fig:base-levels-all-scales} uses.}
-  \label{fig:concentration-all-scales}
+  \includegraphics[width=\linewidth]{figures/frontier_level_grid.pdf}
+  \caption{\textbf{Harder levels narrow the frontier.} Success-conditional
+  breadth against the ladder, one line per hosted deployment, over 128 held-out
+  prompts and eight stateless requests per prompt per cell. Colour runs with
+  collapse, darkest most concentrated. Only the rungs every deployment covers
+  are drawn: Levels 4 and 5 exist for one deployment alone, and a line running
+  past its neighbours would read as that deployment holding up where the others
+  fall rather than as the only one measured there
+  (App.~\ref{app:hosted-mode-diversity} reports those two probes separately).
+  Correctness is not drawn, because there is nothing to see --- every hosted
+  cell sits above \texttt{pass@8} $.898$, so the ladder costs these deployments
+  accuracy they do not have to give and breadth they do. The Average panel
+  weights domains equally over a set held fixed for each deployment, so the
+  domain mix cannot move with the level; on it every one of the seven falls
+  from Level 1 to Level 3, by $.033$ to $.121$. The domains do not agree on
+  how: MathIR runs to zero, Python and Graph fall, and Countdown does not
+  narrow at all. Open marks sit below the support bar and stay off the line.}
+  \label{fig:frontier-level-grid}
 \end{figure}
-
-\subsection{Other model families at matched scale}
-\label{sec:families-appendix}
-
-The main text holds the training recipe fixed and reads the scale axis within
-Qwen2.5. Fig.~\ref{fig:families-appendix} instead places SmolLM2, Falcon3 and
-OLMo-2 beside those scales on the same axes, under the identical protocol: the
-same 128 held-out prompts per domain and level, the same four groups of eight
-draws, the same verifier and the same support requirement. Parameter count sets
-colour, so two families at the same size take the same colour and are read
-against each other directly.
-
-At matched parameter count the families do not agree on breadth. Near 7B the
-three recipes separate on \pmd{} while their \texttt{pass@8} stays close, and
-the ordering persists into the 10--15B band. Size therefore does not fix how
-many ways a model answers: a recipe can move \pmd{} further at constant scale
-than scale moves it at constant recipe. We report this as a measured property
-of the released checkpoints, not as a claim about which pretraining or
-post-training choice is responsible, which these frozen measurements cannot
-separate.
 
 \begin{figure}[!htbp]
   \centering
@@ -1616,6 +1701,73 @@ separate.
   families at the same scale share a colour and can be compared directly.}
   \label{fig:families-appendix}
 \end{figure}
+
+\begin{figure}[!htbp]
+  \centering
+  % One float, two panels: the same contrast read along the scale axis and
+  % along the level axis. Equal minipage widths and matched native plate
+  % widths, so neither panel is magnified relative to the other.
+  \begin{minipage}[t]{.49\linewidth}
+    \centering
+    \textbf{(A)}\\[1pt]
+    \includegraphics[width=\linewidth]{figures/concentration_story_all_scales.pdf}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{.49\linewidth}
+    \centering
+    \textbf{(B)}\\[1pt]
+    \includegraphics[width=\linewidth]{figures/concentration_levels.pdf}
+  \end{minipage}
+  \caption{\textbf{Concentration along both axes.}
+  \textbf{(A)} \textbf{Concentration at every scale.}
+  Fig.~\ref{fig:concentration-story} for all three scales rather than
+  Qwen2.5-3B alone: final minus initial \pmd{} under Dr.GRPO, GRPO and MaxRL,
+  five domains by three scales. Marks are means over five seeds with nominal
+  95\% seed intervals; open marks carry fewer than five seeds and no interval,
+  or name an objective \pmd{} cannot score because the initial checkpoint
+  returns two correct responses to no prompt. The scale ordering is the same
+  one Fig.~\ref{fig:base-levels-all-scales} uses.
+  \textbf{(B)} \textbf{Training narrows breadth on constructions it never trained
+  on.} Final minus initial \pmd{} for Qwen2.5-3B policies trained at Level 1 and
+  read on each level's held-out split, so every row above L1 is transfer rather
+  than training at that level. Marks are means over training seeds against the
+  one untrained checkpoint per cell, with nominal 95\% seed intervals; the
+  spread is across seeds, not a paired design. Open marks fall below the
+  support bar, where the estimate stands but its precision does not. Dr.GRPO
+  narrows at every level while MaxRL stays near zero, and Countdown crosses to
+  the broadening side by Levels 4 and 5 --- the direction is not a property of
+  training alone but of training and construction together. Rows marked
+  awaiting a baseline have no untrained measurement on that split yet.}
+  \label{fig:concentration-all-scales}
+  \label{fig:concentration-levels}
+\end{figure}
+
+\subsection{Other model families at matched scale}
+\label{sec:families-appendix}
+
+The main text holds the training recipe fixed and reads the scale axis within
+Qwen2.5. Fig.~\ref{fig:families-appendix} instead places SmolLM2, Falcon3 and
+OLMo-2 beside those scales on the same axes, under the identical protocol: the
+same 128 held-out prompts per domain and level, the same four groups of eight
+draws, the same verifier and the same support requirement. The comparison is
+taken on the \MDcommonlevels{} levels every family covers, since only Qwen2.5
+reaches Level 5 and a family average over a longer ladder would put the level
+axis inside a contrast about recipes. Parameter count sets
+colour, so two families at the same size take the same colour and are read
+against each other directly.
+
+At matched parameter count the families do not agree on breadth. Near 7B,
+where Qwen2.5, Falcon3 and OLMo-2 each place a model and SmolLM2 does not, the
+three separate on \pmd{} while their \texttt{pass@8} stays close; the ordering
+holds into the 10--15B band, though Falcon3 and OLMo-2 sit close enough there to
+read as a pair rather than as two ranks. Size therefore does not fix how
+many ways a model answers: at matched scale a change of recipe moves \pmd{} by a
+median \MDrecipespan{}, against \MDwithinrecipespan{} for a family's entire
+scale ladder --- a same-size change of recipe is worth about as much breadth as
+the whole parameter range within one. We report this as a measured property
+of the released checkpoints, not as a claim about which pretraining or
+post-training choice is responsible, which these frozen measurements cannot
+separate.
+
 
 \subsection{Training and evaluation settings}
 \label{app:repro-run-contract}
@@ -1675,7 +1827,8 @@ Qwen2.5-3B-Instruct & {\scriptsize\texttt{aa8e72537993ba99e69dfaafa59ed015b17504
 
 Responses are independent within each evaluation draw. For each training
 seed, metrics average over all 128 prompts and four draws; raw responses
-and draw-level records are retained. The co-primary terminal outcomes are
+and draw-level records are retained. The co-primary terminal outcomes
+registered in App.~\ref{app:registered-endpoints} are realized here as
 \texttt{pass@8} and raw \texttt{distinct@8}; \texttt{mean@8} is diagnostic.
 Evaluation never supplies training data, bank entries, checkpoint selection,
 or a stopping rule. Complete paired five-seed blocks receive nominal
@@ -1823,7 +1976,10 @@ Choose the ingredient support as a six-bit mask in the exact Pantry row order. B
 \label{app:algorithm}
 \label{app:replay-objective}
 
-Table~\ref{tab:notation} lists the symbols used here.
+Table~\ref{tab:notation} lists the symbols used here. This section states the
+objective as implemented; App.~\ref{app:replay-metric-alignment} reads the same
+objective against the evaluation metric, which is why that analysis sits with
+the measurement rather than here.
 For each prompt $x$, $\mathcal B_x$ stores at most $M$ verified policy
 exemplars, one per canonical key; the serialized cursor $\sigma$ selects
 banks for replay. The same update supports either fresh objective.
@@ -2080,7 +2236,9 @@ App.~\ref{app:source-integrity}.
   \caption{\textbf{Replay improves correctness and verified breadth at every
   scale.} Re:Dr minus matched Dr.GRPO at the terminal checkpoint, per domain
   and scale behind the cross-domain averages of
-  Fig.~\ref{fig:maxrl-factorial}; read as in
+  Fig.~\ref{fig:maxrl-factorial}. Columns, the equally weighted Avg, the
+  superscripted paired seed counts and the em dashes for a block with too few
+  verified pairs on one side all read as they do in
   Table~\ref{tab:direct-comparator-matrix}.}
   \label{tab:cross-scale-terminal-effects}
   \scriptsize
@@ -2675,8 +2833,8 @@ sampled held-out support, not the survival histories of particular stored
 modes.
 
 Uniform-action references are meaningful for the enumerable Graph and
-Pantry representations. They are not defined for open-ended programs or
-derivations. Pantry's bit-uniform reference exceeds every final model, so
+Pantry representations, and App.~\ref{app:metric-sampling} derives them. They
+are not defined for open-ended programs or derivations. Pantry's bit-uniform reference exceeds every final model, so
 this domain is a support-concentration stress test rather than evidence
 of complete support coverage.
 
@@ -2933,9 +3091,8 @@ The grid has three stages: temperature $T\in\{0.5,0.7,1.0,1.3,1.6,2.0\}$ at
 top-$p$ $1$ and $K=8\times4$ draws; budget $K=32\times2$ draws at
 $T\in\{1.0,1.3,1.6\}$; and truncation at top-$p$ $.95$ for $T\in\{1.0,1.6\}$.
 With five domains, five seeds and two arms this is 110 measured checkpoint
-cells. \pmd{} pools a prompt's draws before scoring it and a cell is reported
-only where at least 30 prompts return two verified responses, exactly as
-elsewhere in this paper. Every value is recomputed from the retained per-draw
+cells. Pooling and the support bar follow App.~\ref{app:metric-sampling}
+unchanged. Every value is recomputed from the retained per-draw
 records, whose canonical keys were written by the validator that graded them;
 nothing is resampled or regraded.
 
@@ -3061,9 +3218,8 @@ Table~\ref{tab:hosted-mode-diversity} reports \pmd{} for the same audited
 responses. The hosted tables above report \texttt{correct\_pair\_collision},
 which is one minus \pmd{} pooled over pairs; the values here instead average
 over prompts without weighting by how many verified pairs each contributed,
-matching the aggregation used everywhere else in this paper. Pooling by pairs
-lets the prompts a model solves most often dominate the estimate, which is the
-accuracy coupling \pmd{} exists to avoid. The two readings agree closely,
+matching the aggregation used everywhere else in this paper and stated in
+App.~\ref{app:metric-sampling}. The two readings agree closely,
 and the pooled reading recomputed from the per-sample records reproduces the
 published collision estimate exactly, which checks the two pipelines against
 each other.
@@ -3101,10 +3257,10 @@ domains. Two things separate it from every other hosted cell and it is read
 on its own account for both of them. It was
 served direct through OpenAI rather than the Azure deployment that served the
 other levels, which may be a different build; the served model string is
-recorded per response rather than assumed. And Python is absent from it because
-strict grading rejects the LaTeX-escaped Python this deployment emits: two of
-its 1,024 draws verify strictly, while the frozen formatting normalizer
-recovers 675. That is a presentation artifact rather than a capability
+recorded per response rather than assumed. And its Python cell rests entirely on
+the frozen formatting normalizer: strict grading rejects the LaTeX-escaped
+Python this deployment emits, verifying two of its 1,024 draws where the
+normalizer recovers 675. That is a presentation artifact rather than a capability
 measurement, and it affects the Levels 1--3 Python cells in the same direction.
 
 Table~\ref{tab:hosted-cohort-mode-diversity} extends the measurement to the
@@ -3117,7 +3273,8 @@ leads on Graph --- so this is a property of individual deployments rather than
 a single frontier-wide constant. What is common to all of them is the level:
 the most varied deployment measured still repeats its own verified mode on
 roughly seven of every ten pairs of correct answers. Every model also declines
-from Level 1 to Level 3.
+from Level 1 to Level 3. Fig.~\ref{fig:frontier-level-grid} draws this
+cohort one deployment per row, beside the open-scale grid it mirrors.
 
 \begin{table}[!htbp]
   \centering
@@ -3139,6 +3296,7 @@ from Level 1 to Level 3.
     \input{results/mode_diversity_hosted_cohort_table_body.tex}
   \end{tabular}
 \end{table}
+
 
 
 % Render this retained display inside its generated numerical appendix.

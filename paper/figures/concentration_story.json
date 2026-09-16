@@ -11609,7 +11609,7 @@
       "grpo": "#087F8C",
       "maxrl": "#00509E"
     },
-    "minimum_font_at_5p5_in_width": 15.367647058823527,
+    "minimum_font_at_5p5_in_width": 10.582278481012658,
     "minimum_font_points": 7.6,
     "primary_marks": {
       "drgrpo": "circle",
@@ -11624,7 +11624,7 @@
       "orientation1": "open right triangle"
     },
     "size_inches": [
-      2.72,
+      3.95,
       2.38
     ],
     "x_limits_percentage_points": [
@@ -11635,16 +11635,16 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/concentration_story.pdf",
-      "sha256": "71719cc16155515f5d3dc062ed097354776e618e1ef99537f55add7039da9922"
+      "sha256": "adebc4d9050c3f4bbd0c7a2ff2542ed9eebdcc125a86a33d1b91476532cd9eff"
     },
     "png": {
       "path": "paper/figures/concentration_story.png",
-      "sha256": "634bcb433365aa8ee75162b5515e6ae3b5cb667502e0e26fb07b84d60eeb6efa"
+      "sha256": "979413f2f45d2df80fd4e4c96411ef36a20c1f493b2970374af9db9e1caf107a"
     }
   },
   "renderer": {
     "path": "ops/plot_paper_concentration_story.py",
-    "sha256": "612195edac4a399e92eebda125c6ad0798bcd919a70355e5183a7827c57e7326"
+    "sha256": "dad17df0e778fba7c8a0d965a598e8395412ac336de9daad5e208257da7aec26"
   },
   "schema": "paper-concentration-story-v1",
   "source": {

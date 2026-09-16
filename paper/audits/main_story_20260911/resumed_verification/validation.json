@@ -1,0 +1,47 @@
+{
+  "main_pages": 8,
+  "max_pages": 9,
+  "references_page": 9,
+  "pdf_pages": 55,
+  "figure_pages": {
+    "fig:story": 1,
+    "fig:modebench-examples": 3,
+    "fig:verified-support-story": 4,
+    "fig:cross-scale-terminal-effects": 6,
+    "fig:maxrl-factorial": 7,
+    "fig:level2-admission": 7
+  },
+  "section_pages": {
+    "sec:introduction": 1,
+    "sec:related": 8,
+    "sec:collapse": 3,
+    "sec:modebench": 3,
+    "sec:method": 4,
+    "sec:experiments": 5,
+    "sec:results": 5,
+    "sec:conclusion": 8
+  },
+  "source_sha256": "cafcb015d0dd53edfa37c92b6ecf40ef50bf0158543d04ee277f8784fc170fe4",
+  "pdf_sha256": "0b167c06767951bd463f28b10023839e32ce9a12f961b37fa912c4881c992624",
+  "main_only_pdf_sha256": "65746d81a88decdaa74204ea33ee9550ffe388aee4655e328499aef9b5f0a8fb",
+  "tests_passed": 25,
+  "line_fill": "Line-fill contract passed: 230 natural-prose blocks, minimum final-line fraction 50%.",
+  "domain_prompts_verified": 5,
+  "undefined_references": 0,
+  "overfull_boxes": 0,
+  "source_binding_verified": true,
+  "main_only_text_matches_full_pdf": true,
+  "short_manuscript_edited_by_this_task": false,
+  "hosted_model_observations_unchanged": true,
+  "hosted_record_sha256": "66fd8d2c297cdb999b42318eccada611bfa6bfd4c2fb173696c96461031d56bd",
+  "rendered_main_pages_reviewed": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ]
+}

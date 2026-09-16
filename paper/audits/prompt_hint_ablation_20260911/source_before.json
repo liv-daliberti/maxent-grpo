@@ -1,0 +1,19 @@
+{
+  "captured_at_utc": "2026-09-11T19:12:06.003507+00:00",
+  "sha256": {
+    "paper/Makefile": "be09a7ef8a3cc62f68c8fc5616baddb61fa3ef56092651a81c1503194130c520",
+    "paper/README.md": "67cb27f887d715a8e426f42cd3717c326934308bc0f46235ca72b2951ad09bc7",
+    "paper/main-body.pdf": "e2bfa051de1a44f4f09201761957251875b9acc2c6fc337321ac77c9906e9090",
+    "paper/main.pdf": "8b4cb9f7e76b604c8b0e195c38eac9d17fc2297e4d27a5eb49a60be6664b3480",
+    "paper/main.tex": "c0f4cbd0914edc46b71746ca6053ec6556e1357f7d6809c54c2687b68f9f17c4",
+    "paper/mathai2026/Makefile": "efff88d657f06f01ae9a9c5abd3017f6b90696ed9b8403c46eb309d7bdcb5289",
+    "paper/mathai2026/README.md": "15d6c24a0533d3a28efc4fbe3105e7d02101f76c8987b27d9511702668e173f6",
+    "paper/mathai2026/appendix.tex": "e5e873c69197e2ebbc88be6f436ad90580e25cb52a271fb4961b06a995f9b6a5",
+    "paper/mathai2026/build_receipt.json": "741cd7aa7194ef63fa9e2e45cad07b1ccc32a18cd12e55390c70ad6538328b88",
+    "paper/mathai2026/check_submission.py": "2ac90ff968a116df258a06cedfcace3a112680f8a9b0838709a5da69f04f4a31",
+    "paper/mathai2026/main.pdf": "e7a7481c29f474182e67264d141822eeb0e691dbddb51d04d2593ddfed48d37f",
+    "paper/mathai2026/main.tex": "ec0af0085388f0d00117ee6afb676262cdd84675c3fb8c28c30c8207acda2c28",
+    "paper/mathai2026/mathai2026-source.zip": "459a645b75a4a9887c2708dcd4460a2f60281f212bcd6a2e51bef41ebd60aadc",
+    "paper/mathai2026/snapshot.json": "8498876fa402856860a871552ab21ed05d15b51d0ce2711cd236983f5d1ab313"
+  }
+}

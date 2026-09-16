@@ -1,0 +1,101 @@
+\subsection{Exact conditional entropy and replay target the same optimum}
+\label{app:theory-entropy-comparison}
+
+Two regularizers can favor the same uniform target while assigning different
+penalties to rare modes. The following identities locate that difference.
+
+
+The distinction between confidence penalties and label smoothing is a known
+choice of KL direction \citep[Section~3.2]{pereyra2017confidencepenalty}.
+Log-barrier regularization has also been studied in policy-gradient theory
+\citep[Section~5.2]{agarwal2021policygradient}. Here we specialize those
+identities to a target supported on verified correct modes. The resulting
+comparison separates an objective's maximizer from what its value certifies
+about a rare mode.
+
+Let $u_c=1/m$ on all $m\ge2$ correct categories, retain $P>0$ and
+$q_c=p_c/P$, and write $H(q)=-\sum_cq_c\log q_c$, with $0\log0=0$.
+
+\begin{lemma}[Full-support objective comparison]
+\label{ext:lem-entropy-objectives}
+For a bank containing every correct category with a uniform categorical
+replay target,
+\begin{align}
+ H(q)&=\log m-\operatorname{KL}(q\|u),
+ \label{ext:eq-conditional-entropy-kl}\\
+ R_u(p):=-\frac1m\sum_{c\in\mathcal C}\log p_c
+ &=\log m-\log P+\operatorname{KL}(u\|q).
+ \label{ext:eq-uniform-replay-kl}
+\end{align}
+If $\Psi$ is continuous and strictly increasing on $[0,1]$, then for all
+$\beta,\rho>0$, both objectives
+\[
+ \Psi(P)+\beta H(q)
+ \qquad\text{and}\qquad
+ \Psi(P)-\rho R_u(p)
+\]
+have the unique maximizing categorical distribution $P=1,q=u$. Maximization
+is over the closed simplex with $P>0$; replay loss is $+\infty$ if a protected
+coordinate is zero. This identifies the optimum; convergence of conditional-entropy
+flow or stochastic updates is not asserted.
+\end{lemma}
+
+\begin{proof}
+Expanding the KL divergences gives the first identity. Substitution of
+$p_c=Pq_c$ into $R_u$ gives the second. In the first objective,
+$H(q)\le\log m$, with equality only at $q=u$; after choosing this $q$,
+strict increase of $\Psi$ selects $P=1$. The second objective is
+\[
+ \Psi(P)+\rho\log P-\rho\log m
+       -\rho\operatorname{KL}(u\|q).
+\]
+Its terms depending on $P$ increase strictly, while the last term is
+maximized only at $q=u$. At $P=1$ all incorrect probabilities are zero,
+so the resulting full categorical distribution is unique.
+\end{proof}
+
+\paragraph{Worked example: separate correctness from conditional spread.}
+For the running distribution $p=(0.30,0.15,0.05,0.50)$, the uniform target
+on the three correct modes gives
+\[
+ \begin{aligned}
+ H(q)&\approx\log3-0.20067\approx0.89795,\\
+ R_u(p)&\approx\log3-\log0.5+0.24052\approx2.03228.
+ \end{aligned}
+\]
+The subtracted $0.20067$ is $\operatorname{KL}(q\|u)$; the added $0.24052$
+is $\operatorname{KL}(u\|q)$. Raising $P$ from $0.5$ to $0.9$ while holding
+$q$ fixed leaves $H(q)$ unchanged but reduces replay loss by
+$\log(0.9/0.5)\approx0.58779$. Thus replay's loss measures both correct mass
+and allocation within it; conditional entropy measures only the latter.
+The correctness potential $\Psi(P)$ supplies the first objective's incentive
+to increase $P$.
+
+Full-output entropy $H(p)$ is a different comparator. Its Gibbs optimum in
+Lemma~\ref{lem:entropy-scope} follows the standard entropy-conjugacy
+calculation \citep[Section~2.2]{geist2019regmdp}. That optimum assigns positive
+incorrect mass for fixed $\beta>0$ under linear correctness reward. By
+contrast, Lemma~\ref{ext:lem-entropy-objectives} shows that exact
+\emph{conditional} entropy has no such loss of correctness at its global
+optimum. The historical semantic score used in the experiments is not an
+exact gradient of either entropy objective.
+
+Existing literature also gives discrete-time guarantees for an exact
+comparator. Under their finite-bandit setup and step-size conditions,
+\citet[Lemma~13 and Theorem~5]{mei2020softmaxpg} prove positive
+probability floors and geometric convergence for exact tabular
+entropy-regularized policy gradient. The Dr.GRPO reduction has the linear
+reward vector $a\mathbf 1_{\mathcal C}$ with $a=(G-1)/G\in(0,1)$, which
+satisfies their bounded-reward premise. This linear-reward result does not
+directly cover the nonlinear finite-group MaxRL potential, the historical
+semantic estimator, a clipped PPO surrogate, or AdamW.
+
+The KL directions explain a difference between certificates:
+$\operatorname{KL}(u\|q)$ diverges if any protected coordinate vanishes,
+whereas $\operatorname{KL}(q\|u)$ stays finite. In particular, losing one
+mode and allocating mass uniformly to the remaining modes leaves
+$H(q)=\log(m-1)$. Section~\ref{app:theory-survival-certificates} gives the
+sharp entropy threshold and stronger replay-based probability bounds.
+This comparison concerns objective level sets; it does not assert that exact
+entropy dynamics lose a mode.
+

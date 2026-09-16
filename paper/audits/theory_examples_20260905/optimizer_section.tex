@@ -1,0 +1,189 @@
+\subsection{Retention under discrete stochastic optimizer updates}
+\label{app:theory-optimizer}
+
+For discrete noisy updates, the useful quantity is the total upward drift
+allowed in the joint loss. Controlling that budget permits individual steps
+to increase the loss while keeping a high-probability ceiling on the loss
+over a stated update horizon.
+
+Lemma~\ref{lem:shared-exemplar-retention} converts a deterministic energy
+ceiling into complete-exemplar protection. We next replace pathwise descent
+with a controlled conditional drift, allowing shared parameters, noise,
+bias, and predictable preconditioning. The descent estimate follows the
+variable-metric analysis of \citet[Section~2]{wang2017sqn}; the trajectory
+bound uses Ville's nonnegative-supermartingale inequality, as stated by
+\citet[Lemma~1]{howard2020timeuniform}. These are standard ingredients;
+the result below applies them to the verified-response potential.
+
+\begin{theorem}[Conditional stochastic exemplar retention]
+\label{ext:thm-stochastic-retention}
+Fix finitely many complete verified responses $(x_j,e_j)$ realizing keys
+$b_j$, with lengths $L_j>0$ and weights $\alpha_j>0$. Define
+\[
+ R(\theta)=\sum_j\frac{\alpha_j}{L_j}
+             [-\log\pi_\theta(e_j\mid x_j)],\qquad
+ F(\theta)=R(\theta)-J(\theta),\qquad J(\theta)\le J_{\max}<\infty.
+\]
+Assume $F$ is differentiable with globally $L_F$-Lipschitz gradient and
+$\theta_0$ is deterministic with finite $F(\theta_0)$. Relative to the
+history filtration $(\mathcal F_t)$, consider
+\[
+ \theta_{t+1}=\theta_t-\eta_t H_t(g_t+b_t+\xi_t),
+ \qquad g_t=\nabla F(\theta_t).
+\]
+The variables $\theta_t,\eta_t,H_t,b_t$ are $\mathcal F_t$-measurable,
+$0\preceq H_t\preceq MI$, $\eta_t>0$, and $\eta_t L_FM\le1$.
+The noise satisfies $\mathbb E[\xi_t\mid\mathcal F_t]=0$ and has finite
+conditional second moment. Suppose deterministic $d_t\ge0$ satisfy
+\begin{equation}
+ \frac{\eta_t}{2}\|b_t\|_{H_t}^{2}
+ +\frac{L_F\eta_t^2}{2}
+       \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\le d_t,
+ \qquad \|u\|_H^2=u^\top Hu.
+ \label{ext:eq-optimizer-budget}
+\end{equation}
+For $N\in\mathbb N\cup\{\infty\}$ with
+$B_N=\sum_{t<N}d_t<\infty$, write $D_0=F(\theta_0)+J_{\max}\ge0$.
+For every $0<\delta<1$, with probability at least $1-\delta$, the following
+holds simultaneously for all integer $t\le N$ and all protected exemplars:
+\begin{equation}
+ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
+ \ge\exp\!\left[-\frac{L_j(D_0+B_N)}{\alpha_j\delta}\right].
+ \label{ext:eq-stochastic-retention}
+\end{equation}
+For $N=\infty$, each protected probability also has an almost surely
+positive, potentially random, infimum over all iterations. The likelihood
+must include the complete response and its termination event, or a fixed
+deterministic horizon, under the sampling law whose key probability is bounded.
+\end{theorem}
+\begin{proof}
+Smoothness, conditional centering of $\xi_t$, and
+$H_t^2\preceq MH_t$ imply
+\begin{align*}
+ \mathbb E[F(\theta_{t+1})\mid\mathcal F_t]
+ &\le F(\theta_t)-\eta_tg_t^\top H_t(g_t+b_t)
+       +\frac{\eta_t}{2}\|g_t+b_t\|_{H_t}^2\\
+ &\hspace{1.5em}+\frac{L_F\eta_t^2}{2}
+          \mathbb E[\|H_t\xi_t\|_2^2\mid\mathcal F_t]\\
+ &\le F(\theta_t)-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+d_t.
+\end{align*}
+The bias cross term cancels when the square is expanded. Since
+$F+J_{\max}\ge R\ge0$, the process
+\[
+ X_t=F(\theta_t)+J_{\max}+\sum_{s=t}^{N-1}d_s
+\]
+is a nonnegative supermartingale, using the convergent infinite tail when
+$N=\infty$. Its initial value is $D_0+B_N$. For $D_0+B_N>0$, Ville's
+inequality gives
+$\Pr(\sup_{t\le N}X_t\ge(D_0+B_N)/\delta)\le\delta$.
+If $D_0+B_N=0$, nonnegativity gives $X_t=0$ almost surely instead.
+Every nonnegative summand of $R(\theta_t)\le X_t$ obeys the same ceiling.
+Exponentiation therefore yields~\eqref{ext:eq-stochastic-retention}
+without a union factor over exemplars. A complete-exemplar event is contained
+in its verified-key event. For $N=\infty$, the same maximal bound gives
+$\Pr(\sup_tX_t\ge u)\le(D_0+B_\infty)/u$ for $u>0$.
+Letting $u\to\infty$ proves $\sup_tX_t<\infty$ almost surely and hence
+random positive all-time floors.
+\end{proof}
+
+\paragraph{Finite and infinite horizons.}
+With zero bias and uniformly bounded noise variance, the cost in
+\eqref{ext:eq-optimizer-budget} is $O(\eta_t^2)$, so square-summable steps
+suffice for an infinite-horizon budget. Bias instead contributes
+$O(\eta_t\|b_t\|^2)$. Constant steps with persistent variance yield the
+finite-horizon result, with a budget that can grow with $N$; this argument
+does not give infinite-horizon protection in that regime. The classical
+almost-supermartingale framework of \citet{robbins1971almost} supplies
+related convergence tools, but the proof above needs only the displayed
+drift and maximal inequality. No positive lower eigenvalue of $H_t$ is
+needed for retention alone, and the theorem does not assert stationarity,
+parameter convergence, or a useful evaluation-scale probability floor.
+
+\paragraph{Example: a noise budget for one protected response.}
+Consider a hypothetical fixed one-token horizon with two possible complete
+responses and
+$\pi_\theta(e)=(1+e^{-\theta})^{-1}$, $L=\alpha=1$, and
+$F=R=-\log\pi_\theta(e)$, with $J=J_{\max}=0$. Start at $\theta_0=0$, so
+$D_0=\log2$. This scalar objective has $L_F=1/4$ and $|g_t|\le1$.
+Take $H_t=1$, zero bias, and independent noise $\xi_t\in\{-0.1,0.1\}$ with
+equal probabilities. At constant step $\eta_t=0.1$, the theorem permits
+$d_t=1/80000$, giving $B_{100}=0.00125$ but $B_\infty=\infty$.
+With $\eta_t=0.1/(t+1)$ instead,
+$B_\infty=\pi^2/480000\approx2.06\times10^{-5}$, which supplies the
+infinite-horizon condition. For the constant-step, 100-update case, the
+$95\%$ probability floor from~\eqref{ext:eq-stochastic-retention} is only
+$\exp[-(\log2+0.00125)/0.05]\approx9.30\times10^{-7}$.
+The next result uses bounded noise to improve this confidence dependence.
+
+\begin{corollary}[Sharper confidence dependence under bounded noise]
+\label{ext:cor-bounded-noise-retention}
+Under the assumptions of Theorem~\ref{ext:thm-stochastic-retention},
+suppose $b_t=0$, $N<\infty$,
+and $\eta_t$ is deterministic. Let deterministic bounds $G_t,s_t<\infty$
+satisfy $\|g_t\|_2\le G_t$ and $\|\xi_t\|_2\le s_t$ almost surely. Define
+\[
+ c_t=\eta_tMG_ts_t,\quad V_N=\sum_{t<N}c_t^2,\quad
+ Q_N=\frac{L_FM^2}{2}\sum_{t<N}\eta_t^2s_t^2.
+\]
+For every $0<\delta<1$, with probability at least $1-\delta$,
+simultaneously for all $t\le N$ and $j$,
+\begin{equation}
+ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
+ \ge\exp\!\left[-\frac{L_j}{\alpha_j}
+   \left(D_0+Q_N+\sqrt{2V_N\log(1/\delta)}\right)\right].
+ \label{ext:eq-bounded-noise-retention}
+\end{equation}
+\end{corollary}
+\begin{proof}
+The pathwise smoothness estimate gives
+\[
+ F(\theta_{t+1})-F(\theta_t)
+ \le-\frac{\eta_t}{2}\|g_t\|_{H_t}^2+Z_{t+1}
+       +\frac{L_F\eta_t^2M^2s_t^2}{2},
+\]
+where
+\[
+ Z_{t+1}=-\eta_t g_t^\top H_t(I-L_F\eta_tH_t)\xi_t.
+\]
+Predictability makes $Z_{t+1}$ a martingale difference. The spectral bounds
+imply $0\preceq I-L_F\eta_tH_t\preceq I$, so $|Z_{t+1}|\le c_t$.
+Conditional Hoeffding's lemma therefore makes
+\[
+ \exp\!\left(\lambda\sum_{s<t}Z_{s+1}
+              -\frac{\lambda^2}{2}\sum_{s<t}c_s^2\right),\qquad\lambda>0,
+\]
+a nonnegative supermartingale starting at one. This standard exponential
+construction is reviewed by \citet{howard2020timeuniform}. Ville's inequality
+and optimization over $\lambda$ yield
+\[
+ \Pr\!\left(\max_{t\le N}\sum_{s<t}Z_{s+1}
+              >\sqrt{2V_N\log(1/\delta)}\right)\le\delta
+\]
+when $V_N>0$; when $V_N=0$, the sum is identically zero. Sum the drift inequalities, drop the nonpositive gradient terms,
+and apply the summand bound from Theorem~\ref{ext:thm-stochastic-retention}.
+\end{proof}
+
+In the same 100-update example, $G_t=M=1$ and $s_t=0.1$ give
+$V_{100}=0.01$ and $Q_{100}=0.00125$. The sharper $95\%$ floor is therefore
+\[
+ \exp\!\left[-\log2-0.00125-\sqrt{0.02\log20}\right]\approx0.391.
+\]
+Both bounds apply simultaneously to the toy trajectory's first 100 updates;
+the improvement comes from stronger noise assumptions. These toy constants are assigned for the calculation; they do not
+estimate noise or curvature in the language-model runs.
+
+\paragraph{Relation to stochastic policy-gradient guarantees.}
+\citet{zhang2021reinforce} analyze stochastic tabular REINFORCE with a
+state-action log barrier, phased step and regularization schedules, and
+policy mixing. Their regret guarantees provide a related stochastic
+policy-gradient precedent; they do not provide a fixed per-response floor
+for our replay bank. For the implemented optimizer, a current-gradient Adam
+second moment is not predictable relative to that gradient's noise.
+Momentum, clipping, prompt scheduling, and changing banks likewise require
+separate bias or energy control. The counterexamples of
+\citet{reddi2018adam} explain why an unrestricted Adam guarantee cannot be
+assumed; they do not establish failure of these runs. The hypotheses above
+have not been established for the experiments' AdamW/PPO updates. In
+particular, positive replay weight and a small nominal learning rate do not
+verify the smoothness, predictability, or accumulated-error conditions.
+

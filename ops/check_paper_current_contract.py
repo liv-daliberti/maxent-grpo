@@ -27,7 +27,7 @@ CORE = ROOT / "paper/results/core_terminal_endpoints.json"
 MAIN_FIGURES = (
     "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
     "gpt56_all_levels32_sampling_budget", "replay_bank_balance",
-    "verified_support_story", "concentration_story",
+    "verified_support_story", "concentration_story_resampled",
     "e118_all_scale_factorial_progress",
     "modebench_level_admission",
 )
@@ -71,9 +71,13 @@ APPENDIX_FIGURES = (
     "level2_training_curves_pmd",
     "direct_baseline_learning_curves_pass8",
     "e121_fixed_bank_survival",
+    "replay_bank_decomposition",
+    "concentration_story_all_scales",
+    "concentration_levels",
+    "frontier_level_grid",
 )
-PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_20260915b/main.tex"
-PROOF_REFERENCE_SHA256 = "383b497b2ea2ed688c44e4f7f93d367881d7185aea1dd9b8e34d6532de056b18"
+PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_20260916/main.tex"
+PROOF_REFERENCE_SHA256 = "8e63568e06fecd6d8ae7247f4a21e3552d1ece86e29eee82e95e2f77c4eba02d"
 RETIRED = (
     "sustained_auc_effects_qwen05b",
     "verified_support_discovery_two_scale_effects",
@@ -176,7 +180,8 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
         ("sec:modebench", "sec:method", "fig:modebench-examples", "modebench_examples"),
         ("sec:levels-design", "sec:method", "fig:base-levels-all-scales", "mode_diversity_levels_appendix"),
         ("sec:method", "sec:experiments", "fig:verified-support-story", "verified_support_story"),
-        ("sec:results-collapse", "sec:results-retention", "fig:concentration-story", "concentration_story"),
+        ("sec:results-collapse", "sec:results-retention", "fig:concentration-story",
+         "concentration_story_resampled"),
         ("sec:results-retention", "sec:results-maxrl", "tab:cross-scale-terminal-effects",
          None),
         ("sec:results-maxrl", "sec:results-levels", "fig:maxrl-factorial",
@@ -274,6 +279,20 @@ def check_new_main_figures() -> None:
                 and {key: value for key, value in retained.items() if key != "outputs"} == expected,
                 f"{stem} displayed values, paired seeds, uncertainty, or source bindings drifted")
         _check_figure_outputs(stem, retained)
+    # The A.3 decomposition plate: closed forms drawn over measured prompts.
+    # Its curves are algebra, so there is nothing to reconstruct, but the
+    # measured extract behind its points and the rendered bytes are both bound.
+    stem = "replay_bank_decomposition"
+    retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
+    require(retained.get("schema") == "paper-figure-derived-v1",
+            f"{stem} record changed schema")
+    measured = retained.get("measured", {})
+    source = ROOT / measured.get("source", "")
+    require(source.is_file()
+            and hashlib.sha256(source.read_bytes()).hexdigest()
+            == measured.get("source_sha256"),
+            f"{stem} measured extract differs from the record it is bound to")
+    _check_figure_outputs(stem, retained)
 
 
 def check_training_curves(main_figure: dict) -> None:

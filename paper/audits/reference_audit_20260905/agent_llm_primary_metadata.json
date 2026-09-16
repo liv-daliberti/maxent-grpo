@@ -1,0 +1,2115 @@
+{
+  "info_grpo_public_api": {
+    "url": "https://api2.openreview.net/notes?id=d5qElNtXS5",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  "maa_invitational": {
+    "url": "https://maa.org/maa-invitational-competitions/",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  "maa_amc": {
+    "url": "https://maa.org/student-programs/amc/",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  "olympiadbench_bib": {
+    "url": "https://aclanthology.org/2024.acl-long.211.bib",
+    "metadata": [],
+    "bib_links": [],
+    "bib": "@inproceedings{he-etal-2024-olympiadbench,\n    title = \"{O}lympiad{B}ench: A Challenging Benchmark for Promoting {AGI} with Olympiad-Level Bilingual Multimodal Scientific Problems\",\n    author = \"He, Chaoqun  and\n      Luo, Renjie  and\n      Bai, Yuzhuo  and\n      Hu, Shengding  and\n      Thai, Zhen  and\n      Shen, Junhao  and\n      Hu, Jinyi  and\n      Han, Xu  and\n      Huang, Yujie  and\n      Zhang, Yuxiang  and\n      Liu, Jie  and\n      Qi, Lei  and\n      Liu, Zhiyuan  and\n      Sun, Maosong\",\n    editor = \"Ku, Lun-Wei  and\n      Martins, Andre  and\n      Srikumar, Vivek\",\n    booktitle = \"Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)\",\n    month = aug,\n    year = \"2024\",\n    address = \"Bangkok, Thailand\",\n    publisher = \"Association for Computational Linguistics\",\n    url = \"https://aclanthology.org/2024.acl-long.211/\",\n    doi = \"10.18653/v1/2024.acl-long.211\",\n    pages = \"3828--3850\"\n}\n\n"
+  },
+  "orpo_bib": {
+    "url": "https://aclanthology.org/2024.emnlp-main.626.bib",
+    "metadata": [],
+    "bib_links": [],
+    "bib": "@inproceedings{hong-etal-2024-orpo,\n    title = \"{ORPO}: Monolithic Preference Optimization without Reference Model\",\n    author = \"Hong, Jiwoo  and\n      Lee, Noah  and\n      Thorne, James\",\n    editor = \"Al-Onaizan, Yaser  and\n      Bansal, Mohit  and\n      Chen, Yun-Nung\",\n    booktitle = \"Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing\",\n    month = nov,\n    year = \"2024\",\n    address = \"Miami, Florida, USA\",\n    publisher = \"Association for Computational Linguistics\",\n    url = \"https://aclanthology.org/2024.emnlp-main.626/\",\n    doi = \"10.18653/v1/2024.emnlp-main.626\",\n    pages = \"11170--11189\"\n}\n\n"
+  },
+  "minerva_bib": {
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/18abbeef8cfe9203fdf9053c9c4fe191-Abstract.html",
+    "metadata": [
+      {
+        "name": "citation_title",
+        "content": "Solving Quantitative Reasoning Problems with Language Models"
+      },
+      {
+        "name": "citation_author",
+        "content": "Lewkowycz, Aitor"
+      },
+      {
+        "name": "citation_author",
+        "content": "Andreassen, Anders"
+      },
+      {
+        "name": "citation_author",
+        "content": "Dohan, David"
+      },
+      {
+        "name": "citation_author",
+        "content": "Dyer, Ethan"
+      },
+      {
+        "name": "citation_author",
+        "content": "Michalewski, Henryk"
+      },
+      {
+        "name": "citation_author",
+        "content": "Ramasesh, Vinay"
+      },
+      {
+        "name": "citation_author",
+        "content": "Slone, Ambrose"
+      },
+      {
+        "name": "citation_author",
+        "content": "Anil, Cem"
+      },
+      {
+        "name": "citation_author",
+        "content": "Schlag, Imanol"
+      },
+      {
+        "name": "citation_author",
+        "content": "Gutman-Solo, Theo"
+      },
+      {
+        "name": "citation_author",
+        "content": "Wu, Yuhuai"
+      },
+      {
+        "name": "citation_author",
+        "content": "Neyshabur, Behnam"
+      },
+      {
+        "name": "citation_author",
+        "content": "Gur-Ari, Guy"
+      },
+      {
+        "name": "citation_author",
+        "content": "Misra, Vedant"
+      },
+      {
+        "name": "citation_journal_title",
+        "content": "Advances in Neural Information Processing Systems"
+      },
+      {
+        "name": "citation_volume",
+        "content": "35"
+      },
+      {
+        "name": "citation_doi",
+        "content": "10.52202/068431-0278"
+      },
+      {
+        "name": "citation_firstpage",
+        "content": "3843"
+      },
+      {
+        "name": "citation_lastpage",
+        "content": "3857"
+      },
+      {
+        "name": "citation_pdf_url",
+        "content": "https://proceedings.neurips.cc/paper_files/paper/2022/file/18abbeef8cfe9203fdf9053c9c4fe191-Paper-Conference.pdf"
+      },
+      {
+        "name": "citation_publication_date",
+        "content": "2022-12-06"
+      }
+    ],
+    "bib_links": [
+      "/paper_files/paper/18305-/bibtex"
+    ],
+    "jsonld_dates": []
+  },
+  "coderl_bib": {
+    "url": "https://proceedings.neurips.cc/paper_files/paper/2022/hash/8636419dea1aa9fbd25fc4248e702da4-Abstract-Conference.html",
+    "metadata": [
+      {
+        "name": "citation_title",
+        "content": "CodeRL: Mastering Code Generation through Pretrained Models and Deep Reinforcement Learning"
+      },
+      {
+        "name": "citation_author",
+        "content": "Le, Hung"
+      },
+      {
+        "name": "citation_author",
+        "content": "Wang, Yue"
+      },
+      {
+        "name": "citation_author",
+        "content": "Gotmare, Akhilesh Deepak"
+      },
+      {
+        "name": "citation_author",
+        "content": "Savarese, Silvio"
+      },
+      {
+        "name": "citation_author",
+        "content": "Hoi, Steven Chu Hong"
+      },
+      {
+        "name": "citation_journal_title",
+        "content": "Advances in Neural Information Processing Systems"
+      },
+      {
+        "name": "citation_volume",
+        "content": "35"
+      },
+      {
+        "name": "citation_doi",
+        "content": "10.52202/068431-1549"
+      },
+      {
+        "name": "citation_firstpage",
+        "content": "21314"
+      },
+      {
+        "name": "citation_lastpage",
+        "content": "21328"
+      },
+      {
+        "name": "citation_pdf_url",
+        "content": "https://proceedings.neurips.cc/paper_files/paper/2022/file/8636419dea1aa9fbd25fc4248e702da4-Paper-Conference.pdf"
+      },
+      {
+        "name": "citation_publication_date",
+        "content": "2022-12-06"
+      }
+    ],
+    "bib_links": [
+      "/paper_files/paper/19034-/bibtex"
+    ],
+    "jsonld_dates": []
+  },
+  "arxiv_metadata": {
+    "shao2024deepseekmath": {
+      "url": "https://arxiv.org/abs/2402.03300",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shao, Zhihong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Peiyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhu, Qihao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Runxin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Song, Junxiao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Bi, Xiao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Haowei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Mingchuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Y. K."
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Y."
+        },
+        {
+          "name": "citation_author",
+          "content": "Guo, Daya"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/02/05"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/04/27"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2402.03300"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2402.03300"
+        }
+      ]
+    },
+    "guo2025deepseekr1": {
+      "url": "https://arxiv.org/abs/2501.12948",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning"
+        },
+        {
+          "name": "citation_author",
+          "content": "DeepSeek-AI"
+        },
+        {
+          "name": "citation_author",
+          "content": "Guo, Daya"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yang, Dejian"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Haowei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Song, Junxiao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Peiyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhu, Qihao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Runxin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Ruoyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ma, Shirong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Bi, Xiao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Xiaokang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Xingkai"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Yu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Z. F."
+        },
+        {
+          "name": "citation_author",
+          "content": "Gou, Zhibin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shao, Zhihong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Zhuoshu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gao, Ziyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Aixin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xue, Bing"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Bingxuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Bochao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Feng, Bei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lu, Chengda"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhao, Chenggang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Deng, Chengqi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Chenyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ruan, Chong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Dai, Damai"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Deli"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ji, Dongjie"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Erhang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lin, Fangyun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Dai, Fucong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Luo, Fuli"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hao, Guangbo"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Guanting"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Guowei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, H."
+        },
+        {
+          "name": "citation_author",
+          "content": "Bao, Han"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Hanwei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Haocheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ding, Honghui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xin, Huajian"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gao, Huazuo"
+        },
+        {
+          "name": "citation_author",
+          "content": "Qu, Hui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Hui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Guo, Jianzhong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Jiashi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Jiawei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Jingchang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yuan, Jingyang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Qiu, Junjie"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Junlong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Cai, J. L."
+        },
+        {
+          "name": "citation_author",
+          "content": "Ni, Jiaqi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liang, Jian"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Jin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Dong, Kai"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hu, Kai"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gao, Kaige"
+        },
+        {
+          "name": "citation_author",
+          "content": "Guan, Kang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Huang, Kexin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Kuai"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Lean"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Lecong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhao, Liang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Litong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Liyue"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Lei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xia, Leyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Mingchuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Minghua"
+        },
+        {
+          "name": "citation_author",
+          "content": "Tang, Minghui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Meng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Miaojun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Mingming"
+        },
+        {
+          "name": "citation_author",
+          "content": "Tian, Ning"
+        },
+        {
+          "name": "citation_author",
+          "content": "Huang, Panpan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Peng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Qiancheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Qinyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Du, Qiushi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ge, Ruiqi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Ruisong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Pan, Ruizhe"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Runji"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, R. J."
+        },
+        {
+          "name": "citation_author",
+          "content": "Jin, R. L."
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Ruyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lu, Shanghao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhou, Shangyan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Shanhuang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ye, Shengfeng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Shiyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Shuiping"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhou, Shunfeng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Pan, Shuting"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, S. S."
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhou, Shuang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Shaoqing"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ye, Shengfeng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yun, Tao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Pei, Tian"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sun, Tianyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, T."
+        },
+        {
+          "name": "citation_author",
+          "content": "Zeng, Wangding"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhao, Wanjia"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Wen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liang, Wenfeng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gao, Wenjun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Wenqin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Wentao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xiao, W. L."
+        },
+        {
+          "name": "citation_author",
+          "content": "An, Wei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Xiaodong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Xiaohan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Xiaokang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Nie, Xiaotao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Cheng, Xin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Xin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xie, Xin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Xingchao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yang, Xinyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Xinyuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Su, Xuecheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lin, Xuheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, X. Q."
+        },
+        {
+          "name": "citation_author",
+          "content": "Jin, Xiangyue"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shen, Xiaojin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Xiaosha"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sun, Xiaowen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Xiaoxiang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Song, Xinnan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhou, Xinyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Xianzu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shan, Xinxia"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Y. K."
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Y. Q."
+        },
+        {
+          "name": "citation_author",
+          "content": "Wei, Y. X."
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Yang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Yanhong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Yao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhao, Yao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sun, Yaofeng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Yaohui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Yi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Yichao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shi, Yifan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xiong, Yiliang"
+        },
+        {
+          "name": "citation_author",
+          "content": "He, Ying"
+        },
+        {
+          "name": "citation_author",
+          "content": "Piao, Yishi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Yisong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Tan, Yixuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ma, Yiyang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Yiyuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Guo, Yongqiang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ou, Yuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Yuduan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gong, Yue"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zou, Yuheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "He, Yujia"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xiong, Yunfan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Luo, Yuxiang"
+        },
+        {
+          "name": "citation_author",
+          "content": "You, Yuxiang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Yuxuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhou, Yuyang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhu, Y. X."
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Yanhong"
+        },
+        {
+          "name": "citation_author",
+          "content": "Huang, Yanping"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Yaohui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zheng, Yi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhu, Yuchen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ma, Yunxian"
+        },
+        {
+          "name": "citation_author",
+          "content": "Tang, Ying"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zha, Yukun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yan, Yuting"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ren, Z. Z."
+        },
+        {
+          "name": "citation_author",
+          "content": "Ren, Zehui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sha, Zhangli"
+        },
+        {
+          "name": "citation_author",
+          "content": "Fu, Zhe"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Zhean"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xie, Zhenda"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Zhengyan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hao, Zhewen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ma, Zhicheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yan, Zhigang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Zhiyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gu, Zihui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhu, Zijia"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Zijun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Zilin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xie, Ziwei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Song, Ziyang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Pan, Zizheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Huang, Zhen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Zhipeng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Zhongyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Zhen"
+        },
+        {
+          "name": "citation_doi",
+          "content": "10.1038/s41586-025-09422-z"
+        },
+        {
+          "name": "citation_date",
+          "content": "2025/01/22"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2026/01/04"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2501.12948"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2501.12948"
+        }
+      ]
+    },
+    "hendrycks2021math": {
+      "url": "https://arxiv.org/abs/2103.03874",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Measuring Mathematical Problem Solving With the MATH Dataset"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hendrycks, Dan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Burns, Collin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Kadavath, Saurav"
+        },
+        {
+          "name": "citation_author",
+          "content": "Arora, Akul"
+        },
+        {
+          "name": "citation_author",
+          "content": "Basart, Steven"
+        },
+        {
+          "name": "citation_author",
+          "content": "Tang, Eric"
+        },
+        {
+          "name": "citation_author",
+          "content": "Song, Dawn"
+        },
+        {
+          "name": "citation_author",
+          "content": "Steinhardt, Jacob"
+        },
+        {
+          "name": "citation_date",
+          "content": "2021/03/05"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2021/11/08"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2103.03874"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2103.03874"
+        }
+      ]
+    },
+    "cobbe2021training": {
+      "url": "https://arxiv.org/abs/2110.14168",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Training Verifiers to Solve Math Word Problems"
+        },
+        {
+          "name": "citation_author",
+          "content": "Cobbe, Karl"
+        },
+        {
+          "name": "citation_author",
+          "content": "Kosaraju, Vineet"
+        },
+        {
+          "name": "citation_author",
+          "content": "Bavarian, Mohammad"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Mark"
+        },
+        {
+          "name": "citation_author",
+          "content": "Jun, Heewoo"
+        },
+        {
+          "name": "citation_author",
+          "content": "Kaiser, Lukasz"
+        },
+        {
+          "name": "citation_author",
+          "content": "Plappert, Matthias"
+        },
+        {
+          "name": "citation_author",
+          "content": "Tworek, Jerry"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hilton, Jacob"
+        },
+        {
+          "name": "citation_author",
+          "content": "Nakano, Reiichiro"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hesse, Christopher"
+        },
+        {
+          "name": "citation_author",
+          "content": "Schulman, John"
+        },
+        {
+          "name": "citation_date",
+          "content": "2021/10/27"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2021/11/18"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2110.14168"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2110.14168"
+        }
+      ]
+    },
+    "lewkowycz2022solving": {
+      "url": "https://arxiv.org/abs/2206.14858",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Solving Quantitative Reasoning Problems with Language Models"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lewkowycz, Aitor"
+        },
+        {
+          "name": "citation_author",
+          "content": "Andreassen, Anders"
+        },
+        {
+          "name": "citation_author",
+          "content": "Dohan, David"
+        },
+        {
+          "name": "citation_author",
+          "content": "Dyer, Ethan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Michalewski, Henryk"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ramasesh, Vinay"
+        },
+        {
+          "name": "citation_author",
+          "content": "Slone, Ambrose"
+        },
+        {
+          "name": "citation_author",
+          "content": "Anil, Cem"
+        },
+        {
+          "name": "citation_author",
+          "content": "Schlag, Imanol"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gutman-Solo, Theo"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Yuhuai"
+        },
+        {
+          "name": "citation_author",
+          "content": "Neyshabur, Behnam"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gur-Ari, Guy"
+        },
+        {
+          "name": "citation_author",
+          "content": "Misra, Vedant"
+        },
+        {
+          "name": "citation_date",
+          "content": "2022/06/29"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2022/07/01"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2206.14858"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2206.14858"
+        }
+      ]
+    },
+    "lightman2023lets": {
+      "url": "https://arxiv.org/abs/2305.20050",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Let's Verify Step by Step"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lightman, Hunter"
+        },
+        {
+          "name": "citation_author",
+          "content": "Kosaraju, Vineet"
+        },
+        {
+          "name": "citation_author",
+          "content": "Burda, Yura"
+        },
+        {
+          "name": "citation_author",
+          "content": "Edwards, Harri"
+        },
+        {
+          "name": "citation_author",
+          "content": "Baker, Bowen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lee, Teddy"
+        },
+        {
+          "name": "citation_author",
+          "content": "Leike, Jan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Schulman, John"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sutskever, Ilya"
+        },
+        {
+          "name": "citation_author",
+          "content": "Cobbe, Karl"
+        },
+        {
+          "name": "citation_date",
+          "content": "2023/05/31"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2023/05/31"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2305.20050"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2305.20050"
+        }
+      ]
+    },
+    "le2022coderl": {
+      "url": "https://arxiv.org/abs/2207.01780",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "CodeRL: Mastering Code Generation through Pretrained Models and Deep Reinforcement Learning"
+        },
+        {
+          "name": "citation_author",
+          "content": "Le, Hung"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Yue"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gotmare, Akhilesh Deepak"
+        },
+        {
+          "name": "citation_author",
+          "content": "Savarese, Silvio"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hoi, Steven C. H."
+        },
+        {
+          "name": "citation_date",
+          "content": "2022/07/05"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2022/11/03"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2207.01780"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2207.01780"
+        }
+      ]
+    },
+    "liu2025understanding": {
+      "url": "https://arxiv.org/abs/2503.20783",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Understanding R1-Zero-Like Training: A Critical Perspective"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Zichen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Changyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Wenjun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Qi, Penghui"
+        },
+        {
+          "name": "citation_author",
+          "content": "Pang, Tianyu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Du, Chao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lee, Wee Sun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lin, Min"
+        },
+        {
+          "name": "citation_date",
+          "content": "2025/03/26"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2025/10/06"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2503.20783"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2503.20783"
+        }
+      ]
+    },
+    "wang2023selfconsistency": {
+      "url": "https://arxiv.org/abs/2203.11171",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Self-Consistency Improves Chain of Thought Reasoning in Language Models"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Xuezhi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wei, Jason"
+        },
+        {
+          "name": "citation_author",
+          "content": "Schuurmans, Dale"
+        },
+        {
+          "name": "citation_author",
+          "content": "Le, Quoc"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chi, Ed"
+        },
+        {
+          "name": "citation_author",
+          "content": "Narang, Sharan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chowdhery, Aakanksha"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhou, Denny"
+        },
+        {
+          "name": "citation_date",
+          "content": "2022/03/21"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2023/03/07"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2203.11171"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2203.11171"
+        }
+      ]
+    },
+    "lin2025cppo": {
+      "url": "https://arxiv.org/abs/2503.22342",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "CPPO: Accelerating the Training of Group Relative Policy Optimization-Based Reasoning Models"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lin, Zhihang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lin, Mingbao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xie, Yuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ji, Rongrong"
+        },
+        {
+          "name": "citation_date",
+          "content": "2025/03/28"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2025/11/08"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2503.22342"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2503.22342"
+        }
+      ]
+    },
+    "chen2025seedgrpo": {
+      "url": "https://arxiv.org/abs/2505.12346",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "SEED-GRPO: Semantic Entropy Enhanced GRPO for Uncertainty-Aware Policy Optimization"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Minghan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Guikun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Wenguan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yang, Yi"
+        },
+        {
+          "name": "citation_date",
+          "content": "2025/05/18"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2025/05/18"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2505.12346"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2505.12346"
+        }
+      ]
+    },
+    "wen2024etpo": {
+      "url": "https://arxiv.org/abs/2402.06700",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Entropy-Regularized Token-Level Policy Optimization for Language Agent Reinforcement"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wen, Muning"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liao, Junwei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Deng, Cheng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Jun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Weinan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wen, Ying"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/02/09"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/06/06"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2402.06700"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2402.06700"
+        }
+      ]
+    },
+    "oord2018cpc": {
+      "url": "https://arxiv.org/abs/1807.03748",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Representation Learning with Contrastive Predictive Coding"
+        },
+        {
+          "name": "citation_author",
+          "content": "Oord, Aaron van den"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Yazhe"
+        },
+        {
+          "name": "citation_author",
+          "content": "Vinyals, Oriol"
+        },
+        {
+          "name": "citation_date",
+          "content": "2018/07/10"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2019/01/22"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/1807.03748"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "1807.03748"
+        }
+      ]
+    },
+    "dpo": {
+      "url": "https://arxiv.org/abs/2305.18290",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model"
+        },
+        {
+          "name": "citation_author",
+          "content": "Rafailov, Rafael"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sharma, Archit"
+        },
+        {
+          "name": "citation_author",
+          "content": "Mitchell, Eric"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ermon, Stefano"
+        },
+        {
+          "name": "citation_author",
+          "content": "Manning, Christopher D."
+        },
+        {
+          "name": "citation_author",
+          "content": "Finn, Chelsea"
+        },
+        {
+          "name": "citation_date",
+          "content": "2023/05/29"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/07/29"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2305.18290"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2305.18290"
+        }
+      ]
+    },
+    "simpo": {
+      "url": "https://arxiv.org/abs/2405.14734",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "SimPO: Simple Preference Optimization with a Reference-Free Reward"
+        },
+        {
+          "name": "citation_author",
+          "content": "Meng, Yu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xia, Mengzhou"
+        },
+        {
+          "name": "citation_author",
+          "content": "Chen, Danqi"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/05/23"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/11/01"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2405.14734"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2405.14734"
+        }
+      ]
+    },
+    "orpo": {
+      "url": "https://arxiv.org/abs/2403.07691",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "ORPO: Monolithic Preference Optimization without Reference Model"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hong, Jiwoo"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lee, Noah"
+        },
+        {
+          "name": "citation_author",
+          "content": "Thorne, James"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/03/12"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/03/14"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2403.07691"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2403.07691"
+        }
+      ]
+    },
+    "kto": {
+      "url": "https://arxiv.org/abs/2402.01306",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "KTO: Model Alignment as Prospect Theoretic Optimization"
+        },
+        {
+          "name": "citation_author",
+          "content": "Ethayarajh, Kawin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Xu, Winnie"
+        },
+        {
+          "name": "citation_author",
+          "content": "Muennighoff, Niklas"
+        },
+        {
+          "name": "citation_author",
+          "content": "Jurafsky, Dan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Kiela, Douwe"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/02/02"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/11/19"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2402.01306"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2402.01306"
+        }
+      ]
+    },
+    "liu2024lipo": {
+      "url": "https://arxiv.org/abs/2402.01878",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "LiPO: Listwise Preference Optimization through Learning-to-Rank"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Tianqi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Qin, Zhen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wu, Junru"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shen, Jiaming"
+        },
+        {
+          "name": "citation_author",
+          "content": "Khalman, Misha"
+        },
+        {
+          "name": "citation_author",
+          "content": "Joshi, Rishabh"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhao, Yao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Saleh, Mohammad"
+        },
+        {
+          "name": "citation_author",
+          "content": "Baumgartner, Simon"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Jialu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Peter J."
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Xuanhui"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/02/02"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2025/01/24"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2402.01878"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2402.01878"
+        }
+      ]
+    },
+    "song2024pro": {
+      "url": "https://arxiv.org/abs/2306.17492",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Preference Ranking Optimization for Human Alignment"
+        },
+        {
+          "name": "citation_author",
+          "content": "Song, Feifan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Bowen"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Minghao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Yu, Haiyang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Huang, Fei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Li, Yongbin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Wang, Houfeng"
+        },
+        {
+          "name": "citation_date",
+          "content": "2023/06/30"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/02/27"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2306.17492"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2306.17492"
+        }
+      ]
+    },
+    "he2024olympiadbench": {
+      "url": "https://arxiv.org/abs/2402.14008",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "OlympiadBench: A Challenging Benchmark for Promoting AGI with Olympiad-Level Bilingual Multimodal Scientific Problems"
+        },
+        {
+          "name": "citation_author",
+          "content": "He, Chaoqun"
+        },
+        {
+          "name": "citation_author",
+          "content": "Luo, Renjie"
+        },
+        {
+          "name": "citation_author",
+          "content": "Bai, Yuzhuo"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hu, Shengding"
+        },
+        {
+          "name": "citation_author",
+          "content": "Thai, Zhen Leng"
+        },
+        {
+          "name": "citation_author",
+          "content": "Shen, Junhao"
+        },
+        {
+          "name": "citation_author",
+          "content": "Hu, Jinyi"
+        },
+        {
+          "name": "citation_author",
+          "content": "Han, Xu"
+        },
+        {
+          "name": "citation_author",
+          "content": "Huang, Yujie"
+        },
+        {
+          "name": "citation_author",
+          "content": "Zhang, Yuxiang"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Jie"
+        },
+        {
+          "name": "citation_author",
+          "content": "Qi, Lei"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Zhiyuan"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sun, Maosong"
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/02/21"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/06/06"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2402.14008"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2402.14008"
+        }
+      ]
+    },
+    "gandhi2024stream": {
+      "url": "https://arxiv.org/abs/2404.03683",
+      "metadata": [
+        {
+          "name": "citation_title",
+          "content": "Stream of Search (SoS): Learning to Search in Language"
+        },
+        {
+          "name": "citation_author",
+          "content": "Gandhi, Kanishk"
+        },
+        {
+          "name": "citation_author",
+          "content": "Lee, Denise"
+        },
+        {
+          "name": "citation_author",
+          "content": "Grand, Gabriel"
+        },
+        {
+          "name": "citation_author",
+          "content": "Liu, Muxin"
+        },
+        {
+          "name": "citation_author",
+          "content": "Cheng, Winson"
+        },
+        {
+          "name": "citation_author",
+          "content": "Sharma, Archit"
+        },
+        {
+          "name": "citation_author",
+          "content": "Goodman, Noah D."
+        },
+        {
+          "name": "citation_date",
+          "content": "2024/04/01"
+        },
+        {
+          "name": "citation_online_date",
+          "content": "2024/04/01"
+        },
+        {
+          "name": "citation_pdf_url",
+          "content": "https://arxiv.org/pdf/2404.03683"
+        },
+        {
+          "name": "citation_arxiv_id",
+          "content": "2404.03683"
+        }
+      ]
+    }
+  }
+}

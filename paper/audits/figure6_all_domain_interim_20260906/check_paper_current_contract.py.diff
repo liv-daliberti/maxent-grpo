@@ -1,0 +1,57 @@
+--- before/ops/check_paper_current_contract.py
++++ ops/check_paper_current_contract.py
+@@ -2,6 +2,7 @@
+ """Fail-closed contract for the current ModeBench/ReplayMaxRL paper story."""
+ from __future__ import annotations
+ 
++import hashlib
+ import json
+ import re
+ import runpy
+@@ -115,7 +116,7 @@
+     for n, finding in enumerate((
+         "Replay improves success and sampled support across scales.",
+         "Stronger fresh-rollout optimization does not eliminate the value of memory at either completed scale.",
+-        "Replay improves the chance of solving harder Graph.",
++        "Replay improves both interim means at both difficulty levels.",
+     ), 1):
+         require(normalized(finding) in normalized(results),
+                 f"Experiment {n} lacks its reader-facing finding")
+@@ -494,7 +495,7 @@
+ 
+     levels = json.loads(LEVELS.read_text(encoding="utf-8"))
+     rows = levels.get("admission_rows", [])
+-    require(levels.get("schema") == "modebench-level-admission-and-e119-progress-v2"
++    require(levels.get("schema") == "modebench-level-admission-and-matched-interim-v3"
+             and levels.get("target_step") == 3072 and len(rows) == 5,
+             "wrong matched-level admission/progress record")
+     require(all(.10 <= row["level2_pass8"] <= .90
+@@ -515,6 +516,28 @@
+             values = [row[metric] for row in method["per_seed"].values()]
+             require(abs(method["means"][metric] - sum(values) / 5) < 1e-12,
+                     "Level-2 Graph complete-block mean drifted")
++
++    comparison_snapshot = ROOT / "paper/results/modebench_level_comparison_snapshot.json"
++    frozen_levels = json.loads(comparison_snapshot.read_text(encoding="utf-8"))
++    require(frozen_levels.get("schema") == "modebench-level-comparison-frozen-snapshot-v1",
++            "wrong frozen Level1/Level2 snapshot")
++    require(levels.get("sources", {}).get(str(comparison_snapshot.resolve()))
++            == hashlib.sha256(comparison_snapshot.read_bytes()).hexdigest(),
++            "Figure6 is not bound to its frozen comparison snapshot")
++    level_analysis = runpy.run_path(
++        str(ROOT / "ops/exp_scaling/build_paper_modebench_level_comparison.py")
++    )
++    expected_interim = level_analysis["build_interim_comparison"](
++        frozen_levels["evaluations"], frozen_levels["availability"]
++    )
++    require(levels.get("interim_comparison") == expected_interim,
++            "Figure6 interim selection, pairing, or equal-domain means drifted")
++    require(levels.get("terminal_progress_by_domain")
++            == level_analysis["build_terminal_progress"](frozen_levels["level2_terminal_evaluations"]),
++            "Figure6 terminal coverage is not the frozen exact-step record")
++    require(set(expected_interim["domains"]) == DOMAINS
++            and expected_interim["model"] == "Qwen2.5-0.5B-Instruct",
++            "Figure6 interim scope does not contain all five domains at the stated model")
+ 
+     if PDF.is_file() and PDF.stat().st_mtime >= TEX.stat().st_mtime:
+         page9 = subprocess.run(

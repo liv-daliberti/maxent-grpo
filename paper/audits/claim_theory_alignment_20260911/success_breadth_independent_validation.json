@@ -1,0 +1,50 @@
+{
+  "status": "passed",
+  "arithmetic": "exact rational Fraction; no numerical tolerance",
+  "counts": {
+    "enumerated_distributions": 912,
+    "strict_bound_checks": 513,
+    "majorization_checks": 15376,
+    "strict_majorization_checks": 4914,
+    "correctness_monotonicity_checks": 684
+  },
+  "enumeration_scope": {
+    "valid_keys": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "q_grid_denominator": 4,
+    "uniform_q_added_for_every_size": true,
+    "P": [
+      "0",
+      "1/4",
+      "1/2",
+      "1"
+    ],
+    "K": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "countable_example": {
+    "q_c": "2^-c, c=1,2,...",
+    "P": "3/5",
+    "K": 8,
+    "N": 10,
+    "verified_prefix": 30,
+    "certified_tail_upper_bound": "3/640"
+  },
+  "source_sha256": {
+    "paper/main.tex": "c0f4cbd0914edc46b71746ca6053ec6556e1357f7d6809c54c2687b68f9f17c4",
+    "paper/mathai2026/appendix.tex": "e5e873c69197e2ebbc88be6f436ad90580e25cb52a271fb4961b06a995f9b6a5"
+  },
+  "shared_metric_lemma_sha256": "64a4a380b5072ae3beaebc15139b9ca1438e34ec14e3d1a71b01436a0d3a41f7",
+  "shared_theory_sha256": "92ee96a410a4836491f8d1e44847200a88391328be8c802e49b55ff5ff7b57c9",
+  "shared_theory_lines": 703,
+  "root_workshop_metric_lemma_identical": true,
+  "root_workshop_theory_identical": true
+}

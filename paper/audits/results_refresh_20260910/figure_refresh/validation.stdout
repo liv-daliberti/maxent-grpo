@@ -1,0 +1,10 @@
+{
+  "level2_terminal_endpoints_equal_census": 85,
+  "figure6_eligible_domain_seed_cells": 22,
+  "figure6_initial_only_domains": [],
+  "prior_png_equal": {
+    "e118_all_scale_factorial_progress": true,
+    "e118_scale_extensions_appendix": true,
+    "modebench_level_admission": false
+  }
+}

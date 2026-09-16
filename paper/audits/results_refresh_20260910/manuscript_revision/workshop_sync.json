@@ -1,0 +1,317 @@
+{
+  "parent_before_sha256": "f169b0fe84cbd5b4422d2875c14195543c83a0038c300856c970ba10a9468469",
+  "parent_after_sha256": "ad718125fba12b715f9bf9f2e7e70e86710208dfc89a6445f0884b4c9dc0b170",
+  "workshop_sources_before": {
+    "main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+    "appendix.tex": "9ddbbf24a9fc8a8b44cec7752695377689b518addf9208a70de0a297c80673e8",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+  },
+  "workshop_sources_after": {
+    "main.tex": "cca8eeab33db3c05d092e89aaed977e43af7717fd3b64446b446e8aa85dec296",
+    "appendix.tex": "34a18f2d9d299c74d61e30398aa99ff2d8f469add76075507d41912b7d4e45f0",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+  },
+  "exact_parent_delta_chunks_applied": [
+    {
+      "parent_before_line": 609,
+      "old": "      & sampling-aware fresh search without persistent memory & 11/15 blocks \\\\\n",
+      "new": "      & sampling-aware fresh search without persistent memory & 12/15 blocks \\\\\n"
+    },
+    {
+      "parent_before_line": 2998,
+      "old": "\\texttt{distinct@8}. The eleven complete MaxRL--ReplayMaxRL blocks retain all\nfive seeds; the full four-arm factorial has ten complete blocks and one\n",
+      "new": "\\texttt{distinct@8}. The twelve complete MaxRL--ReplayMaxRL blocks retain all\nfive seeds; the full four-arm factorial has eleven complete blocks and one\n"
+    },
+    {
+      "parent_before_line": 4364,
+      "old": "or a model-size trend. The other four Qwen2.5-3B MaxRL blocks remain incomplete;\nno Qwen2.5-3B MaxRL cross-domain average is reported.\n",
+      "new": "or a model-size trend.\n\n\\textbf{The newly completed Qwen2.5-3B Graph block adds extra correct modes.}\nReplayMaxRL raises \\texttt{distinct@8}$-$\\texttt{pass@8} by $+.163$\n(unadjusted paired 95\\% interval $[+.021,+.305]$), with a positive difference\nin all five seeds. Its mean \\texttt{pass@8} effect is $+.023$\n($[-.048,+.095]$), and its raw \\texttt{distinct@8} effect is $+.186$\n($[-.022,+.395]$). Thus the extra-mode contrast is positive while the\nco-primary endpoint intervals remain inconclusive. Countdown, MathIR, and\nPantryPlan are still incomplete; no Qwen2.5-3B MaxRL cross-domain average is\nreported.\n"
+    },
+    {
+      "parent_before_line": 4402,
+      "old": "Figure~\\ref{fig:level2-admission}B uses the September 9 frozen evaluation\n",
+      "new": "Figure~\\ref{fig:level2-admission}B uses the September 10 frozen evaluation\n"
+    },
+    {
+      "parent_before_line": 4412,
+      "old": "There are 21 matched domain--seed cells. Graph, Countdown, Python, and MathIR\nuse all five seeds, 43--47; PantryPlan uses only seed 45 at step 0 in both\nlevels and all four methods. Graph, Countdown, Python, and MathIR use\nstep 3,072 for all five seeds. These means describe the matched checkpoints\n",
+      "new": "There are 22 matched domain--seed cells. Graph, Countdown, Python, and MathIR\nuse all five seeds, 43--47, at step 3,072. PantryPlan uses seed 43 at step 672\n(1.75 passes) and seed 45 at step 0, each matched across both levels and all\nfour methods. These means describe the matched checkpoints\n"
+    },
+    {
+      "parent_before_line": 4424,
+      "old": "average. The initial Pantry values are observed evaluations; missing runs\n",
+      "new": "average. Both Pantry checkpoints are observed evaluations; missing runs\n"
+    },
+    {
+      "parent_before_line": 4435,
+      "old": "  Counts use the September 9 audit; the original E120 primary estimates\n",
+      "new": "  Counts use the September 10 audit; the original E120 primary estimates\n"
+    },
+    {
+      "parent_before_line": 4450,
+      "old": "      11/15 blocks & four Qwen-3B blocks; full factorial has ten complete blocks and one $n=4$ \\\\\n",
+      "new": "      12/15 blocks & three Qwen-3B blocks; full factorial has eleven complete blocks and one $n=4$ \\\\\n"
+    },
+    {
+      "parent_before_line": 4456,
+      "old": "      6/9 blocks; 35/45 cells & finish Falcon PantryPlan and both Qwen-3B blocks \\\\\n",
+      "new": "      7/9 blocks; 41/45 cells & finish both Qwen-3B blocks \\\\\n"
+    },
+    {
+      "parent_before_line": 4469,
+      "old": "comparators rather than components of the primary factorial. The eleven complete\n",
+      "new": "comparators rather than components of the primary factorial. The twelve complete\n"
+    },
+    {
+      "parent_before_line": 4471,
+      "old": "arms leaves ten complete five-seed blocks and one four-seed Falcon Countdown\n",
+      "new": "arms leaves eleven complete five-seed blocks and one four-seed Falcon Countdown\n"
+    },
+    {
+      "parent_before_line": 4476,
+      "old": "\\subsection{Dated endpoint update: September 9, 2026}\n",
+      "new": "\\subsection{Dated endpoint update: September 10, 2026}\n"
+    },
+    {
+      "parent_before_line": 4480,
+      "old": "E118, E119, and E120 ledgers, collected from 17:34:45 to 17:43:25 UTC.\n",
+      "new": "E118, E119, and E120 ledgers, collected from 16:49:41 to 16:53:47 UTC.\n"
+    },
+    {
+      "parent_before_line": 4484,
+      "old": "\\texttt{latest\\_results\\_20260909.json} records the collection interval,\n",
+      "new": "\\texttt{latest\\_results\\_20260910.json} records the collection interval,\n"
+    },
+    {
+      "parent_before_line": 4494,
+      "old": "  their registered uniform comparator for E120. All six complete E120 blocks\n",
+      "new": "  their registered uniform comparator for E120. All seven complete E120 blocks\n"
+    },
+    {
+      "parent_before_line": 4504,
+      "old": "    \\input{results/latest_results_20260909_table_body.tex}\n",
+      "new": "    \\input{results/latest_results_20260910_table_body.tex}\n"
+    },
+    {
+      "parent_before_line": 4508,
+      "old": "E118 contains 61 matched MaxRL/ReplayMaxRL pairs. Its eleven complete\nblocks are unchanged; Qwen2.5-3B Graph has four pairs (seeds 70--73),\nMathIR has one (seed 74), and PantryPlan has one (seed 72). Countdown\nhas no paired terminal intersection. These partial blocks remain descriptive,\n",
+      "new": "E118 contains 66 matched MaxRL/ReplayMaxRL pairs and twelve complete\nblocks. Qwen2.5-3B Graph now joins Python at five pairs (seeds 70--74).\nCountdown has two pairs (70 and 74), MathIR has three (70, 71, and 74),\nand PantryPlan has one (72). These partial blocks remain descriptive,\n"
+    },
+    {
+      "parent_before_line": 4521,
+      "old": "extra-mode effect is $+.017$ ($[+.001,+.032]$). PantryPlan has three\nindividually completed runs and no paired terminal intersection.\n",
+      "new": "extra-mode effect is $+.017$ ($[+.001,+.032]$). PantryPlan has five\nindividually completed runs and its first ReplayDr.GRPO--Dr.GRPO pair\n(seed 46): $+.156$ on \\texttt{pass@8}, $+.232$ on raw\n\\texttt{distinct@8}, and $+.076$ extra modes. This single-seed comparison\nis descriptive and receives no interval; no PantryPlan MaxRL pair or\nfour-arm terminal intersection is available.\n"
+    },
+    {
+      "parent_before_line": 4529,
+      "old": "  \\caption{\\textbf{Completed Level-2 Countdown, Python, and MathIR replay effects.}\n  Each contrast uses all five registered seeds, 43--47, at pass 8.\n  ReplayMaxRL is compared with MaxRL; ReplayDr.GRPO with Dr.GRPO.\n  Entries give the paired mean and unadjusted 95\\% Student-$t$ interval.\n  Extra modes are \\texttt{distinct@8}$-$\\texttt{pass@8}; their effect remains\n",
+      "new": "  \\caption{\\textbf{Additional complete blocks since the September 6 census.}\n  Each contrast uses all five registered paired seeds at pass 8.\n  ReplayMaxRL is compared with MaxRL; ReplayDr.GRPO with Dr.GRPO;\n  uniform replay with fresh-frequency replay. Entries give paired means and\n  nominal 95\\% intervals: Student-$t$ for the factorials and exhaustive\n  paired percentile bootstrap for the weighting ablation. These intervals\n  are not adjusted for repeated looks or multiple comparisons.\n  Extra modes are \\texttt{distinct@8}$-$\\texttt{pass@8} and remain\n"
+    },
+    {
+      "parent_before_line": 4545,
+      "old": "    \\input{results/latest_results_20260909_effects_table_body.tex}\n",
+      "new": "    \\input{results/latest_results_20260910_effects_table_body.tex}\n"
+    },
+    {
+      "parent_before_line": 4549,
+      "old": "E120 has 35 admitted treatment endpoints and six complete blocks.\nQwen2.5-3B Graph adds two pairs (seeds 70 and 71); Falcon3-1B PantryPlan\nretains three (57--59), and Qwen2.5-3B PantryPlan has none. All observed\npairs pass the persisted weighting-telemetry audit. The Falcon3-1B Graph\nresult in Appendix~\\ref{app:e120-falcon-graph-update} is unchanged.\n",
+      "new": "E120 has 41 admitted treatment endpoints and seven complete blocks.\nFalcon3-1B PantryPlan now has all five pairs (seeds 55--59).\nQwen2.5-3B Graph has four pairs (70--73), and PantryPlan has two (73 and 74).\nAll observed pairs pass the persisted weighting-telemetry audit. The\nFalcon3-1B Graph result in Appendix~\\ref{app:e120-falcon-graph-update} is\nunchanged.\n"
+    },
+    {
+      "parent_before_line": 4563,
+      "old": "model--domain contrast in the September 9 endpoint snapshot, including\n",
+      "new": "model--domain contrast in the September 10 endpoint snapshot, including\n"
+    },
+    {
+      "parent_before_line": 4589,
+      "old": "    \\input{results/current_campaign_results_20260909_e118_table_body.tex}\n",
+      "new": "    \\input{results/current_campaign_results_20260910_e118_table_body.tex}\n"
+    },
+    {
+      "parent_before_line": 4598,
+      "old": "not imply a breadth gain in every domain. The completed Qwen2.5-3B Python\nblock and the partial scale extensions remain separate comparisons.\n",
+      "new": "not imply a breadth gain in every domain. The completed Qwen2.5-3B Graph\nand Python blocks both have positive extra-mode intervals, while their\ncorrectness intervals include zero. The partial scale extensions remain\nseparate comparisons.\n"
+    },
+    {
+      "parent_before_line": 4618,
+      "old": "    \\input{results/current_campaign_results_20260909_e119_table_body.tex}\n",
+      "new": "    \\input{results/current_campaign_results_20260910_e119_table_body.tex}\n"
+    },
+    {
+      "parent_before_line": 4659,
+      "old": "    \\input{results/level2_factorial_contrasts_20260909_table_body.tex}\n",
+      "new": "    \\input{results/level2_factorial_contrasts_20260910_table_body.tex}\n"
+    },
+    {
+      "parent_before_line": 4669,
+      "old": "  snapshot passes the persisted replay-weight telemetry audit. Partial\n  blocks remain descriptive; Qwen2.5-3B PantryPlan has no pairs.}\n",
+      "new": "  snapshot passes the persisted replay-weight telemetry audit. Qwen2.5-3B\n  Graph and PantryPlan remain descriptive partial blocks.}\n"
+    },
+    {
+      "parent_before_line": 4680,
+      "old": "    \\input{results/current_campaign_results_20260909_e120_table_body.tex}\n",
+      "new": "    \\input{results/current_campaign_results_20260910_e120_table_body.tex}\n"
+    },
+    {
+      "parent_before_line": 4685,
+      "old": "favor uniform weighting on breadth, as does Falcon3-1B Graph. The\nQwen2.5-3B Graph extension also favors uniform weighting in its two observed\npairs ($\\Delta B=+.138$), whereas Falcon3-1B PantryPlan favors frequency\nweighting in its three observed pairs ($\\Delta B=-.540$). Neither partial\nblock receives an interval. These differences argue against a universal\nweighting advantage. The registered Qwen2.5-0.5B five-domain mean remains\n",
+      "new": "favor uniform weighting on breadth, as does Falcon3-1B Graph. The completed\nFalcon3-1B PantryPlan block is inconclusive: uniform minus frequency replay\nis $\\Delta B=-.146$ (paired bootstrap 95\\% interval $[-.564,+.414]$),\n$\\Delta P=-.021$ ($[-.063,+.026]$), and $\\Delta D=-.167$\n($[-.627,+.440]$). The earlier three-seed breadth mean of $-.540$ therefore\ndoes not establish a frequency-weighting advantage at the full five seeds.\nQwen2.5-3B Graph and PantryPlan have descriptive extra-mode effects of\n$+.070$ at $n=4$ and $+.206$ at $n=2$, respectively, without intervals.\nThe added results do not establish a uniform-weighting advantage across\nall model--domain blocks. The registered Qwen2.5-0.5B five-domain mean remains\n"
+    }
+  ],
+  "parent_main_chunks_kept_workshop_distinct": [
+    {
+      "parent_before_line": 567,
+      "old": "all five Level-1 domains and three scales. Eleven MaxRL pair blocks are complete;\nthe common four-arm intersection gives ten complete blocks and Falcon\n",
+      "new": "all five Level-1 domains and three scales. Twelve MaxRL pair blocks are complete;\nthe common four-arm intersection gives eleven complete blocks and Falcon\n"
+    },
+    {
+      "parent_before_line": 641,
+      "old": "incorporate validated results through the September 9 analysis update. Terminal\n",
+      "new": "incorporate validated results through the September 10 analysis update. Terminal\n"
+    },
+    {
+      "parent_before_line": 722,
+      "old": "five. A newly completed Qwen2.5-3B Python block also gains \\(+.391\\) raw\n\\texttt{distinct@8} (\\([+.079,+.704]\\)); its correctness effect remains\ninconclusive (Appendix Table~\\ref{tab:qwen3b-python-factorial}).\n",
+      "new": "five. At Qwen2.5-3B, the completed Python block gains \\(+.391\\) raw\n\\texttt{distinct@8} (\\([+.079,+.704]\\)), while the newly completed Graph\nblock adds \\(+.163\\) extra correct modes (\\([+.021,+.305]\\)). Correctness\nintervals include zero in both blocks; Graph's raw-support interval also\nincludes zero (Appendix~\\ref{app:maxrl-scale-extensions}).\n"
+    },
+    {
+      "parent_before_line": 735,
+      "old": "Both levels and all methods use matched checkpoints; Pantry contributes one seed\nat step 0 (Appendix~\\ref{app:level2-interim}). All other domains contribute five matched seeds.}\n",
+      "new": "Both levels and all methods use matched checkpoints; Pantry contributes two seeds,\nat steps 672 and 0 (Appendix~\\ref{app:level2-interim}). All other domains\ncontribute five matched seeds.}\n"
+    },
+    {
+      "parent_before_line": 744,
+      "old": "summary includes 21 matched domain--seed cells: five per domain except\nPantryPlan, whose one matched seed contributes its initial evaluation.\n",
+      "new": "summary includes 22 matched domain--seed cells: five per domain except\nPantryPlan, whose two matched seeds contribute steps 672 and 0.\n"
+    },
+    {
+      "parent_before_line": 821,
+      "old": "causes the accuracy gains. The MaxRL factorial has eleven complete paired\n",
+      "new": "causes the accuracy gains. The MaxRL factorial has twelve complete paired\n"
+    }
+  ],
+  "assets": [
+    {
+      "path": "figures/current_campaign_results_20260910.pdf",
+      "before_sha256": null,
+      "after_sha256": "9a3c72b863170a73e807f7221628a8af4aa51800c694fe0a2c270bc8a92e529f"
+    },
+    {
+      "path": "figures/current_campaign_results_20260910.png",
+      "before_sha256": null,
+      "after_sha256": "9dc28c64e518cad2ff3052bb3dc87a9282b4144b71c9a9853222682b8fb4a048"
+    },
+    {
+      "path": "figures/e118_all_scale_factorial_progress.json",
+      "before_sha256": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b",
+      "after_sha256": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418"
+    },
+    {
+      "path": "figures/e118_all_scale_factorial_progress.pdf",
+      "before_sha256": "ce8f03ed8936f4a8c958924513dc1a3bc798730772f324d62b6f8271a7cd629f",
+      "after_sha256": "e583f0d95be3dba8b72dd5cafd15013a0b304049c2cdbc25d85a42c9659945fb"
+    },
+    {
+      "path": "figures/e118_all_scale_factorial_progress.png",
+      "before_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+      "after_sha256": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34"
+    },
+    {
+      "path": "figures/e118_scale_extensions_appendix.json",
+      "before_sha256": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b",
+      "after_sha256": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418"
+    },
+    {
+      "path": "figures/e118_scale_extensions_appendix.pdf",
+      "before_sha256": "70b288c7e862cad73d5e627eb562c6edbbf5bebcaee4778fd451706d334e7a40",
+      "after_sha256": "d44bf9aea89ef774e8ef3976629b0a47a94d2a02ba10eb328f5ca179a5423bd6"
+    },
+    {
+      "path": "figures/e118_scale_extensions_appendix.png",
+      "before_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+      "after_sha256": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7"
+    },
+    {
+      "path": "figures/modebench_level_admission.json",
+      "before_sha256": "5f6421c2349df8388d5f273db9953b852479ef5fbfb8c0f48307dd5535ddeee5",
+      "after_sha256": "21af1b6a793145cdfd8180f0d8050d110b2ded910755a6358965df215ab6d6f0"
+    },
+    {
+      "path": "figures/modebench_level_admission.pdf",
+      "before_sha256": "0a06f11b90d8a98bfb7c3bbbc044bf1f8138391595dd8a55cacc9bbd424854f3",
+      "after_sha256": "1c3b82c357d158e0cb276a0ed7689d26f4ee59abd9f7055fd6adb69115f9b61a"
+    },
+    {
+      "path": "figures/modebench_level_admission.png",
+      "before_sha256": "dc5031fbfbe7cd85dcf0f2d76ed5cce830427f37c7770c72ab5a482df6c490f1",
+      "after_sha256": "3780b23d09132308787b10ac53bcb8daf1eb8497c95fcd4a2b64f59183b11167"
+    },
+    {
+      "path": "results/current_campaign_results_20260910.csv",
+      "before_sha256": null,
+      "after_sha256": "618b7d302fb9cf25bce68372e919e7f7eadd33a5260531a7975af6af0512e461"
+    },
+    {
+      "path": "results/current_campaign_results_20260910.json",
+      "before_sha256": null,
+      "after_sha256": "e24e037e270f78f7c6daa7deda57d899812c7fdb983bccf1f71b78721e2cc5c3"
+    },
+    {
+      "path": "results/current_campaign_results_20260910.md",
+      "before_sha256": null,
+      "after_sha256": "87278cd699dba4d1fbc530c4c0bb81d397c23eb0a83871ee6fe5a8cc9a8d76c8"
+    },
+    {
+      "path": "results/current_campaign_results_20260910_coverage_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "eb64427683467a78b63157a634365ba8d91c54118c047a45c8c6bb1f02802d12"
+    },
+    {
+      "path": "results/current_campaign_results_20260910_e118_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "eede14237559cc7fc05d60e4dcaa9b05069856547403cefdbfea1504fb9f1aa3"
+    },
+    {
+      "path": "results/current_campaign_results_20260910_e119_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "33642ed6388044a37078b2bc397f2dad1b3fc6b1a1afeaf26a82e796aa10d744"
+    },
+    {
+      "path": "results/current_campaign_results_20260910_e120_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "ebf39020cad6abba18cd6dcd3e947252626cd05bedf913b6bf6fd77d8565670f"
+    },
+    {
+      "path": "results/latest_results_20260910.json",
+      "before_sha256": null,
+      "after_sha256": "dbaaf327e1765cbf2dc2d39d64599b69b17333487efb44762ffc09709f4b9d60"
+    },
+    {
+      "path": "results/latest_results_20260910_effects_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "6e4d461e9c4b753aac6bce0290639d5920ec1aaf7322b528ecc309e27c2c1795"
+    },
+    {
+      "path": "results/latest_results_20260910_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "5079b6a2833f43a6da8aac5d60e3a9a81824a37ba751d6ca84476466216eeeb3"
+    },
+    {
+      "path": "results/level2_factorial_contrasts_20260910.json",
+      "before_sha256": null,
+      "after_sha256": "dc70a9901a84cadd7ccacfd3536efae7b6cd95ff77292223bfa92f886b5ec206"
+    },
+    {
+      "path": "results/level2_factorial_contrasts_20260910_table_body.tex",
+      "before_sha256": null,
+      "after_sha256": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+    },
+    {
+      "path": "results/modebench_level_comparison_snapshot.json",
+      "before_sha256": "6238497463c1012016f6ebdf25d9ab4482eac50d62beefd1aae66f89e2e14753",
+      "after_sha256": "11f3b57cf0b3ee0933694f115c3c70d5e2d1e0c92aafe4e5abab14c3c71c79a0"
+    }
+  ],
+  "workshop_only_disclosure_correction": "12 MaxRL pair blocks, 11 complete four-arm blocks, and PantryPlan alone incomplete at Level 2.",
+  "page_budget_edit": "Tightened the main MaxRL paragraph and Pantry caption after the staged builder rejected a fifth main page. No margins, fonts, spacing, figure sizes, or numerical values changed. The new Graph interval remains in the main text; established small-model averages remain in the appendix."
+}

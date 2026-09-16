@@ -67,7 +67,11 @@ def build(source: Path) -> dict:
         block = {
             'kind': 'before_after', 'level': level, 'domain': domain,
             'scale': scale, 'method': method,
-            'transfer': level not in ('level1', 'level2'),
+            # Every cross-level cell is a Level-1-trained policy read on another
+            # level's split, so only Level 1 is trained-and-evaluated together.
+            # Calling Level 2 same-level would misdescribe the whole ladder.
+            'trained_level': 'level1',
+            'transfer': level != 'level1',
         }
         if base is None:
             block.update({'status': 'no_untrained_baseline', 'summary': summarise([])})
@@ -77,17 +81,27 @@ def build(source: Path) -> dict:
         # Both sides must define the measure. A checkpoint that never returns two
         # correct responses to one prompt has no breadth to compare against, and
         # a zero here would be a claim the data does not make.
-        usable = [c for c in group
-                  if c['resampled']['reportable'] and initial['reportable']]
-        deltas = [c['resampled']['pmd'] - initial['pmd'] for c in usable]
+        # PCMD is defined wherever a prompt has two correct responses; the
+        # support bar is a precision threshold, not a definedness one. A cell
+        # under the bar is therefore measured and marked provisional rather than
+        # discarded -- that is the convention the base-grid figure already uses
+        # -- and only a cell with no eligible prompt at all has nothing to say.
+        usable = [c for c in group if c['resampled']['defined_prompts'] >= 2]
+        deltas = [c['resampled']['pmd'] - initial['pmd'] for c in usable
+                  if initial['defined_prompts'] >= 2]
+        provisional = bool(deltas) and not (
+            initial['reportable'] and all(c['resampled']['reportable'] for c in usable))
         block.update({
+            'provisional': provisional,
             'status': 'measured' if deltas else (
-                'initial_below_support' if not initial['reportable']
+                'initial_below_support' if initial['defined_prompts'] < 2
                 else 'final_below_support'),
             'initial_pmd': initial['pmd'],
             'initial_defined_prompts': initial['defined_prompts'],
             'initial_reportable': initial['reportable'],
             'seeds': sorted(c['seed'] for c in usable),
+            'initial_eligible_prompts': initial['defined_prompts'],
+            'final_eligible_prompts': sorted(c['resampled']['defined_prompts'] for c in usable),
             'summary': summarise(deltas),
         })
         blocks.append(block)
@@ -101,9 +115,11 @@ def build(source: Path) -> dict:
         'definition': {
             'quantity': 'terminal PCMD minus untrained PCMD on the level\'s held-out split',
             'pairing': 'one untrained checkpoint per cell; spread is across training seeds',
-            'transfer_levels': ['level3', 'level4', 'level5'],
-            'transfer_note': 'Levels 3-5 read Level-1/2 policies on constructions '
-                             'they never trained on; the difference there is transfer.',
+            'trained_level': 'level1',
+            'transfer_levels': ['level2', 'level3', 'level4', 'level5'],
+            'transfer_note': 'Every cell trains at Level 1. Level 1 is trained and '
+                             'evaluated together; Levels 2-5 read that same policy on '
+                             'constructions it never trained on, so they are transfer.',
         },
         'coverage': {
             'blocks': len(blocks), 'measured': len(measured),

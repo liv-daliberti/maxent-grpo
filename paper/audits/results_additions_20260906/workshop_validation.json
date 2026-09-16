@@ -1,0 +1,16 @@
+{
+  "standalone_directory": "/tmp/mathai2026_submission_final_5rohum27",
+  "standalone_build": "PASS",
+  "missing_input_rejected": true,
+  "stale_source_with_refreshed_manifest_rejected": true,
+  "restored_artifact_check": "PASS",
+  "workshop_pdf_sha256": "ee045d73ea8ebf8438aedfe2479123cf40bd0031670e23a4cab7679512828a3a",
+  "source_zip_sha256": "f0119e72fdbd345c1bf1d042b50fef152fc43fc29b5846cabb689a037c3604b4",
+  "visual_review_pages": [
+    4,
+    40,
+    56
+  ],
+  "visual_review": "PASS: figures, captions and new appendix tables fit with no collisions or clipping",
+  "unchanged_prior_assets_except_e118": true
+}

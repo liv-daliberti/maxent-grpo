@@ -1,0 +1,47 @@
+% Workshop only: the long paper already defines these metrics in its main text.
+\section{Formal Metric Definitions}
+\label{app:metrics}
+\label{sec:collapse-metrics}
+
+For prompt $x$ with specification $s_x$, the validator maps an output to a
+canonical valid key or failure:
+$V(\cdot,s_x):\mathcal Y\to\mathcal C_x\cup\{\bot\}$.
+The learner sees keys only for its generated responses, never the full
+catalogue $\mathcal C_x$ or its size. For $Y\sim\pi_\theta(\cdot\mid x)$, define
+\[
+ P_\theta^+(x)=\Pr[V(Y,s_x)\ne\bot],\qquad
+ p_\theta^+(c\mid x)=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\ne\bot].
+\]
+The conditional distribution is defined only when $P_\theta^+(x)>0$;
+otherwise all sampling metrics below are zero. Mode collapse means
+concentration onto fewer valid keys, which can coexist with increasing
+success probability.
+
+For $K$ independent responses, let
+\[
+ D_K=\bigl|\{V(Y_i,s_x):i\le K\}\setminus\{\bot\}\bigr|,
+ \qquad F_K=K^{-1}\sum_i\1[V(Y_i,s_x)\ne\bot].
+\]
+Then \texttt{distinct@}$K=\E[D_K]$ counts expected unique verified keys in
+$[0,K]$, whereas \texttt{pass@}$K=\Pr[D_K>0]$ and
+\texttt{mean@}$K=\E[F_K]$ are probabilities in $[0,1]$.
+The samplewise inequality $F_K\le\1[D_K>0]\le D_K$ gives
+$\texttt{mean@}K\le\texttt{pass@}K\le\texttt{distinct@}K$,
+but changes in the count and probability have different units.
+For a fixed prompt, $\mu_c(x)=\Pr[V(Y,s_x)=c]$ gives
+\[
+ \texttt{pass@}K(x)=1-(1-P_\theta^+(x))^K,\qquad
+ \texttt{distinct@}K(x)=\sum_{c\in\mathcal C_x}[1-(1-\mu_c(x))^K].
+\]
+These identities apply before averaging over prompts. Raw
+\texttt{distinct@}$K$ measures sampled coverage, not total
+positive-probability support. Uniform independent sampling from $N$ finite
+actions, with $n_c$ aliases of valid key $c$, gives
+$\sum_c[1-(1-n_c/N)^K]$ expected keys; open-ended program spaces have no
+canonical uniform generator.
+
+The terminal co-primary outcomes use $K=8$: success probability
+\texttt{pass@8} and raw \texttt{distinct@8}. Their difference
+$\E[D_K-\1[D_K>0]]$ counts extra verified modes beyond the first. This
+interpretive decomposition remains coupled to correctness and is neither
+a third primary endpoint nor a success-matched diversity measure.

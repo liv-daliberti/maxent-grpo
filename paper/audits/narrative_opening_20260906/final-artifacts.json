@@ -1,0 +1,50 @@
+{
+  "main_content_pages": 4,
+  "workshop_total_pages": 60,
+  "parent_total_pages": 61,
+  "main_figures": 6,
+  "supplementary_figures": 7,
+  "references_start_page": 5,
+  "parent_line_fill_blocks": 293,
+  "archive_files": 54,
+  "archive_key_sources_match": true,
+  "visual_review": "All four final main pages inspected; no clipping or overlap.",
+  "display_branding_replacements": 23,
+  "files": {
+    "paper/mathai2026/main.tex": {
+      "sha256": "94b9b5f203ad509b36caf01b07f52c6abfe6a586ab7bbe7fe3a2bd064c60a35e",
+      "bytes": 11051
+    },
+    "paper/mathai2026/appendix.tex": {
+      "sha256": "3d38f6e77dd6bb424f3dc6fbb460fdd7b9c1ee031debb6a268b5c748168387b8",
+      "bytes": 205742
+    },
+    "paper/mathai2026/main.pdf": {
+      "sha256": "e3ac91aeb143e7c7d5c1b5e3571af141b0b9318e25e7bb600a25b691f7eccaa9",
+      "bytes": 1108179
+    },
+    "paper/mathai2026/mathai2026-source.zip": {
+      "sha256": "1e6bfb1154e2bd1cf7e7d2df527ac5b0c5eb04c6631e364b62da7f716a041440",
+      "bytes": 823323
+    },
+    "paper/mathai2026/snapshot.json": {
+      "sha256": "f16523d14f7e0e59eb3e0fdc6db076a9195b8cb31159ceb365c45295410c28ad",
+      "bytes": 36521
+    },
+    "paper/mathai2026/check_submission.py": {
+      "sha256": "d8859394c24c4f5479eb7a6cc8b1d70d43f1e16e4ff3c75a86b60dd133237eff",
+      "bytes": 7398
+    },
+    "paper/main.tex": {
+      "sha256": "04859e5a67279bd4323138edf0200d81a3f5711756dfcf9b7c7e23aeb16c57c1",
+      "bytes": 220166
+    },
+    "paper/main.pdf": {
+      "sha256": "9a943ee8c5dcf3a5b04ddbfe746155442d320aee774556f91eda8dc10339ee16",
+      "bytes": 1033957
+    }
+  },
+  "figure_1_page": 1,
+  "figure_1_page_enforced": true,
+  "author_preferred_abstract": true
+}

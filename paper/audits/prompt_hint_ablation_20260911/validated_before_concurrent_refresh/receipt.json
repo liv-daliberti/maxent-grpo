@@ -1,0 +1,12 @@
+{
+  "captured_at_utc": "2026-09-11T20:14:56.852259+00:00",
+  "scope": "Last validated full PDFs contain the primary local ablation; the later post-hoc Python paragraph awaits final rebuild during concurrent training-result refresh.",
+  "files": {
+    "paper/main.pdf": "8e708d8b63321c735b09b295d10b38d488b01733dfdf796dcf5b7df408ed8b43",
+    "paper/main-body.pdf": "bad205e787849c770661151388bbc3cea48a6be4abe6adb2619400eed9a5a7d6",
+    "paper/mathai2026/main.pdf": "d03d61659a745e7a1c0b6a1bc772156854d20a8edf35642f1d35b8a01c0814f3",
+    "paper/mathai2026/mathai2026-source.zip": "4a8f3ad0ba0e603906719f78a087851732251380091acbc540d0dbdb0f437ca5",
+    "paper/mathai2026/build_receipt.json": "56a9413e63778cfeb8fafeeb36d5edd139514a72c0bd9587c42f41843da9fc48",
+    "paper/mathai2026/snapshot.json": "435a9a5e3daf33602c47a70d271f3caf082dcee22113fae1f3a65c2eff109405"
+  }
+}

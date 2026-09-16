@@ -1,0 +1,29 @@
+{
+  "files": [
+    {
+      "path": "paper/main.tex",
+      "before_sha256": "ecfdb38a99100cb89e76eec39b81a3ffdbdc721950ded3df713a140cc9925337",
+      "after_sha256": "dddef38329509262a53808a902062955d8c78bed8fc86e71c907dd28327c04c9"
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "before_sha256": "8fb1b185129b8c7b0dc12c135efbe04ad124e2367b79f41c6ab2bca3f8197c40",
+      "after_sha256": "bb6311be0e06e30a0bea49e841d9f7142e4641f1c9967a2091112acd0ae0fa88"
+    },
+    {
+      "path": "ops/check_paper_current_contract.py",
+      "before_sha256": "ccf1efb2966c1dc4b7c7a5e79e21d42d94e9e41060f0167fbfeef0dfa56083df",
+      "after_sha256": "594c0cea081cea7f43c3ddddf0e795a854113b3597eea487b03168d60ace2f51"
+    }
+  ],
+  "source_references": [
+    "https://arxiv.org/abs/2505.22617",
+    "https://arxiv.org/abs/2509.06941",
+    "https://arxiv.org/html/2602.02710v3"
+  ],
+  "scope": "Semantic MaxEnt motivation/title and shorter AI disclosure; estimator mathematics, implementation caveats, experimental outcomes and figures unchanged; no manuscript build.",
+  "source_contract": {
+    "command": "python3 ops/check_paper_current_contract.py",
+    "result": "passed; no manuscript build"
+  }
+}

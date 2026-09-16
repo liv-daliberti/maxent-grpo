@@ -1,0 +1,47 @@
+{
+  "at": "2026-09-12T17:06:05.059806+00:00",
+  "files": {
+    "paper/main.pdf": {
+      "bytes": 1771328,
+      "sha256": "a3c5a26941477d004417bcd1a527b3686f6d3720b75624a02cdb3e162ec2bc68"
+    },
+    "paper/mathai2026/main.pdf": {
+      "bytes": 1752539,
+      "sha256": "35fdba292ac88dd25d1253e46aa7776241667f707a21ae1ceffc496cd8165c94"
+    },
+    "paper/mathai2026/mathai2026-source.zip": {
+      "bytes": 20089897,
+      "sha256": "96e24da0906af78cb669d48ae898cac0f99df1bb2ff4a399a20c433cdd97406c"
+    },
+    "paper/results/latest_results_20260912.json": {
+      "bytes": 142737,
+      "sha256": "cca107ffacacc2ac451ded86833c0a6ed1a150be9724b45df21b8da8ba72168f"
+    },
+    "paper/results/current_campaign_results_20260912.json": {
+      "bytes": 92863,
+      "sha256": "bda87a60e13de0bf6cf9cfca43f2735689088decb6eb1fe60c090bdd5c0f5e55"
+    },
+    "paper/results/training_curve_snapshot_20260912.json": {
+      "bytes": 36314140,
+      "sha256": "dda99da0c8845de96b3369252dabfeb712d51c2b2e9c905d094d862def8888cb"
+    },
+    "paper/results/conditional_concentration_20260912.json": {
+      "bytes": 39526261,
+      "sha256": "22cb288ebcca55bbd23562bb4e170655fb2f19122106d794ee16c4e2ac0811a7"
+    },
+    "paper/results/modebench_discovery_curves_20260911.json": {
+      "bytes": 58055725,
+      "sha256": "389f94cb5363907ad9ebaafc0e4ec6429fa0757826d4b98758b16911297d0716"
+    },
+    "paper/results/discovery_hosted_interpretation_20260912.tex": {
+      "bytes": 2899,
+      "sha256": "411047da03fd56d1b46c6dfe2ea64f8150281ef11348ede787783da28a4f466f"
+    }
+  },
+  "parent_main_pages": 9,
+  "workshop_main_pages": 4,
+  "e118_endpoints": 150,
+  "e119_endpoints": 100,
+  "e120_treatment_endpoints": 45,
+  "controller_job_id": "31259141"
+}

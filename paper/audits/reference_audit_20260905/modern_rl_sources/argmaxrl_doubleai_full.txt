@@ -1,0 +1,362 @@
+ArgMaxRL: Generalizing MaxRL to Continuous Rewards — Research | doubleAI
+Skip to main content
+ArgMaxRL: Train for the Best of Many, Not the Average of One
+Read the Post
+Close Announcement Banner
+Research
+About
+Careers
+Research
+About
+Careers
+All Posts
+Blog
+ArgMaxRL: Generalizing MaxRL to Continuous Rewards
+Optimizing quality and diversity under continuous rewards with a drop-in gradient estimator
+Published on
+September 1, 2026
+Share this post
+Introduction
+Reinforcement learning for language models has a diversity problem. GRPO and other standard RL objectives optimize for the expected quality of a single sample, but say nothing about what happens when you sample twice, or ten times, or a thousand. The result is
+mode collapse
+: greedy accuracy goes up, but the model fails to produce diverse, high-quality outputs. It converges on a narrow set of behaviors, losing the creative breadth that makes test-time scaling powerful.
+This matters. At inference time, the ability to generate many distinct solutions and select the best one - test-time scaling - is one of the most significant tools available. A model that can only produce essentially one answer leaves intelligence on the table.
+ArgMaxRL
+is a new gradient estimator that addresses this directly, building on MaxRL (Tajwar et al., 2026) and generalizing it from binary to continuous rewards. It jointly optimizes all
+best@k
+objectives - the expected quality of the best output among $k$ samples - for every $k$ up to the sampling budget, simultaneously. It does this with a simple, closed-form calculation, where the implementation is a few lines of code that you can drop into your training loop today.
+ArgMaxRL provides an unbiased gradient estimator for the generalized objective $\sum_{k=1}^{N} \frac{1}{k}\, \text{best@k}(x)$, and recovers binary MaxRL exactly as a special case. This weighting means that every sampling budget up to $N$ contributes to the gradient, thus expressing directly in the objective the contribution of test-time scaling.
+MaxRL established the binary-reward case, showing that a one-symbol change to the REINFORCE gradient estimator (normalizing by successes, which they denoted as $K$, instead of total samples $N$) yields a gradient estimator that jointly optimizes all pass@k objectives, Pareto-dominating GRPO with up to 20× test-time scaling efficiency gains. In this blogpost we generalize this framework from binary to arbitrary non-negative rewards.
+‍
+Why continuous rewards?
+MaxRL's limitation is that pass@k is inherently binary: at least one sample is correct, or none are. But many of the most important reward signals are graded. Consider CUDA kernel optimization. This is a critical bottleneck in modern ML infrastructure, where optimized kernels can deliver order-of-magnitude speedups over naive implementations, as in our work in
+WarpSpeed: Surpassing Expert-Written Kernels At Scale
+. A model generating candidate kernel rewrites might produce ten versions that all compute the correct result, but with runtime speedups ranging from 1.2× to 8.5× over the original implementation. Binary pass@k can only tell you whether any rewrite was correct, but it says nothing about which one made the kernel fastest. ArgMaxRL removes this restriction.
+The same issue appears in partial-credit math grading, code generation (fraction of tests passed), reward-model scores, retrieval ranked by relevance, and multi-objective settings. What you actually want to optimize is the quality of the best sample: $\text{best@k}$.
+‍
+Why $\text{best@k}$ Objectives
+If a task has a single best answer and the model can reliably find it, there's no need for $\text{best@k}$. In this case, $\text{best@1}$ is enough and the model
+should
+collapse onto that answer. But hard problems rarely work this way. The model operates under a high degree of uncertainty, and such tasks require the model to actively search the space of ideas, as we discussed extensively in earlier work on
+PAC-reasoning
+and
+the Diligent Learner
+. When you have a verifier, this is where test-time scaling earns its keep: sample $k$ times, keep the best. The expected output of this strategy is literally $\text{best@k}$.
+Optimizing it directly is what keeps the diversity that scaling relies on. The cleanest way to see this is by gaining intuition through the case $k=2$:
+$$
+\text{best@2} = \frac{1}{2}\,\mathbb{E}\,[r_1 + r_2] + \frac{1}{2}\,\mathbb{E}\,|r_1 - r_2| =  \text{best@1} + \frac{1}{2}\,\mathbb{E}\,|r_1 - r_2|
+$$
+The first term is ordinary single-sample quality, the “vanilla” RL target. The second rewards
+spread
+in the rewards - it vanishes the moment the policy collapses, and grows the more its rewards differ. So, $\text{best@k}$ never chases diversity for its own sake, but rewards policies that perform best under the sampling we actually deploy.
+MaxRL in brief
+Let’s start by setting up the necessary context from Tajwar et al. (2026); see
+the full paper
+for details.
+Fix an input $x$. The model samples outputs $y_1, \ldots, y_N \sim m_\theta(\cdot \mid x)$ and receives binary rewards $r_i = \mathbb{1}\{y_i \text{ is correct}\}$. Define the pass rate $p = p_\theta^{\text{pass}}(x)$ and
+$$
+\text{pass@k}(x) = 1 - (1-p)^k
+$$
+the probability that at least one of $k$ i.i.d. samples is correct, or in other words - the probability that not all of the generations were incorrect.
+The RL objective is $J_{\text{RL}}(x) = p$ and the maximum likelihood objective is $J_{\text{ML}}(x) = \log p$. In classical Maximum Likelihood/Expectation Maximization, the log is often thought of as a computational convenience, turning products into sums. But here it makes a real difference. The first clue is in the gradients:
+$$
+\nabla_\theta J_{\text{RL}} = \nabla_\theta p \qquad \qquad \nabla_\theta J_{\text{ML}} = \frac{1}{p}\nabla_\theta p
+$$
+The $1/p$ factor gives higher importance to hard, low-pass-rate inputs, which is precisely what standard RL fails to do.
+The key insight from MaxRL
+is that the ML gradient, through the lens of a Taylor expansion of $\log(p)$, decomposes as an infinite harmonic mixture of $\text{pass@k}$ gradients:
+$$
+\nabla_\theta J_{\text{ML}}(x) = \sum_{k=1}^{\infty} \frac{1}{k} \nabla_\theta\, \text{pass@k}(x)
+$$
+RL retains only the $k=1$ term. MaxRL truncates at order $N$ (the sampling budget) and provides a beautifully simple estimator: normalize by the number of successes $K$ instead of total samples $N$. This single change makes the estimator unbiased for $\sum_{k=1}^{N} \frac{1}{k} \nabla_\theta\, \text{pass@k}(x)$ - it optimizes all pass@k objectives jointly, up to the sampling budget.
+‍
+From pass@k to best@k
+The key is finding the right generalization of pass@k for continuous rewards. Let $y_1, \ldots, y_k$ be i.i.d. samples with rewards $r_1, \ldots, r_k$. Define:
+$$
+M_k := \max_{1 \leq i \leq k} r_i \qquad \qquad \text{best@k}(x) := \mathbb{E}[M_k]
+$$
+In the binary case, $M_k \in \{0, 1\}$ and so:
+$$
+\text{best@k}(x) = \mathbb{E}[M_k] = P(M_k = 1) = \text{pass@k}(x)
+$$
+So best@k is a strict generalization of pass@k. "At least one success" becomes "the reward given to the best sample." The generalized objective follows naturally:
+$$
+J^{(N)}(x) := \sum_{k=1}^{N} \frac{1}{k}\, \text{best@k}(x) = \sum_{k=1}^{N} \frac{1}{k}\, \mathbb{E}[M_k]
+$$
+This is exactly the MaxRL truncated objective in the binary case, and extends it to continuous rewards. The goal is now to find an unbiased gradient estimator for $\nabla_\theta J^{(N)}(x)$.
+‍
+The construction: layer-cake meets MaxRL
+The core idea is to decompose continuous rewards into a continuum of binary problems, apply MaxRL at each one, and integrate.
+‍
+The layer-cake identity
+For any non-negative random variable $X$ with finite expectation:
+$$
+\mathbb{E}[X] = \int_0^{\infty} P(X > \tau)\, d\tau
+$$
+This is sometimes called the "tail sum formula" - instead of computing the expectation vertically (integrating $x$ against its density), we compute it horizontally (integrating the survival function over thresholds). Applying it to $M_k$:
+$$
+\mathbb{E}[M_k] = \int_0^{\infty} P(M_k > \tau)\, d\tau
+$$
+The key observation
+For each threshold $\tau \geq 0$, the event $\{M_k > \tau\}$ is exactly the event "at least one of the first $k$ samples has reward exceeding $\tau$." If we define thresholded binary rewards $b_i^{\tau} := \mathbb{1}\{r_i > \tau\}$, then:
+$$
+P(M_k > \tau) = \text{pass}_\tau\text{@k}(x)
+$$
+At every threshold $\tau$, we have a binary pass@k problem, and binary MaxRL applies.
+The gradient
+$$
+\nabla_\theta J^{(N)}(x) = \nabla_\theta \sum_{k=1}^{N} \frac{1}{k}\, \mathbb{E}[M_k]
+$$
+$$
+= \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta \int_0^{\infty} P(M_k > \tau)\, d\tau
+$$
+$$
+= \sum_{k=1}^{N} \frac{1}{k} \int_0^{\infty} \nabla_\theta\, P(M_k > \tau)\, d\tau
+$$
+$$
+= \int_0^{\infty} \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta\, \text{pass}_\tau\text{@k}(x)\; d\tau
+$$
+The last sum (under the integral) is the binary MaxRL gradient at threshold $\tau$. The gradient of the continuous objective is an integral of binary MaxRL gradients, one for each threshold $\tau$.
+Joint Best@k Gradient Estimator
+The objective is an integral of binary MaxRL
+objectives
+- so the joint best@k gradient estimator is an integral of binary MaxRL
+gradient estimators
+.
+For each threshold $\tau$, let $K_\tau := \sum_{i=1}^{N} \mathbb{1}\{r_i > \tau\}$ be the number of rewards exceeding $\tau$, and define the binary MaxRL gradient estimator relevant to the $\text{pass}_\tau\text{@k}$ task:
+$$
+\hat{g}_\tau^{(N)}(x) := \begin{cases}
+\frac{1}{K_\tau}\sum_{i=1}^{N} \mathbb{1}\{r_i > \tau\}\, S_i, & K_\tau \geq 1 \\
+0, & K_\tau = 0
+\end{cases}
+$$
+The continuous ArgMaxRL joint best@k gradient estimator integrates over all thresholds:
+$$
+\hat{g}^{(N)}(x) := \int_0^{\infty} \hat{g}_\tau^{(N)}(x)\, d\tau
+$$
+Theorem (Continuous Gradient Estimator–Objective Equivalence).
+The ArgMaxRL gradient estimator is unbiased for the gradient of the generalized objective:
+$$
+\mathbb{E}\!\left[\hat{g}^{(N)}(x)\right] = \nabla_\theta J^{(N)}(x) = \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta\, \text{best@k}(x)
+$$
+Proof.
+By the binary MaxRL theorem (Tajwar et al., Theorem 2), for each fixed $\tau$:
+$$
+\mathbb{E}\!\left[\hat{g}_\tau^{(N)}(x)\right] = \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta\, \text{pass}_\tau\text{@k}(x)
+$$
+Integrating both sides over $\tau$ and applying Fubini's theorem (this requires $\mathbb{E}\!\left[\int_0^\infty |\hat{g}_\tau^{(N)}(x)|\, d\tau\right] < \infty$, which holds whenever rewards are bounded, as is the case in any practical RL setting):
+$$ \mathbb{E}\!\left[\hat{g}^{(N)}(x)\right] = \int_0^{\infty} \mathbb{E}\!\left[\hat{g}_\tau^{(N)}(x)\right] d\tau = \int_0^{\infty} \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta\, \text{pass}_\tau\text{@k}(x)\; d\tau $$
+Exchanging sum and integral, and using $\text{pass}_\tau\text{@k}(x) = P(M_k > \tau)$:
+$$
+= \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta \int_0^{\infty} P(M_k > \tau)\, d\tau = \sum_{k=1}^{N} \frac{1}{k}\, \nabla_\theta\, \mathbb{E}[M_k] = \nabla_\theta J^{(N)}(x) \qquad \blacksquare
+$$
+Closed-form weights
+The integral $\int_0^{\infty}$ looks daunting, but it collapses to a finite computation. Since $\hat{g}_\tau^{(N)}$ only involves indicators $\mathbb{1}\{r_i > \tau\}$, we can rewrite:
+$$
+\hat{g}^{(N)}(x) = \sum_{i=1}^{N} w_i\, S_i \qquad \text{where} \qquad w_i = \int_0^{r_i} \frac{1}{K_\tau}\, d\tau
+$$
+The weight $w_i$ integrates $1/K_\tau$ over the range of thresholds that sample $i$ survives. The key observation is that $K_\tau$ - the number of samples exceeding $\tau$ - is
+piecewise constant
+, jumping only at the realized reward values.
+Derivation
+Sort the rewards in descending order:
+$$
+r_{(1)} \geq r_{(2)} \geq \cdots \geq r_{(N)} \geq 0 \qquad \qquad r_{(N+1)} := 0
+$$
+For any threshold $\tau \in (r_{(m+1)}, r_{(m)}]$, exactly $m$ samples survive, so $K_\tau = m$. The integral breaks into constant pieces:
+$$
+w_{(j)} = \int_0^{r_{(j)}} \frac{1}{K_\tau}\, d\tau = \sum_{m=j}^{N} \int_{r_{(m+1)}}^{r_{(m)}} \frac{1}{m}\, d\tau = \sum_{m=j}^{N} \frac{r_{(m)} - r_{(m+1)}}{m}
+$$
+Sample $(j)$ survives all threshold intervals from rank $j$ down to rank $N$, contributing $\frac{1}{m}$ times the interval width at each.
+Implementation
+This is just sorting and a reverse cumulative sum:
+import
+numpy
+as
+np
+def
+argmaxrl_weights
+(rewards):
+    N
+=
+len
+(rewards)
+    order
+=
+np
+.
+argsort(
+-
+rewards)
+    r_sorted
+=
+rewards[order]
+
+    gaps
+=
+-
+np
+.
+diff(r_sorted, append
+=
+0.0
+)
+# interval widths
+terms
+=
+gaps
+/
+np
+.
+arange(
+1
+, N
++
+1
+)
+# gap_m / m
+w_sorted
+=
+np
+.
+cumsum(terms[::
+-
+1
+])[::
+-
+1
+]
+# reverse cumsum
+weights
+=
+np
+.
+empty(N)
+    weights[order]
+=
+w_sorted
+return
+weights
+Weights as competition
+In REINFORCE, the weight of sample $i$ is $r_i / N$. It is determined entirely by that sample's own reward, independent of every other sample in the batch.
+GRPO introduces dependence: the advantage $(r_i - \mu) / \sigma$ is shaped by the batch mean and standard deviation. A reward of 0.5 means something different in a weak batch than in a strong one. But the dependence flows through two summary statistics - all batch structure is compressed into a mean and a spread.
+Separately, binary MaxRL introduces a different kind of dependence: every successful sample shares weight $1/K$. More successes means less weight per success. But this is coarse - you're either in the pool or you're not, and everyone inside shares equally.
+ArgMaxRL inherits and refines both. The weight $w_i = \int_0^{r_i} \frac{1}{K_\tau} d\tau$ depends on the
+full rank structure
+of the batch. A sample with reward 0.5 has its weight determined by how many other samples exceed each threshold between 0 and 0.5. It is not a single count, but a count that changes at every threshold. In a batch where most samples scored below 0.2, the crowd thins quickly and $w_i$ is large. In a batch where several samples scored 0.4–0.6, the crowd persists and $w_i$ shrinks. The same reward, shaped by entirely different competitive pressure.
+This is competition at full resolution: not compressed into summary statistics, not collapsed into a binary pool, but playing out independently at every threshold, driven by the empirical distribution of the entire batch.
+ArgMaxRL is a Strict Generalization of MaxRL
+The generalization is strict - ArgMaxRL recovers binary MaxRL exactly when $r_i \in \{0, 1\}$.
+Proof.
+Let $K = \sum_i r_i$ be the number of successes.
+If $r_i = 0$: the integral is over an empty range, so $w_i = \int_0^{0} \frac{1}{K_\tau} d\tau = 0$.
+If $r_i = 1$: for all $\tau \in [0, 1)$, every successful sample exceeds $\tau$ and no failed sample does, so $K_\tau = K$. Therefore:
+$$
+w_i = \int_0^{1} \frac{1}{K}\, d\tau = \frac{1}{K}
+$$
+Substituting:
+$$
+\hat{g}^{(N)}(x) = \sum_{i=1}^{N} \frac{r_i}{K}\, S_i = \frac{1}{K} \sum_{i=1}^{N} r_i\, S_i = \hat{g}_N^{\text{MaxRL}}(x) \qquad \blacksquare
+$$
+The continuous integral machinery, the layer-cake decomposition, the piecewise-constant integration - all of it collapses to the single normalization constant $1/K$ when rewards are binary. Simply stated: binary MaxRL is the unique special case of ArgMaxRL on $\{0, 1\}$-valued rewards. The two are not alternative methods that happen to agree. One is contained in the other.
+Summary
+We generalized MaxRL from binary to continuous rewards through a single conceptual move: decompose continuous rewards into binary threshold events via the layer-cake identity, apply binary MaxRL at each threshold, and integrate.
+The resulting joint best@k gradient estimator - ArgMaxRL - optimizes all best@k objectives jointly, admits a closed-form weight computation (sort + cumsum), and recovers binary MaxRL exactly as a special case.
+RL
+(REINFORCE)
+GRPO
+MaxRL
+(binary)
+ArgMaxRL
+(continuous)
+Gradient
+estimator
+1
+N
+∑
+i
+r
+i
+S
+i
+1
+N
+∑
+i
+r
+i
+−
+μ
+σ
+S
+i
+1
+K
+∑
+i
+r
+i
+S
+i
+∑
+i
+(
+∫
+r
+i
+0
+1
+K
+τ
+d
+τ
+)
+S
+i
+Unbiased for
+∇
+θ
+pass@1
+∇
+θ
+pass@1
+N
+∑
+k
+=1
+1
+k
+∇
+θ
+pass@k
+N
+∑
+k
+=1
+1
+k
+∇
+θ
+best@k
+Here $S_i = \nabla_\theta \log m_\theta(y_i \mid x)$, $K = \sum_i r_i$ is the number of binary successes, and $K_\tau = \sum_i \mathbb{1}\{r_i > \tau\}$ counts how many samples exceed threshold $\tau$.
+Three takeaways:
+For test-time scaling, the right generalization of pass@k is best@k
+- "at least one success" becomes "the best sample"
+Decomposing continuous rewards into binary problems is the key
+, yielding an unbiased gradient estimator of the desired objective.
+Implementation is extremely simple:
+just sorting and cumsum, and it recovers binary MaxRL exactly
+ArgMaxRL builds on
+Maximum Likelihood Reinforcement Learning
+by Tajwar, Zeng, Zhou, Song, Arora, Jiang, Schneider, Salakhutdinov, Feng, and Zanette (2026).
+Footer
+Heading Text
+Home
+Research
+About
+Join us
+Designed by
+Moxie Method.
+©
+{{year}}
+Copyright. All Rights Reserved.

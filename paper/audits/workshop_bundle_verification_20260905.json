@@ -1,0 +1,27 @@
+{
+  "verified_at_utc": "2026-09-05T20:00:29.827850+00:00",
+  "bundle_path": "paper/mathai2026/mathai2026-source.zip",
+  "bundle_sha256": "80bce16082d27c848efbe2f63f0327e7a060fa6b3e6dd3b6ea50fee8e99b0c93",
+  "bundle_bytes": 645320,
+  "file_count": 42,
+  "checked_members": {
+    "README.md": {
+      "archive_path": "README.md",
+      "sha256": "e57d384ee77abde77d2aceefcdada59b83748fafe6e9e0985237e4538b9a780f",
+      "matches_working_file": true
+    },
+    "snapshot.json": {
+      "archive_path": "snapshot.json",
+      "sha256": "177c26f93f5ad6167dc13e2d04be5fdd4b291fe1702ac3371156dfa408664f0e",
+      "matches_working_file": true
+    }
+  },
+  "build_log": "/tmp/paper_math_review_20260905_mathai_bundle_final.log",
+  "review_artifact": "paper/audits/mathematical_review_20260905.md",
+  "source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
+  "snapshot_source_matches_current_manuscript": true,
+  "checked_tex_members": [
+    "main.tex",
+    "appendix.tex"
+  ]
+}

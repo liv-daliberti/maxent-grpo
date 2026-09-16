@@ -1,0 +1,28 @@
+{
+  "checked_at": "2026-09-05T21:46:40.260496+00:00",
+  "scope": "standalone attributed conditional theory extension; no shared manuscript or cluster changes",
+  "status": "PASS",
+  "proof_review": {
+    "root": "PASS on core two propositions; requested combined corollary",
+    "independent_agent": "/root/e118_health",
+    "verdict": "PASS on core propositions; stopped-hazard conditioning, Fatou/product/union bound and switching jump accounting all checked; optional zero-times-infinity bookkeeping resolved",
+    "combined_corollary": "Independent /root/e118_health PASS; finite support, non-eviction and deterministic positive hazards imply finite coverage in opportunity count; energy premises then give retention. Wording clarified opportunity count, not wall-clock scheduling."
+  },
+  "artifacts": [
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery.md",
+      "sha256": "23f4dacc46240dbfc4365c8def44892087cad569e2dffd1075bad2c1fd10799e",
+      "bytes": 25174
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery.tex",
+      "sha256": "6da46fb41b4f14291de07d7d05739de78f2d86e20c60de29c20f10d133b45f9f",
+      "bytes": 7414
+    },
+    {
+      "path": "paper/audits/theory_literature_extensions_20260905/discovery_sources.json",
+      "sha256": "f84ab9c6d5a292f33590bfc5bf3d0fa136fc19b332cb02e7bb667cc463ab891d",
+      "bytes": 4388
+    }
+  ]
+}

@@ -1,0 +1,4269 @@
+Beyond Mode Collapse: Distribution Matching for Diverse Reasoning
+Report GitHub Issue
+×
+Title:
+Content selection saved. Describe the issue below:
+Description:
+Submit without GitHub
+Submit in GitHub
+arXiv is now an independent nonprofit!
+Learn more
+×
+Back to arXiv
+Why HTML?
+Report Issue
+Back to Abstract
+Download PDF
+Abstract
+1
+Introduction
+2
+Related Work
+3
+Distribution-Matching Policy Optimization
+3.1
+Preliminaries: On-Policy RL and Mode Collapse
+3.2
+Forward KL Minimization: The Ideal Solution
+3.3
+Group-Level Approximation of Forward KL
+Distribution-Matching Loss.
+3.4
+Theoretical Analysis
+4
+MM-NP-Bench: A Testbed for Diverse Reasoning
+4.1
+Benchmark Design
+4.2
+Evaluation Metrics
+4.3
+Dataset and RLVR Training Setup
+4.4
+MM-NP-Bench Performance
+5
+Experiments
+Different Divergence Settings.
+6
+Conclusion
+Positive Impacts.
+Potential Risks.
+Broader Considerations.
+References
+A
+Method
+A.1
+Algorithm
+B
+Limitations
+C
+MM-NP-Bench
+C.1
+Overview
+Multimodal Solution Spaces.
+Objective Quality Metrics.
+Decoupling Feasibility from Optimality.
+C.2
+Bnechmark Details
+C.3
+Benchmark Creation Pipeline
+Parametric Generator.
+Rule-Based Verifier.
+Heuristic Solver.
+D
+Experiments
+D.1
+Experimental Setup
+Model Architecture.
+Training Data.
+Evaluation Benchmarks.
+Baseline Methods.
+Training Hyperparameters.
+Diversity Evaluation.
+Wall-Clock.
+D.2
+Additional Experimental Results
+NP-Bench Analysis.
+Ablation Analysis.
+Training Dynamics Analysis
+D.3
+Case Study of MM-NP-Bench
+License: CC BY 4.0
+arXiv:2605.19461v1 [cs.AI] 19 May 2026
+†
+†
+†
+\dagger
+Corresponding authors: Qipeng Guo (guoqipeng@pjlab.org.cn),Qingwen Liu (qliu@tongji.edu.cn)
+†
+†
+Code is at:
+https://github.com/OliverLeeXZ/DMPO
+Beyond Mode Collapse: Distribution Matching for Diverse Reasoning
+Xiaozhe Li
+Affiliation:
+Tongji University, China
+Yang Li
+Affiliation:
+Independent
+Xinyu Fang
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+Zhejiang University, China
+Shengyuan Ding
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+Fudan University, China
+Peiji Li
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+Fudan University, China
+Yongkang Chen
+Affiliation:
+Shanghai AI Laboratory, China
+Yichuan Ma
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+Fudan University, China
+Tianyi Lyu
+Affiliation:
+Tongji University, China
+Linyang Li
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+Fudan University, China
+Affiliation:
+The Chinese University of Hong Kong, China
+Dahua Lin
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+The Chinese University of Hong Kong, China
+Qipeng Guo
+†
+Affiliation:
+Shanghai AI Laboratory, China
+Affiliation:
+Fudan University, China
+Qingwen Liu
+†
+Affiliation:
+Tongji University, China
+Kai Chen
+Affiliation:
+Shanghai AI Laboratory, China
+Abstract
+On-policy reinforcement learning methods like GRPO suffer from
+mode collapse
+: they exhibit reduced solution diversity, concentrating probability mass on a single solution once discovered and ceasing exploration of alternative strategies. We show this stems from reverse KL minimization’s mode-seeking behavior, which reinforces the first high-reward trajectory found rather than maintaining a distribution over multiple diverse solutions. We propose DMPO (
+D
+istribution-
+M
+atching
+P
+olicy
+O
+ptimization), which prevents mode collapse through principled approximation of forward KL minimization. DMPO constructs a group-level target distribution over sampled trajectories proportional to their rewards, then aligns the policy distribution to this target. This provides mode-covering behavior without requiring sampling from the intractable global target distribution, enabling sustained exploration throughout training. We validate DMPO on NP-hard combinatorial optimization, where exponentially many feasible solutions exist but only a few approach optimality—an ideal testbed for evaluating exploration. DMPO achieves 43.9% Quality Ratio on text-based NP-Bench (vs. GRPO’s 40.1%) and 43.1% on vision-based NP-Bench (vs. 38.4%)—demonstrating 9% and 12% relative improvements respectively. These gains generalize to mathematical reasoning (+2.0%) and out-of-domain tasks (+2.3%), showing that diversity-preserving training enhances general reasoning capabilities across modalities. Our work establishes distribution matching as a practical, principled approach to preventing mode collapse in on-policy RL, with consistent quality improvements demonstrating sustained exploration across diverse reasoning tasks.
+1
+Introduction
+Reinforcement Learning with Verifiable Rewards (RLVR) has emerged as a powerful paradigm for training large reasoning models (LRMs), enabling substantial gains in mathematical problem solving
+[
+15
+,
+39
+]
+and code generation
+[
+22
+]
+. By replacing learned reward models with exact, rule-based verification, RLVR enables stable optimization and scalable improvement. As a result, on-policy methods such as GRPO
+[
+31
+]
+have become standard tools for training reasoning-oriented language models.
+Despite their success, these methods suffer from a fundamental limitation that becomes increasingly severe as training progresses:
+mode collapse
+[
+17
+,
+41
+,
+32
+]
+. Once a single high-reward solution is discovered, the policy rapidly concentrates probability mass on that trajectory, suppressing alternative solution strategies and effectively halting exploration. This premature convergence prevents discovery of better solutions, reduces robustness, and leads to brittle reasoning behaviors that fail to generalize.
+We show that this phenomenon is not an implementation artifact, but a direct consequence of the optimization objective used in standard on-policy RL. GRPO and related methods implicitly minimize the
+reverse
+KL divergence between the policy and a reward-weighted distribution. While reverse KL is effective for refining a known good mode, it is inherently
+mode-seeking
+: it amplifies the first successful trajectory encountered rather than preserving a distribution over diverse high-reward solutions. In contrast, forward KL minimization exhibits
+mode-covering
+behavior, encouraging the policy to match the full support of the target distribution
+[
+25
+]
+. Although prior work has empirically observed declining diversity during training
+[
+41
+,
+32
+,
+4
+]
+, the role of reverse KL as the root cause of mode collapse in RLVR has not been systematically addressed.
+Motivated by this analysis, we propose
+Distribution-Matching Policy Optimization
+(DMPO), a principled on-policy algorithm that mitigates mode collapse by approximating forward KL minimization. Directly optimizing forward KL is intractable, as it requires sampling from a global reward-weighted distribution over trajectories. DMPO circumvents this challenge by operating at the
+group level
+: for each group of sampled trajectories, we construct a target distribution proportional to their rewards (a Boltzmann distribution) and explicitly align the policy distribution to this target. This formulation is naturally compatible with GRPO’s group-based advantage normalization and can be implemented by adding a single distribution-matching regularization term to the standard objective. As a result, DMPO preserves multiple high-reward modes and sustains exploration throughout training.
+To rigorously evaluate exploration behavior, we require tasks where multiple high-quality solutions exist, mode collapse is easily observable, and solution quality can be precisely measured. NP-hard combinatorial optimization satisfies all three criteria. Such problems admit exponentially many feasible solutions, but only a small fraction approach optimality, making them an ideal testbed for studying the trade-off between exploration and exploitation. Building on NP-Bench
+[
+21
+]
+, we introduce MM-NP-Bench, a multimodal benchmark comprising 10 text-based and visual combinatorial optimization tasks spanning
+Routing
+,
+Covering
+,
+Partitioning
+,
+Substructure
+, and
+Constraints
+. Each task includes parametric generators with controllable difficulty, exact rule-based verifiers, and heuristic solvers that provide near-optimal baselines, enabling precise evaluation of the solution quality via our proposed Quality Ratio metric.
+Across both text-only and multimodal benchmarks, DMPO consistently outperforms GRPO and its variants. On NP-Bench, DMPO achieves a Quality Ratio of 43.9% compared to GRPO’s 40.1%, a 9% relative improvement. On MM-NP-Bench, DMPO achieves 43.1% versus 38.4%, a 12% relative improvement. These gains indicate that distribution matching effectively prevents premature convergence, enabling discovery of higher-quality solutions that mode-seeking objectives fail to uncover. Moreover, the benefits extend beyond combinatorial optimization: DMPO improves mathematical reasoning by 2.0% and out-of-domain tasks by 2.3%, suggesting that diversity-preserving training yields more robust and transferable reasoning abilities.
+In summary, our contributions are threefold:
+•
+Identifying and solving mode collapse:
+We show that on-policy RL methods suffer from mode collapse due to reverse KL’s mode-seeking behavior, and propose DMPO—a simple, practical solution that approximates forward KL minimization at the group level, achieving 9-12% relative improvements on optimization tasks.
+•
+MM-NP-Bench: A multimodal benchmark for testing exploration:
+We introduce MM-NP-Bench, extending NP-Bench
+[
+21
+]
+to vision-language models with visual representations of 10 NP-hard tasks. The benchmark features dual-metric evaluation (Success Rate & Quality Ratio) that makes mode collapse observable: high SR but low QR reveals a policy that finds solutions but doesn’t optimize them. We provide a complete infrastructure including parametric generators, rule-based verifiers, and heuristic solvers, enabling both evaluation and RLVR training.
+•
+Empirical validation and transfer learning:
+Extensive experiments showing DMPO outperforms five strong baselines by 4.7%-3.8% on optimization tasks, 2% on mathematical reasoning, and 2.3% on out-of-domain tasks, with evidence that diversity-preserving training transfers to general reasoning capabilities.
+2
+Related Work
+Mode Collapse in Reinforcement Learning
+Mode collapse—the tendency of policies to concentrate on a single solution—is a well-documented phenomenon in reinforcement learning. The connection to reverse KL divergence’s mode-seeking behavior is established in the literature:
+Murphy [25]
+show that minimizing
+D
+KL
+(
+q
+∥
+p
+)
+D_{\text{KL}}(q\|p)
+causes
+q
+q
+to concentrate on a single mode of
+p
+p
+, while
+Levine [18]
+explicitly discusses this in the context of maximum entropy RL. However, despite this theoretical understanding, mode collapse remains pervasive in practice.
+Ahmed et al. [1]
+document decreasing entropy during policy optimization, noting that standard RL methods converge to near-deterministic policies.
+Eysenbach and Levine [11]
+show that entropy regularization alone is insufficient to prevent collapse in multimodal reward landscapes. In language model training,
+Yue et al. [41]
+and
+Song et al. [32]
+observe that RLVR methods reduce solution diversity compared to the base model. While the theoretical connection between reverse KL and mode-seeking is known,
+practical solutions remain elusive
+. Forward KL minimization
+D
+KL
+(
+p
+∥
+q
+)
+D_{\text{KL}}(p\|q)
+would provide mode-covering behavior, but requires sampling from the target distribution
+p
+p
+, which is intractable.
+Diversity in Policy Optimization
+Several approaches have been proposed to maintain diversity in RL.
+Entropy regularization
+[
+13
+,
+1
+]
+adds an entropy bonus to the reward, but
+Eysenbach and Levine [11]
+show this is insufficient to prevent mode collapse when the policy becomes confident about a suboptimal solution.
+Intrinsic motivation
+[
+27
+,
+3
+]
+augments rewards with exploration bonuses based on prediction error or state visitation counts, encouraging the policy to visit novel states, but these methods focus on state-space coverage rather than solution diversity and can be distracted by irrelevant novelty.
+Ensemble methods
+[
+10
+,
+47
+]
+train multiple policies with different initializations, maintaining diversity across the ensemble, but scale poorly with ensemble size and lack theoretical guarantees for individual policy diversity.
+Recent work in LLM training has explored diversity from different angles.
+Cheng et al. [6]
+,
+Cui et al. [8]
+,
+Wang et al. [35]
+constrain updates on high-covariance tokens to preserve stochasticity during training.
+Chen et al. [4]
+explicitly optimize pass@k metrics as rewards, encouraging the model to generate diverse responses where at least one succeeds.
+Zhuang et al. [46]
+,
+An et al. [2]
+propose adaptive temperature strategies that vary sampling temperature across different prompts or training stages to balance exploration and exploitation.
+Zhu et al. [45]
+propose FlowRL, which applies GFlowNet principles by learning a global partition function to construct a Boltzmann target distribution. However, FlowRL still minimizes reverse KL
+D
+KL
+(
+π
+θ
+∥
+p
+∗
+)
+D_{\text{KL}}(\pi_{\theta}\|p^{*})
+due to the intractability of sampling from the target distribution, and thus remains susceptible to mode-seeking behavior. Our work differs in that we approximate forward KL minimization
+D
+KL
+(
+p
+∗
+∥
+π
+θ
+)
+D_{\text{KL}}(p^{*}\|\pi_{\theta})
+at the group level—a tractable approximation that provides mode-covering behavior without requiring global sampling or a learned partition function. This approach seamlessly integrates with GRPO’s group-based advantage normalization and demonstrates consistent improvement.
+RLVR for Language Model Reasoning
+Reinforcement Learning with Verifiable Rewards (RLVR) has become the dominant paradigm for training reasoning models
+[
+42
+,
+12
+,
+26
+]
+. On-policy methods are particularly popular due to their stability and sample efficiency. PPO
+[
+29
+]
+uses clipped importance ratios to constrain updates. GRPO
+[
+30
+]
+extends PPO with group-based advantage normalization, improving stability for language models. GSPO
+[
+44
+]
+further refines this with guided search. GPG
+[
+7
+]
+incorporates policy gradients with generalized advantage estimation. However, all these methods minimize reverse KL divergence, making them susceptible to mode collapse. Our work shows that a simple modification—adding a distribution-matching term—prevents this collapse while maintaining the stability and efficiency of on-policy training. DMPO seamlessly extends GRPO’s group-based formulation, making it practical for large-scale language model training.
+Figure 1
+:
+Overview of DMPO.
+The framework generates a set of trajectories
+{
+O
+i
+}
+\{O_{i}\}
+to compute advantages
+A
+A
+and probabilities
+π
+\pi
+. While standard
+GRPO
+(bottom flow) focuses on reward maximization, our novel
+Distribution Matching
+module explicitly aligns the policy’s empirical distribution with the reward-induced target landscape via MSE. This dual-objective mechanism mitigates mode collapse, common in on-policy RL, and preserves the reasoning diversity crucial for solving complex reasoning problems.
+3
+Distribution-Matching Policy Optimization
+We propose DMPO, which mitigates mode collapse by approximating forward KL at the group level. We first show that standard on-policy RL minimize reverse KL, which causes mode-seeking and premature convergence, then derive DMPO as a practical solution providing mode-covering behavior through group-level distribution matching.
+3.1
+Preliminaries: On-Policy RL and Mode Collapse
+Group Relative Policy Optimization (GRPO).
+Consider a policy
+π
+θ
+\pi_{\theta}
+and reference policy
+π
+ref
+\pi_{\text{ref}}
+. Given query
+x
+x
+, we sample
+G
+G
+trajectories
+𝒪
+=
+{
+o
+1
+,
+…
+,
+o
+G
+}
+\mathcal{O}=\{o_{1},\ldots,o_{G}\}
+from the current policy
+π
+θ
+old
+\pi_{\theta_{\text{old}}}
+. GRPO
+[
+30
+]
+optimizes the policy using a clipped surrogate objective with group-normalized advantages. For trajectory
+o
+i
+o_{i}
+, the objective is:
+𝒥
+i
+​
+(
+θ
+)
+=
+min
+⁡
+(
+ρ
+i
+​
+(
+θ
+)
+​
+A
+^
+i
+,
+clip
+​
+(
+ρ
+i
+​
+(
+θ
+)
+,
+1
+−
+ϵ
+,
+1
++
+ϵ
+)
+​
+A
+^
+i
+)
+,
+\mathcal{J}_{i}(\theta)=\min\left(\rho_{i}(\theta)\hat{A}_{i},\text{clip}(\rho_{i}(\theta),1-\epsilon,1+\epsilon)\hat{A}_{i}\right),
+(1)
+where
+ρ
+i
+​
+(
+θ
+)
+=
+π
+θ
+​
+(
+o
+i
+|
+x
+)
+/
+π
+θ
+old
+​
+(
+o
+i
+|
+x
+)
+\rho_{i}(\theta)=\pi_{\theta}(o_{i}|x)/\pi_{\theta_{\text{old}}}(o_{i}|x)
+is the importance ratio, and
+A
+^
+i
+\hat{A}_{i}
+is the group-normalized advantage (z-score of rewards within the group):
+A
+^
+i
+=
+r
+⁡
+(
+o
+i
+)
+−
+mean
+​
+(
+{
+r
+j
+}
+)
+std
+​
+(
+{
+r
+j
+}
+)
++
+ϵ
+.
+\hat{A}_{i}=\frac{r(o_{i})-\text{mean}(\{r_{j}\})}{\text{std}(\{r_{j}\})+\epsilon}.
+The complete GRPO objective is:
+ℒ
+GRPO
+(
+θ
+)
+=
+−
+1
+G
+∑
+i
+=
+1
+G
+𝒥
+i
+(
+θ
+)
++
+β
+KL
+D
+KL
+(
+π
+θ
+∥
+π
+ref
+)
+,
+\mathcal{L}_{\text{GRPO}}(\theta)=-\frac{1}{G}\sum_{i=1}^{G}\mathcal{J}_{i}(\theta)+\beta_{\text{KL}}D_{\text{KL}}(\pi_{\theta}\|\pi_{\text{ref}}),
+(2)
+where
+β
+KL
+\beta_{\text{KL}}
+is a hyperparameter controlling the strength of the KL penalty to the reference policy, preventing the policy from drifting too far from
+π
+ref
+\pi_{\text{ref}}
+for training stability.
+Policy Gradient as Reverse KL Minimization.
+To understand why mode collapse occurs, we establish the connection between policy gradient methods and reverse KL divergence. In Maximum Entropy RL
+[
+48
+,
+18
+]
+, the objective is to maximize expected reward plus entropy:
+max
+θ
+⁡
+𝔼
+τ
+∼
+π
+θ
+​
+[
+r
+⁡
+(
+τ
+)
++
+α
+​
+H
+​
+(
+π
+θ
+)
+]
+,
+\max_{\theta}\mathbb{E}_{\tau\sim\pi_{\theta}}\left[r(\tau)+\alpha H(\pi_{\theta})\right],
+where
+α
+>
+0
+\alpha>0
+is the temperature and
+H
+⁡
+(
+π
+θ
+)
+=
+−
+𝔼
+⁡
+[
+log
+⁡
+π
+θ
+​
+(
+τ
+)
+]
+H(\pi_{\theta})=-\mathbb{E}[\log\pi_{\theta}(\tau)]
+is the entropy. This is equivalent to minimizing reverse KL divergence to a Boltzmann target
+[
+18
+]
+:
+min
+θ
+D
+KL
+(
+π
+θ
+∥
+p
+∗
+)
+where
+p
+∗
+(
+τ
+)
+=
+exp
+⁡
+(
+r
+⁡
+(
+τ
+)
+/
+α
+)
+Z
+,
+\min_{\theta}D_{\text{KL}}(\pi_{\theta}\|p^{*})\quad\text{where}\quad p^{*}(\tau)=\frac{\exp(r(\tau)/\alpha)}{Z},
+(3)
+with partition function
+Z
+=
+∑
+τ
+exp
+⁡
+(
+r
+⁡
+(
+τ
+)
+/
+α
+)
+Z=\sum_{\tau}\exp(r(\tau)/\alpha)
+. Since
+D
+KL
+(
+π
+θ
+∥
+p
+∗
+)
+=
+−
+H
+(
+π
+θ
+)
+−
+𝔼
+[
+r
+(
+τ
+)
+/
+α
+]
++
+log
+Z
+D_{\text{KL}}(\pi_{\theta}\|p^{*})=-H(\pi_{\theta})-\mathbb{E}[r(\tau)/\alpha]+\log Z
+and
+log
+⁡
+Z
+\log Z
+is constant in
+θ
+\theta
+, minimizing the KL is equivalent to maximizing
+𝔼
+⁡
+[
+r
+⁡
+(
+τ
+)
+]
++
+α
+​
+H
+​
+(
+π
+θ
+)
+\mathbb{E}[r(\tau)]+\alpha H(\pi_{\theta})
+.
+Standard policy gradient methods like GRPO do not include explicit entropy regularization, corresponding to
+α
+→
+0
+\alpha\to 0
+. In this limit, the target becomes
+p
+∗
+(
+τ
+)
+∝
+𝕀
+[
+τ
+=
+arg
+max
+r
+(
+τ
+)
+]
+p^{*}(\tau)\propto\mathbb{I}[\tau=\arg\max r(\tau)]
+—a Dirac delta on the highest-reward trajectory. Thus, policy gradient methods implicitly minimize reverse KL, inheriting its mode-seeking behavior. While GRPO includes
+D
+KL
+(
+π
+θ
+∥
+π
+ref
+)
+D_{\text{KL}}(\pi_{\theta}\|\pi_{\text{ref}})
+to prevent drift from the reference policy, this does not address mode-seeking toward high-reward trajectories—the policy still collapses to a single mode within the high-reward region.
+3.2
+Forward KL Minimization: The Ideal Solution
+Having established that reverse KL causes mode collapse through mode-seeking, the natural solution is forward KL divergence
+D
+KL
+(
+p
+∗
+∥
+π
+θ
+)
+D_{\text{KL}}(p^{*}\|\pi_{\theta})
+, which is mode-covering
+[
+25
+]
+. Forward KL penalizes placing low probability where the target has high probability, forcing the policy to cover all modes of
+p
+∗
+p^{*}
+and preventing mode collapse.
+However, forward KL is intractable:
+D
+KL
+(
+p
+∗
+∥
+π
+θ
+)
+=
+𝔼
+o
+∼
+p
+∗
+[
+log
+p
+∗
+​
+(
+o
+)
+π
+θ
+​
+(
+o
+)
+]
+.
+D_{\text{KL}}(p^{*}\|\pi_{\theta})=\mathbb{E}_{o\sim p^{*}}\left[\log\frac{p^{*}(o)}{\pi_{\theta}(o)}\right].
+(4)
+This requires sampling from
+p
+∗
+p^{*}
+, which needs computing the partition function
+Z
+=
+∑
+o
+exp
+⁡
+(
+r
+⁡
+(
+o
+)
+/
+α
+)
+Z=\sum_{o}\exp(r(o)/\alpha)
+—exponential in trajectory length. For TSP with 20 cities (
+∼
+10
+18
+\sim 10^{18}
+tours), this is infeasible. Standard on-policy RL therefore uses reverse KL, which only requires sampling from
+π
+θ
+\pi_{\theta}
+.
+3.3
+Group-Level Approximation of Forward KL
+Our key insight is to approximate forward KL at the
+group level
+rather than globally. For a group of trajectories sampled from
+π
+θ
+\pi_{\theta}
+for prompt
+x
+x
+, we construct a group-conditional target distribution and match the policy distribution to it.
+Group-Level Target Distribution.
+Given a group
+𝒪
+=
+{
+o
+1
+,
+…
+,
+o
+G
+}
+\mathcal{O}=\{o_{1},\ldots,o_{G}\}
+, we define the group-conditional Boltzmann distribution:
+p
+⁡
+(
+o
+i
+∣
+𝒪
+)
+=
+exp
+⁡
+(
+r
+⁡
+(
+o
+i
+)
+/
+α
+)
+∑
+j
+=
+1
+G
+exp
+⁡
+(
+r
+⁡
+(
+o
+j
+)
+/
+α
+)
+.
+p(o_{i}\mid\mathcal{O})=\frac{\exp(r(o_{i})/\alpha)}{\sum_{j=1}^{G}\exp(r(o_{j})/\alpha)}.
+(5)
+This distribution represents the ideal probability allocation over the group—trajectories with higher rewards receive higher probability, but all trajectories maintain non-zero probability. Crucially, this only requires the
+group-level partition function
+Z
+group
+=
+∑
+j
+=
+1
+G
+exp
+⁡
+(
+r
+⁡
+(
+o
+j
+)
+/
+α
+)
+Z_{\text{group}}=\sum_{j=1}^{G}\exp(r(o_{j})/\alpha)
+, which is trivially computable.
+Group-Level Policy Distribution.
+To measure the policy’s actual probability allocation over the group, we must account for length bias. Since
+π
+θ
+​
+(
+o
+)
+=
+∏
+t
+=
+1
+|
+o
+|
+π
+θ
+​
+(
+o
+t
+|
+o
+<
+t
+)
+\pi_{\theta}(o)=\prod_{t=1}^{|o|}\pi_{\theta}(o_{t}|o_{<t})
+decays exponentially with trajectory length, we use length-normalized log-likelihood:
+ϕ
+⁡
+(
+o
+i
+)
+=
+1
+|
+o
+i
+|
+​
+∑
+t
+=
+1
+|
+o
+i
+|
+log
+⁡
+π
+θ
+​
+(
+o
+i
+,
+t
+∣
+o
+i
+,
+<
+t
+,
+x
+)
+.
+\phi(o_{i})=\frac{1}{|o_{i}|}\sum_{t=1}^{|o_{i}|}\log\pi_{\theta}(o_{i,t}\mid o_{i,<t},x).
+We then define the group-level policy distribution:
+q
+θ
+​
+(
+o
+i
+∣
+𝒪
+)
+=
+exp
+⁡
+(
+ϕ
+⁡
+(
+o
+i
+)
+)
+∑
+j
+=
+1
+G
+exp
+⁡
+(
+ϕ
+⁡
+(
+o
+j
+)
+)
+.
+q_{\theta}(o_{i}\mid\mathcal{O})=\frac{\exp(\phi(o_{i}))}{\sum_{j=1}^{G}\exp(\phi(o_{j}))}.
+(6)
+This represents the policy’s relative preference over the group, independent of trajectory length.
+Distribution-Matching Loss.
+We align the policy distribution
+q
+θ
+q_{\theta}
+with the target distribution
+p
+p
+by minimizing their divergence. The natural choice would be forward KL divergence
+D
+KL
+(
+p
+∥
+q
+θ
+)
+D_{\text{KL}}(p\|q_{\theta})
+, but we use mean squared error (MSE) for numerical stability:
+ℒ
+DM
+​
+(
+θ
+)
+=
+1
+G
+​
+∑
+i
+=
+1
+G
+(
+p
+⁡
+(
+o
+i
+∣
+𝒪
+)
+−
+q
+θ
+​
+(
+o
+i
+∣
+𝒪
+)
+)
+2
+.
+\mathcal{L}_{\text{DM}}(\theta)=\frac{1}{G}\sum_{i=1}^{G}\left(p(o_{i}\mid\mathcal{O})-q_{\theta}(o_{i}\mid\mathcal{O})\right)^{2}.
+(7)
+MSE provides bounded gradient coefficients. Since both
+p
+p
+and
+q
+θ
+q_{\theta}
+are probability distributions,
+|
+p
+⁡
+(
+o
+i
+)
+−
+q
+θ
+​
+(
+o
+i
+)
+|
+≤
+1
+|p(o_{i})-q_{\theta}(o_{i})|\leq 1
+for all
+i
+i
+. The gradient is:
+∇
+θ
+ℒ
+DM
+=
+2
+G
+​
+∑
+i
+=
+1
+G
+(
+q
+θ
+​
+(
+o
+i
+)
+−
+p
+⁡
+(
+o
+i
+)
+)
+⏟
+bounded by
+±
+1
+​
+∇
+θ
+q
+θ
+​
+(
+o
+i
+)
+,
+\nabla_{\theta}\mathcal{L}_{\text{DM}}=\frac{2}{G}\sum_{i=1}^{G}\underbrace{(q_{\theta}(o_{i})-p(o_{i}))}_{\text{bounded by }\pm 1}\nabla_{\theta}q_{\theta}(o_{i}),
+(8)
+ensuring stable training regardless of how the distributions evolve. In contrast, forward KL has gradient
+−
+∑
+i
+p
+⁡
+(
+o
+i
+)
+q
+θ
+​
+(
+o
+i
+)
+∇
+θ
+q
+θ
+(
+o
+i
+)
+-\sum_{i}\frac{p(o_{i})}{q_{\theta}(o_{i})}\nabla_{\theta}q_{\theta}(o_{i})
+, where the coefficient
+p
+⁡
+(
+o
+i
+)
+/
+q
+θ
+​
+(
+o
+i
+)
+p(o_{i})/q_{\theta}(o_{i})
+can grow arbitrarily large when
+q
+θ
+​
+(
+o
+i
+)
+→
+0
+q_{\theta}(o_{i})\to 0
+. This is problematic when the policy becomes near-deterministic during training, potentially causing gradient explosion. Additionally, MSE approximates KL divergence via second-order Taylor expansion around
+p
+=
+q
+p=q
+, providing similar optimization behavior when distributions are close while maintaining stability when they diverge.
+Unified Objective.
+The complete DMPO objective combines reward maximization with distribution matching:
+ℒ
+DMPO
+​
+(
+θ
+)
+=
+ℒ
+GRPO
+​
+(
+θ
+)
++
+λ
+​
+ℒ
+DM
+​
+(
+θ
+)
+.
+\mathcal{L}_{\text{DMPO}}(\theta)=\mathcal{L}_{\text{GRPO}}(\theta)+\lambda\mathcal{L}_{\text{DM}}(\theta).
+(9)
+Here,
+ℒ
+GRPO
+\mathcal{L}_{\text{GRPO}}
+drives the policy toward higher rewards (exploitation), while
+ℒ
+DM
+\mathcal{L}_{\text{DM}}
+maintains diversity by preventing collapse to a single mode (exploration). The hyperparameter
+λ
+\lambda
+balances these two objectives.
+3.4
+Theoretical Analysis
+We provide formal analysis of DMPO’s properties, establishing guarantees on gradient stability, convergence behavior, and the exploration-exploitation tradeoff.
+Proposition 3.1
+(Local Mode-Covering Behavior)
+.
+The distribution-matching loss
+ℒ
+DM
+\mathcal{L}_{\text{DM}}
+provides mode-covering behavior within each group. Specifically, if trajectory
+o
+i
+o_{i}
+has high reward (
+r
+i
+>
+0
+r_{i}>0
+) such that
+p
+⁡
+(
+o
+i
+∣
+𝒪
+)
+>
+ϵ
+p(o_{i}\mid\mathcal{O})>\epsilon
+, then minimizing
+ℒ
+DM
+\mathcal{L}_{\text{DM}}
+forces
+q
+θ
+​
+(
+o
+i
+∣
+𝒪
+)
+>
+0
+q_{\theta}(o_{i}\mid\mathcal{O})>0
+. More precisely, if
+ℒ
+DM
+<
+δ
+\mathcal{L}_{\text{DM}}<\delta
+, then:
+q
+θ
+​
+(
+o
+i
+∣
+𝒪
+)
+≥
+p
+⁡
+(
+o
+i
+∣
+𝒪
+)
+−
+G
+​
+δ
+.
+q_{\theta}(o_{i}\mid\mathcal{O})\geq p(o_{i}\mid\mathcal{O})-\sqrt{G\delta}.
+Proof.
+By definition,
+ℒ
+DM
+=
+1
+G
+​
+∑
+i
+(
+p
+⁡
+(
+o
+i
+)
+−
+q
+θ
+​
+(
+o
+i
+)
+)
+2
+\mathcal{L}_{\text{DM}}=\frac{1}{G}\sum_{i}(p(o_{i})-q_{\theta}(o_{i}))^{2}
+. If
+ℒ
+DM
+<
+δ
+\mathcal{L}_{\text{DM}}<\delta
+, then:
+(
+p
+⁡
+(
+o
+i
+)
+−
+q
+θ
+​
+(
+o
+i
+)
+)
+2
+<
+G
+​
+δ
+.
+(p(o_{i})-q_{\theta}(o_{i}))^{2}<G\delta.
+Taking square roots:
+|
+p
+⁡
+(
+o
+i
+)
+−
+q
+θ
+​
+(
+o
+i
+)
+|
+<
+G
+​
+δ
+|p(o_{i})-q_{\theta}(o_{i})|<\sqrt{G\delta}
+. Since
+p
+⁡
+(
+o
+i
+)
+>
+ϵ
+p(o_{i})>\epsilon
+, we have
+q
+θ
+​
+(
+o
+i
+)
+>
+ϵ
+−
+G
+​
+δ
+q_{\theta}(o_{i})>\epsilon-\sqrt{G\delta}
+. For sufficiently small
+δ
+\delta
+,
+q
+θ
+​
+(
+o
+i
+)
+>
+0
+q_{\theta}(o_{i})>0
+.
+∎
+Unlike reverse KL (which can place zero probability on some modes), DMPO’s MSE loss explicitly prevents the policy from ignoring high-advantage trajectories in the group. This is the mathematical guarantee of mode-covering behavior.
+Proposition 3.2
+(Convergence to Proportional Sampling)
+.
+In the limit
+λ
+→
+∞
+\lambda\to\infty
+, if
+ℒ
+DM
+→
+0
+\mathcal{L}_{\text{DM}}\to 0
+, then:
+π
+θ
+​
+(
+o
+i
+∣
+x
+)
+∝
+exp
+⁡
+(
+r
+i
+/
+α
+)
+,
+\pi_{\theta}(o_{i}\mid x)\propto\exp(r_{i}/\alpha),
+meaning the policy samples trajectories proportionally to their exponentiated rewards.
+This shows DMPO achieves GFlowNet-like proportional sampling without requiring a backward policy.
+Proposition 3.3
+(Smooth Interpolation via
+λ
+\lambda
+)
+.
+The hyperparameter
+λ
+\lambda
+provides smooth interpolation between pure exploitation and diversity preservation:
+lim
+λ
+→
+0
+ℒ
+DMPO
+=
+ℒ
+GRPO
+,
+lim
+λ
+→
+∞
+q
+θ
+→
+p
+.
+\lim_{\lambda\to 0}\mathcal{L}_{\text{DMPO}}=\mathcal{L}_{\text{GRPO}},\quad\lim_{\lambda\to\infty}q_{\theta}\to p.
+This allows practitioners to control the exploration-exploitation tradeoff via a single hyperparameter.
+Table 1
+:
+Performance of reasoning MLLMs, general MLLMs, and our trained MLLMs on MM-NP-Bench.
+Model
+Constraint
+Covering
+Partition
+Subgraph
+Path
+Overall
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+Proprietary LLMs
+Gemini-3.0-Flash
+30.5
+28.7
+64.0
+62.8
+100.0
+95.8
+89.0
+51.9
+67.0
+58.4
+70.1
+59.5
+o4-mini
+24.5
+21.0
+37.5
+36.6
+99.5
+74.7
+90.0
+51.0
+49.5
+19.3
+60.2
+40.5
+GPT-4o-1120
+12.5
+8.4
+4.0
+3.3
+47.5
+34.5
+66.0
+28.5
+19.5
+7.1
+29.9
+16.4
+Qwen3-VL-235B-A22B-Thinking
+3.0
+3.2
+2.0
+2.0
+97.5
+75.6
+82.0
+44.2
+46.5
+19.2
+46.2
+28.8
+Qwen3-VL-235B-A22B-Instruct
+5.0
+4.7
+6.0
+4.9
+100.0
+76.1
+71.0
+36.1
+39.5
+18.4
+44.3
+28.0
+InternVL3.5-241B-A28B
+9.0
+7.9
+10.5
+9.1
+86.5
+63.1
+68.5
+29.4
+32.5
+10.1
+41.4
+23.9
+Open-Source LLMs
+Qwen3-VL-32B-Thinking
+1.5
+1.1
+13.5
+12.0
+95.5
+69.1
+76.0
+39.6
+36.5
+14.4
+44.6
+27.2
+Qwen3-VL-32B-Instruct
+2.5
+1.1
+3.0
+2.1
+99.0
+73.2
+76.5
+39.8
+28.0
+12.5
+41.8
+25.7
+Qwen3-VL-30B-A3B-Thinking
+8.5
+6.6
+2.5
+1.7
+95.0
+69.3
+69.5
+33.9
+34.0
+13.9
+41.9
+25.1
+Qwen3-VL-30B-A3B-Instruct
+10.0
+5.4
+9.5
+5.8
+91.0
+65.2
+62.0
+27.0
+37.0
+13.8
+41.9
+23.5
+Qwen3-VL-8B-Thinking
+0.5
+0.5
+0.0
+0.0
+71.5
+50.6
+59.5
+22.6
+32.5
+11.2
+32.8
+17.0
+Qwen3-VL-8B-Instruct
+7.0
+2.8
+2.0
+1.0
+95.0
+68.2
+59.0
+26.0
+40.0
+13.9
+40.6
+22.4
+InternVL3.5-38B
+3.5
+2.9
+5.0
+3.7
+98.0
+70.1
+51.5
+18.9
+24.5
+7.3
+36.5
+20.6
+InternVL3.5-8B
+3.0
+1.2
+3.0
+2.6
+92.0
+66.1
+42.5
+14.2
+32.0
+10.9
+34.5
+19.0
+Qwen2.5-VL-72B-Instruct
+11.0
+4.8
+6.5
+3.4
+95.5
+67.9
+56.0
+18.7
+32.0
+10.8
+40.2
+21.1
+Qwen2.5-VL-32B-Instruct
+5.5
+1.7
+3.0
+2.0
+75.5
+54.8
+47.5
+16.9
+36.0
+12.8
+33.5
+17.6
+Qwen2.5-VL-7B-Instruct
+12.5
+4.6
+19.5
+10.5
+66.0
+38.6
+50.0
+15.0
+4.5
+1.6
+30.5
+14.1
+DMPO-VL-7B (Ours)
+62.5
+31.5
+25.5
+22.1
+98.5
+73.1
+72.0
+67.4
+51.0
+21.6
+61.9
+43.1
+4
+MM-NP-Bench: A Testbed for Diverse Reasoning
+Having introduced DMPO as a solution to mitigate mode collapse, we now present MM-NP-Bench, a benchmark designed to validate DMPO’s effectiveness. We need a testbed where mode collapse is easily observable, solution quality is precisely measurable, and diverse high-quality solutions exist. NP-hard combinatorial optimization provides these properties.
+NP-hard problems feature
+exponentially large multimodal solution spaces
+—a TSP instance with 20 cities has
+∼
+10
+18
+\sim 10^{18}
+valid tours with multiple local optima. A model that prematurely converges will settle for the first valid solution, missing better alternatives. They provide
+objective quality metrics
+—precisely defined objectives (minimize tour length, maximize clique size) enable comparing solutions against heuristic baselines, transforming mode collapse into a quantifiable metric. They
+decouple feasibility from optimality
+—we can measure constraint satisfaction (Success Rate) and optimization quality (Quality Ratio) separately. Mode collapse produces a characteristic pattern: high SR (learns constraints) but low QR (fails to optimize).
+NP-Bench
+[
+21
+]
+provides text-based formulations of 10 NP-hard tasks. We extend it to the multimodal setting with visual representations, which offer three advantages: graph structures are more naturally expressed visually than through verbose adjacency lists, visual representations enable evaluation of vision-language models, and visual formats reduce specification ambiguity.
+4.1
+Benchmark Design
+Task Composition.
+MM-NP-Bench comprises 10 tasks across 5 categories:
+Path Planning
+(TSP, Hamiltonian Cycle),
+Covering
+(Vertex Cover, Dominating Set),
+Graph Partition
+(Minimum Cut, Maximum Cut),
+Substructure
+(Maximum Clique, Maximum Independent Set), and
+Constraints
+(Graph Coloring, Feedback Vertex Set). See Appendix
+C
+for complete task descriptions.
+Infrastructure.
+MM-NP-Bench provides complete infrastructure enabling both evaluation and RLVR training. The system consists of three integrated components working together to support the full research pipeline from instance generation to solution evaluation. Each task features: (1) parametric generators producing instances with textual, visual, and symbolic representations, (2) rule-based verifiers checking constraint satisfaction with
+O
+⁡
+(
+E
+)
+O(E)
+or
+O
+⁡
+(
+V
+2
+)
+O(V^{2})
+complexity, and (3) heuristic solvers (Table
+6
+) computing near-optimal reference solutions. See Appendix
+C.2
+for implementation details. Figure
+1
+illustrates how these three components work together: the generator creates instances with multiple representations, the verifier checks constraint satisfaction, and the heuristic solver computes reference solutions, enabling both rigorous evaluation and reward computation for RL training. A detailed task case from MM-NP-Bench is shown in Figure
+3
+.
+4.2
+Evaluation Metrics
+MM-NP-Bench uses dual-metric evaluation to make mode collapse quantitatively observable by decoupling constraint satisfaction from quality optimization.
+Success Rate (SR).
+The percentage of test instances where the model generates a valid solution satisfying all problem constraints.
+For example, in TSP, a valid solution must visit every city exactly once and form a closed tour. High SR indicates the model understands problem constraints and can generate feasible solutions, but says nothing about solution quality—a model could achieve high SR by always generating the same valid but suboptimal solution.
+Quality Ratio (QR).
+For valid solutions, QR measures optimization quality relative to the heuristic solver’s reference solution
+V
+∗
+V^{*}
+:
+QR
+​
+(
+x
+i
+,
+o
+i
+)
+=
+{
+V
+model
+​
+(
+o
+i
+)
+/
+V
+∗
+​
+(
+x
+i
+)
+(maximization tasks)
+V
+∗
+​
+(
+x
+i
+)
+/
+V
+model
+​
+(
+o
+i
+)
+(minimization tasks)
+0
+(invalid solutions)
+\text{QR}(x_{i},o_{i})=\begin{cases}V_{\text{model}}(o_{i})/V^{*}(x_{i})&\text{(maximization tasks)}\\
+V^{*}(x_{i})/V_{\text{model}}(o_{i})&\text{(minimization tasks)}\\
+0&\text{(invalid solutions)}\end{cases}
+where
+V
+model
+​
+(
+o
+i
+)
+V_{\text{model}}(o_{i})
+is the objective value of the model’s solution (e.g., tour length for TSP, number of colors for Graph Coloring).
+QR directly measures a model’s ability to discover high-quality solutions through exploration. A model that prematurely converges (mode collapse) will plateau at a suboptimal QR, while a model that maintains exploration will continue discovering better solutions, achieving higher QR. Success Rate complements this by ensuring methods don’t sacrifice feasibility for quality—a method that improves both SR and QR demonstrates effective exploration that discovers more valid solutions and higher-quality ones.
+Table 2
+:
+Performance comparison of various RLVR methods on MM-NP-Bench.
+Model
+Constraint
+Covering
+Partition
+Subgraph
+Path
+Overall
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+Qwen2.5-7B-Instruct
+23.0
+6.9
+24.0
+12.3
+69.5
+32.7
+46.5
+20.0
+20.0
+6.6
+36.6
+15.7
+GRPO
+[
+30
+]
+54.5
+21.2
+18.0
+17.7
+87.0
+67.4
+68.0
+65.9
+51.0
+19.6
+55.7
+38.4
+GSPO
+[
+44
+]
+62.0
+31.1
+29.5
+27.7
+80.5
+58.7
+65.5
+62.3
+51.0
+18.6
+57.7
+39.7
+GPG
+[
+7
+]
+52.0
+23.7
+22.5
+17.4
+78.4
+62.4
+71.4
+64.1
+48.5
+16.6
+54.6
+36.8
+ClipCov
+[
+8
+]
+54.5
+26.2
+23.5
+19.0
+82.5
+63.9
+70.0
+63.8
+51.5
+18.8
+56.4
+38.3
+FlowRL
+[
+45
+]
+56.5
+23.8
+36.0
+26.2
+88.0
+64.1
+68.5
+64.5
+44.0
+16.1
+58.6
+38.9
+GRPOPass@K (Meta)
+[
+33
+]
+60.5
+20.7
+42.5
+21.1
+78.5
+56.0
+56.0
+53.7
+42.5
+14.9
+56.0
+33.3
+GRPOPass@K (Seed)
+[
+5
+]
+64.5
+23.4
+47.0
+18.4
+83.0
+56.4
+73.5
+59.6
+45.5
+16.1
+62.7
+34.8
+DMPO (Ours)
+62.5
+31.5
+25.5
+22.1
+98.5
+73.1
+72.0
+67.4
+51.0
+21.6
+61.9
+43.1
+Table 3
+:
+Performance comparison of various RLVR methods on six mathematical and text-only optimization reasoning benchmarks.
+Method
+Math
+NP-Bench
+Math500
+OlympiadBench
+Minerva
+aime24
+aime25
+AMC
+Average
+SR
+QR
+Backbone
+63.6
+28.3
+21.7
+14.0
+6.9
+45.6
+30.00
+29.6
+14.6
+GRPO
+[
+30
+]
+83.8
+44.9
+39.7
+17.8
+14.1
+54.7
+42.5
+83.4
+40.1
+GSPO
+[
+44
+]
+83.2
+44.7
+39.3
+18.8
+12.6
+53.9
+42.1
+82.6
+41.2
+GPG
+[
+7
+]
+79.6
+42.7
+40.4
+16.3
+10.6
+48.8
+39.7
+88.6
+32.7
+ClipCov
+[
+8
+]
+81.4
+46.7
+38.6
+19.1
+13.8
+54.5
+42.3
+87.2
+41.3
+FlowRL
+[
+45
+]
+82.4
+44.0
+37.6
+16.0
+11.1
+50.2
+40.2
+–
+–
+DMPO (Ours)
+85.6
+48.4
+41.2
+20.2
+15.0
+56.3
+44.5
+85.3
+43.9
+4.3
+Dataset and RLVR Training Setup
+Test Set.
+1,000 instances (100 per task) with difficulty calibrated to challenge state-of-the-art models. Difficulty is controlled via generation parameters (e.g., city count and spatial distribution for TSP, graph density for Graph Coloring).
+Training Sets.
+We generate
+NP-10K
+(10,000 text-only instances) and
+MM-NP-10K
+(10,000 multimodal instances with visual representations). Training instances are filtered via rejection sampling to maintain SR
+∈
+[
+0.05
+,
+0.8
+]
+\in[0.05,0.8]
+on base models, addressing the cold-start problem by ensuring sufficient positive rewards while preserving challenge.
+Reward Function.
+For RLVR training, we define a composite reward encouraging both format compliance and solution quality:
+R
+⁡
+(
+o
+)
+=
+r
+fmt
+​
+(
+o
+)
++
+r
+opt
+​
+(
+o
+)
+,
+R(o)=r_{\text{fmt}}(o)+r_{\text{opt}}(o),
+where
+r
+fmt
+​
+(
+o
+)
+=
+0.1
+r_{\text{fmt}}(o)=0.1
+if the output follows the required format (Chain-of-Thought reasoning followed by
+Answer: [Solution]
+), and
+r
+opt
+​
+(
+o
+)
+=
+QR
+​
+(
+o
+)
+r_{\text{opt}}(o)=\text{QR}(o)
+if the solution is valid, 0 otherwise.
+We use Quality Ratio (QR) rather than binary validity as the optimization reward for a crucial reason: binary rewards (1 if valid, 0 if invalid) offer no distinction between valid solutions of varying quality. In binary reward settings, all valid solutions are treated equally, providing no incentive for the model to improve quality once it finds a valid solution. This setup inevitably leads to mode collapse, as the model has no motivation to explore beyond the initial valid solution. In contrast, QR-based rewards offer a fine-grained signal: better solutions receive higher rewards, thereby encouraging further optimization. This reward structure is vital for studying mode collapse, as it ensures that the model receives the gradient signal needed for effective optimization. Additionally, differences in achieved QR serve as a diagnostic tool, revealing whether methods successfully leverage the signal or converge prematurely. QR-based rewards also implicitly create a learning curriculum: models first learn to comply with the format (small, consistent rewards), then to satisfy constraints (positive QR), and ultimately to optimize quality (maximizing QR).
+4.4
+MM-NP-Bench Performance
+To establish benchmark difficulty and demonstrate that MM-NP-Bench effectively differentiates model capabilities, we evaluate 17 state-of-the-art vision-language models on the test set without any RL training. Table
+1
+presents complete results across all tasks. Several key observations emerge from this baseline evaluation. First, even the best proprietary model (Gemini-3.0-Flash) achieves only 59.5% QR, indicating significant room for improvement and confirming the benchmark is challenging for frontier models. Second, the best open-source model (Qwen3-VL-235B-A22B-Thinking) achieves 28.8% QR, substantially below proprietary models, suggesting the benchmark effectively differentiates model capabilities. Third, all models exhibit substantial performance variation across task categories: Partition tasks (Graph Coloring, Bin Packing) show the highest QR (60-70%), indicating these are relatively easier to optimize, while Path tasks (TSP, VRP) and Constraint tasks (SAT, Graph Isomorphism) show the lowest QR (15-25%), indicating these require more sophisticated exploration strategies. Fourth, model scaling shows diminishing returns: increasing model size from 7B to 72B parameters improves SR more than QR (relative improvement of 15% vs 8%), suggesting larger models learn constraint satisfaction more easily than optimization strategies. These baseline results validate MM-NP-Bench as a challenging testbed that reveals optimization limitations across diverse models and scales, providing an ideal environment for evaluating whether DMPO’s distribution matching prevents mode collapse and enables discovery of higher-quality solutions.
+Table 4
+:
+Performance on visual reasoning benchmarks. We compare models trained on: (1) baseline (no RL), (2) MM-NP-Bench only, (3) MM-16K only, and (4) their combination.
+Dataset & Method
+LogicVista
+GSM8K-V
+MathVista
+MathVision
+MathVerse-V
+Visulogic
+WeMath
+Average
+Qwen2.5-VL-7B-Instruct (Backbone)
+44.5
+13.6
+68.3
+24.5
+37.3
+22.6
+33.1
+34.8
+GRPO (MM-NP)
+44.5
+13.2
+71.3
+25.1
+39.0
+25.3
+39.5
+36.8
+DMPO (MM-NP)
+46.1
+15.1
+69.3
+26.9
+40.7
+25.9
+35.4
+37.1
+GRPO (MM-16K)
+45.2
+18.3
+71.7
+26.6
+32.5
+25.8
+37.2
+36.8
+DMPO (MM-16K)
+48.1
+13.7
+72.3
+26.5
+43.3
+25.4
+34.8
+37.7
+GRPO (MM-16K + MM-NP)
+45.6
+15.5
+72.8
+27.0
+47.8
+24.1
+42.4
+39.3
+DMPO (MM-16K + MM-NP)
+48.7
+18.5
+72.3
+28.0
+46.0
+26.0
+39.0
+39.8
+5
+Experiments
+We validate DMPO through three research questions: (1) Does DMPO prevent mode collapse on optimization tasks? (2) Does DMPO generalize beyond optimization to mathematical reasoning? (3) Does diversity-preserving training transfer to out-of-domain tasks? We compare DMPO against five strong on-policy RL baselines: GRPO
+[
+30
+]
+, GSPO
+[
+44
+]
+, GPG
+[
+7
+]
+, ClipCov
+[
+8
+]
+, FlowRL
+[
+45
+]
+, GRPOPass@K (Meta)
+[
+33
+]
+and GRPOPass@K (Seed)
+[
+5
+]
+. Implementation details are provided in Appendix
+D
+.
+DMPO Prevents Mode Collapse.
+Table
+2
+presents results on MM-NP-Bench. DMPO achieves
+43.1% Quality Ratio versus GRPO’s 38.4%
+—a 12% relative improvement—while also achieving the highest Success Rate (61.9% vs. 55.7%). This improvement demonstrates that DMPO’s distribution matching prevents premature convergence, enabling discovery of higher-quality solutions that GRPO’s mode-seeking behavior misses. DMPO’s gains are consistent across task categories: +10.3% QR on Constraint tasks (21.2% → 31.5%), +5.7% on Partition tasks (67.4% → 73.1%), and +2.0% on Path tasks (19.6% → 21.6%). Notably, DMPO improves both metrics simultaneously—on Partition tasks, it achieves near-perfect SR (98.5%) while maintaining the highest QR (73.1%), demonstrating effective exploration discovers more valid solutions and higher-quality ones without trading off feasibility for quality. Comparing with FlowRL, another diversity-focused method, DMPO achieves substantially higher QR (43.1% vs. 38.9%) despite similar SR (61.9% vs. 58.6%), suggesting that DMPO’s group-level Boltzmann target better maintains local diversity than FlowRL’s learned partition function.
+Table
+3
+shows DMPO achieves 43.9% QR on text-based NP-Bench versus GRPO’s 40.1% (+9% relative improvement), demonstrating the approach is modality-agnostic. Notably, GPG achieves high SR (88.6%) but low QR (32.7%), indicating severe mode collapse where the model finds valid solutions but doesn’t optimize them—DMPO’s distribution matching prevents this pathology.
+Generalization to Mathematical Reasoning.
+To demonstrate that DMPO’s benefits extend beyond optimization, we evaluate on mathematical reasoning. We train Qwen2.5-Math-7B on Openr1-Math-46K and test on six benchmarks: AIME 2024, AIME 2025, AMC, Minerva Math, OlympiadBench, and MATH500. Table
+3
+(left) shows DMPO achieves 44.5% average accuracy versus GRPO’s 42.5%—a 2.0% improvement. Gains are consistent across difficulty levels: +2.4% on AIME 2024 (hardest), +1.2% on AIME 2025, and +1.5% on OlympiadBench. These results suggest mathematical reasoning benefits from diversity preservation: many problems admit multiple valid proof strategies, and DMPO’s mode-covering behavior enables exploration of different approaches rather than collapsing to the first successful method discovered.
+Transfer to Out-of-Domain Tasks.
+To test whether diversity-preserving training on MM-NP-Bench enhances general reasoning capabilities, we evaluate on seven out-of-domain benchmarks spanning logic, visual reasoning, and mathematical problem-solving: LogicVista, GSM8K-V, MathVista, MathVision, MathVerse-V, VisuLogic, and WeMath. Table
+4
+shows training on MM-NP-Bench with DMPO improves out-of-domain performance by 2.3% on average versus the baseline, and outperforms GRPO by 0.3% (37.1% vs. 36.8%). This demonstrates that diversity-preserving training on optimization tasks transfers to general reasoning. Notably, when combined with general reasoning data (MM-16K), DMPO achieves 39.8% (+5.0% over baseline), suggesting optimization training and general reasoning are complementary.
+Ablation Studies.
+We ablate
+λ
+\lambda
+(distribution matching weight) and
+α
+\alpha
+(temperature) in Table
+9
+(Appendix
+D
+). Optimal values are
+λ
+∈
+[
+0.3
+,
+0.7
+]
+\lambda\in[0.3,0.7]
+and
+α
+∈
+[
+0.8
+,
+1.2
+]
+\alpha\in[0.8,1.2]
+, with performance slightly degrading outside these ranges. This shows DMPO is reasonably robust to hyperparameter choices.
+Table 5
+:
+Performance of DMPO under different variant settings on MM-NP-Bench.
+Method
+Graph
+Schedule
+Partition
+Selection
+Planning
+Overall
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+Qwen2.5-7B-Instruct(backbone)
+11.0
+3.1
+40.0
+19.8
+67.0
+34.0
+26.7
+15.2
+3.5
+1.0
+29.6
+14.6
+GRPO
+[
+30
+]
+54.5
+21.2
+18.0
+17.7
+87.0
+67.4
+68.0
+65.9
+51.0
+19.6
+55.7
+38.4
+DMPO w/o GRPO
+51.5
+22.1
+29.5
+20.0
+88.0
+67.3
+68.0
+64.9
+48.5
+18.3
+57.1
+38.5
+DMPO w JS Divergence
+50.0
+20.0
+31.0
+21.7
+94.5
+71.7
+65.5
+63.0
+46.0
+16.8
+57.4
+38.6
+DMPO w MSE Divergence
+85.3
+25.6
+82.0
+60.3
+100.0
+52.8
+67.7
+55.0
+81.5
+25.6
+83.3
+43.9
+Different Divergence Settings.
+As shown in Table
+5
+, the DMPO loss can optimize the policy using only the distribution-matching term (
+λ
+=
+∞
+\lambda=\infty
+), without the base GRPO loss, effectively removing the GRPO objective. This pure DMPO objective achieved a SR of 57.1% and a QR of 38.5%, slightly outperforming the standard GRPO (SR 55.6%, QR 38.4%). Additionally, we tested Jensen-Shannon (JS) divergence at the group level and found it effective in preventing mode collapse (SR 57.4%, QR 38.6%). However, both of these settings still underperform the full DMPO (MSE) objective. Therefore, DMPO should not be viewed merely as a local diversity regularizer. Rather, the strongest performance arises from combining the two objectives: GRPO provides a mode-seeking signal that drives reward maximization, while the DMPO term supplies a mode-covering signal that prevents collapse and preserves diversity across high-reward trajectories.
+Training Dynamics Analysis
+Figure
+5
+(Appendix
+D.2
+) demonstrates that DMPO effectively mitigates the degenerative failure modes observed in GRPO. While GRPO suffers from both mode and length collapse—plateauing at suboptimal rewards and degenerating into trivial, short responses (
+<
+200
+<200
+tokens)—DMPO sustains continuous improvement and preserves robust reasoning chains (
+∼
+400
+\sim 400
+tokens). This structural integrity is further evidenced by the entropy dynamics: DMPO’s lower entropy, paired with superior performance, indicates confident execution of logical steps (
+structured diversity
+) rather than the high-entropy stochastic confusion characteristic of GRPO.
+6
+Conclusion
+In this work, we identify mode collapse as a key limitation of on-policy reinforcement learning in Large Reasoning Models, caused by reverse KL minimization’s mode-seeking behavior, leading to premature convergence. We propose DMPO (Distribution-Matching Policy Optimization), which prevents mode collapse by approximating forward KL minimization at the group level. DMPO aligns the policy to a group-level target distribution, ensuring mode coverage without requiring global sampling. We introduce MM-NP-Bench, a multimodal benchmark extending NP-Bench with visual representations of 10 NP-hard tasks, designed to highlight mode collapse through dual-metric evaluation (Success Rate and Quality Ratio). Extensive experiments show DMPO’s effectiveness: 4.7%-3.8% improvements on optimization tasks, 2.0% on mathematical reasoning, and 2.3% on out-of-domain tasks. These gains demonstrate that diversity-preserving training enhances both optimization and general reasoning capabilities. Our work establishes distribution matching as a practical solution to mode collapse in on-policy RL, with empirical validation showing that maintaining exploration leads to better solutions and more robust reasoning. Future work could combine DMPO with replay buffers or extend it to off-policy settings.
+Impact Statement
+Positive Impacts.
+This work advances reinforcement learning methods for training Large Reasoning Models, with potential benefits including improved mathematical problem-solving, code generation, and optimization capabilities. By preventing mode collapse, DMPO enables more robust and diverse reasoning patterns, which could enhance AI systems’ reliability in educational, scientific, and engineering applications. The MM-NP-Bench benchmark provides the research community with tools for evaluating and improving exploration in reasoning models.
+Potential Risks.
+As with any advancement in large language model capabilities, improved reasoning abilities could be misused for generating misleading arguments, solving optimization problems for malicious purposes, or automating tasks in ways that displace human workers. However, these risks are not unique to our work and apply broadly to progress in AI reasoning capabilities.
+Broader Considerations.
+We acknowledge that training large models requires substantial computational resources with associated environmental costs. Our method adds minimal overhead to existing training pipelines (single regularization term), limiting additional environmental impact. All experiments were conducted on shared research infrastructure to maximize resource efficiency.
+References
+[1]
+Z. Ahmed, N. Le Roux, M. Norouzi, and D. Schuurmans
+(2019)
+Understanding the impact of entropy on policy optimization
+.
+In
+International conference on machine learning
+,
+pp. 151–160
+.
+Cited by:
+§2
+,
+§2
+.
+[2]
+C. An, Z. Xie, X. Li, L. Li, J. Zhang, S. Gong, M. Zhong, J. Xu, X. Qiu, M. Wang,
+et al.
+(2025)
+Polaris: a post-training recipe for scaling reinforcement learning on advanced reasoning models, 2025
+.
+URL https://hkunlp. github. io/blog/2025/Polaris
+.
+Cited by:
+§2
+.
+[3]
+Y. Burda, H. Edwards, A. Storkey, and O. Klimov
+(2018)
+Exploration by random network distillation
+.
+arXiv preprint arXiv:1810.12894
+.
+Cited by:
+§2
+.
+[4]
+Z. Chen, X. Qin, Y. Wu, Y. Ling, Q. Ye, W. X. Zhao, and G. Shi
+(2025)
+Pass@ k training for adaptively balancing exploration and exploitation of large reasoning models
+.
+arXiv preprint arXiv:2508.10751
+.
+Cited by:
+§1
+,
+§2
+.
+[5]
+Z. Chen, X. Qin, Y. Wu, Y. Ling, Q. Ye, W. X. Zhao, and G. Shi
+(2025)
+Pass@k training for adaptively balancing exploration and exploitation of large reasoning models
+.
+External Links:
+2508.10751
+,
+Link
+Cited by:
+Table 2
+,
+§5
+.
+[6]
+D. Cheng, S. Huang, X. Zhu, B. Dai, W. X. Zhao, Z. Zhang, and F. Wei
+(2025)
+Reasoning with exploration: an entropy perspective
+.
+arXiv preprint arXiv:2506.14758
+.
+Cited by:
+§2
+.
+[7]
+X. Chu, H. Huang, X. Zhang, F. Wei, and Y. Wang
+(2025)
+GPG: a simple and strong reinforcement learning baseline for model reasoning
+.
+External Links:
+2504.02546
+,
+Link
+Cited by:
+§D.1
+,
+Table 7
+,
+Table 8
+,
+§2
+,
+Table 2
+,
+Table 3
+,
+§5
+.
+[8]
+G. Cui, Y. Zhang, J. Chen, L. Yuan, Z. Wang, Y. Zuo, H. Li, Y. Fan, H. Chen, W. Chen, Z. Liu, H. Peng, L. Bai, W. Ouyang, Y. Cheng, B. Zhou, and N. Ding
+(2025)
+The entropy mechanism of reinforcement learning for reasoning language models
+.
+External Links:
+2505.22617
+,
+Link
+Cited by:
+§D.1
+,
+Table 7
+,
+Table 8
+,
+§2
+,
+Table 2
+,
+Table 3
+,
+§5
+.
+[9]
+H. Duan, X. Fang, J. Yang, X. Zhao, Y. Qiao, M. Li, A. Agarwal, Z. Chen, L. Chen, Y. Liu, Y. Ma, H. Sun, Y. Zhang, S. Lu, T. H. Wong, W. Wang, P. Zhou, X. Li, C. Fu, J. Cui, J. Chen, E. Song, S. Mao, S. Ding, T. Liang, Z. Zhang, X. Dong, Y. Zang, P. Zhang, J. Wang, D. Lin, and K. Chen
+(2025)
+VLMEvalKit: an open-source toolkit for evaluating large multi-modality models
+.
+External Links:
+2407.11691
+,
+Link
+Cited by:
+§D.1
+.
+[10]
+D. L. Elliott and C. Anderson
+(2021)
+The wisdom of the crowd: reliable deep reinforcement learning through ensembles of q-functions
+.
+IEEE transactions on neural networks and learning systems
+34
+(
+1
+),
+pp. 43–51
+.
+Cited by:
+§2
+.
+[11]
+B. Eysenbach and S. Levine
+(2021)
+Maximum entropy rl (provably) solves some robust rl problems
+.
+arXiv preprint arXiv:2103.06257
+.
+Cited by:
+§2
+,
+§2
+.
+[12]
+D. Guo, D. Yang, H. Zhang, J. Song, R. Zhang, R. Xu, Q. Zhu, S. Ma, P. Wang, X. Bi,
+et al.
+(2025)
+Deepseek-r1: incentivizing reasoning capability in llms via reinforcement learning
+.
+arXiv preprint arXiv:2501.12948
+.
+Cited by:
+§2
+.
+[13]
+T. Haarnoja, A. Zhou, P. Abbeel, and S. Levine
+(2018)
+Soft actor-critic: off-policy maximum entropy deep reinforcement learning with a stochastic actor
+.
+In
+International conference on machine learning
+,
+pp. 1861–1870
+.
+Cited by:
+§2
+.
+[14]
+C. He, R. Luo, Y. Bai, S. Hu, Z. Thai, J. Shen, J. Hu, X. Han, Y. Huang, Y. Zhang,
+et al.
+(2024)
+Olympiadbench: a challenging benchmark for promoting agi with olympiad-level bilingual multimodal scientific problems
+.
+In
+Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)
+,
+pp. 3828–3850
+.
+Cited by:
+§D.1
+.
+[15]
+Z. He, T. Liang, J. Xu, Q. Liu, X. Chen, Y. Wang, L. Song, D. Yu, Z. Liang, W. Wang,
+et al.
+(2025)
+DeepMath-103k: a large-scale, challenging, decontaminated, and verifiable mathematical dataset for advancing reasoning
+.
+arXiv preprint arXiv:2504.11456
+.
+Cited by:
+§1
+.
+[16]
+D. Hendrycks, C. Burns, S. Kadavath, A. Arora, S. Basart, E. Tang, D. Song, and J. Steinhardt
+(2021)
+Measuring mathematical problem solving with the math dataset
+.
+arXiv preprint arXiv:2103.03874
+.
+Cited by:
+§D.1
+.
+[17]
+A. Karan and Y. Du
+(2025)
+Reasoning with sampling: your base model is smarter than you think
+.
+arXiv preprint arXiv:2510.14901
+.
+Cited by:
+§1
+.
+[18]
+S. Levine
+(2018)
+Reinforcement learning and control as probabilistic inference: tutorial and review
+.
+arXiv preprint arXiv:1805.00909
+.
+Cited by:
+§2
+,
+§3.1
+.
+[19]
+A. Lewkowycz, A. Andreassen, D. Dohan, E. Dyer, H. Michalewski, V. Ramasesh, A. Slone, C. Anil, I. Schlag, T. Gutman-Solo,
+et al.
+(2022)
+Solving quantitative reasoning problems with language models
+.
+Advances in neural information processing systems
+35
+,
+pp. 3843–3857
+.
+Cited by:
+§D.1
+.
+[20]
+J. Li, E. Beeching, L. Tunstall, B. Lipkin, R. Soletskyi, S. Huang, K. Rasul, L. Yu, A. Q. Jiang, Z. Shen,
+et al.
+(2024)
+Numinamath: the largest public dataset in ai4maths with 860k pairs of competition math problems and solutions
+.
+Hugging Face repository
+13
+(
+9
+),
+pp. 9
+.
+Cited by:
+§D.1
+.
+[21]
+X. Li, X. Fang, S. Ding, L. Li, H. Duan, Q. Liu, and K. Chen
+(2025)
+NP-engine: empowering optimization reasoning in large language models with verifiable synthetic np problems
+.
+External Links:
+2510.16476
+,
+Link
+Cited by:
+§C.1
+,
+§D.1
+,
+§D.1
+,
+2nd item
+,
+§1
+,
+§4
+.
+[22]
+J. Liu and L. Zhang
+(2025)
+Code-r1: reproducing r1 for code with reliable rewards
+.
+Note:
+https://github.com/ganler/code-r1
+GitHub repository
+Cited by:
+§1
+.
+[23]
+P. Lu, H. Bansal, T. Xia, J. Liu, C. Li, H. Hajishirzi, H. Cheng, K. Chang, M. Galley, and J. Gao
+(2024)
+MathVista: evaluating mathematical reasoning of foundation models in visual contexts
+.
+External Links:
+2310.02255
+,
+Link
+Cited by:
+§D.1
+.
+[24]
+F. Meng, L. Du, Z. Liu, Z. Zhou, Q. Lu, D. Fu, B. Shi, W. Wang, J. He, K. Zhang,
+et al.
+(2025)
+MM-eureka: exploring visual aha moment with rule-based large-scale reinforcement learning
+.
+arXiv preprint arXiv:2503.07365
+.
+Cited by:
+§D.1
+,
+§D.1
+.
+[25]
+K. P. Murphy
+(2012)
+Machine learning: a probabilistic perspective
+.
+MIT press
+.
+Cited by:
+§1
+,
+§2
+,
+§3.2
+.
+[26]
+OpenAI
+(2024)
+Learning to reason with llms
+.
+External Links:
+Link
+Cited by:
+§2
+.
+[27]
+D. Pathak, P. Agrawal, A. A. Efros, and T. Darrell
+(2017)
+Curiosity-driven exploration by self-supervised prediction
+.
+In
+International conference on machine learning
+,
+pp. 2778–2787
+.
+Cited by:
+§2
+.
+[28]
+R. Qiao, Q. Tan, G. Dong, M. Wu, C. Sun, X. Song, Z. GongQue, S. Lei, Z. Wei, M. Zhang, R. Qiao, Y. Zhang, X. Zong, Y. Xu, M. Diao, Z. Bao, C. Li, and H. Zhang
+(2024)
+We-math: does your large multimodal model achieve human-like mathematical reasoning?
+.
+External Links:
+2407.01284
+,
+Link
+Cited by:
+§D.1
+.
+[29]
+J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov
+(2017)
+Proximal policy optimization algorithms
+.
+External Links:
+1707.06347
+,
+Link
+Cited by:
+§2
+.
+[30]
+Z. Shao, P. Wang, Q. Zhu, R. Xu, J. Song, X. Bi, H. Zhang, M. Zhang, Y. K. Li, Y. Wu, and D. Guo
+(2024)
+DeepSeekMath: pushing the limits of mathematical reasoning in open language models
+.
+External Links:
+2402.03300
+,
+Link
+Cited by:
+§D.1
+,
+Table 7
+,
+Table 8
+,
+§2
+,
+§3.1
+,
+Table 2
+,
+Table 3
+,
+Table 5
+,
+§5
+.
+[31]
+Z. Shao, P. Wang, Q. Zhu, R. Xu, J. Song, X. Bi, H. Zhang, M. Zhang, Y. Li, Y. Wu,
+et al.
+(2024)
+Deepseekmath: pushing the limits of mathematical reasoning in open language models, 2024
+.
+URL https://arxiv. org/abs/2402.03300
+2
+(
+3
+),
+pp. 5
+.
+Cited by:
+§1
+.
+[32]
+Y. Song, J. Kempe, and R. Munos
+(2025)
+Outcome-based exploration for llm reasoning
+.
+arXiv preprint arXiv:2509.06941
+.
+Cited by:
+§1
+,
+§1
+,
+§2
+.
+[33]
+Y. Tang, K. Zheng, G. Synnaeve, and R. Munos
+(2025)
+Optimizing language models for inference time objectives using reinforcement learning
+.
+External Links:
+2503.19595
+,
+Link
+Cited by:
+§D.1
+,
+Table 2
+,
+§5
+.
+[34]
+K. Wang, J. Pan, W. Shi, Z. Lu, M. Zhan, and H. Li
+(2024)
+Measuring multimodal mathematical reasoning with math-vision dataset
+.
+External Links:
+2402.14804
+,
+Link
+Cited by:
+§D.1
+.
+[35]
+S. Wang, L. Yu, C. Gao, C. Zheng, S. Liu, R. Lu, K. Dang, X. Chen, J. Yang, Z. Zhang,
+et al.
+(2025)
+Beyond the 80/20 rule: high-entropy minority tokens drive effective reinforcement learning for llm reasoning
+.
+arXiv preprint arXiv:2506.01939
+.
+Cited by:
+§2
+.
+[36]
+Y. Xiao, E. Sun, T. Liu, and W. Wang
+(2024)
+LogicVista: multimodal llm logical reasoning benchmark in visual contexts
+.
+External Links:
+2407.04973
+,
+Link
+Cited by:
+§D.1
+.
+[37]
+W. Xu, J. Wang, W. Wang, Z. Chen, W. Zhou, A. Yang, L. Lu, H. Li, X. Wang, X. Zhu, W. Wang, J. Dai, and J. Zhu
+(2025)
+VisuLogic: a benchmark for evaluating visual reasoning in multi-modal large language models
+.
+External Links:
+2504.15279
+,
+Link
+Cited by:
+§D.1
+.
+[38]
+J. Yan, Y. Li, Z. Hu, Z. Wang, G. Cui, X. Qu, Y. Cheng, and Y. Zhang
+(2025)
+Learning to reason under off-policy guidance
+.
+External Links:
+2504.14945
+,
+Link
+Cited by:
+§D.1
+.
+[39]
+Q. Yu, Z. Zhang, R. Zhu, Y. Yuan, X. Zuo, Y. Yue, T. Fan, G. Liu, L. Liu, X. Liu,
+et al.
+(2025)
+Dapo: an open-source llm reinforcement learning system at scale
+.
+arXiv preprint arXiv:2503.14476
+.
+Cited by:
+§1
+.
+[40]
+F. Yuan, Y. Yan, Y. Jiang, H. Zhao, T. Feng, J. Chen, Y. Lou, W. Zhang, Y. Shen, W. Lu, J. Xiao, and Y. Zhuang
+(2025)
+GSM8K-v: can vision language models solve grade school math word problems in visual contexts
+.
+External Links:
+2509.25160
+,
+Link
+Cited by:
+§D.1
+.
+[41]
+Y. Yue, Z. Chen, R. Lu, A. Zhao, Z. Wang, S. Song, and G. Huang
+(2025)
+Does reinforcement learning really incentivize reasoning capacity in llms beyond the base model?
+.
+arXiv preprint arXiv:2504.13837
+.
+Cited by:
+§1
+,
+§1
+,
+§2
+.
+[42]
+K. Zhang, Y. Zuo, B. He, Y. Sun, R. Liu, C. Jiang, Y. Fan, K. Tian, G. Jia, P. Li,
+et al.
+(2025)
+A survey of reinforcement learning for large reasoning models
+.
+arXiv preprint arXiv:2509.08827
+.
+Cited by:
+§2
+.
+[43]
+R. Zhang, D. Jiang, Y. Zhang, H. Lin, Z. Guo, P. Qiu, A. Zhou, P. Lu, K. Chang, P. Gao, and H. Li
+(2024)
+MathVerse: does your multi-modal llm truly see the diagrams in visual math problems?
+.
+External Links:
+2403.14624
+,
+Link
+Cited by:
+§D.1
+.
+[44]
+C. Zheng, S. Liu, M. Li, X. Chen, B. Yu, C. Gao, K. Dang, Y. Liu, R. Men, A. Yang, J. Zhou, and J. Lin
+(2025)
+Group sequence policy optimization
+.
+External Links:
+2507.18071
+,
+Link
+Cited by:
+§D.1
+,
+Table 7
+,
+Table 8
+,
+§2
+,
+Table 2
+,
+Table 3
+,
+§5
+.
+[45]
+X. Zhu, D. Cheng, D. Zhang, H. Li, K. Zhang, C. Jiang, Y. Sun, E. Hua, Y. Zuo, X. Lv, Q. Zhang, L. Chen, F. Shao, B. Xue, Y. Song, Z. Yang, G. Cui, N. Ding, J. Gao, X. Liu, B. Zhou, H. Mei, and Z. Lin
+(2025)
+FlowRL: matching reward distributions for llm reasoning
+.
+External Links:
+2509.15207
+,
+Link
+Cited by:
+§D.1
+,
+Table 7
+,
+§2
+,
+Table 2
+,
+Table 3
+,
+§5
+.
+[46]
+H. Zhuang, Y. Zhou, T. Guo, Y. Huang, F. Liu, K. Song, and X. Zhang
+(2025)
+Exploring multi-temperature strategies for token-and rollout-level control in rlvr
+.
+arXiv preprint arXiv:2510.08892
+.
+Cited by:
+§2
+.
+[47]
+A. Zhumabekov, D. May, T. Zhang, A. K. GS, O. Ardakanian, and M. E. Taylor
+(2023)
+Ensembling diverse policies improves generalizability of reinforcement learning algorithms in continuous control tasks
+.
+In
+Proceedings of the Adaptive and Learning Agents Workshop (ALA 2023). ALA
+,
+Cited by:
+§2
+.
+[48]
+B. D. Ziebart, A. L. Maas, J. A. Bagnell, A. K. Dey,
+et al.
+(2008)
+Maximum entropy inverse reinforcement learning.
+.
+In
+Aaai
+,
+Vol.
+8
+,
+pp. 1433–1438
+.
+Cited by:
+§3.1
+.
+Appendix A
+Method
+A.1
+Algorithm
+Algorithm
+1
+summarizes the complete DMPO training procedure.
+Algorithm 1
+Distribution-Matching Policy Optimization (DMPO)
+1:
+Input:
+Policy
+π
+θ
+\pi_{\theta}
+, reference policy
+π
+ref
+\pi_{\text{ref}}
+, dataset
+𝒟
+\mathcal{D}
+, group size
+G
+G
+, hyperparameters
+λ
+,
+β
+,
+ϵ
+\lambda,\beta,\epsilon
+2:
+for
+each training iteration
+do
+3:
+Sample query
+x
+∼
+𝒟
+x\sim\mathcal{D}
+4:
+Sample group
+𝒪
+=
+{
+o
+1
+,
+…
+,
+o
+G
+}
+\mathcal{O}=\{o_{1},\ldots,o_{G}\}
+from
+π
+θ
+old
+​
+(
+o
+|
+x
+)
+\pi_{\theta_{\text{old}}}(o|x)
+5:
+Compute rewards
+{
+r
+⁡
+(
+o
+i
+)
+}
+\{r(o_{i})\}
+and advantages
+{
+A
+^
+i
+}
+\{\hat{A}_{i}\}
+via z-score normalization
+6:
+Compute GRPO loss
+ℒ
+GRPO
+\mathcal{L}_{\text{GRPO}}
+via Eq.
+2
+7:
+Compute target distribution
+p
+⁡
+(
+o
+i
+∣
+𝒪
+)
+p(o_{i}\mid\mathcal{O})
+via Eq.
+5
+8:
+Compute policy distribution
+q
+θ
+​
+(
+o
+i
+∣
+𝒪
+)
+q_{\theta}(o_{i}\mid\mathcal{O})
+via Eq.
+6
+9:
+Compute distribution-matching loss
+ℒ
+DM
+\mathcal{L}_{\text{DM}}
+via Eq.
+7
+10:
+Update policy:
+θ
+←
+θ
+−
+α
+​
+∇
+θ
+(
+ℒ
+GRPO
++
+λ
+​
+ℒ
+DM
+)
+\theta\leftarrow\theta-\alpha\nabla_{\theta}(\mathcal{L}_{\text{GRPO}}+\lambda\mathcal{L}_{\text{DM}})
+11:
+end
+for
+12:
+Return:
+Optimized policy
+π
+θ
+\pi_{\theta}
+Appendix B
+Limitations
+First, DMPO currently relies on exact verifiable rewards, such as those in combinatorial optimization and mathematical reasoning. Extending it to open-ended tasks with subjective or learned rewards remains an open problem.
+Second, in extremely sparse-reward settings, if no valid solution appears in the sampled group, the local group approximation cannot recover the global optimum by itself. Replay or other off-policy extensions may help in this regime, and We will explore this direction in future work.
+Appendix C
+MM-NP-Bench
+C.1
+Overview
+Multimodal Solution Spaces.
+NP-hard problems feature exponentially large solution spaces with multiple high-quality solutions. For example, a TSP instance with 20 cities has approximately
+10
+18
+10^{18}
+valid tours, many of which are feasible but vary dramatically in quality. Crucially, these solution spaces contain multiple local optima—regions where small modifications decrease quality but larger structural changes could lead to significantly better solutions. This creates natural pressure for sustained exploration: a model that prematurely converges to the first valid solution found will miss substantially better alternatives that require exploring through temporarily lower-reward regions.
+Objective Quality Metrics.
+Unlike open-ended reasoning where solution quality is subjective, optimization problems have precisely defined objectives such as minimizing tour length or maximizing clique size. This enables objective measurement of solution quality. We can compare a model’s solution against reference baselines computed by heuristic solvers, quantifying exactly how close the model’s solution is to optimal. This transforms mode collapse from a qualitative concern into a quantifiable metric that can be tracked during training and compared across methods.
+Decoupling Feasibility from Optimality.
+Crucially, optimization problems separate constraint satisfaction from quality optimization. We can measure two independent aspects: whether a solution is valid (satisfies all constraints) and whether it is high-quality (approaches optimality). A model exhibiting mode collapse demonstrates a characteristic pattern: it successfully learns to satisfy constraints but fails to optimize quality, settling for the first valid solution discovered. By measuring both aspects separately, we can directly observe and quantify this premature convergence.
+NP-Bench
+[
+21
+]
+provides a comprehensive text-based benchmark for combinatorial optimization, featuring 10 NP-hard tasks described in natural language. This establishes a strong foundation for evaluating optimization reasoning in language models. However, NP-Bench’s text-only formulations create three limitations that motivate our multimodal extension. First, many optimization problems are inherently spatial and structural, making them more naturally expressed visually than textually. A graph coloring problem is immediately interpretable from a visual rendering showing nodes and edges, whereas the text-only version requires parsing verbose adjacency lists. This verbosity increases cognitive load and conflates text parsing ability with optimization reasoning. Second, text-only benchmarks cannot evaluate vision-language models, which are increasingly deployed in real-world applications requiring multimodal reasoning. As these models advance, we need benchmarks assessing their ability to reason about visual optimization problems. Third, visual representations reduce specification ambiguity: edge weights displayed on a graph, node positions in a layout, and structural constraints in a diagram are unambiguous, whereas textual descriptions can be misinterpreted or require careful parsing.
+C.2
+Bnechmark Details
+MM-NP-Bench provides a robust infrastructure for evaluating MLLMs on visual combinatorial optimization tasks. It addresses the gap in optimization capability in existing reasoning benchmarks by focusing on NP-hard problems with complex solution landscapes. The task taxonomy is detailed below.
+Path Planning
+These tasks assess the model’s ability to perform sequential planning and understand global connectivity. We include:
+(1)
+Traveling Salesman Problem (TSP)
+: Finding the shortest Hamiltonian tour in a weighted graph.
+(2)
+Hamiltonian Cycle
+: Determining the existence of a path visiting every node exactly once.
+Success in this category requires long-horizon planning and spatial reasoning to avoid premature loops or dead ends.
+Covering Problems.
+These tasks evaluate the identification of critical nodes that influence the entire graph structure. We include:
+(3)
+Vertex Cover
+: Selecting the minimum set of vertices such that every edge is incident to at least one selected vertex.
+(4)
+Dominating Set
+: Finding the minimum set of nodes such that every node in the graph is either in the set or adjacent to it.
+These problems test the ability to optimize global coverage through local node selection.
+Graph Partition.
+These tasks require partitioning graphs based on relational density, testing the model’s capacity to identify clusters and boundaries. We include:
+(5)
+Minimum Cut
+: Partitioning vertices to minimize the weight of crossing edges (identifying bottlenecks).
+(6)
+Maximum Cut
+: Partitioning vertices to maximize crossing edges (identifying bipartite structures).
+This category challenges the model to balance competing objectives between intra-cluster cohesion and inter-cluster separation.
+Substructure Discovery.
+These tasks demand the extraction of specific patterns—either extremely dense or sparse—from complex visual noise. We include:
+(7)
+Maximum Clique
+: Finding the largest subset of vertices where every pair is connected (dense substructure).
+(8)
+Maximum Independent Set
+: Finding the largest subset of vertices with no connections between them (sparse substructure).
+These tasks act as duals, testing the model’s ability to isolate signal from structural noise.
+Constraint Satisfaction.
+Unlike pure optimization, these tasks involve strict validity rules where local violations render the solution invalid. We include:
+(9)
+Graph Coloring
+: Assigning labels to nodes such that no adjacent nodes share the same label, minimizing the total number of labels.
+(10)
+Feedback Vertex Set
+: Identifying the minimum set of vertices whose removal makes the graph acyclic (breaking all cycles).
+This category evaluates the model’s ability to perform logical consistency checks and conflict resolution.
+C.3
+Benchmark Creation Pipeline
+Figure 2
+:
+Overview of MM-NP-Bench.
+A multimodal benchmark for evaluating exploration in optimization reasoning. MM-NP-Bench features 10 NP-hard tasks with dual-metric evaluation (Success Rate and Quality Ratio) that makes mode collapse observable. Complete infrastructure includes parametric generators, rule-based verifiers, and heuristic solvers, enabling both evaluation and RLVR training.
+Parametric Generator.
+For each task, we implement a controllable generation engine that produces instances based on difficulty parameters such as graph size, density, and constraint complexity. Each generated instance includes three synchronized representations. The textual specification provides a natural language description of the problem, objective, and constraints (e.g., "Find the shortest tour visiting all 20 cities exactly once"). The visual rendering depicts the problem structure as an image—for graph problems, this shows nodes, edges, and weights in a clear layout; for packing problems, this shows items and bins with size annotations. The symbolic representation provides structured data (adjacency matrices for graphs, coordinate lists for geometric problems, clause lists for SAT) enabling programmatic verification and deterministic evaluation. This multi-representation approach ensures models can be evaluated on their preferred input modality while maintaining consistent problem semantics across modalities.
+Rule-Based Verifier.
+Each task has a deterministic verifier that checks constraint satisfaction with polynomial complexity (
+O
+⁡
+(
+E
+)
+O(E)
+or
+O
+⁡
+(
+V
+2
+)
+O(V^{2})
+depending on the task). Critically, verifiers check structural validity rather than accepting scalar outputs—for TSP, the model must output the complete tour sequence, not just the tour length. This prevents reward hacking where models might output plausible-looking numbers without actually solving the problem. Verifiers confirm all hard constraints are satisfied: for TSP, every city is visited exactly once and the tour forms a valid cycle; for Graph Coloring, no adjacent vertices share colors; for Bin Packing, no bin exceeds capacity. Only solutions passing verification are eligible for quality evaluation.
+Heuristic Solver.
+For each generated instance, we run task-specific heuristic algorithms to compute a reference solution
+V
+∗
+V^{*}
+serving as the quality baseline. Table
+6
+lists the algorithms used for each task. These solvers are designed to be computationally efficient (polynomial or practical exponential time) while producing high-quality solutions. For example, we use 2-opt local search for TSP, which iteratively improves tours by swapping edges; Clarke-Wright savings algorithm for VRP, which constructs routes by merging profitable pairs; and greedy set selection for Set Cover, which iteratively selects sets covering the most uncovered elements. While these heuristics do not guarantee global optimality (NP-hard problems have no polynomial-time exact algorithms), they provide strong baselines that are difficult for models to match without sophisticated optimization reasoning. The reference value
+V
+∗
+V^{*}
+enables computation of Quality Ratio, quantifying how close a model’s solution is to this near-optimal baseline.
+Table 6
+:
+Heuristic solvers for the selected combinatorial optimization tasks. The solvers generally run in polynomial time or efficient exponential time for practical instances, providing baselines for the Quality Ratio.
+Task
+Heuristic Algorithm
+Complexity
+Constraint
+Graph Coloring (GCP)
+DSATUR heuristic
+O
+⁡
+(
+V
+2
+)
+O(V^{2})
+Feedback Vertex Set
+Greedy high-degree removal
+O
+⁡
+(
+V
+⋅
+E
+)
+O(V\cdot E)
+Covering
+Vertex Cover
+2-approximation algorithm
+O
+⁡
+(
+E
+)
+O(E)
+Dominating Set
+Greedy set cover reduction
+O
+⁡
+(
+V
+3
+)
+O(V^{3})
+Partitioning
+Minimum Cut
+Stoer-Wagner algorithm
+O
+⁡
+(
+V
+⋅
+E
++
+V
+2
+​
+log
+⁡
+V
+)
+O(V\cdot E+V^{2}\log V)
+Maximum Cut
+Greedy local search
+O
+⁡
+(
+V
+⋅
+E
+)
+O(V\cdot E)
+Subgraph
+Maximum Clique
+Bron-Kerbosch with pruning
+Exponential (practical)
+Max Independent Set
+Min-degree greedy
+O
+⁡
+(
+V
+​
+log
+⁡
+V
++
+E
+)
+O(V\log V+E)
+Path
+TSP
+2-opt local search
+O
+⁡
+(
+n
+2
+)
+O(n^{2})
+per iteration
+Hamiltonian Cycle
+DFS with pruning (or Pósa’s)
+Exponential (practical)
+Figure 3
+:
+Example of a Hamiltonian Cycle in MM-NP-Bench. The goal is to find the longest cycle path in the graph under problem constraints. A rule-based verifier is used for precise evaluation, and a solver provides the optimal ground truth.
+Appendix D
+Experiments
+D.1
+Experimental Setup
+Model Architecture.
+We use three base models depending on the task modality. For multimodal tasks (MM-NP-Bench and MM-16K
+[
+24
+]
+), we use Qwen2.5-VL-7B-Instruct. For mathematical reasoning, we use Qwen2.5-Math-7B trained on Openr1-Math-46K
+[
+38
+]
+. For text-based optimization (NP-Bench), we use Qwen2.5-7B-Instruct-1M
+[
+21
+]
+.
+Training Data.
+We train models on three datasets: (1)
+MM-NP-Bench
+: 10,000 multimodal optimization instances with visual representations, (2)
+NP-Bench
+: 10,000 text-only optimization instances, and (3)
+Openr1-Math-46K
+: mathematical reasoning data. For out-of-domain transfer experiments, we also use MM-16K
+[
+24
+]
+, a general multimodal reasoning dataset.
+Evaluation Benchmarks.
+We evaluate on three categories of benchmarks.
+Optimization:
+MM-NP-Bench (visual, 10 tasks) and NP-Bench
+[
+21
+]
+(text, 10 tasks).
+Mathematical reasoning:
+Six benchmarks including AIME 2024, AIME 2025, AMC
+[
+20
+]
+, Minerva
+[
+19
+]
+, OlympiadBench
+[
+14
+]
+, and MATH500
+[
+16
+]
+. We report avg@32 for AIME and AMC (smaller test sets), pass@1 for others.
+Out-of-domain:
+Seven visual reasoning benchmarks—LogicVista
+[
+36
+]
+, GSM8K-V
+[
+40
+]
+, MathVista
+[
+23
+]
+, MathVision
+[
+34
+]
+, MathVerse-V
+[
+43
+]
+, VisuLogic
+[
+37
+]
+, and WeMath
+[
+28
+]
+—evaluated using VLMEvalKit
+[
+9
+]
+.
+Baseline Methods.
+We compare DMPO against five strong on-policy RL baselines: GRPO
+[
+30
+]
+, GSPO
+[
+44
+]
+, GPG
+[
+7
+]
+, ClipCov
+[
+8
+]
+, FlowRL
+[
+45
+]
+, GRPOPass@K (Meta)
+[
+33
+]
+, and GRPOPass@K (Seed). All methods use identical training data, model architecture, and hyperparameters (learning rate, batch size, training steps) following official VeRL configurations, with only method-specific parameters varying.
+Training Hyperparameters.
+Common settings across all methods: group size
+G
+=
+8
+G=8
+, learning rate
+1
+×
+10
+−
+6
+1\times 10^{-6}
+with cosine decay, 250 training iterations, clipping parameter
+ϵ
+=
+0.2
+\epsilon=0.2
+, KL penalty
+β
+KL
+=
+0.0
+\beta_{\text{KL}}=0.0
+. DMPO-specific: distribution matching weight
+λ
+=
+2.0
+\lambda=2.0
+, temperature
+α
+=
+1
+15
+\alpha=\frac{1}{15}
+. See Table
+9
+for complete settings and sensitivity analysis.
+Figure 4
+:
+Performance of GRPO and DMPO on the MM-NP-Bench, showing Success Rate (SR) and Quality Ratio (QR) across different rollout sampling numbers (
+k
+k
+).
+Diversity Evaluation.
+Our benchmark is designed to capture the distinction between feasibility and optimization quality. In this context, mode collapse manifests as a high Success Rate (SR) but a relatively low Quality Ratio (QR): the model consistently finds feasible solutions but repeatedly concentrates on a narrow set of suboptimal outcomes. To test whether DMPO simply collapses onto a single stronger optimum, we examine how SR and QR scale with the number of rollout samples (
+k
+k
+). As shown in Figure
+4
+, if a policy has collapsed to one dominant mode, increasing
+k
+k
+may still improve SR, but QR should plateau quickly because repeated samples yield essentially the same solution. This is precisely what we observe for GRPO: as
+k
+k
+increases from 1 to 16, SR rises sharply from 54.7% to 96.0%, while QR improves more gradually, saturating at 51.9%.
+DMPO exhibits a markedly different pattern. As
+k
+k
+increases from 1 to 16, both SR and QR continue to improve steadily (SR: 57.7% to 97.9%, QR: 25.9% to 58.3%). This provides strong evidence that DMPO does not simply concentrate on a single dominant mode; rather, it maintains a broader set of high-quality solution modes, which can be effectively uncovered through additional sampling.
+Table 7
+:
+Computational comparison of different methods. All experiments use the same hardware, compute budget, and group size.
+Method
+MFU
+Time per Step (s)
+GRPO
+[
+30
+]
+0.0158
+109.2
+GSPO
+[
+44
+]
+0.0177
+121.7
+GPG
+[
+7
+]
+0.0129
+126.7
+ClipCov
+[
+8
+]
+0.0167
+118.1
+FlowRL
+[
+45
+]
+0.0670
+67.3
+DMPO (Ours)
+0.0176
+125.2
+Wall-Clock.
+Although DMPO introduces the additional computation—the group-level distribution-matching MSE—compared to the base algorithm GRPO, it maintains a comparable computational efficiency. As shown in Table
+7
+, the time per step and MFU of DMPO remain similar to those of GRPO and other baseline methods, indicating that the added MSE term does not introduce significant overhead while still improving the policy performance.
+D.2
+Additional Experimental Results
+NP-Bench Analysis.
+Results on NP-Bench (Table
+8
+) further corroborate the effectiveness of DMPO in navigating complex combinatorial landscapes. A critical observation is the "optimality gap" prevalent in standard RLVR baselines; for instance, while GPG achieves a high Overall Success Rate (88.6%), its Quality Ratio remains significantly lower (32.7%), indicating a tendency to settle for sub-optimal feasible solutions. This behavior is most pronounced in the
+Schedule
+task, where DMPO outperforms GPG by a substantial margin in QR (60.3% vs. 28.5%) despite a lower SR. This suggests that while greedy methods excel at satisfying hard constraints, they often fail to explore the high-reward regions of the solution space. In contrast, DMPO achieves the highest Overall Quality Ratio (43.9%), demonstrating its unique ability to transcend mere constraint satisfaction and engage in genuine global optimization. By aligning the policy with the reward-induced distribution, DMPO effectively mitigates the "winner-takes-all" pathology, ensuring that the model maintains the exploration pressure necessary to discover structurally superior solutions across diverse NP-hard domains.
+Table 8
+:
+Performance of reasoning LLMs, general LLMs, and our trained LLMs on NP-Bench.
+Method
+Graph
+Schedule
+Partition
+Selection
+Planning
+Overall
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+Qwen2.5-7B-Instruct(backbone)
+11.0
+3.1
+40.0
+19.8
+67.0
+34.0
+26.7
+15.2
+3.5
+1.0
+29.6
+14.6
+GRPO
+[
+30
+]
+93.7
+30.5
+69.0
+49.6
+100.0
+51.8
+63.3
+44.3
+91.0
+24.3
+83.4
+40.1
+GSPO
+[
+44
+]
+85.7
+24.1
+80.0
+56.5
+99.0
+51.2
+65.7
+46.7
+82.5
+27.4
+82.6
+41.2
+GPG
+[
+7
+]
+92.7
+23.5
+96.0
+28.5
+100.0
+51.8
+59.3
+39.6
+95.0
+20.3
+88.6
+32.7
+ClipCov
+[
+8
+]
+91.0
+25.5
+93.0
+52.2
+96.0
+49.8
+73.3
+58.1
+82.5
+21.2
+87.2
+41.3
+DMPO (Ours)
+85.3
+25.6
+82.0
+60.3
+100.0
+52.8
+67.7
+55.0
+81.5
+25.6
+83.3
+43.9
+Ablation Analysis.
+To analyze the hyperparameter sensitivity of DMPO, we conduct an ablation study on the matching coefficient
+λ
+\lambda
+and inverse temperature
+α
+\alpha
+(Table
+9
+). The results reveal a fundamental trade-off between reward exploitation and distributional stability. The coefficient
+λ
+\lambda
+controls the regularization strength; increasing
+λ
+\lambda
+from 1.0 to 2.0 consistently improves both Success Rate (SR) and Quality Ratio (QR), indicating that a robust distributional anchor is essential to suppress the "winner-takes-all" pathology and prevent the model from settling for sub-optimal local modes. Meanwhile, the temperature
+α
+\alpha
+modulates the "sharpness" of the target landscape: a high
+α
+\alpha
+results in a nearly uniform target distribution that dilutes the optimization signal, while an excessively low
+α
+\alpha
+forces the target distribution more sharper, reintroducing mode collapse and negating the benefits of diverse exploration. Our optimal configuration of
+λ
+=
+2.0
+\lambda=2.0
+and
+α
+=
+1
+15
+\alpha=\frac{1}{15}
+strikes a delicate balance: it provides sufficient gradient pressure to drive the policy toward high-quality solutions while maintaining a broad enough probability spread to sustain global search. This parameterization ensures that the policy frontier effectively mirrors the multi-modal reward landscape, leading to superior asymptotic performance across the complex tasks in
+MM-NP-Bench
+.
+Table 9
+:
+Performance of DMPO with varying temperature
+β
+\beta
+and matching coefficient
+λ
+\lambda
+on MM-NP-Bench.
+Parameter Settings
+Constraint
+Covering
+Partition
+Subgraph
+Path
+Overall
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+SR
+QR
+λ
+=
+\lambda=
+1.0,
+α
+=
+1
+15
+\alpha=\frac{1}{15}
+58.5
+28.2
+23.5
+19.0
+88.5
+68.9
+70.0
+65.2
+51.5
+18.8
+58.4
+40.0
+λ
+=
+\lambda=
+2.0,
+α
+=
+1
+15
+\alpha=\frac{1}{15}
+62.5
+31.5
+25.5
+22.1
+98.5
+73.1
+72.0
+67.4
+51.0
+21.6
+61.9
+43.1
+λ
+=
+\lambda=
+2.0,
+α
+=
+1
+5
+\alpha=\frac{1}{5}
+53.5
+27.6
+24.5
+21.8
+89.0
+68.3
+80.5
+77.0
+43.0
+15.3
+58.1
+42.0
+λ
+=
+\lambda=
+2.0,
+α
+=
+1
+10
+\alpha=\frac{1}{10}
+69.0
+35.0
+31.5
+26.8
+95.5
+71.2
+67.0
+64.6
+50.0
+18.5
+62.6
+43.2
+λ
+=
+\lambda=
+2.0,
+α
+=
+1
+20
+\alpha=\frac{1}{20}
+55.0
+29.3
+22.0
+18.8
+94.5
+68.5
+59.5
+58.4
+47.0
+16.0
+55.6
+38.2
+Training Dynamics Analysis
+Figure
+5
+reveals the mechanism behind DMPO’s improvements through training dynamics on MM-NP-Bench.
+Figure 5
+:
+Comparison between GRPO and DMPO on training log dynamics.
+Left (a)
+shows the reward score,
+Middle (b)
+shows the entropy, and
+Right (c)
+shows the response length.
+Reward progression (Figure
+5
+a):
+DMPO achieves higher final rewards (0.85 vs. 0.75 for GRPO) and continues improving throughout training, while GRPO plateaus after approximately 100 steps. This plateau is the signature of mode collapse—the policy has concentrated on a suboptimal solution and stopped exploring despite the reward function incentivizing better solutions.
+Length preservation (Figure
+5
+c):
+GRPO suffers from length collapse, where response length degenerates from
+∼
+\sim
+600 tokens to
+<
+<
+200 tokens. This indicates the policy is taking shortcuts, generating minimal valid solutions rather than thorough reasoning chains. DMPO maintains
+∼
+\sim
+400 token responses throughout training, demonstrating that distribution matching acts as a regularizer preventing shortcuts.
+Entropy dynamics (Figure
+5
+b):
+Surprisingly, DMPO maintains lower entropy than GRPO despite being designed for exploration. In Chain-of-Thought reasoning, high entropy often indicates stochastic confusion (random token selection), while low entropy indicates confident execution of logical steps. DMPO’s lower entropy combined with higher rewards and maintained length suggests it explores effectively through
+structured diversity
+—generating different reasoning strategies, not random tokens.
+D.3
+Case Study of MM-NP-Bench
+Figure 6
+:
+Case Study of MM-NP-Bench.
+Specifically, the Graph Coloring Problem task comes from the Constraint category, while Vertex Cover task comes from the Covering category.
+Figure
+6
+presents a case study from MM-NP-Bench, where certain smaller models (e.g., Qwen2.5-VL-7B-Instruct) outperform larger or newer-generation models in specific tasks. We analyze this phenomenon through two sub-tasks: the Graph Coloring Problem and Vertex Cover.
+In the Graph Coloring Problem, we observe that Qwen2.5-VL-7B-Instruct adopts a conservative exploration strategy. It initially attempts a solution using the maximum number of colors to ensure feasibility. When further optimization attempts fail, it intelligently reverts to the most reliable baseline solution. In contrast, while the other two models follow a step-by-step reasoning process, they tend to over-optimize a seemingly positive result while overlooking inherent flaws in the initial steps. This premature optimization often triggers constraint violations (e.g., identical colors on adjacent vertices), leading to a lower success rate.
+Furthermore, our analysis of the Vertex Cover task reveals critical insights into the Thinking models. While Qwen3-VL-32B-Thinking generates an extensive reasoning trace exceeding 4,000 tokens and significantly surpasses Qwen2.5-VL-7B-Instruct (500 tokens), this extended thought process appears to correlate with deeper hallucinations. A detailed inspection shows that the excessive reasoning length causes the model’s visual perception to drift, leading to cumulative errors in reasoning. Ultimately, these layered mistakes result in an incorrect final output despite the extensive computation.
+Experimental support, please
+view the build logs
+for errors. Generated by
+L
+A
+T
+E
+xml
+.
+Instructions for reporting errors
+We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:
+Click the "Report Issue"
+(
+)
+button, located in the page header.
+Tip:
+You can select the relevant text first, to include it in your report.
+Our team has already identified
+the following issues
+. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.
+Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+list of packages that need conversion
+, and welcome
+developer contributions
+.
+We gratefully acknowledge support from
+        our
+major funders
+,
+member institutions
+,
+,
+        and all contributors.
+About
+·
+Help
+·
+Contact
+·
+Subscribe
+·
+Copyright
+·
+Privacy
+·
+Accessibility
+·
+Operational Status
+(opens in new tab)
+Major funding support from

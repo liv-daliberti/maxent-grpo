@@ -1,0 +1,54 @@
+{
+  "created_at_utc": "2026-09-11T22:21:02.546502+00:00",
+  "status": "final_workshop_sources_validated_in_isolated_preview",
+  "publication_step": "Parent will perform final source synchronization and staged publication after completing the ICLR main text.",
+  "preview_directory": "/tmp/modebench_workshop_visual_fit_final",
+  "source_sha256": {
+    "main.tex": "c204bed8ee2e73c85e9fddf9bd250ada9efdffccb66d2959e9a9fd9bc89f5241",
+    "appendix.tex": "9d6c341f8afd3a5711ff49ae629e5de1c9f7ad4fcdddf563dd1e85ec7d03524e",
+    "check_submission.py": "33885298563b7f43b7c5878f789b7fd62927345a11adf9864b92e3ba93ac6ba2",
+    "build_submission.py": "644c123db84f0ba37da4bd334a17d97603f1e874bedc3355ab5e171de1512c9d",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+  },
+  "preview_artifact_sha256": {
+    "main.pdf": "90bc0f61256d7d58cb2c91714fda954f9cae4643ed11aee7cba9e4e356a00d67",
+    "main.aux": "80eddd5f7ac17f4059245cc2bd868bac5d57811f2d07c5bac471003311b72f32",
+    "main.log": "08c052bee1762e809068c3acde95b6909fa1b70f350a0c8ccd3a9af6ac6e8df3",
+    "build_receipt.json": "f05c255c7ee532c416d8f01164808b829b18e9056a842f9d9a5c1485facc1292"
+  },
+  "checks": {
+    "content_pages": 4,
+    "references_start_page": 5,
+    "main_figures": 3,
+    "supplementary_figures": 20,
+    "figure_pages": {
+      "fig:concentration-story": 1,
+      "fig:replay-factorial-effects": 3,
+      "fig:replay-key-weighting": 4
+    },
+    "conclusion_page": 4,
+    "overfull_boxes": 0,
+    "undefined_references_or_citations": 0,
+    "multiply_defined_labels": 0,
+    "official_style_unchanged": true,
+    "anonymous_workshop_notice": true,
+    "source_hashes_and_recorded_inputs_validated": true
+  },
+  "visual_review": {
+    "reviewed_pages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "findings": "All three figures and captions are legible and unclipped. First paragraph ends on page 1. Figure 3 now precedes the complete hosted/harder-level section on page 4. No font reduction.",
+    "caption_correction": "Figure 3 depicts domain-level estimates; its caption now states that the main text reports the equal-domain mean."
+  },
+  "build_output": [
+    "PASS: 4 content pages; all 3 main figures; 20 supplementary figures;",
+    "Figure 1 is on page 1; references start on page 5;",
+    "MATH-AI submission footer; anonymous mode and official style intact;",
+    "referenced inputs and source hashes complete; compiled artifact current;",
+    "snapshot assets intact; no unresolved references or overfull boxes."
+  ]
+}

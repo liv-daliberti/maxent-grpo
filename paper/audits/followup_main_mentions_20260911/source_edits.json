@@ -1,0 +1,8 @@
+{
+  "sources": {
+    "paper/main.tex": "d2bf3a6cdab8bebdbcfa6077d0f7ac456b17abd0bb8882a99a134ada09742e81",
+    "paper/mathai2026/main.tex": "382214f8a06486b51a82b7397a1f87d9e04136562f200b166cf26b2e3a795748"
+  },
+  "scope": "Two completed local follow-ups; no frontier completion claimed; no numerical data changed",
+  "build_validation": "pending"
+}

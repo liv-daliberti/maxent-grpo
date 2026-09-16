@@ -1,0 +1,52 @@
+{
+  "formal_blocks_preserved": 18,
+  "formal_block_sha256_counts": {
+    "c289bc7593d59448e035ccfc34c6b674c3cfa81735aedf9d94b49c34750fee34": 1,
+    "ff5e149e436598d887e45428e2e637db0be4dcfdef7b7c70dccb7ee49aefc691": 1,
+    "04fcf5b919b5e40839db8ab000255c713dae90305ee60245feb2d959de009f2e": 1,
+    "289e0bf0932c30ac168b8d628ad45e9d3328bf028c96129b3a646c3621677600": 1,
+    "f796717441a1f374e9c8fd61a91878a3ec91b4263431c59efb4e90b8ef796b14": 1,
+    "b8c92ec82e9d94f87e52a8e2a4a3750b5d61096ab5b1c6912039c98bbb35dd4e": 1,
+    "005cdccdd9490d07ea04289ac2415b38f34d5fa8c654d0c74ec114d54d178aa0": 1,
+    "ebf5440896143353c4cc42bcf170902bc0a1ad8a76919a5f436ae7624b236e79": 1,
+    "7b111108c37cbb3f57787fac123c3350b7a49cc5bf12ba9d634f4e069ddb8bd0": 1,
+    "0695feb4e3e68f3aa37140590adfeecf5b4636231df886fe5f96b13be32d5531": 1,
+    "e40285e8dc642c13cf11e988f435d507b307c89ea61edc61a5bd674c5f305f8e": 1,
+    "9b809fa79a0e8cd28c823c8e99a634d8d043fd17078de44bf9477d587edd4d6c": 1,
+    "20cb2467d6ac7126ba7763afc867137399afaa79ea700182e17a3e9c0e7d20fb": 1,
+    "0063f50964791cf3da23745c009d5587a0afb45af7fb503773da9010f822d956": 1,
+    "d3f9f66443bbaa6bcf8787908a8f876635944fc49cbe1ed5e1c5bad1a255a589": 1,
+    "48397058b2834546d4d6e84f40c11a06f8013e6639eaaacd4f6473649892d240": 1,
+    "1e4318cd8e9199e9ed0880a470f6d1d0426e916be2e552655b40e86b4c1f5f94": 1,
+    "c960e2be8e137044c671523225dc7a39bdf91fac8d3ae53d23a2721c97cfc60a": 1
+  },
+  "main_figure_order": [
+    "fig:story",
+    "fig:modebench-examples",
+    "fig:verified-support-story",
+    "fig:cross-scale-terminal-effects",
+    "fig:maxrl-factorial",
+    "fig:level2-admission",
+    "fig:hosted-verified-breadth"
+  ],
+  "preview_main_pages": 4,
+  "preview_main_figure_pages": {
+    "fig:story": 1,
+    "fig:modebench-examples": 2,
+    "fig:verified-support-story": 2,
+    "fig:cross-scale-terminal-effects": 3,
+    "fig:maxrl-factorial": 3,
+    "fig:level2-admission": 4,
+    "fig:hosted-verified-breadth": 4
+  },
+  "original_main_figure_pages": {
+    "fig:story": 1,
+    "fig:modebench-examples": 2,
+    "fig:verified-support-story": 2,
+    "fig:cross-scale-terminal-effects": 3,
+    "fig:maxrl-factorial": 3,
+    "fig:level2-admission": 4,
+    "fig:hosted-verified-breadth": 4
+  },
+  "preview_visual_review": "All four pages inspected; original figure pages and artwork sizes restored. No clipping, overlap, or overfull boxes. Final standalone build pending parent synchronization."
+}

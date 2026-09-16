@@ -1,0 +1,70 @@
+      Under review as a conference paper at ICLR 2027
+
+
+
+
+432
+      in four of five. A newly completed Qwen2.5-3B Python block also gains +.391 raw distinct@8
+433   ([+.079, +.704]); its correctness effect remains inconclusive (Appendix Table 12).
+434
+435
+      7.3     E XPERIMENT 3: REPLAY AT MATCHED DIFFICULTY LEVELS
+436
+437   Replay improves both interim means at both difficulty levels. Figure 6B compares the latest
+438   valid checkpoint shared by both levels and all four methods for each domain and seed. Replay
+439   raises both mean endpoints under Dr.GRPO and MaxRL at each level. The five-domain summary
+440   includes 21 matched domain–seed cells: five per domain except PantryPlan, whose one matched seed
+441   contributes its initial evaluation. Appendix J.1 records the checkpoint selection and weighting.
+442
+      The completed Graph block shows the benefit after eight passes. The matched construction lowers
+443   frozen-model pass@8 from .438 to .148. After eight passes, Dr.GRPO/MaxRL reach .202/.434,
+444   versus .763/.739 with replay. Paired replay gains are +.561 and +.305 (unadjusted 95% intervals
+445   [+.445, +.677] and [+.250, +.360]). Even the weakest replay run (.711) exceeds the strongest non-
+446   replay run (.477). Replay also adds 1.019/.668 raw distinct@8, yielding 1.243/1.214 with the
+447   two fresh objectives. These gains show improved success and sampled support on harder Graph;
+448   they do not establish that broader support causes the correctness gains. Python and MathIR now
+449   also have complete five-seed factorials. Their co-primary replay means are positive under both
+450   objectives, but the unadjusted 95% intervals include zero (Appendix Table 15).
+451
+452   8     C ONCLUSION
+453
+454   M ODE B ENCH makes a missing part of evaluation measurable: the range of distinct, verified
+455   outcomes a model can produce for one problem. Accuracy tells us whether a model can suc-
+456   ceed; diversity helps describe the alternatives still available to it. That distinction matters be-
+457   cause different approaches can have different strengths. One may succeed where another fails,
+458   or remain useful when the problem or its constraints change. Knowing several ways to solve
+459   could therefore be valuable even when a familiar approach already works.
+460   Our experiments show that replay complements learning from fresh samples. Remembering
+461   verified solutions improves held-out correctness and preserves more correct output alternatives
+462   across the completed comparisons. M ODE B ENCH lets us measure those alternatives through
+463   executable, task-defined identities. It provides a controlled starting point for understanding
+464   what training preserves, alongside what training learns to solve.
+465
+                                    Untrained    MaxRL   ReplayMaxRL (ours)          Dr.GRPO      ReplayDr.GRPO (ours)
+466
+467                      A Cross-domain pass@8                                 B Cross-domain distinct@8
+468
+469   Qwen2.5-0.5B
+470
+471
+           Falcon3-1B                                          n=4                                                          n=4
+472
+473
+474       Qwen2.5-3B
+475
+476                     0.0   0.2        0.4       0.6   0.8       1.0        0.00    0.25      0.50 0.75 1.00 1.25 1.50    1.75
+477                                       probability                                          verified modes (raw count)
+
+478
+479   Figure 5: Replay adds value across fresh objectives and model scales. Each track averages
+480   domains within matched seeds; faint paths show seeds and bold paths show means. Falcon Dr.GRPO
+481   uses four common admissible seeds; the other tracks use five. Qwen2.5-3B shows its completed
+482   Dr.GRPO/replay track. Gray diamonds show initial means. Upper: Untrained–MaxRL (open blue
+483   square)–ReplayMaxRL (filled purple square); lower: Untrained–Dr.GRPO (open orange circle)–
+484   ReplayDr.GRPO (filled deep-purple circle). Gray segments show training without replay; arrows
+485
+      isolate the replay contrast. Per-domain results for both Qwen2.5-0.5B and Falcon3-1B appear in
+      Appendix Figure 13 for both metrics, with domain-specific seed counts.
+
+
+                                                               9

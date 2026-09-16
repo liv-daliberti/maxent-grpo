@@ -1,0 +1,673 @@
+                                              Optimization results for a generalized coupon collector
+                                                                     problem ∗
+                                          Emmanuelle Anceaume1 , Yann Busnel2,4 , Ernst Schulte-Geers3 , Bruno Sericola4
+                                                                 1
+                                                                    CNRS, Campus de Beaulieu, 35042 Rennes Cedex, France
+                                                           2
+                                                               Ensai, Campus de Ker-Lann, BP 37203, 35172 Bruz, Cedex, France
+arXiv:1504.03878v1 [cs.DS] 15 Apr 2015
+
+
+
+
+                                                                   3
+                                                                      BSI, Godesberger Allee 185-189, 53175 Bonn, Germany
+                                                                  4
+                                                                     Inria, Campus de Beaulieu, 35042 Rennes Cedex, France
+
+
+
+
+                                                                                          Abstract
+                                                   We study in this paper a generalized coupon collector problem, which consists in analyzing
+                                               the time needed to collect a given number of distinct coupons that are drawn from a set
+                                               of coupons with an arbitrary probability distribution. We suppose that a special coupon
+                                               called the null coupon can be drawn but never belongs to any collection. In this context,
+                                               we prove that the almost uniform distribution, for which all the non-null coupons have the
+                                               same drawing probability, is the distribution which stochastically minimizes the time needed
+                                               to collect a fixed number of distinct coupons. Moreover, we show that in a given closed
+                                               subset of probability distributions, the distribution with all its entries, but one, equal to the
+                                               smallest possible value is the one, which stochastically maximizes the time needed to collect a
+                                               fixed number of distinct coupons. An computer science application shows the utility of these
+                                               results.
+                                                                                         Keywords
+                                                  Coupon collector problem; Optimization; Schur-convex functions.
+
+
+                                         1     Introduction
+                                         The coupon collector problem is an old problem, which consists in evaluating the time needed
+                                         to get a collection of different objects drawn randomly using a given probability distribution.
+                                         This problem has given rise to a lot of attention from researchers in various fields since it has
+                                         applications in many scientific domains including computer science and optimization, see [2] for
+                                         several engineering examples.
+                                              More formally, consider a set of n coupons, which are drawn randomly one by one, with
+                                         replacement, coupon i being drawn with probability pi . The classical coupon collector problem is
+                                         to determine the expectation or the distribution of the number of coupons that need to be drawn
+                                         from the set of n coupons to obtain the full collection of the n coupons. A large number of papers
+                                         have been devoted to the analysis of asymptotics and limit distributions of this distribution when
+                                         n tends to infinity, see [4] or [8] and the references therein. In [3], the authors obtain new formulas
+                                         concerning this distribution and they also provide simulation techniques to compute it as well as
+                                         analytic bounds of it. The asymptotics of the rising moments are studied in [5].
+                                              We suppose in thisPpaper that p = (p1 , . . . , pn ) is not necessarily  a probability distribution,
+                                         i.e., we suppose that ni=1 pi ≤ 1 and we define p0 = 1 − ni=1 pi . This means that there is a
+                                                                                                           P
+                                         null coupon, denoted by 0, which is drawn with probability p0 , but that does not belong to the
+                                         collection. We are interested, in this setting, in the time needed to collect c different coupons
+                                           ∗ This work was partially funded by the French ANR project SocioPlug (ANR-13-INFR-0003), and by the
+
+                                         DeSceNt project granted by the Labex CominLabs excellence laboratory (ANR-10-LABX-07-01).
+
+
+
+                                                                                              1
+among coupons 1, . . . , n, when a coupon is drawn, with replacement, at each discrete time 1, 2, . . .
+among coupons 0, 1, . . . , n. This time is denoted by Tc,n (p) for c = 1, . . . , n. Clearly, Tn,n (p) is
+the time needed to get the full collection. The random variable Tc,n (p) has been considered in [9]
+in the case where the drawing probability distribution is uniform. The expected value E[Tc,n (p)]
+has been obtained in [6] when p0 = 0. Its distribution and its moments have been obtained in [1]
+using Markov chains.
+    In this paper, we prove that the almost uniform distribution, denoted by v and defined by
+v = (v1 , . . . , vn ) with vi = (1 − p0 )/n, where pP
+                                                     0 is fixed, is the distribution which stochastically
+                                                       n
+minimizes the time Tc,n (p) such that p0 = 1 − i=1 pi . This result was expressed as a conjecture
+in [1] where it is proved that the result is true for c = 2 and for c = n extending the sketch of the
+proof proposed in [2] to the case p0 > 0. It has been also proved in [1] that the result is true for
+the expectations, that is that E[Tc,n (u)] ≤ E[Tc,n (v)] ≤ E[Tc,n (p)].
+    We first consider in Section 2, the case where p0 = 0 and then we extend it to one of p0 > 0.
+We show moreover in Section 3, that in a given closed subset of probability distributions, the
+distribution with all its entries, but one, equal to the smallest possible value is the one which
+stochastically maximizes the time Tc,n (p). This work is motivated by the worst case analysis of
+the behavior of streaming algorithms in network monitoring applications as shown in Section 4.
+
+
+2     Distribution minimizing the distribution of Tc,n(p)
+Recall that Tc,n (p), with p = (p1 , . . . , pn ), is the number of coupons that need to be drawn from
+the set {0, 1, 2, . . . , n}, with replacement, till one first obtains a collection with c different coupons,
+1 ≤ c ≤ n, among {1, . . . , n}, where coupon i is drawn with probability pi , i = 0, 1, . . . , n.
+   The distribution of Tc,n (p) has been obtained in [1] using Markov chains and is given by
+                                         c−1
+                    P{Tc,n(p) > k} =
+                                                                 
+                                         X
+                                                   c−1−i     n−i−1 X
+                                               (−1)                  (p0 + PJ )k ,                       (1)
+                                         i=0
+                                                              n−c
+                                                                             J∈Si,n
+
+
+where   Si,n = {J ⊆ {1, . . . , n} | |J| = i} and, for every J ⊆ {1, . . . , n}, PJ is defined by PJ =
+P                                                              n
+   j∈J j . Note that we have S0,n = ∅, P∅ = 0 and |Si,n | = i .
+       p
+    This result also shows as expected that the function P{Tc,n(p) > k}, as a function of p, is
+symmetric, which means that it has the same value for any permutation of the entries of p.
+    We recall that if X and Y are two real random variable then we say that X is stochastically
+smaller (resp. larger) than Y , and we write X ≤st Y (resp. Y ≤st X), if P{X > t} ≤ P{Y > t},
+for all real numbers t. This stochastic order is also referred to as the strong stochastic order.
+    We consider first, in the following subsection, the case where p0 = 0.
+
+2.1    The case p0 = 0
+This case corresponds the fact that thereP
+                                         is no null coupon, which means that all the coupons can
+                                           n
+belong to the collection. We thus have i=1 pi = 1. For all n ≥ 1, i = 1, . . . , n and k ≥ 0, we
+             (k)
+denote by Ni the number of coupons of type i collected at instants 1, . . . , k. It is well-known
+                                     (k)
+          Pn distribution of the Ni is a multinomial distribution, i.e., for all k1 , . . . , kn ≥ 0
+that the joint
+such that i=1 ki = k, we have
+
+                        P{N1(k) = k1 , . . . , Nn(k) = kn } = k ! ·k!· · k     pk11 · · · pknn .         (2)
+                                                                  1      n!
+
+                       (k)
+We also denote by Un the number of distinct coupon’s types, among 1, . . . , n, already drawn at
+                                                 (0)      (1)
+instant k. We clearly have, with probability 1, Un = 0, Un = 1 and, for i = 0, . . . , n,
+
+                 P{Un(k) = i} =       P{Nu(k) > 0, u ∈ J and Nu(k) = 0, u ∈/ J}.
+                                 X
+
+                                    J∈Si,n
+
+
+
+                                                        2
+Moreover, it is easily checked that,
+
+                                          Tc,n (p) > k ⇐⇒ U (k) < c.
+
+We then have
+
+             P{Tc,n(p) > k}        =   P{Un(k) < c}
+                                       c−1
+                                             P{Un(k) = i}
+                                       X
+                                   =
+                                       i=0
+                                       c−1 X
+                                                    P{Nu(k) > 0, u ∈ J and Nu(k) = 0, u ∈/ J}.
+                                       X
+                                   =
+                                       i=0 J∈Si,n
+
+Using Relation (2), we obtain
+                                                     c−1 X                            Y pkj j
+                                P{Tc,n(p) > k} =
+                                                     X                 X
+                                                                                 k!           ,              (3)
+                                                     i=0 J∈Si,n k∈Ek,J
+                                                                                        kj !
+                                                                                      j∈J
+
+where Ek,J is the set of vectors defined by
+
+                         Ek,J = {k = (kj )j∈J | kj > 0, for all j ∈ J and KJ = k} ,
+             P
+with KJ =       j∈J   kj .
+                                                                                 Pn
+Theorem 1 For all n ≥ 2 and p = (p1 , . . . , pn ) ∈ (0, 1)n with                  i=1 pi = 1, and for all c =
+1, . . . , n, we have Tc,n (p′ ) ≤st Tc,n (p), where p′ = (p1 , . . . , pn−2 , p′n−1 , p′n ) with p′n−1 = λpn−1 +
+(1 − λ)pn and p′n = (1 − λ)pn−1 + λpn , for all λ ∈ [0, 1].
+
+Proof. The result is trivial for c = 1, since we have T1,n (p) = 1, and for k = 0 since both
+terms are equal to 1. We thus suppose now that c ≥ 2 and k ≥ 1. The fact that k ≥ 1 means in
+particular that the term i = 0 in Relation (3) is equal to 0. We then have
+                                                     c−1 X                            Y pkj j
+                                P{Tc,n(p) > k} =
+                                                     X                 X
+                                                                                 k!           .              (4)
+                                                     i=1 J∈Si,n k∈Ek,J
+                                                                                        kj !
+                                                                                      j∈J
+
+    To simplify the notation, we denote by Ti (p) the ith term of this sum, that is
+
+                                                   X      X                Y pkj j
+                                       Ti (p) =                     k!             .                         (5)
+                                                                             kj !
+                                                  J∈Si,n k∈Ek,J            j∈J
+
+    For i = 1, we have S1,n = {{1}, . . . , {n}} and Ek,{j} = {k}. The term T1 (p) is thus given by
+                                                             n
+                                                             X
+                                                  T1 (p) =         pkj .
+                                                             j=1
+
+Consider now the term Ti for i ≥ 2. We split the set Si,n into four subsets depending on wether
+the indices n − 1 and n belong to its elements. More precisely, we introduce the partition of the
+                              (1)    (2)    (3)      (4)
+set Si,n in the four subsets Si,n , Si,n , Si,n and Si,n defined by
+                       (1)
+                   Si,n      = {J ⊆ {1, . . . , n} | |J| = i with n − 1 ∈ J and n ∈
+                                                                                  / J} ,
+                    (2)
+                   Si,n      = {J ⊆ {1, . . . , n} | |J| = i with n − 1 ∈
+                                                                        / J and n ∈ J} ,
+                       (3)
+                   Si,n      = {J ⊆ {1, . . . , n} | |J| = i with n − 1 ∈ J and n ∈ J} ,
+                    (4)
+                   Si,n      = {J ⊆ {1, . . . , n} | |J| = i with n − 1 ∈
+                                                                        / J and n ∈
+                                                                                  / J} .
+
+                                                         3
+                                          (1)                             (2)                   (3)
+These subsets can also be written as Si,n = Si−1,n−2 ∪ {n − 1}, Si,n = Si−1,n−2 ∪ {n}, Si,n =
+                               (4)
+Si−2,n−2 ∪ {n − 1, n}, and Si,n = Si,n−2 . Using these equalities, the term Ti of Relation (5)
+becomes
+                                                                  
+                               X           X             Y pkj j pkn−1  n−1
+
+                Ti (p) =                            k!            
+                                                              kj ! kn−1 !
+                            J∈Si−1,n−2 k∈Ek,J∪{n−1}      j∈J
+                                                                   
+                                  X          X            Y pkj j pkn
+                            +                        k!             n
+                                                                kj ! kn !
+                               J∈Si−1,n−2 k∈Ek,J∪{n}      j∈J
+                                                                       
+                                  X            X               Y pkj j pkn−1n−1
+                                                                                pknn
+                            +                            k!            
+                                                                    kj ! kn−1 ! kn !
+                               J∈Si−2,n−2 k∈Ek,J∪{n−1,n}       j∈J
+                                                            
+                                 X       X         Y pkj j
+                            +                 k!            .
+                                                        kj !
+                                 J∈Si,n−2 k∈Ek,J          j∈J
+
+Let us now introduce the sets Lk,J defined by
+
+                    Lk,J = {k = (kj )j∈J | kj > 0, for all j ∈ J and KJ ≤ k} .
+
+Using these sets and, to clarify the notation, setting kn−1 = ℓ and kn = h when needed, we obtain
+                                                         
+                            X         X          Y pkj j        k−KJ
+                                                               pn−1
+            Ti (p) =                        k!           
+                                                     kj ! (k − KJ )!
+                        J∈Si−1,n−2 k∈Lk−1,J      j∈J
+                                                             
+                                                    Y pkj j        k−KJ
+                                                               pn
+                               X         X
+                        +                      k! 
+                                                         kj ! (k − KJ )!
+                           J∈Si−1,n−2 k∈Lk−1,J      j∈J
+                                                             
+                               X         X          Y pkj j            X         pℓn−1 phn
+                        +                      k!            
+                                                         kj !                      ℓ! h!
+                           J∈Si−2,n−2 k∈Lk−2,J      j∈J         ℓ>0,h>0,ℓ+h=k−KJ
+                                                        
+                              X       X         Y pkj j
+                        +                  k!           ,
+                                                    kj !
+                           J∈Si,n−2 k∈Ek,J      j∈J
+
+which can also be written as
+                                                                  
+                                                                kj
+                           X         X          k!        Y   p j 
+                                                                        
+                                                                           k−KJ
+                                                                                         
+            Ti (p) =                                                     pn−1  + pnk−KJ
+                                            (k − KJ )!        kj !
+                        J∈Si−1,n−2 k∈Lk−1,J               j∈J
+                                                                       
+                                                                    kj
+                              X         X          k!        Y    p j                 k−KJ
+                        +                                                 (pn−1 + pn )
+                                               (k − KJ )!          kj !
+                          J∈Si−2,n−2 k∈Lk−2,J                j∈J
+                                                                       
+                                                                    kj
+                              X         X          k!        Y    p j 
+                                                                           
+                                                                              k−KJ
+                                                                                            
+                        −                                                   pn−1  + pnk−KJ
+                                               (k − KJ )!          kj !
+                          J∈Si−2,n−2 k∈Lk−2,J                j∈J
+                                                       
+                             X       X         Y pkj j
+                        +                 k!           .
+                                                   kj !
+                           J∈Si,n−2 k∈Ek,J      j∈J
+
+
+We denote these four terms respectively by Ai (p), Bi (p), Ci (p) and Di (p). We thus have, for i ≥ 2,
+Ti (p) = Ai (p) + Bi (p) − Ci (p) + Di (p). We have already shown that T1 (p) = A1 (p) + D1 (p), so we
+
+                                                      4
+set B1 (p) = C1 (p) = 0. We then have
+                                         c−1
+          P{Tc,n(p) > k}
+                                         X
+                                 =             Ti (p)
+                                         i=1
+                                                        c−2
+                                                        X                             c−1
+                                                                                      X                c−1
+                                                                                                       X
+                                 =       Ac−1 (p) +           (Ai (p) − Ci+1 (p)) +         Bi (p) +         Di (p).   (6)
+                                                        i=1                           i=2              i=1
+
+For i ≥ 1, we have
+                                                                          
+                                         X              Xk!        Y pkj j                     
+                                                                                  k−KJ
+      Ai (p) − Ci+1 (p) =                                                  pn−1      + pnk−KJ
+                                                     (k − KJ )!       kj !
+                                 J∈Si−1,n−2 k∈Lk−1,J              j∈J
+                                                                               
+                                       X         X          k!       Y pkj j                     
+                                                                                    k−KJ
+                                 −                                              pn−1   + pnk−KJ
+                                                        (k − KJ )!         kj !
+                                   J∈Si−1,n−2 k∈Lk−2,J               j∈J
+                                                                          
+                                    X         X          k!        Y pkj j                     
+                                                                                  k−KJ
+                             =                                             pn−1      + pnk−KJ .
+                                                     (k − KJ )!       kj !
+                                 J∈Si−1,n−2 k∈Ek−1,J                          j∈J
+
+
+By definition of the set Ek−1,J , we have KJ = k − 1 in the previous equality. This gives
+                                                                   
+                                        X       X          Y pkj j
+                 Ai (p) − Ci+1 (p) =                  k!            (pn−1 + pn ) .
+                                                               kj !
+                                               J∈Si−1,n−2 k∈Ek−1,J           j∈J
+
+
+Using the fact that the function x 7−→ xs is convex on interval [0, 1] for every non negative integer
+s, we have
+             k−K        k−KJ                                          k−KJ                                   k−KJ
+           p′ n−1 J + p′ n           =     (λpn−1 + (1 − λ)pn )              + ((1 − λ)pn−1 + λpn )
+                                             k−KJ                           k−KJ
+                                     ≤     λpn−1  + (1 − λ)pnk−KJ + (1 − λ)pn−1  + λpnk−KJ
+                                            k−KJ
+                                     =     pn−1  + pnk−KJ ,
+
+and in particular p′n−1 + p′n = pn−1 + pn . It follows that
+
+                                          Ac−1 (p′ ) ≤ Ac−1 (p),
+                                          Ai (p′ ) − Ci+1 (p′ ) = Ai (p) − Ci+1 (p),
+                                          Bi (p′ ) = Bi (p),
+                                          Di (p′ ) = Di (p),
+
+and from (6) that    P{Tc,n(p′) > k} ≤ P{Tc,n(p) > k}, which concludes the proof.
+    The function P{Tc,n (p) > k}, as a function of p, being symmetric, this theorem can easily be
+extended to the case where the two entries pn−1 and pn of p are any pi , pj ∈ {p1 , . . . , pn }, with
+i 6= j.
+    In fact, we have shown in this theorem that for fixed n and k, the function of p, P{Tc,n (p) ≤ k},
+is a Schur-convex function, that is, a function that preserves the order of majorization. See [7] for
+more details on this subject.
+                                                                                  Pn
+Theorem 2 For every n ≥ 1 and p = (p1 , . . . , pn ) ∈ (0, 1)n with                 i=1 pi = 1, and for all
+c = 1, . . . , n, we have Tc,n (u) ≤st Tc,n (p), where u = (1/n, . . . , 1/n) is the uniform distribution.
+
+
+
+
+                                                                5
+Proof. To prove this result, we apply successively and at most n − 1 times Theorem 1 as follows.
+We first choose two different entries of p, say pi and pj such that pi < 1/n < pj and next to define
+p′i and p′j by
+                                          1                     1
+                                   p′i = and p′j = pi + pj − .
+                                         n                      n
+This leads us to write p′i = λpi + (1 − λ)pj and p′j = (1 − λ)pi + λpj , with
+
+                                                      pj − 1/n
+                                                 λ=            .
+                                                       pj − pi
+
+From Theorem 1, vector p′ obtained by taking the other entries equal to those of p, i.e., by taking
+p′ℓ = pℓ , for ℓ 6= i, j, is such that P{Tc,n (p′ ) > k} ≤ P{Tc,n (p) > k}. Note that at this point vector
+p′ has at least one entry equal to 1/n, so repeating at most n − 1 this procedure, we get vector u,
+which concludes the proof.
+
+   To illustrate the steps used in the proof of this theorem, we take the following example. Suppose
+that n = 5 and p = (1/16, 1/6, 1/4, 1/8, 19/48). In a first step, taking i = 4 and j = 5, we get
+
+                                    p(1) = (1/16, 1/6, 1/4, 1/5, 77/240).
+
+In a second step, taking i = 2 and j = 5, we get
+
+                                    p(2) = (1/16, 1/5, 1/4, 1/5, 69/240).
+
+In a third step, taking i = 1 and j = 3, we get
+
+                                    p(3) = (1/5, 1/5, 9/80, 1/5, 69/240).
+
+For the fourth and last step, taking i = 3 and j = 5, we get
+
+                                       p(4) = (1/5, 1/5, 1/5, 1/5, 1/5).
+
+2.2    The case p0 > 0
+We consider now the case where p0 > 0. We have p = (p1 , . . . , pn ) with p1 + · · · + pn < 1 and
+p0 = 1 − (p1 + · · · + pn ). Recall that in this case Tc,n (p) is the time or the number of steps needed
+to collect a subset of c different coupons among coupons 1, . . . , n. Coupon 0 is not allowed to
+belong to the collection. As in the previous subsection we denote, for i = 0, 1, . . . , n and k ≥ 0,
+        (k)
+by Ni the number of coupons       Pn of type i collected at instants 1, . . . , k. We then have for all
+k0 , k1 , . . . , kn ≥ 0 such that i=0 ki = k, we have
+
+               P{N0(k) = k0 , N1(k) = k1 , . . . , Nn(k) = kn } = k !k !k!· · · k    pk00 pk11 · · · pknn ,
+                                                                     0   1      n!
+
+which can also be written as
+
+             P{N0(k) =k0 , N1(k) = k1 , . . . , Nn(k) = kn }
+                                                                   k1             kn
+                            k k0          k−k0 (k − k0 )!        p1               pn
+                         =     p (1 − p0 )                                ···              .                  (7)
+                            k0 0               k1 ! · · · kn ! 1 − p0           1 − p0
+
+Note that p/(1 − p0 ) is a probability distribution since
+                                                       n
+                                                 1 X
+                                                          pi = 1,
+                                               1 − p0 i=1
+
+
+
+                                                         6
+                                                       Pn
+so summing over all the k1 , . . . , kn ≥ 0 such that i=1 ki = k − k0 , we get, for all k0 = 0, . . . , k,
+
+                                  P{N0(k) = k0 } = kk pk00 (1 − p0 )k−k0 .
+                                                     
+                                                                                                        (8)
+                                                       0
+                                                                           Pn
+From (7) and (8) we obtain, for all k1 , . . . , kn ≥ 0 such that i=1 ki = k − k0 ,
+                                                                                    k1           kn
+      P{N1(k) = k1 , . . . , Nn(k) = kn | N0(k) = k0 } = k(k! −· · ·kk0 )!! 1 −p1p · · · 1 −pnp
+                                                                                       
+                                                                                                      . (9)
+                                                           1            n         0             0
+                (k)
+Recall that Un is the number of coupon’s types among 1, . . . , n already drawn at instant k. We
+                                   (0)
+clearly have, with probability 1, Un = 0, and, for i = 0, . . . , n,
+                 P{Un(k) = i} =        P{Nu(k) > 0, u ∈ J and Nu(k) = 0, u ∈/ J}.
+                                  X
+
+                                     J∈Si,n
+
+Moreover, we have as in Subsection 2.1,
+                                            Tc,n (p) > k ⇐⇒ Un(k) < c.
+and so
+         P{Tc,n(p) > k |N0(k) = k0 }
+                               c−1 X
+                                             P{Nu(k) > 0, u ∈ J and Nu(k) = 0, u ∈/ J | N0(k) = k0 }.
+                               X
+                           =
+                               i=0 J∈Si,n
+
+Using Relation (9), we obtain
+                                                                                                     kj 
+                                                 c−1                                            pj
+
+           P{Tc,n(p) > k | N0(k) = k0 } =                                                      1−p0
+                                                 X     X       X                    Y
+                                                                         (k − k0 )!                      ,   (10)
+                                                                                                          
+                                                 i=0 J∈Si,n k∈Ek−k0 ,J
+                                                                                                kj !
+                                                                                     j∈J
+
+where the set Ek,J has been defined in Subsection 2.1.
+                                                                             Pn
+Theorem 3 For every n ≥ 1 and p = (p1 , . . . , pn ) ∈ (0, 1)n with               i=1 pi < 1, and for all
+c = 1, . . . , n, we have Tc,n (u) ≤st TP
+                                        c,n (v) ≤st Tc,n (p), where u = (1/n, . . . , 1/n), v = (v1 , . . . , vn )
+                                          n
+with vi = (1 − p0 )/n and p0 = 1 − i=1 pi .
+Proof. From Relation (3) and Relation (10), we obtain, for all k0 = 0, . . . , k,
+
+                      P{Tc,n(p) > k | N0(k) = k0 } = P{Tc,n(p/(1 − p0 )) > k − k0 }.                           (11)
+Using (8) and unconditioning, we obtain
+                                k  
+              P{Tc,n(p) > k} =      k ℓ
+                                        p (1 − p0 )k−ℓ P{Tc,n (p/(1 − p0 )) > k − ℓ}.
+                               X
+                                                                                                               (12)
+                                    ℓ 0
+                                       ℓ=0
+
+Since p/(1−p0 ) is a probability distribution, applying Theorem 2 to this distribution and observing
+that u = v/(1 − p0 ), we get
+                                      k  
+            P{Tc,n(p) > k} =              k ℓ
+                                             p (1 − p0 )k−ℓ P{Tc,n (p/(1 − p0 )) > k − ℓ}
+                                     X
+                                           ℓ 0
+                                     ℓ=0
+                                      k  
+                                             p (1 − p0 )k−ℓ P{Tc,n (u) > k − ℓ}
+                                     X    k ℓ
+                                ≥
+                                           ℓ 0
+                                     ℓ=0
+                                      k  
+                                             p (1 − p0 )k−ℓ P{Tc,n (v/(1 − p0 )) > k − ℓ}
+                                     X    k ℓ
+                                =
+                                           ℓ 0
+                                        ℓ=0
+                                   =    P{Tc,n(v) > k},
+                                                         7
+where the last equality follows from (12). This proves the second inequality.
+    To prove the first inequality, observe that P{Tc,n(p/(1 − p0 )) > ℓ} is decreasing with ℓ. This
+leads, using (12), to
+                            P{Tc,n(p) > k} ≥ P{Tc,n(p/(1 − p0 )) > k}.
+Taking p = v in this inequality gives
+
+                                      P{Tc,n(v) > k} ≥ P{Tc,n(u) > k},
+which completes the proof.
+
+    In fact, we have shown in the proof of this theorem and more precisely in Relation (11) and
+using Theorem 2 that for fixed n, k and k0 , the function of p, P{Tc,n (p) ≤ k | N0 = k0 } is a
+                                                                                    (k)
+
+Schur-convex function, that is, a function that preserves the order of majorization. In particular,
+from (12), P{Tc,n (p) ≤ k} is also a Schur-convex function, even when p0 > 0. See [7] for more
+details on this subject.
+
+
+3    Distribution maximizing the distribution of Tc,n (p)
+We consider in this section the problem of stochastically maximizing the time Tc,n (p) when p
+varies in a closed subset of dimension n. In the previous section the minimization was made on
+the set A defined, for every n and for all p0 ∈ [0, 1), by
+
+                       A = {p = (p1 , . . . , pn ) ∈ (0, 1)n | p1 + · · · + pn = 1 − p0 }.
+
+According to the application described in the Section 4, we fix a parameter θ ∈ (0, (1 − p0 )/n] and
+we are looking for distributions p which stochastically maximizes the time Tc,n (p) on the subset
+Aθ of A defined by
+
+                    Aθ = {p = (p1 , . . . , pn ) ∈ A | pj ≥ θ, for every j = 1, . . . , n}.
+
+The solution to this problem is given by the following theorem. We first introduce the set Bθ
+defined by the distributions of Aθ with all their entries, except one, are equal to θ. The set Bθ
+has n elements given by
+
+                          Bθ = {(γ, θ, . . . , θ), (θ, γ, θ, . . . , θ), . . . , (θ, . . . , θ, γ)},
+
+where γ = 1 − p0 − (n − 1)θ. Note that since θ ∈ (0, (1 − p0 )/n], we have 1 − p0 − (n − 1)θ ≥ θ
+which means that Bθ ⊆ Aθ .
+
+Theorem 4 For every n ≥ 1 and p = (p1 , . . . , pn ) ∈ Aθ and for all c = 1, . . . , n, we have
+Tc,n (p) ≤st Tc,n (q), for every q ∈ Bθ .
+
+Proof. Since P{Tc,n(p) > k} is a symmetric function of p, P{Tc,n (q) > k} has the same value
+for every q ∈ Bθ , so we suppose that qℓ = θ for every ℓ 6= j and qj = γ.
+    Let p ∈ Aθ \ Bθ and let i be the first entry of p such that i 6= j and pi > θ. We then define
+                          (1)      (1)                           (1)
+the distribution p(1) as pi = θ, pj = pi + pj − θ > pj and pℓ = pℓ , for ℓ 6= i, j. This leads us
+                (1)                (1)                               (1)       (1)
+to write pi = λpi     + (1 − λ)pj        and pj = (1 − λ)pi                + λpj , with
+                                           (1)
+                                         pj − pi                   pj − θ
+                                 λ=       (1)        (1)
+                                                           =                   ∈ [0, 1).
+                                         pj     −   pi         pj − θ + pi − θ
+
+From Theorem 1, we get P{Tc,n (p) > k} ≤ P{Tc,n (p(1) ) > k}. Repeating the same procedure from
+distribution p(1) and so on, we get, after at most n − 1 steps, distribution q, that is P{Tc,n (p) >
+k} ≤ P{Tc,n (q) > k}, which completes the proof.
+
+                                                                 8
+   To illustrate the steps used in the proof of this theorem, we take the following example. Suppose
+that n = 5, θ = 1/20, p0 = 1/10 and q = (1/20, 1/20, 1/20, 7/10, 1/20), which means that j = 4.
+Suppose moreover that p = (1/16, 1/6, 1/4, 1/8, 71/240). We have p ∈ Aθ and q ∈ Bθ . In a first
+step, taking i = 1 and since j = 4, we get
+                              p(1) = (1/20, 1/6, 1/4, 11/80, 71/240).
+In a second step, taking i = 2 and since j = 4, we get
+                             p(2) = (1/20, 1/20, 1/4, 61/240, 71/240).
+In a third step, taking i = 3 and since j = 4, we get
+                            p(3) = (1/20, 1/20, 1/20, 109/240, 71/240).
+For the fourth and last step, taking i = 5 and since j = 4, we get
+                             p(4) = (1/20, 1/20, 1/20, 7/10, 1/20) = q.
+
+
+4    Application to the detection of distributed denial of ser-
+     vice attacks
+A Denial of Service (DoS) attack tries to progressively take down an Internet resource by flooding
+this resource with more requests than it is capable to handle. A Distributed Denial of Service
+(DDoS) attack is a DoS attack triggered by thousands of machines that have been infected by a
+malicious software, with as immediate consequence the total shut down of targeted web resources
+(e.g., e-commerce websites). A solution to detect and to mitigate DDoS attacks is to monitor
+network traffic at routers and to look for highly frequent signatures that might suggest ongoing
+attacks. A recent strategy followed by the attackers is to hide their massive flow of requests over
+a multitude of routes, so that locally, these requests do not appear as frequent, while globally
+each of these requests represent a portion θ of the network traffic. The term “iceberg” has been
+recently introduced [10] to describe such an attack as only a very small part of the iceberg can be
+observed at each single router. The approach adopted to defend against such new attacks is to
+rely on multiple routers that locally monitor their network traffic, and upon detection of potential
+icebergs, inform a monitoring server that aggregates all the monitored information to accurately
+detect icebergs. Now to prevent the server from being overloaded by all the monitored information,
+routers continuously keep track of the c (among n) most recent distinct requests. These requests
+locally represent at least a fraction θ of the local stream. Once collected, each router sends them
+to the server, and throw away all the requests i that appear with a probability pi smaller than θ.
+The sum of these small probabilities is represented by probability p0 . Parameter c is dimensioned
+so that the frequency at which all the routers send their c last requests is low enough to enable
+the server to aggregate all of them and to trigger a DDoS alarm when needed. This amounts
+to compute the distribution of the time Tc,n (p) needed to collect c distinct requests among the
+n ones. Theorem 3 shows that the distribution p that stochastically minimizes the time Tc,n (p)
+is the almost uniform distribution v. This means that if locally each router receives a stream in
+which all the frequent requests (that is, those whose probability of occurrence is greater than or
+equal to θ) occur with same probability, then the complementary distribution of the time needed
+to locally complete a collection of c distinct requests is minimized. As a consequence the delay
+between any two interactions between a router and the server is minimized.
+    Another important aspect of DDoS detection applications is their ability to bound the detection
+latency of global icebergs, that is the maximal time that elapses between the presence of a global
+iceberg at some of the routers and its detection at the server. This can be implemented through a
+timer that will fire if no communication has been triggered between a router and the server, which
+happens if locally a router has received less than c requests. Dimensioning such a timer amounts to
+determine the distribution of the maximal time it takes for a router to collect c distinct requests.
+Theorem 4 shows that the distributions p that stochastically maximizes this time Tc,n (p) are all
+the distributions q ∈ Bθ .
+
+                                                 9
+References
+[1] Anceaume, E., Busnel, Y. and Sericola, B. (2015). New results on a generalized coupon
+    collector problem using Markov chains. J. Appl. Prob. 52(2).
+[2] Boneh, A. and Hofri, M. (1997). The coupon-collector problem revisited - A survey of
+    engineering problems and computational methods. Stochastic Models 13(1), pp. 39–66.
+[3] Brown, M., Peköz, E. A. and Ross, S. M. (2008). Coupon collecting. Probability in the
+    Engineering and Informational Sciences 22, pp. 221–229.
+[4] Doumas, A. V. and Papanicolaou, V. G. (2012). The coupon collector’s problem revisited:
+    asymptotics of the variance. Adv. Appl. Prob. 44(1), pp. 166–195.
+[5] Doumas, A. V. and Papanicolaou, V. G. (2012). Asymptotics of the rising moments for
+    the coupon collector’s problem. Electronic Journal of Probability 18(41), pp. 1–15.
+[6] Flajolet, P., Gardy, D. and Thimonier, L (1992). Birthday paradox, coupon collectors,
+    caching algorithms and self-organizing search. Discrete Applied Mathematics 39, pp. 207–229.
+[7] Marshall, A. W. and Olkin, I. (1981). Inequalities via majorization – An introduction,
+    Technical Report No. 172, Department of Statistics, Stanford University, California, USA.
+[8] Neal, P. (2008). The generalised coupon collector problem. J. Appl. Prob. 45(3), pp. 621–629.
+[9] Rubin, H. and Zidek, J. (1965). A waiting time distribution arising from the coupon col-
+    lector’s problem, Technical Report No. 107, Department of Statistics, Stanford University,
+    California, USA.
+[10] Zhao, Q and Lall, A. and Ogihara, M. and Xu, J. (2010). Global iceberg detection
+    over Distributed Streams, Proceedings of the 26th IEEE International Conference on Data
+    Engineering (ICDE), Long Beach, CA, USA, March 1-6.
+
+
+
+
+                                               10
+

@@ -1,0 +1,801 @@
+--- before/paper/README.md
++++ paper/README.md
+@@ -464,7 +464,7 @@
+ The manuscripts now report the complete Qwen2.5-3B Python MaxRL factorial
+ (seeds 70–74): ReplayMaxRL adds .391 raw distinct@8, with a paired 95%
+ Student-t interval [.079, .704]; the correctness effect remains inconclusive.
+-This adds one domain-specific result, with no Qwen3B domain average.
++This adds one domain-specific result, with no Qwen3B MaxRL cross-domain average.
+ 
+ The E120 appendix now completes the registered primary analysis of extra
+ correct modes, distinct@8 minus pass@8, and its co-primary correctness endpoint.
+@@ -481,3 +481,24 @@
+ bodies from the frozen source, then `make -C paper`. The build compares those
+ outputs against a fresh calculation. The workshop version carries matching
+ local copies; its source bundle includes the analysis provenance.
++
++
++The [September 6 endpoint update](results/latest_results_20260906.json)
++adds current E118/E119/E120 counts while preserving the original figure
++snapshots. The newly completed Falcon3-1B Graph weighting ablation uses all
++five paired seeds, 55–59. Uniform weighting adds .233 extra modes per prompt
++(95% paired bootstrap interval [.182, .320]); its pass@8 difference remains
++inconclusive and mean sampled correctness decreases by .0152. Both paper
++versions include every paired seed and the supporting correctness tradeoff.
++See [the result provenance](results/e120_falcon_graph_20260906.json) and
++[the repair and refresh audit](audits/build_repair_20260906/report.md).
++
++The workshop build now validates in a temporary directory and preserves its
++last valid PDF on a compile or page-limit failure. `make -C paper/mathai2026
++bundle` rebuilds the four-page submission and its standalone source archive.
++
++The fresh census (September 6, 16:56:42–17:09:35 UTC) validates E118 at
++116/150 terminal cells (11/15 complete blocks), E119 at 52/100 (1/5), and
++E120 at 33/45 (6/9). E118 contains 57 matched MaxRL/ReplayMaxRL pairs;
++its new Qwen3B Graph and MathIR pairs each have only one seed and receive
++no interval. No frozen primary endpoint or figure was replaced by a partial run.
+--- before/paper/main.tex
++++ paper/main.tex
+@@ -91,26 +91,23 @@
+ \maketitle
+ 
+ \begin{abstract}
+-Reinforcement learning with verifiable rewards (RLVR) can make a model more
+-likely to produce a correct response while concentrating samples on fewer
+-correct behaviors. Binary verifiers reveal whether a response succeeds
+-but not which successful behavior occurred, so training may amplify an
+-incumbent solution and lose alternatives. We introduce \mb{}, a benchmark
+-spanning five executable domains in which validation returns both correctness
+-and a canonical solution key, making verified output support measurable
+-alongside conventional \texttt{pass@}$K$. ModeBench reveals that outcome-based
+-RL can collapse onto a narrow set of outputs even as correctness holds steady or
+-improves. To preserve successful behaviors after they become rare in fresh
+-rollouts, we propose ReplayMaxRL, which retains policy-generated responses by
+-canonical key and replays them in a key-balanced manner while optimizing
+-best@\(k\) performance on new samples. A categorical analysis explains why
+-binary on-policy optimization favors already-common modes and how recurrent
+-replay counters this tendency. Across three model scales and five domains,
+-canonical replay improves held-out correctness and maintains a broader terminal
+-set of sampled outputs than verifier-only RL; at both scales with complete MaxRL pairs, memory
+-remains complementary to sampling-aware best@\(k\) optimization. These results separate two requirements often treated as one: discovering
+-successful behaviors and preserving them. A verifier can select only from
+-candidates the policy still supplies.
++Mathematical agents need candidate solutions for search, verification, and
++revision. Alternative routes may help when an approach fails or constraints
++change. Yet reinforcement learning with verifiable rewards (RLVR) can improve
++correctness while narrowing the model's repertoire. We introduce \mb{},
++spanning five executable domains whose validators report both correctness and
++a canonical solution identity. This makes the loss of verified alternatives
++measurable alongside \texttt{pass@}$K$. ReplayMaxRL retains policy-generated
++verified outputs by identity and replays them with balanced weights while
++optimizing success on fresh samples. A categorical analysis explains why binary
++on-policy updates amplify frequent correct modes and how recurrent replay
++counters this tendency. Across three model scales, canonical replay improves
++held-out correctness and retains a broader set of sampled outputs than
++verifier-only RL. At the two scales with complete MaxRL comparisons, replay
++also complements sampling-aware learning. ModeBench thus provides a controlled
++setting for studying two requirements of mathematical reasoning: discovering
++successful solutions and preserving alternatives an agent can still propose
++for verification and further search.
+ \end{abstract}
+ 
+ \begin{figure}[H]
+@@ -130,6 +127,15 @@
+ 
+ \section{Introduction}
+ \label{sec:introduction}
++
++Mathematical reasoning agents generate candidate proof or computation routes,
++check them with tools or verifiers, and revise after feedback
++\citep{brown2024monkeys,snell2024testtime}. Alternative routes may support
++recovery when a familiar approach fails or constraints change, and give
++self-correction another option to try. A verifier can only select from the
++candidates the model still supplies. This motivates a question about the model
++inside an agent: does training preserve the range of verified options on which
++search and revision can draw?
+ 
+ Reinforcement learning with verifiable rewards (RLVR) trains from executable
+ correctness feedback \citep{guo2025deepseekr1}. Reasoning RL can reduce policy
+@@ -685,7 +691,7 @@
+   deep-purple circle). Gray segments show training without replay; arrows
+   isolate the replay contrast. Per-domain results for both Qwen2.5-0.5B and
+   Falcon3-1B appear in Appendix
+-  Figure~\ref{fig:maxrl-factorial-scale-extensions} for both metrics.}
++  Figure~\ref{fig:maxrl-factorial-scale-extensions} for both metrics, with domain-specific seed counts.}
+   \label{fig:maxrl-factorial}
+ \end{figure}
+ 
+@@ -711,7 +717,7 @@
+ track adds \((+.279,+.559)\) across its five paired seeds. These cross-domain
+ averages are post-hoc descriptive summaries. The domain breakdown in Appendix
+ Figure~\ref{fig:maxrl-factorial-scale-extensions} sharpens the boundary:
+-ReplayMaxRL improves both endpoints in every Qwen domain and Falcon
++ReplayMaxRL improves both endpoints in every Qwen2.5-0.5B domain and Falcon
+ \texttt{pass@8} in every domain, while Falcon raw support improves in four of
+ five. A newly completed Qwen2.5-3B Python block also gains \(+.391\) raw
+ \texttt{distinct@8} (\([+.079,+.704]\)); its correctness effect remains
+@@ -727,7 +733,7 @@
+ Open/filled markers are Level 1/2. (A) Frozen-model success.
+ (B) Interim means: average seeds within each domain, then the five domains equally.
+ Both levels and all methods use matched checkpoints; Pantry contributes one seed
+-at step 0 (Appendix~\ref{app:level2-interim}).}
++at step 0 (Appendix~\ref{app:level2-interim}). All other domains contribute five matched seeds.}
+   \label{fig:level2-admission}
+ \end{figure}
+ 
+@@ -784,20 +790,36 @@
+ \label{sec:discussion}
+ \label{sec:limitations}
+ 
+-Replay improves \texttt{pass@8} and raw support over verifier-only training
+-and adds to MaxRL. Both MaxRL endpoints improve in every Qwen2.5-0.5B domain
+-and in Falcon3-1B within-seed cross-domain averages, with variable domain support effects.
+-
+-\textbf{Limitations.} Theory studies idealized mean flows. Optimizer and
+-admission extensions are conditional; Python's bank cannot cover all modes. Banked-mode
+-survival and size-dependent update geometry remain unmeasured
+-(Appendices~\ref{app:ablations} and~\ref{app:theory-size}). Some controls have
+-little fresh task signal, leaving correctness mechanisms unresolved
+-(Appendix~\ref{app:degenerate-groups}). Free-form reasoning and downstream
+-utility remain untested. Eleven MaxRL pair blocks are complete; Falcon Countdown
+-Dr.GRPO--ReplayDr.GRPO has four admissible seeds. Level-2 is complete only on
+-Graph; uniform-versus-frequency replay covers five of nine blocks.
+-Larger-model ablations and active-gradient controls remain incomplete.
++ModeBench makes a missing part of evaluation measurable: the range of distinct,
++verified outcomes a model can produce for one problem. Accuracy tells us whether
++a model can succeed; diversity helps describe the alternatives still available
++to it. That distinction matters because different approaches can have different
++strengths. One may succeed where another fails, or remain useful when the
++problem or its constraints change. Knowing several ways to solve could therefore
++be valuable even when a familiar approach already works.
++
++Our experiments show that replay complements learning from fresh samples.
++Remembering verified solutions improves held-out correctness and preserves
++more correct output alternatives across the completed comparisons. ModeBench
++lets us measure those alternatives through executable, task-defined identities.
++It provides a controlled starting point for understanding what training
++preserves, alongside what training learns to solve.
++
++\textbf{Limits and next steps.} ModeBench provides a controlled setting for
++studying diverse solutions. Understanding how this diversity relates to broader
++mathematical reasoning and later problem solving remains an open direction. Replay can
++retain only modes it discovers and stores. Individual-mode survival and
++size-dependent update geometry remain unmeasured
++(Appendices~\ref{app:ablations} and~\ref{app:theory-size}); the optimizer and
++admission results are conditional. Theory studies idealized mean flows.
++We have not shown that broader support
++causes the accuracy gains. The MaxRL factorial has eleven complete paired
++blocks; Falcon Countdown's Dr.GRPO replay comparison has four admissible seeds,
++and only Graph has a complete Level-2 factorial. Richer mathematical tasks
++should test which alternatives survive training, when a different approach
++succeeds after another fails, and whether preserving those options improves
++problem solving.
++
+ \clearpage
+ \subsubsection*{AI Use Statement}
+ \label{sec:ai-use}
+@@ -3207,6 +3229,65 @@
+ for retained sampled breadth in the stated domains, without identifying the
+ survival history of any individual banked mode. Falcon3-1B and Qwen2.5-3B
+ have no terminal E120-R1 cells in this frozen snapshot.
++
++
++\paragraph{Newly completed Falcon3-1B Graph ablation (September 6).}
++\label{app:e120-falcon-graph-update}
++The registered Falcon Graph block now has all five paired seeds, 55--59,
++at step 3,072. Each endpoint has a completion receipt and all four required
++sampled evaluation draws. The replay audit passes for all 16,253 persisted
++applied-update telemetry rows across the frequency arm's original and recovery
++attempts. Table~\ref{tab:e120-falcon-graph} adds this completed block separately
++from the September 4 Qwen2.5-0.5B snapshot above, using the same paired
++percentile bootstrap convention.
++
++Uniform weighting adds $+.233$ extra modes per prompt
++(95\% interval $[+.182,+.320]$), with a positive effect in every seed.
++Its \texttt{pass@8} effect is $+.0453$ ($[-.0004,+.0910]$); the interval
++includes zero and establishes neither a correctness gain nor noninferiority.
++The supporting mean sampled-correctness metric, \texttt{mean@8}, decreases
++by $-.0152$ ($[-.0214,-.0090]$). Thus the breadth benefit coexists with
++lower per-sample correctness; greater sampled support does not imply a
++uniform accuracy improvement. This is one registered model--domain block,
++with nominal, unadjusted intervals and an unfinished larger-model grid.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Completed Falcon3-1B Graph replay-weight ablation.}
++  All five paired seeds at pass 8; positive effects favor uniform replay.
++  Extra modes $B=D-P$ and correctness $P$ are the registered co-primary
++  endpoints. Raw distinct modes $D$ and mean sampled correctness are
++  supporting metrics. Intervals resample paired training seeds within this registered block.}
++  \label{tab:e120-falcon-graph}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}lrrrr@{}}
++    \toprule
++    \textbf{Endpoint} & \textbf{Uniform} & \textbf{Frequency}
++      & \textbf{Effect} & \textbf{95\% interval} \\
++    \midrule
++    \input{results/e120_falcon_graph_20260906_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{All paired seeds in the Falcon Graph extension.}
++  U/F denote uniform/fresh-frequency replay; effects are U minus F.
++  Full-precision endpoints, all supporting metrics, evaluation origins,
++  completion receipts, and telemetry checks accompany the result in
++  \texttt{e120\_falcon\_graph\_20260906.json} for all five seeds.}
++  \label{tab:e120-falcon-graph-seeds}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}rrrrrrr@{}}
++    \toprule
++    \textbf{Seed} & $P_{\rm U}$ & $P_{\rm F}$ & $B_{\rm U}$
++      & $B_{\rm F}$ & $\Delta P$ & $\Delta B$ \\
++    \midrule
++    \input{results/e120_falcon_graph_20260906_seeds_table_body.tex}
++  \end{tabular}
++\end{table}
+ 
+ \subsection{When fresh Dr.GRPO gradients vanish}
+ \label{app:degenerate-groups}
+@@ -4129,8 +4210,8 @@
+ positive raw-support effect. The mean correctness gain is \(+.277\), but its
+ interval \([-.037,+.590]\) includes zero. This supports a domain-specific
+ breadth benefit at the larger model, without establishing a correctness gain
+-or a model-size trend. The other four Qwen2.5-3B domains remain incomplete;
+-no Qwen2.5-3B cross-domain average is reported.
++or a model-size trend. The other four Qwen2.5-3B MaxRL blocks remain incomplete;
++no Qwen2.5-3B MaxRL cross-domain average is reported.
+ 
+ \begin{table}[H]
+   \centering
+@@ -4197,7 +4278,7 @@
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{Current coverage and evidence boundaries for the three
++  \caption{\textbf{Frozen figure coverage and evidence boundaries for the three
+   experiments.} A complete block contains all five registered paired
+   terminal seeds. Partial or source-excluded intersections are not counted as complete blocks.
+   E120 uses its September 4, 15:40:26 UTC snapshot.}
+@@ -4217,7 +4298,7 @@
+       11/15 blocks & four Qwen-3B blocks; full factorial has ten complete blocks and one $n=4$ \\
+     Exp. 3 & Does the factorial transfer to a harder matched level? &
+       Level 2; Qwen-0.5B; 5 domains $\times$ 4 methods &
+-      1/5 blocks; Graph complete; MathIR \(n=1\) & finish the other four domains \\
++      1/5 blocks; Graph complete; MathIR/Python \(n=2\) & finish the other four domains \\
+     Ablation & Does fresh-frequency replay differ from uniform key replay? &
+       Level 1; 9 model--domain blocks; 45 cells &
+       5/9 blocks; 25/45 cells & larger-model blocks absent from the frozen E120 snapshot \\
+@@ -4238,6 +4319,48 @@
+ arms leaves ten complete five-seed blocks and one four-seed Falcon Countdown
+ block. Cross-objective interactions require the common admissible seed
+ intersection; they are not differences of aggregates with different seed sets.
++
++
++\subsection{Dated endpoint update: September 6, 2026}
++\label{app:latest-results-update}
++
++Table~\ref{tab:latest-results-update} records a fresh audit of the registered
++E118, E119, and E120 ledgers, collected from 16:56:42 to 17:09:35 UTC.
++Completion receipts and admitted endpoints are counted separately: an endpoint requires the exact step-3,072 evaluation,
++all four fixed-seed sampled draws, and no conflicting retry values. The
++accompanying \texttt{latest\_results\_20260906.json} records the collection
++interval, ledger hashes, admitted seed sets, and evidence boundaries.
++These counts describe progress across the registered cells; incomplete
++intersections do not acquire five-seed estimates.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Latest audited terminal coverage.}
++  Complete blocks require five paired MaxRL/ReplayMaxRL seeds for E118,
++  five four-method seeds for E119, and five frequency-replay seeds with
++  their registered uniform comparator for E120. Counts in the frozen-figure
++  registry above refer to their original snapshots and remain fixed for figure reproducibility.}
++  \label{tab:latest-results-update}
++  \small
++  \setlength{\tabcolsep}{5pt}
++  \begin{tabular}{@{}lrrr@{}}
++    \toprule
++    \textbf{Campaign} & \textbf{Receipts} & \textbf{Endpoints}
++      & \textbf{Complete blocks} \\
++    \midrule
++    \input{results/latest_results_20260906_table_body.tex}
++  \end{tabular}
++\end{table}
++
++The complete MaxRL/ReplayMaxRL block set and the sole complete Level-2
++Graph factorial are unchanged. E118 now has 57 matched terminal pairs,
++including single Qwen2.5-3B Graph (seed 73) and MathIR (seed 74) pairs;
++these partial blocks are descriptive and receive no interval. E120 now adds a complete Falcon3-1B Graph
++block, reported with all paired seeds and uncertainty in
++Appendix~\ref{app:e120-falcon-graph-update}. The original Qwen2.5-0.5B
++primary weighting analysis and Figure~\ref{fig:level2-admission}'s interim
++matched-level comparison retain their disclosed frozen inputs. Newly
++available partial runs remain progress evidence.
+ 
+ \subsection{Training and evaluation contract}
+ \label{app:repro-run-contract}
+--- before/paper/mathai2026/README.md
++++ paper/mathai2026/README.md
+@@ -17,7 +17,8 @@
+ 
+ ## Editorial choices
+ 
+-The main text follows the reader's dependencies: a concrete collapse example
++The main text follows the reader's dependencies: mathematical-agent motivation;
++a concrete collapse example
+ and measured losses across scales; executable benchmark identities; the fresh
+ objective and replay bank with direct appendix proof links; plain-language
+ evaluation metrics immediately before the matched experiments;
+@@ -58,6 +59,14 @@
+ make bundle         # also create mathai2026-source.zip
+ ```
+ 
++Compilation runs in a temporary directory. The PDF and compilation receipt
++are replaced only after all source, layout, and output checks pass. A failed
++compile or page-limit check preserves the last validated PDF and saves
++`main.failed.log`; it does not publish the rejected draft. Intentional source
++or asset updates must also update the corresponding bindings and history in
++`snapshot.json`. The standalone source ZIP is validated before replacement.
++
++
+ In Overleaf, upload the source ZIP and select `main.tex` as the main document.
+ `environ.sty`, `trimspaces.sty`, and `natbib.sty` are copied from the original
+ paper to support the local TeX installation. All figure PDFs, input tables,
+@@ -143,3 +152,53 @@
+ includes the new input tables and their JSON provenance. See the
+ [addition audit](../audits/results_additions_20260906/) and the dated snapshot
+ correction entry for the exact assets and source hashes.
++
++
++## September 6 build repair and evidence refresh
++
++The expanded Figure 6 caption had pushed two conclusion lines onto a fifth
++content page. LaTeX succeeded, but the page-limit check rejected the output
++and the old Makefile deleted `main.pdf`. Tightened prose restores four content
++pages with all six main figures, unchanged template dimensions, and the full
++conclusion. The build now preserves the last validated PDF on failure.
++
++Figure 6B uses 21 matched domain–seed cells from its September 6 frozen
++snapshot. Graph, Countdown, Python, and MathIR contribute five seeds each;
++Pantry contributes seed 45 at the observed initial checkpoint only. Both
++levels and all methods share a checkpoint within each cell; seeds are averaged
++within domain and the five domains receive equal weight. This is an interim
++comparison. Graph remains the sole complete five-seed Level-2 factorial block;
++the snapshot also contains two complete four-arm seeds each for MathIR and
++Python. Figure 5's Qwen2.5-3B Dr.GRPO average is complete; its MaxRL average
++remains unavailable.
++
++
++The dated endpoint update is in `results/latest_results_20260906.json` and
++Appendix `app:latest-results-update`. It adds current completion/endpoint
++counts alongside the frozen figure snapshots. Newly complete Falcon3-1B
++Graph weighting results use every registered paired seed, 55–59: uniform
++replay adds .233 extra modes (95% paired bootstrap interval [.182, .320]).
++The pass@8 interval [−.0004, .0910] includes zero, and mean sampled correctness
++decreases by .0152. Both effects and all seed values are reported; the result
++does not establish universal accuracy safety. Both new JSON artifacts and all three table
++bodies ship in the standalone source bundle.
++
++The fresh census (September 6, 16:56:42–17:09:35 UTC) validates E118 at
++116/150 terminal cells (11/15 complete blocks), E119 at 52/100 (1/5), and
++E120 at 33/45 (6/9). E118 contains 57 matched MaxRL/ReplayMaxRL pairs;
++its new Qwen3B Graph and MathIR pairs each have only one seed and receive
++no interval. No frozen primary endpoint or figure was replaced by a partial run.
++
++
++The conclusion now explains what ModeBench contributes, why retaining several
++approaches may matter when problems or constraints change, and which links to
++richer mathematical problem solving remain untested. The revised ending still
++fits on page 4; the parent paper develops the same interpretation and limits.
++
++
++The abstract and first section now lead with mathematical-agent candidate
++generation, tool use, verification, recovery, and self-correction. Alternative
++proof or computation routes motivate the study; ModeBench supplies the controlled
++executable-output measurement. The first section is “Preserving alternatives
++for mathematical agents.” Figure 1 remains on page 1 and the main text remains
++four pages. See the [workshop-fit revision audit](../audits/build_repair_20260906/workshop_fit/report.md).
+--- before/paper/mathai2026/appendix.tex
++++ paper/mathai2026/appendix.tex
+@@ -380,8 +380,11 @@
+ The three experiments build one argument: replay retains verified support
+ across scale, remains useful after stronger fresh-rollout optimization, and
+ survives the first controlled increase in task difficulty. The main figures
+-incorporate validated results through the September 6 analysis update; every
+-claim uses the displayed terminal seed intersection.
++incorporate validated results through the September 6 analysis update.
++Figures~\ref{fig:cross-scale-terminal-effects} and~\ref{fig:maxrl-factorial}
++use terminal seed intersections; Figure~\ref{fig:level2-admission}B uses
++matched interim checkpoints, including an initial-only Pantry reference
++(Appendix~\ref{app:level2-interim}).
+ 
+ \subsection{Experiment 1: canonical replay retains verified support across scale}
+ \label{app:results-retention}
+@@ -435,7 +438,7 @@
+ Qwen2.5-3B Dr.GRPO track adds \((+.279,+.559)\) across its five paired seeds;
+ this cross-domain summary is post-hoc and descriptive. The domain breakdown in Appendix
+ Figure~\ref{fig:maxrl-factorial-scale-extensions} sharpens the boundary:
+-ReplayMaxRL improves both endpoints in every Qwen domain and Falcon
++ReplayMaxRL improves both endpoints in every Qwen2.5-0.5B domain and Falcon
+ \texttt{pass@8} in every domain, while Falcon raw support improves in four of
+ five. The paired tracks show that replay can add value under either fresh
+ objective, including the domain-level exception; they do not directly measure
+@@ -2867,6 +2870,65 @@
+ for retained sampled breadth in the stated domains, without identifying the
+ survival history of any individual banked mode. Falcon3-1B and Qwen2.5-3B
+ have no terminal E120-R1 cells in this frozen snapshot.
++
++
++\paragraph{Newly completed Falcon3-1B Graph ablation (September 6).}
++\label{app:e120-falcon-graph-update}
++The registered Falcon Graph block now has all five paired seeds, 55--59,
++at step 3,072. Each endpoint has a completion receipt and all four required
++sampled evaluation draws. The replay audit passes for all 16,253 persisted
++applied-update telemetry rows across the frequency arm's original and recovery
++attempts. Table~\ref{tab:e120-falcon-graph} adds this completed block separately
++from the September 4 Qwen2.5-0.5B snapshot above, using the same paired
++percentile bootstrap convention.
++
++Uniform weighting adds $+.233$ extra modes per prompt
++(95\% interval $[+.182,+.320]$), with a positive effect in every seed.
++Its \texttt{pass@8} effect is $+.0453$ ($[-.0004,+.0910]$); the interval
++includes zero and establishes neither a correctness gain nor noninferiority.
++The supporting mean sampled-correctness metric, \texttt{mean@8}, decreases
++by $-.0152$ ($[-.0214,-.0090]$). Thus the breadth benefit coexists with
++lower per-sample correctness; greater sampled support does not imply a
++uniform accuracy improvement. This is one registered model--domain block,
++with nominal, unadjusted intervals and an unfinished larger-model grid.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Completed Falcon3-1B Graph replay-weight ablation.}
++  All five paired seeds at pass 8; positive effects favor uniform replay.
++  Extra modes $B=D-P$ and correctness $P$ are the registered co-primary
++  endpoints. Raw distinct modes $D$ and mean sampled correctness are
++  supporting metrics. Intervals resample paired training seeds.}
++  \label{tab:e120-falcon-graph}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}lrrrr@{}}
++    \toprule
++    \textbf{Endpoint} & \textbf{Uniform} & \textbf{Frequency}
++      & \textbf{Effect} & \textbf{95\% interval} \\
++    \midrule
++    \input{results/e120_falcon_graph_20260906_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{All paired seeds in the Falcon Graph extension.}
++  U/F denote uniform/fresh-frequency replay; effects are U minus F.
++  Full-precision endpoints, all supporting metrics, evaluation origins,
++  completion receipts, and telemetry checks accompany the result in
++  \texttt{e120\_falcon\_graph\_20260906.json}.}
++  \label{tab:e120-falcon-graph-seeds}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}rrrrrrr@{}}
++    \toprule
++    \textbf{Seed} & $P_{\rm U}$ & $P_{\rm F}$ & $B_{\rm U}$
++      & $B_{\rm F}$ & $\Delta P$ & $\Delta B$ \\
++    \midrule
++    \input{results/e120_falcon_graph_20260906_seeds_table_body.tex}
++  \end{tabular}
++\end{table}
+ 
+ \subsection{When fresh Dr.GRPO gradients vanish}
+ \label{app:degenerate-groups}
+@@ -3812,8 +3874,8 @@
+ positive raw-support effect. The mean correctness gain is \(+.277\), but its
+ interval \([-.037,+.590]\) includes zero. This supports a domain-specific
+ breadth benefit at the larger model, without establishing a correctness gain
+-or a model-size trend. The other four Qwen2.5-3B domains remain incomplete;
+-no Qwen2.5-3B cross-domain average is reported.
++or a model-size trend. The other four Qwen2.5-3B MaxRL blocks remain incomplete;
++no Qwen2.5-3B MaxRL cross-domain average is reported.
+ 
+ \begin{table}[H]
+   \centering
+@@ -3880,7 +3942,7 @@
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{Current coverage and evidence boundaries for the three
++  \caption{\textbf{Frozen figure coverage and evidence boundaries for the three
+   experiments.} A complete block contains all five registered paired
+   terminal seeds. Partial or source-excluded intersections are not counted as complete blocks.
+   E120 uses its September 4, 15:40:26 UTC snapshot.}
+@@ -3900,7 +3962,7 @@
+       11/15 blocks & four Qwen-3B blocks; full factorial has ten complete blocks and one $n=4$ \\
+     Exp. 3 & Does the factorial transfer to a harder matched level? &
+       Level 2; Qwen-0.5B; 5 domains $\times$ 4 methods &
+-      1/5 blocks; Graph complete; MathIR \(n=1\) & finish the other four domains \\
++      1/5 blocks; Graph complete; MathIR/Python \(n=2\) & finish the other four domains \\
+     Ablation & Does fresh-frequency replay differ from uniform key replay? &
+       Level 1; 9 model--domain blocks; 45 cells &
+       5/9 blocks; 25/45 cells & larger-model blocks absent from the frozen E120 snapshot \\
+@@ -3921,6 +3983,48 @@
+ arms leaves ten complete five-seed blocks and one four-seed Falcon Countdown
+ block. Cross-objective interactions require the common admissible seed
+ intersection; they are not differences of aggregates with different seed sets.
++
++
++\subsection{Dated endpoint update: September 6, 2026}
++\label{app:latest-results-update}
++
++Table~\ref{tab:latest-results-update} records a fresh audit of the registered
++E118, E119, and E120 ledgers, collected from 16:56:42 to 17:09:35 UTC.
++Completion receipts and admitted endpoints are counted separately: an endpoint requires the exact step-3,072 evaluation,
++all four fixed-seed sampled draws, and no conflicting retry values. The
++accompanying \texttt{latest\_results\_20260906.json} records the collection
++interval, ledger hashes, admitted seed sets, and evidence boundaries.
++These counts describe progress across the registered cells; incomplete
++intersections do not acquire five-seed estimates.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Latest audited terminal coverage.}
++  Complete blocks require five paired MaxRL/ReplayMaxRL seeds for E118,
++  five four-method seeds for E119, and five frequency-replay seeds with
++  their registered uniform comparator for E120. Counts in the frozen-figure
++  registry above refer to their original snapshots.}
++  \label{tab:latest-results-update}
++  \small
++  \setlength{\tabcolsep}{5pt}
++  \begin{tabular}{@{}lrrr@{}}
++    \toprule
++    \textbf{Campaign} & \textbf{Receipts} & \textbf{Endpoints}
++      & \textbf{Complete blocks} \\
++    \midrule
++    \input{results/latest_results_20260906_table_body.tex}
++  \end{tabular}
++\end{table}
++
++The complete MaxRL/ReplayMaxRL block set and the sole complete Level-2
++Graph factorial are unchanged. E118 now has 57 matched terminal pairs,
++including single Qwen2.5-3B Graph (seed 73) and MathIR (seed 74) pairs;
++these partial blocks are descriptive and receive no interval. E120 now adds a complete Falcon3-1B Graph
++block, reported with all paired seeds and uncertainty in
++Appendix~\ref{app:e120-falcon-graph-update}. The original Qwen2.5-0.5B
++primary weighting analysis and Figure~\ref{fig:level2-admission}'s interim
++matched-level comparison retain their disclosed frozen inputs. Newly
++available partial runs remain progress evidence.
+ 
+ \subsection{Training and evaluation contract}
+ \label{app:repro-run-contract}
+--- before/paper/mathai2026/check_submission.py
++++ paper/mathai2026/check_submission.py
+@@ -68,7 +68,8 @@
+         require(digest(ROOT / name) == expected, 'snapshot source changed: ' + name)
+     require(references <= set(bindings),
+             'referenced files absent from snapshot: ' + ', '.join(sorted(references - set(bindings))))
+-    names = set(bindings) | {'snapshot.json', 'Makefile', 'check_submission.py'}
++    names = set(bindings) | {'snapshot.json', 'Makefile', 'check_submission.py',
++                              'build_submission.py', 'package_source.py'}
+     names.update(path.name for path in ROOT.glob('*.sty'))
+     return {name: digest(ROOT / name) for name in sorted(names)}, references
+ 
+@@ -128,6 +129,8 @@
+     else:
+         require(BUILD_RECEIPT.is_file(), 'missing compilation receipt; rebuild with make')
+         receipt = json.loads(BUILD_RECEIPT.read_text())
++        require(receipt.get('schema') == 'mathai2026-compiled-submission-v1',
++                'unsupported compilation receipt; rebuild with make')
+         require(receipt.get('source_sha256') == sources,
+                 'compiled source is stale; rebuild with make')
+         require(receipt.get('artifact_sha256') == artifacts,
+--- before/paper/mathai2026/main.tex
++++ paper/mathai2026/main.tex
+@@ -6,24 +6,26 @@
+ \maketitle
+ 
+ \begin{abstract}
+-A mathematical reasoning model can become more accurate while losing alternative
+-correct solutions. To measure this loss, we introduce \mb{}, a benchmark of
+-five executable domains that identifies different correct outputs for one problem. We then show that ReplayMaxRL, which combines sampling-aware
+-reinforcement learning with a memory of previously verified outputs, improves
+-correctness while preserving more valid alternatives. We find gains from replay
+-with both GRPO and MaxRL, across three and two model scales respectively,
+-and on a harder graph-coloring task. These results separate two requirements
+-often treated as one: discovering successful behaviors and preserving them.
++Mathematical agents need candidates for search, verification, and recovery.
++Yet training can improve correctness while narrowing this repertoire. We
++introduce \mb{}, which measures distinct verified outputs across five executable
++domains. ReplayMaxRL combines sampling-aware reinforcement learning with memory
++of verified outputs, improving correctness while preserving alternatives.
++Replay helps under Dr.GRPO and MaxRL across three and two model scales
++respectively, and on a harder graph-coloring task. These results separate
++discovering successful behaviors from preserving them.
+ \end{abstract}
+ 
+-\section{Correct answers can conceal the loss of alternatives}
++\section{Preserving alternatives for mathematical agents}
+ \label{sec:introduction}\label{sec:collapse}
+-Reinforcement learning with verifiable rewards (RLVR) trains from executable
+-correctness feedback \citep{guo2025deepseekr1}, rewarding
+-familiar and new correct solutions alike. In mathematical search, losing
+-alternatives narrows the verified candidate set available from repeated sampling
+-\citep{brown2024monkeys,snell2024testtime}. Figure~\ref{fig:story} shows this
+-failure: correctness rises while sampled alternatives disappear.
++Mathematical agents propose candidates, check them with tools, and revise after
++feedback \citep{brown2024monkeys,snell2024testtime}. Alternative proof or
++computation routes could aid search and self-correction when attempts fail or
++constraints change. A verifier can only select from what the policy still proposes.
++
++Reinforcement learning with verifiable rewards (RLVR) can improve correctness
++while these alternatives disappear \citep{guo2025deepseekr1}
++(Figure~\ref{fig:story}).
+ 
+ \begin{figure}[!htbp]
+ \centering
+@@ -41,12 +43,10 @@
+ $71.6\%$ at Falcon3-1B, and $41.5\%$ at Qwen2.5-3B
+ (Appendix Figure~\ref{fig:baseline-precheck}).
+ 
+-In an idealized model, our analysis shows that additional parameters can
+-preserve more sampled alternatives at matched accuracy when they strengthen
+-updates shared across correct outputs
+-(Appendix~\ref{app:theory-size}, Theorem~\ref{thm:shared-correctness});
+-size alone provides no guarantee.
+-We therefore ask how training can retain alternatives after they become rare.
++Our idealized analysis links retention at matched accuracy to updates shared
++across correct outputs (Appendix~\ref{app:theory-size},
++Theorem~\ref{thm:shared-correctness}); size alone provides no guarantee.
++We ask how training can retain alternatives after they become rare.
+ 
+ \section{ModeBench makes output identity executable}
+ \label{sec:modebench}
+@@ -94,7 +94,7 @@
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+ \end{equation}
+-Equal averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
++Equal averaging of per-token scores gives each retained key equal weight. Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
+ which debiases GRPO \citep{shao2024deepseekmath}, yields our ReplayDr.GRPO.
+ Appendix~\ref{app:algorithm} gives
+ the full update. Appendix~\ref{app:theory} proves categorical collapse and
+@@ -141,8 +141,9 @@
+ \texttt{pass@8} rises from $.48$ to $.67$ and \texttt{distinct@8} from $.49$
+ to $1.64$. The gain includes more computation routes alongside greater success.
+ These held-out prompts never enter the bank: replay improves candidates for new problems.
+-Uniform versus frequency-weighted replay adds $.318$ extra modes on average
+-(95\% interval $[.272,.358]$; Appendix~\ref{app:frequency-replay-progress}).
++Across five Qwen2.5-0.5B domains, uniform versus frequency-weighted replay adds
++$.318$ extra modes on average (95\% bootstrap interval $[.272,.358]$;
++Appendix~\ref{app:frequency-replay-progress}).
+ 
+ \clearpage
+ \begin{figure}[!htbp]
+@@ -158,26 +159,24 @@
+ 
+ \noindent\textbf{Stronger fresh learning still benefits from memory.}
+ \label{sec:results-maxrl}
+-The first result leaves open whether a stronger fresh objective would suffice.
+-We therefore cross Dr.GRPO/MaxRL with replay absent/present
++We cross Dr.GRPO/MaxRL with replay absent/present
+ (Figure~\ref{fig:maxrl-factorial}). Replay improves both cross-domain averages
+ under both objectives at the two completed factorial scales. Qwen2.5-3B also
+ benefits on its completed Dr.GRPO track; Falcon Dr.GRPO is descriptive at four
+ seeds. For ReplayMaxRL, both
+-endpoints improve in all five Qwen domains; Falcon correctness improves in five
+-and breadth in four. The cross-domain averages are post-hoc summaries; paired intervals
+-are in Appendix~\ref{app:results-maxrl}. Improving success across sampling
+-budgets does not remove the value of revisiting earlier successes: fresh
+-learning still benefits from persistent memory.
++endpoints improve in all five Qwen2.5-0.5B domains; Falcon correctness improves in five
++and breadth in four. Cross-domain averages are post-hoc summaries; paired intervals
++are in Appendix~\ref{app:results-maxrl}. Optimizing success across sampling
++budgets still benefits from revisiting earlier successes.
+ 
+ \begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\linewidth]{figures/modebench_level_admission.pdf}
+ \caption{\textbf{Replay across difficulty levels with Qwen2.5-0.5B-Instruct.}
+-Open/filled markers are Level 1/2. (A) Frozen-model success.
+-(B) Interim means: average seeds within each domain, then the five domains equally.
+-Both levels and all methods use matched checkpoints; Pantry contributes one seed
+-at step 0 (Appendix~\ref{app:level2-interim}).}
++Open/filled markers: Level 1/2. (A) Frozen-model success.
++(B) Interim means weight the five domains equally after averaging seeds.
++Checkpoints match across levels and methods; Pantry has one seed at step 0
++(Appendix~\ref{app:level2-interim}).}
+ \label{fig:level2-admission}
+ \end{figure}
+ 
+@@ -187,20 +186,23 @@
+ valid-mode-count histogram (Appendix~\ref{app:data}). Replay raises both interim
+ means at both levels in Figure~\ref{fig:level2-admission}B. The completed Graph
+ block provides an eight-pass example: Dr.GRPO/MaxRL reach $.20/.43$
+-\texttt{pass@8}, versus $.76/.74$ with replay. Revisiting earlier successes
+-therefore helps repeated sampling find a correct candidate on harder Graph.
++\texttt{pass@8}, versus $.76/.74$ with replay.
+ 
+ \section{Conclusion and Limits}
+ \label{sec:conclusion}\label{sec:discussion}\label{sec:limitations}
+-Remembering earlier successes complements fresh learning: replay improves
+-held-out correctness and sampled output support. Evaluation should therefore
+-ask which verified alternatives remain available, alongside what training
+-learns to solve. These are small synthetic tasks, and replay can revisit only
+-discovered, retained modes. Individual mode survival
+-(Appendix~\ref{app:ablations}) and size-dependent update geometry remain
+-unmeasured. The results do not establish that broader support causes accuracy
+-gains, or that verified modes have downstream utility. Open-ended mathematical
+-reasoning remains an important test.
++ModeBench makes a missing part of evaluation measurable: the range of distinct,
++verified outcomes a model can produce for one problem. This matters because
++different approaches can have different strengths. One may succeed where
++another fails, or remain useful when constraints change. Understanding diversity
++therefore gives a fuller picture of a model's capabilities than accuracy alone.
++
++Our results show that replay can preserve alternatives while improving
++held-out correctness. These controlled tasks provide a starting point for
++studying diversity in broader mathematical reasoning. Replay retains only discovered,
++stored modes; individual-mode survival remains unmeasured
++(Appendix~\ref{app:ablations}). We have not shown that broader support causes
++accuracy gains or helps solve later problems. The next step is to test which
++alternatives help on richer mathematical tasks, and when.
+ 
+ \label{main:lastpage}
+ \clearpage
+--- before/paper/mathai2026/package_source.py
++++ paper/mathai2026/package_source.py
+@@ -1,15 +1,43 @@
+ #!/usr/bin/env python3
+-"""Create a standalone LaTeX source bundle."""
++"""Create a standalone source bundle from the validated submission."""
++import hashlib
++import json
+ from pathlib import Path
++import subprocess
++import sys
++import tempfile
+ from zipfile import ZipFile, ZIP_DEFLATED
+ 
+-root = Path(__file__).resolve().parent
+-names = {'Makefile', 'README.md', 'snapshot.json', 'check_submission.py',
+-         'package_source.py', 'main.bbl'}
+-for pattern in ('*.tex', '*.sty', '*.bib', 'figures/*.pdf', 'figures/*.json', 'results/*.tex', 'results/*.json'):
+-    names.update(str(p.relative_to(root)) for p in root.glob(pattern))
+-output = root / 'mathai2026-source.zip'
+-with ZipFile(output, 'w', ZIP_DEFLATED) as archive:
+-    for name in sorted(names):
+-        archive.write(root / name, name)
+-print(f'Created {output.name}: {len(names)} files, {output.stat().st_size:,} bytes')
++from check_submission import ROOT, check_sources, require
++
++
++def main():
++    subprocess.run([sys.executable, str(ROOT / 'check_submission.py')], check=True)
++    sources, _ = check_sources(json.loads((ROOT / 'snapshot.json').read_text()))
++    receipt = json.loads((ROOT / 'build_receipt.json').read_text())
++    require(receipt['source_sha256'] == sources, 'sources changed during packaging')
++    expected = dict(sources, **{'main.bbl': receipt['artifact_sha256']['main.bbl']})
++    names = set(sources) | {'README.md', 'template_example.tex', 'main.bbl'}
++    output = ROOT / 'mathai2026-source.zip'
++    with tempfile.TemporaryDirectory(prefix='.mathai-bundle-', dir=ROOT) as temporary:
++        staging = Path(temporary) / output.name
++        with ZipFile(staging, 'w', ZIP_DEFLATED) as archive:
++            for name in sorted(names):
++                content = (ROOT / name).read_bytes()
++                if name in expected:
++                    require(hashlib.sha256(content).hexdigest() == expected[name],
++                            'source changed during packaging: ' + name)
++                archive.writestr(name, content)
++        # Catch a source/artifact update while the archive was being written.
++        subprocess.run([sys.executable, str(ROOT / 'check_submission.py')], check=True)
++        require(json.loads((ROOT / 'build_receipt.json').read_text()) == receipt,
++                'compiled submission changed during packaging; rebuild ZIP')
++        staging.replace(output)
++    print(f'Created {output.name}: {len(names)} files, {output.stat().st_size:,} bytes')
++
++
++if __name__ == '__main__':
++    try:
++        main()
++    except subprocess.CalledProcessError as error:
++        raise SystemExit(error.returncode) from None

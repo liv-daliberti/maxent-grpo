@@ -1,0 +1,22 @@
+{
+  "main.tex": {
+    "sha256": "e4c835c82b33b892a2686c3ce3ea8615f0f5e4a07ee846b98d051552cac5d9ec",
+    "bytes": 10975
+  },
+  "main.pdf": {
+    "sha256": "9ece3a88dd46913fa06d8bbdb6f3ba3da9a1de539de8b1a80d72f828907005fc",
+    "bytes": 1107943
+  },
+  "snapshot.json": {
+    "sha256": "cae730af0edfbaeed1ad597f5cfa9ff029f2254d075f3064882150017713f2d7",
+    "bytes": 44057
+  },
+  "build_receipt.json": {
+    "sha256": "f272e652b026a03b4b9004d294f00e877cdf77530795b8559950d45dc9cb7a98",
+    "bytes": 6271
+  },
+  "mathai2026-source.zip": {
+    "sha256": "00523a9102754c31826704382bad2819fbb8c0b2b7c8f3f04137aaf4544b195e",
+    "bytes": 825696
+  }
+}

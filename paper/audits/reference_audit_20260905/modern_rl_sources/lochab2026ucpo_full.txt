@@ -1,0 +1,10273 @@
+Uniform-Correct Policy Optimization: Breaking RLVR’s Indifference to Diversity
+Report GitHub Issue
+×
+Title:
+Content selection saved. Describe the issue below:
+Description:
+Submit without GitHub
+Submit in GitHub
+arXiv is now an independent nonprofit!
+Learn more
+×
+Back to arXiv
+Why HTML?
+Report Issue
+Back to Abstract
+Download PDF
+Abstract
+1
+Introduction
+2
+Related Works
+2.1
+Diagnosing and Addressing Diversity Collapse
+2.2
+Diversity via Token-Level Regularization and Trajectory-Level Exploration
+3
+Preliminaries
+3.1
+RLVR Objective
+3.2
+Group Relative Policy Optimization (GRPO)
+4
+Structural Causes of Diversity Collapse in RLVR
+4.1
+Objective Indifference
+4.2
+The Collapse Mechanism
+4.2.1
+Setup
+4.2.2
+Sampling Bias
+4.2.3
+Gradient Amplification
+4.2.4
+Divergence of Probability Ratios
+4.2.5
+Irreversible Pruning
+4.3
+Controlled Experiment
+5
+The Optimal Policy
+5.1
+Conditional Distribution on Correct Outputs
+5.2
+The Uniform-Correct Policy
+6
+UCPO: Uniform Correct Policy Optimization
+6.1
+UCPO Motivation
+6.2
+Objective
+6.3
+Gradient Estimation
+7
+Experiments
+7.1
+Setup
+7.2
+Main Results
+7.3
+Diversity
+7.4
+Pass@K Performance
+7.5
+Cost and Hyperparameter Sensitivity
+8
+Conclusion
+References
+A
+Theoretical Details and Proofs
+A.1
+The Diversity Collapse Mechanism
+A.2
+Proof of Theorem
+, Theorem
+and Corollary
+A.3
+Proofs for uniform-correct optimality
+Step 1: Support concentrates on correct outputs for small
+τ
+\tau
+.
+Step 2: Uniformity within the correct set.
+A.4
+Proof of Gradient Decomposition Proposition
+Step 1: Gradient of
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+\log Z_{\theta}(x)
+.
+Step 2: Gradient of
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\|q_{\theta})
+.
+Step 3: Gradient of
+log
+⁡
+q
+θ
+​
+(
+y
+∣
+x
+)
+\log q_{\theta}(y\mid x)
+.
+Step 4: Combining.
+Step 5: Full gradient.
+A.5
+Derivation of the Inverse-q Importance Weights
+Importance sampling identity.
+Simplifying the importance ratio.
+Self-normalized estimator.
+A.6
+Proofs for Proposition
+and Theorem
+A.7
+Choice of Divergence
+A.7.1
+Entropy Maximization:
+KL
+(
+q
+θ
+∥
+u
+)
+\mathrm{KL}(q_{\theta}\,\|\,u)
+A.7.2
+Uniform-Weighted Divergence:
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\,\|\,q_{\theta})
+A.7.3
+Connection to UCPO
+B
+Controlled Empirical Validation of Collapse Dynamics
+Setup.
+Training Dynamics.
+Tracked Metrics.
+B.1
+GRPO Induces Self-Reinforcing Collapse
+B.2
+Collapse Is Not Limited to Skewed Initializations
+B.3
+UCPO Preserves Diversity via Gradient Redistribution
+B.4
+Global Entropy Regularization Increases Entropy on the Wrong Support
+B.5
+UCPO Maintains Correctness–Diversity Trade-off
+C
+Why Global entropy regularization fails
+D
+Experimental Details
+D.1
+Datasets
+D.2
+Models
+D.3
+Implementation and Evaluation Details
+E
+Additional Results
+E.1
+Pass@K Experiments
+E.2
+Cost Overhead
+E.3
+Sensitivity to
+τ
+\tau
+F
+Equation Diversity
+License: CC BY 4.0
+arXiv:2605.00365v1 [cs.LG] 01 May 2026
+Uniform-Correct Policy Optimization: Breaking RLVR’s Indifference to Diversity
+Anamika Lochab
+Affiliation:
+Department of Computer Science
+Bolian Li
+Affiliation:
+Purdue University, West Lafayette
+Ruqi Zhang
+Affiliation:
+{alochab, li4468, ruqiz}@purdue.edu
+Abstract
+Reinforcement Learning with Verifiable Rewards (RLVR) has achieved substantial gains in single-attempt accuracy (Pass@1) on reasoning tasks, yet often suffers from reduced multi-sample coverage (Pass@K), indicating diversity collapse. We identify a structural cause for this degradation: common RLVR objectives, such as GRPO, are indifferent to how probability mass is distributed among correct solutions. Combined with stochastic training dynamics, this indifference induces a self-reinforcing collapse, in which probability mass concentrates on a narrow subset of correct outputs while alternative valid solutions are suppressed. We formalize this collapse mechanism and further characterize the optimal policy structure under two complementary criteria: robustness and entropy-regularized optimality, which identify the Uniform-Correct Policy as uniquely optimal.
+Motivated by this analysis, we propose
+Uniform-Correct Policy Optimization
+(UCPO), a modification to GRPO that adds a conditional uniformity penalty on the policy’s distribution over correct solutions. The penalty redistributes gradient signal toward underrepresented correct responses, encouraging uniform allocation of probability mass within the correct set. Across three models (1.5B–7B parameters) and five mathematical reasoning benchmarks, UCPO improves Pass@K and diversity while maintaining competitive Pass@1, achieving up to +10% absolute improvement on AIME24 at Pass@64 and up to 45% higher equation-level diversity within the correct set.
+1
+Introduction
+Reinforcement Learning with Verifiable Rewards (RLVR) has emerged as a powerful paradigm for improving large language models (LLMs) on reasoning tasks such as mathematics and code generation, yielding substantial gains in single-attempt accuracy (Pass@1) across challenging reasoning benchmarks
+(
+DeepSeek-AI et al., 2025
+;
+Shao et al., 2024
+;
+Karan and Du, 2025
+;
+Yue et al., 2025
+)
+.
+Despite these successes, RLVR often degrades Pass@K even as it improves Pass@1
+(
+He et al., 2025
+;
+Cobbe et al., 2021
+;
+Song et al., 2025
+)
+. This suggests that RL fine-tuning contracts the model’s solution space
+(
+Wu et al., 2026
+;
+Karan and Du, 2025
+)
+, concentrating probability mass on a small subset of correct solutions while suppressing alternative valid reasoning paths present in the base model.
+Most prior efforts address this issue
+(
+Wang et al., 2025b
+;
+He et al., 2025
+;
+Jiang et al., 2025
+;
+Wang et al., 2025a
+;
+Cui et al., 2025
+;
+Chen et al., 2025
+)
+through entropy bonuses, exploration incentives, or token-level constraints. While these methods can alleviate diversity loss, they share a common limitation: none directly specifies how probability mass should be distributed among correct solutions. Lacking a principled target, they rely on proxies that may satisfy local heuristics (e.g., token-level entropy) while the policy still concentrates mass on a few correct solutions.
+In this work, we analyze RLVR from the perspective of
+optimal policy structure
+. We ask three questions: (i) what policies are optimal under standard RLVR objectives, and what policies are actually attained in practice; (ii) what policy should be considered optimal when multiple correct solutions exist; and (iii) how such a policy can be learned via RL. These questions guide our analysis and the design of a new RL objective.
+We first show that the standard RLVR objective is fundamentally underspecified: it is indifferent to how probability mass is distributed among correct solutions. As a result, a fully collapsed policy and a maximally diverse policy will be considered equally optimal. Moreover, the stochastic dynamics of on-policy sampling induce a
+self-reinforcing collapse
+in which frequently sampled solutions are amplified by gradient updates and suppress alternatives. Thus, diversity collapse arises jointly from objective indifference and training dynamics.
+We then study what the optimal policy should be when multiple correct solutions exist. We formalize this through two criteria: robustness optimality (which policy retains the best performance under distribution shift) and entropy-regularized optimality (which policy optimally balances correctness with diversity). Both identify the same solution: the Uniform-Correct Policy, which places zero mass on incorrect outputs while distributing probability uniformly across all correct solutions.
+Motivated by this analysis, we propose
+Uniform-Correct Policy Optimization
+(UCPO), a simple modification of GRPO that admits the Uniform-Correct Policy as its unique optimum. UCPO adds a uniformity penalty over correct solutions, which redistributes gradient signal to amplify underrepresented solutions while tempering dominant ones.
+Our contributions are as follows:
+•
+We identify a fundamental limitation of RLVR: the objective is indifferent to how probability mass is distributed among correct solutions, allowing stochastic training dynamics to drive irreversible mode collapse. We validate this mechanism both theoretically (Section
+4.2
+) and empirically through controlled experiments (Section
+4.3
+).
+•
+We theoretically characterize the optimal policy structure for RLVR through two criteria: robustness and entropy-regularized optimality (Section
+5
+), proving that the Uniform-Correct Policy is optimal under both criteria.
+•
+We derive Uniform-Correct Policy Optimization (UCPO) to achieve this optimal structure, and prove that the Uniform-Correct Policy is its unique optimum (Theorem
+6.1
+). UCPO preserves the total advantage mass of GRPO but reallocates it toward underrepresented correct responses.
+•
+Across three models (1.5B–7B parameters) and five mathematical benchmarks, UCPO consistently improves Pass@K and diversity while maintaining competitive Pass@1, achieving up to +10% absolute improvement on AIME24 at Pass@64 and up to 45% higher equation-level diversity within the correct set, with negligible training overhead.
+2
+Related Works
+Prior works have documented diversity collapse in RLVR: fine-tuning improves Pass@1 but can reduce Pass@K by contracting the support of correct outputs and sharpening around high-likelihood base-model modes
+(
+Matsutani et al., 2025
+;
+Wu et al., 2026
+;
+He et al., 2025
+;
+Yue et al., 2025
+;
+Ni et al., 2025
+)
+. A growing body of work aims to address this collapse, which we organize into analysis-driven methods that diagnose a collapse mechanism and derive a targeted fix, and methods that encourage diversity indirectly through token-level stochasticity or trajectory-level exploration.
+2.1
+Diagnosing and Addressing Diversity Collapse
+Several concurrent works analyze mechanisms underlying diversity collapse and propose targeted interventions.
+Cui et al. (2025)
+attribute collapse to entropy decay driven by positive probability-advantage covariance, and propose covariance-based gradient clipping and KL regularization.
+Gai et al. (2025)
+show that selection and reinforcement biases in KL-regularized RLVR amplify base-policy imbalance within the correct set, and propose differential smoothing using sequence log-probabilities
+1
+1
+1
+Their analysis is for KL-regularized RLVR, whereas our focus is on the RLVR objective itself. Throughout our analysis and experiments, we use
+β
+=
+0
+\beta=0
+, isolating collapse arising from the advantage-maximization term rather than reference regularization.
+.
+Plyusov et al. (2026)
+show that easy prompts with high success rates drive the strongest concentration of correctness mass, and propose focal advantage scaling to down-weight updates from these prompts.
+LAD
+(
+Li and Li, 2026
+)
+states that expected-advantage maximization distorts relative proportions among correct responses, and replaces it with an
+f
+f
+-divergence objective that preserves the previous policy’s proportions. By contrast, our work identifies that RLVR advantage-maximization objectives are indifferent to within-correct set allocation. The proposed UCPO reshapes the within-correct distribution toward uniformity by redistributing gradient mass among correct responses.
+2.2
+Diversity via Token-Level Regularization and Trajectory-Level Exploration
+Entropy-based methods aim to mitigate collapse by maintaining stochasticity during training. Global entropy regularization acts over the full output space, which can increase probability mass on incorrect responses and conflict with correctness. More targeted token-level methods preserve local stochasticity through entropy bonuses, high-uncertainty token updates, or selective entropy regularization
+(
+Cheng et al., 2025
+;
+Wang et al., 2025b
+;
+Wang et al., 2025a
+;
+Jiang et al., 2025
+)
+. However, a model can remain uncertain at the token-level while still collapsing to a narrow set of final solutions
+(
+Wu et al., 2026
+)
+.
+Another line of work promotes diversity by broadening trajectory-level exploration through adaptive rollout allocation, targeted exploration, or external data
+(
+Liao et al., 2025
+;
+Zheng et al., 2025
+;
+Dong et al., 2025
+)
+. These methods are complementary to UCPO as they expand the set of reasoning trajectories explored during training, while UCPO operates at the conditional-distribution level, reshaping how gradient mass is allocated among correct responses once they are sampled.
+3
+Preliminaries
+We review the Reinforcement Learning with Verifiable Rewards (RLVR) setting and Group Relative Policy Optimization (GRPO).
+3.1
+RLVR Objective
+Let
+x
+x
+denote a prompt and
+y
+y
+a model completion sampled from a policy
+π
+θ
+​
+(
+y
+∣
+x
+)
+\pi_{\theta}(y\mid x)
+. In RLVR, correctness is determined by a verifier
+R
+⁡
+(
+x
+,
+y
+)
+∈
+{
+0
+,
+1
+}
+R(x,y)\in\{0,1\}
+, and the set of verifier-accepted (correct) solutions is
+𝒴
++
+​
+(
+x
+)
+=
+{
+y
+:
+R
+⁡
+(
+x
+,
+y
+)
+=
+1
+}
+.
+\mathcal{Y}^{+}(x)=\{y:R(x,y)=1\}.
+The RLVR objective maximizes the probability of producing any correct solution:
+J
+(
+π
+θ
+)
+=
+𝔼
+x
+∼
+𝒟
+𝔼
+y
+∼
+π
+θ
+(
+⋅
+|
+x
+)
+[
+R
+(
+x
+,
+y
+)
+]
+=
+𝔼
+x
+∼
+𝒟
+[
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+(
+y
+|
+x
+)
+]
+.
+\begin{aligned} J(\pi_{\theta})=\mathbb{E}_{x\sim\mathcal{D}}\mathbb{E}_{y\sim\pi_{\theta}(\cdot|x)}[R(x,y)]=\mathbb{E}_{x\sim\mathcal{D}}\left[\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y|x)\right]\end{aligned}.
+(1)
+We denote the total probability mass the policy places on correct outputs as
+Z
+θ
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+∣
+x
+)
+,
+Z_{\theta}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y\mid x),
+(2)
+so that
+J
+⁡
+(
+π
+θ
+)
+=
+𝔼
+x
+∼
+𝒟
+​
+[
+Z
+θ
+​
+(
+x
+)
+]
+J(\pi_{\theta})=\mathbb{E}_{x\sim\mathcal{D}}[Z_{\theta}(x)]
+. Maximizing the RLVR objective is therefore equivalent to maximizing
+Z
+θ
+​
+(
+x
+)
+Z_{\theta}(x)
+, or equivalently
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+\log Z_{\theta}(x)
+.
+Taking the gradient of Eq. (
+1
+) yields the standard policy gradient form:
+∇
+θ
+J
+(
+π
+θ
+)
+=
+𝔼
+x
+∼
+𝒟
+,
+y
+∼
+π
+θ
+(
+⋅
+∣
+x
+)
+[
+R
+(
+x
+,
+y
+)
+∇
+θ
+log
+π
+θ
+(
+y
+∣
+x
+)
+]
+.
+\nabla_{\theta}J(\pi_{\theta})=\mathbb{E}_{x\sim\mathcal{D},\;y\sim\pi_{\theta}(\cdot\mid x)}\left[R(x,y)\nabla_{\theta}\log\pi_{\theta}(y\mid x)\right].
+(3)
+The gradient signal depends only on whether
+y
+y
+is correct, not on how probability mass is distributed among different correct outputs.
+3.2
+Group Relative Policy Optimization (GRPO)
+GRPO
+(
+Shao et al., 2024
+)
+estimates RLVR policy gradients using group-relative baselines. For each prompt
+x
+x
+, it samples
+K
+K
+rollouts
+{
+y
+i
+}
+i
+=
+1
+K
+∼
+π
+old
+(
+⋅
+∣
+x
+)
+\{y_{i}\}_{i=1}^{K}\sim\pi_{\mathrm{old}}(\cdot\mid x)
+from the rollout policy, obtains rewards
+R
+i
+=
+R
+⁡
+(
+x
+,
+y
+i
+)
+R_{i}=R(x,y_{i})
+, and updates the current policy
+π
+θ
+\pi_{\theta}
+using importance ratios. Let
+σ
+R
+=
+std
+⁡
+(
+{
+R
+j
+}
+j
+=
+1
+K
+)
+\sigma_{R}=\operatorname{std}(\{R_{j}\}_{j=1}^{K})
+denote the within-group reward standard deviation. The group-relative baseline and advantage are
+R
+¯
+=
+1
+K
+​
+∑
+i
+=
+1
+K
+R
+i
+,
+A
+i
+=
+R
+i
+−
+R
+¯
+σ
+R
++
+ε
+.
+\bar{R}=\frac{1}{K}\sum_{i=1}^{K}R_{i},\quad\quad A_{i}=\frac{R_{i}-\bar{R}}{\sigma_{R}+\varepsilon}.
+(4)
+Following PPO
+(
+Schulman et al., 2017
+)
+, GRPO uses the clipped surrogate objective:
+L
+GRPO
+​
+(
+θ
+)
+\displaystyle L_{\text{GRPO}}(\theta)
+=
+𝔼
+x
+∼
+𝒟
+,
+{
+y
+i
+}
+i
+=
+1
+K
+∼
+π
+old
+(
+⋅
+∣
+x
+)
+[
+∑
+i
+=
+1
+K
+min
+(
+r
+i
+(
+θ
+)
+A
+i
+,
+clip
+(
+r
+i
+(
+θ
+)
+,
+1
+−
+ε
+,
+1
++
+ε
+)
+A
+i
+)
+]
+\displaystyle=\mathbb{E}_{x\sim\mathcal{D},\{y_{i}\}_{i=1}^{K}\sim\pi_{\text{old}}(\cdot\mid x)}\Bigg[\sum_{i=1}^{K}\min\Big(r_{i}(\theta)A_{i},\mathrm{clip}\!\left(r_{i}(\theta),1-\varepsilon,1+\varepsilon\right)A_{i}\Big)\Bigg]
+(5)
+where
+r
+i
+​
+(
+θ
+)
+=
+π
+θ
+​
+(
+y
+i
+|
+x
+)
+π
+old
+​
+(
+y
+i
+|
+x
+)
+r_{i}(\theta)=\frac{\pi_{\theta}(y_{i}|x)}{\pi_{\mathrm{old}}(y_{i}|x)}
+is the importance ratio. All correct responses share advantage
+A
++
+A^{+}
+, and all incorrect responses share
+A
+−
+.
+A^{-}.
+Consequently, GRPO inherits the RLVR objective’s indifference to how probability mass is allocated within the correct set.
+4
+Structural Causes of Diversity Collapse in RLVR
+We identify a structural limitation of RLVR objectives: they are indifferent to how probability mass is distributed among correct solutions. Combined with optimization dynamics, this indifference leads to systematic diversity collapse.
+4.1
+Objective Indifference
+The RLVR objective (Eq. (
+1
+)) specifies what the policy should produce (correct outputs) but not how probability mass should be distributed among multiple correct solutions. The following theorem formalizes this observation.
+Theorem 4.1
+(Stationary Points of RLVR)
+.
+Let
+π
+\pi
+be any policy such that
+supp
+(
+π
+(
+⋅
+∣
+x
+)
+)
+⊆
+𝒴
++
+(
+x
+)
+\operatorname{supp}(\pi(\cdot\mid x))\subseteq\mathcal{Y}^{+}(x)
+, i.e.,
+π
+\pi
+places all probability mass on correct outputs. Then
+π
+\pi
+is a stationary point of the RLVR objective (Eq. (
+1
+)).
+Proof.
+The RLVR objective is
+J
+⁡
+(
+π
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+⁡
+(
+y
+∣
+x
+)
+.
+J(\pi)\;=\;\sum_{y\in\mathcal{Y^{+}}(x)}\pi(y\mid x).
+For any policy with
+supp
+(
+π
+(
+⋅
+∣
+x
+)
+)
+⊆
+𝒴
++
+(
+x
+)
+\operatorname{supp}(\pi(\cdot\mid x))\subseteq\mathcal{Y}^{+}(x)
+, we have
+J
+⁡
+(
+π
+)
+=
+1
+J(\pi)=1
+, the maximum possible value. Since
+J
+J
+is linear in
+π
+\pi
+and the constraint set
+{
+π
+|
+∑
+y
+π
+(
+y
+∣
+x
+)
+=
+1
+,
+π
+(
+y
+∣
+x
+)
+≥
+0
+}
+\left\{\pi\;\middle|\;\sum_{y}\pi(y\mid x)=1,\;\pi(y\mid x)\geq 0\right\}
+is a simplex, any policy achieving
+J
+⁡
+(
+π
+)
+=
+1
+J(\pi)=1
+is a global maximizer of the RLVR objective.
+∎
+Remark 4.1
+(Implication of Theorem
+4.1
+)
+.
+Theorem
+4.1
+implies that the following policies are all stationary points of RLVR with identical objective value
+J
+⁡
+(
+π
+)
+=
+1
+J(\pi)=1
+:
+•
+Collapsed:
+π
+⁡
+(
+y
+1
+∣
+x
+)
+=
+1
+\pi(y_{1}\mid x)=1
+for some
+y
+1
+∈
+𝒴
++
+​
+(
+x
+)
+y_{1}\in\mathcal{Y}^{+}(x)
+, and
+π
+⁡
+(
+y
+∣
+x
+)
+=
+0
+\pi(y\mid x)=0
+otherwise.
+•
+Uniform-correct:
+π
+⁡
+(
+y
+∣
+x
+)
+=
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+\pi(y\mid x)=\frac{1}{|\mathcal{Y}^{+}(x)|}
+for all
+y
+∈
+𝒴
++
+​
+(
+x
+)
+y\in\mathcal{Y}^{+}(x)
+.
+•
+Any mixture:
+Any distribution supported exclusively on
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+.
+Thus, the RLVR objective (and by extension GRPO and other variants) provides no gradient signal to distinguish among these policies once all mass is on correct outputs. The choice among stationary points is determined entirely by optimization dynamics, not by the objective itself.
+4.2
+The Collapse Mechanism
+Section
+4.1
+established that RLVR objectives do not specify how probability mass should be allocated among correct responses. We now show that, under GRPO and related group-relative policy-gradient methods, on-policy sampling resolves this ambiguity by favoring concentration: sampling imbalances are amplified across updates, concentrating mass on a subset of correct responses. We formalize this as a four-step cycle and validate each step in controlled experiments where the full policy distribution is observable (Appendix
+B
+); proofs are provided in Appendix
+A.1
+.
+4.2.1
+Setup
+Consider training a policy
+π
+θ
+\pi_{\theta}
+initialized from
+π
+ref
+\pi_{\text{ref}}
+. For a prompt
+x
+x
+, let
+𝒴
+\mathcal{Y}
+be the finite output space, partitioned into correct responses
+𝒴
++
+=
+{
+y
+1
+,
+…
+,
+y
+m
+}
+\mathcal{Y}^{+}=\{y_{1},\ldots,y_{m}\}
+and incorrect responses
+𝒴
+−
+\mathcal{Y}^{-}
+. Under GRPO, all correct responses share advantage
+A
++
+A^{+}
+and all incorrect responses share
+A
+−
+A^{-}
+.
+Throughout this section,
+y
+i
+y_{i}
+denotes a cluster of solutions sharing the same underlying reasoning strategy.
+4.2.2
+Sampling Bias
+The GRPO objective involves an expectation over the policy:
+ℒ
+(
+θ
+)
+=
+𝔼
+y
+∼
+π
+θ
+(
+⋅
+|
+x
+)
+[
+A
+(
+y
+)
+⋅
+log
+π
+θ
+(
+y
+|
+x
+)
+]
+.
+\mathcal{L}(\theta)=\mathbb{E}_{y\sim\pi_{\theta}(\cdot|x)}\left[A(y)\cdot\log\pi_{\theta}(y|x)\right].
+(6)
+Since this expectation is intractable, GRPO approximates it via Monte Carlo: drawing
+K
+K
+i.i.d. rollouts from
+π
+θ
+(
+⋅
+|
+x
+)
+\pi_{\theta}(\cdot|x)
+and computing the empirical gradient. Let
+N
+y
+N_{y}
+denote the number of samples from solution
+y
+y
+among the
+K
+K
+rollouts.
+Proposition 4.1
+(Sampling Bias)
+.
+Under on-policy sampling, solutions with higher probability are sampled more frequently. For
+K
+K
+i.i.d. rollouts from
+π
+θ
+(
+⋅
+|
+x
+)
+\pi_{\theta}(\cdot|x)
+, the sample count
+N
+y
+N_{y}
+follows:
+N
+y
+∼
+Binomial
+⁡
+(
+K
+,
+π
+θ
+​
+(
+y
+|
+x
+)
+)
+,
+𝔼
+⁡
+[
+N
+y
+]
+=
+K
+⋅
+π
+θ
+​
+(
+y
+|
+x
+)
+.
+N_{y}\sim\mathrm{Binomial}(K,\pi_{\theta}(y|x)),\quad\mathbb{E}[N_{y}]=K\cdot\pi_{\theta}(y|x).
+(7)
+Proof.
+Each rollout independently produces solution
+y
+y
+with probability
+π
+θ
+​
+(
+y
+|
+x
+)
+\pi_{\theta}(y|x)
+. The count of successes in
+K
+K
+independent Bernoulli trials is binomial.
+∎
+Higher-probability solutions are therefore overrepresented in sampled batches. Even under a uniform policy, finite-batch multinomial sampling can produce unequal counts across correct responses; Proposition
+A.1
+formalizes this sampling-induced symmetry breaking. Appendix
+B.2
+empirically validates this effect in the controlled environment: under uniform initialization, GRPO amplifies whichever correct response is overrepresented, leading to collapse to an arbitrary winner. The key question is therefore whether the subsequent gradient step corrects this imbalance or amplifies it.
+4.2.3
+Gradient Amplification
+Since sampling produces unequal counts
+{
+N
+y
+}
+\{N_{y}\}
+, we now examine how this imbalance enters the gradient update.
+The GRPO gradient over the batch is:
+∇
+θ
+ℒ
+=
+∑
+i
+=
+1
+K
+A
+i
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+i
+|
+x
+)
+.
+\nabla_{\theta}\mathcal{L}=\sum_{i=1}^{K}A_{i}\cdot\nabla_{\theta}\log\pi_{\theta}(y_{i}|x).
+(8)
+Grouping by solution, the gradient contribution of each correct
+y
+∈
+𝒴
++
+y\in\mathcal{Y}^{+}
+is:
+N
+y
+⋅
+A
++
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+|
+x
+)
+.
+N_{y}\cdot A^{+}\cdot\nabla_{\theta}\log\pi_{\theta}(y|x).
+Theorem 4.2
+(Gradient Amplification)
+.
+Under GRPO with on-policy sampling, the expected gradient contribution from a correct solution
+y
+∈
+𝒴
++
+y\in\mathcal{Y}^{+}
+is:
+𝔼
+[
+∑
+i
+:
+y
+i
+=
+y
+A
++
+∇
+θ
+log
+π
+θ
+(
+y
+|
+x
+)
+]
+=
+A
++
+⋅
+K
+⋅
+π
+θ
+(
+y
+|
+x
+)
+⋅
+∇
+θ
+log
+π
+θ
+(
+y
+|
+x
+)
+.
+\mathbb{E}\left[\sum_{i:y_{i}=y}A^{+}\nabla_{\theta}\log\pi_{\theta}(y|x)\right]=A^{+}\cdot K\cdot\pi_{\theta}(y|x)\cdot\nabla_{\theta}\log\pi_{\theta}(y|x).
+(9)
+Thus, expected gradient contribution scales with current probability: high-probability solutions receive larger updates, while solutions with
+π
+θ
+​
+(
+y
+∣
+x
+)
+≪
+1
+/
+K
+\pi_{\theta}(y\mid x)\ll 1/K
+are likely unsampled and lose mass through softmax renormalization.
+4.2.4
+Divergence of Probability Ratios
+The combination of sampling bias and gradient amplification causes probability ratios to diverge over training.
+Theorem 4.3
+(Compounding Divergence)
+.
+Let
+π
+t
+\pi_{t}
+denote the policy after
+t
+t
+updates. Under GRPO, for two correct solutions
+y
+1
+,
+y
+2
+∈
+𝒴
++
+​
+(
+x
+)
+y_{1},y_{2}\in\mathcal{Y}^{+}(x)
+with
+π
+0
+​
+(
+y
+1
+|
+x
+)
+>
+π
+0
+​
+(
+y
+2
+|
+x
+)
+\pi_{0}(y_{1}|x)>\pi_{0}(y_{2}|x)
+, the expected change in their log-probability ratio at step
+t
+t
+is:
+𝔼
+⁡
+[
+Δ
+​
+log
+⁡
+π
+t
+​
+(
+y
+1
+|
+x
+)
+π
+t
+​
+(
+y
+2
+|
+x
+)
+]
+=
+η
+⋅
+A
++
+⋅
+K
+⋅
+(
+π
+t
+​
+(
+y
+1
+|
+x
+)
+−
+π
+t
+​
+(
+y
+2
+|
+x
+)
+)
+>
+0
+,
+\mathbb{E}\left[\Delta\log\frac{\pi_{t}(y_{1}|x)}{\pi_{t}(y_{2}|x)}\right]=\eta\cdot A^{+}\cdot K\cdot\bigl(\pi_{t}(y_{1}|x)-\pi_{t}(y_{2}|x)\bigr)>0,
+(10)
+where
+η
+\eta
+is the effective learning rate. The log-ratio is a submartingale with positive drift that increases as the probability gap widens.
+This feedback causes small initial asymmetries to compound: the dominant solution receives larger updates, increasing its probability and expected sample count in subsequent batches, widening the gap and reinforcing the collapse.
+4.2.5
+Irreversible Pruning
+The collapse becomes irreversible once minority solutions fall below the sampling threshold.
+Corollary 4.1
+(Sampling Threshold)
+.
+When
+π
+t
+​
+(
+y
+|
+x
+)
+≪
+1
+/
+K
+\pi_{t}(y|x)\ll 1/K
+, the probability that solution
+y
+y
+receives at least one sample in a batch of size
+K
+K
+is:
+P
+⁡
+(
+N
+y
+≥
+1
+)
+=
+1
+−
+(
+1
+−
+π
+t
+​
+(
+y
+|
+x
+)
+)
+K
+≈
+K
+⋅
+π
+t
+​
+(
+y
+|
+x
+)
+≪
+1
+.
+P(N_{y}\geq 1)=1-(1-\pi_{t}(y|x))^{K}\approx K\cdot\pi_{t}(y|x)\ll 1.
+Below this threshold, solution
+y
+y
+receives effectively zero gradient signal and cannot recover under on-policy sampling.
+The four steps trace a complete trajectory: (i) initial asymmetries arise from sampling bias, (ii) GRPO amplifies these asymmetries into the gradient, (iii) the updated policy increases the probability gap, which worsens sampling imbalance in subsequent iterations, and (iv) once low-probability solutions fall below the sampling threshold, recovery becomes unlikely. This mechanism explains the empirical Pass@1 versus Pass@
+K
+K
+trade-off( Figure
+9
+): GRPO improves single-sample accuracy while reducing multi-sample coverage.
+4.3
+Controlled Experiment
+To validate the proposed collapse mechanism, we construct a controlled RLVR environment with a softmax policy over a finite discrete output space, of which three outputs are correct and the remainder are incorrect. This makes the full policy distribution exactly observable throughout training (details in Appendix
+B
+). Figure
+1
+confirms all four stages of the collapse cycle; for details see Appendix
+B.1
+.
+Figure 1:
+Controlled verification of the GRPO collapse mechanism in the toy RLVR environment.
+(A) On-policy sampling over-represents high-probability correct tokens, matching
+E
+⁡
+[
+N
+y
+]
+=
+K
+⋅
+π
+⁡
+(
+y
+)
+.
+E[N_{y}]=K\cdot\pi(y).
+(B) Because gradient contribution scales with sample count, dominant correct tokens receive larger expected updates.
+(C) The log-ratio between dominant and minority correct tokens increases over training, confirming compounding divergence.
+(D) Probability mass eventually concentrates on the initially preferred correct token, illustrating mode collapse within the correct set.
+5
+The Optimal Policy
+We established that GRPO induces systematic collapse toward dominant correct solutions, we now ask:
+what should the optimal policy look like when multiple correct solutions exist?
+We formalize this question through the conditional distribution over correct outputs and prove that a specific structure, uniform probability across all correct solutions, is optimal under two independent criteria.
+5.1
+Conditional Distribution on Correct Outputs
+Conditional Correct Distribution
+For a policy
+π
+\pi
+, define the conditional distribution over correct outputs:
+q
+⁡
+(
+y
+|
+x
+)
+=
+π
+⁡
+(
+y
+|
+x
+)
+Z
+⁡
+(
+x
+)
+,
+where
+Z
+⁡
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+⁡
+(
+y
+|
+x
+)
+.
+q(y|x)=\frac{\pi(y|x)}{Z(x)},\quad\text{where}\quad Z(x)=\sum_{y\in\mathcal{Y^{+}}(x)}\pi(y|x).
+(11)
+Here
+Z
+⁡
+(
+x
+)
+Z(x)
+is the total probability that the policy produces a correct answer. While RLVR optimizes
+Z
+⁡
+(
+x
+)
+Z(x)
+, it leaves the structure of
+q
+⁡
+(
+y
+∣
+x
+)
+q(y\mid x)
+unconstrained. Diversity collapse corresponds to
+q
+q
+concentrating on a small subset of
+𝒴
++
+\mathcal{Y^{+}}
+.
+5.2
+The Uniform-Correct Policy
+Uniform-Correct Policy (UCP)
+A policy
+π
+∗
+\pi^{*}
+is
+uniform-correct
+if:
+1.
+π
+∗
+​
+(
+y
+|
+x
+)
+=
+0
+\pi^{*}(y|x)=0
+for all
+y
+∉
+𝒴
++
+​
+(
+x
+)
+y\notin\mathcal{Y^{+}}(x)
+2.
+q
+∗
+​
+(
+y
+|
+x
+)
+=
+1
+/
+|
+𝒴
++
+|
+q^{*}(y|x)=1/|\mathcal{Y^{+}}|
+for all
+y
+∈
+𝒴
++
+​
+(
+x
+)
+y\in\mathcal{Y^{+}}(x)
+This policy places all probability mass on correct outputs and distributes it uniformly among them.
+We show that this structure is optimal under two complementary criteria: Robustness under distribution shift, which guards against test-time conditions that differ from training, and Entropy-regularized Optimality, a standard theoretical principle for resolving reward indifference (proofs in Appendix
+A.3
+).
+Theorem 5.1
+(Robustness under distribution shift)
+.
+Suppose a distribution shift disables a subset
+S
+⊂
+𝒴
++
+S\subset\mathcal{Y^{+}}
+of correct outputs, where
+|
+S
+|
+≤
+s
+|S|\leq s
+. Consider the robust objective:
+max
+π
+min
+S
+:
+|
+S
+|
+≤
+s
+∑
+y
+∈
+𝒴
++
+∖
+S
+π
+(
+y
+|
+x
+)
+.
+\max_{\pi}\min_{S:|S|\leq s}\sum_{y\in\mathcal{Y^{+}}\setminus S}\pi(y|x).
+(12)
+Then the Uniform-Correct Policy uniquely maximizes the worst-case retained probability mass.
+Theorem 5.2
+.
+Consider the entropy-regularized objective
+max
+π
+(
+⋅
+∣
+x
+)
+𝔼
+y
+∼
+π
+[
+R
+(
+x
+,
+y
+)
+]
++
+τ
+H
+(
+π
+(
+⋅
+∣
+x
+)
+)
+.
+\max_{\pi(\cdot\mid x)}\;\mathbb{E}_{y\sim\pi}[R(x,y)]+\tau\,\mathrm{H}(\pi(\cdot\mid x)).
+(13)
+There exists a threshold
+τ
+0
+>
+0
+\tau_{0}>0
+such that for all
+0
+<
+τ
+<
+τ
+0
+0<\tau<\tau_{0}
+, the UCP uniquely maximizes Eq. (
+13
+).
+Theorem
+5.1
+establishes that the Uniform-Correct Policy is the minimax-optimal solution against the loss of any bounded subset of correct outputs, and Theorem
+5.2
+shows that it is the unique solution to the entropy-regularized objective for sufficiently small
+τ
+\tau
+.
+6
+UCPO: Uniform Correct Policy Optimization
+Section
+5
+established that the uniform-correct policy is uniquely optimal. We now derive an objective that targets this policy during training.
+6.1
+UCPO Motivation
+A direct way to operationalize Theorem
+5.2
+is global entropy regularization. However, the optimization dynamics of this approach hinder convergence to the UCP. Because global entropy acts over the full output space, it can increase mass on incorrect outputs rather than controlling the conditional distribution over correct responses. Empirically, it yields small and less consistent Pass@K gains and is sensitive to the entropy coefficient; see Appendix
+C
+for details.
+This motivates an objective that directly controls how the policy allocates mass among correct responses.
+We therefore propose
+Uniform-Correct Policy Optimization
+(UCPO), which augments correctness-mass maximization with a conditional uniformity penalty that encourages the policy to match the uniform distribution over correct responses. UCPO therefore increases total correctness mass while promoting a balanced allocation of probability mass within the correct set.
+6.2
+Objective
+For a prompt
+x
+∼
+𝒟
+x\sim\mathcal{D}
+, let
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+be the set of correct responses.
+During training, we sample
+N
+N
+rollouts from
+π
+θ
+(
+⋅
+|
+x
+)
+\pi_{\theta}(\cdot|x)
+. The correct rollouts
+y
+∈
+𝒴
++
+​
+(
+x
+)
+y\in\mathcal{Y}^{+}(x)
+are effectively samples from the conditional policy
+q
+θ
+(
+⋅
+|
+x
+)
+q_{\theta}(\cdot|x)
+:
+q
+θ
+​
+(
+y
+∣
+x
+)
+=
+π
+θ
+​
+(
+y
+∣
+x
+)
+Z
+θ
+​
+(
+x
+)
+,
+Z
+θ
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+∣
+x
+)
+q_{\theta}(y\mid x)=\frac{\pi_{\theta}(y\mid x)}{Z_{\theta}(x)},\qquad Z_{\theta}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y\mid x)
+where
+Z
+θ
+​
+(
+x
+)
+Z_{\theta}(x)
+is the total probability mass that the model places on all the correct responses.
+We also define the uniform distribution over the correct set:
+u
+⁡
+(
+y
+∣
+x
+)
+=
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+.
+u(y\mid x)=\frac{1}{|\mathcal{Y}^{+}(x)|}.
+We propose the
+Uniform-Correct Policy Optimization
+(UCPO) objective:
+L
+UCPO
+​
+(
+θ
+)
+=
+𝔼
+x
+∼
+𝒟
+​
+[
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+⏟
+correctness mass
+−
+τ
+​
+KL
+(
+u
+(
+⋅
+∣
+x
+)
+∥
+q
+θ
+(
+⋅
+∣
+x
+)
+⏟
+uniformity penalty
+]
+L_{\mathrm{UCPO}}(\theta)=\mathbb{E}_{x\sim\mathcal{D}}\left[\underbrace{\log Z_{\theta}(x)}_{\text{correctness mass}}-\tau\,\underbrace{{\color[rgb]{0.1211,0.4648,0.9023}\mathrm{KL}(u(\cdot\mid x)\|q_{\theta}(\cdot\mid x)}}_{\text{uniformity penalty}}\right]
+(14)
+Relative to GRPO, UCPO introduces a single additional term: the conditional uniformity penalty
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\|q_{\theta})
+. At
+τ
+=
+0
+\tau=0
+, UCPO reduces to GRPO. For
+τ
+>
+0
+\tau>0
+, the added term breaks GRPO’s indifference to within-correct mass allocation and biases the policy toward the uniform-correct target. In particular, the Uniform-Correct Policy is the unique optimum of the UCPO objective (Theorem
+6.1
+). This modification incurs negligible additional computational overhead, since the penalty can be estimated from the same verifier-accepted rollouts already used by GRPO. As
+τ
+\tau
+increases, the penalty increasingly discourages concentration, pushing
+q
+θ
+q_{\theta}
+toward the uniform target established in Section
+5
+.
+Theorem 6.1
+(Uniform-correct policy is the unique optimum of UCPO)
+.
+Fix a prompt
+x
+x
+and consider the UCPO objective:
+L
+UCPO
+(
+x
+)
+=
+log
+Z
+θ
+(
+x
+)
+−
+τ
+KL
+(
+u
+(
+⋅
+∣
+x
+)
+∥
+q
+θ
+(
+⋅
+∣
+x
+)
+)
+.
+L_{\mathrm{UCPO}}(x)=\log Z_{\theta}(x)-\tau\,\mathrm{KL}\!\bigl(u(\cdot\mid x)\,\|\,q_{\theta}(\cdot\mid x)\bigr).
+For any
+τ
+>
+0
+\tau>0
+, the unique maximizer of
+L
+UCPO
+​
+(
+x
+)
+L_{\mathrm{UCPO}}(x)
+over policies
+π
+θ
+(
+⋅
+∣
+x
+)
+\pi_{\theta}(\cdot\mid x)
+is the Uniform-Correct Policy.
+6.3
+Gradient Estimation
+UCPO counteracts collapse through its gradient structure. Although GRPO is indifferent to within-correct allocation at the objective level, its sampled update effectively weights correct responses according to the current conditional distribution
+q
+θ
+q_{\theta}
+. UCPO instead interpolates between
+q
+θ
+q_{\theta}
+and the uniform target, shifting gradient mass away from dominant correct solutions and toward underrepresented ones.
+Proposition 6.1
+(Gradient Decomposition)
+.
+For any prompt
+x
+x
+with
+𝒴
++
+​
+(
+x
+)
+≠
+∅
+\mathcal{Y}^{+}(x)\neq\emptyset
+,
+∇
+θ
+L
+UCPO
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+[
+(
+1
+−
+τ
+)
+​
+q
+θ
+​
+(
+y
+∣
+x
+)
++
+τ
+​
+u
+​
+(
+y
+∣
+x
+)
+]
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+∣
+x
+)
+.
+\nabla_{\theta}L_{\mathrm{UCPO}}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\Big[(1-\tau)\,q_{\theta}(y\mid x)+\tau\,u(y\mid x)\Big]\nabla_{\theta}\log\pi_{\theta}(y\mid x).
+(15)
+The proof is provided in Appendix
+A.4
+. The first term is estimated directly from the
+n
+n
+correct rollouts. The second term requires samples from the uniform distribution
+u
+u
+, which we estimate via importance sampling. Since
+u
+⁡
+(
+y
+)
+/
+q
+θ
+​
+(
+y
+)
+∝
+1
+/
+q
+θ
+​
+(
+y
+)
+u(y)/q_{\theta}(y)\propto 1/q_{\theta}(y)
+, we define inverse weights
+v
+i
+=
+1
+/
+q
+^
+i
+v_{i}=1/\hat{q}_{i}
+, where
+q
+^
+i
+=
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+∑
+j
+=
+1
+n
+π
+θ
+​
+(
+y
+j
+∣
+x
+)
+,
+\hat{q}_{i}=\frac{\pi_{\theta}(y_{i}\mid x)}{\sum_{j=1}^{n}\pi_{\theta}(y_{j}\mid x)},
+with the derivation given in Appendix
+A.5
+. The resulting estimator is
+∇
+θ
+L
+UCPO
+≈
+∑
+i
+=
+1
+n
+w
+i
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+,
+w
+i
+=
+1
+−
+τ
+n
++
+τ
+⋅
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+.
+\nabla_{\theta}L_{\mathrm{UCPO}}\approx\sum_{i=1}^{n}w_{i}\nabla_{\theta}\log\pi_{\theta}(y_{i}\mid x),\qquad w_{i}=\frac{1-\tau}{n}+\tau\cdot\frac{v_{i}}{\sum_{j=1}^{n}v_{j}}.
+By construction,
+∑
+i
+w
+i
+=
+1
+\sum_{i}w_{i}=1
+. Consequently, low-probability correct solutions receive larger weights, directly counteracting the sampling bias identified in Section
+4.2
+.
+Equivalently, UCPO redistributes GRPO’s total advantage budget
+n
+⋅
+A
++
+n\cdot A^{+}
+according to
+w
+i
+w_{i}
+, giving larger updates to underrepresented correct solutions:
+A
+i
+UCPO
+=
+n
+⋅
+A
++
+⋅
+w
+i
+.
+A_{i}^{\mathrm{UCPO}}=n\cdot A^{+}\cdot w_{i}.
+(16)
+Proposition 6.2
+(Mass Preservation)
+.
+∑
+i
+=
+1
+n
+A
+i
+UCPO
+=
+∑
+i
+=
+1
+n
+A
+i
+GRPO
+\sum_{i=1}^{n}A_{i}^{\mathrm{UCPO}}=\sum_{i=1}^{n}A_{i}^{\mathrm{GRPO}}
+.
+Thus, UCPO preserves the total advantage mass assigned to correct rollouts and reallocates it towards underrepresented correct responses. The proof is provided in Appendix
+A.6
+.
+Table 1:
+Pass@1 and Pass@64 (%) across models and reasoning benchmarks. UCPO improves average Pass@64 across all three model families while remaining competitive at Pass@1. Best results are shown in bold.
+DeepSeek-Distill-Qwen-1.5B
+AIME24
+AIME25
+AMC
+MATH
+OlympiadBench
+Avg
+Method
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+GRPO
+19.06
+63.33
+20.21
+46.67
+55.27
+87.95
+71.57
+97.60
+42.63
+78.52
+41.75
+74.81
+KL-Cov
+19.64
+60.00
+18.13
+43.33
+54.78
+91.57
+70.47
+96.80
+42.69
+78.22
+41.14
+73.98
+Ent-Reg
+19.43
+63.33
+17.24
+46.67
+56.12
+89.16
+72.23
+97.60
+43.03
+78.07
+41.61
+74.97
+Ent-Adv
+19.58
+63.33
+15.94
+46.67
+54.07
+91.57
+69.37
+97.00
+41.59
+79.11
+40.11
+75.54
+Pass@K
+15.47
+66.67
+14.27
+53.33
+47.63
+93.98
+62.74
+97.40
+35.24
+77.93
+35.07
+77.86
+FGRPO
+17.92
+66.67
+16.35
+50.00
+52.79
+93.98
+67.76
+97.20
+40.57
+78.96
+39.08
+77.36
+UCPO
+19.01
+66.67
+18.49
+53.33
+52.97
+93.98
+67.93
+97.20
+40.15
+80.15
+39.71
+78.27
+DeepSeek-Distill-Qwen-7B
+AIME24
+AIME25
+AMC
+MATH
+OlympiadBench
+Avg
+Method
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+GRPO
+27.71
+70.00
+22.08
+53.33
+61.86
+93.98
+77.99
+98.20
+47.28
+82.96
+47.38
+79.69
+KL-Cov
+31.15
+76.67
+23.07
+56.67
+63.42
+95.18
+78.21
+98.20
+47.99
+81.93
+48.77
+81.73
+Ent-Reg
+29.06
+76.67
+21.30
+56.67
+63.08
+93.98
+78.31
+99.00
+48.26
+82.37
+48.00
+81.74
+Ent-Adv
+29.06
+80.00
+21.15
+56.67
+59.71
+96.39
+76.08
+99.00
+45.92
+83.56
+46.38
+83.12
+Pass@K
+23.39
+70.00
+19.11
+56.67
+56.44
+93.98
+72.59
+98.20
+41.77
+80.74
+42.66
+79.92
+FGRPO
+27.55
+76.67
+21.25
+53.33
+61.77
+95.18
+76.25
+98.80
+46.47
+81.93
+46.66
+81.18
+UCPO
+30.16
+80.00
+21.51
+56.67
+62.58
+97.59
+76.45
+99.00
+47.39
+83.26
+47.62
+83.30
+Qwen2.5-7B
+AIME24
+AIME25
+AMC
+MATH
+OlympiadBench
+Avg
+Method
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+GRPO
+14.27
+43.33
+5.26
+40.00
+44.26
+90.36
+71.61
+95.40
+34.85
+72.74
+34.05
+68.37
+KL-Cov
+12.50
+46.67
+4.27
+46.67
+41.87
+87.95
+67.58
+95.40
+31.84
+74.81
+31.61
+70.30
+Ent-Reg
+11.98
+50.00
+4.11
+40.00
+42.09
+86.75
+66.60
+94.80
+32.02
+73.48
+31.36
+69.01
+Ent-Adv
+12.71
+60.00
+4.69
+43.33
+41.74
+90.36
+68.86
+95.00
+32.41
+73.33
+32.08
+72.40
+Pass@K
+10.73
+53.33
+4.01
+43.33
+38.52
+89.16
+61.85
+95.60
+28.82
+74.22
+28.79
+71.13
+FGRPO
+12.97
+56.67
+5.05
+40.00
+41.74
+91.57
+67.02
+95.40
+32.21
+74.37
+31.80
+71.60
+UCPO
+15.05
+56.67
+5.21
+46.67
+43.66
+91.57
+70.74
+95.80
+35.03
+75.26
+33.94
+73.19
+7
+Experiments
+In this section, we evaluate UCPO across multiple model families, parameter scales, and mathematical reasoning benchmarks.
+7.1
+Setup
+We train on 10K competition-style math problems from the DeepScaleR corpus
+(
+Luo et al., 2025
+;
+Liao et al., 2025
+)
+, with 500 reserved for validation. We evaluate on three models: DeepSeek-R1-Distill-Qwen-1.5B, DeepSeek-R1-Distill-Qwen-7B
+(
+DeepSeek-AI et al., 2025
+)
+, and Qwen2.5-7B
+(
+Team, 2024
+)
+. All models are fine-tuned from public checkpoints using the same RLVR pipeline.
+We compare UCPO against standard GRPO and five diversity-preserving baselines with varying strategies for mitigating collapse in RLVR: adding entropy to the objective (Ent-Reg), adding an entropy-based advantage bonus (Ent-Adv)
+(
+Cheng et al., 2025
+)
+, applying covariance-based KL control (KL-Cov)
+(
+Cui et al., 2025
+)
+, optimizing a Pass@K-oriented reward with analytical advantages (Pass@K Training)
+(
+Chen et al., 2025
+)
+, and using focal-style prompt-level advantage scaling (FGRPO). Dataset composition and implementation details are in Appendix
+D
+.
+We evaluate on AIME 2024/2025
+(
+Li et al., 2024
+)
+, AMC 2023
+(
+Li et al., 2024
+)
+, MATH 500
+(
+Gao et al., 2024
+)
+, and OlympiadBench
+(
+He et al., 2024
+)
+, reporting Pass@1 and Pass@K (K=64).
+Pass@K captures coverage over distinct correct solutions, making it suitable for evaluating diversity.
+7.2
+Main Results
+Table
+1
+reports Pass@1 and Pass@64 across 5 benchmarks and 3 models (1.5B to 7B parameters). Across all settings, GRPO improves Pass@1 but saturates at larger
+K
+K
+, indicating concentration of probability mass on a small subset of correct solutions. UCPO maintains competitive Pass@1 while achieving consistent improvements at larger
+K
+K
+.
+On DeepSeek-Distill-Qwen-1.5B, UCPO improves average Pass@64 to 78.27%, outperforming GRPO by +3.5 points while remaining comparable at Pass@1. Gains are particularly strong on AIME25 (+6.7) and AMC (+6.0) at
+K
+=
+64
+K{=}64
+.
+On DeepSeek-Distill-Qwen-7B, UCPO improves average Pass@64 by +3.6 points, with +10.0 on AIME24. On Qwen2.5-7B, UCPO achieves the highest average Pass@64 (73.19%, +4.8 over GRPO) while also maintaining the strong Pass@1. These gains indicate that UCPO improves coverage over correct solutions rather than trading off accuracy for diversity.
+Table 2:
+Equation-level diversity among correct solutions. UCPO achieves the highest diversity across benchmarks.
+Benchmark
+GRPO
+KL-Cov
+Ent-Reg
+Ent-Adv
+Pass@K
+FGRPO
+UCPO
+AIME
+0.150
+0.179
+0.157
+0.186
+0.167
+0.168
+0.218
+AMC
+0.197
+0.176
+0.155
+0.188
+0.190
+0.192
+0.217
+MATH
+0.173
+0.156
+0.140
+0.159
+0.182
+0.171
+0.196
+Olympiad
+0.208
+0.185
+0.163
+0.193
+0.210
+0.203
+0.228
+Avg.
+0.182
+0.174
+0.154
+0.181
+0.187
+0.184
+0.215
+7.3
+Diversity
+To directly measure diversity within the correct set, we evaluate equation-level diversity among verifier-accepted solutions (Table
+2
+). This metric computes the fraction of mathematical expressions in a correct rollout that are unique relative to other correct rollouts for the same prompt
+(
+Hu et al., 2025
+)
+. Higher values indicate more distinct reasoning trajectories.
+UCPO consistently achieves the highest diversity across all benchmarks, with substantial improvements over GRPO (e.g., +45% on AIME, +13% on MATH). In contrast, entropy-based methods do not reliably improve diversity within the correct set and in some cases reduce it. This confirms that UCPO’s Pass@K gains arise from recovering distinct correct reasoning trajectories, not from spreading mass indiscriminately. This is consistent with the controlled experiments in Appendix
+B
+: GRPO collapses the conditional distribution over correct solutions, while UCPO maintains a more uniform allocation.
+7.4
+Pass@K Performance
+Figures
+7
+show Pass@K curves for all three models and reasoning benchmarks. UCPO consistently improves performance at larger
+K
+K
+while remaining competitive at Pass@1, particularly on challenging benchmarks (AIME 2024/2025). This shows UCPO increases coverage over correct reasoning trajectories rather than concentrating on a single dominant mode. By redistributing gradient signal within the verifier-accepted set, UCPO prevents a small number of high-probability solutions from dominating learning, yielding sustained Pass@K gains without shifting mass toward incorrect outputs.
+7.5
+Cost and Hyperparameter Sensitivity
+UCPO introduces a single hyperparameter
+τ
+\tau
+beyond standard GRPO. Its training cost is effectively identical to GRPO (Appendix
+E.2
+). UCPO is also robust across a moderate range of
+τ
+\tau
+values, whereas global entropy regularization is more sensitive to its coefficient (Appendix
+E.3
+).
+8
+Conclusion
+We identify a structural limitation of RLVR training: while it increases the probability of correct solutions, it is indifferent to how probability mass is distributed within the correct set. This indifference, coupled with on-policy sampling dynamics, leads to diversity collapse and degraded multi-sample coverage (Pass@K). We show that the optimal policy is the Uniform-Correct Policy, which distributes probability evenly across correct solutions.
+To achieve this structure, we proposed UCPO, to reweight gradients conditional on correctness, amplifying underrepresented correct solutions while tempering dominant ones. Across multiple models and mathematical reasoning benchmarks, UCPO consistently improves Pass@K while preserving Pass@1, achieving up to a 10% absolute gain on AIME24 at Pass@64. These results highlight the importance of explicitly shaping the diversity structure of policies in RL for LLMs.
+References
+Chen
+et al.
+(2025)
+Z. Chen, X. Qin, Y. Wu, Y. Ling, Q. Ye, W. X. Zhao, and G. Shi
+Pass@ k training for adaptively balancing exploration and exploitation of large reasoning models
+.
+arXiv preprint arXiv:2508.10751
+.
+Cited by:
+§1
+,
+§7.1
+.
+Cheng
+et al.
+(2025)
+D. Cheng, S. Huang, X. Zhu, B. Dai, W. X. Zhao, Z. Zhang, and F. Wei
+Reasoning with exploration: an entropy perspective
+.
+arXiv preprint arXiv:2506.14758
+.
+Cited by:
+§2.2
+,
+§7.1
+.
+Cobbe
+et al.
+(2021)
+K. Cobbe, V. Kosaraju, M. Bavarian, M. Chen, H. Jun, L. Kaiser, M. Plappert, J. Tworek, J. Hilton, R. Nakano, C. Hesse, and J. Schulman
+Training verifiers to solve math word problems
+.
+External Links:
+2110.14168
+,
+Link
+Cited by:
+§1
+.
+Cui
+et al.
+(2025)
+G. Cui, Y. Zhang, J. Chen, L. Yuan, Z. Wang, Y. Zuo, H. Li, Y. Fan, H. Chen, W. Chen, Z. Liu, H. Peng, L. Bai, W. Ouyang, Y. Cheng, B. Zhou, and N. Ding
+The entropy mechanism of reinforcement learning for reasoning language models
+.
+External Links:
+2505.22617
+,
+Link
+Cited by:
+§1
+,
+§2.1
+,
+§7.1
+.
+DeepSeek-AI
+et al.
+(2025)
+DeepSeek-AI, D. Guo, D. Yang, H. Zhang, J. Song, R. Zhang, R. Xu, Q. Zhu, S. Ma, P. Wang, X. Bi, X. Zhang, X. Yu, Y. Wu, Z. F. Wu, Z. Gou, Z. Shao, Z. Li, Z. Gao, A. Liu, B. Xue, B. Wang, B. Wu, B. Feng, C. Lu, C. Zhao, C. Deng, C. Zhang, C. Ruan, D. Dai, D. Chen, D. Ji, E. Li, F. Lin, F. Dai, F. Luo, G. Hao, G. Chen, G. Li, H. Zhang, H. Bao, H. Xu, H. Wang, H. Ding, H. Xin, H. Gao, H. Qu, H. Li, J. Guo, J. Li, J. Wang, J. Chen, J. Yuan, J. Qiu, J. Li, J. Cai, J. Ni, J. Liang, J. Chen, K. Dong, K. Hu, K. Gao, K. Guan, K. Huang, K. Yu, L. Wang, L. Zhang, L. Zhao, L. Wang, L. Zhang, L. Xu, L. Xia, M. Zhang, M. Zhang, M. Tang, M. Li, M. Wang, M. Li, N. Tian, P. Huang, P. Zhang, Q. Wang, Q. Chen, Q. Du, R. Ge, R. Zhang, R. Pan, R. Wang, R. J. Chen, R. Jin, R. Chen, S. Lu, S. Zhou, S. Chen, S. Ye, S. Wang, S. Yu, S. Zhou, S. Pan, S. S. Li, S. Zhou, S. Wu, T. Yun, T. Pei, T. Sun, T. Wang, W. Zeng, W. Zhao, W. Liu, W. Liang, W. Gao, W. Yu, W. Zhang, W. Xiao, W. An, X. Liu, X. Wang, X. Chen, X. Nie, X. Cheng, X. Liu, X. Xie, X. Liu, X. Yang, X. Li, X. Su, X. Lin, X. Q. Li, X. Jin, X. Shen, X. Chen, X. Sun, X. Wang, X. Song, X. Zhou, X. Wang, X. Shan, Y. K. Li, Y. Q. Wang, Y. X. Wei, Y. Zhang, Y. Xu, Y. Li, Y. Zhao, Y. Sun, Y. Wang, Y. Yu, Y. Zhang, Y. Shi, Y. Xiong, Y. He, Y. Piao, Y. Wang, Y. Tan, Y. Ma, Y. Liu, Y. Guo, Y. Ou, Y. Wang, Y. Gong, Y. Zou, Y. He, Y. Xiong, Y. Luo, Y. You, Y. Liu, Y. Zhou, Y. X. Zhu, Y. Huang, Y. Li, Y. Zheng, Y. Zhu, Y. Ma, Y. Tang, Y. Zha, Y. Yan, Z. Ren, Z. Ren, Z. Sha, Z. Fu, Z. Xu, Z. Xie, Z. Zhang, Z. Hao, Z. Ma, Z. Yan, Z. Wu, Z. Gu, Z. Zhu, Z. Liu, Z. Li, Z. Xie, Z. Song, Z. Pan, Z. Huang, Z. Xu, Z. Zhang, and Z. Zhang
+DeepSeek-r1 incentivizes reasoning in llms through reinforcement learning
+.
+Nature
+645
+,
+pp. 633 – 638
+.
+External Links:
+Link
+Cited by:
+§D.2
+,
+§1
+,
+§7.1
+.
+Dong
+et al.
+(2025)
+G. Dong, H. Mao, K. Ma, L. Bao, Y. Chen, Z. Wang, Z. Chen, J. Du, H. Wang, F. Zhang,
+et al.
+Agentic reinforced policy optimization
+.
+arXiv preprint arXiv:2507.19849
+.
+Cited by:
+§2.2
+.
+Gai
+et al.
+(2025)
+J. Gai, G. Zeng, H. Zhang, and A. Raghunathan
+Differential smoothing mitigates sharpening and improves llm reasoning
+.
+arXiv preprint arXiv:2511.19942
+.
+Cited by:
+§2.1
+.
+Gao
+et al.
+(2024)
+B. Gao, F. Song, Z. Yang, Z. Cai, Y. Miao, Q. Dong, L. Li, C. Ma, L. Chen, R. Xu,
+et al.
+Omni-math: a universal olympiad level mathematic benchmark for large language models
+.
+arXiv preprint arXiv:2410.07985
+.
+Cited by:
+§D.1
+,
+§7.1
+.
+He
+et al.
+(2025)
+A. W. He, D. Fried, and S. Welleck
+Rewarding the unlikely: lifting GRPO beyond distribution sharpening
+.
+In
+Proceedings of the 2025 Conference on Empirical Methods in Natural Language Processing
+,
+C. Christodoulopoulos, T. Chakraborty, C. Rose, and V. Peng (Eds.)
+,
+Suzhou, China
+,
+pp. 25548–25560
+.
+External Links:
+Link
+,
+Document
+,
+ISBN 979-8-89176-332-6
+Cited by:
+§1
+,
+§1
+,
+§2
+.
+He
+et al.
+(2024)
+C. He, R. Luo, Y. Bai, S. Hu, Z. Thai, J. Shen, J. Hu, X. Han, Y. Huang, Y. Zhang,
+et al.
+Olympiadbench: a challenging benchmark for promoting agi with olympiad-level bilingual multimodal scientific problems
+.
+In
+Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)
+,
+pp. 3828–3850
+.
+Cited by:
+§7.1
+.
+Hendrycks
+et al.
+(2021)
+D. Hendrycks, C. Burns, S. Kadavath, A. Arora, S. Basart, E. Tang, D. Song, and J. Steinhardt
+Measuring mathematical problem solving with the math dataset
+.
+NeurIPS
+.
+Cited by:
+§D.1
+.
+Hu
+et al.
+(2025)
+Z. Hu, S. Zhang, Y. Li, J. Yan, X. Hu, L. Cui, X. Qu, C. Chen, Y. Cheng, and Z. Wang
+Diversity-incentivized exploration for versatile reasoning
+.
+arXiv preprint arXiv:2509.26209
+.
+Cited by:
+Appendix F
+,
+§7.3
+.
+Jiang
+et al.
+(2025)
+Y. Jiang, Y. Li, G. Chen, D. Liu, Y. Cheng, and J. Shao
+Rethinking entropy regularization in large reasoning models
+.
+arXiv preprint arXiv:2509.25133
+.
+Cited by:
+§1
+,
+§2.2
+.
+Karan and Du (2025)
+A. Karan and Y. Du
+Reasoning with sampling: your base model is smarter than you think
+.
+arXiv preprint arXiv:2510.14901
+.
+Cited by:
+§1
+,
+§1
+.
+Li
+et al.
+(2024)
+J. Li, E. Beeching, L. Tunstall, B. Lipkin, R. Soletskyi, S. Huang, K. Rasul, L. Yu, A. Q. Jiang, Z. Shen,
+et al.
+Numinamath: the largest public dataset in ai4maths with 860k pairs of competition math problems and solutions
+.
+Hugging Face repository
+13
+(
+9
+),
+pp. 9
+.
+Cited by:
+§7.1
+.
+Li and Li (2026)
+W. Li and S. Li
+LAD: learning advantage distribution for reasoning
+.
+ACL 2026
+.
+Cited by:
+§2.1
+.
+Liao
+et al.
+(2025)
+M. Liao, X. Xi, R. Chen, J. Leng, Y. Hu, K. Zeng, S. Liu, and H. Wan
+Enhancing efficiency and exploration in reinforcement learning for llms
+.
+arXiv preprint arXiv:2505.18573
+.
+Cited by:
+§D.1
+,
+§2.2
+,
+§7.1
+.
+Luo
+et al.
+(2025)
+M. Luo, S. Tan, J. Wong, X. Shi, W. Y. Tang, M. Roongta, C. Cai, J. Luo, T. Zhang, L. E. Li,
+et al.
+Deepscaler: surpassing o1-preview with a 1.5 b model by scaling rl
+.
+Notion Blog
+.
+Cited by:
+§D.1
+,
+§7.1
+.
+Matsutani
+et al.
+(2025)
+K. Matsutani, S. Takashiro, G. Minegishi, T. Kojima, Y. Iwasawa, and Y. Matsuo
+Rl squeezes, sft expands: a comparative study of reasoning llms
+.
+arXiv preprint arXiv:2509.21128
+.
+Cited by:
+§2
+.
+Ni
+et al.
+(2025)
+K. Ni, Z. Tan, Z. Liu, P. Li, and T. Chen
+Can grpo help llms transcend their pretraining origin?
+.
+External Links:
+2510.15990
+,
+Link
+Cited by:
+§2
+.
+Plyusov
+et al.
+(2026)
+D. Plyusov, A. Gorbatovski, B. Shaposhnikov, V. Sinii, A. Malakhov, and D. Gavrilov
+F-grpo: don’t let your policy learn the obvious and forget the rare
+.
+arXiv preprint arXiv:2602.06717
+.
+Cited by:
+§2.1
+.
+Schulman
+et al.
+(2017)
+J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov
+Proximal policy optimization algorithms
+.
+arXiv preprint arXiv:1707.06347
+.
+Cited by:
+§3.2
+.
+Shao
+et al.
+(2024)
+Z. Shao, P. Wang, Q. Zhu, R. Xu, J. Song, X. Bi, H. Zhang, M. Zhang, Y. K. Li, Y. Wu, and D. Guo
+DeepSeekMath: pushing the limits of mathematical reasoning in open language models
+.
+External Links:
+2402.03300
+,
+Link
+Cited by:
+§1
+,
+§3.2
+.
+Song
+et al.
+(2025)
+Y. Song, J. Kempe, and R. Munos
+Outcome-based exploration for llm reasoning
+.
+arXiv preprint arXiv:2509.06941
+.
+Cited by:
+§1
+.
+Team (2024)
+Q. Team
+Qwen2.5: a party of foundation models
+.
+External Links:
+Link
+Cited by:
+§D.2
+,
+§7.1
+.
+Wang
+et al.
+(2025a)
+J. Wang, R. Liu, F. Zhang, X. Li, and G. Zhou
+Stabilizing knowledge, promoting reasoning: dual-token constraints for rlvr
+.
+External Links:
+2507.15778
+,
+Link
+Cited by:
+§1
+,
+§2.2
+.
+Wang
+et al.
+(2025b)
+S. Wang, L. Yu, C. Gao, C. Zheng, S. Liu, R. Lu, K. Dang, X. Chen, J. Yang, Z. Zhang, Y. Liu, A. Yang, A. Zhao, Y. Yue, S. Song, B. Yu, G. Huang, and J. Lin
+Beyond the 80/20 rule: high-entropy minority tokens drive effective reinforcement learning for llm reasoning
+.
+External Links:
+2506.01939
+,
+Link
+Cited by:
+§1
+,
+§2.2
+.
+Wu
+et al.
+(2026)
+F. Wu, W. Xuan, X. Lu, M. Liu, Y. Dong, Z. Harchaoui, and Y. Choi
+The invisible leash: why rlvr may or may not escape its origin
+.
+External Links:
+2507.14843
+,
+Link
+Cited by:
+§1
+,
+§2.2
+,
+§2
+.
+Yue
+et al.
+(2025)
+Y. Yue, Z. Chen, R. Lu, A. Zhao, Z. Wang, Y. Yue, S. Song, and G. Huang
+Does reinforcement learning really incentivize reasoning capacity in LLMs beyond the base model?
+.
+In
+The Thirty-ninth Annual Conference on Neural Information Processing Systems
+,
+External Links:
+Link
+Cited by:
+§1
+,
+§2
+.
+Zheng
+et al.
+(2025)
+T. Zheng, T. Xing, Q. Gu, T. Liang, X. Qu, X. Zhou, Y. Li, Z. Wen, C. Lin, W. Huang, Q. Liu, G. Zhang, and Z. Ma
+First return, entropy-eliciting explore
+.
+External Links:
+2507.07017
+,
+Link
+Cited by:
+§2.2
+.
+Appendix A
+Theoretical Details and Proofs
+A.1
+The Diversity Collapse Mechanism
+Sampling Bias: Connection to Pólya Urn and Preferential Attachment
+The sampling bias in the collapse mechanism is mathematically related to classical models of preferential attachment:
+Consider
+Pólya Urn Analogy
+of an urn containing balls of
+M
+M
+colors (representing
+M
+M
+correct solutions), with initial counts proportional to
+{
+π
+0
+​
+(
+y
+i
+)
+}
+\{\pi_{0}(y_{i})\}
+. At each step, draw
+K
+K
+balls with replacement, observe their colors, then add balls proportionally to the observed counts. This is the Pólya urn process, known to converge to a random limit where one color dominates with positive probability.
+GRPO’s on-policy sampling implements an analogous dynamic: the “urn composition” (policy distribution) is updated proportionally to observed samples (gradient updates), creating identical rich-get-richer dynamics.
+Unequal sample counts are inevitable
+Whether or not the policy initially assigns equal probability to correct solutions, the sample counts
+{
+N
+y
+}
+y
+∈
+𝒴
++
+\{N_{y}\}_{y\in\mathcal{Y}^{+}}
+will be unequal:
+•
+Deterministic case:
+If
+π
+⁡
+(
+y
+1
+|
+x
+)
+>
+π
+⁡
+(
+y
+2
+|
+x
+)
+\pi(y_{1}|x)>\pi(y_{2}|x)
+, then
+𝔼
+⁡
+[
+N
+y
+1
+]
+>
+𝔼
+⁡
+[
+N
+y
+2
+]
+\mathbb{E}[N_{y_{1}}]>\mathbb{E}[N_{y_{2}}]
+. Higher-probability solutions are systematically over-represented.
+•
+Stochastic case:
+Even if
+π
+⁡
+(
+y
+|
+x
+)
+=
+1
+/
+m
+\pi(y|x)=1/m
+for all
+y
+∈
+𝒴
++
+y\in\mathcal{Y}^{+}
+, the realized counts will differ due to sampling variance (see Proposition
+A.1
+and empirical illustration in Appendix
+B
+).
+Proposition A.1
+(Stochastic Symmetry Breaking)
+.
+Suppose
+π
+0
+​
+(
+y
+|
+x
+)
+=
+1
+/
+m
+\pi_{0}(y|x)=1/m
+for all
+y
+∈
+𝒴
++
+​
+(
+x
+)
+y\in\mathcal{Y}^{+}(x)
+. For any finite batch size
+K
+K
+, with positive probability, the sample counts
+{
+N
+y
+}
+\{N_{y}\}
+are not all equal.
+Proof.
+Under a uniform policy over the
+m
+m
+correct responses, the count vector satisfies
+(
+N
+y
+1
+,
+…
+,
+N
+y
+m
+)
+∼
+Multinomial
+⁡
+(
+K
+,
+(
+1
+m
+,
+…
+,
+1
+m
+)
+)
+.
+(N_{y_{1}},\ldots,N_{y_{m}})\sim\mathrm{Multinomial}\!\left(K,\left(\frac{1}{m},\ldots,\frac{1}{m}\right)\right).
+If
+K
+K
+is not divisible by
+m
+m
+, exact equality of all counts is impossible. If
+K
+K
+is divisible by
+m
+m
+, exact equality requires
+N
+y
+j
+=
+K
+/
+m
+N_{y_{j}}=K/m
+for every
+j
+j
+, which occurs with probability
+ℙ
+⁡
+(
+N
+y
+1
+=
+⋯
+=
+N
+y
+m
+=
+K
+/
+m
+)
+=
+K
+!
+(
+(
+K
+/
+m
+)
+!
+)
+m
+⋅
+1
+m
+K
+<
+1
+.
+\mathbb{P}(N_{y_{1}}=\cdots=N_{y_{m}}=K/m)=\frac{K!}{((K/m)!)^{m}}\cdot\frac{1}{m^{K}}<1.
+Thus, unequal counts occur with positive probability in any finite batch. On this event, at least one correct response is overrepresented, i.e., there exists
+y
+∗
+y^{*}
+such that
+N
+y
+∗
+>
+K
+/
+m
+N_{y^{*}}>K/m
+. Across repeated independent batches, the probability that no imbalance ever occurs is zero, so symmetry-breaking occurs almost surely over training.
+∎
+A.2
+Proof of Theorem
+4.2
+, Theorem
+4.3
+and Corollary
+4.1
+Theorem A.1
+(Gradient Amplification)
+.
+Under GRPO with on-policy sampling, the expected gradient contribution from a correct solution
+y
+∈
+𝒴
++
+y\in\mathcal{Y}^{+}
+is:
+𝔼
+[
+∑
+i
+:
+y
+i
+=
+y
+A
++
+∇
+θ
+log
+π
+θ
+(
+y
+|
+x
+)
+]
+=
+A
++
+⋅
+K
+⋅
+π
+θ
+(
+y
+|
+x
+)
+⋅
+∇
+θ
+log
+π
+θ
+(
+y
+|
+x
+)
+.
+\mathbb{E}\left[\sum_{i:y_{i}=y}A^{+}\nabla_{\theta}\log\pi_{\theta}(y|x)\right]=A^{+}\cdot K\cdot\pi_{\theta}(y|x)\cdot\nabla_{\theta}\log\pi_{\theta}(y|x).
+(17)
+The expected contribution is proportional to current probability
+π
+⁡
+(
+y
+|
+x
+)
+\pi(y|x)
+. Solutions with higher probability receive larger expected updates; solutions with
+π
+⁡
+(
+y
+|
+x
+)
+≪
+1
+/
+K
+\pi(y|x)\ll 1/K
+likely remain unsampled and receive no gradient signal, causing their probability to decrease through softmax renormalization.
+Proof.
+The GRPO gradient aggregated over the batch is:
+∇
+θ
+ℒ
+=
+∑
+i
+=
+1
+K
+A
+i
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+i
+|
+x
+)
+.
+\nabla_{\theta}\mathcal{L}=\sum_{i=1}^{K}A_{i}\cdot\nabla_{\theta}\log\pi_{\theta}(y_{i}|x).
+For correct solutions (
+y
+i
+∈
+𝒴
++
+y_{i}\in\mathcal{Y}^{+}
+), the advantage is
+A
+i
+=
+A
++
+A_{i}=A^{+}
+. Grouping terms by solution identity:
+∇
+θ
+ℒ
+|
+𝒴
++
+=
+∑
+y
+∈
+𝒴
++
+N
+y
+⋅
+A
++
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+|
+x
+)
+,
+\nabla_{\theta}\mathcal{L}\big|_{\mathcal{Y}^{+}}=\sum_{y\in\mathcal{Y}^{+}}N_{y}\cdot A^{+}\cdot\nabla_{\theta}\log\pi_{\theta}(y|x),
+where
+N
+y
+=
+∑
+i
+=
+1
+K
+𝟏
+[
+y
+i
+=
+y
+]
+N_{y}=\sum_{i=1}^{K}\mathbf{1}[y_{i}=y]
+counts occurrences of
+y
+y
+in the batch.
+Taking expectations and applying Proposition
+4.1
+:
+𝔼
+⁡
+[
+N
+y
+⋅
+A
++
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+|
+x
+)
+]
+\displaystyle\mathbb{E}\left[N_{y}\cdot A^{+}\cdot\nabla_{\theta}\log\pi_{\theta}(y|x)\right]
+=
+A
++
+⋅
+𝔼
+⁡
+[
+N
+y
+]
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+|
+x
+)
+\displaystyle=A^{+}\cdot\mathbb{E}[N_{y}]\cdot\nabla_{\theta}\log\pi_{\theta}(y|x)
+(18)
+=
+A
++
+⋅
+K
+⋅
+π
+θ
+​
+(
+y
+|
+x
+)
+⋅
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+|
+x
+)
+.
+\displaystyle=A^{+}\cdot K\cdot\pi_{\theta}(y|x)\cdot\nabla_{\theta}\log\pi_{\theta}(y|x).
+(19)
+The expected gradient contribution is proportional to
+π
+θ
+​
+(
+y
+|
+x
+)
+\pi_{\theta}(y|x)
+:
+•
+High-probability solutions:
+π
+θ
+​
+(
+y
+|
+x
+)
+\pi_{\theta}(y|x)
+large
+⇒
+\Rightarrow
+large expected contribution
+•
+Low-probability solutions:
+π
+θ
+​
+(
+y
+|
+x
+)
+\pi_{\theta}(y|x)
+small
+⇒
+\Rightarrow
+small expected contribution
+•
+Very low probability (
+π
+θ
+​
+(
+y
+|
+x
+)
+≪
+1
+/
+K
+\pi_{\theta}(y|x)\ll 1/K
+):
+𝔼
+⁡
+[
+N
+y
+]
+≪
+1
+\mathbb{E}[N_{y}]\ll 1
+, so
+y
+y
+is likely unsampled and contributes nothing
+For an unsampled solution
+y
+unsamp
+y_{\text{unsamp}}
+:
+Δ
+​
+z
+y
+unsamp
+=
+0
+(no gradient signal)
+\Delta z_{y_{\text{unsamp}}}=0\quad\text{(no gradient signal)}
+(20)
+After the update, the softmax normalization means:
+π
+θ
+′
+​
+(
+y
+unsamp
+|
+x
+)
+=
+exp
+⁡
+(
+z
+y
+unsamp
+)
+∑
+y
+′
+exp
+⁡
+(
+z
+y
+′
++
+Δ
+​
+z
+y
+′
+)
+<
+π
+θ
+​
+(
+y
+unsamp
+|
+x
+)
+\pi^{\prime}_{\theta}(y_{\text{unsamp}}|x)=\frac{\exp(z_{y_{\text{unsamp}}})}{\sum_{y^{\prime}}\exp(z_{y^{\prime}}+\Delta z_{y^{\prime}})}<\pi_{\theta}(y_{\text{unsamp}}|x)
+(21)
+The unsampled solution’s probability decreases as the probability mass shifts toward solutions that were sampled. This creates a multiplicative dynamic: solutions that are already more probable receive larger updates because they are more probable and sampled more often. After each gradient step, the probability distribution over
+𝒴
++
+\mathcal{Y}^{+}
+becomes more concentrated: the gap between high- and low-probability correct solutions widens. Since
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+|
+x
+)
+\nabla_{\theta}\log\pi_{\theta}(y|x)
+points in the direction that increases
+π
+θ
+​
+(
+y
+|
+x
+)
+\pi_{\theta}(y|x)
+, solutions with higher current probability receive updates of larger expected magnitude, amplifying the initial disparity.
+∎
+Theorem A.2
+(Compounding Divergence)
+.
+Let
+π
+t
+\pi_{t}
+denote the policy after
+t
+t
+updates. Under GRPO, for two correct solutions
+y
+1
+,
+y
+2
+∈
+𝒴
++
+​
+(
+x
+)
+y_{1},y_{2}\in\mathcal{Y}^{+}(x)
+with
+π
+0
+​
+(
+y
+1
+|
+x
+)
+>
+π
+0
+​
+(
+y
+2
+|
+x
+)
+\pi_{0}(y_{1}|x)>\pi_{0}(y_{2}|x)
+, the expected change in their log-probability ratio at step
+t
+t
+is:
+𝔼
+⁡
+[
+Δ
+​
+log
+⁡
+π
+t
+​
+(
+y
+1
+|
+x
+)
+π
+t
+​
+(
+y
+2
+|
+x
+)
+]
+=
+η
+⋅
+A
++
+⋅
+K
+⋅
+(
+π
+t
+​
+(
+y
+1
+|
+x
+)
+−
+π
+t
+​
+(
+y
+2
+|
+x
+)
+)
+>
+0
+,
+\mathbb{E}\left[\Delta\log\frac{\pi_{t}(y_{1}|x)}{\pi_{t}(y_{2}|x)}\right]=\eta\cdot A^{+}\cdot K\cdot\bigl(\pi_{t}(y_{1}|x)-\pi_{t}(y_{2}|x)\bigr)>0,
+(22)
+where
+η
+\eta
+is the effective learning rate. The log-ratio is a submartingale with positive drift that increases as the probability gap widens.
+Proof.
+Under softmax parameterization,
+π
+t
+​
+(
+y
+|
+x
+)
+=
+exp
+⁡
+(
+z
+y
+)
+/
+Z
+\pi_{t}(y|x)=\exp(z_{y})/Z
+where
+Z
+=
+∑
+y
+′
+exp
+⁡
+(
+z
+y
+′
+)
+Z=\sum_{y^{\prime}}\exp(z_{y^{\prime}})
+. The log-probability ratio is:
+log
+⁡
+π
+t
+​
+(
+y
+1
+|
+x
+)
+π
+t
+​
+(
+y
+2
+|
+x
+)
+=
+z
+y
+1
+−
+z
+y
+2
+.
+\log\frac{\pi_{t}(y_{1}|x)}{\pi_{t}(y_{2}|x)}=z_{y_{1}}-z_{y_{2}}.
+From Theorem
+4.2
+, the expected logit update is:
+𝔼
+⁡
+[
+Δ
+​
+z
+y
+]
+=
+η
+⋅
+A
++
+⋅
+K
+⋅
+π
+t
+​
+(
+y
+|
+x
+)
+,
+\mathbb{E}[\Delta z_{y}]=\eta\cdot A^{+}\cdot K\cdot\pi_{t}(y|x),
+where
+η
+\eta
+absorbs learning rate and gradient-to-logit conversion factors.
+The expected change in the log-ratio is:
+𝔼
+⁡
+[
+Δ
+​
+log
+⁡
+π
+t
+​
+(
+y
+1
+|
+x
+)
+π
+t
+​
+(
+y
+2
+|
+x
+)
+]
+\displaystyle\mathbb{E}\left[\Delta\log\frac{\pi_{t}(y_{1}|x)}{\pi_{t}(y_{2}|x)}\right]
+=
+𝔼
+⁡
+[
+Δ
+​
+z
+y
+1
+]
+−
+𝔼
+⁡
+[
+Δ
+​
+z
+y
+2
+]
+\displaystyle=\mathbb{E}[\Delta z_{y_{1}}]-\mathbb{E}[\Delta z_{y_{2}}]
+(23)
+=
+η
+⋅
+A
++
+⋅
+K
+⋅
+π
+t
+​
+(
+y
+1
+|
+x
+)
+−
+η
+⋅
+A
++
+⋅
+K
+⋅
+π
+t
+​
+(
+y
+2
+|
+x
+)
+\displaystyle=\eta\cdot A^{+}\cdot K\cdot\pi_{t}(y_{1}|x)-\eta\cdot A^{+}\cdot K\cdot\pi_{t}(y_{2}|x)
+(24)
+=
+η
+⋅
+A
++
+⋅
+K
+⋅
+(
+π
+t
+​
+(
+y
+1
+|
+x
+)
+−
+π
+t
+​
+(
+y
+2
+|
+x
+)
+)
+.
+\displaystyle=\eta\cdot A^{+}\cdot K\cdot\bigl(\pi_{t}(y_{1}|x)-\pi_{t}(y_{2}|x)\bigr).
+(25)
+When
+π
+t
+​
+(
+y
+1
+|
+x
+)
+>
+π
+t
+​
+(
+y
+2
+|
+x
+)
+\pi_{t}(y_{1}|x)>\pi_{t}(y_{2}|x)
+, this quantity is strictly positive. Moreover, as training progresses:
+•
+π
+t
+​
+(
+y
+1
+|
+x
+)
+\pi_{t}(y_{1}|x)
+increases (receiving larger updates)
+•
+π
+t
+​
+(
+y
+2
+|
+x
+)
+\pi_{t}(y_{2}|x)
+decreases (receiving smaller updates, or losing mass to normalization)
+•
+The gap
+π
+t
+​
+(
+y
+1
+|
+x
+)
+−
+π
+t
+​
+(
+y
+2
+|
+x
+)
+\pi_{t}(y_{1}|x)-\pi_{t}(y_{2}|x)
+widens
+•
+The drift in (
+22
+) increases
+This establishes that the log-ratio diverges with accelerating speed: the collapse is not merely linear but compounds over training.
+∎
+Corollary A.1
+(Sampling Threshold)
+.
+When
+π
+t
+​
+(
+y
+|
+x
+)
+≪
+1
+/
+K
+\pi_{t}(y|x)\ll 1/K
+, the probability that solution
+y
+y
+receives at least one sample in a batch of size
+K
+K
+is:
+P
+⁡
+(
+N
+y
+≥
+1
+)
+=
+1
+−
+(
+1
+−
+π
+t
+​
+(
+y
+|
+x
+)
+)
+K
+≈
+K
+⋅
+π
+t
+​
+(
+y
+|
+x
+)
+≪
+1
+P(N_{y}\geq 1)=1-(1-\pi_{t}(y|x))^{K}\approx K\cdot\pi_{t}(y|x)\ll 1
+Below this threshold, solution
+y
+y
+receives effectively zero gradient signal and cannot recover under on-policy sampling.
+Proof.
+The probability that
+y
+y
+is never sampled in
+K
+K
+trials is:
+P
+⁡
+(
+N
+y
+=
+0
+)
+=
+(
+1
+−
+π
+t
+​
+(
+y
+|
+x
+)
+)
+K
+P(N_{y}=0)=(1-\pi_{t}(y|x))^{K}
+Thus:
+P
+⁡
+(
+N
+y
+≥
+1
+)
+=
+1
+−
+(
+1
+−
+π
+t
+​
+(
+y
+|
+x
+)
+)
+K
+P(N_{y}\geq 1)=1-(1-\pi_{t}(y|x))^{K}
+For small
+π
+t
+​
+(
+y
+|
+x
+)
+\pi_{t}(y|x)
+, using
+(
+1
+−
+p
+)
+K
+≈
+e
+−
+K
+​
+p
+≈
+1
+−
+K
+​
+p
+(1-p)^{K}\approx e^{-Kp}\approx 1-Kp
+for
+K
+​
+p
+≪
+1
+Kp\ll 1
+:
+P
+⁡
+(
+N
+y
+≥
+1
+)
+≈
+K
+​
+π
+t
+​
+(
+y
+|
+x
+)
+P(N_{y}\geq 1)\approx K\pi_{t}(y|x)
+When
+π
+t
+​
+(
+y
+|
+x
+)
+≪
+1
+/
+K
+\pi_{t}(y|x)\ll 1/K
+, we have
+P
+⁡
+(
+N
+y
+≥
+1
+)
+≪
+1
+P(N_{y}\geq 1)\ll 1
+, meaning
+y
+y
+is almost never sampled.
+Without samples, the gradient contribution from
+y
+y
+is zero, and
+π
+t
+​
+(
+y
+|
+x
+)
+\pi_{t}(y|x)
+can only decrease (due to the softmax normalization as other solutions increase). The expected waiting time for at least one sample is
+1
+/
+ℙ
+⁡
+(
+N
+y
+≥
+1
+)
+=
+Ω
+⁡
+(
+1
+/
+(
+K
+​
+p
+)
+)
+1/\mathbb{P}(N_{y}\geq 1)=\Omega(1/(Kp))
+. This makes the collapse irreversible.
+∎
+A.3
+Proofs for uniform-correct optimality
+Theorem A.3
+(Robustness under distribution shift)
+.
+Suppose a distribution shift disables a subset
+S
+⊂
+𝒴
++
+S\subset\mathcal{Y}^{+}
+of correct outputs, where
+|
+S
+|
+≤
+s
+|S|\leq s
+. Consider the robust objective:
+max
+π
+min
+S
+:
+|
+S
+|
+≤
+s
+∑
+y
+∈
+𝒴
++
+∖
+S
+π
+(
+y
+|
+x
+)
+.
+\max_{\pi}\min_{S:|S|\leq s}\sum_{y\in\mathcal{Y}^{+}\setminus S}\pi(y|x).
+(26)
+Then the uniform distribution over
+𝒴
++
+\mathcal{Y}^{+}
+uniquely maximizes the worst-case retained probability mass.
+Proof.
+Let
+π
+\pi
+be any distribution over
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+with
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+⁡
+(
+y
+|
+x
+)
+=
+1
+\sum_{y\in\mathcal{Y}^{+}(x)}\pi(y|x)=1
+. The adversary choosing
+S
+S
+will select the
+s
+s
+outputs with highest probability mass.
+For the uniform distribution
+π
+∗
+​
+(
+y
+|
+x
+)
+=
+1
+/
+|
+𝒴
++
+|
+\pi^{*}(y|x)=1/|\mathcal{Y}^{+}|
+, the worst-case retained mass is:
+1
+−
+s
+|
+𝒴
++
+​
+(
+x
+)
+|
+.
+1-\frac{s}{|\mathcal{Y}^{+}(x)|}.
+(27)
+For any non-uniform distribution, let
+π
+max
+=
+max
+y
+∈
+𝒴
++
+⁡
+π
+⁡
+(
+y
+|
+x
+)
+>
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+.
+\pi_{\max}=\max_{y\in\mathcal{Y}^{+}}\pi(y|x)>\frac{1}{|\mathcal{Y}^{+}(x)|}.
+The adversary can achieve retained mass strictly less than
+1
+−
+s
+/
+|
+𝒴
++
+​
+(
+x
+)
+|
+1-s/|\mathcal{Y}^{+}(x)|
+by targeting high-probability outputs.
+Sorting probabilities in decreasing order:
+π
+⁡
+(
+y
+(
+1
+)
+|
+x
+)
+≥
+π
+⁡
+(
+y
+(
+2
+)
+|
+x
+)
+≥
+…
+\pi(y_{(1)}|x)\geq\pi(y_{(2)}|x)\geq\ldots
+the adversary removes
+{
+y
+(
+1
+)
+,
+…
+,
+y
+(
+s
+)
+}
+\{y_{(1)},\ldots,y_{(s)}\}
+, achieving retained mass:
+∑
+j
+>
+s
+π
+⁡
+(
+y
+(
+j
+)
+|
+x
+)
+=
+1
+−
+∑
+j
+=
+1
+s
+π
+⁡
+(
+y
+(
+j
+)
+|
+x
+)
+≤
+1
+−
+s
+|
+𝒴
++
+​
+(
+x
+)
+|
+,
+\sum_{j>s}\pi(y_{(j)}|x)=1-\sum_{j=1}^{s}\pi(y_{(j)}|x)\leq 1-\frac{s}{|\mathcal{Y}^{+}(x)|},
+(28)
+with equality if and only if
+π
+\pi
+is uniform. Thus, the uniform distribution over
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+uniquely maximizes the worst-case retained probability mass.
+∎
+Theorem A.4
+.
+Consider the entropy-regularized objective
+max
+π
+(
+⋅
+∣
+x
+)
+𝔼
+y
+∼
+π
+[
+R
+(
+x
+,
+y
+)
+]
++
+τ
+H
+(
+π
+(
+⋅
+∣
+x
+)
+)
+.
+\max_{\pi(\cdot\mid x)}\;\mathbb{E}_{y\sim\pi}[R(x,y)]+\tau\,\mathrm{H}(\pi(\cdot\mid x)).
+(29)
+There exists a threshold
+τ
+0
+>
+0
+\tau_{0}>0
+such that for all
+0
+<
+τ
+<
+τ
+0
+0<\tau<\tau_{0}
+, any optimal policy
+π
+∗
+\pi^{*}
+places zero mass on incorrect outputs and is uniform over
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+.
+Proof.
+Let
+R
+⁡
+(
+x
+,
+y
+)
+∈
+{
+0
+,
+1
+}
+R(x,y)\in\{0,1\}
+and
+𝒴
++
+​
+(
+x
+)
+=
+{
+y
+:
+R
+⁡
+(
+x
+,
+y
+)
+=
+1
+}
+\mathcal{Y}^{+}(x)=\{y:R(x,y)=1\}
+is non-empty and not equal to the full output space
+𝒴
+\mathcal{Y}
+. Let
+𝒴
+−
+=
+𝒴
+∖
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{-}=\mathcal{Y}\setminus\mathcal{Y}^{+}(x)
+denote incorrect outputs. Taking the objective as
+J
+⁡
+(
+π
+)
+=
+Z
+⁡
+(
+x
+)
++
+τ
+​
+H
+​
+(
+π
+)
+,
+Z
+⁡
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+π
+⁡
+(
+y
+∣
+x
+)
+.
+J(\pi)=Z(x)+\tau H(\pi),\qquad Z(x)=\sum_{y\in\mathcal{Y}^{+}}\pi(y\mid x).
+Step 1: Support concentrates on correct outputs for small
+τ
+\tau
+.
+Suppose
+π
+\pi
+assigns mass
+ϵ
+>
+0
+\epsilon>0
+to
+𝒴
+−
+\mathcal{Y}^{-}
+. Construct a new policy
+π
+~
+\tilde{\pi}
+by moving this mass to any correct output
+y
++
+∈
+𝒴
++
+y^{+}\in\mathcal{Y}^{+}
+.
+The reward change is
+Δ
+​
+Z
+=
+Z
+⁡
+(
+π
+~
+)
+−
+Z
+⁡
+(
+π
+)
+=
+ϵ
+.
+\Delta Z=Z(\tilde{\pi})-Z(\pi)=\epsilon.
+Moving probability mass between two outcomes changes entropy by at most
+O
+⁡
+(
+ϵ
+​
+log
+⁡
+|
+𝒴
+|
+)
+O(\epsilon\log|\mathcal{Y}|)
+, so
+J
+⁡
+(
+π
+~
+)
+−
+J
+⁡
+(
+π
+)
+≥
+ϵ
+−
+τ
+​
+C
+​
+ϵ
+J(\tilde{\pi})-J(\pi)\geq\epsilon-\tau C\epsilon
+for some constant
+C
+≤
+log
+⁡
+|
+𝒴
+|
+C\leq\log|\mathcal{Y}|
+. If
+τ
+<
+1
+/
+C
+\tau<1/C
+, transferring mass from incorrect to correct strictly improves the objective. Therefore any maximizer must satisfy
+Z
+⁡
+(
+x
+)
+=
+1
+Z(x)=1
+, i.e.,
+π
+⁡
+(
+y
+∣
+x
+)
+=
+0
+\pi(y\mid x)=0
+for all
+y
+∈
+𝒴
+−
+y\in\mathcal{Y}^{-}
+.
+Step 2: Uniformity within the correct set.
+Given
+Z
+⁡
+(
+x
+)
+=
+1
+Z(x)=1
+, the objective reduces to
+J
+⁡
+(
+π
+)
+=
+1
++
+τ
+​
+H
+​
+(
+π
+)
+,
+J(\pi)=1+\tau H(\pi),
+with
+π
+\pi
+supported on
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+. Let
+q
+⁡
+(
+y
+∣
+x
+)
+=
+π
+⁡
+(
+y
+∣
+x
+)
+q(y\mid x)=\pi(y\mid x)
+for
+y
+∈
+𝒴
++
+​
+(
+x
+)
+y\in\mathcal{Y}^{+}(x)
+. Then
+max
+q
+⁡
+H
+⁡
+(
+q
+)
+s.t.
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+q
+⁡
+(
+y
+∣
+x
+)
+=
+1
+.
+\max_{q}H(q)\quad\text{s.t.}\quad\sum_{y\in\mathcal{Y}^{+}(x)}q(y\mid x)=1.
+Entropy is strictly concave, so the unique maximizer is the uniform distribution:
+q
+∗
+​
+(
+y
+∣
+x
+)
+=
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+.
+q^{*}(y\mid x)=\frac{1}{|\mathcal{Y}^{+}(x)|}.
+Thus, for sufficiently small
+τ
+\tau
+, the optimal entropy-regularized policy is uniform over correct outputs.
+∎
+A.4
+Proof of Gradient Decomposition Proposition
+6.1
+Proposition A.2
+(Gradient Decomposition, restated)
+.
+Let
+x
+x
+be a prompt with
+𝒴
++
+​
+(
+x
+)
+≠
+∅
+\mathcal{Y}^{+}(x)\neq\emptyset
+.
+Define the correctness mass
+Z
+θ
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+∣
+x
+)
+Z_{\theta}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y\mid x)
+, the conditional distribution
+q
+θ
+​
+(
+y
+∣
+x
+)
+=
+π
+θ
+​
+(
+y
+∣
+x
+)
+/
+Z
+θ
+​
+(
+x
+)
+q_{\theta}(y\mid x)=\pi_{\theta}(y\mid x)/Z_{\theta}(x)
+, and the uniform distribution
+u
+⁡
+(
+y
+∣
+x
+)
+=
+1
+/
+|
+𝒴
++
+​
+(
+x
+)
+|
+u(y\mid x)=1/|\mathcal{Y}^{+}(x)|
+.
+Then the gradient of the UCPO objective (excluding the reference KL term) is:
+∇
+θ
+L
+UCPO
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+[
+(
+1
+−
+τ
+)
+​
+q
+θ
+​
+(
+y
+∣
+x
+)
++
+τ
+​
+u
+​
+(
+y
+∣
+x
+)
+]
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+∣
+x
+)
+.
+\nabla_{\theta}L_{\mathrm{UCPO}}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\Big[(1-\tau)\,q_{\theta}(y\mid x)+\tau\,u(y\mid x)\Big]\nabla_{\theta}\log\pi_{\theta}(y\mid x).
+Proof.
+We compute the gradients of each term in
+L
+UCPO
+(
+x
+)
+=
+log
+Z
+θ
+(
+x
+)
+−
+τ
+KL
+(
+u
+∥
+q
+θ
+)
+L_{\mathrm{UCPO}}(x)=\log Z_{\theta}(x)-\tau\,\mathrm{KL}(u\|q_{\theta})
+separately.
+Step 1: Gradient of
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+\log Z_{\theta}(x)
+.
+By the chain rule,
+∇
+θ
+​
+log
+​
+Z
+θ
+​
+(
+x
+)
+\displaystyle\nabla_{\theta}\log Z_{\theta}(x)
+=
+1
+Z
+θ
+​
+(
+x
+)
+​
+∇
+θ
+Z
+θ
+​
+(
+x
+)
+\displaystyle=\frac{1}{Z_{\theta}(x)}\nabla_{\theta}Z_{\theta}(x)
+(30)
+=
+1
+Z
+θ
+​
+(
+x
+)
+​
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+∇
+θ
+π
+θ
+​
+(
+y
+∣
+x
+)
+\displaystyle=\frac{1}{Z_{\theta}(x)}\sum_{y\in\mathcal{Y}^{+}(x)}\nabla_{\theta}\pi_{\theta}(y\mid x)
+(31)
+=
+1
+Z
+θ
+​
+(
+x
+)
+​
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+∣
+x
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+∣
+x
+)
+\displaystyle=\frac{1}{Z_{\theta}(x)}\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y\mid x)\nabla_{\theta}\log\pi_{\theta}(y\mid x)
+(32)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+q
+θ
+​
+(
+y
+∣
+x
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+∣
+x
+)
+.
+\displaystyle=\sum_{y\in\mathcal{Y}^{+}(x)}q_{\theta}(y\mid x)\nabla_{\theta}\log\pi_{\theta}(y\mid x).
+(33)
+Step 2: Gradient of
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\|q_{\theta})
+.
+Expanding the KL divergence,
+KL
+(
+u
+∥
+q
+θ
+)
+\displaystyle\mathrm{KL}(u\|q_{\theta})
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+u
+⁡
+(
+y
+∣
+x
+)
+​
+log
+⁡
+u
+⁡
+(
+y
+∣
+x
+)
+q
+θ
+​
+(
+y
+∣
+x
+)
+\displaystyle=\sum_{y\in\mathcal{Y}^{+}(x)}u(y\mid x)\log\frac{u(y\mid x)}{q_{\theta}(y\mid x)}
+(34)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+u
+⁡
+(
+y
+∣
+x
+)
+​
+log
+⁡
+u
+⁡
+(
+y
+∣
+x
+)
+−
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+u
+⁡
+(
+y
+∣
+x
+)
+​
+log
+​
+q
+θ
+​
+(
+y
+∣
+x
+)
+.
+\displaystyle=\sum_{y\in\mathcal{Y}^{+}(x)}u(y\mid x)\log u(y\mid x)-\sum_{y\in\mathcal{Y}^{+}(x)}u(y\mid x)\log q_{\theta}(y\mid x).
+(35)
+The first sum is a constant (entropy of
+u
+u
+), so
+∇
+θ
+KL
+(
+u
+∥
+q
+θ
+)
+=
+−
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+u
+(
+y
+∣
+x
+)
+∇
+θ
+log
+q
+θ
+(
+y
+∣
+x
+)
+.
+\nabla_{\theta}\mathrm{KL}(u\|q_{\theta})=-\sum_{y\in\mathcal{Y}^{+}(x)}u(y\mid x)\nabla_{\theta}\log q_{\theta}(y\mid x).
+Step 3: Gradient of
+log
+⁡
+q
+θ
+​
+(
+y
+∣
+x
+)
+\log q_{\theta}(y\mid x)
+.
+Since
+q
+θ
+​
+(
+y
+∣
+x
+)
+=
+π
+θ
+​
+(
+y
+∣
+x
+)
+/
+Z
+θ
+​
+(
+x
+)
+q_{\theta}(y\mid x)=\pi_{\theta}(y\mid x)/Z_{\theta}(x)
+,
+∇
+θ
+​
+log
+​
+q
+θ
+​
+(
+y
+∣
+x
+)
+\displaystyle\nabla_{\theta}\log q_{\theta}(y\mid x)
+=
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+∣
+x
+)
+−
+∇
+θ
+​
+log
+​
+Z
+θ
+​
+(
+x
+)
+.
+\displaystyle=\nabla_{\theta}\log\pi_{\theta}(y\mid x)-\nabla_{\theta}\log Z_{\theta}(x).
+(36)
+Step 4: Combining.
+Substituting Step 3 into Step 2:
+∇
+θ
+KL
+(
+u
+∥
+q
+θ
+)
+\displaystyle\nabla_{\theta}\mathrm{KL}(u\|q_{\theta})
+=
+−
+∑
+y
+u
+(
+y
+)
+[
+∇
+θ
+log
+π
+θ
+(
+y
+)
+−
+∇
+θ
+log
+Z
+θ
+(
+x
+)
+]
+\displaystyle=-\sum_{y}u(y)\Big[\nabla_{\theta}\log\pi_{\theta}(y)-\nabla_{\theta}\log Z_{\theta}(x)\Big]
+(37)
+=
+−
+∑
+y
+u
+(
+y
+)
+∇
+θ
+log
+π
+θ
+(
+y
+)
++
+∇
+θ
+log
+Z
+θ
+(
+x
+)
+,
+\displaystyle=-\sum_{y}u(y)\nabla_{\theta}\log\pi_{\theta}(y)+\nabla_{\theta}\log Z_{\theta}(x),
+(38)
+where we used
+∑
+y
+u
+⁡
+(
+y
+)
+=
+1
+\sum_{y}u(y)=1
+.
+Therefore,
+∇
+θ
+[
+−
+τ
+KL
+(
+u
+∥
+q
+θ
+)
+]
+\displaystyle\nabla_{\theta}\big[-\tau\,\mathrm{KL}(u\|q_{\theta})\big]
+=
+τ
+​
+∑
+y
+u
+⁡
+(
+y
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+−
+τ
+​
+∇
+θ
+​
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+.
+\displaystyle=\tau\sum_{y}u(y)\nabla_{\theta}\log\pi_{\theta}(y)-\tau\nabla_{\theta}\log Z_{\theta}(x).
+(39)
+Step 5: Full gradient.
+Adding the gradients from Steps 1 and 4:
+∇
+θ
+L
+UCPO
+​
+(
+x
+)
+\displaystyle\nabla_{\theta}L_{\mathrm{UCPO}}(x)
+=
+∇
+θ
+​
+log
+​
+Z
+θ
+​
+(
+x
+)
++
+τ
+​
+∑
+y
+u
+⁡
+(
+y
+)
+​
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+)
+−
+τ
+​
+∇
+θ
+​
+log
+​
+Z
+θ
+​
+(
+x
+)
+\displaystyle=\nabla_{\theta}\log Z_{\theta}(x)+\tau\sum_{y}u(y)\nabla_{\theta}\log\pi_{\theta}(y)-\tau\nabla_{\theta}\log Z_{\theta}(x)
+(40)
+=
+(
+1
+−
+τ
+)
+​
+∇
+θ
+​
+log
+⁡
+Z
+θ
+​
+(
+x
+)
++
+τ
+​
+∑
+y
+u
+⁡
+(
+y
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+\displaystyle=(1-\tau)\nabla_{\theta}\log Z_{\theta}(x)+\tau\sum_{y}u(y)\nabla_{\theta}\log\pi_{\theta}(y)
+(41)
+=
+(
+1
+−
+τ
+)
+​
+∑
+y
+q
+θ
+​
+(
+y
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
++
+τ
+​
+∑
+y
+u
+⁡
+(
+y
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+\displaystyle=(1-\tau)\sum_{y}q_{\theta}(y)\nabla_{\theta}\log\pi_{\theta}(y)+\tau\sum_{y}u(y)\nabla_{\theta}\log\pi_{\theta}(y)
+(42)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+[
+(
+1
+−
+τ
+)
+​
+q
+θ
+​
+(
+y
+)
++
+τ
+​
+u
+​
+(
+y
+)
+]
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+.
+∎
+\displaystyle=\sum_{y\in\mathcal{Y}^{+}(x)}\Big[(1-\tau)q_{\theta}(y)+\tau u(y)\Big]\nabla_{\theta}\log\pi_{\theta}(y).\qed
+(43)
+A.5
+Derivation of the Inverse-q Importance Weights
+We know the gradient weights each correct response by a convex combination of its current conditional probability
+q
+θ
+​
+(
+y
+)
+q_{\theta}(y)
+and the uniform weight
+u
+⁡
+(
+y
+)
+u(y)
+.
+Rewriting as expectations:
+∇
+θ
+L
+UCPO
+=
+(
+1
+−
+τ
+)
+​
+𝔼
+y
+∼
+q
+θ
+​
+[
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+∣
+x
+)
+]
++
+τ
+​
+𝔼
+y
+∼
+u
+​
+[
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+∣
+x
+)
+]
+.
+\nabla_{\theta}L_{\mathrm{UCPO}}=(1-\tau)\,\mathbb{E}_{y\sim q_{\theta}}[\nabla_{\theta}\log\pi_{\theta}(y\mid x)]+\tau\,\mathbb{E}_{y\sim u}[\nabla_{\theta}\log\pi_{\theta}(y\mid x)].
+(44)
+We estimate the terms from the
+n
+n
+correct rollouts
+{
+y
+i
+}
+i
+=
+1
+n
+∼
+q
+θ
+(
+⋅
+∣
+x
+)
+\{y_{i}\}_{i=1}^{n}\sim q_{\theta}(\cdot\mid x)
+out of the sampled N rollouts from
+π
+θ
+(
+⋅
+∣
+x
+)
+\pi_{\theta}(\cdot\mid x)
+.
+The first term is an expectation under
+q
+θ
+q_{\theta}
+, estimated directly as a sample mean:
+𝔼
+y
+∼
+q
+θ
+​
+[
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+)
+]
+≈
+1
+n
+​
+∑
+i
+=
+1
+n
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+.
+\mathbb{E}_{y\sim q_{\theta}}[\nabla_{\theta}\log\pi_{\theta}(y)]\approx\frac{1}{n}\sum_{i=1}^{n}\nabla_{\theta}\log\pi_{\theta}(y_{i}\mid x).
+(45)
+The second term is an expectation under the uniform distribution
+u
+u
+, but we only have samples from
+q
+θ
+q_{\theta}
+. So, we derive the importance sampling estimator for
+𝔼
+y
+∼
+u
+​
+[
+f
+​
+(
+y
+)
+]
+\mathbb{E}_{y\sim u}[f(y)]
+using samples from
+q
+θ
+q_{\theta}
+.
+Importance sampling identity.
+For any function
+f
+f
+,
+𝔼
+y
+∼
+u
+​
+[
+f
+⁡
+(
+y
+)
+]
+=
+𝔼
+y
+∼
+q
+θ
+​
+[
+u
+⁡
+(
+y
+)
+q
+θ
+​
+(
+y
+)
+​
+f
+​
+(
+y
+)
+]
+.
+\mathbb{E}_{y\sim u}[f(y)]=\mathbb{E}_{y\sim q_{\theta}}\left[\frac{u(y)}{q_{\theta}(y)}f(y)\right].
+(46)
+Simplifying the importance ratio.
+Since
+u
+⁡
+(
+y
+)
+=
+1
+/
+|
+𝒴
++
+​
+(
+x
+)
+|
+u(y)=1/|\mathcal{Y}^{+}(x)|
+is constant over the correct set,
+u
+⁡
+(
+y
+)
+q
+θ
+​
+(
+y
+)
+=
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+⋅
+1
+q
+θ
+​
+(
+y
+)
+.
+\frac{u(y)}{q_{\theta}(y)}=\frac{1}{|\mathcal{Y}^{+}(x)|}\cdot\frac{1}{q_{\theta}(y)}.
+(47)
+The factor
+1
+/
+|
+𝒴
++
+​
+(
+x
+)
+|
+1/|\mathcal{Y}^{+}(x)|
+is independent of
+y
+y
+and cancels under normalization.
+Thus, the importance weight is proportional to
+1
+/
+q
+θ
+​
+(
+y
+)
+1/q_{\theta}(y)
+.
+Given samples
+{
+y
+i
+}
+i
+=
+1
+n
+∼
+q
+θ
+\{y_{i}\}_{i=1}^{n}\sim q_{\theta}
+, the unnormalized importance sampling estimator is
+𝔼
+y
+∼
+u
+​
+[
+f
+⁡
+(
+y
+)
+]
+≈
+1
+n
+⋅
+|
+𝒴
++
+​
+(
+x
+)
+|
+​
+∑
+i
+=
+1
+n
+1
+q
+θ
+​
+(
+y
+i
+)
+​
+f
+​
+(
+y
+i
+)
+.
+\mathbb{E}_{y\sim u}[f(y)]\approx\frac{1}{n\cdot|\mathcal{Y}^{+}(x)|}\sum_{i=1}^{n}\frac{1}{q_{\theta}(y_{i})}f(y_{i}).
+However, we do not know
+|
+𝒴
++
+​
+(
+x
+)
+|
+|\mathcal{Y}^{+}(x)|
+or
+q
+θ
+​
+(
+y
+i
+)
+q_{\theta}(y_{i})
+exactly.
+Self-normalized estimator.
+Given samples
+{
+y
+i
+}
+i
+=
+1
+n
+∼
+q
+θ
+\{y_{i}\}_{i=1}^{n}\sim q_{\theta}
+, we estimate
+q
+θ
+​
+(
+y
+i
+)
+q_{\theta}(y_{i})
+empirically:
+q
+^
+i
+=
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+∑
+j
+=
+1
+n
+π
+θ
+​
+(
+y
+j
+∣
+x
+)
+.
+\hat{q}_{i}=\frac{\pi_{\theta}(y_{i}\mid x)}{\sum_{j=1}^{n}\pi_{\theta}(y_{j}\mid x)}.
+(48)
+Define unnormalized weights
+v
+i
+=
+1
+/
+q
+^
+i
+v_{i}=1/\hat{q}_{i}
+.
+The self-normalized importance sampling estimator is:
+𝔼
+y
+∼
+u
+​
+[
+f
+⁡
+(
+y
+)
+]
+≈
+∑
+i
+=
+1
+n
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+​
+f
+​
+(
+y
+i
+)
+.
+\mathbb{E}_{y\sim u}[f(y)]\approx\sum_{i=1}^{n}\frac{v_{i}}{\sum_{j=1}^{n}v_{j}}f(y_{i}).
+(49)
+𝔼
+y
+∼
+u
+​
+[
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+)
+]
+≈
+∑
+i
+=
+1
+n
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+​
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+.
+\mathbb{E}_{y\sim u}[\nabla_{\theta}\log\pi_{\theta}(y)]\approx\sum_{i=1}^{n}\frac{v_{i}}{\sum_{j=1}^{n}v_{j}}\nabla_{\theta}\log\pi_{\theta}(y_{i}\mid x).
+(50)
+Self-normalization avoids needing to know
+|
+𝒴
++
+​
+(
+x
+)
+|
+|\mathcal{Y}^{+}(x)|
+and ensures bounded weights.
+It introduces
+O
+⁡
+(
+1
+/
+n
+)
+O(1/n)
+bias but significantly reduces variance compared to unnormalized importance sampling, which is critical when
+q
+^
+i
+\hat{q}_{i}
+may be small for rare correct responses.
+Combining both terms yields the UCPO gradient estimator:
+∇
+θ
+L
+UCPO
+≈
+∑
+i
+=
+1
+n
+w
+i
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+,
+\nabla_{\theta}L_{\mathrm{UCPO}}\approx\sum_{i=1}^{n}w_{i}\,\nabla_{\theta}\log\pi_{\theta}(y_{i}\mid x),
+(51)
+where
+w
+i
+=
+1
+−
+τ
+n
++
+τ
+⋅
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+.
+w_{i}=\frac{1-\tau}{n}+\tau\cdot\frac{v_{i}}{\sum_{j=1}^{n}v_{j}}.
+(52)
+Responses with high
+q
+θ
+​
+(
+y
+i
+)
+q_{\theta}(y_{i})
+(already favored by the policy) receive low weight
+v
+i
+v_{i}
+.
+Responses with low
+q
+θ
+​
+(
+y
+i
+)
+q_{\theta}(y_{i})
+(rare under current policy) receive high weight.
+This reweighting transforms samples from
+q
+θ
+q_{\theta}
+into an approximation of uniform samples over the correct set.
+A.6
+Proofs for Proposition
+6.2
+and Theorem
+6.1
+Proposition A.3
+(Mass Preservation, restated)
+.
+Let
+A
+base
+A_{\mathrm{base}}
+be the GRPO advantage for correct responses, and let
+n
+n
+be the number of correct rollouts.
+Define UCPO advantages as
+A
+i
+UCPO
+=
+A
+base
+⋅
+n
+⋅
+w
+i
+blend
+A_{i}^{\mathrm{UCPO}}=A_{\mathrm{base}}\cdot n\cdot w_{i}^{\mathrm{blend}}
+where
+w
+i
+blend
+=
+1
+−
+τ
+n
++
+τ
+⋅
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+.
+w_{i}^{\mathrm{blend}}=\frac{1-\tau}{n}+\tau\cdot\frac{v_{i}}{\sum_{j=1}^{n}v_{j}}.
+Then:
+∑
+i
+=
+1
+n
+A
+i
+UCPO
+=
+∑
+i
+=
+1
+n
+A
+i
+GRPO
+=
+n
+⋅
+A
+base
+.
+\sum_{i=1}^{n}A_{i}^{\mathrm{UCPO}}=\sum_{i=1}^{n}A_{i}^{\mathrm{GRPO}}=n\cdot A_{\mathrm{base}}.
+Proof.
+We verify that the blended weights sum to one:
+∑
+i
+=
+1
+n
+w
+i
+blend
+\displaystyle\sum_{i=1}^{n}w_{i}^{\mathrm{blend}}
+=
+∑
+i
+=
+1
+n
+(
+1
+−
+τ
+n
++
+τ
+⋅
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+)
+\displaystyle=\sum_{i=1}^{n}\left(\frac{1-\tau}{n}+\tau\cdot\frac{v_{i}}{\sum_{j=1}^{n}v_{j}}\right)
+(53)
+=
+(
+1
+−
+τ
+)
+⋅
+n
+n
++
+τ
+⋅
+∑
+i
+=
+1
+n
+v
+i
+∑
+j
+=
+1
+n
+v
+j
+\displaystyle=(1-\tau)\cdot\frac{n}{n}+\tau\cdot\frac{\sum_{i=1}^{n}v_{i}}{\sum_{j=1}^{n}v_{j}}
+(54)
+=
+(
+1
+−
+τ
+)
++
+τ
+\displaystyle=(1-\tau)+\tau
+(55)
+=
+1
+.
+\displaystyle=1.
+(56)
+Therefore,
+∑
+i
+=
+1
+n
+A
+i
+UCPO
+=
+A
+base
+⋅
+n
+⋅
+∑
+i
+=
+1
+n
+w
+i
+blend
+=
+A
+base
+⋅
+n
+⋅
+1
+=
+n
+⋅
+A
+base
+.
+\sum_{i=1}^{n}A_{i}^{\mathrm{UCPO}}=A_{\mathrm{base}}\cdot n\cdot\sum_{i=1}^{n}w_{i}^{\mathrm{blend}}=A_{\mathrm{base}}\cdot n\cdot 1=n\cdot A_{\mathrm{base}}.
+Standard GRPO assigns
+A
+base
+A_{\mathrm{base}}
+to each of the
+n
+n
+correct responses, so
+∑
+i
+A
+i
+GRPO
+=
+n
+⋅
+A
+base
+\sum_{i}A_{i}^{\mathrm{GRPO}}=n\cdot A_{\mathrm{base}}
+.
+∎
+Theorem A.5
+(Uniform-correct policy uniquely maximizes the UCPO objective)
+.
+For a fixed prompt
+x
+x
+, consider the UCPO objective without the reference KL term:
+L
+UCPO
+(
+x
+)
+=
+log
+Z
+θ
+(
+x
+)
+−
+τ
+KL
+(
+u
+(
+⋅
+∣
+x
+)
+∥
+q
+θ
+(
+⋅
+∣
+x
+)
+)
+,
+L_{\mathrm{UCPO}}(x)=\log Z_{\theta}(x)-\tau\,\mathrm{KL}\!\bigl(u(\cdot\mid x)\,\|\,q_{\theta}(\cdot\mid x)\bigr),
+where
+Z
+θ
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+∣
+x
+)
+,
+q
+θ
+​
+(
+y
+∣
+x
+)
+=
+π
+θ
+​
+(
+y
+∣
+x
+)
+Z
+θ
+​
+(
+x
+)
+for
+​
+y
+∈
+𝒴
++
+​
+(
+x
+)
+,
+Z_{\theta}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y\mid x),\qquad q_{\theta}(y\mid x)=\frac{\pi_{\theta}(y\mid x)}{Z_{\theta}(x)}\quad\text{for }y\in\mathcal{Y}^{+}(x),
+and
+u
+⁡
+(
+y
+∣
+x
+)
+=
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+for
+​
+y
+∈
+𝒴
++
+​
+(
+x
+)
+.
+u(y\mid x)=\frac{1}{|\mathcal{Y}^{+}(x)|}\quad\text{for }y\in\mathcal{Y}^{+}(x).
+For any
+τ
+>
+0
+\tau>0
+, the unique maximizer of
+L
+UCPO
+​
+(
+x
+)
+L_{\mathrm{UCPO}}(x)
+over policies
+π
+θ
+(
+⋅
+∣
+x
+)
+\pi_{\theta}(\cdot\mid x)
+is the uniform-correct policy
+π
+∗
+​
+(
+y
+∣
+x
+)
+=
+{
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+,
+y
+∈
+𝒴
++
+​
+(
+x
+)
+,
+0
+,
+y
+∉
+𝒴
++
+​
+(
+x
+)
+.
+\pi^{*}(y\mid x)=\begin{cases}\frac{1}{|\mathcal{Y}^{+}(x)|},&y\in\mathcal{Y}^{+}(x),\\[4.0pt]
+0,&y\notin\mathcal{Y}^{+}(x).\end{cases}
+Proof.
+For any policy
+π
+θ
+(
+⋅
+∣
+x
+)
+\pi_{\theta}(\cdot\mid x)
+, since
+π
+θ
+(
+⋅
+∣
+x
+)
+\pi_{\theta}(\cdot\mid x)
+is a probability distribution over the full output space,
+Z
+θ
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+∣
+x
+)
+≤
+1
+.
+Z_{\theta}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y\mid x)\leq 1.
+Therefore,
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+≤
+0
+,
+\log Z_{\theta}(x)\leq 0,
+with equality if and only if
+Z
+θ
+​
+(
+x
+)
+=
+1
+Z_{\theta}(x)=1
+, i.e., if and only if
+π
+θ
+​
+(
+y
+∣
+x
+)
+=
+0
+for all
+​
+y
+∉
+𝒴
++
+​
+(
+x
+)
+.
+\pi_{\theta}(y\mid x)=0\qquad\text{for all }y\notin\mathcal{Y}^{+}(x).
+Next, by non-negativity of KL divergence,
+KL
+(
+u
+(
+⋅
+∣
+x
+)
+∥
+q
+θ
+(
+⋅
+∣
+x
+)
+)
+≥
+0
+,
+\mathrm{KL}\!\bigl(u(\cdot\mid x)\,\|\,q_{\theta}(\cdot\mid x)\bigr)\geq 0,
+so
+−
+τ
+KL
+(
+u
+(
+⋅
+∣
+x
+)
+∥
+q
+θ
+(
+⋅
+∣
+x
+)
+)
+≤
+0
+,
+-\tau\,\mathrm{KL}\!\bigl(u(\cdot\mid x)\,\|\,q_{\theta}(\cdot\mid x)\bigr)\leq 0,
+with equality if and only if
+q
+θ
+(
+⋅
+∣
+x
+)
+=
+u
+(
+⋅
+∣
+x
+)
+.
+q_{\theta}(\cdot\mid x)=u(\cdot\mid x).
+Combining the two inequalities,
+L
+UCPO
+(
+x
+)
+=
+log
+Z
+θ
+(
+x
+)
+−
+τ
+KL
+(
+u
+(
+⋅
+∣
+x
+)
+∥
+q
+θ
+(
+⋅
+∣
+x
+)
+)
+≤
+0
+.
+L_{\mathrm{UCPO}}(x)=\log Z_{\theta}(x)-\tau\,\mathrm{KL}\!\bigl(u(\cdot\mid x)\,\|\,q_{\theta}(\cdot\mid x)\bigr)\leq 0.
+Equality holds if and only if both conditions are satisfied:
+1.
+Z
+θ
+​
+(
+x
+)
+=
+1
+Z_{\theta}(x)=1
+, so all probability mass lies on
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+; and
+2.
+q
+θ
+(
+⋅
+∣
+x
+)
+=
+u
+(
+⋅
+∣
+x
+)
+q_{\theta}(\cdot\mid x)=u(\cdot\mid x)
+, so the conditional distribution over correct responses is uniform.
+These two conditions uniquely determine
+π
+θ
+​
+(
+y
+∣
+x
+)
+=
+{
+1
+|
+𝒴
++
+​
+(
+x
+)
+|
+,
+y
+∈
+𝒴
++
+​
+(
+x
+)
+,
+0
+,
+y
+∉
+𝒴
++
+​
+(
+x
+)
+,
+\pi_{\theta}(y\mid x)=\begin{cases}\frac{1}{|\mathcal{Y}^{+}(x)|},&y\in\mathcal{Y}^{+}(x),\\[4.0pt]
+0,&y\notin\mathcal{Y}^{+}(x),\end{cases}
+which is exactly the uniform-correct policy
+π
+∗
+\pi^{*}
+.
+Hence
+π
+∗
+\pi^{*}
+is the unique maximizer of
+L
+UCPO
+​
+(
+x
+)
+L_{\mathrm{UCPO}}(x)
+.
+∎
+A.7
+Choice of Divergence
+The UCPO objective penalizes deviation from the uniform target using
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\,\|\,q_{\theta})
+rather than
+KL
+(
+q
+θ
+∥
+u
+)
+\mathrm{KL}(q_{\theta}\,\|\,u)
+.
+While both divergences are minimized when
+q
+θ
+=
+u
+q_{\theta}=u
+, their gradients differ in a way that is critical for escaping mode collapse.
+We derive the gradient of each and explain why
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\|q_{\theta})
+is the appropriate choice.
+A.7.1
+Entropy Maximization:
+KL
+(
+q
+θ
+∥
+u
+)
+\mathrm{KL}(q_{\theta}\,\|\,u)
+When
+u
+u
+is uniform over
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+, we have
+log
+⁡
+u
+⁡
+(
+y
+)
+=
+−
+log
+⁡
+|
+𝒴
++
+​
+(
+x
+)
+|
+\log u(y)=-\log|\mathcal{Y}^{+}(x)|
+for all
+y
+∈
+𝒴
++
+​
+(
+x
+)
+y\in\mathcal{Y}^{+}(x)
+.
+Expanding the KL divergence:
+KL
+(
+q
+θ
+∥
+u
+)
+\displaystyle\mathrm{KL}(q_{\theta}\|u)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+q
+θ
+​
+(
+y
+)
+​
+log
+⁡
+q
+θ
+​
+(
+y
+)
+u
+⁡
+(
+y
+)
+\displaystyle=\sum_{y\in\mathcal{Y}^{+}(x)}q_{\theta}(y)\log\frac{q_{\theta}(y)}{u(y)}
+(57)
+=
+∑
+y
+q
+θ
+​
+(
+y
+)
+​
+log
+⁡
+q
+θ
+​
+(
+y
+)
+−
+∑
+y
+q
+θ
+​
+(
+y
+)
+​
+log
+⁡
+u
+⁡
+(
+y
+)
+\displaystyle=\sum_{y}q_{\theta}(y)\log q_{\theta}(y)-\sum_{y}q_{\theta}(y)\log u(y)
+(58)
+=
+−
+H
+⁡
+(
+q
+θ
+)
++
+log
+⁡
+|
+𝒴
++
+​
+(
+x
+)
+|
+.
+\displaystyle=-H(q_{\theta})+\log|\mathcal{Y}^{+}(x)|.
+(59)
+Thus, minimizing
+KL
+(
+q
+θ
+∥
+u
+)
+\mathrm{KL}(q_{\theta}\|u)
+is equivalent to maximizing the entropy
+H
+⁡
+(
+q
+θ
+)
+H(q_{\theta})
+.
+The entropy of
+q
+θ
+q_{\theta}
+is:
+H
+(
+q
+θ
+)
+=
+−
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+q
+θ
+(
+y
+)
+log
+q
+θ
+(
+y
+)
+.
+H(q_{\theta})=-\sum_{y\in\mathcal{Y}^{+}(x)}q_{\theta}(y)\log q_{\theta}(y).
+Taking the gradient with respect to
+θ
+\theta
+:
+∇
+θ
+H
+​
+(
+q
+θ
+)
+\displaystyle\nabla_{\theta}H(q_{\theta})
+=
+−
+∑
+y
+∇
+θ
+[
+q
+θ
+(
+y
+)
+log
+q
+θ
+(
+y
+)
+]
+\displaystyle=-\sum_{y}\nabla_{\theta}\big[q_{\theta}(y)\log q_{\theta}(y)\big]
+(60)
+=
+−
+∑
+y
+[
+∇
+θ
+q
+θ
+(
+y
+)
+⋅
+log
+q
+θ
+(
+y
+)
++
+q
+θ
+(
+y
+)
+⋅
+∇
+θ
+log
+q
+θ
+(
+y
+)
+]
+\displaystyle=-\sum_{y}\big[\nabla_{\theta}q_{\theta}(y)\cdot\log q_{\theta}(y)+q_{\theta}(y)\cdot\nabla_{\theta}\log q_{\theta}(y)\big]
+(61)
+=
+−
+∑
+y
+∇
+θ
+q
+θ
+(
+y
+)
+⋅
+log
+q
+θ
+(
+y
+)
+−
+∑
+y
+q
+θ
+(
+y
+)
+∇
+θ
+log
+q
+θ
+(
+y
+)
+.
+\displaystyle=-\sum_{y}\nabla_{\theta}q_{\theta}(y)\cdot\log q_{\theta}(y)-\sum_{y}q_{\theta}(y)\nabla_{\theta}\log q_{\theta}(y).
+(62)
+Since
+∑
+y
+q
+θ
+​
+(
+y
+)
+=
+1
+\sum_{y}q_{\theta}(y)=1
+, we have
+∑
+y
+∇
+θ
+q
+θ
+​
+(
+y
+)
+=
+0
+\sum_{y}\nabla_{\theta}q_{\theta}(y)=0
+.
+Using
+∇
+θ
+q
+θ
+​
+(
+y
+)
+=
+q
+θ
+​
+(
+y
+)
+​
+∇
+θ
+​
+log
+⁡
+q
+θ
+​
+(
+y
+)
+\nabla_{\theta}q_{\theta}(y)=q_{\theta}(y)\nabla_{\theta}\log q_{\theta}(y)
+:
+∇
+θ
+H
+​
+(
+q
+θ
+)
+\displaystyle\nabla_{\theta}H(q_{\theta})
+=
+−
+∑
+y
+q
+θ
+(
+y
+)
+∇
+θ
+log
+q
+θ
+(
+y
+)
+⋅
+log
+q
+θ
+(
+y
+)
+−
+∑
+y
+q
+θ
+(
+y
+)
+∇
+θ
+log
+q
+θ
+(
+y
+)
+\displaystyle=-\sum_{y}q_{\theta}(y)\nabla_{\theta}\log q_{\theta}(y)\cdot\log q_{\theta}(y)-\sum_{y}q_{\theta}(y)\nabla_{\theta}\log q_{\theta}(y)
+(63)
+=
+−
+∑
+y
+q
+θ
+(
+y
+)
+[
+1
++
+log
+q
+θ
+(
+y
+)
+]
+∇
+θ
+log
+q
+θ
+(
+y
+)
+\displaystyle=-\sum_{y}q_{\theta}(y)\big[1+\log q_{\theta}(y)\big]\nabla_{\theta}\log q_{\theta}(y)
+(64)
+=
+−
+𝔼
+y
+∼
+q
+θ
+​
+[
+(
+1
++
+log
+⁡
+q
+θ
+​
+(
+y
+)
+)
+​
+∇
+θ
+​
+log
+⁡
+q
+θ
+​
+(
+y
+)
+]
+.
+\displaystyle=-\mathbb{E}_{y\sim q_{\theta}}\big[(1+\log q_{\theta}(y))\nabla_{\theta}\log q_{\theta}(y)\big].
+(65)
+The gradient is weighted by the current distribution
+q
+θ
+q_{\theta}
+. High-probability responses dominate the gradient; low-probability responses contribute negligibly.
+This preserves the feedback loop identified in Section
+4.2
+: frequently sampled solutions receive larger updates, reinforcing their dominance.
+A.7.2
+Uniform-Weighted Divergence:
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\,\|\,q_{\theta})
+Expanding the KL divergence:
+KL
+(
+u
+∥
+q
+θ
+)
+\displaystyle\mathrm{KL}(u\|q_{\theta})
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+u
+⁡
+(
+y
+)
+​
+log
+⁡
+u
+⁡
+(
+y
+)
+q
+θ
+​
+(
+y
+)
+\displaystyle=\sum_{y\in\mathcal{Y}^{+}(x)}u(y)\log\frac{u(y)}{q_{\theta}(y)}
+(66)
+=
+∑
+y
+u
+⁡
+(
+y
+)
+​
+log
+⁡
+u
+⁡
+(
+y
+)
+−
+∑
+y
+u
+⁡
+(
+y
+)
+​
+log
+​
+q
+θ
+​
+(
+y
+)
+\displaystyle=\sum_{y}u(y)\log u(y)-\sum_{y}u(y)\log q_{\theta}(y)
+(67)
+=
+−
+H
+⁡
+(
+u
+)
+−
+∑
+y
+u
+⁡
+(
+y
+)
+​
+log
+⁡
+q
+θ
+​
+(
+y
+)
+.
+\displaystyle=-H(u)-\sum_{y}u(y)\log q_{\theta}(y).
+(68)
+Since
+H
+⁡
+(
+u
+)
+H(u)
+is constant with respect to
+θ
+\theta
+:
+−
+KL
+(
+u
+∥
+q
+θ
+)
+=
+∑
+y
+u
+(
+y
+)
+log
+q
+θ
+(
+y
+)
++
+const
+.
+-\mathrm{KL}(u\|q_{\theta})=\sum_{y}u(y)\log q_{\theta}(y)+\mathrm{const}.
+Substituting
+q
+θ
+​
+(
+y
+)
+=
+π
+θ
+​
+(
+y
+)
+/
+Z
+θ
+​
+(
+x
+)
+q_{\theta}(y)=\pi_{\theta}(y)/Z_{\theta}(x)
+where
+Z
+θ
+​
+(
+x
+)
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+π
+θ
+​
+(
+y
+)
+Z_{\theta}(x)=\sum_{y\in\mathcal{Y}^{+}(x)}\pi_{\theta}(y)
+:
+−
+KL
+(
+u
+∥
+q
+θ
+)
+\displaystyle-\mathrm{KL}(u\|q_{\theta})
+=
+∑
+y
+u
+⁡
+(
+y
+)
+​
+[
+log
+⁡
+π
+θ
+​
+(
+y
+)
+−
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+]
++
+const
+\displaystyle=\sum_{y}u(y)\big[\log\pi_{\theta}(y)-\log Z_{\theta}(x)\big]+\mathrm{const}
+(69)
+=
+∑
+y
+u
+⁡
+(
+y
+)
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+−
+log
+⁡
+Z
+θ
+​
+(
+x
+)
++
+const
+.
+\displaystyle=\sum_{y}u(y)\log\pi_{\theta}(y)-\log Z_{\theta}(x)+\mathrm{const}.
+(70)
+Taking the gradient:
+∇
+θ
+[
+−
+KL
+(
+u
+∥
+q
+θ
+)
+]
+\displaystyle\nabla_{\theta}\big[-\mathrm{KL}(u\|q_{\theta})\big]
+=
+∑
+y
+u
+⁡
+(
+y
+)
+​
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+)
+−
+∇
+θ
+​
+log
+​
+Z
+θ
+​
+(
+x
+)
+.
+\displaystyle=\sum_{y}u(y)\nabla_{\theta}\log\pi_{\theta}(y)-\nabla_{\theta}\log Z_{\theta}(x).
+(71)
+For the second term, we use:
+∇
+θ
+​
+log
+​
+Z
+θ
+​
+(
+x
+)
+\displaystyle\nabla_{\theta}\log Z_{\theta}(x)
+=
+1
+Z
+θ
+​
+(
+x
+)
+​
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+∇
+θ
+π
+θ
+​
+(
+y
+)
+\displaystyle=\frac{1}{Z_{\theta}(x)}\sum_{y\in\mathcal{Y}^{+}(x)}\nabla_{\theta}\pi_{\theta}(y)
+(72)
+=
+∑
+y
+π
+θ
+​
+(
+y
+)
+Z
+θ
+​
+(
+x
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+\displaystyle=\sum_{y}\frac{\pi_{\theta}(y)}{Z_{\theta}(x)}\nabla_{\theta}\log\pi_{\theta}(y)
+(73)
+=
+∑
+y
+q
+θ
+​
+(
+y
+)
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+.
+\displaystyle=\sum_{y}q_{\theta}(y)\nabla_{\theta}\log\pi_{\theta}(y).
+(74)
+Substituting:
+∇
+θ
+[
+−
+KL
+(
+u
+∥
+q
+θ
+)
+]
+=
+𝔼
+y
+∼
+u
+[
+∇
+θ
+log
+π
+θ
+(
+y
+)
+]
+−
+𝔼
+y
+∼
+q
+θ
+[
+∇
+θ
+log
+π
+θ
+(
+y
+)
+]
+.
+\nabla_{\theta}\big[-\mathrm{KL}(u\|q_{\theta})\big]=\mathbb{E}_{y\sim u}\big[\nabla_{\theta}\log\pi_{\theta}(y)\big]-\mathbb{E}_{y\sim q_{\theta}}\big[\nabla_{\theta}\log\pi_{\theta}(y)\big].
+(75)
+The gradient consists of two terms:
+•
+𝔼
+y
+∼
+u
+​
+[
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+)
+]
+\mathbb{E}_{y\sim u}[\nabla_{\theta}\log\pi_{\theta}(y)]
+: Increases probability of all correct responses equally, regardless of their current probability.
+•
+−
+𝔼
+y
+∼
+q
+θ
+​
+[
+∇
+θ
+​
+log
+​
+π
+θ
+​
+(
+y
+)
+]
+-\mathbb{E}_{y\sim q_{\theta}}[\nabla_{\theta}\log\pi_{\theta}(y)]
+: Decreases probability of responses in proportion to their current dominance.
+Together, these terms redistribute gradient signal from overrepresented to underrepresented responses, breaking the self-reinforcing feedback loop.
+A.7.3
+Connection to UCPO
+Combining
+KL
+(
+u
+∥
+q
+θ
+)
+\mathrm{KL}(u\|q_{\theta})
+with the correctness objective
+log
+⁡
+Z
+θ
+​
+(
+x
+)
+\log Z_{\theta}(x)
+yields the UCPO gradient (Proposition
+6.1
+):
+∇
+θ
+L
+UCPO
+=
+∑
+y
+∈
+𝒴
++
+​
+(
+x
+)
+[
+(
+1
+−
+τ
+)
+​
+q
+θ
+​
+(
+y
+)
++
+τ
+​
+u
+​
+(
+y
+)
+]
+​
+∇
+θ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+∣
+x
+)
+.
+\nabla_{\theta}L_{\mathrm{UCPO}}=\sum_{y\in\mathcal{Y}^{+}(x)}\big[(1-\tau)\,q_{\theta}(y)+\tau\,u(y)\big]\,\nabla_{\theta}\log\pi_{\theta}(y\mid x).
+At
+τ
+=
+0
+\tau=0
+, updates are fully
+q
+θ
+q_{\theta}
+-weighted (GRPO).
+As
+τ
+\tau
+increases, updates shift toward uniform weighting, directly counteracting the sampling bias that drives collapse.
+Appendix B
+Controlled Empirical Validation of Collapse Dynamics
+Section
+4.2
+establishes that diversity collapse under RLVR arises from the interaction between objective indifference and optimization dynamics, which together induce a self-reinforcing concentration of probability mass on a subset of correct solutions. While this mechanism is derived analytically, its empirical manifestation in large-scale language models is difficult to observe directly due to partial observability and sequence-level complexity.
+To isolate and validate the proposed mechanism, we construct a controlled RLVR environment in which the policy is fully observable and all quantities can be computed exactly. The goal of this experiment is to causally verify each component of the collapse mechanism under minimal assumptions.
+Setup.
+We define a discrete output space of 20 tokens, among which a subset of 3 tokens are designated as correct:
+𝒴
++
+=
+{
+y
+1
+,
+y
+2
+,
+y
+3
+}
+,
+𝒴
+−
+=
+𝒴
+∖
+𝒴
++
+.
+\mathcal{Y}^{+}=\{y_{1},y_{2},y_{3}\},\qquad\mathcal{Y}^{-}=\mathcal{Y}\setminus\mathcal{Y}^{+}.
+The policy
+π
+θ
+​
+(
+y
+)
+\pi_{\theta}(y)
+is parameterized as a softmax over logits
+z
+y
+z_{y}
+:
+π
+θ
+​
+(
+y
+)
+=
+exp
+⁡
+(
+z
+y
+)
+∑
+y
+′
+exp
+⁡
+(
+z
+y
+′
+)
+.
+\pi_{\theta}(y)=\frac{\exp(z_{y})}{\sum_{y^{\prime}}\exp(z_{y^{\prime}})}.
+To reflect realistic pretrained biases, the initial policy assigns non-uniform probability mass within the correct set, while distributing the remaining mass across incorrect outputs. This ensures that symmetry is broken at initialization, allowing us to study how small imbalances evolve under training.
+Training Dynamics.
+At each iteration:
+•
+We sample
+K
+K
+outputs from
+π
+θ
+\pi_{\theta}
+(on-policy sampling).
+•
+Rewards are assigned deterministically:
+R
+(
+y
+)
+=
+𝟏
+[
+y
+∈
+𝒴
++
+]
+.
+R(y)=\mathbf{1}[y\in\mathcal{Y}^{+}].
+•
+The policy is updated using either GRPO, UCPO, and Global entropy regularization.
+Tracked Metrics.
+Since the full distribution is explicitly available, we analyze training dynamics through the following quantities:
+(i) Sampling statistics.
+The number of times each output is sampled:
+N
+y
+N_{y}
+.
+(ii) Conditional distribution over correct solutions.
+We define the normalized distribution restricted to correct outputs:
+q
+θ
+​
+(
+y
+∣
+𝒴
++
+)
+=
+π
+θ
+​
+(
+y
+)
+∑
+y
+′
+∈
+𝒴
++
+π
+θ
+​
+(
+y
+′
+)
+,
+y
+∈
+𝒴
++
+.
+q_{\theta}(y\mid\mathcal{Y}^{+})=\frac{\pi_{\theta}(y)}{\sum_{y^{\prime}\in\mathcal{Y}^{+}}\pi_{\theta}(y^{\prime})},\quad y\in\mathcal{Y}^{+}.
+(iii) Entropy of correct solutions.
+To measure diversity within the correct set:
+H
+(
+q
+θ
+)
+=
+−
+∑
+y
+∈
+𝒴
++
+q
+θ
+(
+y
+∣
+𝒴
++
+)
+log
+q
+θ
+(
+y
+∣
+𝒴
++
+)
+.
+H(q_{\theta})=-\sum_{y\in\mathcal{Y}^{+}}q_{\theta}(y\mid\mathcal{Y}^{+})\log q_{\theta}(y\mid\mathcal{Y}^{+}).
+(iv) Total correctness mass.
+The probability assigned to correct outputs:
+Z
+θ
+=
+∑
+y
+∈
+𝒴
++
+π
+θ
+​
+(
+y
+)
+.
+Z_{\theta}=\sum_{y\in\mathcal{Y}^{+}}\pi_{\theta}(y).
+(v) Relative dominance.
+We monitor pairwise probability ratios between correct solutions to capture mode concentration:
+π
+θ
+​
+(
+y
+i
+)
+π
+θ
+​
+(
+y
+j
+)
+,
+y
+i
+,
+y
+j
+∈
+𝒴
++
+.
+\frac{\pi_{\theta}(y_{i})}{\pi_{\theta}(y_{j})},\quad y_{i},y_{j}\in\mathcal{Y}^{+}.
+B.1
+GRPO Induces Self-Reinforcing Collapse
+We validate each step of the collapse mechanism (Section 5), with the corresponding evidence shown in Figure
+1
+.
+1.
+Sampling bias:
+Figure
+1
+(a) shows that higher-probability solutions are sampled more frequently, with empirical counts closely matching theoretical expectation:
+𝔼
+⁡
+[
+N
+y
+]
+=
+K
+⋅
+π
+θ
+​
+(
+y
+)
+.
+\mathbb{E}[N_{y}]=K\cdot\pi_{\theta}(y).
+Even under near-uniform initialization (Appendix
+B.2
+), stochastic sampling produces unequal counts, confirming the inherent bias of on-policy estimation.
+2.
+Gradient amplification:
+Figure
+1
+(b) plots
+f
+⁡
+(
+p
+)
+=
+p
+⁡
+(
+1
+−
+p
+)
+f(p)=p(1-p)
+, the function proportional to the expected gradient magnitude for a softmax policy. The green dots mark the initial probabilities of the three correct tokens. The key observation is that tokens already at higher probability receive a larger expected gradient update. Under GRPO, all correct samples receive the same normalized advantage
+A
++
+A^{+}
+, so the total expected update to
+log
+⁡
+π
+⁡
+(
+y
+)
+\log\pi(y)
+scales as:
+Δ
+​
+log
+⁡
+π
+θ
+​
+(
+y
+)
+∝
+η
+⋅
+A
++
+⋅
+K
+⋅
+π
+θ
+​
+(
+y
+)
+.
+\Delta\log\pi_{\theta}(y)\propto\eta\cdot A^{+}\cdot K\cdot\pi_{\theta}(y).
+This confirms that GRPO amplifies sampling asymmetries rather than correcting them.
+3.
+Probability ratios diverge monotonically.
+Figure
+1
+(c) tracks the evolution of probability ratios between correct solutions. The log-ratio between dominant and minority solutions increases steadily over training:
+log
+⁡
+π
+θ
+​
+(
+y
+1
+)
+π
+θ
+​
+(
+y
+2
+)
+↑
+.
+\log\frac{\pi_{\theta}(y_{1})}{\pi_{\theta}(y_{2})}\uparrow.
+This demonstrates the positive feedback loop predicted in Theorem
+4.3
+, that the expected change in log-ratio is proportional to the difference in probabilities, which is always positive when
+y
+0
+≥
+y
+1
+y_{0}\geq y_{1}
+.
+4.
+Collapse is irreversible once below the sampling threshold.
+Figure
+1
+(d) shows the conditional distribution
+q
+θ
+​
+(
+y
+∣
+correct
+)
+=
+π
+θ
+​
+(
+y
+)
+Z
+θ
+q_{\theta}(y\mid\text{correct})=\frac{\pi_{\theta}(y)}{Z_{\theta}}
+at five snapshots during training (steps
+0
+,
+50
+,
+100
+,
+200
+,
+299
+0,50,100,200,299
+). The blue dashed line marks the uniform target
+1
+/
+3
+1/3
+. By step
+299
+299
+, virtually all mass has migrated to
+y
+0
+y_{0}
+. The solutions
+y
+1
+y_{1}
+and
+y
+2
+y_{2}
+fall so far below the sampling threshold (
+𝔼
+⁡
+[
+N
+y
+]
+≪
+1
+\mathbb{E}[N_{y}]\ll 1
+) that they receive negligible gradient signal and can no longer recover. This confirms the irreversibility predicted in Corollary
+4.1
+.
+Figure 2:
+Collapse dynamics under GRPO in a controlled RLVR environment with three correct tokens and three initialization profiles. Each panel tracks the conditional distribution
+q
+⁡
+(
+y
+∣
+𝒴
++
+)
+q(y\mid\mathcal{Y}^{+})
+over 300 training steps across 5 random seeds; the dashed blue line marks the uniform target
+1
+/
+3
+1/3
+. Even under uniform initialization, stochastic sampling breaks symmetry and GRPO collapses to a single dominant token. With increasing initialization skew, collapse becomes faster and more deterministic. In all cases, total correctness mass
+Z
+Z
+remains high, showing that GRPO improves correctness while collapsing within-correct diversity.
+B.2
+Collapse Is Not Limited to Skewed Initializations
+In Figure
+1
+, we use a skewed initialization of
+4
+:
+2
+:
+1
+4:2:1
+over
+correct tokens to make the collapse dynamics visually clear. However, even under near-uniform initialization, stochastic sampling produces unequal counts, confirming the inherent bias of on-policy estimation, consistent with Proposition
+4.1
+. To verify this we evaluate three initialization profiles spanning the range from maximally symmetric to strongly biased. The reference policy assigns background mass
+0.01
+0.01
+to each incorrect token (before normalization) across all profiles:
+•
+Uniform (1:1:1):
+q
+θ
+​
+(
+y
+0
+)
+=
+q
+θ
+​
+(
+y
+1
+)
+=
+q
+θ
+​
+(
+y
+2
+)
+=
+0.333
+q_{\theta}(y_{0})=q_{\theta}(y_{1})=q_{\theta}(y_{2})=0.333
+. Tests the null
+hypothesis that collapse requires an initial imbalance.
+•
+Mild skew (1.5:1.2:1):
+q
+θ
+​
+(
+y
+0
+)
+=
+0.41
+,
+q
+θ
+​
+(
+y
+1
+)
+=
+0.32
+,
+q
+θ
+​
+(
+y
+2
+)
+=
+0.27
+q_{\theta}(y_{0})=0.41,\;q_{\theta}(y_{1})=0.32,\;q_{\theta}(y_{2})=0.27
+. Reflects the small asymmetry.
+•
+Skewed (4:2:1):
+q
+θ
+​
+(
+y
+0
+)
+=
+0.57
+,
+q
+θ
+​
+(
+y
+1
+)
+=
+0.29
+,
+q
+θ
+​
+(
+y
+2
+)
+=
+0.14
+q_{\theta}(y_{0})=0.57,\;q_{\theta}(y_{1})=0.29,\;q_{\theta}(y_{2})=0.14
+.
+We run 5 independent seeds per profile and track the conditional entropy
+H
+⁡
+(
+q
+θ
+)
+H(q_{\theta})
+and
+correctness mass
+Z
+θ
+Z_{\theta}
+throughout training. Results are shown in Figure
+2
+.
+Under skewed and mild-skew initialization, the dominant token
+y
+0
+y_{0}
+wins deterministically across all 5 seeds: GRPO always amplifies the initially more-probable correct token, confirming the collapse mechanism. Final conditional entropy is
+H
+⁡
+(
+q
+θ
+)
+/
+H
+max
+≈
+16
+%
+H(q_{\theta})/H_{\mathrm{max}}\approx 16\%
+(skewed) and
+32
+%
+32\%
+(mild skew), both far below
+the uniform target.
+Under uniform initialization, collapse still occurs in every seed, but the winner is arbitrary: across 5 seeds,
+y
+0
+y_{0}
+collapses to the dominant mode in 3 runs,
+y
+1
+y_{1}
+in 1 run, and
+y
+2
+y_{2}
+in 1 run. This is a direct consequence of Proposition
+A.1
+(stochastic symmetry breaking): even when
+π
+0
+​
+(
+y
+∣
+x
+)
+=
+1
+/
+|
+Y
++
+|
+\pi_{0}(y\mid x)=1/|Y^{+}|
+, finite-batch sampling produces unequal counts
+{
+N
+y
+}
+\{N_{y}\}
+with probability 1, seeding the positive feedback loop. GRPO then amplifies whichever token happened to be over-represented in the first batch.
+These results establish that mode collapse is not an artifact of a skewed initialization, it is an intrinsic consequence of the interaction between on-policy sampling variance and GRPO’s indifference to within-correct diversity. The skewed profile collapses faster and more predictably; the uniform profile collapses more slowly and to an arbitrary mode.
+Figure 3:
+Training dynamics under GRPO, UCPO, and global entropy regularization.
+GRPO drives the conditional distribution over correct tokens toward a single dominant mode, causing conditional entropy to collapse. UCPO instead maintains a near-uniform distribution within the correct set while preserving total correctness mass. Global entropy regularization increases entropy only by assigning probability mass to incorrect tokens, demonstrating that global entropy acts on the wrong support.
+GRPO Induces Concentration within the Correct Set
+We further analyze the training dynamics of GRPO, UCPO, and global entropy regularization in depth (Figure
+3
+).
+As shown in Figure
+3
+(a), GRPO drives the conditional distribution
+q
+θ
+​
+(
+y
+∣
+𝒴
++
+)
+q_{\theta}(y\mid\mathcal{Y}^{+})
+toward a single dominant solution. Correspondingly, Figure
+3
+(d) shows rapid decay in conditional entropy
+H
+⁡
+(
+q
+θ
+)
+H(q_{\theta})
+, while Figure
+3
+(e) shows that total correctness mass
+Z
+Z
+remains high.
+This indicates that GRPO improves correctness by concentrating probability mass rather than maintaining coverage over multiple valid solutions while UCPO and Global entropy regularization maintain a balance distribution. As a result, diversity within the correct set collapses despite high sampling efficiency.
+Figure 4:
+UCPO reweights gradient mass within the correct set.
+Starting from an imbalanced conditional distribution over correct tokens, UCPO assigns larger weight to underrepresented correct tokens and smaller weight to dominant ones. Unlike GRPO, whose total gradient contribution is proportional to sample count, UCPO approximately equalizes total contribution across unique correct tokens while preserving the total advantage mass.
+B.3
+UCPO Preserves Diversity via Gradient Redistribution
+UCPO modifies training dynamics by redistributing gradient signal within the correct set according to the reweighting mechanism derived in Section
+6
+.
+As shown in Figure
+3
+(a), UCPO maintains a balanced conditional distribution:
+q
+θ
+​
+(
+y
+∣
+𝒴
++
+)
+≈
+uniform
+.
+q_{\theta}(y\mid\mathcal{Y}^{+})\approx\text{uniform}.
+Figure
+3
+(d) shows that conditional entropy remains high throughout training, while Figure
+3
+(e) shows that correctness mass
+Z
+Z
+is preserved.
+To isolate the mechanism of UCPO, we further analyze gradient contributions per solution. Figure
+4
+(b) shows that UCPO equalizes gradient contributions across correct solutions and removes the implicit bias toward dominant modes while preserving total gradient mass. In contrast to GRPO where contributions scale with sample count (Figure
+4
+(a)), leads to dominance of frequently sampled solutions.
+These results demonstrate that UCPO counteracts the sampling-induced imbalance by redistributing updates within the correct set, preventing concentration while maintaining correctness.
+Figure 5:
+Effect of global entropy regularization strength in the controlled environment. (A) As the entropy coefficient
+τ
+ent
+\tau_{\text{ent}}
+increases, the conditional distribution over correct tokens remains diverse but at a cost. (B) Mass on incorrect tokens grows with
+τ
+ent
+\tau_{\text{ent}}
+, confirming that the entropy bonus incentivizes incorrect outputs equally.
+(C) Correctness mass
+Z
+θ
+Z_{\theta}
+decreases as
+τ
+ent
+\tau_{\text{ent}}
+increases, demonstrating the fundamental trade-off: global entropy regularization improves diversity only by sacrificing correctness, as it acts on the entire output space rather than within the correct set.
+B.4
+Global Entropy Regularization Increases Entropy on the Wrong Support
+We analyze global entropy regularization in Figure
+3
+and Figure
+5
+.
+Figure
+3
+(d) shows that entropy regularization increases overall entropy, but Figure
+3
+(f) reveals that this increase is partly driven by probability mass assigned to incorrect outputs.
+Figure
+5
+(b) further shows that as
+τ
+ent
+\tau_{\text{ent}}
+increases, the equilibrium mass on incorrect tokens grows monotonically. Since the entropy bonus is applied uniformly across all outputs, it provides equal incentive to increase the probability on incorrect and underrepresented correct solutions.
+As a result, Figure
+5
+(c) shows that improvements in entropy
+H
+⁡
+(
+q
+θ
+)
+H(q_{\theta})
+come at the cost of reduced correctness mass
+Z
+θ
+Z_{\theta}
+. This confirms that global entropy regularization increases entropy on the wrong support and cannot preserve diversity within the correct set.
+Figure 6:
+Effect of UCPO interpolation strength
+τ
+\tau
+in the controlled environment. (A) Increasing
+τ
+\tau
+progressively maintains diversity within the correct set, preventing concentration onto a single mode. (B) Mass on incorrect tokens remains negligible across all
+τ
+\tau
+values, confirming that UCPO operates exclusively within the correct set.
+(C) Correctness mass
+Z
+θ
+Z_{\theta}
+stays near 1.0 for all
+τ
+\tau
+, demonstrating that UCPO achieves diversity without the correctness trade-off observed under global entropy regularization.
+B.5
+UCPO Maintains Correctness–Diversity Trade-off
+Figure
+6
+shows that increasing
+τ
+\tau
+improves diversity while preserving correctness. Unlike entropy regularization, the mass on incorrect outputs remains negligible across all
+τ
+\tau
+, and
+Z
+θ
+Z_{\theta}
+remains close to 1.0.
+This demonstrates that UCPO can increase diversity without incurring the correctness trade-off observed in global entropy methods.
+Appendix C
+Why Global entropy regularization fails
+A direct way to operationalize the entropy-regularized criterion from Section
+5
+is to add a global entropy bonus to the RLVR objective:
+J
+ent
+(
+π
+)
+=
+𝔼
+y
+∼
+π
+[
+R
+(
+x
+,
+y
+)
+]
++
+τ
+ent
+⋅
+H
+(
+π
+(
+⋅
+∣
+x
+)
+)
+.
+J_{\mathrm{ent}}(\pi)=\mathbb{E}_{y\sim\pi}\!\left[R(x,y)\right]+\tau_{\text{ent}}\cdot H\!\left(\pi(\cdot\mid x)\right).
+(76)
+Although this objective can recover the Uniform-Correct Policy for a suitable choice of
+τ
+\tau
+(Theorem
+5.2
+), it does not reliably recover UCP in practice. The coefficient
+τ
+\tau
+is difficult to tune (Table
+3
+), and for suboptimal values the optimal policy need not remain uniform-correct. Further, the induced optimization dynamics do not directly target balanced allocation within the correct set.
+First, the entropy term is computed over the full output space
+𝒴
+\mathcal{Y}
+, including incorrect solutions, rather than within the correct set
+𝒴
++
+​
+(
+x
+)
+\mathcal{Y}^{+}(x)
+. The reward term pushes mass toward correct outputs, while the entropy term pushes mass toward all outputs indiscriminately. This creates a structural trade-off: diversity is encouraged on the wrong support. Empirically, global entropy regularization increases overall entropy but does not improve diversity within the correct set (Section
+7.3
+), with much of the entropy increase arising from mass allocated to incorrect outputs (Appendix
+B.4
+).
+Second, under GRPO with binary rewards, when all rollouts for a prompt are correct (or all incorrect), the group-normalized advantages are
+A
+i
+=
+0
+A_{i}=0
+for every rollout. In this case, the reward term contributes no gradient, and the update is driven entirely by the entropy bonus. The policy is then pushed to spread mass across all outputs, including incorrect ones, rather than preserving diversity within the correct set. This failure mode is particularly common for easier prompts, where the model achieves high accuracy early in training.
+Thus, global entropy regularization fails to approximate the optimum of Eq. (
+13
+): diversity should be encouraged within correct responses, not across all outputs.
+Table
+3
+shows that global entropy regularization provides only marginal and inconsistent gains over GRPO. The best average Pass@64 is obtained at
+τ
+ent
+=
+0.001
+\tau_{\mathrm{ent}}=0.001
+, improving over GRPO by only
++
+0.19
++0.19
+points (82.04 vs. 81.85). The effect also varies across benchmarks: for example,
+τ
+ent
+=
+0.0005
+\tau_{\mathrm{ent}}=0.0005
+improves AMC Pass@64 but substantially hurts AIME Pass@64, and no coefficient consistently improves all datasets. These results support our claim that global entropy is a brittle mechanism for improving multi-sample coverage, because it acts over the full output space rather than specifically reallocating probability within the correct set.
+Table 3:
+Performance at Pass@1 and Pass@64 across benchmarks for different global entropy coefficients for Global Entropy Regularization on DeepSeek-R1-Distill-Qwen-1.5B. All other hyperparameters are held fixed.
+AIME
+AMC
+MATH
+OlympiadBench
+Avg
+τ
+ent
+\tau_{\text{ent}}
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+0.0 (GRPO)
+19.06
+63.33
+55.27
+87.95
+71.57
+97.60
+42.63
+78.52
+47.13
+81.85
+0.0005
+19.79
+53.33
+54.84
+92.77
+69.45
+97.20
+41.69
+77.93
+46.44
+80.31
+0.001
+19.43
+63.33
+56.12
+89.16
+72.23
+97.60
+43.03
+78.07
+47.70
+82.04
+0.003
+19.38
+60.00
+54.71
+90.36
+71.45
+97.20
+42.58
+77.93
+47.03
+81.37
+0.005
+19.48
+63.33
+55.25
+90.36
+72.08
+97.20
+43.86
+77.04
+47.67
+81.98
+Appendix D
+Experimental Details
+D.1
+Datasets
+We use the RL training dataset from
+Liao et al. [2025]
+, derived from DeepScaleR 40k corpus
+[
+Luo et al., 2025
+]
+. The training pool consists of competition-style mathematical reasoning problems drawn from MATH
+[
+Hendrycks et al., 2021
+]
+, AIME (1983–2023) problem sets, AMC (pre-2023) contests, and Omni-MATH
+[
+Gao et al., 2024
+]
+, with difficulty rebalancing to reduce trivial problems and improve RL training efficiency. The final training set contains 10,000 problems, with an additional 500 problems reserved for validation.
+D.2
+Models
+We evaluate on three models spanning different scales and pretraining approaches: DeepSeek-R1 series: DeepSeek-R1-Distill-Qwen-7B and DeepSeek-R1-Distill-Qwen-1.5B
+[
+DeepSeek-AI et al., 2025
+]
+as well as Qwen2.5-7B
+[
+Team, 2024
+]
+.
+These models span both general model and distillation models, while also covering different parameter scales (1.5B to 7B). All models are initialized from publicly released checkpoints and fine-tuned using the same RLVR training pipeline.
+D.3
+Implementation and Evaluation Details
+Hyperparameters are listed in
+Table
+4
+,
+5
+and
+6
+. For evaluation we report Pass@1 and Pass@K (
+K
+=
+64
+K=64
+) across five benchmarks. Pass@K measures the fraction of problems for which at least one of
+K
+K
+sampled completions is accepted by the verifier. For each benchmark problem, we sample 64 rollouts at temperature 1.0. For inference for each benchmark problem, we sample rollouts using temperature
+1.0
+1.0
+and maximum generation length of
+3072
+3072
+for DeepSeek-R1-Distill-Qwen-1.5B and DeepSeek-R1-Distill-Qwen-7B and
+4096
+4096
+for Qwen-2.5-7B.
+Parameter
+Value
+Parameter
+Value
+Pretrained Model
+DeepSeek-R1-Distill-Qwen-1.5B
+Device
+4
+×
+\times
+Nvidia-H100
+Prompts per batch
+64
+Generations per prompt
+8
+Gradient update per RL step
+1
+Max prompt length
+1024
+Max response length
+3072
+Learning rate
+5
+×
+10
+−
+6
+5\times 10^{-6}
+Clip ratio low
+0.2
+Clip ratio high
+0.2
+Epochs
+2
+β
+\beta
+0.0
+Rollout temperature
+1
+τ
+\tau
+0.2
+Table 4:
+Training configuration for DeepSeek-R1-Distill-Qwen-1.5B
+Parameter
+Value
+Parameter
+Value
+Pretrained Model
+DeepSeek-R1-Distill-Qwen-7B
+Device
+8
+×
+\times
+Nvidia-H100
+Prompts per batch
+64
+Generations per prompt
+8
+Gradient update per RL step
+1
+Max prompt length
+1024
+Max response length
+3072
+Learning rate
+2
+×
+10
+−
+6
+2\times 10^{-6}
+Clip ratio low
+0.2
+Clip ratio high
+0.2
+Epochs
+2
+β
+\beta
+0.0
+Rollout temperature
+1
+τ
+\tau
+0.2
+Table 5:
+Training configuration for DeepSeek-R1-Distill-Qwen-7B
+Parameter
+Value
+Parameter
+Value
+Pretrained Model
+Qwen2.5-Math-7B
+Device
+8
+×
+\times
+Nvidia-H100
+Prompts per batch
+64
+Generations per prompt
+8
+Gradient update per RL step
+1
+Max prompt length
+1024
+Max response length
+4096
+Learning rate
+1
+×
+10
+−
+6
+1\times 10^{-6}
+Clip ratio low
+0.2
+Clip ratio high
+0.2
+Epochs
+2
+β
+\beta
+0.0
+Rollout temperature
+1
+τ
+\tau
+0.2
+Table 6:
+Training configuration for Qwen2.5-Math-7B
+Appendix E
+Additional Results
+E.1
+Pass@K Experiments
+Figure 7:
+Pass@k curves across mathematical reasoning benchmarks and models. UCPO consistently achieves higher Pass@k, indicating better preservation of diverse correct solution paths. This behavior is consistent with UCPO redistributing gradient signal within the correct set, counteracting the collapse mechanism.
+Figures
+7
+present the Pass@K curves for
+K
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+,
+64
+}
+K\in\{1,2,4,8,16,32,64\}
+on DeepSeek-R1-Distill-Qwen-1.5B, DeepSeek-R1-Distill-Qwen-7B and Qwen-2.5-7B, respectively, across all five benchmarks (AIME24, AIME25, AMC, MATH, OlympiadBench). We compare UCPO against all baselines: GRPO, KL-Cov, Ent-Reg, Ent-Adv, Pass@K Training, and FGRPO.
+UCPO curves maintain improved performance through
+K
+=
+64
+K=64
+.
+The gap between UCPO and GRPO widens monotonically with
+K
+K
+especially across harder datasets such as AIME. On the 7B model, this gap is particularly pronounced on AIME24 (up to
++
+10
++10
+points at
+K
+=
+64
+K=64
+).
+E.2
+Cost Overhead
+Figure 8:
+Wall-clock time per training step for GRPO and UCPO
+under identical configuration (DeepSeek-R1-Distill-Qwen-1.5B,
+4
+×
+\times
+H100). The two methods exhibit nearly identical
+training cost throughout. Periodic spikes correspond to
+checkpoint saving.
+Figure
+8
+shows that UCPO and GRPO have
+effectively identical per-step training time. UCPO’s only
+additional computation is the
+O
+⁡
+(
+n
+)
+O(n)
+scalar advantage
+reweighting (Eq.
+52
+), which is negligible
+relative to rollout generation and the policy gradient
+backward pass. UCPO requires no additional forward passes,
+no reference model, and no extra rollouts.
+E.3
+Sensitivity to
+τ
+\tau
+UCPO introduces a single hyperparameter
+τ
+∈
+[
+0
+,
+1
+]
+\tau\in[0,1]
+that interpolates between standard GRPO (
+τ
+=
+0
+\tau=0
+) and fully uniform-correct weighting (
+τ
+=
+1
+\tau=1
+). We evaluate sensitivity on DeepSeek-R1-Distill-Qwen-1.5B across four values:
+τ
+∈
+{
+0.2
+,
+0.3
+,
+0.4
+,
+0.5
+}
+\tau\in\{0.2,0.3,0.4,0.5\}
+.
+Table 7:
+Performance at Pass@1 and Pass@64 across benchmarks for different UCPO
+τ
+\tau
+values on DeepSeek-R1-Distill-Qwen-1.5B. All other hyperparameters are held fixed.
+AIME
+AMC
+MATH
+OlympiadBench
+Avg
+τ
+\tau
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+@1
+@64
+0.0 (GRPO)
+19.06
+63.33
+55.27
+87.95
+71.57
+97.60
+42.63
+78.52
+47.13
+81.85
+0.1
+19.38
+66.67
+53.65
+91.57
+68.89
+97.6
+41.26
+77.48
+45.79
+83.33
+0.2
+19.01
+66.67
+52.97
+93.98
+67.93
+97.20
+40.15
+80.15
+45.02
+84.50
+0.3
+19.01
+66.67
+54.10
+93.98
+68.95
+97.40
+40.51
+79.41
+45.64
+84.36
+0.4
+18.96
+63.33
+53.11
+93.98
+73.54
+97.00
+43.24
+76.44
+47.21
+82.69
+0.5
+18.23
+56.67
+52.03
+91.57
+70.22
+97.40
+41.98
+77.78
+45.61
+80.85
+Results are shown in Table
+7
+. Several patterns emerge. First, the diversity gains (Pass@64) are robust over GRPO (
+τ
+=
+0
+\tau=0
+) by
++
+1.2
++1.2
+to
++
+2.7
++2.7
+points. Second, Pass@1 remains competitive for
+τ
+≤
+0.4
+\tau\leq 0.4
+. Third, at
+τ
+=
+0.5
+\tau=0.5
+, Pass@64 begins to degrade, particularly on AIME (
+56.67
+56.67
+, below GRPO). This is consistent with the theoretical expectation: at high
+τ
+\tau
+, the gradient is dominated by the uniform term
+𝔼
+y
+∼
+u
+​
+[
+∇
+log
+⁡
+π
+θ
+​
+(
+y
+)
+]
+\mathbb{E}_{y\sim u}[\nabla\log\pi_{\theta}(y)]
+, which may over-correct by distributing gradient signal too aggressively toward low-probability solutions, the importance weights
+v
+i
+=
+1
+/
+q
+^
+i
+v_{i}=1/\hat{q}_{i}
+become large and noisy (high variance), which can destabilize training.
+These results suggest that
+τ
+\tau
+provides a robust operating range. The diversity–correctness trade-off is mild: Pass@64 improves substantially while Pass@1 fluctuates within normal variance. We use
+τ
+=
+0.2
+\tau=0.2
+as the default throughout our experiments as it yields the strongest Pass@64 improvements.
+We also evaluated global entropy regularization across different entropy coefficients (Table
+3
+). Compared with UCPO, global entropy regularization underperforms at Pass@64 and is more sensitive to its coefficient. This shows that global entropy is a less effective mechanism for improving multi-sample coverage, consistent with its action over the full output space rather than the conditional distribution over verifier-accepted responses.
+Appendix F
+Equation Diversity
+We compute equational diversity following
+[
+Hu et al., 2025
+]
+. For each prompt, we consider only correct rollouts. From each rollout, we extract
+formulas appearing inside LaTeX math delimiters
+(
+$...$
+,
+\(...\)
+,
+\[...\]
+)
+within the first
+L
+L
+characters of the response.
+For rollout
+i
+i
+, let
+F
+i
+F_{i}
+denote the set of extracted formulas.
+We define the equation uniqueness score for rollout
+i
+i
+as
+D
+eq
+(
+i
+)
+=
+|
+F
+i
+∖
+⋃
+j
+≠
+i
+F
+j
+|
+max
+⁡
+(
+1
+,
+|
+F
+i
+|
+)
+.
+D_{\mathrm{eq}}^{(i)}=\frac{\left|F_{i}\setminus\bigcup_{j\neq i}F_{j}\right|}{\max\left(1,|F_{i}|\right)}.
+This score measures the fraction of formulas in rollout
+i
+i
+that do not appear in
+any other correct rollout for the same prompt.
+We average
+D
+eq
+(
+i
+)
+D_{\mathrm{eq}}^{(i)}
+across correct rollouts to obtain a
+prompt-level score, and then average across prompts within each dataset.
+Higher values indicate greater equation-level diversity among correct solutions.
+Figure 9:
+Pass@K comparison between the base model and GRPO on Qwen-2.5-7B. While GRPO improves Pass@1, it underperforms the base model at larger K, indicating contraction of the solution space.
+Experimental support, please
+view the build logs
+for errors. Generated by
+L
+A
+T
+E
+xml
+.
+Instructions for reporting errors
+We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:
+Click the "Report Issue"
+(
+)
+button, located in the page header.
+Tip:
+You can select the relevant text first, to include it in your report.
+Our team has already identified
+the following issues
+. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.
+Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+list of packages that need conversion
+, and welcome
+developer contributions
+.
+We gratefully acknowledge support from
+        our
+major funders
+,
+member institutions
+,
+,
+        and all contributors.
+About
+·
+Help
+·
+Contact
+·
+Subscribe
+·
+Copyright
+·
+Privacy
+·
+Accessibility
+·
+Operational Status
+(opens in new tab)
+Major funding support from

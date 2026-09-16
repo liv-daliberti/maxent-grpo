@@ -1,0 +1,52 @@
+\subsection{When replay supplies a signal that fresh groups lack}
+\label{app:theory-gradient-availability}
+
+The collapse theorem concerns an expected direction. A separate question is
+how often a finite group supplies any task signal, and whether a stored mode
+must reappear in that group before receiving a replay update.
+
+\begin{lemma}[Fresh-group starvation and replay signal]
+\label{lem:replay-gradient-availability}
+Fix a categorical policy with correctness probability $P$, and draw $G\ge2$
+fresh responses independently. For GRPO, Dr.GRPO, and the implemented centered
+MaxRL estimator, the probability of a mixed-reward group is
+\[
+ h_G(P)=1-P^G-(1-P)^G\le G\min\{P,1-P\}.
+\]
+Every all-equal group has zero fresh task gradient. Thus $h_G$ is the
+probability of an opportunity for a nonzero task gradient, rather than a
+lower bound on the gradient magnitude.
+
+For a fixed bank with normalized positive weights $w_b$, let
+$R_w=-\sum_b w_b\log p_b$ and $\rho_w>0$. Extend $w$ by zero outside the
+bank to obtain $\bar w$. The deterministic replay ascent vector is
+\[
+ v^{\rm replay}=-\rho_w\nabla R_w=\rho_w(\bar w-p).
+\]
+It vanishes only at $p=\bar w$. In particular, if $p_b\le w_b/2$ for a banked
+mode, then $v^{\rm replay}_b\ge\rho_w w_b/2$, even when $b$ is absent from the
+fresh group. For a uniform bank of $k\ge2$ modes and $p\to\mathbf e_b$ at
+one banked correct mode,
+\[
+ h_G(P)\to0,\qquad
+ \|v^{\rm replay}\|_2\to\rho_w\sqrt{1-1/k}>0.
+\]
+\end{lemma}
+
+\begin{proof}
+The all-correct and all-incorrect events are disjoint and have probabilities
+$P^G$ and $(1-P)^G$. A mixed group requires both a correct and an incorrect
+sample; the union bound gives the two bounds $GP$ and $G(1-P)$.
+For $R_w=-\sum_b w_b\log p_b$, the softmax score identity gives
+$\partial R_w/\partial z_a=p_a-\bar w_a$, proving the replay formula and
+coordinate bound. Finally,
+$\|\bar w-\mathbf e_b\|_2^2=(1-1/k)^2+(k-1)/k^2=1-1/k$.
+\end{proof}
+
+Here the replay vector averages the fixed bank; a stochastic draw of one
+exemplar has this vector only in expectation. Its nonzero logit coordinate
+does not guarantee a nonzero neural-parameter gradient after multiplication
+by a possibly degenerate Jacobian. Nor does replay necessarily increase the
+next mixed-group probability: $h_G$ is largest at $P=1/2$, so increasing an
+already high $P$ decreases it. The precise benefit is a separate verified
+learning signal when the fresh task gradient is unavailable.

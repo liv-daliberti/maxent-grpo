@@ -1,0 +1,105 @@
+\section{Metric and Objective Details}
+\label{app:metric-details}
+
+Correctness and solution support are distinct properties of a policy. For a
+prompt $x$ with reference specification $s_x$, the validator maps a response
+to either failure or a canonical key:
+\[
+  V(\cdot,s_x):\mathcal Y\rightarrow \mathcal C_x\cup\{\bot\}.
+\]
+Here $\mathcal C_x$ is the set of valid solution keys and $\bot$ denotes
+failure. The learner observes a key only for a response it generates; neither
+the full set $\mathcal C_x$ nor its size is revealed.
+
+For $Y\sim\pi_\theta(\cdot\mid x)$, the policy induces both a total probability
+of verified success and a distribution over how that probability is allocated:
+\[
+ P_\theta^+(x)=\Pr[V(Y,s_x)\neq\bot],
+ \qquad
+ p_\theta^+(c\mid x)=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\neq\bot].
+\]
+The conditional distribution is defined only when $P_\theta^+(x)>0$;
+when $P_\theta^+(x)=0$, all three sampling metrics below are zero.
+The first quantity measures correctness. The second describes the distribution
+of verified behaviors conditional on being correct. We call concentration of
+$p_\theta^+$ onto fewer keys \emph{mode collapse}, particularly when
+$P_\theta^+$ remains stable or increases.
+
+\subsection{Measuring success and support}
+\label{app:metric-sampling}
+
+For $K$ independent samples $Y_{1:K}$, let
+\[
+  D_K=\bigl|\{V(Y_i,s_x):i\le K\}\setminus\{\bot\}\bigr|,
+  \qquad
+  F_K=K^{-1}\sum_i \1[V(Y_i,s_x)\neq\bot].
+\]
+\mb{} reports three averages with different units. \texttt{distinct@}$K
+=\E[D_K]$ is an expected count in $[0,K]$ of unique verified keys;
+\texttt{pass@}$K=\Pr[D_K>0]$ and \texttt{mean@}$K=\E[F_K]$ are probabilities
+in $[0,1]$. For every draw, $F_K\le\1[D_K>0]\le D_K$; hence
+$\texttt{mean@}K\le\texttt{pass@}K\le\texttt{distinct@}K$. The inequality is
+valid, but equal numerical changes are not commensurate: $.02$ in
+\texttt{pass@8} is two probability points, whereas $.02$ in
+\texttt{distinct@8} is $.02$ expected verified keys.
+
+For a fixed prompt, write $\mu_c(x)=\Pr[V(Y,s_x)=c]$. Independence gives
+\[
+ \texttt{pass@}K(x)=1-(1-P_\theta^+(x))^K,\qquad
+ \texttt{distinct@}K(x)=\sum_{c\in\mathcal C_x}[1-(1-\mu_c(x))^K].
+\]
+These identities apply before averaging over prompts; applying the nonlinear
+formula to an average success probability generally gives a different result.
+
+Raw \texttt{distinct@}$K$ measures sampled coverage, not the total number of
+positive-probability modes. For an uninformed reference, suppose a finite
+space has $N$ actions and $n_c$ actions map to valid key $c$. Uniform independent
+action sampling then gives $\sum_c[1-(1-n_c/N)^K]$ expected verified keys.
+The simpler expression $m_x[1-(1-1/N)^K]$ applies when the $m_x$ valid actions
+have distinct keys, as in our reported finite-action references.
+Open-ended program and derivation spaces have no canonical nominal
+``uniform'' generator.
+
+The registered terminal co-primary endpoints are \texttt{pass@}$K$, the
+probability of finding any correct output, and raw \texttt{distinct@}$K$, the
+number of verified keys found. We report both separately for each
+model--domain--level block. The derived contrast
+$\texttt{distinct@}K-\texttt{pass@}K
+=\E[D_K-\1[D_K>0]]$ is an interpretive decomposition: it estimates the
+number of verified modes beyond the first. It is computable without knowing the
+full valid set $\mathcal C_x$ and remains coupled to the number of successful
+draws. We use it as an interpretive decomposition rather than a fully
+success-matched diversity measure or a third primary endpoint. Because every
+headline evaluation fixes $K=8$, reporting $\texttt{distinct@8}/8$ would add no
+information beyond a linear rescaling; we retain the raw count and label its
+units explicitly.
+
+
+\subsection{Why balance within the replay bank}
+\label{app:replay-metric-alignment}
+
+Uniform sampling over keys prevents discovery frequency from determining replay
+frequency. To explain its relationship to the evaluation metric, we first
+analyze an equal-weight categorical surrogate, without length normalization.
+A stored response's probability need not equal its key's total probability.
+For $C=|\mathcal B_x|$ banked keys, write $p(c)$ for their probabilities
+and $q_{\mathcal B}$ for their total mass. Then
+\begin{equation}
+ -\frac1C\sum_{c\in\mathcal B_x}\log p(c)
+ =-\log q_{\mathcal B}+\log C+
+   \mathrm{KL}\!\left(U_C\,\|\,
+   p(c\mid c\in\mathcal B_x)\right).
+ \label{eq:replay-bank-decomposition}
+\end{equation}
+The objective rewards greater banked verified mass and a more balanced
+conditional distribution, aligning with \texttt{pass@}$K$ and
+\texttt{distinct@}$K$. The combined update need not improve both at every step. Indeed banked-key coverage contributes
+$\sum_c[1-(1-p(c))^K]$ to expected \texttt{distinct@}$K$; at fixed
+$q_{\mathcal B}$ and $C$, concavity makes it largest under uniform allocation,
+while $1-(1-q_{\mathcal B})^K$, the probability of any banked key, depends
+only on total mass. This deliberate objective--metric alignment motivates
+treating held-out \texttt{pass@}$K$ as co-primary. Uniformity also maximizes the
+smallest conditional banked-key mass, making equal retention explicit. Banks
+contain only training-prompt responses; evaluation responses never enter
+training.
+

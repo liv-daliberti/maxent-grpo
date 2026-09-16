@@ -1,0 +1,26 @@
+{
+  "generated_at": "2026-09-11T07:24:56.423110+00:00",
+  "status": "passed",
+  "display_models": [
+    "qwen05b",
+    "falcon1b"
+  ],
+  "display_cells": 10,
+  "source_cells": 15,
+  "prior_source_cells_preserved": 10,
+  "core_endpoint_values_checked": 298,
+  "display_seed_counts": {
+    "drgrpo": 49,
+    "replay_grpo": 49,
+    "ucpo": 50,
+    "rlep_dr": 47
+  },
+  "same_metric_populations_and_checkpoints": true,
+  "same_numeric_snapshot_sha256": "045c1a88d11b27461a8dffc846057cd4cd6d8540a82378f1b93a3c7081485aca",
+  "missing_checkpoint_policy": "line and range shading break at missing half-pass checkpoints",
+  "accuracy_axis": [
+    0,
+    1
+  ],
+  "tests": "14 narrow trajectory-integrity, pairing and architecture tests passed"
+}

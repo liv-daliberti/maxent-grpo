@@ -1,0 +1,2329 @@
+{
+  "description": "Independent exhaustive ordered-group mean-update enumeration",
+  "check_count": 80,
+  "passed": true,
+  "tolerance": 1e-12,
+  "maximum_absolute_error": 9.325873406851315e-15,
+  "checks": [
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "drgrpo",
+      "ordered_groups": 9,
+      "correct_mass": 0.5,
+      "coefficient": 0.5,
+      "enumerated_mean": [
+        0.05000000000000001,
+        0.075,
+        -0.125
+      ],
+      "claimed_mean": [
+        0.05,
+        0.075,
+        -0.125
+      ],
+      "maximum_absolute_error": 6.938893903907228e-18
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_population_std",
+      "ordered_groups": 9,
+      "correct_mass": 0.5,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.10000000000000002,
+        0.15,
+        -0.25
+      ],
+      "claimed_mean": [
+        0.1,
+        0.15,
+        -0.25
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-17
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 9,
+      "correct_mass": 0.5,
+      "coefficient": 0.7071067711865475,
+      "enumerated_mean": [
+        0.07071067711865475,
+        0.10606601567798213,
+        -0.17677669279663688
+      ],
+      "claimed_mean": [
+        0.07071067711865475,
+        0.10606601567798213,
+        -0.17677669279663688
+      ],
+      "maximum_absolute_error": 0.0
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "maxrl",
+      "ordered_groups": 9,
+      "correct_mass": 0.5,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.10000000000000002,
+        0.15,
+        -0.25
+      ],
+      "claimed_mean": [
+        0.1,
+        0.15,
+        -0.25
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-17
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "drgrpo",
+      "ordered_groups": 27,
+      "correct_mass": 0.5,
+      "coefficient": 0.6666666666666666,
+      "enumerated_mean": [
+        0.06666666666666665,
+        0.09999999999999998,
+        -0.16666666666666669
+      ],
+      "claimed_mean": [
+        0.06666666666666667,
+        0.09999999999999999,
+        -0.16666666666666666
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_population_std",
+      "ordered_groups": 27,
+      "correct_mass": 0.5,
+      "coefficient": 1.414213562373095,
+      "enumerated_mean": [
+        0.1414213562373095,
+        0.21213203435596414,
+        -0.3535533905932738
+      ],
+      "claimed_mean": [
+        0.1414213562373095,
+        0.21213203435596423,
+        -0.35355339059327373
+      ],
+      "maximum_absolute_error": 8.326672684688674e-17
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 27,
+      "correct_mass": 0.5,
+      "coefficient": 1.1547005183792518,
+      "enumerated_mean": [
+        0.11547005183792523,
+        0.17320507775688776,
+        -0.288675129594813
+      ],
+      "claimed_mean": [
+        0.11547005183792519,
+        0.17320507775688776,
+        -0.28867512959481295
+      ],
+      "maximum_absolute_error": 5.551115123125783e-17
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "maxrl",
+      "ordered_groups": 27,
+      "correct_mass": 0.5,
+      "coefficient": 1.5,
+      "enumerated_mean": [
+        0.15000000000000005,
+        0.22500000000000006,
+        -0.3750000000000002
+      ],
+      "claimed_mean": [
+        0.15000000000000002,
+        0.22499999999999998,
+        -0.375
+      ],
+      "maximum_absolute_error": 2.220446049250313e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "drgrpo",
+      "ordered_groups": 81,
+      "correct_mass": 0.5,
+      "coefficient": 0.75,
+      "enumerated_mean": [
+        0.07499999999999998,
+        0.11249999999999999,
+        -0.18749999999999967
+      ],
+      "claimed_mean": [
+        0.07500000000000001,
+        0.11249999999999999,
+        -0.1875
+      ],
+      "maximum_absolute_error": 3.3306690738754696e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_population_std",
+      "ordered_groups": 81,
+      "correct_mass": 0.5,
+      "coefficient": 1.6160254037844388,
+      "enumerated_mean": [
+        0.16160254037844413,
+        0.24240381056766588,
+        -0.40400635094610965
+      ],
+      "claimed_mean": [
+        0.1616025403784439,
+        0.2424038105676658,
+        -0.4040063509461097
+      ],
+      "maximum_absolute_error": 2.220446049250313e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 81,
+      "correct_mass": 0.5,
+      "coefficient": 1.3995190265883295,
+      "enumerated_mean": [
+        0.1399519026588331,
+        0.20992785398824937,
+        -0.34987975664708243
+      ],
+      "claimed_mean": [
+        0.13995190265883295,
+        0.20992785398824942,
+        -0.3498797566470824
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "maxrl",
+      "ordered_groups": 81,
+      "correct_mass": 0.5,
+      "coefficient": 1.75,
+      "enumerated_mean": [
+        0.175,
+        0.26249999999999984,
+        -0.4374999999999998
+      ],
+      "claimed_mean": [
+        0.17500000000000002,
+        0.2625,
+        -0.4375
+      ],
+      "maximum_absolute_error": 2.220446049250313e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "drgrpo",
+      "ordered_groups": 243,
+      "correct_mass": 0.5,
+      "coefficient": 0.8,
+      "enumerated_mean": [
+        0.07999999999999978,
+        0.12000000000000004,
+        -0.19999999999999998
+      ],
+      "claimed_mean": [
+        0.08000000000000002,
+        0.12,
+        -0.2
+      ],
+      "maximum_absolute_error": 2.3592239273284576e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_population_std",
+      "ordered_groups": 243,
+      "correct_mass": 0.5,
+      "coefficient": 1.7247448713915892,
+      "enumerated_mean": [
+        0.17247448713915906,
+        0.2587117307087382,
+        -0.43118621784789657
+      ],
+      "claimed_mean": [
+        0.17247448713915892,
+        0.2587117307087384,
+        -0.4311862178478973
+      ],
+      "maximum_absolute_error": 7.216449660063518e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 243,
+      "correct_mass": 0.5,
+      "coefficient": 1.542658680510291,
+      "enumerated_mean": [
+        0.15426586805102893,
+        0.23139880207654312,
+        -0.3856646701275713
+      ],
+      "claimed_mean": [
+        0.15426586805102913,
+        0.23139880207654365,
+        -0.3856646701275728
+      ],
+      "maximum_absolute_error": 1.4988010832439613e-15
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "maxrl",
+      "ordered_groups": 243,
+      "correct_mass": 0.5,
+      "coefficient": 1.875,
+      "enumerated_mean": [
+        0.1875000000000002,
+        0.28124999999999956,
+        -0.4687499999999992
+      ],
+      "claimed_mean": [
+        0.1875,
+        0.28125,
+        -0.46875
+      ],
+      "maximum_absolute_error": 7.771561172376096e-16
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "drgrpo",
+      "ordered_groups": 729,
+      "correct_mass": 0.5,
+      "coefficient": 0.8333333333333334,
+      "enumerated_mean": [
+        0.08333333333333252,
+        0.12499999999999771,
+        -0.20833333333332982
+      ],
+      "claimed_mean": [
+        0.08333333333333334,
+        0.125,
+        -0.20833333333333334
+      ],
+      "maximum_absolute_error": 3.524958103184872e-15
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_population_std",
+      "ordered_groups": 729,
+      "correct_mass": 0.5,
+      "coefficient": 1.788391973670658,
+      "enumerated_mean": [
+        0.17883919736706433,
+        0.26825879605059505,
+        -0.44709799341766754
+      ],
+      "claimed_mean": [
+        0.1788391973670658,
+        0.26825879605059866,
+        -0.4470979934176645
+      ],
+      "maximum_absolute_error": 3.608224830031759e-15
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 729,
+      "correct_mass": 0.5,
+      "coefficient": 1.6325710104426752,
+      "enumerated_mean": [
+        0.1632571010442679,
+        0.2448856515664011,
+        -0.40814275261066635
+      ],
+      "claimed_mean": [
+        0.16325710104426752,
+        0.24488565156640127,
+        -0.4081427526106688
+      ],
+      "maximum_absolute_error": 2.4424906541753444e-15
+    },
+    {
+      "probabilities": [
+        0.2,
+        0.3,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "maxrl",
+      "ordered_groups": 729,
+      "correct_mass": 0.5,
+      "coefficient": 1.9375,
+      "enumerated_mean": [
+        0.19374999999999995,
+        0.2906249999999986,
+        -0.4843749999999979
+      ],
+      "claimed_mean": [
+        0.19375,
+        0.29062499999999997,
+        -0.484375
+      ],
+      "maximum_absolute_error": 2.1094237467877974e-15
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "drgrpo",
+      "ordered_groups": 9,
+      "correct_mass": 0.15,
+      "coefficient": 0.5,
+      "enumerated_mean": [
+        0.017,
+        0.04675,
+        -0.06375
+      ],
+      "claimed_mean": [
+        0.017,
+        0.04675,
+        -0.06375
+      ],
+      "maximum_absolute_error": 0.0
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_population_std",
+      "ordered_groups": 9,
+      "correct_mass": 0.15,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.034,
+        0.0935,
+        -0.1275
+      ],
+      "claimed_mean": [
+        0.034,
+        0.0935,
+        -0.1275
+      ],
+      "maximum_absolute_error": 0.0
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 9,
+      "correct_mass": 0.15,
+      "coefficient": 0.7071067711865475,
+      "enumerated_mean": [
+        0.024041630220342617,
+        0.06611448310594219,
+        -0.0901561133262848
+      ],
+      "claimed_mean": [
+        0.024041630220342617,
+        0.06611448310594219,
+        -0.09015611332628481
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-17
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "maxrl",
+      "ordered_groups": 9,
+      "correct_mass": 0.15,
+      "coefficient": 1.0000000000000002,
+      "enumerated_mean": [
+        0.034,
+        0.0935,
+        -0.1275
+      ],
+      "claimed_mean": [
+        0.03400000000000001,
+        0.09350000000000001,
+        -0.12750000000000003
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "drgrpo",
+      "ordered_groups": 27,
+      "correct_mass": 0.15,
+      "coefficient": 0.6666666666666666,
+      "enumerated_mean": [
+        0.02266666666666669,
+        0.062333333333333324,
+        -0.08499999999999999
+      ],
+      "claimed_mean": [
+        0.02266666666666667,
+        0.06233333333333333,
+        -0.08499999999999999
+      ],
+      "maximum_absolute_error": 2.0816681711721685e-17
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_population_std",
+      "ordered_groups": 27,
+      "correct_mass": 0.15,
+      "coefficient": 1.4142135623730947,
+      "enumerated_mean": [
+        0.04808326112068525,
+        0.1322289680818844,
+        -0.1803122292025696
+      ],
+      "claimed_mean": [
+        0.04808326112068522,
+        0.13222896808188436,
+        -0.1803122292025696
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 27,
+      "correct_mass": 0.15,
+      "coefficient": 1.1547005183792518,
+      "enumerated_mean": [
+        0.039259817624894555,
+        0.10796449846846007,
+        -0.14722431609335465
+      ],
+      "claimed_mean": [
+        0.03925981762489456,
+        0.10796449846846004,
+        -0.1472243160933546
+      ],
+      "maximum_absolute_error": 5.551115123125783e-17
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "maxrl",
+      "ordered_groups": 27,
+      "correct_mass": 0.15,
+      "coefficient": 1.8500000000000005,
+      "enumerated_mean": [
+        0.06290000000000001,
+        0.172975,
+        -0.23587499999999995
+      ],
+      "claimed_mean": [
+        0.06290000000000003,
+        0.17297500000000005,
+        -0.23587500000000008
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "drgrpo",
+      "ordered_groups": 81,
+      "correct_mass": 0.15,
+      "coefficient": 0.7499999999999999,
+      "enumerated_mean": [
+        0.025500000000000012,
+        0.070125,
+        -0.09562499999999996
+      ],
+      "claimed_mean": [
+        0.0255,
+        0.07012499999999999,
+        -0.09562499999999999
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_population_std",
+      "ordered_groups": 81,
+      "correct_mass": 0.15,
+      "coefficient": 1.6728778516388134,
+      "enumerated_mean": [
+        0.05687784695571965,
+        0.1564140791282291,
+        -0.2132919260839486
+      ],
+      "claimed_mean": [
+        0.05687784695571966,
+        0.15641407912822905,
+        -0.2132919260839487
+      ],
+      "maximum_absolute_error": 1.1102230246251565e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 81,
+      "correct_mass": 0.15,
+      "coefficient": 1.448754688860048,
+      "enumerated_mean": [
+        0.049257659421241634,
+        0.13545856340841447,
+        -0.1847162228296563
+      ],
+      "claimed_mean": [
+        0.049257659421241634,
+        0.13545856340841447,
+        -0.18471622282965613
+      ],
+      "maximum_absolute_error": 1.6653345369377348e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "maxrl",
+      "ordered_groups": 81,
+      "correct_mass": 0.15,
+      "coefficient": 2.5725000000000007,
+      "enumerated_mean": [
+        0.087465,
+        0.24052875,
+        -0.32799374999999986
+      ],
+      "claimed_mean": [
+        0.08746500000000003,
+        0.24052875000000007,
+        -0.3279937500000001
+      ],
+      "maximum_absolute_error": 2.220446049250313e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "drgrpo",
+      "ordered_groups": 243,
+      "correct_mass": 0.15,
+      "coefficient": 0.7999999999999998,
+      "enumerated_mean": [
+        0.027199999999999953,
+        0.07479999999999999,
+        -0.10199999999999976
+      ],
+      "claimed_mean": [
+        0.027199999999999995,
+        0.07479999999999998,
+        -0.10199999999999998
+      ],
+      "maximum_absolute_error": 2.220446049250313e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_population_std",
+      "ordered_groups": 243,
+      "correct_mass": 0.15,
+      "coefficient": 1.85961988440971,
+      "enumerated_mean": [
+        0.06322707606993026,
+        0.1738744591923076,
+        -0.23710153526223748
+      ],
+      "claimed_mean": [
+        0.06322707606993015,
+        0.1738744591923079,
+        -0.23710153526223804
+      ],
+      "maximum_absolute_error": 5.551115123125783e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 243,
+      "correct_mass": 0.15,
+      "coefficient": 1.6632945546401658,
+      "enumerated_mean": [
+        0.05655201485776567,
+        0.15551804085885565,
+        -0.21207005571662121
+      ],
+      "claimed_mean": [
+        0.05655201485776564,
+        0.1555180408588555,
+        -0.21207005571662116
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "maxrl",
+      "ordered_groups": 243,
+      "correct_mass": 0.15,
+      "coefficient": 3.1866250000000007,
+      "enumerated_mean": [
+        0.10834525000000024,
+        0.2979494374999994,
+        -0.4062946875000004
+      ],
+      "claimed_mean": [
+        0.10834525000000003,
+        0.2979494375000001,
+        -0.4062946875000001
+      ],
+      "maximum_absolute_error": 6.661338147750939e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "drgrpo",
+      "ordered_groups": 729,
+      "correct_mass": 0.15,
+      "coefficient": 0.8333333333333331,
+      "enumerated_mean": [
+        0.02833333333333332,
+        0.07791666666666693,
+        -0.10624999999999997
+      ],
+      "claimed_mean": [
+        0.02833333333333333,
+        0.07791666666666665,
+        -0.10624999999999998
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_population_std",
+      "ordered_groups": 729,
+      "correct_mass": 0.15,
+      "coefficient": 2.0025990228729302,
+      "enumerated_mean": [
+        0.06808836677767945,
+        0.1872430086386193,
+        -0.2553313754163021
+      ],
+      "claimed_mean": [
+        0.06808836677767963,
+        0.18724300863861898,
+        -0.25533137541629863
+      ],
+      "maximum_absolute_error": 3.4416913763379853e-15
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 729,
+      "correct_mass": 0.15,
+      "coefficient": 1.8281143900670769,
+      "enumerated_mean": [
+        0.062155889262280516,
+        0.17092869547127193,
+        -0.23308458473355226
+      ],
+      "claimed_mean": [
+        0.06215588926228062,
+        0.17092869547127168,
+        -0.2330845847335523
+      ],
+      "maximum_absolute_error": 2.498001805406602e-16
+    },
+    {
+      "probabilities": [
+        0.04,
+        0.11,
+        0.85
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "maxrl",
+      "ordered_groups": 729,
+      "correct_mass": 0.15,
+      "coefficient": 3.7086312500000007,
+      "enumerated_mean": [
+        0.12609346250000067,
+        0.34675702187500035,
+        -0.47285048437500043
+      ],
+      "claimed_mean": [
+        0.12609346250000003,
+        0.34675702187500007,
+        -0.4728504843750001
+      ],
+      "maximum_absolute_error": 6.38378239159465e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "drgrpo",
+      "ordered_groups": 9,
+      "correct_mass": 0.9,
+      "coefficient": 0.5,
+      "enumerated_mean": [
+        0.020000000000000004,
+        0.025,
+        -0.04500000000000001
+      ],
+      "claimed_mean": [
+        0.019999999999999997,
+        0.024999999999999994,
+        -0.045000000000000005
+      ],
+      "maximum_absolute_error": 6.938893903907228e-18
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_population_std",
+      "ordered_groups": 9,
+      "correct_mass": 0.9,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.04000000000000001,
+        0.05,
+        -0.09000000000000002
+      ],
+      "claimed_mean": [
+        0.039999999999999994,
+        0.04999999999999999,
+        -0.09000000000000001
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 9,
+      "correct_mass": 0.9,
+      "coefficient": 0.7071067711865475,
+      "enumerated_mean": [
+        0.028284270847461906,
+        0.035355338559327376,
+        -0.06363960940678928
+      ],
+      "claimed_mean": [
+        0.028284270847461896,
+        0.03535533855932737,
+        -0.06363960940678928
+      ],
+      "maximum_absolute_error": 1.0408340855860843e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 2,
+      "variant": "maxrl",
+      "ordered_groups": 9,
+      "correct_mass": 0.9,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.04000000000000001,
+        0.05,
+        -0.09000000000000002
+      ],
+      "claimed_mean": [
+        0.039999999999999994,
+        0.04999999999999999,
+        -0.09000000000000001
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "drgrpo",
+      "ordered_groups": 27,
+      "correct_mass": 0.9,
+      "coefficient": 0.6666666666666667,
+      "enumerated_mean": [
+        0.026666666666666658,
+        0.03333333333333335,
+        -0.05999999999999999
+      ],
+      "claimed_mean": [
+        0.026666666666666665,
+        0.03333333333333333,
+        -0.06000000000000001
+      ],
+      "maximum_absolute_error": 2.0816681711721685e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_population_std",
+      "ordered_groups": 27,
+      "correct_mass": 0.9,
+      "coefficient": 1.414213562373095,
+      "enumerated_mean": [
+        0.05656854249492381,
+        0.07071067811865474,
+        -0.12727922061357852
+      ],
+      "claimed_mean": [
+        0.05656854249492379,
+        0.07071067811865472,
+        -0.12727922061357855
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 27,
+      "correct_mass": 0.9,
+      "coefficient": 1.154700518379252,
+      "enumerated_mean": [
+        0.046188020735170095,
+        0.057735025918962624,
+        -0.10392304665413264
+      ],
+      "claimed_mean": [
+        0.046188020735170074,
+        0.05773502591896259,
+        -0.1039230466541327
+      ],
+      "maximum_absolute_error": 5.551115123125783e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 3,
+      "variant": "maxrl",
+      "ordered_groups": 27,
+      "correct_mass": 0.9,
+      "coefficient": 1.0999999999999999,
+      "enumerated_mean": [
+        0.04400000000000002,
+        0.05499999999999999,
+        -0.09900000000000009
+      ],
+      "claimed_mean": [
+        0.04399999999999999,
+        0.05499999999999998,
+        -0.099
+      ],
+      "maximum_absolute_error": 8.326672684688674e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "drgrpo",
+      "ordered_groups": 81,
+      "correct_mass": 0.9,
+      "coefficient": 0.75,
+      "enumerated_mean": [
+        0.03000000000000001,
+        0.037499999999999936,
+        -0.06749999999999996
+      ],
+      "claimed_mean": [
+        0.029999999999999995,
+        0.03749999999999999,
+        -0.0675
+      ],
+      "maximum_absolute_error": 5.551115123125783e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_population_std",
+      "ordered_groups": 81,
+      "correct_mass": 0.9,
+      "coefficient": 1.6902816622064798,
+      "enumerated_mean": [
+        0.0676112664882593,
+        0.08451408311032398,
+        -0.1521253495985829
+      ],
+      "claimed_mean": [
+        0.06761126648825919,
+        0.08451408311032398,
+        -0.1521253495985832
+      ],
+      "maximum_absolute_error": 3.0531133177191805e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 81,
+      "correct_mass": 0.9,
+      "coefficient": 1.463826830371799,
+      "enumerated_mean": [
+        0.058553073214872006,
+        0.07319134151858994,
+        -0.1317444147334617
+      ],
+      "claimed_mean": [
+        0.05855307321487195,
+        0.07319134151858993,
+        -0.13174441473346193
+      ],
+      "maximum_absolute_error": 2.220446049250313e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 4,
+      "variant": "maxrl",
+      "ordered_groups": 81,
+      "correct_mass": 0.9,
+      "coefficient": 1.1099999999999999,
+      "enumerated_mean": [
+        0.04440000000000002,
+        0.055500000000000056,
+        -0.09990000000000002
+      ],
+      "claimed_mean": [
+        0.04439999999999999,
+        0.05549999999999998,
+        -0.0999
+      ],
+      "maximum_absolute_error": 7.632783294297951e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "drgrpo",
+      "ordered_groups": 243,
+      "correct_mass": 0.9,
+      "coefficient": 0.7999999999999999,
+      "enumerated_mean": [
+        0.031999999999999945,
+        0.04000000000000005,
+        -0.0719999999999998
+      ],
+      "claimed_mean": [
+        0.031999999999999994,
+        0.03999999999999999,
+        -0.07200000000000001
+      ],
+      "maximum_absolute_error": 2.0816681711721685e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_population_std",
+      "ordered_groups": 243,
+      "correct_mass": 0.9,
+      "coefficient": 1.900908153700972,
+      "enumerated_mean": [
+        0.07603632614803923,
+        0.09504540768504904,
+        -0.1710817338330868
+      ],
+      "claimed_mean": [
+        0.07603632614803887,
+        0.09504540768504857,
+        -0.1710817338330875
+      ],
+      "maximum_absolute_error": 6.938893903907228e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 243,
+      "correct_mass": 0.9,
+      "coefficient": 1.7002239038635976,
+      "enumerated_mean": [
+        0.06800895615454385,
+        0.08501119519317982,
+        -0.1530201513477238
+      ],
+      "claimed_mean": [
+        0.06800895615454389,
+        0.08501119519317986,
+        -0.1530201513477238
+      ],
+      "maximum_absolute_error": 4.163336342344337e-17
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 5,
+      "variant": "maxrl",
+      "ordered_groups": 243,
+      "correct_mass": 0.9,
+      "coefficient": 1.111,
+      "enumerated_mean": [
+        0.04443999999999995,
+        0.05554999999999972,
+        -0.09999000000000016
+      ],
+      "claimed_mean": [
+        0.04443999999999999,
+        0.05554999999999999,
+        -0.09999000000000001
+      ],
+      "maximum_absolute_error": 2.706168622523819e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "drgrpo",
+      "ordered_groups": 729,
+      "correct_mass": 0.9,
+      "coefficient": 0.8333333333333333,
+      "enumerated_mean": [
+        0.03333333333333286,
+        0.04166666666666619,
+        -0.07500000000000061
+      ],
+      "claimed_mean": [
+        0.033333333333333326,
+        0.04166666666666665,
+        -0.075
+      ],
+      "maximum_absolute_error": 6.106226635438361e-16
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_population_std",
+      "ordered_groups": 729,
+      "correct_mass": 0.9,
+      "coefficient": 2.0701526113510345,
+      "enumerated_mean": [
+        0.0828061044540416,
+        0.10350763056755143,
+        -0.18631373502159135
+      ],
+      "claimed_mean": [
+        0.08280610445404137,
+        0.1035076305675517,
+        -0.18631373502159312
+      ],
+      "maximum_absolute_error": 1.7763568394002505e-15
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 729,
+      "correct_mass": 0.9,
+      "coefficient": 1.8897820944736454,
+      "enumerated_mean": [
+        0.07559128377894722,
+        0.09448910472368174,
+        -0.17008038850262913
+      ],
+      "claimed_mean": [
+        0.0755912837789458,
+        0.09448910472368224,
+        -0.1700803885026281
+      ],
+      "maximum_absolute_error": 1.4155343563970746e-15
+    },
+    {
+      "probabilities": [
+        0.4,
+        0.5,
+        0.1
+      ],
+      "rewards": [
+        1,
+        1,
+        0
+      ],
+      "group_width": 6,
+      "variant": "maxrl",
+      "ordered_groups": 729,
+      "correct_mass": 0.9,
+      "coefficient": 1.1111,
+      "enumerated_mean": [
+        0.04444400000000027,
+        0.055555000000000014,
+        -0.09999899999999985
+      ],
+      "claimed_mean": [
+        0.04444399999999999,
+        0.055554999999999986,
+        -0.099999
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 2,
+      "variant": "drgrpo",
+      "ordered_groups": 16,
+      "correct_mass": 0.25,
+      "coefficient": 0.5,
+      "enumerated_mean": [
+        0.037500000000000006,
+        0.05625000000000001,
+        -0.03125,
+        -0.0625
+      ],
+      "claimed_mean": [
+        0.037500000000000006,
+        0.056249999999999994,
+        -0.03125,
+        -0.0625
+      ],
+      "maximum_absolute_error": 1.3877787807814457e-17
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_population_std",
+      "ordered_groups": 16,
+      "correct_mass": 0.25,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.07500000000000001,
+        0.11250000000000002,
+        -0.0625,
+        -0.125
+      ],
+      "claimed_mean": [
+        0.07500000000000001,
+        0.11249999999999999,
+        -0.0625,
+        -0.125
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 2,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 16,
+      "correct_mass": 0.25,
+      "coefficient": 0.7071067711865475,
+      "enumerated_mean": [
+        0.053033007838991064,
+        0.07954951175848658,
+        -0.04419417319915922,
+        -0.08838834639831844
+      ],
+      "claimed_mean": [
+        0.05303300783899107,
+        0.07954951175848658,
+        -0.04419417319915922,
+        -0.08838834639831844
+      ],
+      "maximum_absolute_error": 6.938893903907228e-18
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 2,
+      "variant": "maxrl",
+      "ordered_groups": 16,
+      "correct_mass": 0.25,
+      "coefficient": 1.0,
+      "enumerated_mean": [
+        0.07500000000000001,
+        0.11250000000000002,
+        -0.0625,
+        -0.125
+      ],
+      "claimed_mean": [
+        0.07500000000000001,
+        0.11249999999999999,
+        -0.0625,
+        -0.125
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-17
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 3,
+      "variant": "drgrpo",
+      "ordered_groups": 64,
+      "correct_mass": 0.25,
+      "coefficient": 0.6666666666666666,
+      "enumerated_mean": [
+        0.05000000000000004,
+        0.07499999999999997,
+        -0.04166666666666669,
+        -0.08333333333333337
+      ],
+      "claimed_mean": [
+        0.05,
+        0.07499999999999998,
+        -0.041666666666666664,
+        -0.08333333333333333
+      ],
+      "maximum_absolute_error": 4.163336342344337e-17
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_population_std",
+      "ordered_groups": 64,
+      "correct_mass": 0.25,
+      "coefficient": 1.414213562373095,
+      "enumerated_mean": [
+        0.10606601717798217,
+        0.15909902576697316,
+        -0.08838834764831845,
+        -0.17677669529663698
+      ],
+      "claimed_mean": [
+        0.10606601717798214,
+        0.15909902576697316,
+        -0.08838834764831843,
+        -0.17677669529663687
+      ],
+      "maximum_absolute_error": 1.1102230246251565e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 3,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 64,
+      "correct_mass": 0.25,
+      "coefficient": 1.1547005183792518,
+      "enumerated_mean": [
+        0.08660253887844391,
+        0.1299038083176659,
+        -0.07216878239870324,
+        -0.1443375647974065
+      ],
+      "claimed_mean": [
+        0.0866025388784439,
+        0.12990380831766582,
+        -0.07216878239870324,
+        -0.14433756479740648
+      ],
+      "maximum_absolute_error": 8.326672684688674e-17
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 3,
+      "variant": "maxrl",
+      "ordered_groups": 64,
+      "correct_mass": 0.25,
+      "coefficient": 1.75,
+      "enumerated_mean": [
+        0.13125000000000003,
+        0.19687499999999988,
+        -0.109375,
+        -0.21875000000000017
+      ],
+      "claimed_mean": [
+        0.13125000000000003,
+        0.19687499999999997,
+        -0.109375,
+        -0.21875
+      ],
+      "maximum_absolute_error": 1.6653345369377348e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 4,
+      "variant": "drgrpo",
+      "ordered_groups": 256,
+      "correct_mass": 0.25,
+      "coefficient": 0.75,
+      "enumerated_mean": [
+        0.056249999999999946,
+        0.08437500000000027,
+        -0.04687500000000006,
+        -0.09374999999999993
+      ],
+      "claimed_mean": [
+        0.05625000000000001,
+        0.08437499999999999,
+        -0.046875,
+        -0.09375
+      ],
+      "maximum_absolute_error": 2.7755575615628914e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_population_std",
+      "ordered_groups": 256,
+      "correct_mass": 0.25,
+      "coefficient": 1.6450317547305484,
+      "enumerated_mean": [
+        0.12337738160479104,
+        0.18506607240718667,
+        -0.10281448467065912,
+        -0.20562896934131802
+      ],
+      "claimed_mean": [
+        0.12337738160479116,
+        0.18506607240718667,
+        -0.10281448467065928,
+        -0.20562896934131855
+      ],
+      "maximum_absolute_error": 5.273559366969494e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 4,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 256,
+      "correct_mass": 0.25,
+      "coefficient": 1.4246392624412472,
+      "enumerated_mean": [
+        0.1068479446830933,
+        0.16027191702464025,
+        -0.08903995390257753,
+        -0.17807990780515542
+      ],
+      "claimed_mean": [
+        0.10684794468309355,
+        0.1602719170246403,
+        -0.08903995390257795,
+        -0.1780799078051559
+      ],
+      "maximum_absolute_error": 4.718447854656915e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 4,
+      "variant": "maxrl",
+      "ordered_groups": 256,
+      "correct_mass": 0.25,
+      "coefficient": 2.3125,
+      "enumerated_mean": [
+        0.1734374999999998,
+        0.26015625000000064,
+        -0.14453125000000022,
+        -0.28906249999999994
+      ],
+      "claimed_mean": [
+        0.17343750000000002,
+        0.26015625,
+        -0.14453125,
+        -0.2890625
+      ],
+      "maximum_absolute_error": 6.661338147750939e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 5,
+      "variant": "drgrpo",
+      "ordered_groups": 1024,
+      "correct_mass": 0.25,
+      "coefficient": 0.8,
+      "enumerated_mean": [
+        0.05999999999999957,
+        0.08999999999999947,
+        -0.04999999999999982,
+        -0.09999999999999921
+      ],
+      "claimed_mean": [
+        0.06000000000000001,
+        0.09,
+        -0.05,
+        -0.1
+      ],
+      "maximum_absolute_error": 7.91033905045424e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_population_std",
+      "ordered_groups": 1024,
+      "correct_mass": 0.25,
+      "coefficient": 1.7935586535436918,
+      "enumerated_mean": [
+        0.13451689901577718,
+        0.20177534852366583,
+        -0.11209741584648088,
+        -0.22419483169296092
+      ],
+      "claimed_mean": [
+        0.1345168990157769,
+        0.2017753485236653,
+        -0.11209741584648074,
+        -0.22419483169296148
+      ],
+      "maximum_absolute_error": 5.551115123125783e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 5,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 1024,
+      "correct_mass": 0.25,
+      "coefficient": 1.6042075958826763,
+      "enumerated_mean": [
+        0.12031556969120027,
+        0.18047335453680075,
+        -0.100262974742667,
+        -0.2005259494853343
+      ],
+      "claimed_mean": [
+        0.12031556969120073,
+        0.18047335453680105,
+        -0.10026297474266727,
+        -0.20052594948533453
+      ],
+      "maximum_absolute_error": 4.579669976578771e-16
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 5,
+      "variant": "maxrl",
+      "ordered_groups": 1024,
+      "correct_mass": 0.25,
+      "coefficient": 2.734375,
+      "enumerated_mean": [
+        0.20507812500000047,
+        0.3076171875000024,
+        -0.17089843750000194,
+        -0.34179687500000067
+      ],
+      "claimed_mean": [
+        0.20507812500000003,
+        0.30761718749999994,
+        -0.1708984375,
+        -0.341796875
+      ],
+      "maximum_absolute_error": 2.4424906541753444e-15
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 6,
+      "variant": "drgrpo",
+      "ordered_groups": 4096,
+      "correct_mass": 0.25,
+      "coefficient": 0.8333333333333334,
+      "enumerated_mean": [
+        0.06249999999999977,
+        0.09374999999999716,
+        -0.052083333333334474,
+        -0.10416666666667071
+      ],
+      "claimed_mean": [
+        0.06250000000000001,
+        0.09375,
+        -0.052083333333333336,
+        -0.10416666666666667
+      ],
+      "maximum_absolute_error": 4.038436252074007e-15
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_population_std",
+      "ordered_groups": 4096,
+      "correct_mass": 0.25,
+      "coefficient": 1.8964437832458867,
+      "enumerated_mean": [
+        0.14223328374343822,
+        0.21334992561516236,
+        -0.11852773645286516,
+        -0.23705547290573628
+      ],
+      "claimed_mean": [
+        0.14223328374344152,
+        0.21334992561516222,
+        -0.11852773645286792,
+        -0.23705547290573584
+      ],
+      "maximum_absolute_error": 3.3029134982598407e-15
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 6,
+      "variant": "grpo_sample_std_eps",
+      "ordered_groups": 4096,
+      "correct_mass": 0.25,
+      "coefficient": 1.7312083620169132,
+      "enumerated_mean": [
+        0.12984062715127007,
+        0.1947609407269018,
+        -0.10820052262605803,
+        -0.21640104525211365
+      ],
+      "claimed_mean": [
+        0.1298406271512685,
+        0.19476094072690273,
+        -0.10820052262605707,
+        -0.21640104525211415
+      ],
+      "maximum_absolute_error": 1.5543122344752192e-15
+    },
+    {
+      "probabilities": [
+        0.1,
+        0.15,
+        0.25,
+        0.5
+      ],
+      "rewards": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "group_width": 6,
+      "variant": "maxrl",
+      "ordered_groups": 4096,
+      "correct_mass": 0.25,
+      "coefficient": 3.05078125,
+      "enumerated_mean": [
+        0.22880859375000415,
+        0.34321289062499066,
+        -0.1906738281250006,
+        -0.381347656250006
+      ],
+      "claimed_mean": [
+        0.22880859375000004,
+        0.343212890625,
+        -0.190673828125,
+        -0.38134765625
+      ],
+      "maximum_absolute_error": 9.325873406851315e-15
+    }
+  ]
+}

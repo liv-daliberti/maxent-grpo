@@ -1,0 +1,76 @@
+\documentclass{article}
+
+\ifdefined\mathaicameraready
+  \usepackage[dblblindworkshop, final]{neurips_2026}
+\else
+  \usepackage[dblblindworkshop]{neurips_2026}
+\fi
+\workshoptitle{The 6th Workshop on Mathematical Reasoning and AI}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{colortbl}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{fancyvrb}
+\usepackage{etoolbox}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{mathtools}
+\usepackage{microtype}
+\usepackage{tabularx}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{float}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+% Consistent figure captions with the template's standard 7pt gap.
+\AtBeginEnvironment{figure}{%
+  \setlength{\abovecaptionskip}{7pt}%
+  \setlength{\belowcaptionskip}{0pt}%
+  \pretocmd{\caption}{\par\nointerlineskip}{}{}}
+\hypersetup{hypertexnames=false,hidelinks,
+  pdftitle={More than One Way to Skin a Cat: Preserving Verified Modes in RLVR},
+  pdfauthor={Anonymous Authors}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\1}{\mathbf 1}
+\newcommand{\E}{\mathbb E}
+\newcommand{\Bpos}{\mathcal B_x^+}
+\newcommand{\mb}{\textsc{ModeBench}}
+\definecolor{bettergreen}{RGB}{224,242,226}
+\newcommand{\bettercell}[1]{\cellcolor{bettergreen}#1}
+% Same five tints as each domain's card in Figure~\ref{fig:modebench-examples}
+% (\path{ops/plot_paper_modebench_examples.py}, \texttt{DOMAIN_PANEL}), so a
+% domain named in prose can be matched back to its card by colour alone.
+\definecolor{domGraph}{HTML}{E8F1FA}
+\definecolor{domCountdown}{HTML}{E7FBF6}
+\definecolor{domPython}{HTML}{EFFBE7}
+\definecolor{domMathIR}{HTML}{E7FBEE}
+\definecolor{domPantry}{HTML}{E7ECFB}
+\newcommand{\domlabel}[2]{\colorbox{#1}{\textbf{#2}}}
+\newcommand{\xmode}{\mbox{legacy adaptive MaxEnt+ReplayDr.GRPO}}
+\newcommand{\historicalt}{\mbox{historical multi-component treatment}}
+\newcommand{\Historicalt}{\mbox{Historical multi-component treatment}}
+\DeclareMathOperator{\clip}{clip}
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{theorem}[lemma]{Theorem}
+\newtheorem{corollary}[lemma]{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}[lemma]{Remark}
+
+
+\theoremstyle{definition}
+\newtheorem{definition}[lemma]{Definition}
+\theoremstyle{plain}
+
+
+\newcommand{\qwenmark}{Qwen}
+
+
+

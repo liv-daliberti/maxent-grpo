@@ -1,0 +1,30 @@
+ModeBench makes a missing part of evaluation measurable: the range of distinct,
+verified outcomes a model can produce for one problem. Accuracy tells us whether
+a model can succeed; diversity helps describe the alternatives still available
+to it. That distinction matters because different approaches can have different
+strengths. One may succeed where another fails, or remain useful when the
+problem or its constraints change. Knowing several ways to solve could therefore
+be valuable even when a familiar approach already works.
+
+Our experiments show that replay complements learning from fresh samples.
+Remembering verified solutions improves held-out correctness and preserves
+more correct output alternatives across the completed comparisons. ModeBench
+lets us measure those alternatives through executable, task-defined identities.
+It provides a controlled starting point for understanding what training
+preserves, alongside what training learns to solve.
+
+\textbf{Limits and next steps.} ModeBench provides a controlled setting for
+studying diverse solutions. Understanding how this diversity relates to broader
+mathematical reasoning and later problem solving remains an open direction. Replay can
+retain only modes it discovers and stores. Individual-mode survival and
+size-dependent update geometry remain unmeasured
+(Appendices~\ref{app:ablations} and~\ref{app:theory-size}); the optimizer and
+admission results are conditional. Theory studies idealized mean flows.
+We have not shown that broader support
+causes the accuracy gains. The MaxRL factorial has eleven complete paired
+blocks; Falcon Countdown's Dr.GRPO replay comparison has four admissible seeds,
+and only Graph has a complete Level-2 factorial. Richer mathematical tasks
+should test which alternatives survive training, when a different approach
+succeeds after another fails, and whether preserving those options improves
+problem solving.
+

@@ -1,0 +1,24 @@
+                     Workshop footer configuration probe
+
+
+                                                Anonymous Author(s)
+                                                    Affiliation
+                                                     Address
+                                                      email
+
+
+
+                                                       Abstract
+1             This isolated document checks the workshop footer and anonymous review format-
+2             ting.
+
+
+3   1    Configuration check
+4   The manuscript uses the workshop template. Its submission keeps anonymous authors and line
+5   numbering. The camera-ready document keeps the official workshop notice.
+
+
+
+
+    Submitted to The 6th Workshop on Mathematical Reasoning and AI (NeurIPS 2026). Do not distribute.
+

@@ -1,0 +1,112 @@
+{
+  "status": "PASS",
+  "new_reference_count": 18,
+  "new_reference_keys": [
+    "agarwal2021policygradient",
+    "anceaume2015coupon",
+    "berend2013missing",
+    "branicky1998multiple",
+    "clopper1934binomial",
+    "durrett2019probability",
+    "garivier2011klucb",
+    "harper2009informationgeometry",
+    "howard2020timeuniform",
+    "howard2021confidence",
+    "mcallester2003missing",
+    "mei2020softmaxpg",
+    "pereyra2017confidencepenalty",
+    "reddi2018adam",
+    "robbins1971almost",
+    "vanerven2014renyi",
+    "wang2017sqn",
+    "zhang2021reinforce"
+  ],
+  "total_bibliography_entries": 111,
+  "cited_keys": 48,
+  "theory_identical_except_two_document_crossrefs": true,
+  "workshop_main_text_unchanged": true,
+  "workshop_preamble_unchanged": true,
+  "full_main_text_only_scope_sentence_changed": true,
+  "full_post_theory_content_unchanged": true,
+  "frozen_empirical_assets_unchanged": {
+    "figures/baseline_collapse_precheck.pdf": true,
+    "figures/direct_baseline_learning_curves_static_strip.pdf": true,
+    "figures/direct_comparator_endpoint_effects.pdf": true,
+    "figures/e118_all_scale_factorial_progress.pdf": true,
+    "figures/e118_scale_extensions_appendix.pdf": true,
+    "figures/experiment1_retention_comparator_matrix.pdf": true,
+    "figures/modebench_examples.pdf": true,
+    "figures/modebench_level_admission.pdf": true,
+    "figures/modecollapse_story.pdf": true,
+    "figures/replay_mechanism_telemetry_qwen05b.pdf": true,
+    "figures/sustained_auc_effects_qwen05b.pdf": true,
+    "figures/verified_support_discovery_two_scale_effects.pdf": true,
+    "figures/verified_support_story.pdf": true,
+    "results/absolute_support_references_table_body.tex": true,
+    "results/baseline_collapse_precheck_table_body.tex": true,
+    "results/core_terminal_endpoints_table_body.tex": true,
+    "results/e120_frequency_progress_table_body.tex": true,
+    "figures/baseline_collapse_precheck.json": true,
+    "figures/direct_baseline_learning_curves_static_strip.json": true,
+    "figures/direct_comparator_endpoint_effects.json": true,
+    "figures/e118_all_scale_factorial_progress.json": true,
+    "figures/e118_scale_extensions_appendix.json": true,
+    "figures/experiment1_retention_comparator_matrix.json": true,
+    "figures/modebench_level_admission.json": true,
+    "figures/replay_mechanism_telemetry_qwen05b.json": true,
+    "figures/sustained_auc_effects_qwen05b.json": true,
+    "figures/verified_support_discovery_two_scale_effects.json": true
+  },
+  "source_bundle_files": 42,
+  "source_bundle_entries_match_current": true,
+  "pages": {
+    "paper": 52,
+    "paper/mathai2026": 53
+  },
+  "sections": {
+    "paper": {
+      "app:theory-natural-gradient": {
+        "section": "A.4",
+        "page": 18
+      },
+      "app:theory-entropy-comparison": {
+        "section": "A.6",
+        "page": 21
+      },
+      "app:theory-optimizer": {
+        "section": "A.10",
+        "page": 26
+      },
+      "app:theory-discovery-admission": {
+        "section": "A.11",
+        "page": 28
+      },
+      "app:theory-survival-certificates": {
+        "section": "A.12",
+        "page": 30
+      }
+    },
+    "paper/mathai2026": {
+      "app:theory-natural-gradient": {
+        "section": "E.4",
+        "page": 17
+      },
+      "app:theory-entropy-comparison": {
+        "section": "E.6",
+        "page": 20
+      },
+      "app:theory-optimizer": {
+        "section": "E.10",
+        "page": 25
+      },
+      "app:theory-discovery-admission": {
+        "section": "E.11",
+        "page": 26
+      },
+      "app:theory-survival-certificates": {
+        "section": "E.12",
+        "page": 29
+      }
+    }
+  }
+}

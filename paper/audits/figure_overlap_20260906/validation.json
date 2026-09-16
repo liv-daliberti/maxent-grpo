@@ -1,0 +1,237 @@
+{
+  "figures": [
+    {
+      "figure": 1,
+      "path": "paper/figures/modecollapse_story.pdf",
+      "mirror": "paper/mathai2026/figures/modecollapse_story.pdf",
+      "sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+      "mirror_sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_01.png",
+      "after_sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+      "after_mirror_sha256": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 2,
+      "path": "paper/figures/modebench_examples.pdf",
+      "mirror": "paper/mathai2026/figures/modebench_examples.pdf",
+      "sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+      "mirror_sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_02.png",
+      "after_sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+      "after_mirror_sha256": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 3,
+      "path": "paper/figures/verified_support_story.pdf",
+      "mirror": "paper/mathai2026/figures/verified_support_story.pdf",
+      "sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+      "mirror_sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_03.png",
+      "after_sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+      "after_mirror_sha256": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 4,
+      "path": "paper/figures/experiment1_retention_comparator_matrix.pdf",
+      "mirror": "paper/mathai2026/figures/experiment1_retention_comparator_matrix.pdf",
+      "sha256": "b2774ba4595e05bf42c6154fa0797dc8eae12beb651765859a801fd1f5efea1c",
+      "mirror_sha256": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_04.png",
+      "after_sha256": "4f877601012512072ab8bc1473650f767e6260b35c1abbc2500605fa0ece9b66",
+      "after_mirror_sha256": "4f877601012512072ab8bc1473650f767e6260b35c1abbc2500605fa0ece9b66",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "Countdown/Python x-ticks nearly touched; reduced only x-tick font 6.6\u21926.0 pt. Minimum gap 0.20\u21922.90 pt. Preserved existing workshop panel-B 5 pt inset and used its layout in both mirrors."
+    },
+    {
+      "figure": 5,
+      "path": "paper/figures/e118_all_scale_factorial_progress.pdf",
+      "mirror": "paper/mathai2026/figures/e118_all_scale_factorial_progress.pdf",
+      "sha256": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51",
+      "mirror_sha256": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_05.png",
+      "after_sha256": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51",
+      "after_mirror_sha256": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No overlap. Completed Qwen2.5-3B Dr.GRPO/ReplayDr.GRPO row and all existing rows preserved byte-for-byte in PDF."
+    },
+    {
+      "figure": 6,
+      "path": "paper/figures/modebench_level_admission.pdf",
+      "mirror": "paper/mathai2026/figures/modebench_level_admission.pdf",
+      "sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+      "mirror_sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_06.png",
+      "after_sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+      "after_mirror_sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No overlap. Root made caption model Qwen2.5-0.5B-Instruct explicit for both panels; plot unchanged."
+    },
+    {
+      "figure": 7,
+      "path": "paper/figures/sustained_auc_effects_qwen05b.pdf",
+      "mirror": "paper/mathai2026/figures/sustained_auc_effects_qwen05b.pdf",
+      "sha256": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba",
+      "mirror_sha256": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_07.png",
+      "after_sha256": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba",
+      "after_mirror_sha256": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 8,
+      "path": "paper/figures/direct_comparator_endpoint_effects.pdf",
+      "mirror": "paper/mathai2026/figures/direct_comparator_endpoint_effects.pdf",
+      "sha256": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+      "mirror_sha256": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_08.png",
+      "after_sha256": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+      "after_mirror_sha256": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 9,
+      "path": "paper/figures/direct_baseline_learning_curves_static_strip.pdf",
+      "mirror": "paper/mathai2026/figures/direct_baseline_learning_curves_static_strip.pdf",
+      "sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+      "mirror_sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_09.png",
+      "after_sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+      "after_mirror_sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 10,
+      "path": "paper/figures/baseline_collapse_precheck.pdf",
+      "mirror": "paper/mathai2026/figures/baseline_collapse_precheck.pdf",
+      "sha256": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+      "mirror_sha256": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_10.png",
+      "after_sha256": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+      "after_mirror_sha256": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 11,
+      "path": "paper/figures/verified_support_discovery_two_scale_effects.pdf",
+      "mirror": "paper/mathai2026/figures/verified_support_discovery_two_scale_effects.pdf",
+      "sha256": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a",
+      "mirror_sha256": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_11.png",
+      "after_sha256": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a",
+      "after_mirror_sha256": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    },
+    {
+      "figure": 12,
+      "path": "paper/figures/replay_mechanism_telemetry_qwen05b.pdf",
+      "mirror": "paper/mathai2026/figures/replay_mechanism_telemetry_qwen05b.pdf",
+      "sha256": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14",
+      "mirror_sha256": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_12.png",
+      "after_sha256": "0b5fc1554fedaa0ef47d9f1503da7021422e6eeffe840ec65a3dd9d8f0aa2915",
+      "after_mirror_sha256": "0b5fc1554fedaa0ef47d9f1503da7021422e6eeffe840ec65a3dd9d8f0aa2915",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "Panel B capacity 16 annotation overlapped title; placed inside axes, 5.03 pt below title and 3 pt left of dashed capacity line."
+    },
+    {
+      "figure": 13,
+      "path": "paper/figures/e118_scale_extensions_appendix.pdf",
+      "mirror": "paper/mathai2026/figures/e118_scale_extensions_appendix.pdf",
+      "sha256": "0ca678726825208d5c9840b82e7229d5dfcef74b78ea57c99ed5bd9272151e47",
+      "mirror_sha256": "0ca678726825208d5c9840b82e7229d5dfcef74b78ea57c99ed5bd9272151e47",
+      "rendered": "paper/audits/figure_overlap_20260906/before_rendered/figure_13.png",
+      "after_sha256": "0ca678726825208d5c9840b82e7229d5dfcef74b78ea57c99ed5bd9272151e47",
+      "after_mirror_sha256": "0ca678726825208d5c9840b82e7229d5dfcef74b78ea57c99ed5bd9272151e47",
+      "standalone_visually_inspected": true,
+      "embedded_in_both_manuscripts_visually_inspected": true,
+      "finding": "No text overlap or clipping observed."
+    }
+  ],
+  "checks": {
+    "all13_standalone_and_both_manuscript_placements_inspected": true,
+    "only_figure4_and12_pdfs_changed": true,
+    "all_13_pdf_mirrors_equal": true,
+    "both_rendered_data_jsons_byte_identical": true,
+    "figure4_displayed_signed_values_identical": true,
+    "figure5_pdf_and_json_byte_identical": true,
+    "source_syntax_checked": true
+  },
+  "geometry": {
+    "4": {
+      "adjacent_tick_gaps_pixels": [
+        [
+          5.587499999999977,
+          4.025000000000006,
+          13.275000000000006,
+          14.399999999999977,
+          9.649999999999977
+        ],
+        [
+          5.587500000000091,
+          4.024999999999977,
+          13.274999999999977,
+          14.399999999999977,
+          9.649999999999977
+        ],
+        [
+          5.587499999999977,
+          4.025000000000006,
+          13.275000000000006,
+          14.399999999999977,
+          9.649999999999977
+        ],
+        [
+          5.587500000000091,
+          4.024999999999977,
+          13.274999999999977,
+          14.399999999999977,
+          9.649999999999977
+        ]
+      ],
+      "minimum_tick_gap_points": 2.8979999999999837,
+      "data_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221"
+    },
+    "12": {
+      "title_bbox": [
+        495.45815217391305,
+        457.1666666666667,
+        184.125,
+        10.0
+      ],
+      "capacity_bbox": [
+        663.4778790245597,
+        441.1851851851852,
+        51.625,
+        9.0
+      ],
+      "title_capacity_overlap": false,
+      "title_capacity_vertical_gap_points": 5.026666666666656,
+      "capacity_fully_inside_axes": true,
+      "data_sha256": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf"
+    }
+  },
+  "final_manuscript_build": "Delegated to root after concurrent prose updates; baseline embedded-page renders are labeled separately."
+}

@@ -1,0 +1,29 @@
+{
+ "cells_drawn": 90,
+ "outputs": {
+  "pdf": "paper/figures/concentration_story_resampled.pdf"
+ },
+ "renderer": {
+  "path": "ops/plot_paper_concentration_levels.py",
+  "sha256": "2c253fac459078918ea962988dae7ca5e0af83fee31beb1621c0810544c6d3b6"
+ },
+ "rows": 5,
+ "scales_pooled": [
+  "qwen3b"
+ ],
+ "schema": "paper-concentration-levels-figure-v1",
+ "source": {
+  "path": "/n/fs/similarity/maxent-grpo/paper/results/concentration_across_levels.json",
+  "sha256": "dfd1a3b49b24fe898fa8037430360345d92b145980041c2501dbd1b8b9975d7d"
+ },
+ "transfer_levels": [
+  "level2",
+  "level3",
+  "level4",
+  "level5"
+ ],
+ "x_limits_percentage_points": [
+  -130,
+  40
+ ]
+}

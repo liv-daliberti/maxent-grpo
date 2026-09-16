@@ -1,0 +1,81 @@
+{
+  "additional_responses": 14400,
+  "api_calls_during_publication_verification": 0,
+  "bindings": {
+    "artifacts/frontier_temperature_20260911/GPT56_PASS8_FRONTIER_EXPANDED480.json": "7381e45af7088282906c4ee8eb4b8846731aa20e1537298d779fa43055d09e08",
+    "artifacts/frontier_temperature_20260911/GPT56_TEMPERATURE_CURVE_EXPANDED480.json": "3fc0bfc31062e0982b985f0dbd2b622b8e9a707fc7d35e8e42b557b97e1f93c0",
+    "ops/check_paper_current_contract.py": "c75d6526010eefd1c26cc1b68fa7b390bd01bf340871a50ac7aa8c750d80f9fa",
+    "ops/plot_paper_gpt56_temperature_curve.py": "e2092284b73229006680ff1b1491fca89e629cf7e4d1a6cebe10fa53fd2c24d4",
+    "paper/figures/gpt56_temperature_curve.json": "c0ed3e4caa2ac9a9b258b3523ef72238bf4f0607f7f96c528e8dd2847864bb8d",
+    "paper/figures/gpt56_temperature_curve.pdf": "7fd54ac51ae7a82116cf911bf394786babb5f9f3862d57143daab58c1a9bad07",
+    "paper/figures/gpt56_temperature_curve.png": "db93872fb911a61fa42ce5f8d10a2bb08c39c65dca1db22e32ce81e9531e8efa",
+    "paper/main-body.pdf": "f17eb81b3a1137d53a161dc8cdaac0b9f513d65c7ae932538a47f92c36dd9728",
+    "paper/main-with-figures.pdf": "3ed892aad960446c2fdbf7041e0c4a1e03ab32d2522ed8e6cc6800c0b2bbb5ff",
+    "paper/main.pdf": "3ed892aad960446c2fdbf7041e0c4a1e03ab32d2522ed8e6cc6800c0b2bbb5ff",
+    "paper/main.tex": "b36ce2624e07dbec5424f847e585b4c821e4e534a237d3055ad7c2442a5cf25b",
+    "paper/mathai2026/appendix.tex": "4b0966064454d172fc00b89b10d41fd13d281075b2c0061a9ef6db93bdd9ad63",
+    "paper/mathai2026/build_receipt.json": "7b3b6056bddfe8bc607972f12a999528b3427a7436b39bd436f9541547321c66",
+    "paper/mathai2026/main.pdf": "b90308515ba1c30bfc7a3d28f892aae2da161767e9f59e7b48b056ef53046212",
+    "paper/mathai2026/main.tex": "11d89b76db8b6ff2b9900cc29b1c728ada3e1acf25c286a0e1e7f4fffc7eee80",
+    "paper/mathai2026/mathai2026-source.zip": "d8ea8c68cf26f856fa90056337a5bedd06ebd2ea994fcaea46aa0c8dd1cdadcc",
+    "paper/mathai2026/snapshot.json": "ec02a08f874a428add1447a032cc2131f905c0e3ee586e577a95093d8e2b9a51",
+    "paper/results/gpt56_temperature_curve_20260911_appendix.tex": "03e312c76fc9268a23af96f4cc06663e5cf00c21936416f1f64d3df8b3baa9cb"
+  },
+  "checks": {
+    "line_fill": {
+      "exit_code": 0,
+      "log": "paper/audits/gpt56_expanded480_20260911/line_fill_verified.log",
+      "sha256": "f426e0b4ad7017d3632449f00880a54fd8e2773554b6d57f1efb96ed3303f38c"
+    },
+    "main_body": {
+      "exit_code": 0,
+      "log": "paper/audits/gpt56_expanded480_20260911/main_body_verified.log",
+      "sha256": "3c716a6d10b0af03e4680bbb1c4e6a8378f91003b6c2a1b40bd57df631218866"
+    },
+    "main_length": {
+      "exit_code": 0,
+      "log": "paper/audits/gpt56_expanded480_20260911/main_length_verified.log",
+      "sha256": "0808eb5227ece27e35e0c1ca0ef9cfa1421b5d21e7f27ab1501365dfca8c91e9"
+    },
+    "workshop": {
+      "exit_code": 0,
+      "log": "paper/audits/gpt56_expanded480_20260911/workshop_verified.log",
+      "sha256": "650d5084d8681df703bdcf42992bf8892ae53b6115629c32bf991cae90e9495c"
+    }
+  },
+  "current_paper_contract": {
+    "path": "paper/audits/gpt56_expanded480_20260911/current_paper_contract_verified.log",
+    "sha256": "330cf185e9c73d1f25b672efdd48d8646dd05de4eff3076d8c3a18c500e7e583"
+  },
+  "draws_per_prompt": 8,
+  "figure_and_appendix_reconstructed": true,
+  "main_and_workshop_temperature_assets_match": true,
+  "main_pages": 9,
+  "pending_methods_grid": {
+    "authenticated_cells": 9,
+    "authenticated_samples": 36864,
+    "observed_status": "artifacts/modebench_base_level_grid_20260911/status_updates/20260912T012019Z/status.json",
+    "required_cells": 100,
+    "sha256": "aa0d3e9025fee208c1667b4c7d2095bf03d83276a340f270df0794acc6d2c092",
+    "status": "running; Levels4/5 await dataset admission"
+  },
+  "prompts": 480,
+  "reasoning": "none",
+  "responses": 19200,
+  "retained_responses": 4800,
+  "schema": "gpt56-expanded480-publication-verification-v1",
+  "status": "temperature_expansion_complete",
+  "temperatures": [
+    0,
+    0.5,
+    1,
+    1.5,
+    2
+  ],
+  "unsupported_conditions": [
+    "temperature2.5",
+    "non-default temperatures with medium reasoning"
+  ],
+  "verified_at_utc": "2026-09-12T01:30:17.638067+00:00",
+  "workshop_main_pages": 4
+}

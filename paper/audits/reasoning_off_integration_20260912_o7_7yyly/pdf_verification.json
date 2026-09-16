@@ -1,0 +1,14 @@
+{
+  "status": "complete",
+  "main_pdf_sha256": "27b328b10e7fe1dfecdb5da030c7f4b0313236661613ce526a8499cbf20f0e98",
+  "compiled_source_sha256": "ae2cfc9ba31d256afd1f230d5e12e3fe525d53553acc81cc04c06be5493a9381",
+  "review_copy_byte_identical": true,
+  "main_body_text_identical_first_9_pages": true,
+  "main_pages": 9,
+  "full_pages": 99,
+  "files": {
+    "main.tex": "ae2cfc9ba31d256afd1f230d5e12e3fe525d53553acc81cc04c06be5493a9381",
+    "main-body.pdf": "2c709bd5174c3a2081d01a6932889018fefbf0377f301fd0bc9eec9e73c3cda1",
+    "main-with-figures.pdf": "27b328b10e7fe1dfecdb5da030c7f4b0313236661613ce526a8499cbf20f0e98"
+  }
+}

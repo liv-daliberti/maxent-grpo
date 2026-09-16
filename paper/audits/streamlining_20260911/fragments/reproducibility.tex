@@ -1,0 +1,73 @@
+% Shared scientific provenance; operational inventories remain in the repository.
+\section{Source Integrity and Reproducibility}
+\label{app:reproducibility}
+
+\subsection{Admissible sources and missing checkpoints}
+\label{app:source-integrity}
+
+Falcon3-1B Countdown ReplayDr.GRPO seed 59 contains two complete four-draw
+terminal evaluation sequences with identical request identities but
+conflicting metrics. The integrity amendment excludes that source at every
+checkpoint and from every efficacy endpoint, paired contrast, and aggregate
+that reuses it; neither sequence is selected or averaged. The independently
+valid Dr.GRPO and GRPO seed-59 sources remain admissible. The core replay
+comparison therefore has 74 pairs: 14 complete five-seed blocks and Falcon
+Countdown at $n=4$ (seeds 55--58). Primary partial intersections are
+descriptive and receive no confidence interval.
+
+Trajectory records use registered sources and approved continuations or
+replacements, with superseded attempts excluded. Identical duplicates are
+deduplicated; conflicting records invalidate the affected checkpoint rather
+than being selected by metric value. Missing or ambiguous checkpoints remain gaps;
+curves do not interpolate or carry values forward across them. An ambiguous
+nonterminal checkpoint does not invalidate an independently admissible
+terminal endpoint. Each curve declares its fixed source-admissible seed cohort; paired core
+curves use the admitted intersection. Accuracy and mode-count views use
+the same populations and gap rules. Supporting methods retain their
+explicit method-specific cohorts; available checkpoint counts and gaps
+are recorded alongside the curves. Machine-readable records identify the
+sources, exclusions, exact seed sets, checkpoint rule, and source hashes.
+
+\subsection{Data, models, and scientific records}
+\label{app:repro-artifacts}
+\label{app:repro-code}
+\label{app:archived-models}
+
+The \href{https://huggingface.co/datasets/od2961/ModeBench}{ModeBench dataset}
+provides separate level/domain configurations, fixed split roles, full row
+identities, and construction and admission records. Its
+\href{https://huggingface.co/datasets/od2961/ModeBench\#loading}{loading guide}
+and \href{https://huggingface.co/datasets/od2961/ModeBench\#evaluation}{evaluation guide}
+identify the reported splits and preserve auxiliary data separately.
+The \href{https://huggingface.co/od2961/maxent-grpo-models}{model archive}
+links each available model--domain--method--seed export to an immutable
+upload revision containing original weights, configuration, tokenizer,
+file hashes, completion provenance, and the applicable base-model license.
+The \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/EXPERIMENTS.md}{experiment index}
+maps the core scale comparisons, MaxRL factorial, Level-2 factorial,
+replay-weighting ablation, and supporting controls to their model families;
+the \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/DATA.md}{scientific-record index}
+and \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/RESTORE.md}{restore guide}
+identify preserved analysis inputs and SHA-256 verification procedures.
+
+Each empirical figure has a machine-readable record identified in the
+figure manifest, containing its displayed values and frozen numerical inputs.
+\path{paper/FIGURE_MANIFEST.md} maps both paper versions to their builders,
+records, and reproduction commands. Detailed source and recovery inventories
+remain in those records and the repository's archived audit documents.
+Model availability may extend beyond the frozen analysis population; it
+does not change a figure's source-admission or seed-intersection rule.
+Terminal exports restore inference models, while intermediate trajectories
+require the recorded evaluation checkpoints.
+
+\subsection{Exact continuation and validation}
+\label{app:repro-recovery}
+
+Exact training continuation requires the atomic optimizer, bank, token,
+cursor, and request-stream state in Appendix~\ref{app:algorithm-control},
+in addition to model weights. State mismatch, non-finite values, missing
+completion evidence, changed dataset identities, and source or aggregate
+hash drift are hard failures. Placement-only recovery may change hardware
+or wall time but must preserve the scientific update. Figure reproduction
+uses frozen records; missing results are never replaced by shallower
+checkpoints or silently incorporated from a newer archive.

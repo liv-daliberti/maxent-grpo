@@ -1,0 +1,15 @@
+{
+  "paper/figures/experiment1_retention_comparator_matrix.pdf": "b2774ba4595e05bf42c6154fa0797dc8eae12beb651765859a801fd1f5efea1c",
+  "paper/figures/experiment1_retention_comparator_matrix.png": "18809bbf078ec831d2c92507e7b979b49d3b32d59e38b7ffc7643b030ebdd14d",
+  "paper/figures/experiment1_retention_comparator_matrix.json": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+  "paper/mathai2026/figures/experiment1_retention_comparator_matrix.pdf": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb",
+  "paper/mathai2026/figures/experiment1_retention_comparator_matrix.png": "8c6c2a07970126674b88667a1fe7ee91aa78b9508ab1fe54d5625ffd0435df3a",
+  "paper/mathai2026/figures/experiment1_retention_comparator_matrix.json": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+  "paper/figures/replay_mechanism_telemetry_qwen05b.pdf": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14",
+  "paper/figures/replay_mechanism_telemetry_qwen05b.png": "51c1c4562fafb795997720d50ae6bde6b3b069af41c4fe271f822c32152c4893",
+  "paper/figures/replay_mechanism_telemetry_qwen05b.json": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+  "paper/mathai2026/figures/replay_mechanism_telemetry_qwen05b.pdf": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14",
+  "paper/mathai2026/figures/replay_mechanism_telemetry_qwen05b.json": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+  "ops/exp_scaling/plot_paper_experiment1_composite.py": "2ccba8b4f7d308a95bf07bba352892b8f3243e1e43e3609b4169815dd0efb048",
+  "ops/exp_scaling/plot_paper_replay_mechanism_telemetry.py": "3430be4758cc088920b4139cd7177796d5fbb541d7c210fc16615d7dde1f7eff"
+}

@@ -1,0 +1,12 @@
+{
+  "paper/main.tex": "72e63ed43d36146554e58b2234e4282dc550c0f39edefcac6713af67252ad481",
+  "paper/mathai2026/main.tex": "954379ff68458e50639634c4d0c5fb70d1f19135d3e1efc4327aa58c47827063",
+  "paper/mathai2026/appendix.tex": "13cc9ee88b377cc78bc09ccbf8995a087f45d0ee8d1e62ae81ae17464597626e",
+  "README.md": "25c426f3f20314444f737be1619645b13aeabef8369f9f0eb32d619840b37390",
+  "paper/README.md": "ffd6be4a7ec7590617cc2b10c54e51174b8dfd13cb2dfcb00ade80f9a618fa8f",
+  "paper/FIGURE_MANIFEST.md": "4406513aa68816f681c0cdc54fe98ded5dcabb37c7d8d4aea844848d7f174853",
+  "paper/FIGURE_DATA_AUDIT.md": "7e07f2b46a9c64df9d827650ae04828bb586bcb68b77bdc73e6b701d80ffac6b",
+  "paper/Makefile": "8c681ec014543d270b607d61d85b10b571aaace3e1ead224485627a9876ad6e8",
+  "paper/results/completed_3b_and_level2_20260911.md": "764e31621eb928e3c6480fe1e6efa73d33792c1a5efdf4926d50cbba410899c5",
+  "ops/exp_scaling/build_paper_training_curve_snapshot.py": "518c79fc6c82375a59215c02fc11a0626280887ec35b8fcf02c966156d070154"
+}

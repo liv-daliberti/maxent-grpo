@@ -19,6 +19,11 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / 'paper/results/conditional_concentration_20260912.json'
 DEFAULT_OUTPUT = ROOT / 'paper/figures/concentration_story'
 FONT = 7.6  # printed size: the plate is included at its own width.
+# Overrides so this plate can be matched to the levels plate when the two
+# are printed side by side. None keeps the geometry this figure had alone.
+HEIGHT_IN = None
+XLIM = None
+MARKER = 5.0
 DOMAINS = ('graph_coloring', 'countdown', 'python_factors', 'mathir', 'pantry_plan')
 ALL_SCALES = ('qwen05b', 'falcon1b', 'qwen3b')
 # The main plate carries one scale across all five domains. At three scales the
@@ -37,10 +42,15 @@ def geometry(rows: int) -> dict:
     """
     row_in = .292
     height = row_in * rows + 0.92
+    if HEIGHT_IN is not None:
+        height = HEIGHT_IN
+        row_in = (HEIGHT_IN - 0.92) / rows
     axes_height = row_in * rows / height
     axes_bottom = .250 * 2.95 / height
     return {
-        'figsize': (2.72, round(height, 3)),
+        # Matched to the levels plate so the two sit side by side without
+        # one being magnified into larger type by \includegraphics.
+        'figsize': (3.95, round(height, 3)),
         'axes_height': axes_height,
         'axes_bottom': axes_bottom,
         'title_y': axes_bottom + axes_height + .082 * 2.95 / height,
@@ -201,7 +211,7 @@ def build_metadata(source_path: Path = DEFAULT_SOURCE) -> dict[str, Any]:
         'figure': {'size_inches': list(_geo()['figsize']), 'minimum_font_points': FONT,
                    'minimum_font_at_5p5_in_width': FONT * 5.5 / _geo()['figsize'][0],
                    'scales_drawn': list(SCALES),
-                   'x_limits_percentage_points': [low, high],
+                   'x_limits_percentage_points': list(XLIM) if XLIM else [low, high],
                    'layout': 'Separate training and replay panels; six domain/scale rows and two methods per row.',
                    'primary_marks': {'drgrpo': 'circle', 'grpo': 'square', 'maxrl': 'diamond'},
                    'sensitivity_marks': {'orientation0': 'open left triangle', 'orientation1': 'open right triangle'},
@@ -241,7 +251,9 @@ def build_figure(source_path: Path = DEFAULT_SOURCE):
         # Stacked rather than side by side: in a wrapped column two panels
         # abreast leave no room for the scale labels. The count gutters are gone
         # too; those numbers live in the caption and the linked report.
-        axes = [fig.add_axes((.330, g['axes_bottom'], .620, g['axes_height']))]
+        # The gutter carries a rotated domain label and a scale name side by
+        # side; at the old .330 of a narrower canvas they overlapped.
+        axes = [fig.add_axes((.300, g['axes_bottom'], .655, g['axes_height']))]
         for panel_index, (kind, methods, title) in enumerate(PANELS):
             ax = axes[panel_index]
             ax.set_xlim(metadata['figure']['x_limits_percentage_points'])
@@ -281,7 +293,7 @@ def build_figure(source_path: Path = DEFAULT_SOURCE):
                             for slot, m in enumerate(undefined):
                                 ax.plot(.055 + slot * .045, y, marker=markers[m],
                                         transform=ax.get_yaxis_transform(),
-                                        markersize=5.0, markeredgewidth=.9,
+                                        markersize=MARKER, markeredgewidth=.9,
                                         markerfacecolor='none', markeredgecolor=colors[m],
                                         linestyle='none', zorder=6, clip_on=False)
                             ax.text(.055 + len(undefined) * .045 + .015, y,
@@ -300,7 +312,7 @@ def build_figure(source_path: Path = DEFAULT_SOURCE):
                                 linewidth=1.3, zorder=2)
                     face = colors[method] if block['complete'] else 'none'
                     ax.plot(-primary['delta_percentage_points'], row_y, marker=markers[method],
-                            markersize=5.0, markeredgewidth=.9, markerfacecolor=face,
+                            markersize=MARKER, markeredgewidth=.9, markerfacecolor=face,
                             markeredgecolor=colors[method], linestyle='none', zorder=4)
                 # One scale per row means the scale name is the same on every
                 # row, so the row is named by what actually varies.
@@ -312,7 +324,7 @@ def build_figure(source_path: Path = DEFAULT_SOURCE):
             ax.spines['bottom'].set_color(style.GRID)
             ax.spines['bottom'].set_linewidth(.7)
             ax.tick_params(axis='x', length=2.4, width=.6, pad=2)
-            handles = [Line2D([], [], marker=markers[m], linestyle='none', markersize=4.5,
+            handles = [Line2D([], [], marker=markers[m], linestyle='none', markersize=MARKER - .5,
                               color=colors[m], label=METHOD_LABELS[m]) for m in methods]
             fig.legend(handles=handles, loc='lower center',
                        bbox_to_anchor=(.640, g['legend_top_y']), ncol=len(methods),
@@ -366,11 +378,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, default=DEFAULT_SOURCE)
     parser.add_argument('--output', type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument('--height', type=float, default=None)
+    parser.add_argument('--xlow', type=float, default=None)
+    parser.add_argument('--xhigh', type=float, default=None)
+    parser.add_argument('--markersize', type=float, default=5.0)
     parser.add_argument('--scales', choices=('main', 'all'), default='main',
                         help="'main' draws Qwen2.5-3B alone; 'all' is the appendix plate")
     args = parser.parse_args()
-    global SCALES
+    global SCALES, HEIGHT_IN, XLIM, MARKER
     SCALES = ALL_SCALES if args.scales == 'all' else MAIN_SCALE
+    HEIGHT_IN = args.height
+    XLIM = (args.xlow, args.xhigh) if args.xlow is not None else None
+    MARKER = args.markersize
     metadata = render(args.source, args.output)
     print(json.dumps({'output': str(args.output), 'displayed_blocks': len(metadata['display']['blocks']),
                       'size_inches': _geo()['figsize'], 'source_sha256': metadata['source']['sha256']}))

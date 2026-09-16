@@ -384,7 +384,9 @@ def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
     colors = scale_colors(tuple(models))
     style.apply_rcparams()
     rows = len(models)
-    figsize = (6.4, 0.60 * rows + 1.00) if figsize is None else figsize
+    # Per-row height trimmed from .60: the plate reads the same and gives the
+    # page back a little vertical room.
+    figsize = (6.4, 0.44 * rows + 0.88) if figsize is None else figsize
     figure, axes = plt.subplots(rows, len(DOMAINS), figsize=figsize,
                                 sharex=True, sharey=True, squeeze=False)
     bottom = 0.95 / figsize[1]

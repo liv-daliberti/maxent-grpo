@@ -1,0 +1,1437 @@
+{
+  "complete_checkpoints": 6677,
+  "excluded_runs": [
+    [
+      "level1",
+      "falcon1b",
+      "countdown",
+      "replay_drgrpo",
+      59
+    ]
+  ],
+  "invalid_or_conflicted_checkpoints": 261,
+  "missing_checkpoint_cells": [
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        0,
+        192,
+        384,
+        576,
+        768,
+        960,
+        1152,
+        1344,
+        1536,
+        1728,
+        1920,
+        2112,
+        2304,
+        2496,
+        2688,
+        2880,
+        3072
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0,
+        2304
+      ],
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        2496
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        2112
+      ],
+      "scale": "falcon1b",
+      "seed": 55
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 56
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 57
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        2112
+      ],
+      "scale": "falcon1b",
+      "seed": 58
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "falcon1b",
+      "seed": 59
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        960,
+        2880
+      ],
+      "scale": "qwen3b",
+      "seed": 70
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 71
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 70
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        960
+      ],
+      "scale": "qwen3b",
+      "seed": 71
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 70
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 71
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 73
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        960
+      ],
+      "scale": "qwen3b",
+      "seed": 74
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 70
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1536
+      ],
+      "scale": "qwen3b",
+      "seed": 71
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        960,
+        2688
+      ],
+      "scale": "qwen3b",
+      "seed": 74
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        768
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        960
+      ],
+      "scale": "qwen3b",
+      "seed": 73
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 74
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        0,
+        2112
+      ],
+      "scale": "qwen3b",
+      "seed": 71
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        960
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        960
+      ],
+      "scale": "qwen3b",
+      "seed": 73
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1728
+      ],
+      "scale": "qwen3b",
+      "seed": 74
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 74
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 73
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 70
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 71
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 72
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 73
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1920
+      ],
+      "scale": "qwen3b",
+      "seed": 74
+    },
+    {
+      "domain": "countdown",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "countdown",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "countdown",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 45
+    },
+    {
+      "domain": "countdown",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        576
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        384,
+        576
+      ],
+      "scale": "qwen05b",
+      "seed": 44
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 45
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        960
+      ],
+      "scale": "qwen05b",
+      "seed": 44
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 45
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        576
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 45
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        192,
+        768
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        192,
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        1536
+      ],
+      "scale": "qwen05b",
+      "seed": 44
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        192,
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 44
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 43
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        0,
+        192,
+        1728
+      ],
+      "scale": "qwen05b",
+      "seed": 44
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 45
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 44
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        0
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    },
+    {
+      "domain": "python_factors",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 43
+    },
+    {
+      "domain": "python_factors",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        192
+      ],
+      "scale": "qwen05b",
+      "seed": 45
+    },
+    {
+      "domain": "python_factors",
+      "level": "level2",
+      "method": "drgrpo",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 47
+    },
+    {
+      "domain": "python_factors",
+      "level": "level2",
+      "method": "replay_drgrpo",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    },
+    {
+      "domain": "python_factors",
+      "level": "level2",
+      "method": "replay_maxrl",
+      "missing_registered_steps": [
+        384
+      ],
+      "scale": "qwen05b",
+      "seed": 46
+    }
+  ],
+  "panel_cohorts": [
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "maxrl": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "scale": "falcon1b"
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          55,
+          56,
+          57,
+          58
+        ],
+        "maxrl": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "scale": "falcon1b"
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "maxrl": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "scale": "falcon1b"
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "maxrl": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "scale": "falcon1b"
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "maxrl": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ]
+      },
+      "scale": "falcon1b"
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "maxrl": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ]
+      },
+      "scale": "qwen3b"
+    },
+    {
+      "domain": "countdown",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "maxrl": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ]
+      },
+      "scale": "qwen3b"
+    },
+    {
+      "domain": "python_factors",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "maxrl": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ]
+      },
+      "scale": "qwen3b"
+    },
+    {
+      "domain": "mathir",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "maxrl": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ]
+      },
+      "scale": "qwen3b"
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level1",
+      "paired_cohorts": {
+        "drgrpo": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "maxrl": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ]
+      },
+      "scale": "qwen3b"
+    },
+    {
+      "domain": "graph_coloring",
+      "level": "level2",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "countdown",
+      "level": "level2",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "python_factors",
+      "level": "level2",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "mathir",
+      "level": "level2",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    },
+    {
+      "domain": "pantry_plan",
+      "level": "level2",
+      "paired_cohorts": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      },
+      "scale": "qwen05b"
+    }
+  ],
+  "registered_cells": 400,
+  "schema": "training-curve-frozen-snapshot-v1",
+  "snapshot_sha256": "1f3df09991829bee0dfc0ea1e98bfede5964d6bd0f8162e1682ba415105706cb",
+  "terminal_admitted_cells": 399,
+  "terminal_matches_census": true
+}

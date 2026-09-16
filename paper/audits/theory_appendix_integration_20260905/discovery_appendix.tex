@@ -1,0 +1,190 @@
+\subsection{Discovery, admission, and retention through bank changes}
+\label{app:theory-discovery-admission}
+
+Retention begins only after a verified key enters active memory. Archive
+exploration separates discovery from reliable return to a discovered state
+\citep{ecoffet2021return}; replay with behavioral cloning supplies a related
+empirical mechanism for reducing forgetting \citep{rolnick2019replay}.
+Neither result is a theorem that every execution key enters a finite bank
+or maintains a positive probability thereafter. We state the additional
+admission and energy conditions explicitly.
+
+\paragraph{Actual insertion is the relevant event.}
+Fix a prompt and count opportunities according to a specified schedule.
+An opportunity can be a prompt-local query or a global update; the resulting
+bounds concern that opportunity count. The admission probability includes
+verification, capacity, scheduling, and candidate selection. For example,
+$G$ conditionally independent samples with unconditional accepted-key probability $p_b$
+contain key $b$ with probability $1-(1-p_b)^G$. This is its admission
+probability only if the key remains eligible and insertion is guaranteed
+whenever it appears. The following argument permits adaptive histories;
+its probability foundation is conditional Borel--Cantelli
+\citep[Theorem~4.3.4]{durrett2019probability}.
+
+\begin{lemma}[Conditional admission hazards]
+\label{ext:lem-admission-hazards}
+Fix a key $b$ not initially banked. Let $(\mathcal F_n)_{n\ge0}$ contain the
+complete history after each opportunity, and let $\tau_b$ be the first
+opportunity at which a verified representative of $b$ is inserted into active
+replay memory, with $\tau_b=\infty$ if this never happens. Define
+\[
+ h_{b,n}=\Pr(\tau_b=n\mid\mathcal F_{n-1}),\qquad
+ H_{b,N}=\sum_{n=1}^N h_{b,n}.
+\]
+The stopped hazard $h_{b,n}$ is zero after an earlier admission. For $a\ge0$,
+\begin{equation}
+ \Pr(\tau_b>N,\ H_{b,N}\ge a)\le e^{-a},\qquad
+ \Pr(\tau_b=\infty,\ H_{b,\infty}=\infty)=0.
+ \label{ext:eq-admission-hazards}
+\end{equation}
+If deterministic $\underline h_{b,n}\in[0,1]$ satisfy
+$h_{b,n}\ge\underline h_{b,n}$ on $\{\tau_b\ge n\}$, then
+\begin{equation}
+ \Pr(\tau_b>N)\le\prod_{n=1}^N(1-\underline h_{b,n})
+ \le\exp\!\left(-\sum_{n=1}^N\underline h_{b,n}\right).
+ \label{ext:eq-admission-floors}
+\end{equation}
+For finitely many targets, summing over initially missing keys bounds
+non-admission by $N$.
+\end{lemma}
+\begin{proof}
+Set $Z_N=\mathbf1\{\tau_b>N\}\exp(H_{b,N})$ and $Z_0=1$. Earlier admission
+is known at time $n-1$, and both $h_{b,n}$ and $Z_{n-1}$ vanish there.
+On survival through $n-1$,
+\[
+ \mathbb E[Z_n\mid\mathcal F_{n-1}]
+ =Z_{n-1}e^{h_{b,n}}(1-h_{b,n})\le Z_{n-1}.
+\]
+Thus $Z_n$ is a nonnegative supermartingale. Markov's inequality proves the
+finite-hazard bound. Since $\mathbb E Z_N\le1$, Fatou's lemma excludes a
+positive-probability event on which survival continues forever and
+$H_{b,N}\to\infty$, which would force $Z_N\to\infty$. With deterministic
+hazard floors, conditioning gives
+\[
+ \Pr(\tau_b>n)\le(1-\underline h_{b,n})\Pr(\tau_b>n-1).
+\]
+Iteration and a union bound prove the claims without independence across
+opportunities.
+\end{proof}
+
+Positive probability at every opportunity is insufficient. Independent
+opportunities with admission probabilities $(n+1)^{-2}>0$ give
+\[
+ \Pr(\tau=\infty)=\prod_{n=1}^\infty
+ \left(1-\frac1{(n+1)^2}\right)=\frac12.
+\]
+A non-evicting capacity-$K_{\rm cap}$ bank also gives every unbanked key zero admission
+hazard once full. For a fixed sampling law with no such gates, discovery
+reduces to coupon collection, with incorrect responses acting as null
+coupons. \citet[Theorems~2--3]{anceaume2015coupon} show that, at fixed total
+non-null mass, uniform independent sampling minimizes collection time in
+stochastic order. This comparison concerns a fixed independent sampling
+law; the adaptive admission bounds above supply the appropriate statement
+when the training history changes sampling or eligibility.
+
+\paragraph{Charge changes in the replay objective.}
+A key's admission must preserve a representative with positive loss weight.
+The energy can change when bank membership or weights change, so descent
+between admissions alone is insufficient. We account for those changes
+explicitly, following the general switched-energy viewpoint of
+\citet{branicky1998multiple}. The following elementary bound is proved
+directly and does not invoke an equilibrium-stability theorem for neural
+training.
+
+\begin{lemma}[Retention with a finite switching-energy budget]
+\label{ext:lem-switching-retention}
+Let $t_0<t_1<\cdots$ be switching times, with finitely many switches on every
+bounded time interval. On interval $r$, define
+\[
+ \begin{aligned}
+ F_r(\theta)&=\sum_{j:d_{rj}>0}d_{rj}\ell_j(\theta)-J(\theta),\\
+ \ell_j(\theta)&=-\log\pi_\theta(e_j\mid x_j),\qquad
+ J(\theta)\le J_{\max}<\infty.
+ \end{aligned}
+\]
+Each interval uses a finite collection of complete verified exemplars with
+nonnegative coefficients; zero coefficients denote absent exemplars.
+Assume finite initial energy, continuity of parameters at switches,
+nonincrease of $F_r$ within interval $r$, and the finite positive-jump budget
+\begin{equation}
+ A:=\sum_{r\ge1}
+   [F_r(\theta(t_r))-F_{r-1}(\theta(t_r))]_+<\infty.
+ \label{ext:eq-switching-budget}
+\end{equation}
+If exemplar $j$ is protected from interval $r_j$ onward and
+$d_{rj}\ge\underline d_j>0$ for all $r\ge r_j$, let
+$D=F_0(\theta(t_0))+A+J_{\max}$. Then
+\begin{equation}
+ p_{\theta(t)}(b_j\mid x_j)\ge\pi_{\theta(t)}(e_j\mid x_j)
+ \ge\exp(-D/\underline d_j)>0\qquad(t\ge t_{r_j}).
+ \label{ext:eq-switching-retention}
+\end{equation}
+Each likelihood uses the complete verified-response probability under the
+sampling law being bounded. For mean-token loss, $d_{rj}=\alpha_{rj}/L_j$,
+with fixed length $L_j>0$.
+\end{lemma}
+\begin{proof}
+Induction over interval descents and switch jumps gives
+$F_r(\theta(t))\le F_0(\theta(t_0))+A$. Consequently
+$\sum_jd_{rj}\ell_j(\theta(t))\le D$. Each summand is nonnegative, so a
+protected exemplar satisfies $\ell_j(\theta(t))\le D/\underline d_j$.
+The key event contains its exemplar event, so exponentiation proves
+the bound.
+\end{proof}
+
+If admission preserves old coefficients, the jump equals the weighted
+surprisal of the newly added exemplars at their admission probabilities.
+Uniform categorical replay with fixed total dose $\rho$ instead dilutes old
+weights. For a size-$k$ bank, write
+$R_k=-k^{-1}\sum_{b\in\mathcal B_k}\log p_b$; adding one new key gives
+\[
+ \Delta F=\frac{\rho}{k+1}[-\log p_{\rm new}-R_k].
+\]
+Old coefficients decrease from $\rho/k$ to $\rho/(k+1)$ but stay at least
+$\rho/K_{\rm cap}$ under capacity $K_{\rm cap}$. Finitely many admissions with positive
+admission-time probabilities and no eviction therefore have finite total
+switching cost in the exact descent model. Changing a representative must
+also be charged to the objective jump. A key-level version of
+Lemma~\ref{ext:lem-switching-retention} follows by requiring at least one
+complete representative of that key with coefficient bounded below on every
+subsequent interval; the same nonnegative-summand proof applies even if the
+representative changes.
+
+\begin{corollary}[Conditional discovery followed by retention]
+\label{ext:cor-discovery-retention}
+Suppose one prompt's entire correct support $\mathcal C$ is finite, of size
+$m$ no larger than bank capacity. Admissions do not evict keys, and every
+missing key $b$ has conditional admission hazard at least $\epsilon r_b$ at
+every opportunity, for constants $\epsilon>0$, $r_b>0$, and
+$\epsilon r_b\le1$. Assume the switching-energy conditions of
+Lemma~\ref{ext:lem-switching-retention}, including a finite positive-jump
+budget and persistent positive coefficients for admitted complete exemplars.
+Then full correct coverage is reached in finitely many opportunities almost
+surely. Thereafter each correct key has a uniform-in-time positive
+probability floor. At horizon $N$,
+\begin{equation}
+ \Pr(\text{full coverage by }N)
+ \ge 1-\sum_{b\in\mathcal C}e^{-N\epsilon r_b}.
+ \label{ext:eq-discovery-retention}
+\end{equation}
+If every $r_b\ge\gamma>0$, this is at least $1-me^{-N\epsilon\gamma}$.
+\end{corollary}
+\begin{proof}
+Apply Lemma~\ref{ext:lem-admission-hazards} to the initially missing keys and
+take a union bound. The failure bound tends to zero. Finite support and
+non-eviction imply a finite almost-sure opportunity index of simultaneous
+full coverage. Lemma~\ref{ext:lem-switching-retention} protects each admitted
+complete exemplar and hence its key; after full coverage this applies to
+all correct keys.
+\end{proof}
+
+A fixed full-support proposal mixture supplies the assumed hazard floor if
+it is queried at every counted opportunity and insertion is guaranteed
+whenever a missing key appears. Capacity must accommodate the entire
+admissible correct support, including keys competing for the same slots.
+Finite-temperature sampling, bounded search attempts, or recurrent replay
+scheduling alone do not establish this admission floor or the energy
+budget. The probability bound~\eqref{ext:eq-discovery-retention} controls
+admission by a finite opportunity count; the subsequent retention floors
+can depend on the realized training history. The corollary establishes
+neither uniform key probabilities nor convergence of the neural optimizer.

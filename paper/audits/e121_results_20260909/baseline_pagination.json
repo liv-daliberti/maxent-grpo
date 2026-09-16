@@ -1,0 +1,25 @@
+{
+  "source_sha256": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e",
+  "staging_dir": "/tmp/e121-before-main-fzc30qbu",
+  "labels": {
+    "sec:conclusion": {
+      "number": "8",
+      "page": 9
+    },
+    "fig:level2-admission": {
+      "number": "6",
+      "page": 10
+    },
+    "sec:ai-use": {
+      "number": "8",
+      "page": 11
+    }
+  },
+  "pages_with_limits": [
+    10
+  ],
+  "pages_with_ai_statement": [
+    11
+  ],
+  "total_pages": 61
+}

@@ -1,0 +1,77 @@
+e118: checking 150 endpoints
+e118: 20/150 checked
+e118: 40/150 checked
+e118: 60/150 checked
+e118: 80/150 checked
+e118: 100/150 checked
+e118: 120/150 checked
+e118: 140/150 checked
+e118 {'admitted': 137, 'incomplete': 13}
+e119: checking 100 endpoints
+e119: 20/100 checked
+e119: 40/100 checked
+e119: 60/100 checked
+e119: 80/100 checked
+e119: 100/100 checked
+e119 {'admitted': 85, 'incomplete': 15}
+e120: checking 90 endpoints
+e120: 20/90 checked
+e120: 40/90 checked
+e120: 60/90 checked
+e120: 80/90 checked
+e120 {'admitted': 41, 'incomplete': 4}
+{
+  "e118": {
+    "ledger": "var/artifacts/e118_all_scales_maxrl_verified_replay_jobs.json",
+    "ledger_sha256": "c98875fa3dfeffd52599edffb1e8c8f8626c6d8d8df2639ed3c061530593e7af",
+    "registered_cells": 150,
+    "completion_receipts": 137,
+    "admitted_terminal_endpoints": 137,
+    "endpoint_status_counts": {
+      "admitted": 137,
+      "incomplete": 13
+    },
+    "registered_blocks": 15,
+    "complete_five_seed_blocks": 12,
+    "ledger_snapshot": {
+      "path": "paper/audits/results_refresh_20260910/ledgers/e118_all_scales_maxrl_verified_replay_jobs.json",
+      "sha256": "c98875fa3dfeffd52599edffb1e8c8f8626c6d8d8df2639ed3c061530593e7af"
+    },
+    "matched_maxrl_pairs": 66
+  },
+  "e119": {
+    "ledger": "var/artifacts/e119_level2_qwen05b_factorial_jobs.json",
+    "ledger_sha256": "341f77f6f41ab5954718d3216d6260ee87d2486cd38d91fbab5dd38c4efb760e",
+    "registered_cells": 100,
+    "completion_receipts": 85,
+    "admitted_terminal_endpoints": 85,
+    "endpoint_status_counts": {
+      "admitted": 85,
+      "incomplete": 15
+    },
+    "registered_blocks": 5,
+    "complete_five_seed_blocks": 4,
+    "ledger_snapshot": {
+      "path": "paper/audits/results_refresh_20260910/ledgers/e119_level2_qwen05b_factorial_jobs.json",
+      "sha256": "341f77f6f41ab5954718d3216d6260ee87d2486cd38d91fbab5dd38c4efb760e"
+    }
+  },
+  "e120": {
+    "ledger": "var/artifacts/e120r1_frequency_weighted_replay_jobs.json",
+    "ledger_sha256": "5302ba26da3f67d0b57e9eef1e8f528c6a56aef5faeb543a3adbfe32e721d8e7",
+    "registered_cells": 45,
+    "completion_receipts": 41,
+    "admitted_terminal_endpoints": 41,
+    "endpoint_status_counts": {
+      "admitted": 41,
+      "incomplete": 4
+    },
+    "registered_blocks": 9,
+    "complete_five_seed_blocks": 7,
+    "ledger_snapshot": {
+      "path": "paper/audits/results_refresh_20260910/ledgers/e120r1_frequency_weighted_replay_jobs.json",
+      "sha256": "5302ba26da3f67d0b57e9eef1e8f528c6a56aef5faeb543a3adbfe32e721d8e7"
+    },
+    "mechanism_validated_complete_blocks": 7
+  }
+}

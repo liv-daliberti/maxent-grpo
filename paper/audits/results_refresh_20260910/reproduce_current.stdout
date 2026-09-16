@@ -1,0 +1,69 @@
+{
+  "figures": [
+    "paper/audits/results_refresh_20260910/reproduced/figures/current_campaign_results_20260910.png",
+    "paper/audits/results_refresh_20260910/reproduced/figures/current_campaign_results_20260910.pdf"
+  ],
+  "source": "paper/results/latest_results_20260910.json",
+  "rows": 34,
+  "available_rows": 33,
+  "coverage": [
+    {
+      "campaign": "e118",
+      "label": "E118: MaxRL factorial",
+      "registered_cells": 150,
+      "completion_receipts": 137,
+      "admitted_terminal_endpoints": 137,
+      "endpoint_status_counts": {
+        "admitted": 137,
+        "incomplete": 13
+      },
+      "registered_blocks": 15,
+      "complete_five_seed_blocks": 12,
+      "paired_contrasts": 66,
+      "planned_paired_contrasts": 75,
+      "complete_pairwise_contrasts": 12
+    },
+    {
+      "campaign": "e119",
+      "label": "E119: Level-2 factorial",
+      "registered_cells": 100,
+      "completion_receipts": 85,
+      "admitted_terminal_endpoints": 85,
+      "endpoint_status_counts": {
+        "admitted": 85,
+        "incomplete": 15
+      },
+      "registered_blocks": 5,
+      "complete_five_seed_blocks": 4,
+      "paired_contrasts": 41,
+      "planned_paired_contrasts": 50,
+      "complete_pairwise_contrasts": 8
+    },
+    {
+      "campaign": "e120",
+      "label": "E120-R1: fresh-frequency replay ablation",
+      "registered_cells": 45,
+      "completion_receipts": 41,
+      "admitted_terminal_endpoints": 41,
+      "endpoint_status_counts": {
+        "admitted": 41,
+        "incomplete": 4
+      },
+      "registered_blocks": 9,
+      "complete_five_seed_blocks": 7,
+      "paired_contrasts": 41,
+      "planned_paired_contrasts": 45,
+      "complete_pairwise_contrasts": 7,
+      "mechanism_validated_complete_blocks": 7
+    }
+  ],
+  "outputs": [
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910.json",
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910.csv",
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910.md",
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_e118_table_body.tex",
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_e119_table_body.tex",
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_e120_table_body.tex",
+    "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_coverage_table_body.tex"
+  ]
+}

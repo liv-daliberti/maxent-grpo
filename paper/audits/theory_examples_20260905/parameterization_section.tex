@@ -1,0 +1,210 @@
+\subsection{How model parameterization changes collapse}
+\label{app:theory-size}
+
+The cross-scale losses raise a further question: can a larger model learn
+correctness while preserving more correct alternatives? The preceding theorem
+already allows every logit to vary independently, so representational capacity
+alone cannot answer this question. We give a conditional mechanism: directions
+that raise correct logits together can improve correctness with less
+amplification of differences among correct modes.
+
+For a smooth parameterization $z=z(\theta)$, write
+$J_\theta=\partial z/\partial\theta$ and
+$\mathsf K_\theta=J_\theta J_\theta^\top$. The chain rule extends
+Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} to Euclidean parameter
+gradient flow:
+\begin{equation}
+ \dot z=c_G(P)\mathsf K_\theta\nabla_zP,
+ \qquad
+ \frac{d}{dt}\log\frac{q_c}{q_d}
+ =c_G(P)(\mathbf e_c-\mathbf e_d)^\top\mathsf K_\theta\nabla_zP,
+ \label{eq:parameterized-collapse}
+\end{equation}
+where $\mathbf e_c$ is a coordinate basis vector. Thus the logit-gradient geometry,
+not the number of columns of $J_\theta$ alone, governs mode amplification.
+The independent-logit theorem has $\mathsf K_\theta=I$.
+
+To isolate shared correctness learning, let $v=\1_{\mathcal C}$ be the
+vector that is one on correct categories and zero on incorrect categories,
+and consider the constant geometry
+\begin{equation}
+ \mathsf K_\lambda=I+\lambda vv^\top,\qquad \lambda\ge0.
+ \label{eq:shared-correctness-kernel}
+\end{equation}
+The added direction moves all correct logits equally, so it improves their
+mass without directly changing their ratios. For example,
+$z=u+\alpha\sum_{j=1}^s h_jv$, with trainable $u$ and scalar $h_j$, realizes
+this geometry with $\lambda=s\alpha^2$. More such coordinates strengthen the
+shared update if $\alpha$ is fixed; normalizing $\alpha=1/\sqrt{s}$ removes
+that dependence. These coordinates are redundant for expressivity and assume
+perfect correctness alignment. They describe an optimization mechanism, not
+a feature that an arbitrary larger language model is guaranteed to possess.
+
+\begin{theorem}[Shared correctness learning preserves more sampled modes at matched accuracy]
+\label{thm:shared-correctness}
+Compare the flows~\eqref{eq:parameterized-collapse} with
+$\mathsf K_\theta=\mathsf K_\lambda$, the same finite initial logits, and any
+of the three functions $c_G$ above. Fix a target correct mass
+$P_\star\in(P(0),1)$. At the first time each flow reaches $P_\star$,
+$\texttt{distinct@}K$ is nondecreasing in $\lambda$ for every integer $K\ge1$,
+while $\texttt{pass@}K$ is identical. The increase is strict for $K\ge2$ when
+$q(0)$ is nonuniform. In addition, every correct mode satisfies
+\begin{equation}
+ q_c^{(\lambda)}(P_\star)
+ \ge q_c(0)\exp\!\left(-\frac{L}{\lambda+1/m+1/n}\right),
+ \quad
+ L=\log\frac{P_\star}{1-P_\star}-\log\frac{P(0)}{1-P(0)}.
+ \label{eq:shared-correctness-bound}
+\end{equation}
+Here $m,n$ count output categories, not model parameters. For every fixed
+finite $\lambda$, a unique initial maximum still implies eventual
+single-mode collapse as $t\to\infty$.
+\end{theorem}
+
+\begin{proof}
+Let $r_a=p_a/(1-P)$ for $a\in\mathcal N$, and write
+$S_q=\sum_cq_c^2$, $S_r=\sum_ar_a^2$. In the effective time
+$d\tau=c_G(P)P(1-P)\,dt$, the logit velocities are
+$dz_c/d\tau=q_c+\lambda$ and $dz_a/d\tau=-r_a$. Hence
+\begin{equation}
+ \frac{dq_c}{d\tau}=q_c(q_c-S_q),\qquad
+ \frac{dr_a}{d\tau}=-r_a(r_a-S_r),\qquad
+ \frac{d}{d\tau}\log\frac{P}{1-P}=S_q+S_r+\lambda.
+ \label{eq:shared-correctness-clock}
+\end{equation}
+The paths $q(\tau),r(\tau)$ therefore do not depend on $\lambda$.
+Also $\dot P=c_G(P)P^2(1-P)^2(S_q+S_r+\lambda)>0$; the same interior-limit
+argument as in Theorem~\ref{thm:grpo-collapse} gives $P\to1$.
+At $P_\star$, the effective time $\tau_\lambda$ uniquely solves
+\[
+ L=\lambda\tau_\lambda+
+   \int_0^{\tau_\lambda}(S_q(u)+S_r(u))\,du.
+\]
+The right-hand side increases strictly with both its positive time argument
+and $\lambda$, so $\tau_\lambda$ decreases strictly with $\lambda$.
+Since $S_q\ge1/m$ and $S_r\ge1/n$,
+$\tau_\lambda\le L/(\lambda+1/m+1/n)$. Integrating
+$d\log q_c/d\tau=q_c-S_q\ge-1$ over this bounded interval gives the probability
+floor in Equation~\eqref{eq:shared-correctness-bound}.
+
+At fixed $P_\star$, define
+$\mathcal D_K(q)=\sum_c[1-(1-P_\star q_c)^K]$, the expected number of correct modes in
+$K$ independent draws. For
+$a(u)=KP_\star(1-P_\star u)^{K-1}$, the replicator equation gives
+\[
+ \frac{d\mathcal D_K}{d\tau}
+ =\frac12\sum_{c,d}q_cq_d(q_c-q_d)\bigl(a(q_c)-a(q_d)\bigr)\le0.
+\]
+The inequality holds because $a$ is nonincreasing; it is strict for $K\ge2$
+and nonuniform $q$. Thus the smaller $\tau_\lambda$ gives larger
+$\texttt{distinct@}K$, whereas
+$\texttt{pass@}K=1-(1-P_\star)^K$ is unchanged. Finally,
+$S_q+S_r+\lambda\le2+\lambda$ and $P\to1$ imply $\tau\to\infty$.
+The unchanged correct-mode replicator flow then gives eventual collapse
+under a unique initial maximum.
+\end{proof}
+
+\paragraph{Same accuracy, different remaining breadth.}
+Start from \hyperref[ex:theory-running]{the running example} and stop each idealized flow when
+$P$ first reaches $0.90$. Both policies then have
+$\texttt{pass@8}=1-10^{-8}$. Numerical integration of
+Equation~\eqref{eq:shared-correctness-clock} gives the following illustrative
+values; the probability floors are calculated separately from
+Equation~\eqref{eq:shared-correctness-bound} with $L=\log9$.
+\begin{center}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+$\lambda$ & Conditional mass $q_3$ & Guaranteed $q_3$ floor & $\texttt{distinct@8}$ \\
+\midrule
+$0$ & $0.05255$ & $0.01924$ & $2.125$ \\
+$4$ & $0.08582$ & $0.06623$ & $2.374$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The trajectory values are rounded approximations; the displayed floors are
+rounded down. The shared direction preserves more of the initially rare mode
+at the same correctness, but its mass still falls below its initial $0.10$.
+A better finite-accuracy trajectory can therefore coexist with eventual loss,
+as the next corollary makes precise.
+
+\begin{corollary}[Collapse rate as correctness approaches one]
+\label{cor:collapse-error-rate}
+Under Theorem~\ref{thm:shared-correctness}, fix finite $\lambda\ge0$
+and suppose the initial correct-mode maximum is unique. For every other
+correct mode $c$,
+\begin{equation}
+ \lim_{P\uparrow1}\frac{\log q_c^{(\lambda)}(P)}{\log(1-P)}
+ =\frac{1}{\lambda+1+1/n}.
+ \label{eq:collapse-error-exponent}
+\end{equation}
+Thus $q_c^{(\lambda)}(P)=(1-P)^{1/(\lambda+1+1/n)+o(1)}$:
+larger fixed $\lambda$ reduces the decay exponent, but every minority mode
+still vanishes. The exponent describes the limiting ratio of logarithms;
+finite-accuracy probabilities also depend on the initial distribution.
+\end{corollary}
+
+\begin{proof}
+Theorem~\ref{thm:shared-correctness} gives $q\to\mathbf e_{c^\star}$,
+so $S_q\to1$. The incorrect conditional flow in
+Equation~\eqref{eq:shared-correctness-clock} preserves ordering and makes
+$r_{\min}$ nondecreasing. For $h=\log(r_{\max}/r_{\min})$,
+\[
+ h'=-(r_{\max}-r_{\min})
+ =-r_{\min}(e^h-1)\le-r_{\min}(0)h.
+\]
+Hence $r\to(1/n,\ldots,1/n)$ and $S_r\to1/n$, including trivially $n=1$.
+Integrating $d\log q_c/d\tau=q_c-S_q$ and the correctness-clock equation
+and taking time averages yields
+\[
+ \frac{\log q_c(\tau)}{\tau}\to-1,
+ \qquad
+ \frac{\log(P(\tau)/(1-P(\tau)))}{\tau}
+ \to\lambda+1+1/n.
+\]
+Since $\log(1-P)=\log P-\log(P/(1-P))$ and $\log P\to0$, their ratio proves
+Equation~\eqref{eq:collapse-error-exponent}.
+\end{proof}
+
+\paragraph{A smaller exponent still permits extinction.}
+With one incorrect category, the minority-mode exponents are $1/2$ at
+$\lambda=0$ and $1/6$ at $\lambda=4$. Both are positive, so both limits
+lose minority modes as $P\uparrow1$. These are asymptotic logarithmic slopes;
+they do not replace the finite-accuracy values in the preceding table.
+
+\paragraph{Correctness alone does not imply collapse.}
+The independent-logit component matters. With purely shared geometry
+$\mathsf K=\lambda vv^\top$, $\lambda>0$, all correct logits move equally,
+so $q(t)=q(0)$ while
+$\dot P=\lambda c_G(P)P^2(1-P)^2>0$ and $P\to1$.
+For $\mathsf K=aI+bvv^\top$ with fixed $a>0$ and $b\ge0$, time rescaling
+instead recovers Theorem~\ref{thm:shared-correctness} with $\lambda=b/a$.
+Thus persistent mode-specific amplification, not increasing correctness by
+itself, drives this collapse result.
+
+\paragraph{Why parameter count alone is insufficient.}
+For an integer $h\ge1$, replace each independent logit by
+$z_a=h^{-\gamma}\sum_{j=1}^h\theta_{aj}$, initializing
+$\theta_{aj}(0)=h^{\gamma-1}z_a(0)$. Every added parameter affects the logits,
+and every model represents the same categorical policies, but
+$\mathsf K=h^{1-2\gamma}I$. Its policy follows exactly the original collapse
+trajectory with time multiplied by $h^{1-2\gamma}$. Increasing the parameter
+count therefore makes collapse faster, unchanged, or slower for
+$\gamma=0,1/2,1$, respectively. For example, using $h=4$ multiplies the speed by $4$, $1$, or $1/4$
+under those three normalizations, despite quadrupling the parameter count
+in every case. A size claim therefore requires assumptions about how
+additional parameters change the update geometry.
+
+\paragraph{What this explains and what remains untested.}
+Theorem~\ref{thm:shared-correctness} connects a specified kind of shared
+learning to the paper's sampling metrics at matched accuracy. It also
+clarifies why a slower loss can coexist with eventual collapse, leaving a
+role for replay. It does not identify the cause of the empirical cross-scale
+pattern: those runs start from different pretrained distributions, use
+different learning-rate schedules, and compare equal training passes rather
+than matched accuracy. Falcon also changes model family. Neither the assumed
+geometry nor its dependence on size is measured here. Establishing that link
+would require controlled within-family scaling and measurements of shared
+versus mode-specific updates. The result retains prompt isolation, exact
+mean updates, and zero reference KL; it does not cover shared-prompt
+interference, adaptive optimizer effects, or finite-step stochastic training.
+

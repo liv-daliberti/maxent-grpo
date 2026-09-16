@@ -1,0 +1,6 @@
+{
+  // This repository carries a very large number of changed paths, so the Git
+  // extension's background refresh holds .git/index.lock long enough to block
+  // ordinary commits. Refresh manually from the Source Control view instead.
+  "git.autorefresh": false
+}

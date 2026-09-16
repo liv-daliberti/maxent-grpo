@@ -347,6 +347,40 @@ is difficulty-matched at 14B and is part of the admitted Level 5 release. Full
 evidence in the
 [outcome record](../artifacts/modebench_scale_level4_mathir_recalibration_outcome_20260916.json).
 
+**A fourth knob exists, and a bound explains why it does not help either.** The
+six-item action menu is relabelled per instance — 469 distinct label-to-command
+mappings across the 512 measured prompts — while the semantics stay fixed. Every
+prompt admits exactly one valid two-step route, and the model emits two-step
+routes in 84 percent of attempts with a strong prior over label strings, so a
+prompt is alive largely when its permutation lands the correct route on a
+favoured label pair. That permutation was random: a free construction-time choice
+nobody controlled. It correlates with per-prompt success at 0.388 and spans a
+nine-fold range in mean success between the top and bottom prior quartile. It is
+the first real difficulty handle this domain has had.
+
+It still cannot reach the target, for a reason independent of any particular law.
+The scale-free statistic is the ratio pass@8/pass@1: 8 for a homogeneous
+population, **5.50 for the target**. Construction-time bands of the label prior
+run 2.09 to **4.16**, and a ratio of averages cannot exceed its best component, so
+no mixture of bands or of tiers built from them reaches 5.50. One band puts pass@8
+at 0.2464, essentially on target, while its pass@1 is double; another has roughly
+the right shape at less than half the required pass@1.
+
+**This corrects how the gap figures above should be read.** The heterogeneity gap
+is an absolute difference against a homogeneous ceiling that itself shrinks with
+pass@1, so it does not compare across constructions at different pass@1: the
+0–1 percent band shows a gap of 0.066 against the target's 0.060 while sitting at
+less than half the target's pass@1. The recorded gap values are correct as
+computed; the cross-row comparison of them is not. Use the ratio.
+
+The knob would also be the wrong instrument even where it worked. It tunes
+measured success by aligning the answer's surface labelling with one model's
+prior — no problem becomes harder in any sense a reader would recognise, and the
+calibration would not survive a change of model. Levels 1–3 grade structure, and
+a Level 4 MathIR graded by label alignment would not be the same kind of object.
+Evidence in the
+[ratio bound](../artifacts/modebench_scale_level4_mathir_ratio_bound_20260916.json).
+
 **Level 4 is closed at four of five, not admitted, with the cause established.**
 The decision to stop rather than rebuild was taken by the user on 2026-09-15 and
 is recorded in the

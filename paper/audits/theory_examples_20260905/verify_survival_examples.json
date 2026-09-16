@@ -1,0 +1,121 @@
+{
+  "all_values_hypothetical": true,
+  "bank_barrier": {
+    "initial_p": [
+      0.3,
+      0.15,
+      0.05,
+      0.5
+    ],
+    "bank_indices": [
+      0,
+      2
+    ],
+    "G": 4,
+    "rho": 0.3,
+    "R_initial": 2.0998525389399636,
+    "C": 3.3498525389399636,
+    "termwise_floor": 0.0012312749793584818,
+    "rare_p_candidate": 0.0001,
+    "candidate_single_term": 4.605170185988091
+  },
+  "inverse_lengths": {
+    "lengths": [
+      10,
+      20,
+      40
+    ],
+    "A": 0.05833333333333334,
+    "target": [
+      0.5714285714285714,
+      0.2857142857142857,
+      0.14285714285714285
+    ]
+  },
+  "deterministic_step": {
+    "L": 0.525,
+    "eta": 1,
+    "eta_upper_exclusive": 3.8095238095238093,
+    "gradient": [
+      -0.1725,
+      -0.011249999999999996,
+      -0.15375,
+      0.3375
+    ],
+    "p_after": [
+      0.386109869894485,
+      0.164305054010231,
+      0.06315629308292164,
+      0.38642878301236244
+    ],
+    "F_before": 0.25495576168198913,
+    "F_after": 0.09688800153939886,
+    "incomplete_bank_limit": [
+      0.5,
+      0,
+      0.5,
+      0
+    ]
+  },
+  "sharp_16": {
+    "C": 2.782588722239781,
+    "D": 0.01,
+    "sharp_floor": 0.0339712076269487,
+    "old_floor": 4.619480736336e-20,
+    "bank_mass_floor": 0.9900498337491681
+  },
+  "entropy_missing": {
+    "m": 16,
+    "H": 2.70805020110221,
+    "normalized_entropy": 0.9767226489021297,
+    "forward_KL": 0.06453852113757116,
+    "zero_coordinate": 0
+  },
+  "response_aggregation": {
+    "target": [
+      0.25,
+      0.25,
+      0.5
+    ],
+    "response_p": [
+      0.2,
+      0.2,
+      0.4
+    ],
+    "other_invalid_p": 0.2,
+    "H": 1.0397207708399179,
+    "C": 1.2628643221541276,
+    "D": 0.2231435513142097,
+    "key_A_p": 0.4,
+    "key_A_target": 0.5,
+    "key_A_floor": 0.20000000000000004,
+    "individual_response_floor": 0.050459544887630256,
+    "sum_individual_A_floors": 0.10091908977526051
+  },
+  "binomial": {
+    "N": 32,
+    "zero_upper95": 0.0893681989862648,
+    "zero_upper95_16keys": 0.1649469565996532,
+    "two_lower95": 0.011219494363880126,
+    "two_plugin": 0.0625,
+    "zero_upper95_160statements": 0.2229229851183827,
+    "alpha_160": 0.0003125
+  },
+  "missing_mass": {
+    "single_unseen_p": 0.1,
+    "many_unseen_count": 100,
+    "each_unseen_p": 0.001
+  },
+  "preservation": {
+    "replay_section.tex": {
+      "formal_blocks_unchanged": true,
+      "citations_preserved": true,
+      "sha256": "4c8e6045442538bea85ac109c06c297cae634bcef9c4c47253c285cde8ca03f3"
+    },
+    "survival_section.tex": {
+      "formal_blocks_unchanged": true,
+      "citations_preserved": true,
+      "sha256": "de4a5025a13431918876e11e2ba26a3cc0fdf5b4cc0e51ab36fffaead0953a87"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -6,8 +6,8 @@
+ \maketitle
+ 
+ \begin{abstract}
+-A mathematical reasoning model can become more accurate while losing
+-alternative correct solutions. To measure this loss, we introduce \mb{},
++A language model can become more accurate on mathematical problems while
++losing alternative correct solutions. To measure this loss, we introduce \mb{},
+ a benchmark of five executable domains that distinguishes different correct
+ outputs for the same problem. We then show that ReplayMaxRL, which combines
+ sampling-aware reinforcement learning with a memory of previously verified
+@@ -29,7 +29,7 @@
+ 
+ \section{Preserving alternatives for mathematical agents}
+ \label{sec:introduction}\label{sec:collapse}
+-When we train a mathematical reasoning model to be correct more often, we may
++Training a language model to solve mathematical problems more accurately may
+ also change which correct solutions it can still produce. That distinction
+ matters for a mathematical agent: a different computation or proof idea may
+ offer a way forward when a familiar route fails or constraints change. Tools

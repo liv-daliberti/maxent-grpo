@@ -1,0 +1,75 @@
+\subsection{Dated endpoint update: September 8, 2026}
+\label{app:latest-results-update}
+
+Table~\ref{tab:latest-results-update} records an audit of the registered
+E118, E119, and E120 ledgers, collected from 15:26:54 to 15:36:39 UTC.
+Completion receipts and admitted endpoints are counted separately: an endpoint
+requires the exact step-3,072 evaluation, all four fixed-seed sampled draws,
+and no conflicting retry values. The accompanying
+\texttt{latest\_results\_20260908.json} records the collection interval,
+frozen ledger copies, admitted seed sets, every paired endpoint effect, and
+mechanism eligibility. Partial intersections receive exact seed counts and
+no five-seed interval.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Latest audited terminal coverage.}
+  Complete blocks require five paired MaxRL/ReplayMaxRL seeds for E118,
+  five four-method seeds for E119, and five frequency-replay seeds with
+  their registered uniform comparator for E120. All six complete E120 blocks
+  pass the persisted frequency-weighting telemetry audit.}
+  \label{tab:latest-results-update}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    \textbf{Campaign} & \textbf{Receipts} & \textbf{Endpoints}
+      & \textbf{Complete blocks} \\
+    \midrule
+    \input{results/latest_results_20260908_table_body.tex}
+  \end{tabular}
+\end{table}
+
+E118 now contains 59 matched MaxRL/ReplayMaxRL pairs. Its eleven complete
+blocks are unchanged; Qwen2.5-3B Graph has three pairs (seeds 70, 72, and 73)
+and MathIR has one (seed 74). Countdown and PantryPlan have independently
+completed arms but no paired terminal intersection. These prefixes remain
+descriptive, and the incomplete Qwen2.5-3B MaxRL grid is not averaged across
+domains in Figure~\ref{fig:maxrl-factorial}.
+
+E119 adds complete Python and MathIR factorials to the existing Graph block,
+using all five registered seeds in each. Table~\ref{tab:latest-completed-effects}
+reports their paired replay effects. Every new \texttt{pass@8} and raw
+\texttt{distinct@8} mean is positive, but all corresponding unadjusted 95\%
+intervals include zero. Countdown has two complete four-arm seeds (43 and 44);
+PantryPlan has no terminal four-arm intersection. Figure~\ref{fig:level2-admission}
+uses the refreshed matched-checkpoint snapshot described above.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Newly completed Level-2 Python and MathIR replay effects.}
+  Each contrast uses all five registered seeds, 43--47, at pass 8.
+  ReplayMaxRL is compared with MaxRL; ReplayDr.GRPO with Dr.GRPO.
+  Entries give the paired mean and unadjusted 95\% Student-$t$ interval.
+  Extra modes are \texttt{distinct@8}$-$\texttt{pass@8}; their effect remains
+  coupled to correctness. The dated JSON retains all arm means and raw seeds.}
+  \label{tab:latest-completed-effects}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}llllrrr@{}}
+    \toprule
+    \textbf{Campaign} & \textbf{Model} & \textbf{Domain} & \textbf{Replay arm} &
+      \(\Delta\texttt{pass@8}\) & \(\Delta\texttt{distinct@8}\) &
+      \textbf{$\Delta$ extra modes} \\
+    \midrule
+    \input{results/latest_results_20260908_effects_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+E120 remains at 33 admitted treatment endpoints and six complete blocks;
+the Falcon3-1B Graph result in Appendix~\ref{app:e120-falcon-graph-update}
+is unchanged. The original 25-cell Qwen2.5-0.5B weighting analysis retains its
+September 4 frozen input, and all 25 treatment endpoints were revalidated
+without numerical changes. Remaining scale extensions are incomplete.
+

@@ -1,0 +1,83 @@
+[
+  {
+    "key": "tajwar2026maxrl",
+    "url": "https://arxiv.org/html/2602.02710",
+    "status": 200,
+    "characters": 213319,
+    "argmax_count": 0
+  },
+  {
+    "key": "cheng2025exploration",
+    "url": "https://arxiv.org/html/2506.14758",
+    "status": 200,
+    "characters": 65929,
+    "argmax_count": 0
+  },
+  {
+    "key": "chen2025passktraining",
+    "url": "https://arxiv.org/html/2508.10751",
+    "status": 200,
+    "characters": 110532,
+    "argmax_count": 7
+  },
+  {
+    "key": "song2025outcome",
+    "url": "https://arxiv.org/html/2509.06941",
+    "status": 200,
+    "characters": 98584,
+    "argmax_count": 1
+  },
+  {
+    "key": "li2025divergence",
+    "url": "https://arxiv.org/html/2509.07430",
+    "status": 200,
+    "characters": 97456,
+    "argmax_count": 0
+  },
+  {
+    "key": "li2026distribution",
+    "url": "https://arxiv.org/html/2605.19461",
+    "status": 200,
+    "characters": 83974,
+    "argmax_count": 0
+  },
+  {
+    "key": "li2026setpo",
+    "url": "https://arxiv.org/html/2602.01062",
+    "status": 200,
+    "characters": 105710,
+    "argmax_count": 0
+  },
+  {
+    "key": "cui2025entropy",
+    "url": "https://arxiv.org/html/2505.22617",
+    "status": 200,
+    "characters": 86586,
+    "argmax_count": 0
+  },
+  {
+    "key": "yue2025rlvrlimit",
+    "url": "https://arxiv.org/html/2504.13837",
+    "status": 200,
+    "characters": 80419,
+    "argmax_count": 0
+  },
+  {
+    "key": "kirk2024understanding",
+    "needs_fulltext": "https://openreview.net/forum?id=PXD3FAVHJT"
+  },
+  {
+    "key": "lochab2026ucpo",
+    "url": "https://arxiv.org/html/2605.00365",
+    "status": 200,
+    "characters": 113717,
+    "argmax_count": 0
+  },
+  {
+    "key": "zhang2025rlep",
+    "url": "https://arxiv.org/html/2507.07451",
+    "status": 200,
+    "characters": 26941,
+    "argmax_count": 0
+  }
+]
