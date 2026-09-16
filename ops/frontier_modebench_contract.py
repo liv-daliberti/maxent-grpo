@@ -22,8 +22,8 @@ DOMAINS = ("graph_coloring", "countdown", "python_factors", "mathir", "pantry_pl
 def _identity(level: int | str, domain: str) -> tuple[int, str]:
     if isinstance(level, str) and level.startswith("level"):
         level = level[5:]
-    if isinstance(level, bool) or str(level) not in {"1", "2", "3"}:
-        raise ValueError("level must be 1, 2, or 3")
+    if isinstance(level, bool) or str(level) not in {"1", "2", "3", "4", "5"}:
+        raise ValueError("level must be 1, 2, 3, 4, or 5")
     domain = "pantry_plan" if domain == "pantry" else domain
     if domain not in DOMAINS:
         raise ValueError(f"unsupported ModeBench domain: {domain}")
@@ -31,7 +31,22 @@ def _identity(level: int | str, domain: str) -> tuple[int, str]:
 
 
 def profile_metadata(level: int | str, domain: str) -> dict[str, Any]:
-    """Record the inherited interface and explicit hosted-generation difference."""
+    """Record the inherited interface and explicit hosted-generation difference.
+
+    Level 4 is accepted here because the prompt surface it would use is already
+    fully determined: every branch below keys on ``level == 1`` or on the
+    domain, so levels 2, 3 and 4 render the identical template and syntax
+    profile, and the local base-grid evaluator likewise selects its interface by
+    domain alone. Accepting it is a statement about prompt construction only.
+    It is emphatically not an admission of Level 4 as a benchmark level: that
+    admission is incomplete, and any figure or table carrying Level 4 has to say
+    so.
+
+    Level 5 is accepted for the same prompt-construction reason and renders
+    identically again. Its evaluation splits, unlike Level 4's, carry admitted
+    bindings, so a Level 5 cell rests on an admitted dataset; that is a fact
+    about the data, not a claim of difficulty equivalence with any other level.
+    """
     level, domain = _identity(level, domain)
     mask = level == 1 and domain == "pantry_plan"
     template = ("qwen_pantry_support_mask" if mask else "qwen_boxed") if level == 1 else (
