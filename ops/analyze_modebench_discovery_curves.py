@@ -168,6 +168,8 @@ def metric_names():
         names += [f'{kind}/{metric}/m{m}' for m in GRID for metric in ('distinct','uniform_distinct')]
     for kind in ('collision_own','collision_joint'):
         names += [kind+'/'+metric for metric in ('observed','uniform_reference','excess_uniform')]
+    for kind in ('pcmd_own','pcmd_joint'):
+        names += [kind+'/'+metric for metric in ('observed','uniform_reference','excess_uniform')]
     for kind in ('rarefaction','prefix'):
         names += [f'gain8to64/{kind}/{metric}' for metric in ('pass','distinct','breadth')]
     return tuple(names)
@@ -202,6 +204,15 @@ def paired_matrices(original, neutral):
                 reference = denominator/r['support_reference']['support_count']
                 for metric,value in [('observed',observed),('uniform_reference',reference),('excess_uniform',observed-reference)]:
                     channels[kind+'/'+metric] = (value,denominator)
+            for kind in ('pcmd_own','pcmd_joint'):
+                # One prompt, one unit of weight. The pooled collision channel above divides
+                # summed pairs by summed pairs, so a prompt enters it in proportion to its
+                # binom(c,2); this channel carries the promptwise PCMD estimator instead.
+                eligible = r['correct_draws']>=2 and (kind=='pcmd_own' or q['correct_draws']>=2)
+                observed = 1-r['colliding_correct_pairs']/r['correct_pairs'] if eligible else 0.
+                reference = 1-1/r['support_reference']['support_count'] if eligible else 0.
+                for metric,value in [('observed',observed),('uniform_reference',reference),('excess_uniform',observed-reference)]:
+                    channels[kind+'/'+metric] = (value,int(eligible))
             for kind in ('rarefaction','prefix'):
                 for metric in ('pass','distinct','breadth'):
                     channels[f'gain8to64/{kind}/{metric}'] = (r[kind]['64'][metric]-r[kind]['8'][metric],1)
@@ -944,6 +955,7 @@ def build_report(base,local_plan=None,hosted_registry=None,replicates=20000,scop
                 'All support references in this campaign are certified lower bounds, not exhaustive counts.',
                 'Collision reference 1/L is an upper bound for full-support uniform collision; uniform breadth at L is a lower reference, not a lower bound on model breadth.',
                 'Equal-seed mean collision and pooled descriptive pair counts are distinct estimands.',
+                'Pooled correct-pair collision weights a prompt by its pair count, which rises with accuracy; the promptwise PCMD mean beside it weights every eligible prompt equally.',
                 'Two-seed Pantry intervals condition on those checkpoints; the initial checkpoint has no training-seed replication.',
                 'Zero-width bootstrap intervals mean zero observed resampled variation, not population equivalence.']}
     return report
@@ -1025,34 +1037,41 @@ def render_gain_table(report,family,grading):
     return '\n'.join(lines)
 
 
-def render_collision_table(report,family):
+def render_breadth_table(report,family):
+    """Both full-64 pair weightings in one table, with their shared support.
+
+    Pooled collision and promptwise PCMD answer the same question under two
+    weightings of the same pairs, and they were printed as two tables whose
+    rows, uniform reference and eligibility columns were identical; the second
+    table's caption had to say so and point back. One table with both estimates
+    side by side is the comparison the two weightings exist to support. The
+    per-budget eligibility counts that stood in a third table are retained in
+    the report, and the eligibility this table's contrast rests on is its own
+    $E$ column.
+    """
     lines=[r'\begin{table}[H]',r'\centering\scriptsize',r'\setlength{\tabcolsep}{3pt}',
-           r'\caption{Full-64 strict correct-pair collision. $C$ pools correct pairs within a fixed checkpoint or deployment; trained local rows then average checkpoint rates equally across seeds. $U$ applies the same weighting to the certified-support uniform upper reference. '
-           r'Eligible checkpoint--problem groups $E$ and correct-pair counts $Q$ are summed descriptively across checkpoints. These totals do not define the equal-seed mean; separate pooled rates and per-seed counts are retained in the report. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator retained.}',
-           r'\label{tab:discovery-collision-'+family+'}',r'\resizebox{\linewidth}{!}{%',r'\begin{tabular}{llrrrrrr}',r'\toprule',
-           r'Model & Cell & $C_O$ & $C_N$ & $U_O$ & $U_N$ & $E_O/E_N$ & $Q_O/Q_N$ \\',r'\midrule']
+           r'\caption{Full-64 strict breadth under both pair weightings. $C$ pools correct pairs within a fixed checkpoint or deployment, so a prompt enters in proportion to its $\binom{c}{2}$; promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over prompts with $c\ge2$, weighting each equally, which is the aggregation App.~\ref{app:metric-sampling} uses for every other \pmd{} in this paper. Trained local rows then average checkpoint values equally across seeds. $U$ is the certified-support uniform reference under the matching weighting, $E$ the eligible checkpoint--problem groups per wording, and $Q$ the correct-pair counts, both summed descriptively across checkpoints; these totals do not define the equal-seed mean. $\Delta\pmd$ is neutral minus original with its pointwise 95\% interval on the jointly eligible prompts; a cell with no jointly eligible prompt leaves it undefined. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator, the per-budget joint eligibility counts and the separate pooled rates retained in the report.}',
+           r'\label{tab:discovery-breadth-'+family+'}',r'\resizebox{\linewidth}{!}{%',r'\begin{tabular}{llrrrrrrrrr}',r'\toprule',
+           r'Model & Cell & $C_O$ & $C_N$ & $\pmd_O$ & $\pmd_N$ & $U^{C}_O$ & $U^{\pmd}_O$ & $E_O/E_N$ & $Q_O/Q_N$ & $\Delta\pmd$ [95\%] \\',r'\midrule']
     for row in display_rows(report,family,'strict'):
         metrics=row['metrics'];counts=row['counts'];vals=[]
-        for name in ('collision_own/observed','collision_own/uniform_reference'):
-            vals.extend('$'+scalar(metrics[a][name]['estimate'])+'$' for a in ARMS)
+        vals.extend('$'+scalar(metrics[a]['collision_own/observed']['estimate'])+'$' for a in ARMS)
+        vals.extend('$'+scalar(metrics[a]['pcmd_own/observed']['estimate'])+'$' for a in ARMS)
+        vals.append('$'+scalar(metrics['original']['collision_own/uniform_reference']['estimate'])+'$')
+        vals.append('$'+scalar(metrics['original']['pcmd_own/uniform_reference']['estimate'])+'$')
         vals += [str(counts['original']['conditional_own_eligible']['2'])+'/'+str(counts['neutral']['conditional_own_eligible']['2']),
                  str(counts['original']['correct_pairs'])+'/'+str(counts['neutral']['correct_pairs'])]
+        vals.append(interval_tex(metrics[CONTRAST]['pcmd_joint/observed'])
+                    if metrics[CONTRAST]['pcmd_joint/observed']['estimate'] is not None else '$--$')
         lines.append(' & '.join([row['label'],DOMAIN_LABELS[row['domain']]+' L'+str(row['level']),*vals])+r' \\')
     lines += [r'\bottomrule',r'\end{tabular}}',r'\end{table}']
     return '\n'.join(lines)
 
 
-def render_eligibility_table(report,family):
-    lines=[r'\begin{table}[H]',r'\centering\scriptsize',r'\setlength{\tabcolsep}{4pt}',
-           r'\caption{Strict joint eligibility for a fixed correct-draw budget: both wordings must have at least $m$ correct draws. Entries count eligible checkpoint--problem groups, summing over displayed seeds; the same 16 problems recur across checkpoints. Arm-specific eligibility at every $m$ is also retained in the report for both prompt wordings and every registered checkpoint.}',
-           r'\label{tab:discovery-eligibility-'+family+'}',r'\resizebox{\linewidth}{!}{%',r'\begin{tabular}{llrrrrrrr}',r'\toprule',
-           'Model & Cell & '+' & '.join('$m='+str(k)+'$' for k in GRID)+r' \\',r'\midrule']
-    for row in display_rows(report,family,'strict'):
-        counts=row['counts']['original']['conditional_joint_eligible']
-        lines.append(' & '.join([row['label']+(' ($s='+str(row['seed_count'])+'$)' if family=='local' else ''),DOMAIN_LABELS[row['domain']]+' L'+str(row['level']),
-                                *[str(counts[str(k)]) for k in GRID]])+r' \\')
-    lines += [r'\bottomrule',r'\end{tabular}}',r'\end{table}']
-    return '\n'.join(lines)
+def gain_rows(block):
+    """Numeric rows of a rendered gain table, for comparing two gradings."""
+    return [line.strip() for line in block.splitlines()
+            if line.count('&') >= 5 and '\\\\' in line]
 
 
 def render_appendix(report):
@@ -1074,7 +1093,7 @@ To compare breadth at matched observed correctness, rarefy $m$ correct draws alo
 \[
  R_m=\sum_j\left[1-\frac{\binom{c-n_j}{m}}{\binom{c}{m}}\right].
 \]
-The primary paired conditional comparison keeps only prompts with $c\ge m$ under both wordings; eligibility changes with $m$. Every eligible denominator is retained, and an undefined registered seed is never silently omitted from an equal-seed mean. Full-64 collision pools equal-key correct pairs within each checkpoint before taking equal-seed means.
+The primary paired conditional comparison keeps only prompts with $c\ge m$ under both wordings; eligibility changes with $m$. Every eligible denominator is retained, and an undefined registered seed is never silently omitted from an equal-seed mean. Two full-64 summaries follow, and they weight prompts differently. Pooled collision $C$ counts equal-key correct pairs across the prompts of one checkpoint before dividing, so a prompt enters in proportion to its $\binom{c}{2}$ and the prompts a model solves most often dominate. Promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over the prompts with $c\ge2$, weighting each equally; that is the aggregation App.~\ref{app:metric-sampling} requires, and the one every other \pmd{} in this paper uses. Both then take equal-seed means.
 
 All support counts here are certified lower bounds $L\le M$, not exhaustive support sizes: Python uses its two externally certified witnesses, MathIR five certified modes, and Pantry its frozen certificate count. Accordingly $1/L$ is an upper reference for uniform collision over full support; $L[1-(1-1/L)^m]$ is a lower reference for uniform expected breadth, not a lower bound on model breadth. Observed distinct counts may exceed $L$. The source report also averages this uniform breadth over $J\sim\operatorname{Hypergeom}(64,c,k)$ to match unconditional correctness at each $k$.
 ''']
@@ -1082,14 +1101,27 @@ All support counts here are certified lower bounds $L\le M$, not exhaustive supp
         omitted=', '.join(report['scope']['omitted_panels'])
         text.append('This is a partial-panel report: the '+', '.join(families)+' panel is complete, while the separately registered '+omitted+' panel is omitted and the overall experiment remains incomplete.')
     for family in families:
-        for grading in GRADINGS:text.append(render_gain_table(report,family,grading))
+        # See the prompt-hint appendix for the same rule: where the frozen
+        # normalizer rescues nothing, the secondary table repeats the first digit
+        # for digit, and a reader hunts for a difference that is not there. The
+        # sensitivity is reported as the sentence it actually supports.
+        rendered={g:render_gain_table(report,family,g) for g in GRADINGS}
+        text.append(rendered['strict'])
+        if gain_rows(rendered['normalized_secondary'])==gain_rows(rendered['strict']):
+            text.append(r'The frozen formatting normalizer is a registered secondary '
+                        r'grading for these cells. It rescued no additional response for '
+                        r'any '+('hosted deployment' if family=='frontier' else 'local checkpoint')+
+                        r' here, so every strict and normalized figure in the table above is '
+                        r'identical and the secondary table is not repeated.'+'\n')
+        else:
+            text.append(rendered['normalized_secondary'])
         text += [r'\clearpage',r'\begin{figure}[H]',r'\centering',
                  r'\includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{figures/modebench_discovery_curves_'+family+r'.pdf}',
                  r'\caption{Fresh 64-draw discovery curves. Separate axes show $P_k$ and $D_k$ for each level and domain; pass probability always uses a 0--1 scale. Color identifies the checkpoint method or hosted model, solid/dashed lines original/neutral wording. Lines and shaded pointwise intervals use strict grading; crosses show the frozen-normalization sensitivity. Prefix estimates are separately retained in the report with pointwise intervals for every model and cell.}',
-                 r'\label{fig:discovery-curves-'+family+'}',r'\end{figure}',render_collision_table(report,family),r'\clearpage',
+                 r'\label{fig:discovery-curves-'+family+'}',r'\end{figure}',render_breadth_table(report,family),r'\clearpage',
                  r'\begin{figure}[H]',r'\centering',r'\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{figures/modebench_discovery_correct_budget_'+family+r'.pdf}',
-                 r'\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the following table gives all strict joint counts for every method, level, and correct-draw budget, including groups with zero eligible prompts.}',
-                 r'\label{fig:discovery-correct-budget-'+family+'}',r'\end{figure}',render_eligibility_table(report,family)]
+                 r'\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the strict joint counts for every method, level and correct-draw budget, including groups with zero eligible prompts, are retained in the report rather than printed, and the $m=2$ counts the breadth contrast rests on are the $E$ column of Table~\ref{tab:discovery-breadth-'+family+r'}.}',
+                 r'\label{fig:discovery-correct-budget-'+family+'}',r'\end{figure}']
     return '\n\n'.join(text)+'\n'
 
 

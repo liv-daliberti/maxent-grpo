@@ -330,7 +330,9 @@ def rlep_progress_snapshot() -> tuple[
     details: dict[str, dict[str, Any]] = {}
     for domain, seed_curves in by_domain.items():
         seed_curves.sort(key=lambda item: item[0])
-        shared_steps = sorted(set.intersection(*(
+        # Union, not intersection, for the same reason as the core arms: a step
+        # one seed lacks is a partial measurement, not a missing one.
+        shared_steps = sorted(set().union(*(
             set(curve) for _seed, curve in seed_curves
         )))
         shared_steps = [step for step in shared_steps if 0 <= step <= target_steps]
@@ -342,12 +344,13 @@ def rlep_progress_snapshot() -> tuple[
             for metric in RLEP_METRICS:
                 per_seed = {
                     str(seed): float(curve[step][metric])
-                    for seed, curve in seed_curves
+                    for seed, curve in seed_curves if step in curve
                 }
                 values = list(per_seed.values())
                 point[metric] = {
                     "mean": sum(values) / len(values),
                     "range": [min(values), max(values)],
+                    "observed_n": len(values), "cohort_n": len(seed_curves),
                     "per_seed": per_seed,
                 }
             domain_summary[str(step)] = point
@@ -417,7 +420,11 @@ def seed_count(record: dict[str, Any], method: str) -> int:
         ]
     else:
         points = ordered(record["semantic_summary_by_arm"][arm])
-    return min(
+    # The cell's cohort, not the thinnest step in it. Curves are built from the
+    # union of observed steps, so a step reported by four of five seeds would
+    # otherwise relabel the whole cell n=4; partial steps are marked on the
+    # curve instead.
+    return max(
         len(value.get(f"{arm}_per_seed", value["paired_seeds"]))
         for _, value in points
     )
@@ -1080,8 +1087,16 @@ def _terminal_method_summary(
         markers.append(marker)
     if not curves:
         return None, prefix_sources, markers
-    shared_steps = sorted(set.intersection(*(set(curve) for curve in curves.values())))
+    # Every step any seed reports is drawn, from the seeds that report it, with
+    # that count carried on the point. Intersecting instead dropped a step for
+    # the whole cohort because one seed lacked it, which reads as an absence of
+    # evidence rather than as the partial measurement it is. The terminal step
+    # is still required of every seed, since the endpoint is what the paired
+    # comparisons are taken at.
+    shared_steps = sorted(set().union(*(set(curve) for curve in curves.values())))
     if not shared_steps or shared_steps[-1] != target:
+        raise RuntimeError(f"{domain}: terminal direct-baseline curves do not share pass 8")
+    if any(target not in curve for curve in curves.values()):
         raise RuntimeError(f"{domain}: terminal direct-baseline curves do not share pass 8")
     summaries: dict[str, Any] = {}
     for step in shared_steps:
@@ -1089,12 +1104,13 @@ def _terminal_method_summary(
         for metric in RLEP_METRICS:
             per_seed = {
                 str(seed): float(curves[seed][step][metric])
-                for seed in sorted(curves)
+                for seed in sorted(curves) if step in curves[seed]
             }
             values = list(per_seed.values())
             point[metric] = {
                 "mean": sum(values) / len(values),
                 "range": [min(values), max(values)],
+                "observed_n": len(values), "cohort_n": len(curves),
                 "per_seed": per_seed,
             }
         summaries[str(step)] = point
@@ -1199,10 +1215,18 @@ def _paired_core_display_cells(cells: dict[str, Any]) -> dict[str, Any]:
             for point in record["summaries"].values():
                 for metric in RLEP_METRICS:
                     original = point[metric]["per_seed"]
-                    selected = {str(seed): original[str(seed)] for seed in sorted(shared)}
+                    # A step need not carry every shared seed: the curves are
+                    # built from the union of observed steps, so restrict to the
+                    # shared seeds that actually report here rather than
+                    # assuming all of them do.
+                    selected = {str(seed): original[str(seed)] for seed in sorted(shared)
+                                if str(seed) in original}
+                    if not selected:
+                        continue
                     values = list(selected.values())
                     point[metric] = {"mean": sum(values) / len(values),
                                      "range": [min(values), max(values)],
+                                     "observed_n": len(values), "cohort_n": len(shared),
                                      "per_seed": selected}
         cell["missing_alternatives"] = [method for method in ("ucpo", "rlep_dr")
                                          if method not in methods]

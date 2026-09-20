@@ -10,227 +10,55 @@ Correct-pair collision is undefined when no prompt supplies two correct draws.
 The five-domain mean is therefore undefined if any domain has no eligible
 pairs; such entries remain -- rather than zero or a mean over fewer domains.
 
-GPT-5.6 Sol native completion states: completed: 15,360. Empty visible answers are reported separately from provider refusals.
+Native completion states, summed over every cell of each deployment. Empty visible answers are reported separately from provider refusals throughout.
 
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{Native service outcomes: GPT-5.6 Sol.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
-  \small
-  \begin{tabular}{@{}rlrrr@{}}
-    \toprule
-    Level & Domain & R & F & E \\
-    \midrule
-    1 & Graph & 0 & 0 & 0 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 0 & 0 & 0 \\
-    1 & MathIR & 0 & 0 & 0 \\
-    1 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    2 & Graph & 0 & 0 & 0 \\
-    2 & Countdown & 0 & 0 & 0 \\
-    2 & Python & 0 & 0 & 0 \\
-    2 & MathIR & 0 & 0 & 0 \\
-    2 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    3 & Graph & 0 & 0 & 0 \\
-    3 & Countdown & 0 & 0 & 0 \\
-    3 & Python & 0 & 0 & 0 \\
-    3 & MathIR & 0 & 0 & 0 \\
-    3 & PantryPlan & 0 & 0 & 0 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Claude Opus 5 native completion states: end\_turn: 12,838, refusal: 2,522. Empty visible answers are reported separately from provider refusals.
+\begin{itemize}\setlength{\itemsep}{0pt}
+\item GPT-5.6 Sol --- completed: 15,360
+\item Claude Opus 5 --- end\_turn: 12,838, refusal: 2,522
+\item GPT-5.4 --- completed: 15,355, incomplete: 5
+\item Grok 4.3 --- stop: 15,360
+\item Kimi K3 --- length: 15, stop: 15,345
+\item Claude Opus 4.8 --- end\_turn: 15,355, max\_tokens: 5
+\item DeepSeek V4 Pro --- length: 632, stop: 14,728
+\end{itemize}
 
 Claude Opus 5 returns provider-declared refusals for 409, 1021, 1024 of the 1,024 Python requests at Levels 1, 2 and 3, respectively.
-The native refusal categories on these Python draws are cyber: 2454. These are benign factor-selection tasks; the reported deployment policy
+Summed over those three levels, the native refusal categories on these Python draws are cyber: 2454. These are benign factor-selection tasks; the reported deployment policy
 must be distinguished from concentration among correct Python outputs.
 
 \begin{table}[!htbp]
   \centering
-  \caption{\textbf{Native service outcomes: Claude Opus 5.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
+  \caption{\textbf{Native service outcomes, every non-zero cell.} Each deployment answers 1,024 responses per level and domain. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades. Only cells with a non-zero counter are listed: the other 83 of the 105 are $0/0/0$, including every cell for GPT-5.6 Sol, Grok 4.3, Kimi K3, whose service returned no refusal, filter or empty answer anywhere.}
+  \label{tab:hosted-provider-outcomes}
   \small
-  \begin{tabular}{@{}rlrrr@{}}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}llrrrr@{}}
     \toprule
-    Level & Domain & R & F & E \\
+    \textbf{Deployment} & \textbf{L} & \textbf{Domain} &
+      \textbf{R} & \textbf{F} & \textbf{E} \\
     \midrule
-    1 & Graph & 0 & 0 & 0 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 409 & 0 & 409 \\
-    1 & MathIR & 0 & 0 & 0 \\
-    1 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    2 & Graph & 0 & 0 & 0 \\
-    2 & Countdown & 0 & 0 & 0 \\
-    2 & Python & 1021 & 0 & 1021 \\
-    2 & MathIR & 35 & 0 & 35 \\
-    2 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    3 & Graph & 0 & 0 & 0 \\
-    3 & Countdown & 0 & 0 & 0 \\
-    3 & Python & 1024 & 0 & 1024 \\
-    3 & MathIR & 33 & 0 & 32 \\
-    3 & PantryPlan & 0 & 0 & 0 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-GPT-5.4 native completion states: completed: 15,355, incomplete: 5. Empty visible answers are reported separately from provider refusals.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{Native service outcomes: GPT-5.4.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
-  \small
-  \begin{tabular}{@{}rlrrr@{}}
-    \toprule
-    Level & Domain & R & F & E \\
-    \midrule
-    1 & Graph & 0 & 0 & 0 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 0 & 0 & 0 \\
-    1 & MathIR & 0 & 0 & 0 \\
-    1 & PantryPlan & 0 & 0 & 1 \\
-    \midrule
-    2 & Graph & 0 & 0 & 0 \\
-    2 & Countdown & 0 & 0 & 1 \\
-    2 & Python & 0 & 0 & 0 \\
-    2 & MathIR & 0 & 0 & 0 \\
-    2 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    3 & Graph & 0 & 0 & 0 \\
-    3 & Countdown & 0 & 0 & 1 \\
-    3 & Python & 0 & 0 & 0 \\
-    3 & MathIR & 0 & 0 & 0 \\
-    3 & PantryPlan & 0 & 0 & 2 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Grok 4.3 native completion states: stop: 15,360. Empty visible answers are reported separately from provider refusals.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{Native service outcomes: Grok 4.3.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
-  \small
-  \begin{tabular}{@{}rlrrr@{}}
-    \toprule
-    Level & Domain & R & F & E \\
-    \midrule
-    1 & Graph & 0 & 0 & 0 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 0 & 0 & 0 \\
-    1 & MathIR & 0 & 0 & 0 \\
-    1 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    2 & Graph & 0 & 0 & 0 \\
-    2 & Countdown & 0 & 0 & 0 \\
-    2 & Python & 0 & 0 & 0 \\
-    2 & MathIR & 0 & 0 & 0 \\
-    2 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    3 & Graph & 0 & 0 & 0 \\
-    3 & Countdown & 0 & 0 & 0 \\
-    3 & Python & 0 & 0 & 0 \\
-    3 & MathIR & 0 & 0 & 0 \\
-    3 & PantryPlan & 0 & 0 & 0 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Kimi K3 native completion states: length: 15, stop: 15,345. Empty visible answers are reported separately from provider refusals.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{Native service outcomes: Kimi K3.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
-  \small
-  \begin{tabular}{@{}rlrrr@{}}
-    \toprule
-    Level & Domain & R & F & E \\
-    \midrule
-    1 & Graph & 0 & 0 & 0 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 0 & 0 & 0 \\
-    1 & MathIR & 0 & 0 & 0 \\
-    1 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    2 & Graph & 0 & 0 & 0 \\
-    2 & Countdown & 0 & 0 & 0 \\
-    2 & Python & 0 & 0 & 0 \\
-    2 & MathIR & 0 & 0 & 0 \\
-    2 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    3 & Graph & 0 & 0 & 0 \\
-    3 & Countdown & 0 & 0 & 0 \\
-    3 & Python & 0 & 0 & 0 \\
-    3 & MathIR & 0 & 0 & 0 \\
-    3 & PantryPlan & 0 & 0 & 0 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-Claude Opus 4.8 native completion states: end\_turn: 15,355, max\_tokens: 5. Empty visible answers are reported separately from provider refusals.
-
-Claude Opus 4.8 returns provider-declared refusals for 0, 0, 0 of the 1,024 Python requests at Levels 1, 2 and 3, respectively.
-The native refusal categories on these Python draws are not supplied. These are benign factor-selection tasks; the reported deployment policy
-must be distinguished from concentration among correct Python outputs.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{Native service outcomes: Claude Opus 4.8.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
-  \small
-  \begin{tabular}{@{}rlrrr@{}}
-    \toprule
-    Level & Domain & R & F & E \\
-    \midrule
-    1 & Graph & 0 & 0 & 0 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 0 & 0 & 0 \\
-    1 & MathIR & 0 & 0 & 0 \\
-    1 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    2 & Graph & 0 & 0 & 0 \\
-    2 & Countdown & 0 & 0 & 0 \\
-    2 & Python & 0 & 0 & 0 \\
-    2 & MathIR & 0 & 0 & 0 \\
-    2 & PantryPlan & 0 & 0 & 0 \\
-    \midrule
-    3 & Graph & 0 & 0 & 0 \\
-    3 & Countdown & 0 & 0 & 3 \\
-    3 & Python & 0 & 0 & 0 \\
-    3 & MathIR & 0 & 0 & 0 \\
-    3 & PantryPlan & 0 & 0 & 1 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-DeepSeek V4 Pro native completion states: length: 632, stop: 14,728. Empty visible answers are reported separately from provider refusals.
-
-\begin{table}[!htbp]
-  \centering
-  \caption{\textbf{Native service outcomes: DeepSeek V4 Pro.} Every row contains 1,024 responses. R counts provider-declared refusals, F content-filtered stops, and E empty visible answers. Counters may overlap; they do not replace the frozen verifier grades.}
-  \small
-  \begin{tabular}{@{}rlrrr@{}}
-    \toprule
-    Level & Domain & R & F & E \\
-    \midrule
-    1 & Graph & 0 & 0 & 59 \\
-    1 & Countdown & 0 & 0 & 0 \\
-    1 & Python & 0 & 0 & 0 \\
-    1 & MathIR & 0 & 0 & 4 \\
-    1 & PantryPlan & 0 & 0 & 13 \\
-    \midrule
-    2 & Graph & 0 & 0 & 38 \\
-    2 & Countdown & 0 & 0 & 1 \\
-    2 & Python & 0 & 0 & 0 \\
-    2 & MathIR & 0 & 0 & 59 \\
-    2 & PantryPlan & 0 & 0 & 80 \\
-    \midrule
-    3 & Graph & 0 & 0 & 24 \\
-    3 & Countdown & 0 & 0 & 7 \\
-    3 & Python & 0 & 0 & 0 \\
-    3 & MathIR & 0 & 0 & 100 \\
-    3 & PantryPlan & 0 & 0 & 246 \\
+    Claude Opus 5 & 1 & Python & 409 & 0 & 409 \\
+     & 2 & Python & 1021 & 0 & 1021 \\
+     & 2 & MathIR & 35 & 0 & 35 \\
+     & 3 & Python & 1024 & 0 & 1024 \\
+     & 3 & MathIR & 33 & 0 & 32 \\
+    GPT-5.4 & 1 & PantryPlan & 0 & 0 & 1 \\
+     & 2 & Countdown & 0 & 0 & 1 \\
+     & 3 & Countdown & 0 & 0 & 1 \\
+     & 3 & PantryPlan & 0 & 0 & 2 \\
+    Claude Opus 4.8 & 3 & Countdown & 0 & 0 & 3 \\
+     & 3 & PantryPlan & 0 & 0 & 1 \\
+    DeepSeek V4 Pro & 1 & Graph & 0 & 0 & 59 \\
+     & 1 & MathIR & 0 & 0 & 4 \\
+     & 1 & PantryPlan & 0 & 0 & 13 \\
+     & 2 & Graph & 0 & 0 & 38 \\
+     & 2 & Countdown & 0 & 0 & 1 \\
+     & 2 & MathIR & 0 & 0 & 59 \\
+     & 2 & PantryPlan & 0 & 0 & 80 \\
+     & 3 & Graph & 0 & 0 & 24 \\
+     & 3 & Countdown & 0 & 0 & 7 \\
+     & 3 & MathIR & 0 & 0 & 100 \\
+     & 3 & PantryPlan & 0 & 0 & 246 \\
     \bottomrule
   \end{tabular}
 \end{table}

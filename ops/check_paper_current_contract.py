@@ -8,6 +8,7 @@ import json
 import re
 import runpy
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -21,6 +22,12 @@ FIG4 = ROOT / "paper/figures/experiment1_retention_comparator_matrix.json"
 E120 = ROOT / "paper/results/e120_frequency_progress.json"
 ABSOLUTE_REFERENCES = ROOT / "paper/results/absolute_support_references.json"
 CORE = ROOT / "paper/results/core_terminal_endpoints.json"
+# The snapshot the training-curve figures render from. It carries the
+# provenance admissions of paper/audits/training_curve_provenance_20260919 on
+# top of the September 12 collection, which it leaves in place; the figures are
+# reconstructed from whichever snapshot they declare, so this must track the
+# Makefile's TRAINING_SNAPSHOT.
+TRAINING_SNAPSHOT = ROOT / "paper/results/training_curve_snapshot_20260919.json"
 
 # The sampling-budget figure follows Figure 3 now: both measure models we did
 # not train, so they are read together at the end of ModeBench.
@@ -62,11 +69,9 @@ APPENDIX_FIGURES = (
     *MOVED_APPENDIX_FIGURES,
     "baseline_collapse_precheck",
     "e118_scale_extensions_appendix",
-    "direct_comparator_endpoint_effects",
     "direct_baseline_learning_curves_static_strip",
     "factorial_training_curves_pass8",
     "factorial_training_curves_pmd",
-    "factorial_training_curves_distinct8",
     "level2_factorial_training_curves",
     "level2_training_curves_pmd",
     "direct_baseline_learning_curves_pass8",
@@ -76,9 +81,32 @@ APPENDIX_FIGURES = (
     "concentration_levels",
     "frontier_level_grid",
 )
-PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_20260916/main.tex"
-PROOF_REFERENCE_SHA256 = "8e63568e06fecd6d8ae7247f4a21e3552d1ece86e29eee82e95e2f77c4eba02d"
+# Re-frozen 2026-09-19. The September 17 reference held the 20-block chain from
+# before the appendix reorganization; the manuscript has since gained the
+# reference-KL and objective-inertness development (Thm. objective-inertness,
+# Prop. kl-stationary, Lems. kl-no-barrier and kl-boundary-force, Cors.
+# class-collapse, maxrl-starvation, kl-recovery-time and pmd-limits, with their
+# proofs), and restated two existing blocks. The predecessor is kept beside this
+# one so the pre-reorganization chain stays recoverable; what this check
+# preserves is the chain as it now stands, against accidental drift.
+PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_20260919/main.tex"
+PROOF_REFERENCE_SHA256 = "a21062501ba2646deea97f0c8dc74f036179227e42ef4762791085bec0ea5a73"
+PROOF_REFERENCE_BLOCKS = 36
 RETIRED = (
+    # The registered distinct@8 training curves. The endpoint is still reported
+    # -- its direction in the body, its per-cell values in the machine-readable
+    # record -- but it is no longer drawn: it moves with correctness, which is
+    # the confound PCMD was adopted to remove, and the PCMD panel above it
+    # answered the same question without it.
+    "factorial_training_curves_distinct8",
+    # Both were superseded rather than deleted, and their builders still run.
+    # concentration_story is now read at all three scales
+    # (concentration_story_all_scales); modebench_level_construction was
+    # replaced by mode_diversity_level_construction, whose name differs by two
+    # words and which is the one the paper compiles.  Reconstructing a plate the
+    # manuscript never includes checks nothing, so the guard is the name.
+    "concentration_story",
+    "modebench_level_construction",
     "sustained_auc_effects_qwen05b",
     "verified_support_discovery_two_scale_effects",
     "replay_mechanism_telemetry_qwen05b",
@@ -214,6 +242,8 @@ def check_editorial_structure(main_body: str, appendix: str) -> None:
             "hosted sampling figure must retain its numerical-appendix reference")
     for stem, description in (
         ("hosted_level_averages_20260911.tex", "original medium-reasoning level-average table"),
+        ("hosted_level_averages_20260911_parity.tex", "Python-excluded parity table"),
+        ("gpt56sol_python_parity_20260918.tex", "second-deployment Python wording condition"),
         ("hosted_reasoning_off_20260912_appendix.tex", "matched reasoning-control appendix"),
         ("gpt56_all_levels32_sampling_20260913.tex", "all-level sampling-budget appendix"),
     ):
@@ -229,9 +259,11 @@ def formal_blocks(text: str) -> Counter:
 
 def check_formal_preservation(manuscript: str, reference: str) -> None:
     expected = formal_blocks(reference)
-    require(sum(expected.values()) == 20, "proof-cleanup reference lost a formal block")
+    require(sum(expected.values()) == PROOF_REFERENCE_BLOCKS,
+            "proof reference lost a formal block")
     require(formal_blocks(manuscript) == expected,
-            "formal statements/proofs changed from the preserved 18-block mathematical chain")
+            "formal statements/proofs changed from the preserved "
+            f"{PROOF_REFERENCE_BLOCKS}-block mathematical chain")
 
 
 def _check_figure_outputs(stem: str, record: dict) -> None:
@@ -253,21 +285,9 @@ def check_new_main_figures() -> None:
     sampling_budget["check"]()
     sampling_appendix = runpy.run_path(str(ROOT / "ops/build_paper_gpt56_all_levels32_discovery.py"))
     sampling_appendix["check"]()
-    construction = runpy.run_path(str(ROOT / "ops/plot_paper_modebench_level_construction.py"))
-    construction["validate_record"](json.loads(
-        (ROOT / "paper/figures/modebench_level_construction.json").read_text()))
     base_levels = runpy.run_path(str(ROOT / "ops/plot_paper_modebench_base_levels_appendix.py"))
     base_levels["validate_record"](json.loads(
         (ROOT / "paper/figures/modebench_base_levels_appendix.json").read_text()))
-    concentration = runpy.run_path(str(ROOT / "ops/plot_paper_concentration_story.py"))
-    figure, expected = concentration["build_figure"]()
-    plt.close(figure)
-    stem = "concentration_story"
-    retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
-    require(retained.get("schema") == "paper-concentration-story-v1"
-            and {key: value for key, value in retained.items() if key != "outputs"} == expected,
-            "concentration figure values, eligible populations, sensitivities, or source bindings drifted")
-    _check_figure_outputs(stem, retained)
     replay = runpy.run_path(str(ROOT / "ops/plot_paper_reorganized_results.py"))
     built = replay["build_figures"](ROOT)
     require(set(built) == {"replay_factorial_effects", "replay_key_weighting", "replay_level2_effects"},
@@ -279,6 +299,24 @@ def check_new_main_figures() -> None:
                 and {key: value for key, value in retained.items() if key != "outputs"} == expected,
                 f"{stem} displayed values, paired seeds, uncertainty, or source bindings drifted")
         _check_figure_outputs(stem, retained)
+    # Figure 7 had no binding at all. Nothing compared its rendered bytes to a
+    # record, so it went stale against both its builder and its own source and
+    # kept shipping: it was drawn by an older renderer, on an older extract, with
+    # an axis that cut off the values it was meant to show. Bind it like the rest.
+    stem = "concentration_story_resampled"
+    retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
+    source = ROOT / retained["source"]["path"]
+    require(source.is_file()
+            and hashlib.sha256(source.read_bytes()).hexdigest()
+            == retained["source"]["sha256"],
+            f"{stem} is drawn from a different extract than its record binds")
+    renderer = ROOT / retained["renderer"]["path"]
+    require(renderer.is_file()
+            and hashlib.sha256(renderer.read_bytes()).hexdigest()
+            == retained["renderer"]["sha256"],
+            f"{stem} was rendered by a different builder than its record binds")
+    _check_figure_outputs(stem, retained)
+
     # The A.3 decomposition plate: closed forms drawn over measured prompts.
     # Its curves are algebra, so there is nothing to reconstruct, but the
     # measured extract behind its points and the rendered bytes are both bound.
@@ -297,7 +335,7 @@ def check_new_main_figures() -> None:
 
 def check_training_curves(main_figure: dict) -> None:
     """Reconstruct plotted evidence from the retained draw-level snapshot."""
-    path = ROOT / "paper/results/training_curve_snapshot_20260912.json"
+    path = TRAINING_SNAPSHOT
     raw = path.read_bytes()
     snapshot = json.loads(raw)
     collector = runpy.run_path(str(ROOT / "ops/exp_scaling/build_paper_training_curve_snapshot.py"))
@@ -318,7 +356,6 @@ def check_training_curves(main_figure: dict) -> None:
     source_hash = hashlib.sha256(raw).hexdigest()
     for level, metric, stem in (
         ("level1", "pass8", "factorial_training_curves_pass8"),
-        ("level1", "distinct8", "factorial_training_curves_distinct8"),
         ("level2", None, "level2_factorial_training_curves"),
     ):
         retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
@@ -360,6 +397,21 @@ def check_hosted_reasoning_off() -> None:
                 f"reasoning-off {suffix} table or interpretation differs from its verified record")
         require(text.count(r"\label{" + label + "}") == 1,
                 f"reasoning-off {suffix} label {label} is missing or duplicated")
+    # The success-conditional column of these tables is rebuilt from the same
+    # retained draws by a separate builder. It is published, so it is checked.
+    pcmd_builder = runpy.run_path(str(ROOT / "ops/build_paper_hosted_reasoning_pmd.py"))
+    pcmd_path = ROOT / "paper/results/hosted_reasoning_pmd.json"
+    require(pcmd_path.is_file(), "reasoning-off PCMD record is missing")
+    pcmd = json.loads(pcmd_path.read_text())
+    require(pcmd == pcmd_builder["build_record"](),
+            "reasoning-off PCMD record differs from its rebuild from the retained draws")
+    require(record["pcmd_record"] == {"path": str(pcmd_path.relative_to(ROOT)),
+                                     "sha256": hashlib.sha256(pcmd_path.read_bytes()).hexdigest()},
+            "reasoning-off display no longer binds the PCMD record it prints")
+    require(all(level["reportable"] for cell in pcmd["deployments"].values()
+                for level in cell["by_level"].values())
+            and all(cell["reportable"] for cell in pcmd["deployments"].values()),
+            "a published PCMD cell fell below its paired support bar")
     source = json.loads((ROOT / "artifacts/hosted_reasoning_off_32_20260911_v2"
                          / "reasoning_comparison.json").read_text())
     admitted = {"gpt-5.6-sol", "gpt-5.4", "grok-4.3", "FW-Kimi-K3", "claude-opus-4-8"}
@@ -527,6 +579,36 @@ def check_hosted_comparison(appendix: str) -> None:
             "hosted level-average rendered table differs from its verified record")
     require(table_text.count(r"\label{tab:hosted-level-averages-medium}") == 1,
             "medium-reasoning level-average table label is missing or duplicated")
+    # The substituted Python condition is the one place this cohort leaves a
+    # single protocol, so the parity reading that qualifies it is a build gate.
+    parity_text = (ROOT / "paper/results" / (table_stem + "_parity.tex")).read_text()
+    require(parity_text == table_builder["render_parity_table"](table_record),
+            "hosted parity table differs from its verified record")
+    require(parity_text.count(r"\label{tab:hosted-level-averages-parity}") == 1,
+            "Python-excluded parity table label is missing or duplicated")
+    require(r"\ref{tab:hosted-level-averages-parity}" in table_text,
+            "the five-domain table must point at its Python-excluded companion")
+    require(r"\textsuperscript{\ensuremath{\ddagger}}" in table_text,
+            "the substituted Python cells must be marked in the five-domain table")
+    # The two-wording condition is what keeps the substituted cell answerable, so
+    # it is regenerated and compared here rather than trusted as saved text.
+    sol_builder = runpy.run_path(str(ROOT / "ops/build_paper_gpt56sol_python_parity.py"))
+    sol_stem = "gpt56sol_python_parity_20260918"
+    sol_record = json.loads((ROOT / "paper/results" / (sol_stem + ".json")).read_text())
+    require(sol_record == sol_builder["build_record"](),
+            "second-deployment Python condition values or source bindings drifted")
+    sol_text = (ROOT / "paper/results" / (sol_stem + ".tex")).read_text()
+    require(sol_text == sol_builder["render"](sol_record),
+            "second-deployment Python rendered appendix differs from its verified record")
+    require(sol_text.count(r"\label{tab:gpt56sol-python-parity}") == 1
+            and sol_text.count(r"\label{app:python-wording-second-deployment}") == 1,
+            "second-deployment Python labels are missing or duplicated")
+    analysis = sol_record["analysis"]
+    require(analysis["deployment"]["endpoint"] != analysis["deployment"]["published_cells_provider"],
+            "the second-deployment condition must name the provider it does not share")
+    require(all(count == 0 for count in analysis["native_refusals"].values())
+            or "refus" in sol_text,
+            "a refusing arm must be reported in the condition that compares the wordings")
     figure_path = ROOT / "paper/figures" / (stem + "_graph.pdf")
     figure = json.loads(figure_path.with_suffix(".json").read_text())
     require(figure["pdf_sha256"] == hashlib.sha256(figure_path.read_bytes()).hexdigest(),
@@ -619,10 +701,19 @@ def main() -> None:
     )
     require(all(normalized(token) in normalized(appendix) for token in (
         "150 complete runs", "passes 0 and 8", "all three models and five domains",
-        "Initial evaluations are measured within each method.", "E80-R1 seeds 71--74",
+        # The cohort is named in reader terms rather than by its internal code;
+        # the scale and the seed range still pin exactly which runs these are.
+        "Initial evaluations are measured within each method.",
+        "Pantry replay-arm seeds 71--74",
     )), "baseline-collapse precheck population or initial-reference disclosure is missing")
-    require(r"\label{tab:baseline-collapse-precheck}" in appendix,
-            "the precheck macro table is missing from the appendix")
+    # The precheck evidence is now the plate rather than the macro table beside
+    # it: both reported the same pass-0/pass-8 comparison over the same 150
+    # runs, and the table has been retired in favour of the bars. What this
+    # check preserves is that the evidence is still in the appendix, so it
+    # follows the display that carries it.
+    require(r"\label{fig:baseline-precheck}" in appendix
+            and "figures/baseline_collapse_precheck.pdf" in appendix,
+            "the precheck plate is missing from the appendix")
 
     absolute = json.loads(ABSOLUTE_REFERENCES.read_text(encoding="utf-8"))
     require(absolute.get("schema") == "paper-absolute-support-references-v1",
@@ -717,8 +808,13 @@ def main() -> None:
 
     require(len(re.findall(r"Semantic[- ]MaxEnt", main_body)) == 1,
             "main body should identify the fixed semantic comparator once")
+    # The comparator's definition is its two equations, so they are what this
+    # pins.  It used to pin \label{app:semantic-estimator}, a bare label with
+    # no \ref anywhere: it anchored whatever counter happened to be current
+    # and would have gone on passing if both equations were deleted.
     require(r"\label{app:semantic-maxent}" in appendix
-            and r"\label{app:semantic-estimator}" in appendix,
+            and r"\label{eq:open-set-predictor}" in appendix
+            and r"\label{eq:legacy-semantic-advantage}" in appendix,
             "the fixed-semantic comparator definition is missing")
     require("figures/verified_support_discovery_two_scale_effects.pdf" not in appendix,
             "the archived bundled semantic experiment returned")
@@ -728,9 +824,16 @@ def main() -> None:
     reader_main_body = re.sub(r"\\href\{[^{}]*\}", "", main_body)
     require(not re.search(r"(?<![A-Za-z])E\d{2,}(?:-R\d+)*(?!\d)", reader_main_body),
             "reader-facing main body contains an internal cohort code")
-    require(r"\label{tab:experiment-map}" in appendix
-            and r"\label{tab:direct-comparators}" in manuscript,
-            "current study and comparator coverage tables are missing")
+    # The comparison registry was a table of coverage fractions; it is gone, and
+    # what it guarded is not.  The point was never the table, it was the
+    # disclosure that the controls are read at less than full coverage, so this
+    # pins the denominator that appears nowhere else, Fixed Semantic MaxEnt at
+    # 10/15 blocks; the UCPO and RLEP-Dr fractions keep their own check below.
+    # Reword it and this fails on purpose -- repoint it at the new wording
+    # rather than dropping it.
+    require(r"\label{app:ucpo-progress}" in appendix
+            and "10/15" in appendix,
+            "comparator coverage is no longer disclosed with its denominators")
     require("50/50" in manuscript and "47/50" in manuscript,
             "UCPO/RLEP coverage must use the selected two-model scope")
     for phrase in ("Still needed", "finish PantryPlan", "finish both Qwen-3B blocks",
@@ -844,7 +947,7 @@ def main() -> None:
         set(panel_b.get("methods", []))
         == {
             "before_training", "replay_drgrpo", "replay_maxrl", "maxrl", "ucpo",
-            "rlep_dr", "semantic_maxent", "grpo",
+            "gapo", "setpo", "rlep_dr", "semantic_maxent", "grpo",
         }
         and set(panel_b.get("domains", [])) == DOMAINS
         and panel_b.get("display_columns") == figure4_columns
@@ -972,9 +1075,18 @@ def main() -> None:
                     "before_training", "before_training_drgrpo", "drgrpo", "replay_drgrpo",
                     "maxrl", "replay_maxrl",
                 }, f"Qwen E118 {domain} lacks a before/after factorial arm")
-        for record in cell.get("methods", {}).values():
-            require(all(len(values) == 5 for values in record.values()),
+        for method, record in cell.get("methods", {}).items():
+            # pass@8 and distinct@8 are whole five-seed blocks here. PCMD is
+            # not, by construction: a seed that succeeds on too few prompts
+            # defines no PCMD, so its denominator is its own and is checked
+            # against the seed list the figure prints rather than against five.
+            require(all(len(values) == 5 for name, values in record.items()
+                        if name != "pmd"),
                     f"Qwen E118 {domain} method denominator drifted")
+            if "pmd" in record:
+                require(len(record["pmd"])
+                        == len(cell.get("method_seeds_pmd", {}).get(method, [])),
+                        f"Qwen E118 {domain} PCMD values and seeds disagree")
     falcon = e118.get("cells", {}).get("falcon1b", {})
     require(set(falcon) == DOMAINS, "Falcon E118 domain grid is incomplete")
     for domain, cell in falcon.items():
@@ -1014,8 +1126,14 @@ def main() -> None:
         name = f"{digest_stem}_{campaign}_table_body.tex"
         require((ROOT / "paper/results" / name).read_text() == digest_builder["render_tex"](digest_result, campaign),
                 f"current campaign table is stale: {name}")
-        require(f"\\input{{results/{name}}}" in appendix,
-                f"current campaign table is not compiled: {name}")
+    # The three campaign tables printed the same replay contrasts the scale
+    # extension plate draws, at the looser 20-prompt pairing bar. The plate is
+    # what the appendix now compiles; the bodies above are still rebuilt and
+    # compared against the endpoint census every run, so the looser-bar readings
+    # stay verified in the record rather than merely retained.
+    require(r"\label{fig:maxrl-factorial-scale-extensions}" in appendix
+            and "figures/e118_scale_extensions_appendix.pdf" in appendix,
+            "the scale-extension plate carrying the campaign contrasts is missing")
     factorial_builder = runpy.run_path(str(ROOT / "ops/exp_scaling/build_paper_level2_factorial_contrasts.py"))
     factorial = json.loads((ROOT / "paper/results/level2_factorial_contrasts_20260912.json").read_text())
     expected_factorial = factorial_builder["build"](json.loads(audit_path.read_text()))
@@ -1046,8 +1164,17 @@ def main() -> None:
         for domain, cell in cells.items():
             for method, record in cell.get("methods", {}).items():
                 seeds = cell.get("method_seeds", {}).get(method)
-                require(seeds is not None and all(len(values) == len(seeds) for values in record.values()),
+                # PCMD is measured on its own seeds -- a seed succeeding on too
+                # few prompts defines none -- so it is held to method_seeds_pmd
+                # rather than to the endpoint pairing every other metric uses.
+                require(seeds is not None
+                        and all(len(values) == len(seeds)
+                                for name, values in record.items() if name != "pmd"),
                         f"E118 method-specific denominator mismatch in {scale}/{domain}/{method}")
+                if "pmd" in record:
+                    pmd_seeds = cell.get("method_seeds_pmd", {}).get(method)
+                    require(pmd_seeds is not None and len(record["pmd"]) == len(pmd_seeds),
+                            f"E118 PCMD denominator mismatch in {scale}/{domain}/{method}")
     for metric in ("pass8", "distinct8"):
         means = e118["absolute_cross_domain_average"]["falcon1b"][metric]
         for method in ("before_training_drgrpo", "drgrpo", "replay_drgrpo"):
@@ -1165,8 +1292,9 @@ def main() -> None:
 
     levels = json.loads(LEVELS.read_text(encoding="utf-8"))
     rows = levels.get("admission_rows", [])
-    require(levels.get("schema") == "modebench-level-admission-and-terminal-v4"
-            and levels.get("target_step") == 3072 and len(rows) == 5,
+    require(levels.get("schema") == "modebench-level-admission-and-terminal-v5"
+            and levels.get("target_step") == 3072 and len(rows) == 5
+            and levels.get("levels") == ["level1", "level2", "level3"],
             "wrong matched-level admission/progress record")
     require(all(.10 <= row["level2_pass8"] <= .90
                 and row["level2_pass8"] < row["level1_pass8"] for row in rows),
@@ -1208,11 +1336,64 @@ def main() -> None:
     require(set(expected_interim["domains"]) == DOMAINS
             and expected_interim["model"] == "Qwen2.5-0.5B-Instruct",
             "Figure6 interim audit scope lost a domain or model")
-    expected_terminal = level_analysis["build_terminal_comparison"](
-        frozen_levels["terminal_evaluations"], frozen_levels["terminal_admission"]
+    # The third level arrives on its own frozen snapshot: Levels 1 and 2 reach
+    # several analyses through the two-level one, so it is read, not widened.
+    level3_snapshot = ROOT / "paper/results/modebench_level3_comparison_snapshot.json"
+    frozen_level3 = json.loads(level3_snapshot.read_text(encoding="utf-8"))
+    require(frozen_level3.get("schema") == "modebench-level3-comparison-frozen-snapshot-v1"
+            and frozen_level3.get("level") == "level3"
+            and frozen_level3.get("target_step") == 3072,
+            "wrong frozen Level3 snapshot")
+    require(levels.get("sources", {}).get(str(level3_snapshot.resolve()))
+            == hashlib.sha256(level3_snapshot.read_bytes()).hexdigest(),
+            "Figure6 is not bound to its frozen Level-3 snapshot")
+    require(levels.get("level3_unadmitted_cells") == frozen_level3["unadmitted_cells"]
+            and levels.get("level3_admission_rule") == frozen_level3["admission_rule"],
+            "Figure6 does not carry the Level-3 admission rule and its exact gaps")
+    # run_path does not put a plain file's directory on the import path, and
+    # the three-level module reads its selection rules from the two-level one.
+    for directory in (ROOT / "ops", ROOT / "ops/exp_scaling"):
+        if str(directory) not in sys.path:
+            sys.path.insert(0, str(directory))
+    baseline_snapshot = ROOT / "paper/results/modebench_level_baseline_snapshot.json"
+    frozen_baseline = json.loads(baseline_snapshot.read_text(encoding="utf-8"))
+    require(frozen_baseline.get("schema") == "modebench-level-baseline-frozen-snapshot-v1"
+            and frozen_baseline.get("baseline_step") == 0,
+            "wrong frozen untrained-checkpoint snapshot")
+    require(levels.get("sources", {}).get(str(baseline_snapshot.resolve()))
+            == hashlib.sha256(baseline_snapshot.read_bytes()).hexdigest(),
+            "Figure6 is not bound to its frozen untrained-checkpoint snapshot")
+    require(levels.get("baseline_admission_rule") == frozen_baseline["admission_rule"],
+            "Figure6 does not carry the untrained-checkpoint admission rule")
+    three_level = runpy.run_path(
+        str(ROOT / "ops/exp_scaling/build_paper_modebench_three_level_comparison.py")
+    )
+    expected_terminal = three_level["build_terminal_comparison"](
+        frozen_levels["terminal_evaluations"] + frozen_level3["terminal_evaluations"],
+        frozen_levels["terminal_admission"] + frozen_level3["terminal_admission"],
     )
     require(levels.get("terminal_comparison") == expected_terminal,
             "Figure6 terminal cohort, seed pairing, or means drifted")
+    diversity_path = ROOT / "paper/results/mode_diversity_training.json"
+    diversity = json.loads(diversity_path.read_text(encoding="utf-8"))
+    expected_pmd = three_level["build_pmd_comparison"](
+        diversity["arms"], frozen_level3["pmd_cells"],
+        diversity["definition"]["min_defined_prompts"],
+    )
+    expected_pmd["source"] = {"path": "paper/results/mode_diversity_training.json",
+                              "sha256": hashlib.sha256(diversity_path.read_bytes()).hexdigest()}
+    require(levels.get("pmd_comparison") == expected_pmd,
+            "Figure6 PCMD matching, support bar, or means drifted")
+    expected_baseline = three_level["build_baseline_points"](
+        frozen_baseline["baseline_admission"] + frozen_level3["baseline_admission"],
+        frozen_baseline["baseline_pmd_cells"] + frozen_level3["baseline_pmd_cells"],
+        expected_terminal["complete_domains"], expected_pmd["matched_domains"],
+    )
+    require(levels.get("baseline_points") == expected_baseline,
+            "Figure6 untrained points, their domain bases, or their support drifted")
+    require(levels.get("replay_gains") == three_level["build_replay_gains"](
+        expected_terminal, expected_pmd),
+        "Figure6 plotted replay gains are not the reported arm means differenced")
     require(levels.get("sources", {}).get(str(audit_path.resolve()))
             == hashlib.sha256(audit_path.read_bytes()).hexdigest(),
             "Figure6 terminal values are not bound to the dated endpoint census")
@@ -1228,7 +1409,7 @@ def main() -> None:
             require("Overfull" not in log.read_text(errors="replace"),
                     "LaTeX reports an overfull box")
 
-    print("Current paper contract passed: eight main figures plus the hosted level-average table, preserved 18-block proof chain, and all current/appendix evidence gates.")
+    print("Current paper contract passed: eight main figures plus the hosted level-average table, preserved 20-block proof chain, and all current/appendix evidence gates.")
 
 
 if __name__ == "__main__":

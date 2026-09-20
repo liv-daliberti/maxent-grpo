@@ -11,7 +11,7 @@
   },
   "builder": {
     "path": "ops/plot_paper_reorganized_results.py",
-    "sha256": "28dd6d2a016fc4580159723cc806004c5e3f17b718849090d2dc012542ad5964"
+    "sha256": "15442be342044859150273b678e5dc3d516cdf28ad974b38ac57c854f5b8ee80"
   },
   "contrast_direction": "uniform key-balanced replay minus fresh-frequency replay",
   "display_metrics": {

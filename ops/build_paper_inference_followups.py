@@ -76,14 +76,18 @@ def build():
                 assert math.isclose(row['unresolved'],1-curve[8],abs_tol=1e-12)
                 assert math.isclose(row['capped_recovery_calls'],sum(1-v for v in curve[:8]),abs_tol=1e-10)
     pairs=o['cross_model']['strict']['fine']
-    pair_rows=[]; comparisons=[]
+    pair_rows=[]
     for pair, groups in pairs.items():
         m=groups['all']; coarse=o['cross_model']['strict']['coarse'][pair]['all']
         name=' + '.join(NAMES[n] for n in pair.split(' | '))
+        # One row per pair carrying both readings. The two tables had the same
+        # 21 pair names in the same order, so splitting them printed every name
+        # twice to separate the average-constituent columns from the per-
+        # constituent ones.
         pair_rows.append([name,ci(m['mix_minus_average_distinct8']),ci(coarse['mix_minus_average_distinct8']),
-                          ci(m['matched_2_mix_minus_average']),m['matched_2_mix_minus_average']['eligible_prompts']])
-        comparisons.append([name,ci(m['mix_minus_a_distinct8']),ci(m['mix_minus_b_distinct8']),
-                            ci(m['mix_minus_average_pass8'],100,2)])
+                          ci(m['matched_2_mix_minus_average']),m['matched_2_mix_minus_average']['eligible_prompts'],
+                          ci(m['mix_minus_a_distinct8']),ci(m['mix_minus_b_distinct8']),
+                          ci(m['mix_minus_average_pass8'],100,2)])
     local=[r for r in l['contrasts'] if r['seed']=='fixed_average' and r['grading']=='strict']
     assert len(local)==12
     main={'cross_model_gain_range':[min(g['all']['mix_minus_average_distinct8']['estimate'] for g in pairs.values()),
@@ -202,10 +206,11 @@ all pairs ($.073$--$.177$ additional outcomes); eligibility varies by pair.
 These conditional comparisons separate some correctness effects without
 identifying unobserved support or a causal training mechanism.
 '''
-    tex+=table('Every 4+4 mixture versus its average eight-response constituent. Fine and coarse columns use all 1,920 prompts; correctness matching compares 2+2 correct responses with four from each constituent on the eligible subset. Entries are distinct-mode differences with pointwise 95\% intervals.',
-               'tab:cross-model-mixtures',['Pair','Fine','Coarse','Correctness matched',r'$n$'],pair_rows)
-    tex+=table('Mixtures versus both eight-response constituents, A and B in the displayed order. The final column reports pass@8 differences from the average constituent (percentage points).',
-               'tab:cross-model-constituents',['Pair',r'$\Delta D$ vs A',r'$\Delta D$ vs B',r'$\Delta$ pass@8 vs mean'],comparisons)
+    tex+=table('Every 4+4 mixture against its average eight-response constituent and against each one separately. Fine and coarse columns use all 1,920 prompts; correctness matching compares 2+2 correct responses with four from each constituent on the eligible subset, whose size is $n$. A and B are the constituents in the displayed order. Entries are distinct-mode differences with pointwise 95\% intervals, except the final column, which reports pass@8 differences from the average constituent in percentage points.',
+               'tab:cross-model-mixtures',
+               ['Pair','Fine','Coarse','Correctness matched',r'$n$',
+                r'$\Delta D$ vs A',r'$\Delta D$ vs B',r'$\Delta$ pass@8 vs mean'],
+               pair_rows)
     tex+=r'''Shared preferences remain substantial: on joint prompts with at least two
 correct draws per model, cross-model collision is $.624$--$.740$, compared
 with $.704$--$.819$ for mean within-model collision. These are equal-prompt

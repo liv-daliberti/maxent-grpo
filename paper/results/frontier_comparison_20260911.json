@@ -1,6 +1,6 @@
 {
   "schema": "frontier-paper-comparison-v1",
-  "builder_sha256": "d183f4e838c733f332b721aac4545d4d87e7275d3ce0dfe3cec9aa93c1d0f241",
+  "builder_sha256": "f1cf4155c81c4ef85bb971ba0fce8086088ac1663b1f3abceff06f1ae712ad1a",
   "protocol": {
     "path": "artifacts/frontier_models_comparison_20260911/PROTOCOL.md",
     "sha256": "85451f24746b85c2b89db49e87866b6fc3970aba9ea247c73e09b23320991eb3"

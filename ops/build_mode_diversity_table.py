@@ -30,6 +30,19 @@ DOMAIN_LABELS = {'graph_coloring': 'Graph', 'countdown': 'Countdown',
                  'python_factors': 'Python', 'mathir': 'MathIR', 'pantry': 'Pantry'}
 ALL_LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
 
+# The frozen record of what the neutral arm of the prompt-hint ablation deletes,
+# which is also what the Level-2/3 system messages add over Level 1. It names
+# the guided domains so the confound bound below does not restate them by hand.
+HINT_TRANSFORMS = ROOT / 'artifacts/modebench_prompt_ablation_20260911/transformations.json'
+# The ablation spells PantryPlan with its dataset name; the frontier record uses
+# the short domain key that the rest of the grid uses.
+FRONTIER_DOMAIN = {'pantry_plan': 'pantry'}
+# The appendix paragraph names these three domains and describes the guidance
+# each one adds. If the ablation record ever names a different set, the bound
+# below is withheld rather than printed against prose that no longer describes
+# it, and the missing macros fail the build where the drift is.
+HINT_PROSE_DOMAINS = frozenset({'mathir', 'python_factors', 'pantry'})
+
 
 def grid_axes(cells):
     """The scales present, and the levels the ramp covers for every domain."""
@@ -100,6 +113,10 @@ def _wash(t: float) -> tuple[float, float, float]:
     return tuple(a[i] + (b[i] - a[i]) * u for i in range(3))
 
 
+#: Sub-bar cells: a single neutral that encodes no value, only unreliability.
+SUBBAR = (0.949, 0.949, 0.949)
+
+
 def _paint(rgb) -> str:
     return r'\cellcolor[rgb]{%.3f,%.3f,%.3f}' % rgb
 
@@ -111,8 +128,9 @@ def build_split(payload: dict) -> str:
     washed from its own low to its own peak, separately per metric, so a row is
     read against the rest of its domain rather than against Python's
     near-ceiling accuracy. Values below the support bar are printed in
-    parentheses and washed at reduced strength instead of being dropped: the
-    gap is more legible as a weak number than as absence.
+    parentheses on a flat neutral instead of being dropped: the gap is more
+    legible as a weak number than as absence, and carrying no value colour
+    keeps the table from asserting the low breadth its caption disclaims.
     """
     index = {(c['model_label'], c['level'], c['domain']): c for c in payload['cells']}
 
@@ -136,9 +154,14 @@ def build_split(payload: dict) -> str:
             rgb = _wash((cell[field] - lo) / span)
             if field == 'pmd' and not cell['reportable']:
                 # A noise-dominated estimate should not carry the same visual
-                # weight as a measurement that clears the bar.
+                # weight as a measurement that clears the bar. Lightening the
+                # wash halved that weight but kept its direction, so a near-zero
+                # noise estimate still read red -- exactly the "breadth was low"
+                # reading the caption tells the reader not to take. These cells
+                # carry no value encoding at all now: one flat neutral, so the
+                # parentheses and the colour say the same thing.
                 text = f'({text})'
-                rgb = tuple(c + (1.0 - c) * 0.55 for c in rgb)
+                rgb = SUBBAR
             out.append(_paint(rgb) + CELL % text)
         return out
 
@@ -184,6 +207,109 @@ def _seven_b_range_macros(reportable, fmt) -> list[str]:
     return out
 
 
+def _hint_confound_macros(fcells, fmt) -> list[str]:
+    """Bound how much of the frontier's cross-level decline is the prompt.
+
+    Levels 2 and 3 add strategy guidance to the system message in some domains
+    and not others, so the level axis carries instruction-following as well as
+    difficulty. Which domains those are is read from the frozen ablation
+    transformation record rather than written here, so a re-registered wording
+    cannot leave the bound describing a prompt that no longer exists. Emitted
+    empty when that record is absent, in which case the paragraph's macros
+    expand to nothing and the omission is visible.
+    """
+    import statistics
+    if not HINT_TRANSFORMS.is_file() or not fcells:
+        return []
+    spec = json.loads(HINT_TRANSFORMS.read_text())
+    # A domain counts as guided only where the neutral arm deletes strategy
+    # text; a pure formatting or dangling-reference edit is not guidance.
+    guided = {FRONTIER_DOMAIN.get(dom, dom) for dom, entry in spec.items()
+              if any(e.get('operation') == 'delete' for e in entry.get('edits', []))}
+    levels = sorted({f'level{lev}' for entry in spec.values()
+                     for lev in entry.get('levels', [])})
+    if guided != HINT_PROSE_DOMAINS or not levels:
+        return []
+    # Read the decline over the levels the whole cohort covers, as the other
+    # frontier macros do, and step from the unguided baseline to the last
+    # guided level rather than across whichever levels happen to be present.
+    cohort = len({c['model'] for c in fcells})
+    full = [lev for lev in sorted({c['level'] for c in fcells})
+            if len({c['model'] for c in fcells if c['level'] == lev}) == cohort]
+    first, last = full[0], full[-1]
+    if first in levels or last not in levels:
+        return []
+    paired: dict[tuple[str, str], dict[str, float]] = {}
+    for c in fcells:
+        paired.setdefault((c['model'], c['domain']), {})[c['level']] = c['pmd']
+    steps: dict[bool, list[float]] = {True: [], False: []}
+    per_model: dict[str, list[float]] = {}
+    for (model, domain), bylevel in paired.items():
+        if first not in bylevel or last not in bylevel:
+            continue
+        step = bylevel[last] - bylevel[first]
+        steps[domain in guided].append(step)
+        if domain not in guided:
+            per_model.setdefault(model, []).append(step)
+    if not steps[True] or not steps[False] or not per_model:
+        return []
+    plain_falls = sum(1 for v in per_model.values() if statistics.mean(v) < 0)
+    return [
+        fr'\newcommand{{\MDhintguidedfall}}{{{fmt(abs(statistics.mean(steps[True])))}}}',
+        fr'\newcommand{{\MDhintplainfall}}{{{fmt(abs(statistics.mean(steps[False])))}}}',
+        fr'\newcommand{{\MDhintguidedpairs}}{{{len(steps[True])}}}',
+        fr'\newcommand{{\MDhintplainpairs}}{{{len(steps[False])}}}',
+        fr'\newcommand{{\MDhintplainfalling}}{{{plain_falls}}}',
+        fr'\newcommand{{\MDhintplaindeployments}}{{{len(per_model)}}}',
+    ]
+
+
+def _split_panel_support_macros(cells, models, levels) -> list[str]:
+    """How much of the split grid's breadth half is printed below the bar.
+
+    Scoped to exactly the cells ``build_split`` draws -- the Qwen ramp, not the
+    all-family payload behind ``\\MDcells`` and ``\\MDgaps``, which share this
+    prefix at a wider scope. The caption states the rate so a reader meets the
+    parentheses with their frequency already in hand, and it is generated
+    because the grid is still filling.
+    """
+    index = {(c['model_label'], c['level'], c['domain']): c for c in cells}
+    drawn = [index[key] for key in
+             ((m, l, d) for d in DOMAINS for l in levels for m in models)
+             if key in index]
+    # Split the two marks the caption distinguishes: a parenthesised value is
+    # an estimate that missed the bar, an em dash is a cell with no estimate at
+    # all. Counting them together would put a number behind a sentence that
+    # describes only the first.
+    subbar = [c for c in drawn if not c['reportable'] and c['pmd'] is not None]
+    return [fr'\newcommand{{\MDpanelpmdcells}}{{{len(drawn)}}}',
+            fr'\newcommand{{\MDpanelpmdsubbar}}{{{len(subbar)}}}']
+
+
+def _tiny_scale_macros(cells) -> list[str]:
+    """Reportable-cell counts for the two smallest scales in the payload.
+
+    Fig. 11's caption explains why its bottom rows are nearly empty by naming
+    those scales and how much they carry. Written by hand that sentence goes
+    stale the moment a sparse cell finishes -- it already had, claiming no
+    measurable entry for the smallest scale after one had appeared. The labels
+    come from the payload too, so a newly released smaller model renames the
+    sentence instead of silently invalidating it.
+    """
+    import evaluate_modebench_base_grid as grid
+    present = {c['model_label'] for c in cells}
+    ranked = sorted((m for m in present if m in grid.MODEL_PARAMS),
+                    key=lambda m: grid.MODEL_PARAMS[m])[:2]
+    out = []
+    for tag, model in zip(('A', 'B'), ranked):
+        count = sum(1 for c in cells if c['model_label'] == model and c['reportable'])
+        size = grid.MODEL_PARAMS[model]
+        label = f'{size * 1000:.0f}M' if size < 1.0 else f'{size:g}B'
+        out += [fr'\newcommand{{\MDtiny{tag}label}}{{{label}}}',
+                fr'\newcommand{{\MDtiny{tag}entries}}{{{count}}}']
+    return out
+
+
 def build_coverage(payload: dict) -> str:
     """Macros for the support counts, so prose cannot go stale during collection.
 
@@ -216,6 +342,11 @@ def build_coverage(payload: dict) -> str:
     # cells where it is defined.
     distinct = corr([c['pass8'] for c in cells], [c['distinct8'] for c in cells])
     pmd = corr([c['pass8'] for c in reportable], [c['pmd'] for c in reportable])
+    # Definedness is itself accuracy-dependent, which is why the support bar is
+    # an information limit rather than an artifact. Measured over every cell,
+    # because a gate on support would condition on the thing being measured.
+    defined = corr([c['pass8'] for c in cells],
+                   [c['defined_prompts'] / c['prompts'] for c in cells])
     # How far hardening a task moves each axis, holding model, domain and the
     # notion of mode fixed: the median absolute step between consecutive levels
     # of the same cell. Reported for the family the main-body figure plots.
@@ -272,6 +403,27 @@ def build_coverage(payload: dict) -> str:
                     'pmd': statistics.mean(c['pmd'] for c in vals),
                     'models': len({c['model'] for c in vals}),
                     'domains': len({c['domain'] for c in vals})}
+
+    # Fig. 12's caption quotes the floor under hosted correctness and the span
+    # of the level-1-to-3 fall. Both move when a deployment joins the cohort --
+    # one just did -- so they are read from the payload. The fall is computed
+    # the way the caption says the Average panel is: domains held fixed within
+    # each deployment, so the mix cannot shift with the level.
+    front_minpass = front_droplo = front_drophi = float('nan')
+    if frontier_path.is_file() and fcells and full:
+        front_minpass = min(c['pass8'] for c in fcells if c['level'] in full)
+        drops = []
+        for model in sorted({c['model'] for c in fcells}):
+            own = {(c['level'], c['domain']): c['pmd'] for c in fcells
+                   if c['model'] == model and c['level'] in full}
+            shared = [d for d in {k[1] for k in own}
+                      if all((lev, d) in own for lev in full)]
+            if shared:
+                drops.append(
+                    statistics.mean(own[(full[0], d)] for d in shared)
+                    - statistics.mean(own[(full[-1], d)] for d in shared))
+        if drops:
+            front_droplo, front_drophi = min(drops), max(drops)
 
     # The hosted deployments against the small local models: the comparison the
     # text makes is that being far more accurate does not buy more modes. It is
@@ -475,17 +627,25 @@ def build_coverage(payload: dict) -> str:
              fr'\newcommand{{\MDfrontierpass}}{{{fmt(front_pass)}}}',
              fr'\newcommand{{\MDfrontierlevels}}{{{len(full) if frontier_path.is_file() and full else 0}}}',
              fr'\newcommand{{\MDfrontierdeployments}}{{{front_models}}}',
+             fr'\newcommand{{\MDfrontierminpass}}{{{fmt(front_minpass)}}}',
+             fr'\newcommand{{\MDfrontierdroplo}}{{{fmt(front_droplo)}}}',
+             fr'\newcommand{{\MDfrontierdrophi}}{{{fmt(front_drophi)}}}',
              *_seven_b_range_macros(reportable, fmt),
+             *_hint_confound_macros(
+                 fcells if frontier_path.is_file() else [], fmt),
              fr'\newcommand{{\MDlevelpass}}{{{fmt(level_pass)}}}',
              fr'\newcommand{{\MDlevelpmd}}{{{fmt(level_pmd)}}}',
              fr'\newcommand{{\MDlevelsteps}}{{{len(pass_steps)}}}',
              fr'\newcommand{{\MDdistinctcorr}}{{{fmt(distinct)}}}',
              fr'\newcommand{{\MDpmdcorr}}{{{fmt(pmd)}}}',
+             fr'\newcommand{{\MDdefinedcorr}}{{{fmt(defined)}}}',
              fr'\newcommand{{\MDcells}}{{{len(cells)}}}',
              fr'\newcommand{{\MDreportable}}{{{len(reportable)}}}',
              fr'\newcommand{{\MDgaps}}{{{len(cells) - len(reportable)}}}',
              fr'\newcommand{{\MDtopgapdomain}}{{{labels.get(top, top)}}}',
-             fr'\newcommand{{\MDtopgapcount}}{{{top_n}}}']
+             fr'\newcommand{{\MDtopgapcount}}{{{top_n}}}',
+             *_split_panel_support_macros(cells, MODELS, LEVELS),
+             *_tiny_scale_macros(cells)]
     # LaTeX control sequences are letters only, so the level is spelled out.
     words = {'1': 'One', '2': 'Two', '3': 'Three', '4': 'Four', '5': 'Five'}
     for lev, info in sorted(front_extra.items()):

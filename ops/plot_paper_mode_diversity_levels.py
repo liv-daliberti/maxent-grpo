@@ -87,9 +87,13 @@ MARKER_AREA = 22
 # Below the paper's support bar PCMD is still estimated, just less precisely: at
 # 10-29 defined prompts its standard error runs about 1.5x that of a cell above
 # the bar, not off the scale. Draw those hollow with their error bar rather than
-# discarding a measurement the grid actually made. Under 10 the estimate is too
-# noisy to place (median standard error .28 at 1-4 prompts), so it stays a tick.
-PROVISIONAL_MIN_DEFINED = 10
+# discarding a measurement the grid actually made. The band that cannot be
+# placed is 1-4 prompts, where the median standard error is .28; the threshold
+# now sits at the edge of that band rather than well above it, which places 24
+# further cells hollow. It is not lowered past 5: under that, a standard error
+# of .000 records two or three prompts agreeing, not a precise estimate, so a
+# mark would read as a measurement the cell cannot support.
+PROVISIONAL_MIN_DEFINED = 5
 DOMAIN_BACKGROUNDS = {domain: domain_examples.DOMAIN_PANEL[letter]
                       for domain, letter in zip(DOMAINS, 'ABCDE', strict=True)}
 
@@ -130,6 +134,11 @@ PROVIDER_ICONS = {'GPT-5.6 Sol': 'openai.png', 'GPT-5.4': 'openai.png',
 # figure coordinates, so a logo tracks its legend block rather than guessing at
 # a position that shifts whenever an entry is added.
 LOGO_HEIGHT_IN = 0.105
+
+
+def _family(model: str) -> str:
+    import evaluate_modebench_base_grid as grid
+    return grid.MODEL_FAMILY.get(model, model)
 
 
 def _logo(figure, legend, name, *, pad=0.006):
@@ -348,7 +357,13 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
             bbox_to_anchor=(.42 if hosted else .53, .015),
             ncol=min(9, len(scales)), frameon=False, fontsize=7.2,
             handletextpad=.3, handlelength=.8, columnspacing=1.0, borderaxespad=0)
-        _logo(figure, scale_legend, 'qwen.png')
+        # The hosted mark below is drawn only for a single deployment; the
+        # scale mark needs the same guard. This plate is built twice: once over
+        # Qwen2.5 alone for the main body, where the logo names the family, and
+        # once over SmolLM2, Qwen2.5, Falcon3 and OLMo-2 for the appendix, where
+        # a Qwen mark beside a four-family legend claims the wrong maker.
+        if {_family(model) for model in models} == {'Qwen2.5'}:
+            _logo(figure, scale_legend, 'qwen.png')
         if hosted:
             hosted_legend = figure.legend(
                 handles=hosted, loc='lower center', bbox_to_anchor=(.88, .015),

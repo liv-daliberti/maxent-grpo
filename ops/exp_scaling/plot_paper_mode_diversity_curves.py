@@ -14,6 +14,7 @@ any particular breadth, and drawing a line through that would assert one.
 from __future__ import annotations
 
 import argparse
+import collections
 from collections import defaultdict
 import hashlib
 import json
@@ -37,6 +38,9 @@ from plot_paper_training_curves import DOMAINS, DOMAIN_LABELS, METHODS, SCALE_LA
 
 PAYLOAD = ROOT / 'paper/results/mode_diversity_curves.json'
 OUT = ROOT / 'paper/figures/factorial_training_curves_pmd'
+# Matches plot_paper_mode_diversity_levels.PROVISIONAL_MIN_DEFINED: the lowest
+# support at which a PCMD estimate is worth placing rather than suppressing.
+PROVISIONAL_MIN_DEFINED = 5
 SCRIPT = Path(__file__).resolve()
 SCHEMA = 'paper-mode-diversity-curves-figure-v1'
 
@@ -46,16 +50,38 @@ def digest(path: Path) -> str:
 
 
 def series(payload: dict, level: str = 'level1'):
-    """(scale, domain, method) -> step -> list of per-seed PCMD values."""
-    table: dict[tuple, dict[int, list[float]]] = defaultdict(lambda: defaultdict(list))
+    """(scale, domain, method) -> step -> {seed: PCMD}, plus each key's cohort.
+
+    The per-seed values are kept keyed by seed rather than appended to a list.
+    A list loses which seeds contributed, and the mean was then taken over
+    whichever seeds happened to be reportable at that step: PCMD is reportable
+    only where enough prompts return two verified responses, so the population
+    was selected on the very thing being plotted, and a curve could rise
+    because more of its seeds became reportable rather than because any seed
+    improved. Keeping the seeds lets the caller say where the whole cohort is
+    present and draw the rest as what it is.
+    """
+    table: dict[tuple, dict[int, dict[int, float]]] = defaultdict(lambda: defaultdict(dict))
+    cohorts: dict[tuple, set[int]] = defaultdict(set)
     for curve in payload['curves']:
         if curve['level'] != level:
             continue
         key = (curve['scale'], curve['domain'], curve['method'])
+        cohorts[key].add(int(curve['seed']))
         for point in curve['points']:
-            if point['reportable'] and point['pmd'] is not None:
-                table[key][point['step']].append(point['pmd'])
-    return table
+            if point['pmd'] is None:
+                continue
+            # The payload's ``reportable`` carries the 30-prompt bar the tables
+            # report against, and suppressing every step below it left whole
+            # panels blank where the measurement exists. A step is drawn from
+            # PROVISIONAL_MIN_DEFINED prompts upward, which is the band the
+            # level grid also places, and the run encoding below already
+            # distinguishes a stretch drawn from part of the cohort. Under that
+            # the estimate is not imprecise but uninformative: a standard error
+            # of zero on two or three prompts records agreement, not precision.
+            if point['reportable'] or (point['defined_prompts'] or 0) >= PROVISIONAL_MIN_DEFINED:
+                table[key][point['step']][int(curve['seed'])] = point['pmd']
+    return table, cohorts
 
 
 def _segments(steps, values):
@@ -73,8 +99,37 @@ def _segments(steps, values):
     return runs
 
 
+def _cohort_runs(steps, by_step, cohort):
+    """Runs of consecutive steps, split where cohort completeness changes.
+
+    Each run carries whether every seed in the cohort is reportable across it,
+    so a stretch drawn from part of the cohort is drawn differently instead of
+    being averaged into the same line. A break therefore marks either a missing
+    step or a change of population, and both are things the reader should see.
+    """
+    runs, current, state = [], [], None
+    for step in steps:
+        present = by_step.get(step) or {}
+        values = [v for v in present.values() if v is not None]
+        if not values:
+            if current:
+                runs.append((state, current))
+            current, state = [], None
+            continue
+        complete = len(values) == len(cohort)
+        if current and complete != state:
+            runs.append((state, current))
+            current = []
+        current.append((step, statistics.fmean(values), len(values)))
+        state = complete
+    if current:
+        runs.append((state, current))
+    return runs
+
+
 def build_figure(payload: dict, level: str = 'level1'):
-    table = series(payload, level)
+    table, cohorts = series(payload, level)
+    partial_steps: collections.Counter = collections.Counter()
     all_steps = sorted({s for v in table.values() for s in v})
     style.apply_rcparams()
     # Only Qwen2.5-0.5B is trained at Level 2, so the row set follows the data
@@ -96,7 +151,7 @@ def build_figure(payload: dict, level: str = 'level1'):
     column_max = {}
     for domain in DOMAINS:
         values = [v for (sc, dm, me), by_step in table.items() if dm == domain
-                  for vals in by_step.values() for v in vals]
+                  for vals in by_step.values() for v in vals.values()]
         column_max[domain] = max(values) if values else 1.0
     for row, scale in enumerate(scales):
         for col, (domain, label) in enumerate(zip(DOMAINS, DOMAIN_LABELS)):
@@ -105,12 +160,17 @@ def build_figure(payload: dict, level: str = 'level1'):
                 by_step = table.get((scale, domain, method), {})
                 if not by_step:
                     continue
-                means = [statistics.fmean(by_step[s]) if s in by_step else None for s in all_steps]
-                for run in _segments(all_steps, means):
-                    axis.plot([s for s, _ in run], [v for _, v in run], color=spec['color'],
-                              linestyle=spec['dash'], linewidth=style.MEAN_LW, zorder=3)
-                lows = [min(by_step[s]) if s in by_step and len(by_step[s]) > 1 else None for s in all_steps]
-                highs = [max(by_step[s]) if s in by_step and len(by_step[s]) > 1 else None for s in all_steps]
+                cohort = cohorts[(scale, domain, method)]
+                for complete, run in _cohort_runs(all_steps, by_step, cohort):
+                    axis.plot([s for s, _, _ in run], [v for _, v, _ in run],
+                              color=spec['color'],
+                              linestyle=spec['dash'] if complete else (0, (1.6, 1.4)),
+                              linewidth=style.MEAN_LW if complete else style.MEAN_LW * .8,
+                              alpha=1.0 if complete else .55, zorder=3)
+                    if not complete:
+                        partial_steps['steps'] += len(run)
+                lows = [min(by_step[s].values()) if s in by_step and len(by_step[s]) > 1 else None for s in all_steps]
+                highs = [max(by_step[s].values()) if s in by_step and len(by_step[s]) > 1 else None for s in all_steps]
                 for run_lo, run_hi in zip(_segments(all_steps, lows), _segments(all_steps, highs)):
                     axis.fill_between([s for s, _ in run_lo], [v for _, v in run_lo],
                                       [v for _, v in run_hi], color=spec['color'],

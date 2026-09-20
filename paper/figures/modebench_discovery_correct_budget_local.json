@@ -2,11 +2,11 @@
   "family": "correct_budget_local",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260915_rename/modebench_discovery_correct_budget_local.pdf",
-      "sha256": "dc4b915ae9dcc98b386fa84636e9a25588c4b45fb9a16690aaac79a8cfb45007"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260919_merged/modebench_discovery_correct_budget_local.pdf",
+      "sha256": "a3a64d7851447651c2e37cb059e0d1256c732702fd812adc284446afa1da5d29"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260915_rename/modebench_discovery_correct_budget_local.png",
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260919_merged/modebench_discovery_correct_budget_local.png",
       "sha256": "0cc70f3c4a45a6f1ff8edb63c882a976851bef1c0ca8c89a3f251961312dc6e3"
     }
   },
@@ -7276,6 +7276,30 @@
           -0.013179263953677911,
           -0.005453463775780043
         ],
+        "pcmd_joint/excess_uniform": [
+          -0.059714795008912636,
+          0.5
+        ],
+        "pcmd_joint/observed": [
+          -0.059714795008912636,
+          0.5
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.2542174318407715,
+          0.3806479541963413
+        ],
+        "pcmd_own/observed": [
+          -0.2717914438502673,
+          0.3666666666666666
+        ],
+        "pcmd_own/uniform_reference": [
+          -0.01757401200949571,
+          -0.013981287529674757
+        ],
         "prefix/breadth/k1": [
           0.0,
           0.0
@@ -8876,6 +8900,30 @@
           -0.07857575616173859,
           0.09026261492078531
         ],
+        "pcmd_joint/excess_uniform": [
+          -0.10921781659731433,
+          -0.07716142426030514
+        ],
+        "pcmd_joint/observed": [
+          -0.10921781659731422,
+          -0.07716142426030531
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.16764384266796262,
+          -0.07806544057615838
+        ],
+        "pcmd_own/observed": [
+          -0.1761612400575404,
+          -0.07435319278496322
+        ],
+        "pcmd_own/uniform_reference": [
+          -0.008517397389577908,
+          0.003712247791195167
+        ],
         "prefix/breadth/k1": [
           0.0,
           0.0
@@ -9672,6 +9720,30 @@
         "gain8to64/rarefaction/pass": [
           -0.06108280672072261,
           0.04223372743853615
+        ],
+        "pcmd_joint/excess_uniform": [
+          -0.18650793650793668,
+          -0.12626262626262624
+        ],
+        "pcmd_joint/observed": [
+          -0.1865079365079364,
+          -0.1262626262626263
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.2154544076720443,
+          -0.03930343535606692
+        ],
+        "pcmd_own/observed": [
+          -0.21666666666666667,
+          -0.039393939393939426
+        ],
+        "pcmd_own/uniform_reference": [
+          -0.001212258994622628,
+          -9.050403787247419e-05
         ],
         "prefix/breadth/k1": [
           0.0,
@@ -11290,6 +11362,30 @@
         "gain8to64/rarefaction/pass": [
           -0.061369329256497795,
           -0.048273958491195715
+        ],
+        "pcmd_joint/excess_uniform": [
+          -0.1362465234402621,
+          -0.08808705396489636
+        ],
+        "pcmd_joint/observed": [
+          -0.1362465234402621,
+          -0.08808705396489636
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.22288510210911505,
+          -0.06095117864095212
+        ],
+        "pcmd_own/observed": [
+          -0.22046964317191708,
+          -0.05753617979117076
+        ],
+        "pcmd_own/uniform_reference": [
+          0.0024154589371981894,
+          0.003414998849781359
         ],
         "prefix/breadth/k1": [
           0.0,
@@ -18782,6 +18878,30 @@
           -0.013179263953677911,
           -0.005453463775780043
         ],
+        "pcmd_joint/excess_uniform": [
+          -0.059714795008912636,
+          0.5
+        ],
+        "pcmd_joint/observed": [
+          -0.059714795008912636,
+          0.5
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.2542174318407715,
+          0.3806479541963413
+        ],
+        "pcmd_own/observed": [
+          -0.2717914438502673,
+          0.3666666666666666
+        ],
+        "pcmd_own/uniform_reference": [
+          -0.01757401200949571,
+          -0.013981287529674757
+        ],
         "prefix/breadth/k1": [
           0.0,
           0.0
@@ -20382,6 +20502,30 @@
           -0.07857575616173859,
           0.09026261492078531
         ],
+        "pcmd_joint/excess_uniform": [
+          -0.10921781659731433,
+          -0.07716142426030514
+        ],
+        "pcmd_joint/observed": [
+          -0.10921781659731422,
+          -0.07716142426030531
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.16764384266796262,
+          -0.07806544057615838
+        ],
+        "pcmd_own/observed": [
+          -0.1761612400575404,
+          -0.07435319278496322
+        ],
+        "pcmd_own/uniform_reference": [
+          -0.008517397389577908,
+          0.003712247791195167
+        ],
         "prefix/breadth/k1": [
           0.0,
           0.0
@@ -21178,6 +21322,30 @@
         "gain8to64/rarefaction/pass": [
           -0.06108280672072261,
           0.04223372743853615
+        ],
+        "pcmd_joint/excess_uniform": [
+          -0.18650793650793668,
+          -0.12626262626262624
+        ],
+        "pcmd_joint/observed": [
+          -0.1865079365079364,
+          -0.1262626262626263
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.2154544076720443,
+          -0.03930343535606692
+        ],
+        "pcmd_own/observed": [
+          -0.21666666666666667,
+          -0.039393939393939426
+        ],
+        "pcmd_own/uniform_reference": [
+          -0.001212258994622628,
+          -9.050403787247419e-05
         ],
         "prefix/breadth/k1": [
           0.0,
@@ -22797,6 +22965,30 @@
           -0.061369329256497795,
           -0.048273958491195715
         ],
+        "pcmd_joint/excess_uniform": [
+          -0.1362465234402621,
+          -0.08808705396489636
+        ],
+        "pcmd_joint/observed": [
+          -0.1362465234402621,
+          -0.08808705396489636
+        ],
+        "pcmd_joint/uniform_reference": [
+          0.0,
+          0.0
+        ],
+        "pcmd_own/excess_uniform": [
+          -0.22288510210911505,
+          -0.06095117864095212
+        ],
+        "pcmd_own/observed": [
+          -0.22046964317191708,
+          -0.05753617979117076
+        ],
+        "pcmd_own/uniform_reference": [
+          0.0024154589371981894,
+          0.003414998849781359
+        ],
         "prefix/breadth/k1": [
           0.0,
           0.0
@@ -23024,6 +23216,6 @@
       }
     }
   ],
-  "report_sha256": "8c69e4ec8e8a54b369ac6f28e3a1eac92d1b2b329d38e82a54d390d91686154d",
+  "report_sha256": "708059b600e1ca528e2fbdbf5d8e1d1438ca99f2ce42a3a0742e7e724f17ceae",
   "schema": "modebench-discovery-figure-v1"
 }

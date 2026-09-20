@@ -146,44 +146,40 @@ def render_tex(record):
         f'within domain and level (seed {bootstrap["seed"]}); the same resampled problems',
         'form both sides of each contrast. Curves and ordered-prefix sensitivities',
         'under both grading conventions remain in the accompanying source record.', '',
+        # The endpoint and final-doubling tables ran over the same fifteen cells
+        # in the same order, so the second repeated every row label to add two
+        # columns. They are one table: where each cell ends, and what the last
+        # doubling of the budget added to it.
         r'\begin{table}[!htbp]', r'  \centering', r'  \footnotesize',
-        r'  \setlength{\tabcolsep}{5pt}', r'  \begin{tabular}{llrrr}', r'    \toprule',
-        r'    Domain & Level & Known support (range) & Normalized $D/P$ & Strict $D/P$ \\',
+        r'  \setlength{\tabcolsep}{4pt}', r'  \begin{tabular}{llrrrrr}', r'    \toprule',
+        r'    & & & \multicolumn{2}{c}{$D/P$ at 512}'
+        r' & \multicolumn{2}{c}{$\Delta D$, 256 to 512 [95\% CI]} \\',
+        r'    \cmidrule(lr){4-5}\cmidrule(l){6-7}',
+        r'    Domain & Level & Known support (range) & Normalized & Strict'
+        r' & Normalized & Strict \\',
         r'    \midrule',
     ]
     for index, row in enumerate(rows):
         if index and row['level'] == 1:
             lines.append(r'    \addlinespace[2pt]')
         lines.append(f"    {row['label']} & {row['level']} & {support_tex(row['support'])} & "
-                     + format_endpoint(row['normalized']) + ' & ' + format_endpoint(row['strict']) + r' \\')
+                     + format_endpoint(row['normalized']) + ' & ' + format_endpoint(row['strict'])
+                     + ' & ' + format_interval(row['tails']['normalized']['distinct'])
+                     + ' & ' + format_interval(row['tails']['strict']['distinct']) + r' \\')
     lines += [
         r'    \bottomrule', r'  \end{tabular}',
-        r'  \caption{\textbf{All fifteen domain--level cells at 512 responses per problem.}',
+        r'  \caption{\textbf{All fifteen domain--level cells at 512 responses per problem,',
+        r'  and what the final doubling added.}',
         r'  $D/P$ gives mean distinct verified modes and the percentage of problems',
         r'  solved at least once in the complete 512-response pool.',
         r"  Support gives each cell's mean and range",
         r'  across thirty-two problems: exact for Graph, a certified lower bound elsewhere.',
-        r'  Both grading conventions retain all 480 problems and 245,760 responses.}',
-        r'  \label{tab:gpt56-all-levels-endpoints}', r'\end{table}', '',
-        r'\begin{table}[!htbp]', r'  \centering', r'  \footnotesize',
-        r'  \setlength{\tabcolsep}{5pt}', r'  \begin{tabular}{llrr}', r'    \toprule',
-        r'    Domain & Level & Normalized $\Delta D$ [95\% CI] & Strict $\Delta D$ [95\% CI] \\',
-        r'    \midrule',
-    ]
-    for index, row in enumerate(rows):
-        if index and row['level'] == 1:
-            lines.append(r'    \addlinespace[2pt]')
-        lines.append(f"    {row['label']} & {row['level']} & "
-                     + format_interval(row['tails']['normalized']['distinct']) + ' & '
-                     + format_interval(row['tails']['strict']['distinct']) + r' \\')
-    lines += [
-        r'    \bottomrule', r'  \end{tabular}',
-        r'  \caption{\textbf{Additional modes in the final doubling from 256 to 512 draws.}',
+        r'  Both grading conventions retain all 480 problems and 245,760 responses.',
         r'  The paired contrast $\Delta D=D_{512}(512)-D_{512}(256)$ compares rarefaction',
         r'  means within the final pool, rather than novel keys in the last chronological',
         r'  block. Intervals are pointwise; they neither provide simultaneous coverage',
         r'  across budgets and cells nor establish asymptotic saturation.}',
-        r'  \label{tab:gpt56-all-levels-tail}', r'\end{table}', '',
+        r'  \label{tab:gpt56-all-levels-endpoints}', r'\end{table}', '',
         'Graph support exhausts all fixed-color-compatible assignments.',
         'Countdown references enumerate binary expression trees; the validator',
         'also accepts unary negation and retains it in canonical keys, so binary',

@@ -2,24 +2,31 @@
 \begin{table}[H]
   \centering
   \small
-  \setlength{\tabcolsep}{5pt}
-  \begin{tabular}{lrrrrrr}
+  \setlength{\tabcolsep}{4pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{lrrrrrrrrr}
     \toprule
-    & \multicolumn{2}{c}{Level 1} & \multicolumn{2}{c}{Level 2} & \multicolumn{2}{c}{Level 3} \\
-    \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-    Model & \texttt{pass@8} (\%) & \# modes & \texttt{pass@8} (\%) & \# modes & \texttt{pass@8} (\%) & \# modes \\
+    & \multicolumn{3}{c}{Level 1} & \multicolumn{3}{c}{Level 2} & \multicolumn{3}{c}{Level 3} \\
+    \cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+    Model & \texttt{pass@8} (\%) & \# modes & \pmd{} & \texttt{pass@8} (\%) & \# modes & \pmd{} & \texttt{pass@8} (\%) & \# modes & \pmd{} \\
     \midrule
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.6 Sol & 82.5 & 1.31 & 66.9 & 0.76 & 76.2 & 0.88 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.4 & 82.5 & 1.67 & 71.2 & 0.92 & 70.0 & 0.94 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/grok_official_docs_print.png}}\hspace{0.4em}Grok 4.3 & 82.5 & 1.64 & 86.9 & 1.41 & 90.0 & 1.45 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/kimi.png}}\hspace{0.4em}Kimi K3 & 92.5 & 1.91 & 92.5 & 1.37 & 95.6 & 1.59 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/claude.png}}\hspace{0.4em}Claude Opus 4.8 & 91.2 & 1.46 & 100.0 & 1.62 & 100.0 & 1.51 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.6 Sol & 82.5 & 1.31 & .226 & 66.9 & 0.76 & .063 & 76.2 & 0.88 & .095 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.4 & 82.5 & 1.67 & .347 & 71.2 & 0.92 & .134 & 70.0 & 0.94 & .160 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/grok_official_docs_print.png}}\hspace{0.4em}Grok 4.3 & 82.5 & 1.64 & .493 & 86.9 & 1.41 & .296 & 90.0 & 1.45 & .314 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/kimi.png}}\hspace{0.4em}Kimi K3 & 92.5 & 1.91 & .595 & 92.5 & 1.37 & .335 & 95.6 & 1.59 & .361 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/claude.png}}\hspace{0.4em}Claude Opus 4.8 & 91.2 & 1.46 & .216 & 100.0 & 1.62 & .226 & 100.0 & 1.51 & .185 \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}}
   \caption{\textbf{Hosted success and output diversity with reasoning disabled.}
   Each level averages five domains equally: 32 prompts per domain and eight
   responses per prompt. \texttt{pass@8} is the fraction with any verified
   response; \# modes is mean \texttt{distinct@8}, including failures.
+  Both fall when the model simply succeeds less often, so \pmd{} carries the
+  success-conditional axis beside them: it is the mean probability that two
+  verified draws on the same prompt differ, over the prompts that return two
+  verified draws in this condition and in the matched medium condition of
+  Table~\ref{tab:hosted-reasoning-matched-levels}, which is the population
+  every \pmd{} reading in this appendix uses.
   The frozen formatting normalizer applies throughout. Appendix~\ref{app:hosted-reasoning-control}
   gives matched medium-reasoning results.}
   \label{tab:hosted-level-averages}

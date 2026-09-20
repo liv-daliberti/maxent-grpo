@@ -60,6 +60,25 @@ def _finite(value: Any) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+def marker_indices(segment, registered_steps):
+    """Marker positions anchored to the registered grid, not to the segment.
+
+    ``markevery=2`` counts from each segment's own start, so a gap shifts the
+    phase and every fragment after it carries markers on different passes than
+    the panel beside it; short fragments took a marker on every point and read
+    as a dense clump against a sparse neighbour. That irregularity is an
+    artifact of where the gaps fall, and it looks like the curve doing
+    something. Anchoring to the registered step index puts markers on the same
+    passes everywhere, so a gap shows up as a missing marker in a regular
+    cadence. A fragment that would otherwise carry none keeps its first point,
+    which is the only way a single isolated checkpoint stays visible.
+    """
+    positions = {step: index for index, step in enumerate(registered_steps)}
+    marks = [index for index, point in enumerate(segment)
+             if positions[point["step"]] % 2 == 0]
+    return marks or [0]
+
+
 def contiguous_segments(
     points: list[dict[str, Any]], registered_steps: list[int],
 ) -> list[list[dict[str, Any]]]:
@@ -110,12 +129,20 @@ def selected_methods(panel: dict[str, Any]) -> dict[str, tuple[dict[str, Any], b
             continue
         if set(left_record["cohort_seeds"]) != set(right_record["cohort_seeds"]):
             raise ValueError("primary objective pair must share its fixed seed cohort")
-        shared_steps = sorted({point["step"] for point in left_record["points"] if point["complete"]}
-                              & {point["step"] for point in right_record["points"] if point["complete"]})
+        # Both arms are drawn at every step where both observed a cohort seed,
+        # rather than only where both observed all of them. The pairing this
+        # preserves is that no step carries one arm without the other; it no
+        # longer requires the two arms to be complete, which used to blank a
+        # step in an arm that had its whole cohort because its partner did not.
+        def observed_steps(record: dict[str, Any]) -> set[int]:
+            return {point["step"] for point in record["points"] if point.get("per_seed")}
+
+        shared_steps = sorted(observed_steps(left_record) & observed_steps(right_record))
         for method, record in ((left, left_record), (right, right_record)):
             selected[method] = ({**record, "paired_checkpoint_steps": shared_steps,
                                  "points": [point if point["step"] in shared_steps else
-                                            {**point, "complete": False, "mean": {metric: None for metric in METRICS}}
+                                            {**point, "complete": False, "per_seed": {},
+                                             "mean": {metric: None for metric in METRICS}}
                                             for point in record["points"]]}, False)
     return selected
 
@@ -140,23 +167,38 @@ def cohort_note(panel: dict[str, Any]) -> str:
 
 
 def primary_points(record: dict[str, Any], metric: str) -> list[dict[str, Any]]:
-    """Accept complete, fixed-cohort means and compute descriptive seed ranges."""
+    """Mean over the cohort seeds that report at a step, with that count kept.
+
+    A step where every registered seed reports is a fixed-cohort mean and is
+    checked against the snapshot's own mean. A step where only some report is
+    drawn from those seeds and carries ``observed_n`` below ``cohort_n``, so a
+    reader can see that the point rests on part of the cohort. Blanking those
+    steps instead is what left the published curves broken at checkpoints whose
+    evidence exists for most of the cohort, and a curve that skips them reports
+    an absence that the record does not contain. A step where no seed reports
+    is still a gap: there is nothing to average.
+    """
     seeds = list(map(str, record["cohort_seeds"]))
     if len(set(seeds)) != record["cohort_n"] or not seeds:
         raise ValueError("primary cohort size must match its nonempty seed list")
     result = []
     for point in record["points"]:
-        mean = point.get("mean", {}).get(metric)
-        if not point.get("complete") or mean is None:
-            continue
         values = [point.get("per_seed", {}).get(seed, {}).get(metric) for seed in seeds]
-        if not all(_finite(value) for value in [mean, *values]):
-            raise ValueError("a complete checkpoint contains missing or invalid cohort metrics")
-        if not math.isclose(sum(values) / len(values), mean, abs_tol=1e-12):
-            raise ValueError("checkpoint mean does not describe its fixed cohort")
+        observed = {seed: value for seed, value in zip(seeds, values) if _finite(value)}
+        if not observed:
+            continue
+        mean = point.get("mean", {}).get(metric)
+        if point.get("complete"):
+            if not all(_finite(value) for value in [mean, *values]):
+                raise ValueError("a complete checkpoint contains missing or invalid cohort metrics")
+            if not math.isclose(sum(values) / len(values), mean, abs_tol=1e-12):
+                raise ValueError("checkpoint mean does not describe its fixed cohort")
+        else:
+            mean = sum(observed.values()) / len(observed)
         result.append({"step": point["step"], "training_pass": point["training_pass"],
-                       "mean": mean, "range": [min(values), max(values)],
-                       "per_seed": {seed: value for seed, value in zip(seeds, values)}})
+                       "mean": mean, "range": [min(observed.values()), max(observed.values())],
+                       "observed_n": len(observed), "cohort_n": record["cohort_n"],
+                       "per_seed": dict(observed)})
     return result
 
 
@@ -187,6 +229,7 @@ def draw_method(
             for segment in segments:
                 line, = axis.plot([point["training_pass"] for point in segment],
                                   [point["value"] for point in segment],
+                                  markevery=marker_indices(segment, registered_steps),
                                   lw=.95, alpha=.8 if record["cohort_n"] == 1 else .5,
                                   zorder=3, **common)
                 line.set_gid(f"{method}:partial:{seed}")
@@ -204,10 +247,23 @@ def draw_method(
                                      color=spec["color"], alpha=.09, linewidth=0, zorder=1)
             band.set_gid(f"{method}:seed-range")
         line, = axis.plot(xs, [point["mean"] for point in segment], lw=1.1,
-                          markevery=2 if len(segment) > 3 else 1, zorder=4, **common)
+                          markevery=marker_indices(segment, registered_steps),
+                          zorder=4, **common)
         line.set_gid(f"{method}:paired-mean")
+    # A point resting on part of the cohort is ringed, so the reduced count is
+    # visible at the point rather than only in the record. Marking it at the
+    # point matters because the line through it looks the same either way.
+    reduced = [point for point in points if point["observed_n"] < point["cohort_n"]]
+    if reduced:
+        ring = axis.plot([point["training_pass"] for point in reduced],
+                         [point["mean"] for point in reduced], linestyle="none",
+                         marker="o", markersize=4.6, markerfacecolor="none",
+                         markeredgecolor=spec["color"], markeredgewidth=.75,
+                         alpha=.85, zorder=5)[0]
+        ring.set_gid(f"{method}:partial-cohort")
     audit.update(points=points, segments=[[point["step"] for point in segment] for segment in segments],
-                 band="min–max across the fixed paired seeds" if record["cohort_n"] > 1 else "none: n=1")
+                 partial_cohort_steps=[point["step"] for point in reduced],
+                 band="min–max across the observed cohort seeds" if record["cohort_n"] > 1 else "none: n=1")
     return audit
 
 
@@ -302,9 +358,9 @@ def build_figure(
                     f"Level 1 · {METRICS[metric]}" if level == "level1" else "Level 2 · Qwen2.5-0.5B",
                     ha="center", va="center", fontsize=10, weight="bold")
         figure.text(.55, .041 if len(rows) == 3 else .055, "Training passes", ha="center", va="center", fontsize=9.4)
-        footer = ("Paired means + seed ranges · † Independent partial histories · Missing checkpoints leave gaps"
+        footer = ("Paired means + seed ranges · † Independent partial histories · Ringed: part of the cohort"
                   if level == "level2" else
-                  "Paired lines: fixed-cohort means · Shading: seed range · Missing checkpoints leave gaps")
+                  "Paired lines: cohort means · Shading: seed range · Ringed: point rests on part of the cohort")
         figure.text(.55, .008, footer, ha="center", va="bottom", fontsize=8.0, color=style.MUTED)
     return figure, audit
 

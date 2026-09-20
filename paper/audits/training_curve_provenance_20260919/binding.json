@@ -1,0 +1,641 @@
+{
+ "affected_cells": [
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "maxrl",
+    56
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    56
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    57
+   ],
+   "steps": [
+    0,
+    2304
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "maxrl",
+    55
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "replay_maxrl",
+    55
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "replay_maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "replay_maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    55
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    56
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "replay_maxrl",
+    55
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "replay_maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "replay_maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    56
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    57
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    58
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    55
+   ],
+   "steps": [
+    2112
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    56
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    57
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    59
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "countdown",
+    "maxrl",
+    70
+   ],
+   "steps": [
+    960,
+    2880
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "countdown",
+    "replay_maxrl",
+    70
+   ],
+   "steps": [
+    1728
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "countdown",
+    "replay_maxrl",
+    71
+   ],
+   "steps": [
+    960
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "countdown",
+    "replay_maxrl",
+    72
+   ],
+   "steps": [
+    1728
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "graph_coloring",
+    "maxrl",
+    71
+   ],
+   "steps": [
+    1728
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "graph_coloring",
+    "maxrl",
+    72
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "graph_coloring",
+    "maxrl",
+    73
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "graph_coloring",
+    "replay_maxrl",
+    71
+   ],
+   "steps": [
+    1536
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "graph_coloring",
+    "replay_maxrl",
+    74
+   ],
+   "steps": [
+    960,
+    2688
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "mathir",
+    "maxrl",
+    74
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "mathir",
+    "replay_drgrpo",
+    71
+   ],
+   "steps": [
+    0
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "mathir",
+    "replay_maxrl",
+    72
+   ],
+   "steps": [
+    960
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "pantry_plan",
+    "maxrl",
+    72
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "python_factors",
+    "replay_maxrl",
+    70
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "python_factors",
+    "replay_maxrl",
+    72
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "python_factors",
+    "replay_maxrl",
+    73
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "python_factors",
+    "replay_maxrl",
+    74
+   ],
+   "steps": [
+    1920
+   ]
+  },
+  {
+   "cell": [
+    "level2",
+    "qwen05b",
+    "mathir",
+    "drgrpo",
+    47
+   ],
+   "steps": [
+    384
+   ]
+  },
+  {
+   "cell": [
+    "level2",
+    "qwen05b",
+    "pantry_plan",
+    "drgrpo",
+    44
+   ],
+   "steps": [
+    192,
+    384
+   ]
+  },
+  {
+   "cell": [
+    "level2",
+    "qwen05b",
+    "pantry_plan",
+    "drgrpo",
+    47
+   ],
+   "steps": [
+    192
+   ]
+  },
+  {
+   "cell": [
+    "level2",
+    "qwen05b",
+    "pantry_plan",
+    "replay_drgrpo",
+    44
+   ],
+   "steps": [
+    1728
+   ]
+  },
+  {
+   "cell": [
+    "level2",
+    "qwen05b",
+    "python_factors",
+    "drgrpo",
+    45
+   ],
+   "steps": [
+    192
+   ]
+  },
+  {
+   "cell": [
+    "level2",
+    "qwen05b",
+    "python_factors",
+    "replay_drgrpo",
+    46
+   ],
+   "steps": [
+    384
+   ]
+  }
+ ],
+ "affected_checkpoint_count": 54,
+ "amendment_path": "paper/audits/training_curve_provenance_20260919/amendment_5_registered_checkpoint_provenance.md",
+ "amendment_sha256": "739cd85ab3730e26ef67b4702979c21be1a99bf453e716d0d521f4e51f37bd12",
+ "created_at_utc": "2026-09-19T20:09:50.163829+00:00",
+ "mid_training_checkpoint_count": 27,
+ "output_snapshot": "paper/results/training_curve_snapshot_20260919.json",
+ "phase": "post_specification_extension_of_amendment_4",
+ "predecessor": {
+  "binding": "paper/audits/conditional_concentration_20260914/amendment_4_initial_checkpoint_provenance_binding.json",
+  "path": "paper/audits/conditional_concentration_20260914/amendment_4_initial_checkpoint_provenance.md",
+  "sha256": "3fbe91dbd69ba5f9eed70d47bc3895cc009f4bb3cfbf2ff358838b488906d9df",
+  "step0_admissions_carried": 27
+ },
+ "rule_excluded_inputs": [
+  "any metric value",
+  "any canonical key",
+  "any effect or aggregate",
+  "any GPU or scheduler preference"
+ ],
+ "rule_inputs": [
+  "source file order",
+  "registered step numbers",
+  "draw indices",
+  "presence of a later training step"
+ ],
+ "source_snapshot": {
+  "path": "paper/results/training_curve_snapshot_20260912.json",
+  "sha256": "ee46e8e8b6f0fe8d75eaf4573687f33939e2e9c7580055c36ed6e2bc22661573"
+ },
+ "status": "frozen_before_any_curve_is_redrawn",
+ "step0_checkpoint_count": 27,
+ "unresolved_checkpoint_count": 43,
+ "unresolved_reason": "more than one continued block exists; the run was requeued and more than one attempt trained past the step"
+}

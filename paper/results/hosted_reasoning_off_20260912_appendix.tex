@@ -26,77 +26,111 @@ grades, domain-level counts, controls, and source hashes.
 \begin{table}[H]
   \centering
   \small
-  \setlength{\tabcolsep}{7pt}
-  \begin{tabular}{llrrrr}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{llrrcrrc}
     \toprule
-    & & \multicolumn{2}{c}{Medium reasoning} & \multicolumn{2}{c}{Reasoning disabled} \\
-    \cmidrule(lr){3-4}\cmidrule(lr){5-6}
-    Model & Level & \texttt{pass@8} (\%) & \# modes & \texttt{pass@8} (\%) & \# modes \\
+    & & \multicolumn{3}{c}{Medium reasoning} & \multicolumn{3}{c}{Reasoning disabled} \\
+    \cmidrule(lr){3-5}\cmidrule(lr){6-8}
+    Model & Level & \texttt{pass@8} (\%) & \# modes & \pmd{} & \texttt{pass@8} (\%) & \# modes & \pmd{} \\
     \midrule
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.6 Sol & 1 & 96.9 & 1.81 & 82.5 & 1.31 \\
-     & 2 & 98.8 & 1.54 & 66.9 & 0.76 \\
-     & 3 & 98.8 & 1.51 & 76.2 & 0.88 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.6 Sol & 1 & 96.9 & 1.81 & .311 & 82.5 & 1.31 & .226 \\
+     & 2 & 98.8 & 1.54 & .117 & 66.9 & 0.76 & .063 \\
+     & 3 & 98.8 & 1.51 & .195 & 76.2 & 0.88 & .095 \\
+    \cmidrule(l){2-8}
+     & \textit{All} & 98.1 & 1.62 & .226 & 75.2 & 0.99 & .145 \\
     \addlinespace
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.4 & 1 & 96.9 & 2.06 & 82.5 & 1.67 \\
-     & 2 & 99.4 & 1.68 & 71.2 & 0.92 \\
-     & 3 & 99.4 & 1.82 & 70.0 & 0.94 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.4 & 1 & 96.9 & 2.06 & .338 & 82.5 & 1.67 & .347 \\
+     & 2 & 99.4 & 1.68 & .162 & 71.2 & 0.92 & .134 \\
+     & 3 & 99.4 & 1.82 & .247 & 70.0 & 0.94 & .160 \\
+    \cmidrule(l){2-8}
+     & \textit{All} & 98.5 & 1.85 & .255 & 74.6 & 1.18 & .224 \\
     \addlinespace
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/grok_official_docs_print.png}}\hspace{0.4em}Grok 4.3 & 1 & 100.0 & 1.93 & 82.5 & 1.64 \\
-     & 2 & 100.0 & 1.62 & 86.9 & 1.41 \\
-     & 3 & 100.0 & 1.54 & 90.0 & 1.45 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/grok_official_docs_print.png}}\hspace{0.4em}Grok 4.3 & 1 & 100.0 & 1.93 & .211 & 82.5 & 1.64 & .493 \\
+     & 2 & 100.0 & 1.62 & .136 & 86.9 & 1.41 & .296 \\
+     & 3 & 100.0 & 1.54 & .121 & 90.0 & 1.45 & .314 \\
+    \cmidrule(l){2-8}
+     & \textit{All} & 100.0 & 1.70 & .154 & 86.5 & 1.50 & .364 \\
     \addlinespace
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/kimi.png}}\hspace{0.4em}Kimi K3 & 1 & 96.9 & 2.27 & 92.5 & 1.91 \\
-     & 2 & 100.0 & 2.02 & 92.5 & 1.37 \\
-     & 3 & 100.0 & 1.89 & 95.6 & 1.59 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/kimi.png}}\hspace{0.4em}Kimi K3 & 1 & 96.9 & 2.27 & .343 & 92.5 & 1.91 & .595 \\
+     & 2 & 100.0 & 2.02 & .277 & 92.5 & 1.37 & .335 \\
+     & 3 & 100.0 & 1.89 & .264 & 95.6 & 1.59 & .361 \\
+    \cmidrule(l){2-8}
+     & \textit{All} & 99.0 & 2.06 & .293 & 93.5 & 1.62 & .426 \\
     \addlinespace
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/claude.png}}\hspace{0.4em}Claude Opus 4.8 & 1 & 98.1 & 1.61 & 91.2 & 1.46 \\
-     & 2 & 100.0 & 1.67 & 100.0 & 1.62 \\
-     & 3 & 100.0 & 1.57 & 100.0 & 1.51 \\
+    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/claude.png}}\hspace{0.4em}Claude Opus 4.8 & 1 & 98.1 & 1.61 & .202 & 91.2 & 1.46 & .216 \\
+     & 2 & 100.0 & 1.67 & .218 & 100.0 & 1.62 & .226 \\
+     & 3 & 100.0 & 1.57 & .185 & 100.0 & 1.51 & .185 \\
+    \cmidrule(l){2-8}
+     & \textit{All} & 99.4 & 1.62 & .202 & 97.1 & 1.53 & .209 \\
     \bottomrule
   \end{tabular}
   \caption{\textbf{Matched medium and disabled reasoning, by level.}
   Each row averages 160 prompts across five domains. All eight responses
   and zero-success prompts are retained. \# modes denotes mean
-  \texttt{distinct@8}; estimates use the frozen formatting normalizer.}
+  \texttt{distinct@8}; estimates use the frozen formatting normalizer.
+  \pmd{} is paired within the level: it averages over the prompts of that
+  level which return two verified draws in both conditions, between
+  65 and 159 of the 160 per cell, and every level cell here clears the
+  thirty-prompt support bar.
+  The \texttt{pass@8} and \# modes columns use all 160 prompts, so the two
+  axes are read on the same draws but not on the same denominators, and the
+  paired count behind every level cell is retained in the accompanying
+  machine-readable record alongside the per-domain counts.
+  The \textit{All} row averages the same 480 prompts and 3,840 responses
+  per condition with equal weight on every domain and level; its \pmd{}
+  is the paired reading over the
+  245--458 prompts per deployment that return two verified draws in both conditions.
+  That column separates concentration from lost accuracy, since a prompt
+  one condition stopped answering twice leaves the estimate rather than
+  entering it as a smaller number; the per-domain readings behind it are
+  retained in the accompanying JSON, together with the prompts that only
+  one of the two conditions answers twice and so enter neither average.}
   \label{tab:hosted-reasoning-matched-levels}
 \end{table}
 
-\begin{table}[H]
-  \centering
-  \small
-  \setlength{\tabcolsep}{7pt}
-  \begin{tabular}{lrrrr}
-    \toprule
-    & \multicolumn{2}{c}{Medium reasoning} & \multicolumn{2}{c}{Reasoning disabled} \\
-    \cmidrule(lr){2-3}\cmidrule(lr){4-5}
-    Model & \texttt{pass@8} (\%) & \# modes & \texttt{pass@8} (\%) & \# modes \\
-    \midrule
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.6 Sol & 98.1 & 1.62 & 75.2 & 0.99 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/openai.png}}\hspace{0.4em}GPT-5.4 & 98.5 & 1.85 & 74.6 & 1.18 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/grok_official_docs_print.png}}\hspace{0.4em}Grok 4.3 & 100.0 & 1.70 & 86.5 & 1.50 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/kimi.png}}\hspace{0.4em}Kimi K3 & 99.0 & 2.06 & 93.5 & 1.62 \\
-    \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/claude.png}}\hspace{0.4em}Claude Opus 4.8 & 99.4 & 1.62 & 97.1 & 1.53 \\
-    \bottomrule
-  \end{tabular}
-  \caption{\textbf{Matched reasoning-control averages across levels.}
-  Each model and condition uses the same 480 prompts and 3,840 responses,
-  with equal weight on every domain and level.}
-  \label{tab:hosted-reasoning-matched-overall}
-\end{table}
-
 \paragraph{Incomplete deployments.}
-Five of seven registered deployments passed complete-cohort admission.
-Claude Opus 5 is excluded because a native response returned a thinking
-block and 40 thinking tokens despite an explicit disabled-thinking request.
-DeepSeek V4 Pro is excluded because only 3,839 of 3,840 sample receipts
-were recovered, leaving one unresolved request. Neither partial cohort
-receives a score, and the missing response is not counted as a failure.
+Five of seven registered deployments passed complete-cohort admission,
+and neither partial cohort receives a score. They fall short in different
+ways, and that decides what can still be read from each.
+
+DeepSeek V4 Pro's draws are intact, so its measurement survives its
+exclusion and is reported here: read on the 437 prompts both of its
+conditions define, disabling reasoning moves \pmd{} from
+$.282$ to $.369$, a change of $+.087$. What that figure
+cannot do is join the table, for two reasons and neither is the recovery
+shortfall: both of its arms are graded strictly, because the frozen
+normalizer was only ever run on admitted cohorts, and one PantryPlan prompt
+holds seven draws rather than eight. A caveat cannot put a strictly graded
+number on the same scale as a normalized one. The shortfall itself is
+slight --- 3,839 of 3,840 sample receipts were recovered, leaving one
+unresolved request, which is not counted as a failure --- and it is not
+what keeps the deployment out of the table. The figure is reported so the
+evidence is not lost, not so it can be compared.
+
+Claude Opus 5 admits no such reading. A native response returned a thinking
+block and 40 thinking tokens despite an explicit disabled-thinking request,
+so its disabled condition did not disable reasoning. There is no
+reasoning-off measurement to preserve, rather than one withheld.
 
 \paragraph{Scope of the comparison.}
 Across all five complete deployments, disabling reasoning lowers both
-overall \texttt{pass@8} and observed \texttt{distinct@8}. Reduced success
-also reduces opportunities to observe distinct successful modes, so this
-does not isolate diversity at fixed accuracy. Medium and disabled outputs
+overall \texttt{pass@8} and observed \distk{}. Reduced success also
+reduces opportunities to observe distinct successful modes, so those two
+columns cannot separate concentration from lost accuracy. \pmd{} can, and
+the answer is not uniform: on the prompts both conditions define, breadth
+falls for GPT-5.6 Sol and GPT-5.4, is unchanged for Claude Opus 4.8, and
+rises for Kimi K3 and Grok 4.3, which more than doubles from $.154$ to
+$.364$ while its \distk{} falls. Disabling deliberation concentrates some
+deployments and spreads others, so the common fall in \distk{} tracks the
+accuracy drop rather than a shared collapse.
+Table~\ref{tab:hosted-reasoning-matched-levels} reads the same contrast at
+each level, and the direction belongs to the deployment rather than to the
+level: GPT-5.6 Sol falls at every level, Grok 4.3 and Kimi K3 rise at
+every level, GPT-5.4 is flat at Level 1 and falls at Levels 2 and 3, and
+Claude Opus 4.8 stays within $.014$ of zero throughout.
+No deployment reverses its own direction from one level to the next, and
+no level cell loses the measurement: every one clears the support bar on
+prompts both conditions answer twice. Medium and disabled outputs
 were collected at different times; matching sample slots are not shared
 random seeds. Omitted temperature and \texttt{top\_p} controls retain
 provider defaults, which can vary over time. These are descriptive point

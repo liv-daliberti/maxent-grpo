@@ -2,11 +2,11 @@
   "family": "local",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260915_rename/modebench_prompt_ablation_local.pdf",
-      "sha256": "3607e290c51f32526b6ca6796233bdd77e61660b631708b5a9cff33db536822e"
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v10/modebench_prompt_ablation_local.pdf",
+      "sha256": "81a42f6181ef8d8c0bc50233a2c49002835d924774daf03b2e944473dacd2eff"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260915_rename/modebench_prompt_ablation_local.png",
+      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v10/modebench_prompt_ablation_local.png",
       "sha256": "b2b559ea9256182a01f974a7bfd509e4474ae7b6bea79c86c71f7959267a5683"
     }
   },
@@ -9318,6 +9318,6 @@
       "seed_ranges": null
     }
   ],
-  "report_sha256": "674221353b434f2ee5bd2f3be2d1838c7c8fa82407648d5a3e7e86b55e4401b6",
+  "report_sha256": "e82e35619bd46b56f3a8d34765b0c72918bca1f817e02f10f2ff0464a7f181b3",
   "schema": "prompt-ablation-figure-v1"
 }

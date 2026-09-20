@@ -15,7 +15,7 @@ To compare breadth at matched observed correctness, rarefy $m$ correct draws alo
 \[
  R_m=\sum_j\left[1-\frac{\binom{c-n_j}{m}}{\binom{c}{m}}\right].
 \]
-The primary paired conditional comparison keeps only prompts with $c\ge m$ under both wordings; eligibility changes with $m$. Every eligible denominator is retained, and an undefined registered seed is never silently omitted from an equal-seed mean. Full-64 collision pools equal-key correct pairs within each checkpoint before taking equal-seed means.
+The primary paired conditional comparison keeps only prompts with $c\ge m$ under both wordings; eligibility changes with $m$. Every eligible denominator is retained, and an undefined registered seed is never silently omitted from an equal-seed mean. Two full-64 summaries follow, and they weight prompts differently. Pooled collision $C$ counts equal-key correct pairs across the prompts of one checkpoint before dividing, so a prompt enters in proportion to its $\binom{c}{2}$ and the prompts a model solves most often dominate. Promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over the prompts with $c\ge2$, weighting each equally; that is the aggregation App.~\ref{app:metric-sampling} requires, and the one every other \pmd{} in this paper uses. Both then take equal-seed means.
 
 All support counts here are certified lower bounds $L\le M$, not exhaustive support sizes: Python uses its two externally certified witnesses, MathIR five certified modes, and Pantry its frozen certificate count. Accordingly $1/L$ is an upper reference for uniform collision over full support; $L[1-(1-1/L)^m]$ is a lower reference for uniform expected breadth, not a lower bound on model breadth. Observed distinct counts may exceed $L$. The source report also averages this uniform breadth over $J\sim\operatorname{Hypergeom}(64,c,k)$ to match unconditional correctness at each $k$.
 
@@ -101,31 +101,31 @@ Grok 4.3 & Pantry L3 & $0.000/0.000$ & $1.810/4.466$ & $1.810/4.466$ & $+2.656\;
 \begin{table}[H]
 \centering\scriptsize
 \setlength{\tabcolsep}{3pt}
-\caption{Full-64 strict correct-pair collision. $C$ pools correct pairs within a fixed checkpoint or deployment; trained local rows then average checkpoint rates equally across seeds. $U$ applies the same weighting to the certified-support uniform upper reference. Eligible checkpoint--problem groups $E$ and correct-pair counts $Q$ are summed descriptively across checkpoints. These totals do not define the equal-seed mean; separate pooled rates and per-seed counts are retained in the report. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator retained.}
-\label{tab:discovery-collision-frontier}
+\caption{Full-64 strict breadth under both pair weightings. $C$ pools correct pairs within a fixed checkpoint or deployment, so a prompt enters in proportion to its $\binom{c}{2}$; promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over prompts with $c\ge2$, weighting each equally, which is the aggregation App.~\ref{app:metric-sampling} uses for every other \pmd{} in this paper. Trained local rows then average checkpoint values equally across seeds. $U$ is the certified-support uniform reference under the matching weighting, $E$ the eligible checkpoint--problem groups per wording, and $Q$ the correct-pair counts, both summed descriptively across checkpoints; these totals do not define the equal-seed mean. $\Delta\pmd$ is neutral minus original with its pointwise 95\% interval on the jointly eligible prompts; a cell with no jointly eligible prompt leaves it undefined. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator, the per-budget joint eligibility counts and the separate pooled rates retained in the report.}
+\label{tab:discovery-breadth-frontier}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{llrrrrrr}
+\begin{tabular}{llrrrrrrrrr}
 \toprule
-Model & Cell & $C_O$ & $C_N$ & $U_O$ & $U_N$ & $E_O/E_N$ & $Q_O/Q_N$ \\
+Model & Cell & $C_O$ & $C_N$ & $\pmd_O$ & $\pmd_N$ & $U^{C}_O$ & $U^{\pmd}_O$ & $E_O/E_N$ & $Q_O/Q_N$ & $\Delta\pmd$ [95\%] \\
 \midrule
-GPT-5.4 & Python factors L2 & $0.790$ & $0.665$ & $0.500$ & $0.500$ & 16/16 & 10374/21720 \\
-GPT-5.6 Sol & Python factors L2 & $1.000$ & $0.974$ & $0.500$ & $0.500$ & 3/13 & 4467/6074 \\
-Grok 4.3 & Python factors L2 & $0.963$ & $0.938$ & $0.500$ & $0.500$ & 16/16 & 32256/32256 \\
-GPT-5.4 & Python factors L3 & $0.732$ & $0.620$ & $0.500$ & $0.500$ & 16/16 & 6747/18043 \\
-GPT-5.6 Sol & Python factors L3 & $1.000$ & $0.966$ & $0.500$ & $0.500$ & 1/10 & 1953/2097 \\
-Grok 4.3 & Python factors L3 & $0.981$ & $0.893$ & $0.500$ & $0.500$ & 16/16 & 32193/32256 \\
-GPT-5.4 & MathIR L2 & $1.000$ & $0.756$ & $0.200$ & $0.200$ & 16/15 & 28440/28227 \\
-GPT-5.6 Sol & MathIR L2 & $1.000$ & $0.678$ & $0.200$ & $0.200$ & 16/15 & 28645/28377 \\
-Grok 4.3 & MathIR L2 & $0.968$ & $0.985$ & $0.200$ & $0.200$ & 16/16 & 31600/29677 \\
-GPT-5.4 & MathIR L3 & $0.998$ & $0.944$ & $0.200$ & $0.200$ & 16/16 & 32256/32256 \\
-GPT-5.6 Sol & MathIR L3 & $1.000$ & $0.676$ & $0.200$ & $0.200$ & 16/16 & 32256/32256 \\
-Grok 4.3 & MathIR L3 & $0.966$ & $0.949$ & $0.200$ & $0.200$ & 16/16 & 30520/32193 \\
-GPT-5.4 & Pantry L2 & $0.680$ & $0.499$ & $0.069$ & $0.069$ & 16/16 & 20097/17436 \\
-GPT-5.6 Sol & Pantry L2 & $0.674$ & $0.624$ & $0.076$ & $0.070$ & 16/15 & 12941/5001 \\
-Grok 4.3 & Pantry L2 & $0.684$ & $0.412$ & $0.066$ & $0.066$ & 16/16 & 32005/32193 \\
-GPT-5.4 & Pantry L3 & $0.546$ & $0.392$ & $0.065$ & $0.064$ & 16/16 & 22332/21975 \\
-GPT-5.6 Sol & Pantry L3 & $0.566$ & $0.652$ & $0.061$ & $0.071$ & 16/16 & 15229/4946 \\
-Grok 4.3 & Pantry L3 & $0.673$ & $0.294$ & $0.063$ & $0.063$ & 16/16 & 31830/31881 \\
+GPT-5.4 & Python factors L2 & $0.790$ & $0.665$ & $0.257$ & $0.341$ & $0.500$ & $0.500$ & 16/16 & 10374/21720 & $+0.084\;[-0.006,+0.186]$ \\
+GPT-5.6 Sol & Python factors L2 & $1.000$ & $0.974$ & $0.000$ & $0.184$ & $0.500$ & $0.500$ & 3/13 & 4467/6074 & $+0.021\;[+0.000,+0.032]$ \\
+Grok 4.3 & Python factors L2 & $0.963$ & $0.938$ & $0.037$ & $0.062$ & $0.500$ & $0.500$ & 16/16 & 32256/32256 & $+0.025\;[+0.002,+0.048]$ \\
+GPT-5.4 & Python factors L3 & $0.732$ & $0.620$ & $0.334$ & $0.384$ & $0.500$ & $0.500$ & 16/16 & 6747/18043 & $+0.050\;[-0.026,+0.128]$ \\
+GPT-5.6 Sol & Python factors L3 & $1.000$ & $0.966$ & $0.000$ & $0.130$ & $0.500$ & $0.500$ & 1/10 & 1953/2097 & $+0.031\;[+0.031,+0.031]$ \\
+Grok 4.3 & Python factors L3 & $0.981$ & $0.893$ & $0.019$ & $0.107$ & $0.500$ & $0.500$ & 16/16 & 32193/32256 & $+0.087\;[+0.041,+0.154]$ \\
+GPT-5.4 & MathIR L2 & $1.000$ & $0.756$ & $0.000$ & $0.228$ & $0.200$ & $0.800$ & 16/15 & 28440/28227 & $+0.228\;[+0.161,+0.302]$ \\
+GPT-5.6 Sol & MathIR L2 & $1.000$ & $0.678$ & $0.000$ & $0.302$ & $0.200$ & $0.800$ & 16/15 & 28645/28377 & $+0.302\;[+0.200,+0.402]$ \\
+Grok 4.3 & MathIR L2 & $0.968$ & $0.985$ & $0.033$ & $0.014$ & $0.200$ & $0.800$ & 16/16 & 31600/29677 & $-0.020\;[-0.076,+0.017]$ \\
+GPT-5.4 & MathIR L3 & $0.998$ & $0.944$ & $0.002$ & $0.056$ & $0.200$ & $0.800$ & 16/16 & 32256/32256 & $+0.054\;[+0.027,+0.087]$ \\
+GPT-5.6 Sol & MathIR L3 & $1.000$ & $0.676$ & $0.000$ & $0.324$ & $0.200$ & $0.800$ & 16/16 & 32256/32256 & $+0.324\;[+0.208,+0.432]$ \\
+Grok 4.3 & MathIR L3 & $0.966$ & $0.949$ & $0.033$ & $0.051$ & $0.200$ & $0.800$ & 16/16 & 30520/32193 & $+0.019\;[-0.046,+0.064]$ \\
+GPT-5.4 & Pantry L2 & $0.680$ & $0.499$ & $0.252$ & $0.483$ & $0.069$ & $0.934$ & 16/16 & 20097/17436 & $+0.231\;[+0.069,+0.395]$ \\
+GPT-5.6 Sol & Pantry L2 & $0.674$ & $0.624$ & $0.275$ & $0.474$ & $0.076$ & $0.934$ & 16/15 & 12941/5001 & $+0.180\;[+0.058,+0.327]$ \\
+Grok 4.3 & Pantry L2 & $0.684$ & $0.412$ & $0.315$ & $0.589$ & $0.066$ & $0.934$ & 16/16 & 32005/32193 & $+0.274\;[+0.143,+0.411]$ \\
+GPT-5.4 & Pantry L3 & $0.546$ & $0.392$ & $0.431$ & $0.610$ & $0.065$ & $0.937$ & 16/16 & 22332/21975 & $+0.179\;[+0.103,+0.257]$ \\
+GPT-5.6 Sol & Pantry L3 & $0.566$ & $0.652$ & $0.422$ & $0.441$ & $0.061$ & $0.937$ & 16/16 & 15229/4946 & $+0.019\;[-0.136,+0.172]$ \\
+Grok 4.3 & Pantry L3 & $0.673$ & $0.294$ & $0.330$ & $0.703$ & $0.063$ & $0.937$ & 16/16 & 31830/31881 & $+0.373\;[+0.224,+0.523]$ \\
 \bottomrule
 \end{tabular}}
 \end{table}
@@ -138,43 +138,11 @@ Grok 4.3 & Pantry L3 & $0.673$ & $0.294$ & $0.063$ & $0.063$ & 16/16 & 31830/318
 
 \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{figures/modebench_discovery_correct_budget_frontier.pdf}
 
-\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the following table gives all strict joint counts for every method, level, and correct-draw budget, including groups with zero eligible prompts.}
+\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the strict joint counts for every method, level and correct-draw budget, including groups with zero eligible prompts, are retained in the report rather than printed, and the $m=2$ counts the breadth contrast rests on are the $E$ column of Table~\ref{tab:discovery-breadth-frontier}.}
 
 \label{fig:discovery-correct-budget-frontier}
 
 \end{figure}
-
-\begin{table}[H]
-\centering\scriptsize
-\setlength{\tabcolsep}{4pt}
-\caption{Strict joint eligibility for a fixed correct-draw budget: both wordings must have at least $m$ correct draws. Entries count eligible checkpoint--problem groups, summing over displayed seeds; the same 16 problems recur across checkpoints. Arm-specific eligibility at every $m$ is also retained in the report for both prompt wordings and every registered checkpoint.}
-\label{tab:discovery-eligibility-frontier}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{llrrrrrrr}
-\toprule
-Model & Cell & $m=1$ & $m=2$ & $m=4$ & $m=8$ & $m=16$ & $m=32$ & $m=64$ \\
-\midrule
-GPT-5.4 & Python factors L2 & 16 & 16 & 16 & 16 & 16 & 5 & 1 \\
-GPT-5.6 Sol & Python factors L2 & 3 & 3 & 3 & 3 & 3 & 3 & 0 \\
-Grok 4.3 & Python factors L2 & 16 & 16 & 16 & 16 & 16 & 16 & 16 \\
-GPT-5.4 & Python factors L3 & 16 & 16 & 16 & 16 & 16 & 3 & 1 \\
-GPT-5.6 Sol & Python factors L3 & 1 & 1 & 1 & 1 & 1 & 1 & 0 \\
-Grok 4.3 & Python factors L3 & 16 & 16 & 16 & 16 & 16 & 16 & 15 \\
-GPT-5.4 & MathIR L2 & 15 & 15 & 14 & 14 & 14 & 14 & 13 \\
-GPT-5.6 Sol & MathIR L2 & 15 & 15 & 15 & 15 & 15 & 14 & 14 \\
-Grok 4.3 & MathIR L2 & 16 & 16 & 16 & 16 & 16 & 15 & 14 \\
-GPT-5.4 & MathIR L3 & 16 & 16 & 16 & 16 & 16 & 16 & 16 \\
-GPT-5.6 Sol & MathIR L3 & 16 & 16 & 16 & 16 & 16 & 16 & 16 \\
-Grok 4.3 & MathIR L3 & 16 & 16 & 16 & 16 & 16 & 16 & 11 \\
-GPT-5.4 & Pantry L2 & 16 & 16 & 16 & 16 & 15 & 13 & 0 \\
-GPT-5.6 Sol & Pantry L2 & 15 & 15 & 15 & 12 & 10 & 5 & 0 \\
-Grok 4.3 & Pantry L2 & 16 & 16 & 16 & 16 & 16 & 16 & 12 \\
-GPT-5.4 & Pantry L3 & 16 & 16 & 16 & 16 & 16 & 14 & 0 \\
-GPT-5.6 Sol & Pantry L3 & 16 & 16 & 15 & 13 & 13 & 3 & 0 \\
-Grok 4.3 & Pantry L3 & 16 & 16 & 16 & 16 & 16 & 16 & 12 \\
-\bottomrule
-\end{tabular}}
-\end{table}
 
 \begin{table}[H]
 \centering\scriptsize
@@ -208,37 +176,8 @@ Re:Dr ($s=2$) & Pantry L3 & $0.204/0.149$ & $0.568/0.461$ & $0.364/0.312$ & $-0.
 \end{tabular}}
 \end{table}
 
-\begin{table}[H]
-\centering\scriptsize
-\setlength{\tabcolsep}{3pt}
-\caption{Eight-to-64 discovery gains under frozen normalization sensitivity. $G_P=P_{64}-P_8$, $G_D=D_{64}-D_8$, and $G_B=B_{64}-B_8$. Each O/N entry gives original/neutral; $\Delta G_D$ is neutral minus original with its pointwise 95\% interval. $s=1$ denotes one fixed initial checkpoint, not training-seed replication. Five-seed intervals resample seeds and paired prompts; two-seed Pantry intervals condition on the observed checkpoints and retain all paired prompt outcomes.}
-\label{tab:discovery-gains-local-normalized-secondary}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{llrrrr}
-\toprule
-Model & Cell & $G_P$: O/N & $G_D$: O/N & $G_B$: O/N & $\Delta G_D$ [95\%] \\
-\midrule
-DrGRPO ($s=5$) & Python factors L2 & $0.000/0.000$ & $0.000/0.000$ & $0.000/0.000$ & $+0.000\;[+0.000,+0.000]$ \\
-Initial Qwen 0.5B ($s=1$) & Python factors L2 & $0.147/0.105$ & $0.303/0.165$ & $0.156/0.060$ & $-0.138\;[-0.217,-0.061]$ \\
-Re:Dr ($s=5$) & Python factors L2 & $0.000/0.231$ & $0.058/0.463$ & $0.058/0.232$ & $+0.405\;[+0.185,+0.620]$ \\
-DrGRPO ($s=5$) & Python factors L3 & $0.000/0.033$ & $0.000/0.033$ & $0.000/0.000$ & $+0.033\;[+0.000,+0.120]$ \\
-Initial Qwen 0.5B ($s=1$) & Python factors L3 & $0.218/0.096$ & $0.593/0.096$ & $0.376/0.000$ & $-0.497\;[-0.766,-0.270]$ \\
-Re:Dr ($s=5$) & Python factors L3 & $0.000/0.239$ & $0.153/0.531$ & $0.153/0.292$ & $+0.379\;[+0.111,+0.678]$ \\
-DrGRPO ($s=5$) & MathIR L2 & $0.021/0.017$ & $0.021/0.017$ & $0.000/0.000$ & $-0.004\;[-0.068,+0.045]$ \\
-Initial Qwen 0.5B ($s=1$) & MathIR L2 & $0.344/0.235$ & $0.344/0.235$ & $0.000/0.000$ & $-0.109\;[-0.383,+0.164]$ \\
-Re:Dr ($s=5$) & MathIR L2 & $0.010/0.011$ & $0.010/0.011$ & $0.000/0.000$ & $+0.001\;[-0.036,+0.050]$ \\
-DrGRPO ($s=5$) & MathIR L3 & $0.023/0.018$ & $0.026/0.018$ & $0.004/0.000$ & $-0.008\;[-0.065,+0.038]$ \\
-Initial Qwen 0.5B ($s=1$) & MathIR L3 & $0.254/0.246$ & $0.359/0.360$ & $0.105/0.114$ & $+0.001\;[-0.123,+0.095]$ \\
-Re:Dr ($s=5$) & MathIR L3 & $0.064/0.056$ & $0.064/0.056$ & $0.000/0.000$ & $-0.008\;[-0.099,+0.059]$ \\
-DrGRPO ($s=2$) & Pantry L2 & $0.332/0.323$ & $0.718/0.736$ & $0.386/0.414$ & $+0.018\;[-0.422,+0.433]$ \\
-Initial Qwen 0.5B ($s=1$) & Pantry L2 & $0.440/0.419$ & $0.857/0.955$ & $0.416/0.537$ & $+0.099\;[-0.201,+0.392]$ \\
-Re:Dr ($s=2$) & Pantry L2 & $0.141/0.147$ & $0.415/0.429$ & $0.274/0.282$ & $+0.014\;[-0.123,+0.152]$ \\
-DrGRPO ($s=2$) & Pantry L3 & $0.268/0.258$ & $0.949/1.025$ & $0.681/0.766$ & $+0.076\;[-0.237,+0.465]$ \\
-Initial Qwen 0.5B ($s=1$) & Pantry L3 & $0.259/0.384$ & $0.927/1.078$ & $0.668/0.694$ & $+0.151\;[-0.109,+0.399]$ \\
-Re:Dr ($s=2$) & Pantry L3 & $0.204/0.149$ & $0.568/0.461$ & $0.364/0.312$ & $-0.107\;[-0.321,+0.098]$ \\
-\bottomrule
-\end{tabular}}
-\end{table}
+The frozen formatting normalizer is a registered secondary grading for these cells. It rescued no additional response for any local checkpoint here, so every strict and normalized figure in the table above is identical and the secondary table is not repeated.
+
 
 \clearpage
 
@@ -257,31 +196,31 @@ Re:Dr ($s=2$) & Pantry L3 & $0.204/0.149$ & $0.568/0.461$ & $0.364/0.312$ & $-0.
 \begin{table}[H]
 \centering\scriptsize
 \setlength{\tabcolsep}{3pt}
-\caption{Full-64 strict correct-pair collision. $C$ pools correct pairs within a fixed checkpoint or deployment; trained local rows then average checkpoint rates equally across seeds. $U$ applies the same weighting to the certified-support uniform upper reference. Eligible checkpoint--problem groups $E$ and correct-pair counts $Q$ are summed descriptively across checkpoints. These totals do not define the equal-seed mean; separate pooled rates and per-seed counts are retained in the report. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator retained.}
-\label{tab:discovery-collision-local}
+\caption{Full-64 strict breadth under both pair weightings. $C$ pools correct pairs within a fixed checkpoint or deployment, so a prompt enters in proportion to its $\binom{c}{2}$; promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over prompts with $c\ge2$, weighting each equally, which is the aggregation App.~\ref{app:metric-sampling} uses for every other \pmd{} in this paper. Trained local rows then average checkpoint values equally across seeds. $U$ is the certified-support uniform reference under the matching weighting, $E$ the eligible checkpoint--problem groups per wording, and $Q$ the correct-pair counts, both summed descriptively across checkpoints; these totals do not define the equal-seed mean. $\Delta\pmd$ is neutral minus original with its pointwise 95\% interval on the jointly eligible prompts; a cell with no jointly eligible prompt leaves it undefined. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator, the per-budget joint eligibility counts and the separate pooled rates retained in the report.}
+\label{tab:discovery-breadth-local}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{llrrrrrr}
+\begin{tabular}{llrrrrrrrrr}
 \toprule
-Model & Cell & $C_O$ & $C_N$ & $U_O$ & $U_N$ & $E_O/E_N$ & $Q_O/Q_N$ \\
+Model & Cell & $C_O$ & $C_N$ & $\pmd_O$ & $\pmd_N$ & $U^{C}_O$ & $U^{\pmd}_O$ & $E_O/E_N$ & $Q_O/Q_N$ & $\Delta\pmd$ [95\%] \\
 \midrule
-DrGRPO & Python factors L2 & $1.000$ & $--$ & $0.500$ & $--$ & 65/0 & 130977/0 \\
-Initial Qwen 0.5B & Python factors L2 & $0.791$ & $0.875$ & $0.500$ & $0.500$ & 13/3 & 1270/24 \\
-Re:Dr & Python factors L2 & $0.809$ & $0.800$ & $0.500$ & $0.500$ & 71/53 & 140722/18289 \\
-DrGRPO & Python factors L3 & $1.000$ & $--$ & $0.500$ & $--$ & 80/0 & 161280/0 \\
-Initial Qwen 0.5B & Python factors L3 & $0.875$ & $1.000$ & $0.500$ & $0.500$ & 16/1 & 1010/3 \\
-Re:Dr & Python factors L3 & $0.805$ & $0.797$ & $0.500$ & $0.500$ & 80/52 & 160275/12893 \\
-DrGRPO & MathIR L2 & $1.000$ & $1.000$ & $0.200$ & $0.200$ & 43/42 & 80766/74119 \\
-Initial Qwen 0.5B & MathIR L2 & $1.000$ & $1.000$ & $0.200$ & $0.200$ & 3/3 & 64/64 \\
-Re:Dr & MathIR L2 & $1.000$ & $1.000$ & $0.200$ & $0.200$ & 79/79 & 155016/151485 \\
-DrGRPO & MathIR L3 & $0.980$ & $1.000$ & $0.200$ & $0.200$ & 16/18 & 24457/25393 \\
-Initial Qwen 0.5B & MathIR L3 & $0.883$ & $0.912$ & $0.200$ & $0.200$ & 7/6 & 282/181 \\
-Re:Dr & MathIR L3 & $1.000$ & $1.000$ & $0.200$ & $0.200$ & 34/34 & 46891/50301 \\
-DrGRPO & Pantry L2 & $0.374$ & $0.276$ & $0.047$ & $0.055$ & 9/10 & 101/193 \\
-Initial Qwen 0.5B & Pantry L2 & $0.849$ & $0.787$ & $0.052$ & $0.053$ & 7/10 & 212/178 \\
-Re:Dr & Pantry L2 & $0.600$ & $0.613$ & $0.051$ & $0.052$ & 16/18 & 10144/8510 \\
-DrGRPO & Pantry L3 & $0.203$ & $0.228$ & $0.047$ & $0.049$ & 10/12 & 134/165 \\
-Initial Qwen 0.5B & Pantry L3 & $0.375$ & $0.313$ & $0.049$ & $0.049$ & 7/6 & 531/705 \\
-Re:Dr & Pantry L3 & $0.636$ & $0.666$ & $0.051$ & $0.052$ & 10/11 & 4006/3946 \\
+DrGRPO & Python factors L2 & $1.000$ & $--$ & $0.000$ & $--$ & $0.500$ & $0.500$ & 65/0 & 130977/0 & $--$ \\
+Initial Qwen 0.5B & Python factors L2 & $0.791$ & $0.875$ & $0.097$ & $0.167$ & $0.500$ & $0.500$ & 13/3 & 1270/24 & $-0.252\;[-0.395,+0.019]$ \\
+Re:Dr & Python factors L2 & $0.809$ & $0.800$ & $0.191$ & $0.156$ & $0.500$ & $0.500$ & 71/53 & 140722/18289 & $-0.037\;[-0.139,+0.037]$ \\
+DrGRPO & Python factors L3 & $1.000$ & $--$ & $0.000$ & $--$ & $0.500$ & $0.500$ & 80/0 & 161280/0 & $--$ \\
+Initial Qwen 0.5B & Python factors L3 & $0.875$ & $1.000$ & $0.101$ & $0.000$ & $0.500$ & $0.500$ & 16/1 & 1010/3 & $-0.513\;[-0.513,-0.513]$ \\
+Re:Dr & Python factors L3 & $0.805$ & $0.797$ & $0.195$ & $0.227$ & $0.500$ & $0.500$ & 80/52 & 160275/12893 & $+0.030\;[-0.023,+0.117]$ \\
+DrGRPO & MathIR L2 & $1.000$ & $1.000$ & $0.000$ & $0.000$ & $0.200$ & $0.800$ & 43/42 & 80766/74119 & $+0.000\;[+0.000,+0.000]$ \\
+Initial Qwen 0.5B & MathIR L2 & $1.000$ & $1.000$ & $0.000$ & $0.000$ & $0.200$ & $0.800$ & 3/3 & 64/64 & $+0.000\;[+0.000,+0.000]$ \\
+Re:Dr & MathIR L2 & $1.000$ & $1.000$ & $0.000$ & $0.000$ & $0.200$ & $0.800$ & 79/79 & 155016/151485 & $+0.000\;[+0.000,+0.000]$ \\
+DrGRPO & MathIR L3 & $0.980$ & $1.000$ & $0.038$ & $0.000$ & $0.200$ & $0.800$ & 16/18 & 24457/25393 & $-0.038\;[-0.202,+0.000]$ \\
+Initial Qwen 0.5B & MathIR L3 & $0.883$ & $0.912$ & $0.128$ & $0.162$ & $0.200$ & $0.800$ & 7/6 & 282/181 & $+0.013\;[-0.014,+0.052]$ \\
+Re:Dr & MathIR L3 & $1.000$ & $1.000$ & $0.000$ & $0.000$ & $0.200$ & $0.800$ & 34/34 & 46891/50301 & $+0.000\;[+0.000,+0.000]$ \\
+DrGRPO & Pantry L2 & $0.374$ & $0.276$ & $0.733$ & $0.780$ & $0.047$ & $0.953$ & 9/10 & 101/193 & $+0.220\;[-0.030,+0.470]$ \\
+Initial Qwen 0.5B & Pantry L2 & $0.849$ & $0.787$ & $0.587$ & $0.623$ & $0.052$ & $0.945$ & 7/10 & 212/178 & $-0.078\;[-0.300,+0.064]$ \\
+Re:Dr & Pantry L2 & $0.600$ & $0.613$ & $0.343$ & $0.218$ & $0.051$ & $0.942$ & 16/18 & 10144/8510 & $-0.093\;[-0.220,+0.007]$ \\
+DrGRPO & Pantry L3 & $0.203$ & $0.228$ & $0.808$ & $0.680$ & $0.047$ & $0.950$ & 10/12 & 134/165 & $-0.156\;[-0.359,+0.081]$ \\
+Initial Qwen 0.5B & Pantry L3 & $0.375$ & $0.313$ & $0.307$ & $0.341$ & $0.049$ & $0.945$ & 7/6 & 531/705 & $-0.017\;[-0.109,+0.091]$ \\
+Re:Dr & Pantry L3 & $0.636$ & $0.666$ & $0.337$ & $0.198$ & $0.051$ & $0.941$ & 10/11 & 4006/3946 & $-0.112\;[-0.319,+0.008]$ \\
 \bottomrule
 \end{tabular}}
 \end{table}
@@ -294,40 +233,8 @@ Re:Dr & Pantry L3 & $0.636$ & $0.666$ & $0.051$ & $0.052$ & 10/11 & 4006/3946 \\
 
 \includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{figures/modebench_discovery_correct_budget_local.pdf}
 
-\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the following table gives all strict joint counts for every method, level, and correct-draw budget, including groups with zero eligible prompts.}
+\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the strict joint counts for every method, level and correct-draw budget, including groups with zero eligible prompts, are retained in the report rather than printed, and the $m=2$ counts the breadth contrast rests on are the $E$ column of Table~\ref{tab:discovery-breadth-local}.}
 
 \label{fig:discovery-correct-budget-local}
 
 \end{figure}
-
-\begin{table}[H]
-\centering\scriptsize
-\setlength{\tabcolsep}{4pt}
-\caption{Strict joint eligibility for a fixed correct-draw budget: both wordings must have at least $m$ correct draws. Entries count eligible checkpoint--problem groups, summing over displayed seeds; the same 16 problems recur across checkpoints. Arm-specific eligibility at every $m$ is also retained in the report for both prompt wordings and every registered checkpoint.}
-\label{tab:discovery-eligibility-local}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{llrrrrrrr}
-\toprule
-Model & Cell & $m=1$ & $m=2$ & $m=4$ & $m=8$ & $m=16$ & $m=32$ & $m=64$ \\
-\midrule
-DrGRPO ($s=5$) & Python factors L2 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
-Initial Qwen 0.5B ($s=1$) & Python factors L2 & 3 & 3 & 2 & 0 & 0 & 0 & 0 \\
-Re:Dr ($s=5$) & Python factors L2 & 59 & 53 & 44 & 36 & 28 & 13 & 0 \\
-DrGRPO ($s=5$) & Python factors L3 & 3 & 0 & 0 & 0 & 0 & 0 & 0 \\
-Initial Qwen 0.5B ($s=1$) & Python factors L3 & 2 & 1 & 0 & 0 & 0 & 0 & 0 \\
-Re:Dr ($s=5$) & Python factors L3 & 60 & 52 & 44 & 35 & 26 & 7 & 0 \\
-DrGRPO ($s=5$) & MathIR L2 & 42 & 42 & 40 & 40 & 39 & 37 & 30 \\
-Initial Qwen 0.5B ($s=1$) & MathIR L2 & 4 & 3 & 3 & 1 & 0 & 0 & 0 \\
-Re:Dr ($s=5$) & MathIR L2 & 79 & 79 & 78 & 76 & 76 & 75 & 70 \\
-DrGRPO ($s=5$) & MathIR L3 & 15 & 14 & 14 & 14 & 14 & 14 & 6 \\
-Initial Qwen 0.5B ($s=1$) & MathIR L3 & 8 & 6 & 6 & 2 & 0 & 0 & 0 \\
-Re:Dr ($s=5$) & MathIR L3 & 32 & 30 & 28 & 25 & 24 & 23 & 13 \\
-DrGRPO ($s=2$) & Pantry L2 & 9 & 4 & 1 & 1 & 0 & 0 & 0 \\
-Initial Qwen 0.5B ($s=1$) & Pantry L2 & 10 & 7 & 4 & 2 & 0 & 0 & 0 \\
-Re:Dr ($s=2$) & Pantry L2 & 17 & 15 & 12 & 11 & 10 & 5 & 0 \\
-DrGRPO ($s=2$) & Pantry L3 & 13 & 9 & 4 & 1 & 0 & 0 & 0 \\
-Initial Qwen 0.5B ($s=1$) & Pantry L3 & 8 & 6 & 5 & 4 & 2 & 0 & 0 \\
-Re:Dr ($s=2$) & Pantry L3 & 11 & 8 & 6 & 5 & 4 & 2 & 0 \\
-\bottomrule
-\end{tabular}}
-\end{table}

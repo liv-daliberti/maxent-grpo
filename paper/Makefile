@@ -6,7 +6,10 @@ ANALYSIS_STAMP = $(subst -,,$(ANALYSIS_DATE))
 AUDIT_DIR ?= audits/results_completion_$(ANALYSIS_STAMP)
 ENDPOINT_AUDIT ?= $(AUDIT_DIR)/latest_endpoints.json
 LEVEL_SNAPSHOT ?= results/modebench_level_comparison_snapshot.json
-TRAINING_SNAPSHOT ?= results/training_curve_snapshot_$(ANALYSIS_STAMP).json
+# Pinned to its own date rather than ANALYSIS_STAMP: this snapshot carries the
+# amendment-5 provenance admissions (audits/training_curve_provenance_20260919),
+# which no other ANALYSIS_STAMP target shares.
+TRAINING_SNAPSHOT ?= results/training_curve_snapshot_20260919.json
 SYNC_AUDIT_DIR ?= audits/streamlining_$(ANALYSIS_STAMP)/workshop_sync
 LATEX = pdflatex -interaction=nonstopmode -halt-on-error
 # The prompt appendix is regenerated from the frozen Hugging Face splits, so it
@@ -32,6 +35,7 @@ FIGURES = \
 	figures/e118_all_scale_factorial_progress.pdf \
 	figures/modebench_level_admission.pdf \
 	figures/e118_scale_extensions_appendix.pdf \
+	figures/decoding_objection.pdf \
 	figures/direct_comparator_endpoint_effects.pdf \
 	figures/direct_baseline_learning_curves_static_strip.pdf \
 	figures/factorial_training_curves_pass8.pdf \
@@ -55,6 +59,7 @@ COMPARISON_JSON = \
 	figures/modebench_level_construction.json \
 	figures/modebench_base_levels_appendix.json \
 	figures/e118_scale_extensions_appendix.json \
+	figures/decoding_objection.json \
 	figures/direct_comparator_endpoint_effects.json \
 	figures/direct_baseline_learning_curves_static_strip.json \
 	figures/factorial_training_curves_pass8.json \
@@ -74,12 +79,34 @@ all: $(PAPER).pdf
 inference-followups:
 	$(DATA_PYTHON) ../ops/build_paper_inference_followups.py --check
 
-HOSTED_LEVEL_SUMMARY = results/hosted_level_averages_20260911.tex results/hosted_level_averages_20260911.json
+# The five-domain withdrawal appendix reads frozen outcome keys only; --check
+# authenticates the frozen protocol, the audit and every rendered value.
+.PHONY: portfolio-withdrawals
+portfolio-withdrawals:
+	$(DATA_PYTHON) ../ops/build_paper_portfolio_withdrawals.py --check
+
+HOSTED_LEVEL_SUMMARY = results/hosted_level_averages_20260911.tex results/hosted_level_averages_20260911_parity.tex results/hosted_level_averages_20260911.json
+SOL_PYTHON_PARITY = results/gpt56sol_python_parity_20260918.tex results/gpt56sol_python_parity_20260918.json
+SOL_PYTHON_PARITY_SOURCE = ../artifacts/frontier_modebench_gpt56sol_python_parity_20260918/paired_wording_comparison.json
 HOSTED_REASONING_SOURCE = ../artifacts/hosted_reasoning_off_32_20260911_v2/reasoning_comparison.json
 HOSTED_REASONING_ASSETS = results/hosted_reasoning_off_20260912.json results/hosted_reasoning_off_20260912_main.tex results/hosted_reasoning_off_20260912_appendix.tex
 
 
 INFERENCE_FOLLOWUPS = results/inference_followups_20260912.tex results/inference_followups_20260912.json figures/pantry_adaptation_recovery_20260912.pdf figures/pantry_adaptation_recovery_20260912.png
+PORTFOLIO_WITHDRAWALS = results/portfolio_withdrawals_20260917.tex results/portfolio_withdrawals_20260917.json results/portfolio_withdrawal_macros.tex
+PORTFOLIO_WITHDRAWAL_EVIDENCE = ../artifacts/modebench_portfolio_withdrawals_20260917/inputs.json \
+	../artifacts/modebench_portfolio_withdrawals_20260917/table.json.gz \
+	../artifacts/modebench_portfolio_withdrawals_20260917/results.json \
+	../artifacts/modebench_portfolio_withdrawals_20260917/independent_audit.json \
+	../artifacts/modebench_portfolio_withdrawal_controls_20260917/results.json \
+	audits/portfolio_withdrawals_20260917/source_sha256.json
+PORTFOLIO_WITHDRAWAL_SCRIPTS = ../ops/portfolio_withdrawals.py ../ops/prepare_portfolio_withdrawals.py \
+	../ops/analyze_portfolio_withdrawals.py ../ops/audit_portfolio_withdrawals.py \
+	../ops/analyze_portfolio_withdrawal_controls.py \
+	../ops/build_paper_portfolio_withdrawals.py
+
+$(PORTFOLIO_WITHDRAWALS): $(PORTFOLIO_WITHDRAWAL_EVIDENCE) $(PORTFOLIO_WITHDRAWAL_SCRIPTS)
+	$(DATA_PYTHON) ../ops/build_paper_portfolio_withdrawals.py
 
 # Publication targets require a complete authenticated report for this fixed study.
 # They consume retained evidence and never launch model requests.
@@ -132,6 +159,9 @@ ANALYSIS_SCRIPTS = $(GPT56_DISCOVERY_SCRIPTS) $(GPT56_DISCOVERY_EVIDENCE) ../art
 	../ops/exp_scaling/build_paper_level2_factorial_contrasts.py \
 	../ops/build_pmd_retention_matrix.py ../ops/build_paper_retention_matrix_tables.py
 
+$(SOL_PYTHON_PARITY) &: ../ops/build_paper_gpt56sol_python_parity.py $(SOL_PYTHON_PARITY_SOURCE)
+	$(PYTHON) ../ops/build_paper_gpt56sol_python_parity.py
+
 $(HOSTED_LEVEL_SUMMARY) &: ../ops/build_paper_hosted_level_averages.py ../ops/plot_paper_hosted_breadth.py results/frontier_comparison_20260911.json $(wildcard icons/*.png)
 	$(PYTHON) ../ops/build_paper_hosted_level_averages.py
 
@@ -156,7 +186,7 @@ figures/frontier_level_grid.pdf figures/frontier_level_grid.png figures/frontier
 figures/replay_bank_decomposition.pdf figures/replay_bank_decomposition.png figures/replay_bank_decomposition.json results/replay_bank_decomposition_macros.tex &: ../ops/plot_paper_replay_bank_decomposition.py ../ops/paper_style.py results/replay_bank_decomposition_measured.json
 	$(DATA_PYTHON) ../ops/plot_paper_replay_bank_decomposition.py
 
-$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) $(RESULTS) $(PROMPT_ABLATION_ASSETS) $(DISCOVERY_CURVE_ASSETS) $(ANALYSIS_SCRIPTS) | prompt-ablation discovery-curves inference-followups
+$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) $(RESULTS) $(SOL_PYTHON_PARITY) $(PROMPT_ABLATION_ASSETS) $(DISCOVERY_CURVE_ASSETS) $(ANALYSIS_SCRIPTS) | prompt-ablation discovery-curves inference-followups
 	$(DATA_PYTHON) ../ops/check_paper_current_contract.py
 	$(DATA_PYTHON) ../ops/check_paper_domain_prompts.py
 	$(LATEX) $(PAPER)
@@ -215,6 +245,7 @@ figures-main:
 	$(PYTHON) ../ops/exp_scaling/plot_paper_modebench_levels.py --snapshot $(LEVEL_SNAPSHOT)
 	$(PYTHON) ../ops/plot_paper_hosted_breadth.py
 	$(PYTHON) ../ops/plot_paper_gpt56_all_levels32_sampling.py
+	$(PYTHON) ../ops/plot_paper_decoding_objection.py
 	$(PYTHON) ../ops/plot_paper_gpt56_temperature_curve.py
 
 # The original main artwork stays in place; additional quantitative views

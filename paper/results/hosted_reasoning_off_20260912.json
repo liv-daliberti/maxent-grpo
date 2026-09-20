@@ -6,11 +6,11 @@
   },
   "renderer": {
     "path": "ops/build_paper_hosted_reasoning_off.py",
-    "sha256": "1e4170d12c7dad3331bbe1cbe366e94375f86f60243b33dfca006431caf991d7"
+    "sha256": "a3dd9f102960ffea9d432a602f367f284fb752bc3c783196653befc9faf28139"
   },
   "icon_catalog": {
     "path": "paper/results/frontier_comparison_20260911.json",
-    "sha256": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4"
+    "sha256": "3a627cde10a2eef8cfe08a0dc2ee629fc15fabecd3cd98de78c6587d70513723"
   },
   "analysis_script": {
     "path": "/n/fs/similarity/maxent-grpo/ops/summarize_hosted_reasoning_off.py",
@@ -6190,6 +6190,10 @@
       "path": "paper/icons/claude.png",
       "sha256": "ac9f4c444f8107e1385e751a62772c61d41d93d6a0f637d67e3cc4895a831714"
     }
+  },
+  "pcmd_record": {
+    "path": "paper/results/hosted_reasoning_pmd.json",
+    "sha256": "92986c6c0af5d1096c8cdc5aff01f306fd6e8701841129867592dd924a8f5dc0"
   },
   "validation": {
     "all_admitted_evidence_hashes_authenticated": true,

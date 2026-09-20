@@ -8,11 +8,11 @@
   },
   "level": "level1",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/factorial_training_curves_pmd.pdf": "c47db92a9c8a7ea6f076b1745c7c5a6c212266e589d9b197bc5d9cfe95c335c5"
+    "/n/fs/similarity/maxent-grpo/paper/figures/factorial_training_curves_pmd.pdf": "c223961d74c5b34ff8de295f619309c2f423578623e4a85d2185f62bbf301c04"
   },
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_paper_mode_diversity_curves.py",
-    "sha256": "292a474213d06493a5fe90630d329d174e2b1841ec4d1a9bed3d558af4f44e22",
+    "sha256": "61dc5a61715d799247072932d0215d011b45e5416bcad3219cb61976d7c754a7",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
   },
@@ -77,21 +77,25 @@
         "seeds": 5,
         "steps": 33
       },
+      "falcon1b|mathir|drgrpo": {
+        "seeds": 5,
+        "steps": 33
+      },
       "falcon1b|mathir|grpo": {
-        "seeds": 4,
-        "steps": 25
+        "seeds": 5,
+        "steps": 33
       },
       "falcon1b|mathir|maxrl": {
         "seeds": 5,
-        "steps": 30
+        "steps": 33
       },
       "falcon1b|mathir|replay_drgrpo": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       },
       "falcon1b|mathir|replay_maxrl": {
         "seeds": 5,
-        "steps": 30
+        "steps": 33
       },
       "falcon1b|pantry_plan|drgrpo": {
         "seeds": 5,
@@ -113,37 +117,41 @@
         "seeds": 5,
         "steps": 33
       },
+      "falcon1b|python_factors|grpo": {
+        "seeds": 2,
+        "steps": 6
+      },
       "falcon1b|python_factors|maxrl": {
-        "seeds": 4,
-        "steps": 21
+        "seeds": 5,
+        "steps": 24
       },
       "falcon1b|python_factors|replay_drgrpo": {
         "seeds": 5,
-        "steps": 28
+        "steps": 31
       },
       "falcon1b|python_factors|replay_maxrl": {
         "seeds": 5,
-        "steps": 29
+        "steps": 31
       },
       "qwen05b|countdown|drgrpo": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       },
       "qwen05b|countdown|grpo": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       },
       "qwen05b|countdown|maxrl": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       },
       "qwen05b|countdown|replay_drgrpo": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       },
       "qwen05b|countdown|replay_maxrl": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       },
       "qwen05b|graph_coloring|drgrpo": {
         "seeds": 5,
@@ -205,37 +213,45 @@
         "seeds": 5,
         "steps": 33
       },
+      "qwen05b|python_factors|drgrpo": {
+        "seeds": 5,
+        "steps": 32
+      },
       "qwen05b|python_factors|grpo": {
-        "seeds": 1,
-        "steps": 2
+        "seeds": 5,
+        "steps": 32
+      },
+      "qwen05b|python_factors|maxrl": {
+        "seeds": 5,
+        "steps": 32
       },
       "qwen05b|python_factors|replay_drgrpo": {
-        "seeds": 3,
-        "steps": 31
+        "seeds": 5,
+        "steps": 32
       },
       "qwen05b|python_factors|replay_maxrl": {
-        "seeds": 4,
-        "steps": 30
+        "seeds": 5,
+        "steps": 32
       },
       "qwen3b|countdown|drgrpo": {
         "seeds": 5,
-        "steps": 30
+        "steps": 33
       },
       "qwen3b|countdown|grpo": {
         "seeds": 5,
-        "steps": 30
+        "steps": 33
       },
       "qwen3b|countdown|maxrl": {
         "seeds": 5,
-        "steps": 30
+        "steps": 33
       },
       "qwen3b|countdown|replay_drgrpo": {
         "seeds": 5,
-        "steps": 31
+        "steps": 33
       },
       "qwen3b|countdown|replay_maxrl": {
         "seeds": 5,
-        "steps": 31
+        "steps": 33
       },
       "qwen3b|graph_coloring|drgrpo": {
         "seeds": 5,
@@ -259,23 +275,23 @@
       },
       "qwen3b|mathir|drgrpo": {
         "seeds": 5,
-        "steps": 24
+        "steps": 33
       },
       "qwen3b|mathir|grpo": {
         "seeds": 5,
-        "steps": 26
+        "steps": 33
       },
       "qwen3b|mathir|maxrl": {
         "seeds": 5,
-        "steps": 28
+        "steps": 35
       },
       "qwen3b|mathir|replay_drgrpo": {
         "seeds": 5,
-        "steps": 30
+        "steps": 33
       },
       "qwen3b|mathir|replay_maxrl": {
         "seeds": 5,
-        "steps": 29
+        "steps": 33
       },
       "qwen3b|pantry_plan|drgrpo": {
         "seeds": 5,
@@ -297,13 +313,17 @@
         "seeds": 5,
         "steps": 33
       },
-      "qwen3b|python_factors|grpo": {
+      "qwen3b|python_factors|drgrpo": {
         "seeds": 2,
-        "steps": 29
+        "steps": 26
+      },
+      "qwen3b|python_factors|grpo": {
+        "seeds": 3,
+        "steps": 30
       },
       "qwen3b|python_factors|maxrl": {
-        "seeds": 4,
-        "steps": 31
+        "seeds": 5,
+        "steps": 33
       },
       "qwen3b|python_factors|replay_drgrpo": {
         "seeds": 5,
@@ -311,7 +331,7 @@
       },
       "qwen3b|python_factors|replay_maxrl": {
         "seeds": 5,
-        "steps": 32
+        "steps": 33
       }
     },
     "steps": [
@@ -332,6 +352,7 @@
       1344,
       1392,
       1440,
+      1488,
       1536,
       1632,
       1728,

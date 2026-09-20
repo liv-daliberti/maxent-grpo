@@ -863,6 +863,9 @@ def warm_frozen_python(contract):
 
 MODEL_LABELS = {'gpt56sol':'GPT-5.6 Sol','gpt54':'GPT-5.4','grok43':'Grok 4.3','qwen05b_initial':'Initial Qwen 0.5B'}
 METHOD_LABELS = {'drgrpo':'DrGRPO','replay_drgrpo':'Re:Dr'}
+#: Rows carry the display label; the PCMD record is keyed by the method
+#: name, and the untrained rows are the 'initial' cohort in both.
+MODEL_TO_METHOD = {label: method for method, label in METHOD_LABELS.items()}
 
 
 def display_rows(report, family, grading):
@@ -903,9 +906,175 @@ def interval_tex(metric,digits=3):
     return '$'+value+(r'\;['+','.join(scalar(x,digits,True) for x in ci)+']' if ci else '')+'$'
 
 
+def data_rows(block: str) -> list[str]:
+    """The numeric rows of a rendered table, for comparing two gradings."""
+    return [line.strip() for line in block.splitlines()
+            if line.count('&') >= 5 and '\\\\' in line]
+
+
+PMD_RELATIVE = Path('paper/results/prompt_ablation_pmd.json')
+
+
+def pmd_record_path():
+    """The paired PCMD record, found from this file wherever it is frozen.
+
+    A published copy of this analyzer lives inside its own artifact directory,
+    and the checker renders the appendix from that copy. Resolving the record
+    against a fixed number of parents would silently find nothing there and
+    print a table of dashes, so the repository root is located by what it
+    contains rather than by how deep this file happens to sit.
+    """
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / PMD_RELATIVE
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def pmd_cells():
+    """Paired PCMD keyed by (training method, domain, level), or {} if absent."""
+    record = pmd_record_path()
+    if record is None:
+        return {}
+    payload = json.loads(record.read_text(encoding='utf-8'))
+    if payload.get('schema') != 'paper-prompt-ablation-pmd-v1':
+        raise RuntimeError('prompt-ablation PCMD record schema drifted')
+    return {(c['method'], c['domain'], c['level']): c
+            for c in payload['cells'].values()}
+
+
+def three(value, signed=False):
+    """A PCMD-scale number, written as this paper writes them."""
+    return f"{value:+.3f}".replace('0.', '.', 1) if signed else (
+        f"{value:.3f}".replace('0.', '.', 1))
+
+
+#: Small counts are spelled out in this appendix, and its PCMD paragraph is
+#: generated, so the words come from the record rather than from the sentence.
+PMD_WORDS = ('no','one','two','three','four','five','six','seven','eight',
+             'nine','ten','eleven','twelve','thirteen','fourteen','fifteen')
+
+
+def pmd_word(count):
+    return PMD_WORDS[count] if count < len(PMD_WORDS) else str(count)
+
+
+def pmd_seed_gaps(report, informative):
+    """Disclose any checkpoint a PCMD cell averages without, and why.
+
+    A seed whose neutral arm almost never succeeds twice on one prompt leaves
+    PCMD undefined for that checkpoint, so the cell silently averages fewer
+    checkpoints than the $P_8$ and $D_8$ columns of the same row. The draws
+    behind the absence come from the record, so the sentence cannot drift.
+    """
+    counts = {(MODEL_TO_METHOD.get(row['label'], 'initial'), row['domain'], row['level']):
+              row['seed_count'] for row in display_rows(report, 'local', 'strict')}
+    gapped = [c for c in informative if c.get('seeds_without_support')]
+    if not gapped:
+        return ''
+    if len(gapped) > 1 or len(gapped[0]['seeds_without_support']) > 1:
+        raise RuntimeError('more than one PCMD checkpoint gap; rewrite its sentence')
+    cell = gapped[0]
+    gap = cell['seeds_without_support'][0]
+    seeds = counts.get((cell['method'], cell['domain'], cell['level']))
+    neutral, original = gap['arms']['neutral'], gap['arms']['original']
+    return (
+        r'One checkpoint leaves the Level ' + str(cell['level']) + r' cell rather '
+        r'than entering it as a smaller number: with the hint removed it returns '
+        + f"{neutral['verified']:,} verified draw"
+        + ('' if neutral['verified'] == 1 else 's')
+        + f" in {neutral['draws']:,}, against {original['verified']:,} of "
+        + f"{original['draws']:,} under the original wording, so no prompt of its "
+        r'reaches two verified draws in both arms and \pmd{} is undefined for it. '
+        + (f"That cell therefore averages {pmd_word(len(cell['seeds']))} checkpoints "
+           f"where $P_8$ and $D_8$ average {pmd_word(seeds)}. "
+           if seeds else '')
+        + r'App.~\ref{app:sampling-budget-ablation} reads the same six cells at '
+        r'64 draws per prompt, the budget at which this checkpoint becomes '
+        r'estimable again. ')
+
+
+def pmd_narrative(report):
+    """Report what the PCMD columns can and cannot carry, from the record."""
+    cells = list(pmd_cells().values())
+    if not cells:
+        return ''
+    reportable = [c for c in cells if c['reportable']]
+    degenerate = [c for c in reportable if c['degenerate']]
+    informative = [c for c in reportable if not c['degenerate']]
+    # The paragraph names one domain for the degenerate cells and one method
+    # and domain for the informative ones. If either stops being a single
+    # group, the sentence is wrong and has to be written again.
+    if (len({c['domain'] for c in degenerate}) != 1
+            or len({(c['method'], c['domain']) for c in informative}) != 1):
+        raise RuntimeError('prompt-ablation PCMD coverage changed shape; rewrite its paragraph')
+    degenerate_cell, informative_cell = degenerate[0], informative[0]
+    # Two point estimates of opposite sign do not establish an effect, and they
+    # do not establish its absence either; say only which it is.
+    signs = {c['effect'] > 0 for c in informative if c['effect'] != 0}
+    verdict = (r'The two disagree in sign, so this cohort shows no common '
+               r'direction for concentration under the intervention, and the '
+               r'fall in $D_8$ beside them cannot be read as one. '
+               if len(signs) > 1 else
+               r'Both move the same way, though two cells without intervals '
+               r'fix neither the size nor the reliability of that change. ')
+    moves = ' and '.join(
+        'from $' + three(c['original']) + r'$ to $' + three(c['neutral'])
+        + f"$ at Level {c['level']}" for c in sorted(informative, key=lambda c: c['level']))
+    counts = ' and '.join(f"{c['paired_prompts']:,}" for c in
+                          sorted(informative, key=lambda c: c['level']))
+    return (
+        r'The \pmd{} columns are sparse by construction, and the sparsity is the '
+        r'result. \pmd{} needs two verified responses to a prompt in both arms, and '
+        f"on this cohort only {pmd_word(len(reportable))} of the "
+        f"{pmd_word(len(cells))} checkpoint--domain--level cells reach thirty such "
+        f"prompts. {pmd_word(len(degenerate)).capitalize()} of those "
+        f"{pmd_word(len(reportable))} are "
+        + DOMAIN_LABELS[degenerate_cell['domain']] + r', where every verified draw '
+        r'returns the same key in both arms, so \pmd{} is $.000$ under either '
+        r'wording: the construction admits one canonical answer often enough that '
+        r'breadth cannot move. That leaves the '
+        + f"{pmd_word(len(informative))} "
+        + METHOD_LABELS[informative_cell['method']] + ' cells on '
+        + DOMAIN_LABELS[informative_cell['domain']] + r' as the only places '
+        r'this cohort can separate a change in concentration from a change in '
+        r'accuracy, and there removing the hint moves \pmd{} ' + moves
+        + f", on {counts} paired prompts, while correctness also falls. "
+        + verdict
+        + pmd_seed_gaps(report, informative)
+        + r'Read the dashes as absent measurements rather than as null effects.'
+        + '\n')
+
+
+def pmd_pair_tex(cell):
+    """Both arms' PCMD, or a dash where the cell cannot carry the measurement."""
+    if cell is None or not cell['reportable']:
+        return '--'
+    return '$' + three(cell['original']) + r'\to' + three(cell['neutral']) + '$'
+
+
+def pmd_tex(cell):
+    """A PCMD effect, or a dash where the cell cannot carry one."""
+    if cell is None or not cell['reportable']:
+        return '--'
+    return '$' + three(cell['effect'], signed=True) + '$'
+
+
 def render_table(report,family,grading):
     label = 'Hosted models' if family=='frontier' else 'Local Qwen2.5-0.5B checkpoints'
     grade_label = 'strict verification' if grading=='strict' else 'frozen formatting normalization'
+    # How many cells actually carry PCMD, counted before the caption is built so
+    # the reader meets the dashes with their frequency in hand rather than
+    # finding it argued in the paragraph below the table.
+    pmd = pmd_cells()
+    rows = list(display_rows(report, family, grading))
+
+    def _carried(row):
+        cell = pmd.get((MODEL_TO_METHOD.get(row['label'], 'initial'),
+                        row['domain'], row['level']))
+        return cell is not None and cell['reportable']
+
+    carried = sum(1 for row in rows if _carried(row))
     # Seven columns of signed intervals overrun \linewidth by ~37pt at 3pt
     # separation, and ~26pt at 2.2pt; the remainder can only come out of the
     # glyphs, so the body is scaled to the text block rather than bled past it.
@@ -914,20 +1083,34 @@ def render_table(report,family,grading):
              r'$P_8$ is empirical \texttt{pass@8}, $D_8$ is verified \texttt{distinct@8}, '
              r'and $B_8=D_8-P_8$. Effects are neutral minus original; brackets are pointwise 95\% intervals. '
              + ('Local rows average the displayed number of training seeds. Five-seed intervals include seed and paired-prompt resampling; two-seed Pantry intervals condition on the two fixed checkpoints. '
-                if family=='local' else 'Each model--domain--level row contains 32 paired problems and eight draws per arm. ')+r'}',
+                if family=='local' else 'Each model--domain--level row contains 32 paired problems and eight draws per arm. ')
+             + r'\pmd{} is the success-conditional axis: the mean probability that two verified draws on a prompt differ, '
+             + r'over the prompts that return two verified draws under both wordings, with $\Delta$ \pmd{} the neutral-minus-original '
+             + r'contrast on that same paired population. Unlike $P_8$ and $D_8$, it cannot fall merely because the model succeeds less '
+             + r'often, since a prompt it stops answering twice leaves the estimate instead of entering it as a smaller number. '
+             + r'A dash is a cell where fewer than thirty prompts clear that bar, '
+             + f'which {carried} of the {len(rows)} cells here do: the sparsity is '
+             + r'itself the finding, and the \pmd{} columns are read as a statement '
+             + r'about how rarely this cohort can carry the measurement rather than '
+             + r'as a survey of it. '
+             + r'}',
              r'\label{tab:prompt-hints-'+family+'-'+grading.replace('_','-')+'}',
              r'\resizebox{\linewidth}{!}{%',
-             r'\begin{tabular}{llrrrrr}',r'\toprule',
-             r'Model & Cell & $P_8$: O$\to$N & $D_8$: O$\to$N & $\Delta P_8$ [95\%] & $\Delta D_8$ [95\%] & $\Delta B_8$ \\',r'\midrule']
-    for row in display_rows(report,family,grading):
+             r'\begin{tabular}{llrrrrrrr}',r'\toprule',
+             r'Model & Cell & $P_8$: O$\to$N & $D_8$: O$\to$N & $\Delta P_8$ [95\%] & $\Delta D_8$ [95\%] & $\Delta B_8$ '
+             r'& \pmd{}: O$\to$N & $\Delta$ \pmd{} \\',r'\midrule']
+    for row in rows:
         metrics = row['metrics']
         original,neutral,delta = (metrics[k] for k in (*ARMS,CONTRAST))
         name = tex_escape(row['label'])+(f" ($s={row['seed_count']}$)" if family=='local' else '')
         cell = tex_escape(DOMAIN_LABELS[row['domain']])+f" L{row['level']}"
         p = '$'+scalar(original['pass8']['estimate'])+r'\to'+scalar(neutral['pass8']['estimate'])+'$'
         d = '$'+scalar(original['distinct8']['estimate'],2)+r'\to'+scalar(neutral['distinct8']['estimate'],2)+'$'
+        method = MODEL_TO_METHOD.get(row['label'], 'initial')
+        paired = pmd.get((method,row['domain'],row['level']))
         lines.append(' & '.join([name,cell,p,d,interval_tex(delta['pass8']),interval_tex(delta['distinct8'],2),
-                                '$'+scalar(delta['b8']['estimate'],2,True)+'$'])+r' \\')
+                                '$'+scalar(delta['b8']['estimate'],2,True)+'$',
+                                pmd_pair_tex(paired),pmd_tex(paired)])+r' \\')
     lines += [r'\bottomrule',r'\end{tabular}}',r'\end{table}','']
     return '\n'.join(lines)
 
@@ -990,8 +1173,23 @@ def render_appendix(report, figure_prefix='figures/modebench_prompt_ablation'):
                     r'and intervals conditional on the two checkpoints. The native local syntax constraints and 192-token budget '
                     r'differ from hosted inference, so effects are interpreted within each model and interface.'+'\n')
     for family in families:
-        for grading in GRADINGS:
-            text.append(render_table(report,family,grading))
+        # The secondary grading is a registered sensitivity analysis, and its
+        # result is sometimes "nothing changed". Printing a second table whose
+        # every digit repeats the first states that badly: a reader hunts for the
+        # difference. Where the normalizer rescues no response the table is
+        # replaced by the sentence that reports the same finding.
+        rendered = {g: render_table(report, family, g) for g in GRADINGS}
+        text.append(rendered['strict'])
+        text.append(pmd_narrative(report))
+        if data_rows(rendered['normalized_secondary']) == data_rows(rendered['strict']):
+            text.append(
+                r'The frozen formatting normalizer is a registered secondary grading '
+                r'for these cells. It rescued no additional response for any '
+                + ('hosted deployment' if family == 'frontier' else 'local checkpoint')
+                + r' here, so every strict and normalized figure in the table above '
+                r'is identical and the secondary table is not repeated.' + '\n')
+        else:
+            text.append(rendered['normalized_secondary'])
         text += [r'\begin{figure}[t]',r'\centering',
                  r'\includegraphics[width=\linewidth]{'+figure_prefix+'_'+family+r'.pdf}',
                  r'\caption{Prompt-hint removal effects for '+('hosted models' if family=='frontier' else 'local checkpoints')+

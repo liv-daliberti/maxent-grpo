@@ -32,9 +32,9 @@
       "smol17b": "#dab261",
       "smol360": "#4fb25d"
     },
-    "provisional_cells": 81,
+    "provisional_cells": 105,
     "provisional_encoding": "hollow marker with PCMD standard error",
-    "provisional_min_defined_prompts": 10,
+    "provisional_min_defined_prompts": 5,
     "unmeasurable_cells_have_no_height": true,
     "unmeasurable_strip": [
       -0.1,
@@ -53,7 +53,7 @@
   },
   "output": "paper/figures/mode_diversity_level_construction",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "5bee81425e3ba519e67664c2f4ed634eb34bcef5f32ce3ed0fd8717cfabf1676"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "fb2e09735d4b15743ea99b61feb9057a5b1db8a8a1036dabf3744e1da09f1b0c"
   },
   "points": [
     {
@@ -3809,7 +3809,7 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "f128eb1ceece08393e68f0acc1e7a27b7bf4cac678eb9cdb1538de663486d966",
+    "sha256": "db372e70d8e9e778159b7d78307da083dffe6cdb5487ab78ee5bd970fc52ff80",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
     "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
   },

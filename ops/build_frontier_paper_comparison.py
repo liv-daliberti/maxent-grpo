@@ -277,36 +277,78 @@ def overview_table(record, secondary=False):
     return '\n'.join(rows) + '\n\\bottomrule\n'
 
 
+def _cell_columns(cell):
+    return [metric(cell, 'pass1', True), metric(cell, 'pass8', True),
+            metric(cell, 'distinct8'),
+            metric(cell, 'correct_pair_collision', True, True),
+            metric(cell, 'uniform_correct_pair_collision', True)]
+
+
+LAYOUT_LEGEND = (r'Each cell has 128 prompts and 1,024 responses. '
+                 r'M/P denote \texttt{mean@8}/\texttt{pass@8} (\%); '
+                 r'D is \texttt{distinct@8}. C is correct-pair collision '
+                 r'(\%) with pointwise 95\% prompt-bootstrap intervals. U is its '
+                 r'conditional uniform reference (\%).')
+
+
 def cell_tables(record, secondary=False):
-    text = []
-    for index, run in enumerate(record['models']):
+    """One table for the cohort, not one per deployment.
+
+    Every deployment's cells carry the same five columns over the same fifteen
+    domain--level rows, so seven separate tables repeated the header, the
+    caption legend and the row labels seven times for a difference that is only
+    ever the model. They are one table with a deployment column.
+
+    The formatting sensitivity is reported as the rows it changes. It rescues
+    responses for most deployments but alters a minority of cells, and printing
+    an unchanged copy of every other cell beside them is the same repetition in
+    a second register; it is also the rule this paper already applies to the
+    prompt-hint and discovery secondary gradings. A deployment the normalizer
+    leaves entirely alone is named rather than tabulated.
+    """
+    rows = []
+    for run in record['models']:
         source = run['normalized_secondary'] if secondary else run
         if source is None:
             continue
-        kind = 'Post hoc formatting diagnostic' if secondary else 'Strict executable grades'
-        text.append(r'\begin{table}[!htbp]' + '\n  \\centering\n'
-                    + '  \\caption{\\textbf{' + tex(run['label']) + ': ' + kind + '.} '
-                    + r'Each cell has 128 prompts and 1,024 responses. '
-                    + r'M/P denote \texttt{mean@8}/\texttt{pass@8} (\%); '
-                    + r'D is \texttt{distinct@8}. C is correct-pair collision '
-                    + r'(\%) with pointwise 95\% prompt-bootstrap intervals. U is its '
-                    + r'conditional uniform reference (\%).}' + '\n'
-                    + r'  \small' + '\n' + r'  \setlength{\tabcolsep}{4pt}' + '\n'
-                    + r'  \begin{tabular}{@{}rlrrrrr@{}}' + '\n'
-                    + r'    \toprule' + '\n'
-                    + r'    Level & Domain & M & P & D & C (95\% interval) & U \\' + '\n'
-                    + r'    \midrule')
         for level in (1, 2, 3):
-            if level > 1:
-                text.append(r'    \midrule')
             for domain, label in DOMAINS.items():
-                cell = source['cells'][f'level{level}/{domain}']
-                columns = [str(level), label, metric(cell, 'pass1', True),
-                           metric(cell, 'pass8', True), metric(cell, 'distinct8'),
-                           metric(cell, 'correct_pair_collision', True, True),
-                           metric(cell, 'uniform_correct_pair_collision', True)]
-                text.append('    ' + ' & '.join(columns) + r' \\')
-        text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
+                key = f'level{level}/{domain}'
+                columns = _cell_columns(source['cells'][key])
+                if secondary and columns == _cell_columns(run['cells'][key]):
+                    continue
+                rows.append((tex(run['label']), str(level), label, columns))
+    if secondary:
+        unchanged = [tex(run['label']) for run in record['models']
+                     if run.get('normalized_secondary') is not None
+                     and not any(r[0] == tex(run['label']) for r in rows)]
+        if not rows:
+            return ('The frozen formatting normalizer rescued no response in any '
+                    'cell of this cohort, so every normalized grade repeats its '
+                    'strict counterpart and no second table is printed.\n')
+        caption = (r'\caption{\textbf{Post hoc formatting diagnostic: the cells it changes.} '
+                   + LAYOUT_LEGEND
+                   + r' Only cells whose normalized grade differs from its strict grade appear; '
+                   + r'every cell absent here is identical under both gradings.'
+                   + (' The normalizer rescued no response for ' + ', '.join(unchanged) + '.'
+                      if unchanged else '')
+                   + r'}')
+    else:
+        caption = (r'\caption{\textbf{Strict executable grades, every hosted deployment.} '
+                   + LAYOUT_LEGEND + r'}')
+    text = [r'\begin{table}[!htbp]', r'  \centering', '  ' + caption,
+            r'  \scriptsize', r'  \setlength{\tabcolsep}{4pt}',
+            r'  \begin{tabular}{@{}lrlrrrrr@{}}', r'    \toprule',
+            r'    Deployment & Level & Domain & M & P & D & C (95\% interval) & U \\',
+            r'    \midrule']
+    previous = None
+    for label, level, domain, columns in rows:
+        if previous is not None and label != previous:
+            text.append(r'    \addlinespace[2pt]')
+        text.append('    ' + ' & '.join([label if label != previous else '',
+                                         level, domain, *columns]) + r' \\')
+        previous = label
+    text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
     return '\n'.join(text)
 
 
@@ -543,47 +585,96 @@ def export(record, output, figures, stem):
                     'Correct-pair collision is undefined when no prompt supplies two correct draws.',
                     'The five-domain mean is therefore undefined if any domain has no eligible',
                     'pairs; such entries remain -- rather than zero or a mean over fewer domains.', '']
+    # Native completion states, one line per deployment rather than one
+    # paragraph each: the sentence that followed every count was identical, so
+    # it is stated once for the group and the counts become a list.
+    unaudited = [tex(run['label']) for run in record['models']
+                 if run.get('provider_outcomes') is None]
+    states = []
     for run in record['models']:
         outcomes = run.get('provider_outcomes')
         if outcomes is None:
-            outcome_text.append(tex(run['label']) + ': no native-outcome audit is included; refusal counts are not inferred as zero.\n')
             continue
         stop_counts = {}
         for cell in outcomes['cells'].values():
             for reason, count in cell.get('stop_reason_counts', {}).items():
                 stop_counts[reason] = stop_counts.get(reason, 0) + count
-        outcome_text += [tex(run['label']) + ' native completion states: '
-                         + tex(', '.join(f'{reason}: {count:,}'
-                                         for reason, count in sorted(stop_counts.items())))
-                         + '. Empty visible answers are reported separately from provider refusals.', '']
+        states.append(r'\item ' + tex(run['label']) + ' --- '
+                      + tex(', '.join(f'{reason}: {count:,}'
+                                      for reason, count in sorted(stop_counts.items()))))
+    if states:
+        outcome_text += ['Native completion states, summed over every cell of each deployment. '
+                         'Empty visible answers are reported separately from provider refusals '
+                         'throughout.', '',
+                         r'\begin{itemize}\setlength{\itemsep}{0pt}', *states,
+                         r'\end{itemize}', '']
+    if unaudited:
+        outcome_text += ['No native-outcome audit is included for ' + ', '.join(unaudited)
+                         + '; refusal counts are not inferred as zero for them.', '']
+    for run in record['models']:
+        outcomes = run.get('provider_outcomes')
+        if outcomes is None:
+            continue
         if run['model'].startswith('claude-'):
             python_counts = [outcomes['cells'][f'level{level}/python_factors']['refusals'] for level in (1, 2, 3)]
             categories = {}
             for level in (1, 2, 3):
                 for category, count in outcomes['cells'][f'level{level}/python_factors'].get('refusal_category_counts', {}).items():
                     categories[category] = categories.get(category, 0) + count
-            outcome_text += [tex(run['label']) + ' returns provider-declared refusals for '
-                             + ', '.join(str(count) for count in python_counts)
-                             + ' of the 1,024 Python requests at Levels 1, 2 and 3, respectively.',
-                             'The native refusal categories on these Python draws are '
-                             + tex(', '.join(f'{key}: {value}' for key, value in categories.items()) or 'not supplied')
-                             + '. These are benign factor-selection tasks; the reported deployment policy',
-                             'must be distinguished from concentration among correct Python outputs.', '']
-        outcome_text += [r'\begin{table}[!htbp]', r'  \centering',
-                         r'  \caption{\textbf{Native service outcomes: ' + tex(run['label']) + r'.} '
-                         + r'Every row contains 1,024 responses. R counts provider-declared refusals, '
-                         + r'F content-filtered stops, and E empty visible answers. Counters may overlap; '
-                         + r'they do not replace the frozen verifier grades.}',
-                         r'  \small', r'  \begin{tabular}{@{}rlrrr@{}}', r'    \toprule',
-                         r'    Level & Domain & R & F & E \\', r'    \midrule']
+            if any(python_counts):
+                outcome_text += [tex(run['label']) + ' returns provider-declared refusals for '
+                                 + ', '.join(str(count) for count in python_counts)
+                                 + ' of the 1,024 Python requests at Levels 1, 2 and 3, respectively.',
+                                 # The category totals are summed over the three levels,
+                                 # which a reader cannot tell from a bare number sitting
+                                 # beside the per-level counts just printed.
+                                 'Summed over those three levels, the native refusal categories on '
+                                 'these Python draws are '
+                                 + tex(', '.join(f'{key}: {value}' for key, value in categories.items()) or 'not supplied')
+                                 + '. These are benign factor-selection tasks; the reported deployment policy',
+                                 'must be distinguished from concentration among correct Python outputs.', '']
+
+    # One table for the cohort, listing only the cells that carry a counter. A
+    # table per deployment printed 105 rows to report 22 non-zero ones, and
+    # three deployments contributed nothing but zeros to it.
+    rows, quiet = [], []
+    for run in record['models']:
+        outcomes = run.get('provider_outcomes')
+        if outcomes is None:
+            continue
+        seen = False
         for level in (1, 2, 3):
-            if level > 1:
-                outcome_text.append(r'    \midrule')
             for domain, label in DOMAINS.items():
                 cell = outcomes['cells'][f'level{level}/{domain}']
-                outcome_text.append('    ' + ' & '.join([str(level), label, str(cell['refusals']),
-                                                        str(cell['content_filtered']), str(cell['empty_answer_text'])]) + r' \\')
-        outcome_text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
+                counters = (cell['refusals'], cell['content_filtered'], cell['empty_answer_text'])
+                if not any(counters):
+                    continue
+                rows.append((tex(run['label']), str(level), label, [str(c) for c in counters]))
+                seen = True
+        if not seen:
+            quiet.append(tex(run['label']))
+    total = sum(1 for run in record['models'] if run.get('provider_outcomes') is not None) * 15
+    outcome_text += [r'\begin{table}[!htbp]', r'  \centering',
+                     r'  \caption{\textbf{Native service outcomes, every non-zero cell.} Each '
+                     + r'deployment answers 1,024 responses per level and domain. R counts '
+                     + r'provider-declared refusals, F content-filtered stops, and E empty visible '
+                     + r'answers. Counters may overlap; they do not replace the frozen verifier '
+                     + f'grades. Only cells with a non-zero counter are listed: the other {total - len(rows)} of the '
+                     + f'{total} are $0/0/0$'
+                     + (', including every cell for ' + ', '.join(quiet)
+                        + ', whose service returned no refusal, filter or empty answer anywhere'
+                        if quiet else '') + r'.}',
+                     r'  \label{tab:hosted-provider-outcomes}',
+                     r'  \small', r'  \setlength{\tabcolsep}{5pt}',
+                     r'  \begin{tabular}{@{}llrrrr@{}}', r'    \toprule',
+                     r'    \textbf{Deployment} & \textbf{L} & \textbf{Domain} &',
+                     r'      \textbf{R} & \textbf{F} & \textbf{E} \\', r'    \midrule']
+    previous = None
+    for label, level, domain, counters in rows:
+        outcome_text.append('    ' + ' & '.join([label if label != previous else '',
+                                                 level, domain, *counters]) + r' \\')
+        previous = label
+    outcome_text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
     output.joinpath(stem + '_provider_outcomes.tex').write_text('\n'.join(outcome_text) + '\n')
     appendix = r'''\clearpage
 \section{Comparison across Hosted Deployments}

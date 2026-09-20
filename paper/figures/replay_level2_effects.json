@@ -1,7 +1,7 @@
 {
   "builder": {
     "path": "ops/plot_paper_reorganized_results.py",
-    "sha256": "28dd6d2a016fc4580159723cc806004c5e3f17b718849090d2dc012542ad5964"
+    "sha256": "15442be342044859150273b678e5dc3d516cdf28ad974b38ac57c854f5b8ee80"
   },
   "cohort_rule": "all-four-arm paired seed intersection within each domain",
   "contrast_direction": "replay minus the same base objective within Level 2",
@@ -41,11 +41,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/replay_level2_effects.pdf",
-      "sha256": "ba4d581f5a20d3d45a7a34c7ed1bfa2666dd46673d3a1904f457d058dc5ea906"
+      "sha256": "cd2bf8c70e91a63033e646a65c8970903f358305c79764dbac9db156d617242e"
     },
     "png": {
       "path": "paper/figures/replay_level2_effects.png",
-      "sha256": "a7c9fd1d4bb4ddf68017d4b1e5b017b9874746d6460842d415fff21b417f292a"
+      "sha256": "35e317a0ff6009866bf8cdfee68cae6260e17318e285fac34868ee04d09de3d4"
     }
   },
   "paired_seed_counts": {
@@ -64,8 +64,12 @@
   ],
   "plotted_metrics": [
     "pass8",
-    "distinct8"
+    "pmd"
   ],
+  "pmd_source": {
+    "path": "paper/results/mode_diversity_retention_matrix.json",
+    "sha256": "08ee86f816539077f6be129aba2a20ae9e2fb36110a0f6b2117fbd22c56ba79e"
+  },
   "rows": [
     {
       "contrast": "replay_drgrpo_minus_drgrpo",
@@ -74,30 +78,6 @@
       "objective": "drgrpo",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            0.8824502081142229,
-            1.1550497918857772
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 1.01875,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.8515625,
-            "44": 1.01953125,
-            "45": 1.09375,
-            "46": 0.9921875,
-            "47": 1.13671875
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             0.44461489371182067,
@@ -120,6 +100,26 @@
             45,
             46,
             47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            0.17047227469262027,
+            0.4575656939928745
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.3140189843427474,
+          "n": 3,
+          "partial": true,
+          "per_seed": {
+            "43": 0.25010709187188085,
+            "45": 0.36255978985336784,
+            "46": 0.32939007130299347
+          },
+          "seeds": [
+            43,
+            45,
+            46
           ]
         }
       },
@@ -161,30 +161,6 @@
       "objective": "maxrl",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            0.5327041559096666,
-            0.8032333440903334
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.66796875,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.505859375,
-            "44": 0.693359375,
-            "45": 0.62109375,
-            "46": 0.732421875,
-            "47": 0.787109375
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             0.2498193224045962,
@@ -200,6 +176,30 @@
             "45": 0.294921875,
             "46": 0.31640625,
             "47": 0.3515625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            0.17012248776830682,
+            0.2546589577861078
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.21239072277720733,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.17787124003707777,
+            "44": 0.191116979610091,
+            "45": 0.19525843229950332,
+            "46": 0.2443778636934209,
+            "47": 0.2533290982459437
           },
           "seeds": [
             43,
@@ -248,30 +248,6 @@
       "objective": "drgrpo",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            -0.047344490661391236,
-            0.13718824066139124
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.044921875,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.07421875,
-            "44": 0.126953125,
-            "45": -0.07421875,
-            "46": 0.060546875,
-            "47": 0.037109375
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             -0.05300599182867781,
@@ -335,30 +311,6 @@
       "objective": "maxrl",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            -0.02217423827506363,
-            0.13623673827506363
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.05703125,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.01953125,
-            "44": 0.11328125,
-            "45": -0.013671875,
-            "46": 0.03125,
-            "47": 0.134765625
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             -0.03415018225949684,
@@ -381,6 +333,19 @@
             45,
             46,
             47
+          ]
+        },
+        "pmd": {
+          "ci95": null,
+          "interval_type": null,
+          "mean": 0.09229054591067176,
+          "n": 1,
+          "partial": true,
+          "per_seed": {
+            "46": 0.09229054591067176
+          },
+          "seeds": [
+            46
           ]
         }
       },
@@ -422,30 +387,6 @@
       "objective": "drgrpo",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            -0.0771226196546953,
-            0.8771226196546953
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.4,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.8125,
-            "44": 0.1875,
-            "45": 0.8125,
-            "46": 0.1875,
-            "47": 0.0
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             -0.05251638387342321,
@@ -460,6 +401,30 @@
             "44": 0.1875,
             "45": 0.0,
             "46": 0.1875,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            -0.1282785936193596,
+            0.490375367812908
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.1810483870967742,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.4173387096774194,
+            "44": 0.0,
+            "45": 0.4879032258064516,
+            "46": 0.0,
             "47": 0.0
           },
           "seeds": [
@@ -509,30 +474,6 @@
       "objective": "maxrl",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            -0.24233989640430614,
-            0.6665586464043061
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.212109375,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.1875,
-            "44": 0.021484375,
-            "45": 0.0,
-            "46": 0.0,
-            "47": 0.8515625
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             -0.06661669144491744,
@@ -544,6 +485,202 @@
           "partial": false,
           "per_seed": {
             "43": 0.1875,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            -0.15201335231083546,
+            0.3286507530903386
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.08831870038975156,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.007017679900744417,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.43457582204801337
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "mathir",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "pass8": {
+          "ci95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.492578125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0,
+          "n": 4,
+          "partial": true,
+          "per_seed": {
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "seeds": [
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "mathir",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "pass8": {
+          "ci95": [
+            -0.2767945280969861,
+            0.6228882780969861
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.173046875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.154296875,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            -0.0013533251231527088,
+            0.0028773399014778316
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0007620073891625615,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.0038100369458128076,
             "44": 0.0,
             "45": 0.0,
             "46": 0.0,
@@ -591,209 +728,11 @@
     },
     {
       "contrast": "replay_drgrpo_minus_drgrpo",
-      "domain": "mathir",
-      "model": "Qwen2.5-0.5B-Instruct",
-      "objective": "drgrpo",
-      "scale": "qwen05b",
-      "summaries": {
-        "distinct8": {
-          "ci95": [
-            -0.0022911965772516307,
-            0.9874474465772516
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.492578125,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.890625,
-            "44": 0.046875,
-            "45": 0.640625,
-            "46": 0.796875,
-            "47": 0.087890625
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
-        "pass8": {
-          "ci95": [
-            -0.0022911965772516307,
-            0.9874474465772516
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.492578125,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.890625,
-            "44": 0.046875,
-            "45": 0.640625,
-            "46": 0.796875,
-            "47": 0.087890625
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        }
-      },
-      "terminal_seeds_by_arm": {
-        "drgrpo": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ],
-        "maxrl": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ],
-        "replay_drgrpo": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ],
-        "replay_maxrl": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ]
-      }
-    },
-    {
-      "contrast": "replay_maxrl_minus_maxrl",
-      "domain": "mathir",
-      "model": "Qwen2.5-0.5B-Instruct",
-      "objective": "maxrl",
-      "scale": "qwen05b",
-      "summaries": {
-        "distinct8": {
-          "ci95": [
-            -0.2751274238504915,
-            0.6243461738504915
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.174609375,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.162109375,
-            "44": 0.12890625,
-            "45": -0.2109375,
-            "46": 0.767578125,
-            "47": 0.025390625
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
-        "pass8": {
-          "ci95": [
-            -0.2767945280969861,
-            0.6228882780969861
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.173046875,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.154296875,
-            "44": 0.12890625,
-            "45": -0.2109375,
-            "46": 0.767578125,
-            "47": 0.025390625
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        }
-      },
-      "terminal_seeds_by_arm": {
-        "drgrpo": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ],
-        "maxrl": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ],
-        "replay_drgrpo": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ],
-        "replay_maxrl": [
-          43,
-          44,
-          45,
-          46,
-          47
-        ]
-      }
-    },
-    {
-      "contrast": "replay_drgrpo_minus_drgrpo",
       "domain": "pantry_plan",
       "model": "Qwen2.5-0.5B-Instruct",
       "objective": "drgrpo",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            0.2869925230266938,
-            0.6958199769733062
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.49140625,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.501953125,
-            "44": 0.5703125,
-            "45": 0.677734375,
-            "46": 0.232421875,
-            "47": 0.474609375
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             0.18285086282941615,
@@ -817,6 +756,26 @@
             46,
             47
           ]
+        },
+        "pmd": {
+          "ci95": [
+            -0.25018636007636774,
+            0.2911943042146382
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.02050397206913523,
+          "n": 3,
+          "partial": true,
+          "per_seed": {
+            "45": 0.04135502051485124,
+            "46": -0.09737354065585796,
+            "47": 0.11753043634841241
+          },
+          "seeds": [
+            45,
+            46,
+            47
+          ]
         }
       },
       "terminal_seeds_by_arm": {
@@ -857,30 +816,6 @@
       "objective": "maxrl",
       "scale": "qwen05b",
       "summaries": {
-        "distinct8": {
-          "ci95": [
-            0.18212203415342618,
-            0.6413154658465738
-          ],
-          "interval_type": "paired Student-t 95%",
-          "mean": 0.41171875,
-          "n": 5,
-          "partial": false,
-          "per_seed": {
-            "43": 0.404296875,
-            "44": 0.650390625,
-            "45": 0.34375,
-            "46": 0.154296875,
-            "47": 0.505859375
-          },
-          "seeds": [
-            43,
-            44,
-            45,
-            46,
-            47
-          ]
-        },
         "pass8": {
           "ci95": [
             0.1455854018159548,
@@ -903,6 +838,28 @@
             45,
             46,
             47
+          ]
+        },
+        "pmd": {
+          "ci95": [
+            -0.08635100264650783,
+            0.22749369451821308
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.07057134593585263,
+          "n": 4,
+          "partial": true,
+          "per_seed": {
+            "43": 0.09512797689101263,
+            "44": 0.1926350144721154,
+            "45": 0.035556483852211496,
+            "46": -0.04103409147192902
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46
           ]
         }
       },

@@ -98,9 +98,35 @@ def _metadata(stem: str, size: tuple[float, float], sources: list[dict[str, str]
     }
 
 
+PMD_PANEL = 'paper/results/mode_diversity_retention_matrix.json'
+#: The panel labels the replay arms; this figure keys them by fresh objective.
+PMD_ARM = {'drgrpo': 'Re:Dr', 'maxrl': 'Re:Max'}
+
+
+def _pmd_summary(panel: dict[str, Any], scale: str, method: str,
+                 domain: str) -> dict[str, Any] | None:
+    """The paired PCMD effect for one cell, on the seeds that define it.
+
+    distinct@8 moves with correctness, so a breadth panel drawn on it cannot
+    separate succeeding more often from succeeding in more ways. PCMD can, and
+    it brings its own seed population: a seed whose control defines no PCMD
+    contributes to neither side, so ``n`` here is not the pass@8 pairing's.
+    """
+    cell = panel.get(scale, {}).get(PMD_ARM[method], {}).get(domain)
+    if not cell or not cell['n']:
+        return None
+    interval = deepcopy(cell['student_t_95'])
+    return {'mean': cell['mean'], 'ci95': interval, 'n': cell['n'],
+            'seeds': sorted(int(seed) for seed in cell['per_seed']),
+            'interval_type': 'paired Student-t 95%' if interval else None,
+            'partial': cell['n'] < 5,
+            'per_seed': deepcopy(cell['per_seed'])}
+
+
 def factorial_metadata(root: Path = ROOT) -> dict[str, Any]:
     dr, dr_source = _load(SOURCES['drgrpo'], root)
     mx, mx_source = _load(SOURCES['maxrl'], root)
+    pmd_panel = json.loads((root / PMD_PANEL).read_text())['panel_a']
     if dr['panel_a']['description'] != 'Re:Dr minus Dr.GRPO across scale':
         raise ValueError('Dr.GRPO source contrast changed')
     rows = []
@@ -118,7 +144,13 @@ def factorial_metadata(root: Path = ROOT) -> dict[str, Any]:
                     raise ValueError(f'frozen primary cohort changed: {method}/{scale}/{domain}')
                 counts[method] += len(seeds)
                 summaries = {}
-                for metric in ('pass8', 'distinct8'):
+                pmd_summary = _pmd_summary(pmd_panel, scale, method, domain)
+                if pmd_summary is not None:
+                    summaries['pmd'] = pmd_summary
+                # Correctness only: the breadth axis of this figure is PCMD,
+                # added above. distinct@8 is no longer carried by the source
+                # cells, which report it at n=0, and it was never plotted here.
+                for metric in ('pass8',):
                     summary = _summary(cell['summaries'][metric], seeds, 'student_t_95', 'paired Student-t 95%')
                     per_seed = cell.get('per_seed', {})
                     if per_seed:
@@ -132,7 +164,9 @@ def factorial_metadata(root: Path = ROOT) -> dict[str, Any]:
         raise ValueError('primary terminal census changed')
     out = _metadata('replay_factorial_effects', FACTORIAL_SIZE, [dr_source, mx_source], rows)
     out.update({'scope': 'Level 1 matched terminal replay effects; each objective retains its own source-admitted paired seeds.',
-                'paired_seed_counts': counts, 'plotted_metrics': ['pass8', 'distinct8'],
+                'paired_seed_counts': counts, 'plotted_metrics': ['pass8', 'pmd'],
+                'pmd_source': {'path': PMD_PANEL,
+                               'sha256': _sha(root / PMD_PANEL)},
                 'partial_blocks': [{'scale': 'falcon1b', 'domain': 'countdown', 'objective': 'drgrpo',
                                     'seeds': [55, 56, 57, 58], 'n': 4, 'ci95': None}],
                 'contrast_direction': 'replay minus the same base objective',
@@ -174,6 +208,7 @@ def level2_metadata(root: Path = ROOT) -> dict[str, Any]:
     if len(blocks) != len(data['blocks']) or set(blocks) != set(DOMAINS):
         raise ValueError('Level 2 domain census changed')
     rows = []
+    pmd_panel = json.loads((root / PMD_PANEL).read_text())['panel_a']
     for domain in DOMAINS:
         block = blocks[domain]
         seeds = block['paired_seeds']
@@ -183,7 +218,13 @@ def level2_metadata(root: Path = ROOT) -> dict[str, Any]:
             contrast = f'replay_{method}_minus_{method}'
             summaries = {metric: _summary(block['contrasts'][contrast]['summaries'][metric], seeds,
                                           'student_t_95', 'paired Student-t 95%')
-                         for metric in ('pass8', 'distinct8')}
+                         for metric in ('pass8',)}
+            # PCMD on the Level-2 construction, paired on the prompts both arms
+            # define. The support bar bites harder here than at Level 1, so a
+            # domain can carry a correctness effect and no breadth effect.
+            pmd_summary = _pmd_summary(pmd_panel, 'qwen05b_level2', method, domain)
+            if pmd_summary is not None:
+                summaries['pmd'] = pmd_summary
             rows.append({'scale': 'qwen05b', 'model': data['model'], 'domain': domain, 'objective': method,
                          'contrast': contrast, 'terminal_seeds_by_arm': deepcopy(block['terminal_seeds_by_arm']),
                          'summaries': summaries})
@@ -191,7 +232,8 @@ def level2_metadata(root: Path = ROOT) -> dict[str, Any]:
     out.update({'scope': data['scope'], 'level': 2,
                 'contrast_direction': 'replay minus the same base objective within Level 2',
                 'cohort_rule': 'all-four-arm paired seed intersection within each domain',
-                'paired_seed_counts': {'drgrpo': 21, 'maxrl': 21}, 'plotted_metrics': ['pass8', 'distinct8'],
+                'paired_seed_counts': {'drgrpo': 21, 'maxrl': 21}, 'plotted_metrics': ['pass8', 'pmd'],
+                'pmd_source': {'path': PMD_PANEL, 'sha256': _sha(root / PMD_PANEL)},
                 'partial_blocks': [{'domain': 'pantry_plan', 'seeds': [43], 'n': 1, 'ci95': None}],
                 'interpretation': 'A within-Level-2 replay comparison; no cross-level absolute-mean contrast or isolated difficulty intervention.',
                 'source_endpoint_snapshot': deepcopy(data['source_audit'])})
@@ -259,22 +301,32 @@ def build_factorial(root: Path = ROOT):
         fig.subplots_adjust(left=.155, right=.985, bottom=.20, top=.82, wspace=.14, hspace=.60)
         index = {(r['scale'], r['domain'], r['objective']): r for r in metadata['rows']}
         for col, (scale, model, _) in enumerate(MODELS):
-            for row, metric in enumerate(('pass8', 'distinct8')):
+            for row, metric in enumerate(('pass8', 'pmd')):
                 ax = axes[row, col]
                 _forest_axis(ax, col == 0)
-                ax.set_xlim((-43, 112) if metric == 'pass8' else (-.33, 2.36))
-                ax.set_xticks([-40, 0, 50, 100] if metric == 'pass8' else [0, 1, 2])
-                ax.set_xlabel('Δpass@8 (prob. points)' if metric == 'pass8' else 'Δdistinct@8 (exp. keys)', labelpad=2)
+                # PCMD effects and their intervals span -.146 to +.582, so the
+                # window holds both arms without clipping either end.
+                ax.set_xlim((-43, 112) if metric == 'pass8' else (-.20, .66))
+                ax.set_xticks([-40, 0, 50, 100] if metric == 'pass8'
+                              else [-.2, 0, .2, .4, .6])
+                ax.set_xlabel('Δpass@8 (prob. points)' if metric == 'pass8'
+                              else 'ΔPCMD', labelpad=2)
                 for y, domain in enumerate(DOMAINS):
                     for method, appearance in OBJECTIVES.items():
-                        summary = index[scale, domain, method]['summaries'][metric]
+                        # A cell whose control defines no PCMD has no paired
+                        # effect to draw; it is left blank rather than filled in.
+                        summary = index[scale, domain, method]['summaries'].get(metric)
+                        if summary is None:
+                            continue
                         _point(ax, summary, y + appearance['offset'], metric,
                                color=appearance['color'], marker=appearance['marker'])
                 if row == 0:
                     ax.set_title(model, pad=5, fontweight='bold')
         fig.text(.155, .979, 'Replay − base objective', ha='left', va='top', fontsize=FONT)
         _legend(fig, anchor=(.785, .985))
-        fig.text(.5, .008, '95% t intervals; n = 5. Open: Falcon Countdown, Dr.GRPO n = 4 (no interval).',
+        # The two rows do not share a seed population, so the note names
+        # each row's exceptions rather than implying one rule for both.
+        fig.text(.5, .008, '95% t intervals; open marks are partial blocks, listed in the caption.',
                  ha='center', va='bottom', fontsize=FONT, color=style.MUTED)
     return fig, metadata
 
@@ -310,18 +362,25 @@ def build_level2(root: Path = ROOT):
         fig, axes = plt.subplots(1, 2, figsize=COMPACT_SIZE)
         fig.subplots_adjust(left=.155, right=.985, bottom=.35, top=.82, wspace=.24)
         index = {(r['domain'], r['objective']): r for r in metadata['rows']}
-        for ax, metric in zip(axes, ('pass8', 'distinct8')):
+        for ax, metric in zip(axes, ('pass8', 'pmd')):
             _forest_axis(ax, ax is axes[0])
-            ax.set_xlim((-32, 108) if metric == 'pass8' else (-.34, 1.24))
-            ax.set_xticks([-25, 0, 50, 100] if metric == 'pass8' else [0, .5, 1])
-            ax.set_xlabel('Δpass@8 (probability points)' if metric == 'pass8' else 'Δdistinct@8 (expected keys)', labelpad=1.5)
+            # Level-2 PCMD effects and intervals span -.250 to +.490.
+            ax.set_xlim((-32, 108) if metric == 'pass8' else (-.32, .56))
+            ax.set_xticks([-25, 0, 50, 100] if metric == 'pass8' else [-.25, 0, .25, .5])
+            ax.set_xlabel('Δpass@8 (probability points)' if metric == 'pass8' else 'ΔPCMD', labelpad=1.5)
             for y, domain in enumerate(DOMAINS):
                 for method, appearance in OBJECTIVES.items():
-                    _point(ax, index[domain, method]['summaries'][metric], y + appearance['offset'], metric,
+                    # A domain where one arm defines no PCMD draws nothing here.
+                    summary = index[domain, method]['summaries'].get(metric)
+                    if summary is None:
+                        continue
+                    _point(ax, summary, y + appearance['offset'], metric,
                            color=appearance['color'], marker=appearance['marker'])
         fig.text(.155, .975, 'Level 2  |  Qwen2.5-0.5B', ha='left', va='top', fontsize=FONT + .5, fontweight='bold')
         _legend(fig, anchor=(.795, .98))
-        fig.text(.5, .01, 'Replay − base; 95% t intervals. Four-arm cohorts: n = 5, Pantry n = 1 (open).',
+        # The two panels no longer share a cohort, so the note stops implying
+        # one; the caption carries the PCMD counts.
+        fig.text(.5, .01, 'Replay − base; 95% t intervals. Open marks are partial blocks; the panels do not share a cohort.',
                  ha='center', va='bottom', fontsize=FONT, color=style.MUTED)
     return fig, metadata
 
