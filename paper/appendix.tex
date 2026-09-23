@@ -5452,14 +5452,55 @@ retained modes strengthens it.
 
 Balancing is nonetheless what separates the arms, in every domain. The
 capacity-one effect is smaller than the Re:Dr effect in \MARseparated{} of
-five, and the margin is domain-dependent in an informative way. On
-\texttt{Graph} the single slot reaches \MARgraphablpmd{} against Re:Dr's
-\MARgraphredrpmd{}, and on \texttt{Countdown} \MARcountdownablpmd{} against
-\MARcountdownredrpmd{}, so keying contributes the majority of the effect
-there. On \texttt{PantryPlan} it reaches \MARpantryablpmd{} against
-\MARpantryredrpmd{}, and keying contributes almost nothing. A mechanism claim
-resting on balancing alone would have to explain \texttt{PantryPlan}; the
-claim stated here does not.
+five, but the five-domain mean hides how unevenly that margin falls, so the
+per-domain recovered fraction is the more honest statistic. The single slot
+recovers \LADgraphrecovered{} of the effect on \texttt{Graph} and
+\LADcountdownrecovered{} on \texttt{Countdown}, so keying contributes the
+majority there, and \LADpantryrecovered{} on \texttt{PantryPlan}, where keying
+contributes almost nothing. A mechanism claim resting on balancing alone would
+have to explain \texttt{PantryPlan}; the claim stated here does not.
+
+The other two ratios rest on small denominators at this level ---
+\texttt{Python}'s Re:Dr effect is \LADpythondenom{} and \texttt{MathIR}'s
+\LADmathirdenom{} --- and each is reported next to the denominator it was
+divided by rather than withheld behind a cutoff. That is a fact about Level~1
+and not about the domains. At Level~3 replay takes \texttt{Python} from zero
+to \LADpythonlthree{} terminal \pmd{} over five seeds in both arms, the
+largest gain of any domain at that level, though it is also the gain most
+sensitive to the choice of canonical key
+(App.~\ref{app:coarser-keys}).
+
+Placing the intermediate arm on the same axis shows why. Re:Dr differs from
+its control in three separable ways --- it retains a verified success at all,
+it retains several, and it rehearses them uniformly rather than in proportion
+to how often each was discovered --- and a third cohort isolates the middle
+step by holding one exemplar per discovered mode and weighting the buffer by
+discovery frequency (App.~\ref{app:frequency-replay-progress}). That cohort
+reports \distk{}, the superseded breadth metric, so its \pmd{} is measured
+here from its own terminal mode-coverage draws with the estimator used
+throughout. The resulting ladder is \emph{not} monotonic
+(Tab.~\ref{tab:replay-mechanism-ladder}): retaining many modes under
+frequency weighting scores \LADfreq{}, \emph{below} the \LADone{} of
+retaining exactly one. Reading the four rungs as steps, retention supplies
+\LADretainstep{}, adding frequency-weighted breadth to it costs
+\LADfreqstep{}, and making the rehearsal uniform supplies \LADbalancestep{}.
+
+The reason is that a frequency-weighted buffer concentrates its rehearsal on
+the mode that was already common, which is close to what the control does
+unaided; a one-slot buffer at least rehearses its single mode against
+whatever else the policy samples. Uniformity is therefore not a bonus applied
+on top of multi-mode retention. It is what makes multi-mode retention pay at
+all, and a larger buffer without it is worse than no choice of buffer
+contents.
+
+One seam remains in these comparisons. The uniform-rehearsal arm is the
+published Re:Dr cohort, whose cells span an A100 and an A5000 node, while the
+control, the capacity-one arm and the frequency-weighted arm come from other
+cohorts. For \pmd{} the seam is small and measured: the paired control shift
+between the two cohorts is \LADseamshift{} over \LADseamcells{} cells, and
+recomputing the capacity-one recovered fraction against the other cohort's own
+control moves it by less than a point. For correctness it is not small, and
+the accuracy comparison above should be read with that in mind.
 
 Three qualifications bound the reading. \texttt{Python} and \texttt{MathIR}
 carry \pmd{} near zero in all three arms, so the five-domain separation count
@@ -5494,6 +5535,30 @@ for those two cells.
       & \texttt{pass@8} & \pmd{} \\
     \midrule
     \input{results/mode_agnostic_replay_20260923_table_body.tex}
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{The mechanism ladder is not monotonic.} Terminal \pmd{} for
+  Qwen2.5-0.5B at Level~1, five seeds per cell, all arms at eight passes and
+  all measured with the same estimator. Retaining many modes under
+  discovery-frequency weighting scores below retaining exactly one; uniform
+  rehearsal is what converts multi-mode retention into breadth. The recovered
+  fraction is the capacity-one effect over the Re:Dr effect; the effect it is
+  divided by is given beside it, since on \texttt{Python} and \texttt{MathIR}
+  that denominator is small at this level and the ratio is correspondingly
+  unstable.}
+  \label{tab:replay-mechanism-ladder}
+  \small
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabular}{@{}l*{6}{r}@{}}
+    \toprule
+    \textbf{Domain} & \textbf{control} & \textbf{capacity one}
+      & \textbf{frequency} & \textbf{uniform} & \textbf{Re:Dr effect}
+      & \textbf{recovered} \\
+    \midrule
+    \input{results/replay_mechanism_ladder_20260923_table_body.tex}
   \end{tabular}
 \end{table}
 
