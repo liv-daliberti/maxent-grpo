@@ -1,0 +1,123 @@
+{
+ "baseline_horizon_passes": 8,
+ "cells": 25,
+ "comparison": "one_sided_generous_to_the_control",
+ "domains": [
+  {
+   "base_pass8": 0.325390625,
+   "base_pmd": 0.0032280936087680455,
+   "domain": "graph_coloring",
+   "ext_defined_prompts": 40.4,
+   "ext_pass8": 0.315625,
+   "ext_pmd": 0.0,
+   "ext_reportable": 5,
+   "redr_pass8": 0.926171875,
+   "redr_pmd": 0.6863121985271341,
+   "seeds": 5
+  },
+  {
+   "base_pass8": 0.589453125,
+   "base_pmd": 0.01714313095655349,
+   "domain": "countdown",
+   "ext_defined_prompts": 67.8,
+   "ext_pass8": 0.530078125,
+   "ext_pmd": 0.01070603140009182,
+   "ext_reportable": 5,
+   "redr_pass8": 0.673828125,
+   "redr_pmd": 0.4965958202197445,
+   "seeds": 5
+  },
+  {
+   "base_pass8": 0.3375,
+   "base_pmd": 0.0,
+   "domain": "python_factors",
+   "ext_defined_prompts": 23.4,
+   "ext_pass8": 0.182421875,
+   "ext_pmd": 0.005728587319243604,
+   "ext_reportable": 0,
+   "redr_pass8": 0.525390625,
+   "redr_pmd": 0.09902418709623431,
+   "seeds": 5
+  },
+  {
+   "base_pass8": 0.441015625,
+   "base_pmd": 0.0,
+   "domain": "mathir",
+   "ext_defined_prompts": 76.0,
+   "ext_pass8": 0.58203125,
+   "ext_pmd": 0.0014377880184331796,
+   "ext_reportable": 5,
+   "redr_pass8": 0.816015625,
+   "redr_pmd": 0.03900621516989278,
+   "seeds": 5
+  },
+  {
+   "base_pass8": 0.5265625,
+   "base_pmd": 0.0,
+   "domain": "pantry_plan",
+   "ext_defined_prompts": 71.8,
+   "ext_pass8": 0.55859375,
+   "ext_pmd": 0.04678614097968937,
+   "ext_reportable": 5,
+   "redr_pass8": 0.796875,
+   "redr_pmd": 0.5569345281217222,
+   "seeds": 5
+  }
+ ],
+ "estimator": "pooled per-prompt PCMD over verified responses, ops/mode_diversity.py, via extract_diversity_comparator_mode_diversity.cell_pcmd",
+ "generated_at": "2026-09-23T15:05:47.445915+00:00",
+ "horizon_passes": 12,
+ "means": {
+  "base_pass8": 0.44398437500000004,
+  "base_pmd": 0.004074244913064307,
+  "ext_pass8": 0.43375,
+  "ext_pmd": 0.012931709543491595,
+  "redr_pass8": 0.74765625,
+  "redr_pmd": 0.3755745898269456
+ },
+ "registered_predictions": {
+  "diversity_does_not_recover": {
+   "domains_above_base": 3,
+   "held_as_registered": false,
+   "note": "measured direction is a small rise rather than a hold; both horizons remain within .02 PCMD of a single verified mode",
+   "registered": "E131 PCMD does not differ systematically from the eight-pass control, concentrating further or holding",
+   "shift": 0.00885746463042729
+  },
+  "gap_does_not_close": {
+   "domains_below": 5,
+   "held": true,
+   "margin": 0.31390625,
+   "registered": "E131 terminal pass@8 remains below Re:Dr terminal pass@8"
+  },
+  "python_is_the_sharpest_case": {
+   "held": true,
+   "registered": "the additional updates change terminal pass@8 by less than the additional passes would suggest",
+   "reportable_pmd_cells": 0,
+   "shift": -0.155078125
+  }
+ },
+ "schema": "paper-extended-horizon-control-v1",
+ "sources": {
+  "e128_control": {
+   "path": "paper/results/mode_diversity_comparators_diversity_05b.json",
+   "sha256": "3ff6b133a1571bf0bba5476bbc2795ca70d5d53dcd3a5d97665abc973ea9ddb8"
+  },
+  "e131_ledger": {
+   "path": "var/artifacts/e131_extended_horizon_control_05b_jobs.json",
+   "sha256": "498d0b7138f5833b3f2d44c24d91dd587d2fbe55bebfd787d36be41e5c6094eb"
+  },
+  "extractor": {
+   "path": "ops/extract_diversity_comparator_mode_diversity.py",
+   "sha256": "c9b7e90c732b16de4a399a4c8f75023cb3d91d92742ace98af7214ecd1a5392f"
+  },
+  "preregistration": {
+   "path": "paper/preregistration/e131_extended_horizon_control_05b_20260922.md",
+   "sha256": "bbcaa375564e3733c29059bb1d578c16fcab67ad1e4223c8153f8305f9767d37"
+  },
+  "redr": {
+   "path": "paper/results/reference_kl_comparison.json",
+   "sha256": "4a56ac67242af8fed9372e6c5f7ed8396bc7d53a40d1f5fec405283a4eb613d0"
+  }
+ },
+ "terminal_step": 4608
+}
