@@ -123,6 +123,8 @@ def main() -> int:
         help="payload carrying the uniform-rehearsal arm; swap for E132 once it lands",
     )
     args = parser.parse_args()
+    if not args.redr.is_absolute():
+        args.redr = (ROOT / args.redr).resolve()
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
 

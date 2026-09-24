@@ -5452,23 +5452,28 @@ retained modes strengthens it.
 
 Balancing is nonetheless what separates the arms, in every domain. The
 capacity-one effect is smaller than the Re:Dr effect in \MARseparated{} of
-five, but the five-domain mean hides how unevenly that margin falls, so the
-per-domain recovered fraction is the more honest statistic. The single slot
-recovers \LADgraphrecovered{} of the effect on \texttt{Graph} and
-\LADcountdownrecovered{} on \texttt{Countdown}, so keying contributes the
-majority there, and \LADpantryrecovered{} on \texttt{PantryPlan}, where keying
-contributes almost nothing. A mechanism claim resting on balancing alone would
-have to explain \texttt{PantryPlan}; the claim stated here does not.
+five. The exception is \texttt{PantryPlan}, where the single slot slightly
+exceeds full Re:Dr, and it is the domain a mechanism claim resting on
+balancing alone would have to explain; the claim stated here does not.
 
-The other two ratios rest on small denominators at this level ---
-\texttt{Python}'s Re:Dr effect is \LADpythondenom{} and \texttt{MathIR}'s
-\LADmathirdenom{} --- and each is reported next to the denominator it was
-divided by rather than withheld behind a cutoff. That is a fact about Level~1
-and not about the domains. At Level~3 replay takes \texttt{Python} from zero
-to \LADpythonlthree{} terminal \pmd{} over five seeds in both arms, the
-largest gain of any domain at that level, though it is also the gain most
-sensitive to the choice of canonical key
-(App.~\ref{app:coarser-keys}).
+The per-domain recovered fraction is the more honest statistic than the mean,
+because it ranges from \LADpythonrecovered{} to \LADpantryrecovered{}. It is
+reported for every domain next to the effect it was divided by, and no
+magnitude threshold decides which domains count. That distinction matters:
+the Re:Dr effect itself is present everywhere. Paired within cohort against
+its own control, seed by seed, it is positive in \MRpositive{} of the
+\MRcells{} cells, zero in \MRzero{}, and negative in \MRnegative{}, and its
+five-domain mean is positive in \MRalldomains{} of five. \texttt{MathIR}
+carries the smallest effect at \MRmathireffect{} and still shows it in
+\MRmathirseedspos{} of five seeds against a control that is identically zero.
+What varies across domains is the magnitude of the effect, not whether there
+is one.
+
+Magnitude at Level~1 is also not a property of the domain. \texttt{Python}'s
+Re:Dr effect here is \MRpythoneffect{}, but at Level~3 replay takes it from
+zero to \LADpythonlthree{} terminal \pmd{} over five seeds in both arms, the
+largest gain of any domain at that level --- though also the gain most
+sensitive to the choice of canonical key (App.~\ref{app:coarser-keys}).
 
 Placing the intermediate arm on the same axis shows why. Re:Dr differs from
 its control in three separable ways --- it retains a verified success at all,
@@ -5493,14 +5498,20 @@ on top of multi-mode retention. It is what makes multi-mode retention pay at
 all, and a larger buffer without it is worse than no choice of buffer
 contents.
 
-One seam remains in these comparisons. The uniform-rehearsal arm is the
-published Re:Dr cohort, whose cells span an A100 and an A5000 node, while the
-control, the capacity-one arm and the frequency-weighted arm come from other
-cohorts. For \pmd{} the seam is small and measured: the paired control shift
-between the two cohorts is \LADseamshift{} over \LADseamcells{} cells, and
-recomputing the capacity-one recovered fraction against the other cohort's own
-control moves it by less than a point. For correctness it is not small, and
-the accuracy comparison above should be read with that in mind.
+Every number above is within cohort. An earlier reading of this comparison
+was not: the uniform-rehearsal arm was the published Re:Dr cohort, whose cells
+span an A100 and an A5000 node, while the control and the capacity-one arm
+came from this one. That seam is now closed by running Re:Dr on this panel,
+\MRcells{} cells on the same prompts, seeds, placement, runtime and evaluator
+as the control, at Re:Dr's own buffer capacity with the replay derivative live
+at every logged step (Tab.~\ref{tab:matched-redr}). It was worth closing on
+the correctness axis and worth checking on the diversity axis. Matched Re:Dr
+reaches \MRpmd{} mean terminal \pmd{} against the published cohort's
+\MRpubpmd{}, a difference of \MRpmdgap{}, so every \pmd{} comparison made
+against the published arm stood. Correctness moves further: \MRpass{} against
+its control's \MRctlpass{}, where the published arm reported a lower figure
+off a different control, which is why the accuracy comparison needed the
+matched cohort and the diversity one did not.
 
 Three qualifications bound the reading. \texttt{Python} and \texttt{MathIR}
 carry \pmd{} near zero in all three arms, so the five-domain separation count
@@ -5534,7 +5545,7 @@ for those two cells.
     \textbf{Domain} & \texttt{pass@8} & \pmd{} & \texttt{pass@8} & \pmd{}
       & \texttt{pass@8} & \pmd{} \\
     \midrule
-    \input{results/mode_agnostic_replay_20260923_table_body.tex}
+    \input{results/mode_agnostic_replay_20260924_table_body.tex}
   \end{tabular}
 \end{table}
 
@@ -5558,7 +5569,29 @@ for those two cells.
       & \textbf{frequency} & \textbf{uniform} & \textbf{Re:Dr effect}
       & \textbf{recovered} \\
     \midrule
-    \input{results/replay_mechanism_ladder_20260923_table_body.tex}
+    \input{results/replay_mechanism_ladder_20260924_table_body.tex}
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Re:Dr on the control's own panel, paired seed by seed.}
+  Terminal \pmd{} for Qwen2.5-0.5B at Level~1, \MRcells{} cells on the same
+  prompts, seeds, placement and evaluator as the control. \emph{Effect} is the
+  within-cohort paired difference and \emph{seeds} counts how many of the five
+  are strictly positive. The published column is the cross-cohort arm this
+  cohort replaces; its five-domain mean differs by \MRpmdgap{}. The effect is
+  positive in \MRpositive{} of \MRcells{} cells and negative in
+  \MRnegative{}.}
+  \label{tab:matched-redr}
+  \small
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabular}{@{}l*{5}{r}@{}}
+    \toprule
+    \textbf{Domain} & \textbf{control} & \textbf{Re:Dr} & \textbf{effect}
+      & \textbf{seeds} & \textbf{published} \\
+    \midrule
+    \input{results/matched_redr_20260924_table_body.tex}
   \end{tabular}
 \end{table}
 

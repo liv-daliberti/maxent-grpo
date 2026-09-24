@@ -123,7 +123,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, default=ROOT / "paper/results")
     parser.add_argument("--stamp", default=dt.date.today().isoformat().replace("-", ""))
+    parser.add_argument(
+        "--redr",
+        type=Path,
+        default=REFKL,
+        help="payload carrying the Re:Dr arm; point at E132 for a within-cohort "
+             "comparison instead of the cross-cohort published E78 arm",
+    )
     args = parser.parse_args()
+    if not args.redr.is_absolute():
+        args.redr = (ROOT / args.redr).resolve()
     out = args.output_dir
     out.mkdir(parents=True, exist_ok=True)
 
@@ -151,7 +160,7 @@ def main() -> int:
     for cell in json.loads(E128.read_text(encoding="utf-8"))["cells"]:
         if cell["method"] == "e128_control":
             base_cells[cell["domain"]].append(cell)
-    refkl = json.loads(REFKL.read_text(encoding="utf-8"))["domains"]
+    refkl = json.loads(args.redr.read_text(encoding="utf-8"))["domains"]
 
     rows = []
     for domain in DOMAINS:
@@ -238,7 +247,7 @@ def main() -> int:
         "sources": {
             "e130_ledger": {"path": str(LEDGER.relative_to(ROOT)), "sha256": sha256(LEDGER)},
             "e128_control": {"path": str(E128.relative_to(ROOT)), "sha256": sha256(E128)},
-            "redr": {"path": str(REFKL.relative_to(ROOT)), "sha256": sha256(REFKL)},
+            "redr": {"path": str(args.redr.relative_to(ROOT)), "sha256": sha256(args.redr)},
             "preregistration": {"path": str(PREREG.relative_to(ROOT)), "sha256": sha256(PREREG)},
             "extractor": {"path": "ops/extract_diversity_comparator_mode_diversity.py",
                           "sha256": extract_sha},
