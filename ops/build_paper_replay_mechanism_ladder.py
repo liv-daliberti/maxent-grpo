@@ -47,6 +47,7 @@ import datetime as dt
 import hashlib
 import importlib.util
 import json
+import math
 import statistics as st
 import sys
 from pathlib import Path
@@ -84,6 +85,8 @@ LEVEL3_REFERENCE = {
     },
     "mathir": {"control": 0.0, "replay": 0.05272, "seeds": 5, "note": None},
 }
+#: Two-sided 95% t critical values, keyed by sample size (df = n - 1).
+T_CRIT_95 = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571}
 SCHEMA = "paper-replay-mechanism-ladder-v1"
 
 
@@ -165,6 +168,26 @@ def main() -> int:
             if row["redr_effect"] > 0 else None
         )
         row["level3_reference"] = LEVEL3_REFERENCE.get(domain)
+
+        # The keying contrast: full Re:Dr minus capacity one, paired by seed.
+        # A count of which direction the point estimate fell flips on noise --
+        # PantryPlan's did -- so the separation is reported as an interval.
+        redr_seeds = redr_payload[domain].get("replay_pmd_by_seed")
+        one_seeds = e130[domain].get("abl_pmd_by_seed")
+        if redr_seeds and one_seeds and len(redr_seeds) == len(one_seeds):
+            paired = [r - o for r, o in zip(redr_seeds, one_seeds)]
+            mean_d = st.fmean(paired)
+            se = st.stdev(paired) / math.sqrt(len(paired)) if len(paired) > 1 else 0.0
+            half = T_CRIT_95[len(paired)] * se
+            row["keying_effect"] = {
+                "mean": mean_d,
+                "stderr": se,
+                "ci95": [mean_d - half, mean_d + half],
+                "separates": (mean_d - half) > 0 or (mean_d + half) < 0,
+                "by_seed": paired,
+            }
+        else:
+            row["keying_effect"] = None
         rows.append(row)
 
     mean = {
@@ -179,6 +202,16 @@ def main() -> int:
         "balance_uniformly": mean["uniform"] - mean["frequency"],
     }
     small_base = sorted(r["domain"] for r in rows if r["redr_effect"] < 0.10)
+    keyed = [r for r in rows if r.get("keying_effect")]
+    separating = [r["domain"] for r in keyed if r["keying_effect"]["separates"]]
+    pooled = None
+    if keyed:
+        flat = [z for r in keyed for z in r["keying_effect"]["by_seed"]]
+        pm = st.fmean(flat); pse = st.stdev(flat) / math.sqrt(len(flat))
+        pooled = {"mean": pm, "stderr": pse,
+                  "ci95": [pm - 1.96 * pse, pm + 1.96 * pse],
+                  "cells": len(flat),
+                  "separates": (pm - 1.96 * pse) > 0}
 
     payload = {
         "schema": SCHEMA,
@@ -196,6 +229,12 @@ def main() -> int:
         "monotonic": steps["retain_many_frequency_weighted"] >= 0,
         "frequency_terminal_steps": sorted(freq_steps),
         "cohort_seam": comparators.get("control_shift_vs_e78"),
+        "keying_effect_pooled": pooled,
+        "keying_effect_separating_domains": separating,
+        "keying_effect_note": "full Re:Dr minus capacity one, paired by seed. "
+                              "Reported as an interval rather than a count of "
+                              "domains, because the point estimate's sign flips "
+                              "on noise where the interval spans zero",
         "small_denominator_domains": small_base,
         "small_denominator_note": "reported, not excluded: their Level-1 Re:Dr "
                                   "effect is a few hundredths, so the ratio is "
@@ -234,6 +273,11 @@ def main() -> int:
         rf"\newcommand{{\LADfreqstep}}{{{signed(steps['retain_many_frequency_weighted'])}}}",
         rf"\newcommand{{\LADbalancestep}}{{{signed(steps['balance_uniformly'])}}}",
         rf"\newcommand{{\LADsmallbase}}{{{len(small_base)}}}",
+        rf"\newcommand{{\LADkeyingmean}}{{{signed(pooled['mean'])}}}",
+        rf"\newcommand{{\LADkeyinglo}}{{{signed(pooled['ci95'][0])}}}",
+        rf"\newcommand{{\LADkeyinghi}}{{{signed(pooled['ci95'][1])}}}",
+        rf"\newcommand{{\LADkeyingcells}}{{{pooled['cells']}}}",
+        rf"\newcommand{{\LADseparating}}{{{len(separating)}}}",
         rf"\newcommand{{\LADpythonlthree}}{{{fmt(LEVEL3_REFERENCE['python_factors']['replay'])}}}",
         rf"\newcommand{{\LADseamshift}}{{{signed(payload['cohort_seam']['mean'], 4)}}}",
         rf"\newcommand{{\LADseamcells}}{{{payload['cohort_seam']['paired_cells']}}}",
@@ -245,6 +289,12 @@ def main() -> int:
                 rf"\newcommand{{\LAD{tag}recovered}}{{{round(100*r['recovered_fraction'])}\%}}"
             )
         macros.append(rf"\newcommand{{\LAD{tag}denom}}{{{fmt(r['redr_effect'])}}}")
+        k=r.get("keying_effect")
+        if k:
+            macros.append(rf"\newcommand{{\LAD{tag}keying}}{{{signed(k['mean'])}}}")
+            macros.append(
+                rf"\newcommand{{\LAD{tag}keyingci}}{{[{signed(k['ci95'][0])},\,"
+                rf"{signed(k['ci95'][1])}]}}")
         macros.append(rf"\newcommand{{\LAD{tag}freq}}{{{fmt(r['frequency'])}}}")
     (out / f"replay_mechanism_ladder_{args.stamp}_macros.tex").write_text(
         "\n".join(macros) + "\n", encoding="utf-8"
@@ -276,6 +326,18 @@ def main() -> int:
     print(f"  monotonic: {payload['monotonic']}")
     for k, v in steps.items():
         print(f"    {k:32s} {signed(v)}  ({100*v/total:+.0f}% of the total effect)")
+    if pooled:
+        print(f"  keying effect (Re:Dr minus capacity one), paired by seed:")
+        for r in rows:
+            k = r.get("keying_effect")
+            if not k: continue
+            mark = "separates" if k["separates"] else "spans zero"
+            print(f"    {r['domain']:16s} {signed(k['mean'])}  "
+                  f"95% CI [{signed(k['ci95'][0])}, {signed(k['ci95'][1])}]  {mark}")
+        print(f"    {'pooled':16s} {signed(pooled['mean'])}  "
+              f"95% CI [{signed(pooled['ci95'][0])}, {signed(pooled['ci95'][1])}]  "
+              f"over {pooled['cells']} cells  "
+              f"{'separates' if pooled['separates'] else 'spans zero'}")
     print(f"  small Level-1 denominators (reported, not excluded): {small_base}")
     print("  per-domain recovered fraction (denominator in brackets):")
     for r in rows:

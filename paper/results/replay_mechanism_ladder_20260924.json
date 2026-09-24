@@ -27,6 +27,22 @@
    "domain": "graph_coloring",
    "frequency": 0.3830986335990279,
    "frequency_reportable": 5,
+   "keying_effect": {
+    "by_seed": [
+     0.298907835532777,
+     0.30380717030572013,
+     0.3406953123795897,
+     0.37929472396178887,
+     0.3297200868720294
+    ],
+    "ci95": [
+     0.2902758917095571,
+     0.37069415991120497
+    ],
+    "mean": 0.33048502581038103,
+    "separates": true,
+    "stderr": 0.01448455839366857
+   },
    "level3_reference": null,
    "recovered_fraction": 0.532950208522827,
    "redr_effect": 0.7076012704451308,
@@ -39,6 +55,22 @@
    "domain": "countdown",
    "frequency": 0.16859430830546204,
    "frequency_reportable": 5,
+   "keying_effect": {
+    "by_seed": [
+     0.2567046005584237,
+     0.3607930614109832,
+     0.3237186726363422,
+     0.4965127776388435,
+     0.480945051970528
+    ],
+    "ci95": [
+     0.25586750592052704,
+     0.5116021597655211
+    ],
+    "mean": 0.3837348328430241,
+    "separates": true,
+    "stderr": 0.046061717191101255
+   },
    "level3_reference": null,
    "recovered_fraction": 0.2638109248777392,
    "redr_effect": 0.5212449434668618,
@@ -51,6 +83,22 @@
    "domain": "python_factors",
    "frequency": 0.002399273589885132,
    "frequency_reportable": 3,
+   "keying_effect": {
+    "by_seed": [
+     0.0009765625,
+     -0.0018982832398080638,
+     0.05071148001747974,
+     0.0,
+     0.4977678106783034
+    ],
+    "ci95": [
+     -0.1613335934579876,
+     0.38035662144037763
+    ],
+    "mean": 0.109511513991195,
+    "separates": false,
+    "stderr": 0.09756668135777473
+   },
    "level3_reference": {
     "control": 0.0,
     "note": "largest Level-3 gain of any domain, and also the one that does not survive key coarsening (App. coarser keys)",
@@ -68,6 +116,22 @@
    "domain": "mathir",
    "frequency": 0.004857092988427092,
    "frequency_reportable": 5,
+   "keying_effect": {
+    "by_seed": [
+     0.0045718763551995415,
+     0.016687380440307386,
+     0.03228189604173801,
+     0.008231037752805061,
+     0.005313292071912761
+    ],
+    "ci95": [
+     -0.0009723897703097888,
+     0.027806582835094896
+    ],
+    "mean": 0.013417096532392554,
+    "separates": false,
+    "stderr": 0.00518353252979191
+   },
    "level3_reference": {
     "control": 0.0,
     "note": null,
@@ -85,6 +149,22 @@
    "domain": "pantry_plan",
    "frequency": 0.2434970187415976,
    "frequency_reportable": 5,
+   "keying_effect": {
+    "by_seed": [
+     -0.04603975878614375,
+     -0.21604222092685998,
+     0.15647066204246834,
+     -0.011698154179972331,
+     -0.1981506823943785
+    ],
+    "ci95": [
+     -0.2521603415809791,
+     0.12597627988302465
+    ],
+    "mean": -0.06309203084897724,
+    "separates": false,
+    "stderr": 0.06810818109942432
+   },
    "level3_reference": null,
    "recovered_fraction": 1.1303042704979618,
    "redr_effect": 0.4841900469406646,
@@ -95,7 +175,22 @@
  "frequency_terminal_steps": [
   3072
  ],
- "generated_at": "2026-09-24T16:10:47.810062+00:00",
+ "generated_at": "2026-09-24T17:03:23.456823+00:00",
+ "keying_effect_note": "full Re:Dr minus capacity one, paired by seed. Reported as an interval rather than a count of domains, because the point estimate's sign flips on noise where the interval spans zero",
+ "keying_effect_pooled": {
+  "cells": 25,
+  "ci95": [
+   0.07110704156154297,
+   0.23851553376966322
+  ],
+  "mean": 0.1548112876656031,
+  "separates": true,
+  "stderr": 0.04270624801227557
+ },
+ "keying_effect_separating_domains": [
+  "graph_coloring",
+  "countdown"
+ ],
  "means": {
   "capacity_one": 0.21767782089307852,
   "capacity_one_effect": 0.21360357598001425,
@@ -135,7 +230,7 @@
   },
   "redr": {
    "path": "paper/results/matched_redr_20260924.json",
-   "sha256": "75427edcb2a1385025ceb63a5dc405d57b4093a321b8179f16668acb7c0e25df"
+   "sha256": "52ea85f974abce86665f66117ac1a7fea616ca0c188a2f9e8a63a99847083973"
   }
  }
 }

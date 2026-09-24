@@ -171,6 +171,10 @@ def main() -> int:
             },
             "paired_pmd_effect": st.fmean(paired),
             "paired_pmd_by_seed": paired,
+            # raw per-seed values, so the keying contrast against the
+            # capacity-one arm can be paired seed by seed downstream
+            "replay_pmd_by_seed": [cells[(domain, s)]["pmd"] for s in SEEDS],
+            "seeds": list(SEEDS),
             "seeds_positive": sum(1 for z in paired if z > 0),
             "reportable": sum(int(cells[(domain, s)]["reportable"]) for s in SEEDS),
             "banked_modes_max": max(audits[(domain, s)]["banked_modes_max"] for s in SEEDS),

@@ -5451,10 +5451,19 @@ verified success is what produces most of the breadth, and balancing across
 retained modes strengthens it.
 
 Balancing is nonetheless what separates the arms, in every domain. The
-capacity-one effect is smaller than the Re:Dr effect in \MARseparated{} of
-five. The exception is \texttt{PantryPlan}, where the single slot slightly
-exceeds full Re:Dr, and it is the domain a mechanism claim resting on
-balancing alone would have to explain; the claim stated here does not.
+how much it adds is an interval, not a count of domains. Paired seed by seed,
+full Re:Dr minus capacity one is \LADkeyingmean{} over \LADkeyingcells{}
+cells, 95\% CI $[\LADkeyinglo{}, \LADkeyinghi{}]$: keying adds diversity
+overall. Per domain it separates on \texttt{Graph} (\LADgraphkeying{}, CI
+$\LADgraphkeyingci{}$) and \texttt{Countdown} (\LADcountdownkeying{}, CI
+$\LADcountdownkeyingci{}$) and is indistinguishable from zero on the other
+three. That includes \texttt{PantryPlan}, at \LADpantrykeying{} with CI
+$\LADpantrykeyingci{}$. An earlier reading counted the domains whose
+capacity-one point estimate fell below Re:Dr's and called
+\texttt{PantryPlan} an exception where one slot beats the full buffer. The
+count was the wrong instrument: that domain's interval spans zero, so what
+the data supports is that keying adds nothing detectable there, not that
+removing it helps.
 
 The per-domain recovered fraction is the more honest statistic than the mean,
 because it ranges from \LADpythonrecovered{} to \LADpantryrecovered{}. It is
