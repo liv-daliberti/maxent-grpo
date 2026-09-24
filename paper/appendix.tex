@@ -1522,6 +1522,65 @@ $.744/1.107$ for \distk{}. The paired raw-count effect is $+.363$
 Table~\ref{tab:cross-scale-terminal-effects} use a fixed set of domains
 supported by every seed.
 
+\subsection{Level 1 at Qwen2.5-7B}
+\label{app:qwen7b-level1}
+
+The scale comparisons above run to Qwen2.5-3B. This subsection reports Level~1
+at Qwen2.5-7B over \Eiifourdomains{} domains, \Eiifourcells{} paired cells
+trained to \Eiifoursteps{} steps on the same prompts, horizon, verifier,
+evaluator and replay schedule as the smaller scales. Each cell is a single
+seed. At this scale one cell occupies an A100 for roughly a day and a half, so
+the design buys scale with replication, as the one-seed 3B bonus comparison
+does: the effects below are the direction of one paired measurement per domain
+and carry no interval.
+
+Correctness and breadth are reported side by side because at this scale they
+separate. On \Eiifourcollapsedomain{} the MaxRL control's sampled accuracy
+reaches zero at step \Eiifourcollapsestep{} and does not recover, so the cell
+ends with no verified response at all. \pmd{} is a property of the correct
+answers a policy produces, so over an empty set it is undefined rather than
+zero, and Table~\ref{tab:qwen7b-level1} marks it undefined instead of
+recording a value the cell does not support. Re:Max on the same domain, seed
+and prompts ends at \Eiifourmathirtrtpass{} correctness and
+\Eiifourmathirtrtpmd{} \pmd{}. The accuracy column carries this domain, which
+is why it is reported: a control that stops answering is a statement about the
+scale that a blank breadth cell would lose.
+
+Where both arms answer, the breadth effect is the same sign as at the smaller
+scales and larger than at 3B: \Eiifourgraphpmdgain{} on \texttt{Graph} and
+\Eiifourcountdownpmdgain{} on \texttt{Countdown}. Averaged over the
+\Eiifourdomains{} domains, correctness runs \Eiifourctrlpass{} for MaxRL
+against \Eiifourtrtpass{} for Re:Max. The \pmd{} mean averages the
+\Eiifourpmddomains{} domains where both arms define it, \Eiifourctrlpmd{}
+against \Eiifourtrtpmd{}; the two mean cells therefore rest on different
+domain counts, and the accuracy mean is the one that includes
+\Eiifourcollapsedomain{}.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Level 1 at Qwen2.5-7B, correctness and breadth together.}
+  \Eiifourcells{} cells, \Eiifourseeds{} seed per cell, all terminal at
+  \Eiifoursteps{} steps and measured with the estimator used throughout. On
+  \Eiifourcollapsedomain{} the control ends with no verified response, so its
+  \pmd{} is undefined (\texttt{--}) rather than zero and its effect is not
+  formed; its accuracy is reported and is zero. The mean row averages
+  \Eiifourdomains{} domains for correctness and the \Eiifourpmddomains{}
+  \pmd{}-defined domains for breadth. Single-seed cells carry no interval.}
+  \label{tab:qwen7b-level1}
+  \small
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabular}{@{}l*{6}{r}@{}}
+    \toprule
+    & \multicolumn{2}{c}{\textbf{MaxRL}} & \multicolumn{2}{c}{\textbf{Re:Max}}
+      & \multicolumn{2}{c}{\textbf{effect}} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+    \textbf{Domain} & \texttt{pass@8} & \pmd{} & \texttt{pass@8} & \pmd{}
+      & \texttt{pass@8} & \pmd{} \\
+    \midrule
+    \input{results/e124_qwen7b_level1_20260924_table_body.tex}
+  \end{tabular}
+\end{table}
+
 \subsection{Terminal comparison on the harder level}
 \label{app:level2-interim}
 
@@ -5257,7 +5316,8 @@ Cost estimates use diagnostics from \MDcostRuns{} replay runs: five seeds
 in each of five domains at Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B.
 Table~\ref{tab:replay-cost} compares replay storage and a likelihood-pass
 subtotal with the corresponding components of a hypothetical reference-KL
-implementation. It does not measure replay/control runtime differences.
+implementation. Those are component estimates; the runtime difference between
+replay and its control is measured separately below.
 
 \paragraph{Resident state.}
 Under full fine-tuning, a separate fixed reference copy requires
@@ -5333,6 +5393,52 @@ end-to-end speedup or an advantage at equal total compute.
   \end{tabular}
 \end{table}
 
+\paragraph{Measured runtime against the matched control.}
+The estimates above price components. What an equal-compute argument needs is
+the whole difference, and four cohorts on this panel supply it directly: the
+control, Re:Dr, capacity-one replay and the twelve-pass control all ran on the
+same two \texttt{cs} A5000 nodes, on the same prompts and seeds, under the same
+runtime. Pairing by domain and seed over \RTcells{} cells gives Re:Dr's
+overhead as \RTlearneroverhead{} of total learner compute and
+\RTwalloverhead{} of wall clock (Tab.~\ref{tab:replay-runtime}). The two
+measures fail differently --- the first is a median per-update learner time
+times the update count, reproducible from disk and insensitive to a noisy
+neighbour; the second is whole-job elapsed, which also carries evaluation,
+checkpointing and I/O but is sensitive to node sharing --- and they agree to
+about a point, which is the reason to trust either. Capacity-one replay is
+cheaper than the control on both, as a one-slot buffer should be.
+
+This is what makes the next subsection quantitative rather than asserted. The
+twelve-pass control received \RTcontrolgiven{} more total learner compute and
+\RTwallgiven{} more wall clock, so it was handed roughly
+\RTlearnermultiple{} times the marginal compute replay actually consumes on
+the conservative measure, and \RTwallmultiple{} times on the other. These are
+runtime measurements on fixed hardware, not FLOP counts, and they inherit
+whatever the scheduler and the collocated vLLM instance contribute; the margin
+is wide enough that the conclusion does not turn on the difference.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Replay's runtime overhead, and what the equal-compute
+  control was given.} Paired by domain and seed over \RTcells{} cells per
+  cohort, Qwen2.5-0.5B at Level~1, all on \texttt{cs} A5000 node203/node204.
+  Learner hours are a median per-update time times the update count; wall-clock
+  hours are whole-job elapsed. Percentages are paired ratios against the
+  control in the first row.}
+  \label{tab:replay-runtime}
+  \small
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    & \multicolumn{2}{c}{\textbf{learner}} & \multicolumn{2}{c}{\textbf{wall clock}} \\
+    \cmidrule(lr){2-3}\cmidrule(l){4-5}
+    \textbf{Arm} & \textbf{hours} & \textbf{vs control}
+      & \textbf{hours} & \textbf{vs control} \\
+    \midrule
+    \input{results/replay_runtime_overhead_20260924_table_body.tex}
+  \end{tabular}
+\end{table}
+
 \subsection{The control at a longer horizon}
 \label{app:compute-budget-control}
 
@@ -5349,10 +5455,12 @@ control objective with only the horizon moved, \EHCpasses{} prompt passes in
 place of \EHCbasepasses{}: \EHCupdates{} optimizer updates against
 \EHCbaseupdates{}, with 50\% more fresh rollouts, over \EHCcells{} cells on the
 same prompts, seeds, placement, runtime and evaluator. The horizon is
-deliberately generous rather than matched. The replay likelihood-pass subtotal
-is a small fraction of an update's rollout-plus-backward cost
-(App.~\ref{app:compute-accounting}), so 50\% more of every component is
-strictly more additional computation than replay consumes. The resulting
+deliberately generous rather than matched, and by a measured margin: Re:Dr's
+own overhead over this control is \RTlearneroverhead{} of total learner
+compute and \RTwalloverhead{} of wall clock
+(App.~\ref{app:compute-accounting}), while this arm was given
+\RTcontrolgiven{} and \RTwallgiven{} respectively --- roughly
+\RTlearnermultiple{} times the marginal compute replay consumes. The resulting
 comparison is one-sided in the control's favour, and is read as one-sided.
 
 Spending that budget on more learning does not move the endpoints toward
