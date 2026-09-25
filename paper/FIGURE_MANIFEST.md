@@ -1,59 +1,64 @@
 # Paper figure inventory
 
-The ICLR hosted overview reports reasoning-off `pass@8` and `distinct@8` by model and level for five complete 32-prompt-per-domain/level cohorts. The original seven-model medium-reasoning table and domain plot remain in the appendix; the matched-control appendix reports both settings on the same 480 prompts per model. ICLR and the workshop each have **eight main and twenty-two supplementary figures**. Both compile all **30 figures**: the nineteen original displays, four additional quantitative views, two later sampling-budget plots, the restored Methods construction panel, the Pantry adaptation follow-up, the completed four-scale base-model comparison, and the completed hosted discovery views. Existing frozen estimates are unchanged.
+The ICLR manuscript in [main.tex](main.tex) contains **40 numbered figures: 12 in the main text and 28 in the appendix**. The inventory below follows its compiled figure numbers. Figure 26 combines two assets; Figures 4 and 14 use the same asset at different sizes. The workshop edition has its own [manuscript](mathai2026/main.tex) and [build file](mathai2026/Makefile); its numbering is separate.
 
-## Current figure sequence
+## Figure assets and numerical records
 
-| Figure | Original asset | Restored role | Scope retained |
+The records identify plotted values, source populations, and input files where applicable. Figures 2 and 7 are explanatory diagrams. Figure 6 is an illustrative probability schematic; its JSON records that construction. Figure 1 uses a selected model-output example, with its selection and source records linked below.
+
+| Figure | Asset | Numerical or construction record | Rendering script |
 |---|---|---|---|
-| 1, both editions | [modecollapse_story](figures/modecollapse_story.pdf) | Opening Graph illustration, page one. | Selected example; Dr.GRPO versus ReplayMaxRL changes both objective and replay. Matched comparisons establish separate effects. |
-| 2, both | [modebench_examples](figures/modebench_examples.pdf) | Five-domain examples beside the ModeBench definition. | Execution keys and alias rules define task-specific output modes. |
-| 3, both | [modebench_level_construction](figures/modebench_level_construction.pdf) | Methods admission check: ICLR Section 2.2, page 3; workshop page 2. | Frozen Qwen2.5-7B held-out pass@8 versus mean distinct@8; all 15 domain/level cells at Levels 1–3. The four-scale comparison is in the appendix. |
-| 4, both | [verified_support_story](figures/verified_support_story.pdf) | Verified-memory schematic beside the method. | Banked exemplars continue receiving a signal; this is not a neural retention guarantee. |
-| 5, both | [experiment1_retention_comparator_matrix](figures/experiment1_retention_comparator_matrix.pdf) | Original Dr.GRPO replay and direct-comparator results. | 74 replay pairs; Falcon Countdown has four, no five-seed interval. |
-| 6, both | [e118_all_scale_factorial_progress](figures/e118_all_scale_factorial_progress.pdf) | Original factorial endpoints and seed paths. | All three scales; 75 MaxRL pairs; aggregate tracks use their exact common cohorts. |
-| 7, both | [modebench_level_admission](figures/modebench_level_admission.pdf) | Terminal training comparison, separate from Methods admission. | Within-level replay inference; different cross-level populations and protocols do not isolate difficulty. |
-| ICLR appendix; 8, workshop | [hosted_verified_breadth](figures/hosted_verified_breadth.pdf) | ICLR main uses five validated reasoning-off cohorts; this earlier medium-reasoning domain plot remains in the appendix. | Seven deployments; frozen normalizer and revised Opus Python wording explicit; descriptive observations. |
-| 8, ICLR; workshop supplement | [gpt56_temperature_curve](figures/gpt56_temperature_curve.pdf) | Original temperature view beside hosted sensitivity. | Controlled no-reasoning sweep; historical reference retained in appendix tables only; observed optimum only. |
+| 1 | [modecollapse_story](figures/modecollapse_story.pdf) | [paper_graph_collapse_toy](../var/artifacts/paper_graph_collapse_toy.json) | [plot_paper_collapse_toy.py](../ops/plot_paper_collapse_toy.py) |
+| 2 | [modebench_examples](figures/modebench_examples.pdf) | Diagram defined in renderer | [plot_paper_modebench_examples.py](../ops/plot_paper_modebench_examples.py) |
+| 3 | [mode_diversity_levels_appendix](figures/mode_diversity_levels_appendix.pdf) | [mode_diversity_levels_appendix](figures/mode_diversity_levels_appendix.json) | [plot_paper_mode_diversity_levels.py](../ops/plot_paper_mode_diversity_levels.py) |
+| 4 | [qwen_level_trends](figures/qwen_level_trends.pdf) | [qwen_level_trends](figures/qwen_level_trends.json) | [plot_paper_qwen_level_trends.py](../ops/plot_paper_qwen_level_trends.py) |
+| 5 | [gpt56_all_levels32_sampling_budget](figures/gpt56_all_levels32_sampling_budget.pdf) | [gpt56_all_levels32_sampling_budget](figures/gpt56_all_levels32_sampling_budget.json) | [plot_paper_gpt56_all_levels32_sampling.py](../ops/plot_paper_gpt56_all_levels32_sampling.py) |
+| 6 | [replay_bank_balance](figures/replay_bank_balance.pdf) | [replay_bank_balance](figures/replay_bank_balance.json) | [plot_paper_replay_bank_balance.py](../ops/plot_paper_replay_bank_balance.py) |
+| 7 | [verified_support_story](figures/verified_support_story.pdf) | Diagram defined in renderer | [plot_paper_support_story.py](../ops/plot_paper_support_story.py) |
+| 8 | [concentration_story_resampled](figures/concentration_story_resampled.pdf) | [concentration_story_resampled](figures/concentration_story_resampled.json) | [plot_paper_concentration_levels.py](../ops/plot_paper_concentration_levels.py) |
+| 9 | [e118_all_scale_factorial_progress](figures/e118_all_scale_factorial_progress.pdf) | [e118_all_scale_factorial_progress](figures/e118_all_scale_factorial_progress.json) | [plot_paper_e118_all_scale_progress.py](../ops/exp_scaling/plot_paper_e118_all_scale_progress.py) |
+| 10 | [replay_key_weighting](figures/replay_key_weighting.pdf) | [replay_key_weighting](figures/replay_key_weighting.json) | [plot_paper_reorganized_results.py](../ops/plot_paper_reorganized_results.py) |
+| 11 | [modebench_level_admission](figures/modebench_level_admission.pdf) | [modebench_level_admission](figures/modebench_level_admission.json) | [plot_paper_modebench_levels.py](../ops/exp_scaling/plot_paper_modebench_levels.py) |
+| 12 | [reference_kl_plane](figures/reference_kl_plane.pdf) | [reference_kl_comparison](results/reference_kl_comparison.json) | [plot_paper_reference_kl_plane.py](../ops/plot_paper_reference_kl_plane.py) |
+| 13 | [replay_bank_decomposition](figures/replay_bank_decomposition.pdf) | [replay_bank_decomposition](figures/replay_bank_decomposition.json) | [plot_paper_replay_bank_decomposition.py](../ops/plot_paper_replay_bank_decomposition.py) |
+| 14 | [qwen_level_trends](figures/qwen_level_trends.pdf) | [qwen_level_trends](figures/qwen_level_trends.json) | [plot_paper_qwen_level_trends.py](../ops/plot_paper_qwen_level_trends.py) |
+| 15 | [mode_diversity_level_construction](figures/mode_diversity_level_construction.pdf) | [mode_diversity_level_construction](figures/mode_diversity_level_construction.json) | [plot_paper_mode_diversity_levels.py](../ops/plot_paper_mode_diversity_levels.py) |
+| 16 | [frontier_level_grid](figures/frontier_level_grid.pdf) | [frontier_level_grid](figures/frontier_level_grid.json) | [plot_paper_frontier_level_grid.py](../ops/plot_paper_frontier_level_grid.py) |
+| 17 | [mode_diversity_families_appendix](figures/mode_diversity_families_appendix.pdf) | [mode_diversity_families_appendix](figures/mode_diversity_families_appendix.json) | [plot_paper_mode_diversity_levels.py](../ops/plot_paper_mode_diversity_levels.py) |
+| 18 | [replay_factorial_effects](figures/replay_factorial_effects.pdf) | [replay_factorial_effects](figures/replay_factorial_effects.json) | [plot_paper_reorganized_results.py](../ops/plot_paper_reorganized_results.py) |
+| 19 | [e118_scale_extensions_appendix](figures/e118_scale_extensions_appendix.pdf) | [e118_scale_extensions_appendix](figures/e118_scale_extensions_appendix.json) | [plot_paper_e118_all_scale_progress.py](../ops/exp_scaling/plot_paper_e118_all_scale_progress.py) |
+| 20 | [replay_level2_effects](figures/replay_level2_effects.pdf) | [replay_level2_effects](figures/replay_level2_effects.json) | [plot_paper_reorganized_results.py](../ops/plot_paper_reorganized_results.py) |
+| 21 | [factorial_training_curves_pass8](figures/factorial_training_curves_pass8.pdf) | [factorial_training_curves_pass8](figures/factorial_training_curves_pass8.json) | [plot_paper_training_curves.py](../ops/exp_scaling/plot_paper_training_curves.py) |
+| 22 | [factorial_training_curves_pmd](figures/factorial_training_curves_pmd.pdf) | [factorial_training_curves_pmd](figures/factorial_training_curves_pmd.json) | [plot_paper_mode_diversity_curves.py](../ops/exp_scaling/plot_paper_mode_diversity_curves.py) |
+| 23 | [level2_factorial_training_curves](figures/level2_factorial_training_curves.pdf) | [level2_factorial_training_curves](figures/level2_factorial_training_curves.json) | [plot_paper_training_curves.py](../ops/exp_scaling/plot_paper_training_curves.py) |
+| 24 | [level2_training_curves_pmd](figures/level2_training_curves_pmd.pdf) | [level2_training_curves_pmd](figures/level2_training_curves_pmd.json) | [plot_paper_mode_diversity_curves.py](../ops/exp_scaling/plot_paper_mode_diversity_curves.py) |
+| 25 | [direct_baseline_learning_curves_pass8](figures/direct_baseline_learning_curves_pass8.pdf) | [direct_baseline_learning_curves_pass8](figures/direct_baseline_learning_curves_pass8.json) | [plot_paper_aligned_domain_strips.py](../ops/exp_scaling/plot_paper_aligned_domain_strips.py) |
+| 26 | [concentration_story_all_scales](figures/concentration_story_all_scales.pdf), [concentration_levels](figures/concentration_levels.pdf) | [concentration_story_all_scales](figures/concentration_story_all_scales.json), [concentration_levels](figures/concentration_levels.json) | [plot_paper_concentration_story.py](../ops/plot_paper_concentration_story.py), [plot_paper_concentration_levels.py](../ops/plot_paper_concentration_levels.py) |
+| 27 | [baseline_collapse_precheck](figures/baseline_collapse_precheck.pdf) | [baseline_collapse_precheck](figures/baseline_collapse_precheck.json) | [plot_paper_baseline_collapse_precheck.py](../ops/exp_scaling/plot_paper_baseline_collapse_precheck.py) |
+| 28 | [e121_fixed_bank_survival](figures/e121_fixed_bank_survival.pdf) | [e121_fixed_bank_survival](results/e121_fixed_bank_survival.json) | [build_paper_e121_survival.py](../ops/exp_scaling/build_paper_e121_survival.py) |
+| 29 | [modebench_prompt_ablation_local](figures/modebench_prompt_ablation_local.pdf) | [modebench_prompt_ablation_local](figures/modebench_prompt_ablation_local.json) | [analyze_modebench_prompt_ablation.py](../ops/analyze_modebench_prompt_ablation.py) |
+| 30 | [decoding_objection](figures/decoding_objection.pdf) | [decoding_objection](figures/decoding_objection.json) | [plot_paper_decoding_objection.py](../ops/plot_paper_decoding_objection.py) |
+| 31 | [modebench_discovery_curves_frontier](figures/modebench_discovery_curves_frontier.pdf) | [modebench_discovery_curves_frontier](figures/modebench_discovery_curves_frontier.json) | [analyze_modebench_discovery_curves.py](../ops/analyze_modebench_discovery_curves.py) |
+| 32 | [modebench_discovery_correct_budget_frontier](figures/modebench_discovery_correct_budget_frontier.pdf) | [modebench_discovery_correct_budget_frontier](figures/modebench_discovery_correct_budget_frontier.json) | [analyze_modebench_discovery_curves.py](../ops/analyze_modebench_discovery_curves.py) |
+| 33 | [modebench_discovery_curves_local](figures/modebench_discovery_curves_local.pdf) | [modebench_discovery_curves_local](figures/modebench_discovery_curves_local.json) | [analyze_modebench_discovery_curves.py](../ops/analyze_modebench_discovery_curves.py) |
+| 34 | [modebench_discovery_correct_budget_local](figures/modebench_discovery_correct_budget_local.pdf) | [modebench_discovery_correct_budget_local](figures/modebench_discovery_correct_budget_local.json) | [analyze_modebench_discovery_curves.py](../ops/analyze_modebench_discovery_curves.py) |
+| 35 | [pantry_adaptation_recovery_20260912](figures/pantry_adaptation_recovery_20260912.pdf) | [inference_followups_20260912](results/inference_followups_20260912.json) | [build_paper_inference_followups.py](../ops/build_paper_inference_followups.py) |
+| 36 | [withdrawal_pmd_agreement](figures/withdrawal_pmd_agreement.pdf) | [portfolio_withdrawals_20260917](results/portfolio_withdrawals_20260917.json) | [build_paper_portfolio_withdrawals.py](../ops/build_paper_portfolio_withdrawals.py) |
+| 37 | [frontier_comparison_20260911_graph](figures/frontier_comparison_20260911_graph.pdf) | [frontier_comparison_20260911_graph](figures/frontier_comparison_20260911_graph.json) | [build_frontier_paper_comparison.py](../ops/build_frontier_paper_comparison.py) |
+| 38 | [gpt56_temperature_curve](figures/gpt56_temperature_curve.pdf) | [gpt56_temperature_curve](figures/gpt56_temperature_curve.json) | [plot_paper_gpt56_temperature_curve.py](../ops/plot_paper_gpt56_temperature_curve.py) |
+| 39 | [hosted_verified_breadth](figures/hosted_verified_breadth.pdf) | [hosted_verified_breadth](figures/hosted_verified_breadth.json) | [plot_paper_hosted_breadth.py](../ops/plot_paper_hosted_breadth.py) |
+| 40 | [reference_kl_knee](figures/reference_kl_knee.pdf) | [reference_kl_comparison](results/reference_kl_comparison.json) | [plot_paper_reference_kl_knee.py](../ops/plot_paper_reference_kl_knee.py) |
 
-The workshop figure pages are 1, 2, 2, 2, 3, 3, 4, 4 after adding the construction panel and tightening captions. Figure order is preserved around the added panel. ICLR retains the original section roles and page-one opener within nine main pages; paragraph and mathematics changes can shift later page breaks.
+## Source and build details
 
-## Additional quantitative views remain available
+Figures 12 and 40 both use [reference_kl_comparison.json](results/reference_kl_comparison.json). The domain-level comparison includes six coefficients through beta=0.3. Figure 12 averages Graph, MathIR, and Pantry across all six coefficients through beta=0.3. The reference-KL [builder](../ops/build_reference_kl_comparison.py) provides the table, macros, and plot inputs.
 
-| Asset | Supporting placement and evidence |
-|---|---|
-| [concentration_story](figures/concentration_story.pdf) | Longitudinal and matched replay collision analysis; Graph/Pantry at three scales, explicit eligibility and both disjoint-stream orientations. All 135 contrasts remain in the complete report. |
-| [replay_factorial_effects](figures/replay_factorial_effects.pdf) | Controlled-results supplement; domain-specific replay-minus-control effects under both objectives, on pass@8 and distinct@8. |
-| [replay_key_weighting](figures/replay_key_weighting.pdf) | Uniform-versus-frequency subsection; frozen 0.5B primary analysis, five seeds, original paired-bootstrap intervals. |
-| [replay_level2_effects](figures/replay_level2_effects.pdf) | Within-Level-2 results; common four-arm cohort, all five domains n=5, including Pantry. |
+The training-curve records specify fixed seed cohorts and per-checkpoint observed subsets. Rings mark incomplete observed cohorts; the observed seed ranges are descriptive. Missing checkpoints are not interpolated. Plot records and manuscript captions identify the relevant eligibility rules and uncertainty estimators for other figures.
 
-These four figures supplement the original main displays. The main text retains their findings and explicit references, with measurement identities and conditional assumptions visible beside the original examples and schematic.
+The linked rendering scripts identify their analysis inputs and available command-line arguments. Scripts that also analyze raw records require those recorded inputs; the self-contained Overleaf package compiles the supplied assets directly. A LaTeX-only build from `paper/` is:
 
-## Other supporting figures
+```sh
+latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
+```
 
-| Assets | Evidence |
-|---|---|
-| [modebench_base_levels_appendix](figures/modebench_base_levels_appendix.pdf) | All 60 frozen-base cells: four Qwen scales at Levels 1–3, with level colors and model-size markers. |
-| `e118_scale_extensions_appendix` | Absolute domain/scale factorial endpoints. |
-| `factorial_training_curves_pass8`, `factorial_training_curves_distinct8` | Fixed-cohort trajectories; missing checkpoints remain gaps; bands show seed ranges. |
-| `level2_factorial_training_curves` | All Level-2 arms and five complete terminal cohorts; missing intermediate checkpoints remain gaps. |
-| `direct_comparator_endpoint_effects` | GRPO, UCPO and sparse RLEP paired endpoint comparisons with exact cohorts. |
-| `direct_baseline_learning_curves_static_strip`, `direct_baseline_learning_curves_pass8` | Matching modes and accuracy trajectories for the smaller-model comparator populations. |
-| `baseline_collapse_precheck` | All 150 Dr.GRPO/GRPO runs and their raw extra-mode changes. |
-| `e121_fixed_bank_survival` | Teacher-forced exemplar scores, including declining tails; not exact mode probabilities. |
-| `pantry_adaptation_recovery_20260912` | Inference follow-up: saved-plan survival and bounded recovery after independently specified feasible Pantry outages. |
-| `frontier_comparison_20260911_graph` | Original-protocol hosted Graph correctness and correct-pair collision. |
-| `modebench_prompt_ablation_local` | Completed local prompt comparison; hosted panel omitted. |
-| `modebench_discovery_curves_local`, `modebench_discovery_correct_budget_local` | Later local sampling-budget and fixed-correct-count analyses; retained eligibility, rare MathIR exception, and Pantry ordering changes. |
-
-## Source and build checks
-
-`make -C paper figures-main` renders nine overview assets, including the hosted domain plot now placed in the ICLR appendix. `python ops/build_paper_hosted_level_averages.py` reproduces the hosted summary table from the same complete cohorts. `figures-supporting` renders the additional quantitative views and retained evidence. Figure JSON sidecars bind exact displayed estimates, cohorts, source bytes, and outputs. The main construction plot reconstructs all 15 frozen-7B Level-1–3 receipt sets; the appendix reconstructs all 60 four-scale receipt sets. Their sidecars authenticate native responses, canonical-set metrics, sources, and PDF/PNG outputs.
-
-All existing numerical, source, prompt, discovery-curve, and proof checks remain active. Editorial contracts protect the restored main sequence and the appendix placement of the added views. The workshop retains its official style, four-page main, source receipts, and independently checked source bundle.
-
-See the [restoration record](audits/figure_restoration_20260911/README.md), [machine-readable placement](audits/figure_restoration_20260911/figure_placement.json), and [coverage audit](FIGURE_DATA_AUDIT.md). The earlier reorganization and its previous placements remain archived.
-
-## Inference follow-ups (2026-09-12)
-
-Both appendices include `fig:pantry-adaptation-recovery`, rendered as `figures/pantry_adaptation_recovery_20260912.pdf` by `ops/build_paper_inference_followups.py`. Its numerical record is `results/inference_followups_20260912.json`; source hashes bind the complete offline, local coarse-key and Pantry analyses. `python ops/build_paper_inference_followups.py --check` verifies retained figures/tables and reconstructs Pantry problem means and stopping identities. The same appendix includes all 21 model-pair comparisons, both constituent baselines, hosted/local coarse keys, all Pantry controls, dietary outcomes and collection costs.
+The [Overleaf packager](../ops/package_iclr_overleaf.py) discovers the files actually read by LaTeX, includes available figure JSON sidecars, records hashes, and checks an independent compile. [Main-length validation](../ops/check_paper_main_length.py) checks the nine-page main text and its twelve figure placements. The manuscript and generated numerical assets determine the figure sequence; this inventory does not change measurements.

@@ -110,7 +110,7 @@ def build_record(source=SOURCE):
         raise ValueError('The matched medium reference must remain separate from controlled none-reasoning curves.')
     return {'schema':('paper-gpt56-pass8-temperature-curve-expanded480-v1' if expanded else 'paper-gpt56-pass8-temperature-curve-v1' if legacy else 'paper-gpt56-pass8-temperature-curve-v2'),'source':{'path':relative(source),'sha256':sha(source)},
             'renderer':{'path':relative(__file__),'sha256':sha(__file__)},'authenticated_bindings':bindings,
-            'model':'gpt-5.6-sol','reasoning_effort':'none','grading':'frozen formatting-normalized',
+            'model':'gpt-5.6-sol','reasoning_effort':'none','grading':'formatting-normalized',
             'icons':{'gpt-5.6-sol':{'path':relative(ICON),'sha256':sha(ICON)}},
             'sampling':{'temperatures':[float(t) for t in temperatures],'prompts_per_domain_level':prompts//15,'domains':5,
                         'levels':[1,2,3],'draws_per_prompt':8,'responses_per_temperature':responses,'total_responses':total_responses},
@@ -193,7 +193,7 @@ def build_figure(record):
         fig.text(.985,.88,'Reasoning: none',ha='right',
                  va='center',fontsize=8,color='#607487')
         prompt_count=record['sampling']['prompts_per_domain_level']*15
-        fig.text(.09,.025,f'Frozen formatting normalization | {prompt_count} matched prompts, 8 draws each per temperature',
+        fig.text(.09,.025,f'Formatting normalization | {prompt_count} common prompts, 8 draws each per temperature',
                  ha='left',va='center',fontsize=7,color='#607487')
     return fig
 
@@ -211,10 +211,11 @@ def render(record,output=OUTPUT):
 def interval(item,metric):
     factor,digits=(1,3) if metric=='distinct8' else (100,1)
     if item['estimate'] is None:return '--'
-    val=f"{item['estimate']*factor:.{digits}f}"
+    # Typeset negative values with a true minus rather than a hyphen.
+    val=f"{item['estimate']*factor:.{digits}f}".replace('-','$-$')
     ci=item.get('ci95')
     if ci is None or item.get('defined_replicates')!=20000:return val+' [--]'
-    return val+' ['+', '.join(f'{x*factor:.{digits}f}' for x in ci)+']'
+    return val+' ['+', '.join(f'{x*factor:.{digits}f}'.replace('-','$-$') for x in ci)+']'
 
 def render_appendix_legacy(record):
     temperatures=tuple(str(float(t)) for t in record['sampling']['temperatures'])
@@ -242,7 +243,7 @@ def render_appendix_legacy(record):
         'Both reasoning setting and collection time differ from the plotted sweep.',
         'This does not test temperature robustness of the medium condition.', '',
         'Each level averages five domains equally; All averages all 15 cells.',
-        'Pointwise 95 percent intervals use 20,000 paired whole-prompt bootstrap',
+        r'Pointwise 95\% intervals use 20,000 paired whole-prompt bootstrap',
         'resamples stratified by domain and level, retaining all eight draws.',
         'There is no multiplicity adjustment. A zero-width empirical interval',
         'reflects constant observed groups, not certain success on unseen prompts.', '']
@@ -272,7 +273,7 @@ def render_appendix_legacy(record):
         f'At $T={first}$ and $T={last}$, normalized '+r'\texttt{pass@8} is '
         +f"{overall[first]['pass8']['estimate']*100:.2f}"+r'\% and '+f"{overall[last]['pass8']['estimate']*100:.2f}"+r'\%, respectively,',
         r'while \texttt{distinct@8} is '+f"{overall[first]['distinct8']['estimate']:.3f}"+' and '+f"{overall[last]['distinct8']['estimate']:.3f}"+'.',
-        f'Across these {len(temperatures)} measured temperatures, the highest observed aggregate',
+        f'Across these {NUMBER_WORDS.get(len(temperatures), len(temperatures))} measured temperatures, the highest observed aggregate',
         r'\texttt{pass@8} occurs at '+best_labels['pass8']+r' and the highest \texttt{distinct@8}',
         'occurs at '+best_labels['distinct8']+'. This finite exploratory sweep does not establish',
         'a population optimum or a continuous Pareto boundary, and level-specific curves differ.', '',
@@ -287,12 +288,30 @@ def render_appendix_legacy(record):
         'All prompt-level records, domain estimates, original per-response and',
         'collision analyses, and paired comparisons remain in the retained reports for both strict and normalized grading.', '',
         r'\paragraph{Retained outcomes.}']
-    for t in temperatures:
-        c=normal['temperatures'][t]['counts']
-        lines.append(f'At $T={t}$, {c["truncated_responses"]} of {c["responses"]} outputs are token-limited and {c["native_refusals"]} are provider-declared refusals.')
-    lines += ['These outcome counts retain every registered draw and are separate from',
+    # One sentence per temperature repeats the same two zeros verbatim whenever
+    # nothing was truncated or refused anywhere. Where every setting agrees the
+    # statement is made once, for all of them; a setting that differs is still
+    # printed on its own line.
+    counts = {t: normal['temperatures'][t]['counts'] for t in temperatures}
+    distinct = {(c['truncated_responses'], c['native_refusals'], c['responses'])
+                for c in counts.values()}
+    if len(distinct) == 1 and len(temperatures) > 1:
+        truncated, refusals, responses = distinct.pop()
+        if truncated == 0 and refusals == 0:
+            lines.append(f'At every temperature, none of the {responses:,} outputs is token-limited '
+                         'or a provider-declared refusal.')
+        else:
+            lines.append(f'At every temperature, {truncated:,} of {responses:,} outputs are token-limited '
+                         f'and {refusals:,} are provider-declared refusals.')
+    else:
+        for t in temperatures:
+            c = counts[t]
+            lines.append(f'At $T={t}$, {c["truncated_responses"]} of {c["responses"]} outputs are token-limited and {c["native_refusals"]} are provider-declared refusals.')
+    lines += ['These outcome counts retain every draw and are separate from',
         'the verifier-based correctness and canonical-key measurements above.', '']
     return '\n'.join(lines)
+
+NUMBER_WORDS={2:'two',3:'three',4:'four',5:'five',6:'six'}
 
 def render_appendix_expanded(record):
     temperatures=tuple(str(float(t)) for t in record['sampling']['temperatures'])
@@ -300,61 +319,85 @@ def render_appendix_expanded(record):
     lines=[r'\subsection{GPT-5.6 Sol: temperature, pass@8 and verified modes}',r'\label{app:gpt56-temperature}',
         r'Figure~\ref{fig:gpt56-temperature-curve} plots empirical \texttt{pass@8}',
         r'against \texttt{distinct@8} for $T\in\{'+','.join(temperatures)+r'\}$, with reasoning',
-        r'\texttt{none}. Each condition retains the same 480 held-out prompts',
+        r'\texttt{none}. Each condition uses the same 480 held-out prompts',
         '(32 per domain--level cell), with eight stateless responses per prompt:',
         f"3,840 responses per temperature and {record['sampling']['total_responses']:,} in total. A prompt contributes one",
         r'to \texttt{pass@8} if at least one of its eight answers is verified correct,',
         r'and contributes its number of distinct correct canonical keys to \texttt{distinct@8}.',
-        'Zero-success groups and all unsuccessful draws remain in the denominator.',
-        r'We compute success directly from the saved groups, not as $1-(1-p)^8$',
-        'from pooled per-response accuracy; task difficulty varies across prompts.', '',
-        'The expanded cohort retains all 120 original prompts and their 4,800',
-        'responses, adding 360 prompts and 14,400 responses. The extension follows',
-        'the same outcome-independent row-hash ranking within each domain--level',
-        'cell. Requests retain the frozen prompt bytes and verifier; only temperature',
-        'varies in the sampling controls. New collection interleaves temperatures.',
-        'Separate old-120 and new-360 analyses below assess cohort sensitivity;',
-        'prompt composition and collection time differ between these cohorts.', '',
-        'The deployment rejected non-default temperatures with medium reasoning',
-        'and rejected temperature 2.5. These curves use the supported reasoning',
-        r'\texttt{none} profile. Historical medium-reasoning measurements cover only',
-        'the original 120 prompts and are omitted from the expanded-cohort tables',
-        'and figure. This does not test temperature robustness of medium reasoning.',
-        'A zero-temperature request does not establish deterministic outputs.', '',
+        'Both metrics average over all prompts, including those with no correct answer.',
+        r'The empirical \texttt{pass@8} uses the observed eight-response groups;',
+        r'$1-(1-p)^8$ applied to pooled accuracy would ignore differences among prompts.',
+        r'Raw \texttt{distinct@8} depends on both success and variation among correct',
+        r'solution modes, so its changes need not track \texttt{pass@8}.', '',
+        'Prompts are selected independently of model outputs within each',
+        'domain--level cell. The evaluation comprises 120-prompt and 360-prompt',
+        'subsets collected at different times. Temperatures are interleaved for the',
+        '360-prompt subset; zero and nonzero temperatures are collected separately',
+        'for the 120-prompt subset. Service changes can therefore confound temperature',
+        'contrasts, and prompt composition can affect comparisons between subsets.', '',
+        'Requests use the same prompt wording, verifiers and sampling controls',
+        r'except temperature, with an 8,192-token output cap. Returned metadata',
+        r'identifies \texttt{gpt-5.6-sol-2026-07-09}, reasoning \texttt{none},',
+        r'$\texttt{top\_p}=0.98$ and the requested temperature in every condition.',
+        'The exposed settings do not establish unchanged internal service behavior',
+        'or independent provider randomness. A zero-temperature request does not',
+        'establish deterministic outputs. The deployment rejects non-default',
+        'temperatures with medium reasoning and rejects temperature 2.5; this',
+        'sweep therefore does not test temperature robustness under medium reasoning.', '',
+        r'Strict grading applies the executable validators directly. Normalized',
+        r'grading uses the typography rules in App.~\ref{app:hosted-concentration}',
+        'before the same validators, preserving strict successes and their mode keys.', '',
         'Each level averages five domains equally; All averages all 15 cells.',
-        'Pointwise 95 percent intervals use 20,000 paired whole-prompt bootstrap',
-        'resamples stratified by domain and level, retaining all eight draws.',
+        r'Pointwise 95\% intervals use 20,000 paired whole-prompt bootstrap',
+        'resamples stratified by domain and level, keeping all eight responses',
+        'together and matching prompts across temperatures. Individual model',
+        'responses are not paired across conditions.',
         'There is no multiplicity adjustment. A zero-width empirical interval',
         'reflects constant observed groups, not certain success on unseen prompts.', '']
-    for grade,title in [('strict','Strict executable grades'),('normalized_secondary','Frozen formatting-normalized grades')]:
-        lines += [r'\begin{table}[!htbp]',r'\centering',r'\setlength{\parfillskip}{0pt plus .20\linewidth}',
-            r'\caption{\textbf{GPT temperature frontier: '+title+r'.}',
-            r'P is solved prompts (\%, \texttt{pass@8}); D is \texttt{distinct@8};',
-            r'A is per-response accuracy (\%).',
-            r'Brackets give pointwise 95\% intervals;',
-            r'all temperatures use reasoning \texttt{none} and eight draws per prompt.}',
-            r'\small',r'\setlength{\tabcolsep}{4pt}',r'\begin{tabular}{@{}llrrr@{}}',r'\toprule',
-            r'$T$ & Level & P [95\% interval] & D [95\% interval] & A [95\% interval] \\',r'\midrule']
+    # Both gradings in one table, as row groups under a G column. They carried
+    # the same temperatures, the same levels and the same five-sentence legend,
+    # so two tables repeated everything but the grade. The columns hold
+    # intervals and cannot be set side by side at this width, so the second
+    # grading follows the first rather than doubling the columns; every row of
+    # both gradings is retained.
+    lines += [r'\begin{table}[!htbp]',r'\centering',r'\setlength{\parfillskip}{0pt plus .20\linewidth}',
+        r'\caption{\textbf{Nonzero temperatures improve eight-draw coverage in this sweep.}',
+        r'P is solved prompts (\%, \texttt{pass@8}); D is \texttt{distinct@8};',
+        r'A is per-response accuracy (\%). G is the grading: S strict,',
+        r'N formatting-normalized. Each temperature uses the same 480 prompts',
+        r'(32 per domain--level cell), eight responses each, and reasoning \texttt{none}.',
+        r'Level rows average five domains equally; All averages all 15 cells.',
+        r'Brackets give pointwise 95\% whole-prompt bootstrap intervals.}',
+        r'\label{tab:gpt56-temperature}',
+        r'\small',r'\setlength{\tabcolsep}{4pt}',r'\begin{tabular}{@{}lllrrr@{}}',r'\toprule',
+        r'$T$ & Level & G & P [95\% interval] & D [95\% interval] & A [95\% interval] \\']
+    for grade,mark in [('strict','S'),('normalized_secondary','N')]:
+        lines.append(r'\midrule')
         for temperature in temperatures:
             groups=(record['matched_medium_reference']['analyses'][grade]['groups']['five_domain_macro'] if temperature=='M'
                     else record['analyses'][grade]['temperatures'][temperature]['groups']['five_domain_macro'])
             if temperature=='M':lines.append(r'\midrule')
             for level in (*LEVELS,'All'):
                 group=groups['overall'] if level=='All' else groups['levels'][level]
-                lines.append(' & '.join([temperature if level=='1' else '',level]+[interval(group[m],m) for m in ('pass8','distinct8','accuracy')])+r' \\')
-        lines += [r'\bottomrule',r'\end{tabular}',r'\end{table}','']
+                # G repeats wherever T does: the groups are long enough to
+                # cross a page, and a mark only on the first row would leave a
+                # reader mid-table unable to tell which grading they are in.
+                lines.append(' & '.join([temperature if level=='1' else '',level,
+                                         mark if level=='1' else '']
+                                        +[interval(group[m],m) for m in ('pass8','distinct8','accuracy')])+r' \\')
+    lines += [r'\bottomrule',r'\end{tabular}',r'\end{table}','']
     normal=record['analyses']['normalized_secondary'];overall={t:b['groups']['five_domain_macro']['overall'] for t,b in normal['temperatures'].items()}
     best={metric:[t for t in temperatures if math.isclose(overall[t][metric]['estimate'],
           max(overall[u][metric]['estimate'] for u in temperatures),rel_tol=0,abs_tol=1e-12)]
           for metric in ('pass8','distinct8')}
     best_labels={metric:', '.join(f'$T={t}$' for t in winners) for metric,winners in best.items()}
-    lines += [r'\paragraph{Observed temperature frontier.}',
+    lines += [r'\paragraph{Coverage and sampled solution modes.}',
         f'At $T={first}$ and $T={last}$, normalized '+r'\texttt{pass@8} is '
         +f"{overall[first]['pass8']['estimate']*100:.2f}"+r'\% and '+f"{overall[last]['pass8']['estimate']*100:.2f}"+r'\%, respectively,',
         r'while \texttt{distinct@8} is '+f"{overall[first]['distinct8']['estimate']:.3f}"+' and '+f"{overall[last]['distinct8']['estimate']:.3f}"+'.',
-        f'Across these {len(temperatures)} measured temperatures, the highest observed aggregate',
+        f'Across these {NUMBER_WORDS.get(len(temperatures), len(temperatures))} measured temperatures, the highest observed aggregate',
         r'\texttt{pass@8} occurs at '+best_labels['pass8']+r' and the highest \texttt{distinct@8}',
-        'occurs at '+best_labels['distinct8']+'. This finite exploratory sweep does not establish',
+        'occurs at '+best_labels['distinct8']+'. These five temperatures do not establish',
         'a population optimum or a continuous Pareto boundary, and level-specific curves differ.', '',
         r'Per-response accuracy changes from '+f"{overall[first]['accuracy']['estimate']*100:.2f}"+r'\% to '
         +f"{overall[last]['accuracy']['estimate']*100:.2f}"+r'\% between the endpoints.',
@@ -364,35 +407,51 @@ def render_appendix_expanded(record):
     lines += [f'The paired $T={last}$ minus $T={first}$ contrast is '
         +interval(endpoint['pass8'],'pass8')+r' \texttt{pass@8} percentage points and '
         +interval(endpoint['distinct8'],'distinct8')+r' distinct correct modes, with pointwise 95\% intervals.',
-        'All prompt-level records, domain estimates, original per-response and',
-        'collision analyses, and paired comparisons remain in the retained reports for both strict and normalized grading.', '',
-        r'\paragraph{Retained outcomes.}']
-    for t in temperatures:
-        c=normal['temperatures'][t]['counts']
-        lines.append(f'At $T={t}$, {c["truncated_responses"]} of {c["responses"]} outputs are token-limited and {c["native_refusals"]} are provider-declared refusals.')
-    lines += ['These outcome counts retain every registered draw and are separate from',
-        'the verifier-based correctness and canonical-key measurements above.', '']
+        '', r'\paragraph{Response outcomes.}']
+    # One sentence per temperature repeats the same two zeros verbatim whenever
+    # nothing was truncated or refused anywhere. Where every setting agrees the
+    # statement is made once, for all of them; a setting that differs is still
+    # printed on its own line.
+    counts = {t: normal['temperatures'][t]['counts'] for t in temperatures}
+    distinct = {(c['truncated_responses'], c['native_refusals'], c['responses'])
+                for c in counts.values()}
+    if len(distinct) == 1 and len(temperatures) > 1:
+        truncated, refusals, responses = distinct.pop()
+        if truncated == 0 and refusals == 0:
+            lines.append(f'At every temperature, none of the {responses:,} outputs is token-limited '
+                         'or a provider-declared refusal.')
+        else:
+            lines.append(f'At every temperature, {truncated:,} of {responses:,} outputs are token-limited '
+                         f'and {refusals:,} are provider-declared refusals.')
+    else:
+        for t in temperatures:
+            c = counts[t]
+            lines.append(f'At $T={t}$, {c["truncated_responses"]} of {c["responses"]} outputs are token-limited and {c["native_refusals"]} are provider-declared refusals.')
+    lines += ['Unsuccessful answers remain in the eight-response groups.', '']
     lines += render_cohort_sensitivity(record)
     return '\n'.join(lines)
 
 def render_cohort_sensitivity(record):
-    lines=[r'\paragraph{Sensitivity to the prompt expansion.}',
-           'The original and additional prompt cohorts retain separate paired',
-           'temperature comparisons. Differences between cohorts may reflect',
-           'prompt composition or collection time; they are not causal time effects.', '']
+    lines=[r'\paragraph{Sensitivity across prompt subsets.}',
+           'We compare the same temperature contrast within each prompt subset.',
+           'The subsets differ in prompts and collection periods, so differences',
+           'between them do not isolate a causal effect of time. Brackets are',
+           r'pointwise 95\% intervals.', '']
     combined=record['analyses']['normalized_secondary']['paired_high_temperature_contrast']['groups']['five_domain_macro']['overall']
     lines.append(r'Across all 480 prompts, the paired $T=2$ minus $T=1.5$ contrast is '
                  +interval(combined['pass8'],'pass8')+r' \texttt{pass@8} percentage points and '
-                 +interval(combined['distinct8'],'distinct8')+r' distinct modes (95\% intervals).')
+                 +interval(combined['distinct8'],'distinct8')+r' distinct modes.')
     # Every expanded report must include the original and added cohorts. Exact
     # rows are rendered after report authentication, using the same metric units.
-    for cohort,label in [('original_120','Original 120 prompts'),('additional_360','Additional 360 prompts')]:
+    parts=[]
+    for cohort,label in [('original_120','120-prompt'),('additional_360','360-prompt')]:
         data=record['cohort_sensitivity'][cohort]
         analysis=data['analyses']['normalized_secondary']
         contrast=analysis['paired_high_temperature_contrast']['groups']['five_domain_macro']['overall']
-        lines.append(label+r': the paired $T=2$ minus $T=1.5$ contrast is '
-                     +interval(contrast['pass8'],'pass8')+r' \texttt{pass@8} percentage points and '
-                     +interval(contrast['distinct8'],'distinct8')+r' distinct modes (95\% intervals).')
+        parts.append('in the '+label+' subset it is '
+                     +interval(contrast['pass8'],'pass8')+' points and '
+                     +interval(contrast['distinct8'],'distinct8')+' modes')
+    lines.append(parts[0][0].upper()+parts[0][1:]+', and '+parts[1]+'.')
     return lines+['']
 
 def render_appendix(record):

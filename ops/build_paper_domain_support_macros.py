@@ -32,6 +32,17 @@ DOMAINS = (
     ("Pantry", "pantry_plan_modebench_v2"),
 )
 SPLITS = ("train", "eval")
+# What a model actually reaches, beside what the construction certifies. The
+# widest budget in the manuscript: one frontier deployment, 512 draws on 32
+# problems per domain, already reported as Fig. 2's discovery curves. Certified
+# support counts every mode the verifier admits; this counts the ones anything
+# has been observed to produce, and the gap between the two columns is the
+# point of printing them together.
+REACHED = ROOT / "paper/results/gpt56_all_levels32_sampling_20260913.json"
+REACHED_LEVEL = 1
+REACHED_DOMAIN = {"graph_coloring": "Graph", "countdown": "Countdown",
+                  "python_factors": "Python", "mathir": "MathIR",
+                  "pantry_plan": "Pantry"}
 
 
 def counts(root: Path, split: str) -> list[int]:
@@ -51,6 +62,29 @@ def group(values: list[int]) -> dict:
 
 def tex_int(value: int) -> str:
     return f"{value:,}".replace(",", "{,}")
+
+
+def reached(lines: list[str]) -> dict:
+    """Distinct verified modes one deployment reaches at the widest budget."""
+    if not REACHED.is_file():
+        return {}
+    payload = json.loads(REACHED.read_text())
+    found = {}
+    for row in payload["rows"]:
+        label = REACHED_DOMAIN.get(row["domain"])
+        if label is None or row["level"] != REACHED_LEVEL:
+            continue
+        last = row["curves"]["normalized"][-1]
+        found[label] = {"draws": last["k"], "prompts": row["n_prompts"],
+                        "distinct_modes": last["distinct"]["estimate"]}
+        lines.append(r"\newcommand{\MDreached%s}{%.2f}"
+                     % (label, last["distinct"]["estimate"]))
+    if found:
+        one = {entry["draws"] for entry in found.values()}
+        lines.append(r"\newcommand{\MDreachedDraws}{%d}" % max(one))
+        lines.append(r"\newcommand{\MDreachedPrompts}{%d}"
+                     % max(entry["prompts"] for entry in found.values()))
+    return found
 
 
 def main() -> None:
@@ -97,6 +131,7 @@ def main() -> None:
         else "%d--%d" % (min(cases), max(cases))))
     lines.append(r"\newcommand{\MDpyCaseLo}{%d}" % min(lows))
     lines.append(r"\newcommand{\MDpyCaseHi}{%d}" % max(highs))
+    record["Reached"] = reached(lines)
     OUT_TEX.write_text("\n".join(lines) + "\n")
     OUT_JSON.write_text(json.dumps(
         {"schema": "paper-domain-support-v1",

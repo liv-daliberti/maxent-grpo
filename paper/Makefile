@@ -92,6 +92,22 @@ HOSTED_REASONING_SOURCE = ../artifacts/hosted_reasoning_off_32_20260911_v2/reaso
 HOSTED_REASONING_ASSETS = results/hosted_reasoning_off_20260912.json results/hosted_reasoning_off_20260912_main.tex results/hosted_reasoning_off_20260912_appendix.tex
 
 
+# Fresh sampling is already retained; this target only renders and verifies it.
+FRESH_CONCENTRATION_SOURCE = ../artifacts/modebench_fresh_concentration_20260912/fresh_panel/report.json
+FRESH_CONCENTRATION_ASSETS = results/fresh_concentration_20260912.json \
+	results/fresh_concentration_20260912_initial_table.tex \
+	results/fresh_concentration_20260912_replay_table.tex \
+	figures/fresh_concentration_pcmd_20260912.pdf \
+	figures/fresh_concentration_pcmd_20260912.png
+FRESH_CONCENTRATION_APPENDIX = results/fresh_concentration_20260912_appendix.tex
+
+$(FRESH_CONCENTRATION_ASSETS) &: ../ops/build_paper_fresh_concentration.py $(FRESH_CONCENTRATION_SOURCE) ../ops/paper_style.py ../ops/paper_domain_figure_typography.py
+	$(DATA_PYTHON) ../ops/build_paper_fresh_concentration.py
+
+.PHONY: fresh-concentration
+fresh-concentration: $(FRESH_CONCENTRATION_ASSETS)
+	$(DATA_PYTHON) ../ops/build_paper_fresh_concentration.py --check
+
 INFERENCE_FOLLOWUPS = results/inference_followups_20260912.tex results/inference_followups_20260912.json figures/pantry_adaptation_recovery_20260912.pdf figures/pantry_adaptation_recovery_20260912.png
 PORTFOLIO_WITHDRAWALS = results/portfolio_withdrawals_20260917.tex results/portfolio_withdrawals_20260917.json results/portfolio_withdrawal_macros.tex
 PORTFOLIO_WITHDRAWAL_EVIDENCE = ../artifacts/modebench_portfolio_withdrawals_20260917/inputs.json \
@@ -186,7 +202,7 @@ figures/frontier_level_grid.pdf figures/frontier_level_grid.png figures/frontier
 figures/replay_bank_decomposition.pdf figures/replay_bank_decomposition.png figures/replay_bank_decomposition.json results/replay_bank_decomposition_macros.tex &: ../ops/plot_paper_replay_bank_decomposition.py ../ops/paper_style.py results/replay_bank_decomposition_measured.json
 	$(DATA_PYTHON) ../ops/plot_paper_replay_bank_decomposition.py
 
-$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) $(RESULTS) $(SOL_PYTHON_PARITY) $(PROMPT_ABLATION_ASSETS) $(DISCOVERY_CURVE_ASSETS) $(ANALYSIS_SCRIPTS) | prompt-ablation discovery-curves inference-followups
+$(PAPER).pdf: $(PAPER).tex appendix.tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) $(RESULTS) $(SOL_PYTHON_PARITY) $(PROMPT_ABLATION_ASSETS) $(DISCOVERY_CURVE_ASSETS) $(ANALYSIS_SCRIPTS) $(FRESH_CONCENTRATION_APPENDIX) $(FRESH_CONCENTRATION_ASSETS) | prompt-ablation discovery-curves inference-followups fresh-concentration
 	$(DATA_PYTHON) ../ops/check_paper_current_contract.py
 	$(DATA_PYTHON) ../ops/check_paper_domain_prompts.py
 	$(LATEX) $(PAPER)

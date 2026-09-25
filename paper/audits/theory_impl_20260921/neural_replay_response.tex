@@ -1,0 +1,86 @@
+% Insert after the existing complete-exemplar/finite-visibility subsection.
+\subsection{When a replay gradient improves a neural exemplar}
+\label{app:theory-neural-replay-response}
+
+Lemma~\ref{lem:shared-exemplar-retention} permits shared parameters by
+assuming descent of a joint potential. A local statement can instead expose
+the condition under which a realized replay update helps a particular
+exemplar. This condition involves interference among scores and the optimizer's
+response, quantities that the categorical abstraction suppresses.
+
+\begin{proposition}[Local replay response under shared parameters]
+\label{prop:neural-replay-local-response}
+For a selected bank of $k$ complete exemplars, define
+\[
+ \ell_b(\theta)=\frac{\log\pi_\theta(e_b\mid x_b)}{L_b},\qquad
+ h_b=\nabla_\theta\ell_b(\theta),\qquad
+ \bar h=\frac1k\sum_{j=1}^k h_j.
+\]
+Suppose a step has the form
+$\Delta=\eta H(g+\lambda\bar h)+u$, where $\eta,\lambda\ge0$,
+$H$ is a fixed symmetric positive semidefinite matrix for this step,
+$g$ is the fresh ascent direction, and $u$ is the remaining update.
+Assume $\ell_b$ is twice differentiable and its Hessian has operator norm
+at most $B_b$ along $\{\theta+s\Delta:0\le s\le1\}$.
+Set
+\[
+ K_{bj}=h_b^\top Hh_j,\qquad
+ \kappa_b=\frac1k\sum_jK_{bj},\qquad
+ m_b=\eta h_b^\top Hg+\eta\lambda\kappa_b
+       +h_b^\top u-\frac{B_b}{2}\|\Delta\|_2^2.
+\]
+Then
+\begin{equation}
+ \ell_b(\theta+\Delta)-\ell_b(\theta)\ge m_b,
+ \qquad
+ \pi_{\theta+\Delta}(e_b\mid x_b)
+    \ge\pi_\theta(e_b\mid x_b)e^{L_bm_b}.
+ \label{eq:neural-replay-local-response}
+\end{equation}
+In particular, $m_b>0$ guarantees that this update increases the complete
+exemplar's probability, whether or not it appeared among the fresh samples.
+\end{proposition}
+
+\begin{proof}
+Taylor's theorem with the Hessian bound gives
+$\ell_b(\theta+\Delta)-\ell_b(\theta)
+ \ge h_b^\top\Delta-(B_b/2)\|\Delta\|_2^2$.
+Substitution of the stated step and
+$h_b^\top H\bar h=k^{-1}\sum_jK_{bj}$ proves the first inequality.
+Multiplication by $L_b$ and exponentiation prove the second.
+\end{proof}
+
+The required replay response is a row average $\kappa_b$ of the score Gram
+matrix, not only its nonnegative diagonal entry $K_{bb}$. A sufficient
+interference condition is $\kappa_b>0$, with replay strength satisfying
+\[
+ \eta\lambda\kappa_b>
+   -\eta h_b^\top Hg-h_b^\top u
+       +\frac{B_b}{2}\|\Delta\|_2^2.
+\]
+This inequality includes the step's curvature cost, which itself depends on
+the chosen dose; arbitrarily increasing $\lambda$ is not a sufficient rule.
+
+The interference condition cannot be dropped. For example, consider three
+categorical logits sharing one scalar parameter, with slopes $(1,-2,0)$.
+At a point with probabilities $(s,s,1-2s)$, where $0<s<1/4$, let the first
+two categories be correct and banked. Their unit-length log-score gradients
+are $h_1=1+s$ and $h_2=-2+s$. Uniform replay alone follows
+$\bar h=s-1/2$, so
+\[
+ \left.\frac{d}{dt}\log p_1\right|_{\dot\theta=\bar h}
+   =(1+s)(s-1/2)<0.
+\]
+Thus shared parameters can make replay initially reduce the probability of
+a rare stored mode while improving the average replay score.
+
+For an AdamW step, replay can alter both moment estimates. The proposition
+therefore does not identify its $H$ with an unchanged AdamW preconditioner.
+It applies to a specified decomposition of the realized step, with any
+remaining contribution included in $u$; alternatively its Taylor bound can
+be evaluated directly from $h_b^\top\Delta$. Neither the interference margin
+nor a curvature bound is established for the experimental runs here.
+The statement concerns complete stored responses under the sampling law
+specified in App.~\ref{app:theory-exemplar-bridge}. Raising one such
+probability strengthens that exemplar's contribution to its key, but need
+not increase total key probability or transfer to a held-out prompt.

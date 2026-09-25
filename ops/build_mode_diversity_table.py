@@ -12,6 +12,10 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+try:
+    from paper_domain_typography import format_domain_names
+except ModuleNotFoundError:
+    from ops.paper_domain_typography import format_domain_names
 
 ROOT = Path(__file__).resolve().parents[1]
 PAYLOAD = ROOT / 'paper/results/mode_diversity_base_grid.json'
@@ -86,7 +90,7 @@ def build(payload: dict) -> str:
     # The rule closes the body file rather than the manuscript: a body ending
     # in a bare row separator leaves \bottomrule stranded outside the \cr.
     lines.append(r'    \bottomrule')
-    return '\n'.join(lines) + '\n'
+    return format_domain_names('\n'.join(lines) + '\n')
 
 
 SPLIT_OUT = ROOT / 'paper/results/mode_diversity_base_grid_split_body.tex'
@@ -176,7 +180,7 @@ def build_split(payload: dict) -> str:
         if domain != DOMAINS[-1]:
             lines.append(r'\addlinespace')
     lines.append(r'    \bottomrule')
-    return '\n'.join(lines) + '\n'
+    return format_domain_names('\n'.join(lines) + '\n')
 
 
 def _seven_b_range_macros(reportable, fmt) -> list[str]:
@@ -655,7 +659,7 @@ def build_coverage(payload: dict) -> str:
         lines += [fr'\newcommand{{\MDfrontierLpmd{tag}}}{{{fmt(info["pmd"])}}}',
                   fr'\newcommand{{\MDfrontierLmodels{tag}}}{{{info["models"]}}}',
                   fr'\newcommand{{\MDfrontierLdomains{tag}}}{{{info["domains"]}}}']
-    return '\n'.join(lines) + '\n'
+    return format_domain_names('\n'.join(lines) + '\n')
 
 
 def main() -> None:

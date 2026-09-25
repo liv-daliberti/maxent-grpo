@@ -1,0 +1,8 @@
+{
+  "start_marker": "\\section{Mode Collapse and Verified Replay}",
+  "stop_before": "\\subsection{Conditional trajectories of outcome-binary mean flows}",
+  "old_sha256": "e9d55cefd18d2f987f866f94e56a22b46278858375f14b354ad1045fd72109cb",
+  "new_sha256": "e5ebf46455db607315e6af6448c7c7ddf57cddfb40d5a94382bc179953c70da3",
+  "replacement_count": 17,
+  "source": "/tmp/paper-appendix-eighth10-20260921/before.tex"
+}

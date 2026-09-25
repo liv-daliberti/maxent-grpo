@@ -1095,6 +1095,42 @@ def test_online_canonical_policy_entropy_adaptation_is_exclusive():
         )
 
 
+def test_canonical_replay_capacity_floor_follows_the_objective():
+    """A one-mode bank is legal for the mass objectives and not for KL balance.
+
+    ``bank_balance`` scores ``KL(U_g || softmax(scores_g))``, which is
+    undefined on a singleton group, so its floor stays at two. The mass
+    objectives already score singleton groups in normal training -- any prompt
+    that has found exactly one mode is replayed as one -- so a capacity of one
+    is a configurable ablation for them rather than an invalid request.
+    """
+
+    for objective in (
+        "verified_likelihood",
+        "verified_likelihood_per_rollout",
+        "split_mass_balance_per_rollout",
+    ):
+        args = _args(
+            xdr_tau=float("inf"),
+            online_canonical_replay=True,
+            online_canonical_replay_objective=objective,
+            online_canonical_replay_capacity=1,
+            test_split="multi_answer",
+        )
+        assert validate_zero_math_args(args) is args
+
+    with pytest.raises(ValueError, match="capacity"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                online_canonical_replay=True,
+                online_canonical_replay_objective="bank_balance",
+                online_canonical_replay_capacity=1,
+                test_split="multi_answer",
+            )
+        )
+
+
 def test_canonical_replay_accepts_target_free_inverse_direct_entropy_hybrid():
     args = _args(
         xdr_tau=float("inf"),
@@ -1945,6 +1981,31 @@ def test_rlep_dr_accepts_sparse_prompt_fallback_when_pool_is_enabled():
 def test_rlep_rejects_mixed_or_malformed_configuration(overrides, message):
     with pytest.raises(ValueError, match=message):
         validate_zero_math_args(_args(xdr_tau=float("inf"), **overrides))
+
+
+def test_rlep_online_pool_takes_a_count_and_no_experience_root():
+    args = _args(
+        xdr_tau=float("inf"),
+        num_samples=16,
+        rlep_replay_count=2,
+        rlep_online_pool=True,
+        rlep_sparse_fallback=True,
+    )
+    assert validate_zero_math_args(args) is args
+    with pytest.raises(ValueError, match="no rlep_experience_root"):
+        validate_zero_math_args(
+            _args(
+                xdr_tau=float("inf"),
+                num_samples=16,
+                rlep_experience_root="/pool",
+                rlep_replay_count=2,
+                rlep_online_pool=True,
+            )
+        )
+    with pytest.raises(ValueError, match="positive rlep_replay_count"):
+        validate_zero_math_args(
+            _args(xdr_tau=float("inf"), num_samples=16, rlep_online_pool=True)
+        )
 
 
 

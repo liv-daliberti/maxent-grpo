@@ -24,18 +24,43 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+import hashlib
 import json
 import math
 from pathlib import Path
 import statistics
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+for _path in (ROOT / 'ops',):
+    if str(_path) not in sys.path:
+        sys.path.insert(0, str(_path))
+from mode_diversity import DEFAULT_MIN_DEFINED_PROMPTS  # noqa: E402
+
 RUN = ROOT / 'var/artifacts/pmd_independent_resample_20260915'
-DEFAULT_SOURCE = RUN / 'mode_diversity_resampled.json'
+# The per-cell aggregate of RUN's receipts. It lives here, beside the record it
+# produces, because var/ is outside the repository: the published record used to
+# name a session scratchpad as its source, which was accurate on the day and
+# unresolvable afterwards. Keeping the aggregate on a tracked path lets the
+# record name a source that still exists, and the digest below pins which one.
+DEFAULT_SOURCE = ROOT / 'paper/results/mode_diversity_resampled_terminal.json'
 DEFAULT_OUTPUT = ROOT / 'paper/results/concentration_across_levels.json'
 LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
 # Student-t 95% half-widths, two-sided, for n-1 degrees of freedom.
-T95 = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571, 7: 2.447, 8: 2.365}
+# The table must cover every n that reaches it: a missing entry used to fall
+# back to the normal 1.96, which silently understated twelve n=10 intervals by
+# 15%. Unknown n now raises instead of quietly narrowing the interval.
+T95 = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571, 7: 2.447, 8: 2.365,
+       9: 2.306, 10: 2.262, 11: 2.228, 12: 2.201, 13: 2.179, 14: 2.160,
+       15: 2.145, 16: 2.131, 17: 2.120, 18: 2.110, 19: 2.101, 20: 2.093,
+       21: 2.086, 22: 2.080, 23: 2.074, 24: 2.069, 25: 2.064, 26: 2.060,
+       27: 2.056, 28: 2.052, 29: 2.045, 30: 2.045}
+
+
+def t95(n: int) -> float:
+    if n not in T95:
+        raise RuntimeError(f'no two-sided t multiplier tabulated for n={n}')
+    return T95[n]
 
 
 def summarise(values: list[float]) -> dict:
@@ -44,7 +69,7 @@ def summarise(values: list[float]) -> dict:
     out = {'n': n, 'mean': statistics.fmean(values) if values else None,
            'ci95': None, 'values': sorted(values)}
     if n >= 2:
-        half = T95.get(n, 1.96) * statistics.stdev(values) / math.sqrt(n)
+        half = t95(n) * statistics.stdev(values) / math.sqrt(n)
         out['ci95'] = [out['mean'] - half, out['mean'] + half]
     return out
 
@@ -89,8 +114,18 @@ def build(source: Path) -> dict:
         usable = [c for c in group if c['resampled']['defined_prompts'] >= 2]
         deltas = [c['resampled']['pmd'] - initial['pmd'] for c in usable
                   if initial['defined_prompts'] >= 2]
+        # What the mark reports is a mean over training seeds, so the support
+        # question is how much prompt-level evidence stands behind that mean,
+        # not whether every seed clears the bar on its own. A seed contributes
+        # its own eligible prompts to the average; five seeds at twenty each
+        # carry more evidence than one seed at forty, and the all-seeds rule
+        # called the first provisional and the second reportable. Pool them.
+        #
+        # The untrained side is one checkpoint, not a seed family, so it still
+        # answers for itself.
+        pooled = sum(c['resampled']['defined_prompts'] for c in usable)
         provisional = bool(deltas) and not (
-            initial['reportable'] and all(c['resampled']['reportable'] for c in usable))
+            initial['reportable'] and pooled >= DEFAULT_MIN_DEFINED_PROMPTS)
         block.update({
             'provisional': provisional,
             'status': 'measured' if deltas else (
@@ -102,6 +137,8 @@ def build(source: Path) -> dict:
             'seeds': sorted(c['seed'] for c in usable),
             'initial_eligible_prompts': initial['defined_prompts'],
             'final_eligible_prompts': sorted(c['resampled']['defined_prompts'] for c in usable),
+            'final_eligible_prompts_pooled': pooled,
+            'final_seeds_clearing_bar': sum(1 for c in usable if c['resampled']['reportable']),
             'summary': summarise(deltas),
         })
         blocks.append(block)
@@ -110,11 +147,17 @@ def build(source: Path) -> dict:
         'schema': 'paper-concentration-across-levels-v1',
         'status': 'analyzed',
         'source': {'path': str(source if not str(source).startswith(str(ROOT)) else source.relative_to(ROOT)),
+                   'sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
                    'schema': payload.get('schema')},
         'builder': {'path': str(Path(__file__).resolve().relative_to(ROOT))},
         'definition': {
             'quantity': 'terminal PCMD minus untrained PCMD on the level\'s held-out split',
             'pairing': 'one untrained checkpoint per cell; spread is across training seeds',
+            'support_rule': (f'a comparison is reportable when the untrained cell clears the '
+                             f'{DEFAULT_MIN_DEFINED_PROMPTS}-prompt support bar and the trained '
+                             f'seeds pool to at least that many eligible prompts between them; '
+                             f'per-seed counts are kept so a thin seed stays visible'),
+            'min_defined_prompts': DEFAULT_MIN_DEFINED_PROMPTS,
             'trained_level': 'level1',
             'transfer_levels': ['level2', 'level3', 'level4', 'level5'],
             'transfer_note': 'Every cell trains at Level 1. Level 1 is trained and '

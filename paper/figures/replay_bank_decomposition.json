@@ -1,7 +1,7 @@
 {
  "schema": "paper-figure-derived-v1",
  "kind": "derived-with-measurement",
- "curves": "closed forms printed in App. A.3, evaluated over w(t) = (1 - t) e_1 + t U_k.",
+ "curves": "closed forms printed in App. A.3, evaluated over w(t) = (1 - t) e_1 + t U_k. Dashed horizontals are 1 - (1 - P)^K, the allocation-invariant probability of drawing some buffered key.",
  "measured": {
   "source": "paper/results/replay_bank_decomposition_measured.json",
   "source_sha256": "0ea75bc7cdbe4eae65a99d745ef4b8375373ec35b97f0638bed2df107ad828c1",
@@ -308,11 +308,11 @@
  "outputs": {
   "pdf": {
    "path": "paper/figures/replay_bank_decomposition.pdf",
-   "sha256": "e64280f1f2016a4578099947973312e2bbf1756aca3a66944d235e285a1dc29d"
+   "sha256": "5b91de8415557a599c6e99f19a6f1d28d8874b79bf387e7bf78e11e12b5260a4"
   },
   "png": {
    "path": "paper/figures/replay_bank_decomposition.png",
-   "sha256": "91e4e3a71af0fd1cbe215197c76a3a22a8ebf4ec9a9544e95aa85290be1cd8fb"
+   "sha256": "ede3bc4f4ea90bafe8f6c571ac9431969b8c602ae2c1f46d231d06cbdb78d343"
   }
  }
 }

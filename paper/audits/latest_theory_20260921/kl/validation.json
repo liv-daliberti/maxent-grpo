@@ -1,0 +1,13 @@
+{
+  "checks_passed": 592,
+  "stationary_cases": 54,
+  "all_displayed_equations_unchanged": true,
+  "all_labels_and_result_environments_unchanged": true,
+  "all_citations_unchanged": true,
+  "stored_recovery_times_preserved": 16,
+  "replay_decade_increment_max_relative_error": 0.0005403975147550977,
+  "recovery_integrations_rerun": false,
+  "experiments_or_training_run": false,
+  "replacement_sha256": "ab3874cd58f205d4f474b5c6e68a323f83e4a22cbaadde0180a8d13665da265a",
+  "stored_data_sha256": "b831f92b236bf5c12759cc8a84339a963c8fc59268c9279840c1c117efa2df17"
+}

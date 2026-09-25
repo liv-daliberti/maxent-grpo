@@ -63,6 +63,7 @@ from ..replicated_group import (
     validate_replicated_group_layout,
 )
 from ..rlep import (
+    OnlineRLEPExperiencePool,
     RLEPExperiencePool,
     RLEPReplayGroup,
     rlep_mixed_advantages,
@@ -80,6 +81,9 @@ from ..seed_weights import compute_seed_row_weights
 from ..tensor_utils import cap_last_valid_token_pos_for_zero_advantage
 from ..verified_route_library import VerifiedRouteLibrary
 from ..xdr import aggregation_group_diagnostics, compute_xdr_row_weights
+from ..gapo import GAPOSupportIndex, gapo_group_rewards
+from ..setpo import shape_setpo_advantages
+from ..setpo_embedder import SetPOEmbedder
 from ..ucpo import redistribute_ucpo_advantages
 
 
@@ -206,6 +210,55 @@ class ZeroMathGrpoMixin:
                 ]
             )
         return keys_grouped
+
+    def _gapo_support_index(self) -> GAPOSupportIndex:
+        """Return the frozen enumerated-support index, loaded once.
+
+        The index is read-only and identical for every step, so it is cached
+        on the learner rather than re-read per batch: the shared filesystem
+        should see one open, not one per optimizer step.
+        """
+
+        index = getattr(self, "_gapo_support_index_cache", None)
+        if index is None:
+            index = GAPOSupportIndex.load(str(self.args.gapo_support_index))
+            self._gapo_support_index_cache = index
+        return index
+
+    def _setpo_embedder(self) -> SetPOEmbedder:
+        """Return the frozen SetPO sentence embedder, loaded once."""
+
+        embedder = getattr(self, "_setpo_embedder_cache", None)
+        if embedder is None:
+            embedder = SetPOEmbedder.from_path(
+                str(self.args.setpo_embedder_path),
+                device=torch.cuda.current_device(),
+                batch_size=int(getattr(self.args, "setpo_embed_batch_size", 64)),
+            )
+            self._setpo_embedder_cache = embedder
+        return embedder
+
+    def _setpo_response_surfaces(
+        self,
+        input_ids: torch.Tensor,
+        response_masks: torch.Tensor,
+    ) -> list[str]:
+        """Decode one completion string per row for SetPO's kernel.
+
+        SetPO's similarity is defined over trajectories, not over canonical
+        answer keys, so this deliberately embeds the generated text rather than
+        the grader's key. Collapsing onto keys first would turn SetPO into a
+        different method --- one much closer to this campaign's own.
+        """
+
+        label_ids = input_ids[:, 1:]
+        return [
+            self.tokenizer.decode(
+                row_ids[row_mask.to(torch.bool)].detach().cpu().tolist(),
+                skip_special_tokens=True,
+            )
+            for row_ids, row_mask in zip(label_ids, response_masks)
+        ]
 
     def _should_skip_baseline_grad_norm_logging(self) -> bool:
         return self._use_instrumented_grpo_learning_step()
@@ -2049,16 +2102,29 @@ class ZeroMathGrpoMixin:
         logging.info(f"learn data size {input_ids.shape}")
 
         rlep_count = int(getattr(args, "rlep_replay_count", 0) or 0)
+        rlep_online = bool(getattr(args, "rlep_online_pool", False))
         if rlep_count:
             pool = getattr(self, "_rlep_experience_pool", None)
             if pool is None:
-                pool = RLEPExperiencePool.from_directory(
-                    str(args.rlep_experience_root),
-                    allow_sparse=bool(getattr(args, "rlep_sparse_fallback", False)),
-                )
+                if rlep_online:
+                    pool = OnlineRLEPExperiencePool(minimum=rlep_count)
+                else:
+                    pool = RLEPExperiencePool.from_directory(
+                        str(args.rlep_experience_root),
+                        allow_sparse=bool(
+                            getattr(args, "rlep_sparse_fallback", False)
+                        ),
+                    )
                 self._rlep_experience_pool = pool
-            if not isinstance(pool, RLEPExperiencePool):
+            if rlep_online and not isinstance(pool, OnlineRLEPExperiencePool):
+                raise RuntimeError("RLEP online pool is not an online pool")
+            if not isinstance(pool, (RLEPExperiencePool, OnlineRLEPExperiencePool)):
                 raise RuntimeError("invalid RLEP experience pool")
+            if rlep_online and canonical_actions:
+                raise RuntimeError(
+                    "RLEP online pool stores decoded text and does not support "
+                    "canonical action rows"
+                )
             num_rows = int(input_ids.size(0))
             references = list(trajectory.get("references") or [])
             if len(references) != num_rows:
@@ -2128,8 +2194,30 @@ class ZeroMathGrpoMixin:
                         response_token_ids=tuple(replay_response_ids),
                     )
                 ]
+            rlep_online_added = 0
+            if rlep_online:
+                # Commit this group's verified rows only after the replay draw
+                # above, so a replayed success is always a *past* success and
+                # the draw depends on nothing the current group produced.
+                label_ids = input_ids[:, 1:]
+                fresh_texts = [
+                    self.tokenizer.decode(
+                        row_ids[row_mask.to(torch.bool)].detach().cpu().tolist(),
+                        skip_special_tokens=True,
+                    )
+                    for row_ids, row_mask in zip(label_ids, response_masks)
+                ]
+                rlep_online_added = pool.observe(
+                    first_reference,
+                    fresh_texts,
+                    task_final_rewards.detach().view(-1).cpu().tolist(),
+                )
             diagnostics = pool.diagnostics
             rlep_infos = {
+                "rlep_online_pool": torch.tensor(float(rlep_online), device=device),
+                "rlep_online_pool_added_rows": torch.tensor(
+                    rlep_online_added, device=device
+                ),
                 "rlep_pool_prompts": torch.tensor(diagnostics.prompts, device=device),
                 "rlep_pool_trajectories": torch.tensor(
                     diagnostics.trajectories, device=device
@@ -2241,6 +2329,56 @@ class ZeroMathGrpoMixin:
                     device=final_rewards.device,
                 ),
             }
+
+        gapo_infos: dict[str, torch.Tensor] = {}
+        if bool(getattr(args, "gapo_enabled", False)):
+            # GAPO replaces the task reward with its group frequency-aware
+            # reward before centering. `task_final_rewards` stays the pristine
+            # verifier outcome, so every downstream correctness reading --- the
+            # eligible-row logic, the diagnostics, the evaluation --- is
+            # unchanged and only the learning signal differs.
+            num_rows = int(input_ids.size(0))
+            references = list(trajectory.get("references") or [])
+            references = (references + [None] * num_rows)[:num_rows]
+            references_grouped = [
+                references[index : index + int(args.num_samples)]
+                for index in range(0, num_rows, int(args.num_samples))
+            ]
+            gapo_key_kwargs: dict[str, Any] = {}
+            if canonical_actions:
+                gapo_key_kwargs[
+                    "response_surfaces"
+                ] = _task_bound_canonicalization_surfaces(
+                    [],
+                    trajectory,
+                    canonical_task=canonical_task,
+                    expected_count=num_rows,
+                )
+            gapo_keys_grouped = self._seed_answer_keys_grouped(
+                input_ids,
+                response_masks,
+                int(args.num_samples),
+                references_grouped,
+                **gapo_key_kwargs,
+            )
+            gapo_keys = [key for group in gapo_keys_grouped for key in group]
+            support_index = self._gapo_support_index()
+            support_sizes = support_index.lookup(references)
+            gapo_rewards, gapo_diagnostics = gapo_group_rewards(
+                gapo_keys,
+                [float(value) for value in task_final_rewards.reshape(-1).tolist()],
+                support_sizes,
+                num_samples=int(args.num_samples),
+                reward_scale=str(getattr(args, "gapo_reward_scale", "unit")),
+            )
+            final_rewards = torch.tensor(
+                gapo_rewards, dtype=final_rewards.dtype, device=final_rewards.device
+            ).reshape_as(final_rewards)
+            gapo_infos = {
+                f"gapo_{name}": torch.tensor(float(value), device=device)
+                for name, value in vars(gapo_diagnostics).items()
+            }
+            gapo_infos["gapo_enabled"] = torch.tensor(1.0, device=device)
 
         outcome_collision_coef = float(
             getattr(args, "outcome_collision_coef", 0.0) or 0.0
@@ -3879,6 +4017,31 @@ class ZeroMathGrpoMixin:
                     ucpo_diagnostics.mass_error_max, device=final_rewards.device
                 ),
             }
+        setpo_coefficient = float(getattr(args, "setpo_coefficient", 0.0) or 0.0)
+        setpo_infos: dict[str, torch.Tensor] = {}
+        if setpo_coefficient > 0.0:
+            # SetPO adds each row's leave-one-out marginal contribution to the
+            # group's kernelized set diversity. The embedder is frozen and the
+            # term is detached, so the kernel shapes the advantage without ever
+            # receiving a gradient.
+            setpo_texts = self._setpo_response_surfaces(
+                input_ids, response_masks
+            )
+            setpo_embeddings = self._setpo_embedder().embed(setpo_texts)
+            advantages, setpo_diagnostics = shape_setpo_advantages(
+                advantages,
+                setpo_embeddings.to(advantages.device),
+                num_samples=int(args.num_samples),
+                coefficient=setpo_coefficient,
+            )
+            setpo_infos = {
+                f"setpo_{name}": torch.tensor(float(value), device=device)
+                for name, value in vars(setpo_diagnostics).items()
+            }
+            setpo_infos["setpo_coefficient"] = torch.tensor(
+                setpo_coefficient, device=device
+            )
+
         # Freeze the ordinary task-centered advantage before any separately
         # added semantic term. E44 uses this only to form detached xDr row
         # weights, while the actor below still receives the combined advantage.
@@ -4061,6 +4224,8 @@ class ZeroMathGrpoMixin:
             **semantic_shannon_infos,
             **online_canonical_infos,
             **ucpo_infos,
+            **gapo_infos,
+            **setpo_infos,
             **rlep_infos,
             **dapo_infos,
         }

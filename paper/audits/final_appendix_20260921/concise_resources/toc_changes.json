@@ -1,0 +1,25 @@
+{
+  "replace": {
+    "app:reproducibility": {
+      "old": "Evaluation Records and Reproducibility",
+      "new": "Data and Reproducibility"
+    },
+    "app:source-integrity": {
+      "old": "Evaluation sources and missing checkpoints",
+      "new": "Evaluation comparisons"
+    },
+    "app:repro-artifacts": {
+      "old": "Data, models, and analysis inputs",
+      "new": "Datasets and models"
+    },
+    "app:repro-recovery": {
+      "old": "Training state and reproducibility checks",
+      "new": "Analysis resources"
+    }
+  },
+  "remove_entries": [
+    "app:initial-provenance",
+    "app:scheduled-provenance"
+  ],
+  "alias_labels_retained_at": "app:source-integrity"
+}

@@ -1,0 +1,10 @@
+[
+  {
+    "old": "Section~\\ref{sec:method}. For\n$\\widehat g_G^{\\mathrm{MaxRL}}",
+    "new": "Section~\\ref{app:binary-maxrl}. For\n$\\widehat g_G^{\\mathrm{MaxRL}}"
+  },
+  {
+    "old": "Section~\\ref{sec:hosted-concentration} reports \\MDklHostedModels{}",
+    "new": "App.~\\ref{app:hosted-mode-diversity} reports \\MDklHostedModels{}"
+  }
+]

@@ -18,6 +18,7 @@ verified pair on both sides prints an em dash.
 from __future__ import annotations
 
 import json
+import statistics
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,37 +37,69 @@ PANEL_A_ROWS = (
     ('Falcon3-1B', r'\falconmark{}3-1B'),
     ('Qwen2.5-3B', r'\qwenmark{}2.5-3B'),
 )
-#: Our two arms lead, the untrained reference sits on its own between rules
-#: because it is the starting point rather than a competitor, and the other
-#: objectives follow. ``RULE`` draws the separator.
+#: Our two arms lead, followed by trained alternatives. The untrained
+#: checkpoint is a separate reference below all methods. ``RULE`` draws each
+#: separator.
 RULE = object()
 PANEL_B_ROWS = (
     ('replay_drgrpo', r'Re:Dr \textit{(ours)}'),
     ('replay_maxrl', r'Re:Max \textit{(ours)}'),
     RULE,
-    ('before_training', 'Before training'),
-    RULE,
     ('maxrl', 'MaxRL (no replay)'),
+    ('gapo', 'GAPO'),
+    ('setpo', 'SetPO'),
     ('ucpo', 'UCPO'),
     ('rlep_dr', 'RLEP-Dr'),
     ('semantic_maxent', 'Semantic-MaxEnt'),
     ('grpo', 'GRPO'),
+    RULE,
+    ('before_training', 'Untrained checkpoint'),
 )
+#: Only the trained alternatives are sorted by their mean \pmd{} effect;
+#: our two arms and the checkpoint reference retain their fixed positions.
+ORDER_BY = 'pmd'
+
+
+def _ordered_panel_b(cells: dict) -> tuple:
+    """Sort trained alternatives by mean effect, leaving references separate.
+
+    A row whose average is undefined sorts last; it has no claim to a rank.
+    """
+    groups = [[]]
+    for entry in PANEL_B_ROWS:
+        if entry is RULE:
+            groups.append([])
+        else:
+            groups[-1].append(entry)
+    ours, alternatives, references = groups
+
+    def rank(entry):
+        summary = cells.get(entry[0], {}).get(AVERAGE, {}).get('summaries', {})
+        mean = summary.get(ORDER_BY, {}).get('mean')
+        return (mean is None, -(mean or 0.0))
+
+    return (tuple(ours) + (RULE,) + tuple(sorted(alternatives, key=rank))
+            + (RULE,) + tuple(references))
 #: The untrained reference is a starting point, not a competitor, so it is
 #: excluded when marking the best alternative in a column.
 PANEL_B_BEST_ROWS = tuple(entry[0] for entry in PANEL_B_ROWS
                           if entry is not RULE and entry[0] != 'before_training')
 
 GAP = r'\textemdash{}'
-#: Red through orange and yellow to green, as light tints so black digits stay
-#: legible in print. Zero is pinned to the orange knot, so the red arm covers
-#: the losses and the yellow-green arm the gains; reading a sign off the colour
-#: alone is never necessary, since every cell also prints its number.
+#: Red for losses, yellow at no change, green for gains, as light tints so
+#: black digits stay legible in print. Zero sits at the middle knot and the two
+#: arms are scaled alike, so equal gains and losses read equally strongly and a
+#: negative number can never come out green.
 RAMP = ((0.00, (0xF0, 0xA5, 0x8F)),
-        (0.33, (0xF7, 0xCC, 0x9C)),
-        (0.66, (0xF3, 0xEB, 0xA6)),
+        (0.50, (0xF8, 0xF0, 0xA6)),
         (1.00, (0xA9, 0xD6, 0xA0)))
-ZERO_KNOT = 0.33
+ZERO_KNOT = 0.50
+#: Smallest extent a column's ramp may cover. Five points is the smallest
+#: effect the results describe as real, so a column whose entries are all
+#: noise stays pale rather than being stretched to the full ramp: without this
+#: floor the +.027 that tops \pmd{} MathIR would print the same green as the
+#: +.591 that tops \pmd{} PantryPlan.
+MIN_SPAN = 0.05
 
 
 def _fixed(value: float) -> str:
@@ -90,19 +123,18 @@ def _ramp(position: float) -> str:
     return ''.join(f'{value:02X}' for value in RAMP[-1][1])
 
 
-def _shade(value: float, low: float, high: float) -> str:
-    """Colour for one effect, with zero pinned to the ramp's orange knot."""
-    if value > 0:
-        span = high if high > 0 else 1.0
-        position = ZERO_KNOT + (1.0 - ZERO_KNOT) * (value / span)
-    elif value < 0 and low < 0:
-        position = ZERO_KNOT * (1.0 - value / low)
-    else:
-        position = ZERO_KNOT
+def _shade(value: float, extent: float) -> str:
+    """Colour for one effect against its column's extent, zero at the middle.
+
+    The extent is the largest magnitude in the column, so both arms use one
+    scale: +.3 and -.3 are equally saturated, and the sign is what picks green
+    or red.
+    """
+    position = ZERO_KNOT + ZERO_KNOT * (value / extent if extent else 0.0)
     return rf'\cellcolor[HTML]{{{_ramp(position)}}}'
 
 
-def _cell(summary: dict, *, best: bool, bounds: tuple[float, float]) -> str:
+def _cell(summary: dict, *, best: bool, extent: float) -> str:
     if summary['mean'] is None:
         return GAP
     mean = float(summary['mean'])
@@ -110,25 +142,81 @@ def _cell(summary: dict, *, best: bool, bounds: tuple[float, float]) -> str:
     if best:
         body = rf'\mathbf{{{body}}}'
     if summary['n'] < 5:
-        body += rf'^{{{summary["n"]}}}'
-    return f'{_shade(mean, *bounds)}${body}$'
+        # A bare superscript digit runs into the value at \scriptsize: the
+        # Python cell printed ``.000^{2}`` and read as the number .0002, and
+        # ``+.032^{4}`` as +.0324. The thin space keeps the seed count legible
+        # as a marker rather than a fourth decimal.
+        body += rf'^{{\,{summary["n"]}}}'
+    return f'{_shade(mean, extent)}${body}$'
+
+
+def _common_basis(cells: dict, row: str, metric: str) -> tuple[str, ...]:
+    """Domains of ``row`` that every one of its seeds defines for ``metric``.
+
+    The stored ``average`` cell is a within-seed mean over whatever domains
+    that seed happens to define, so its basis moves from seed to seed: the
+    Falcon \pmd{} row averaged three domains on seeds 55--57, four on seed 58,
+    and dropped seed 59 entirely. That is the cross-domain mean over a shifting
+    population the text declines to take, printed as though it were the equally
+    weighted five-domain average the caption describes. Restricting to the
+    domains the row's fullest seed set defines makes one fixed basis per row,
+    which is comparable down a column and reproducible from the printed cells.
+    """
+    seeds = {domain: frozenset(cells[row][domain]['summaries'][metric]['per_seed'])
+             for domain in DOMAINS}
+    full = max(seeds.values(), key=len, default=frozenset())
+    return tuple(domain for domain in DOMAINS if seeds[domain] == full and full)
+
+
+def _basis_average(cells: dict, row: str, metric: str) -> dict:
+    """Equal-weight mean over the common basis, within seed then across seeds."""
+    basis = _common_basis(cells, row, metric)
+    if not basis:
+        return {'mean': None, 'n': 0, 'basis': ()}
+    per_seed = {}
+    for seed in cells[row][basis[0]]['summaries'][metric]['per_seed']:
+        values = [float(cells[row][domain]['summaries'][metric]['per_seed'][seed])
+                  for domain in basis]
+        per_seed[seed] = statistics.fmean(values)
+    return {'mean': statistics.fmean(per_seed.values()), 'n': len(per_seed),
+            'basis': basis}
+
+
+#: Only \pmd{} needs the recomputed average. Every domain defines
+#: ``pass8``, so the stored average there is already one fixed five-domain
+#: basis, taken over the seeds all five share -- Falcon's is n=4 because
+#: Countdown is, not because a domain drops out. \pmd{} is where domains
+#: vanish per seed, so it is the column whose basis has to be pinned.
+BASIS_METRICS = ('pmd',)
 
 
 def _summary(cells: dict, row: str, column: str, metric: str) -> dict:
+    if column == AVERAGE and metric in BASIS_METRICS:
+        return _basis_average(cells, row, metric)
     return cells[row][column]['summaries'][metric]
 
 
 def _rows(cells: dict, rows: tuple, best_rows: tuple) -> list[str]:
     drawn = tuple(row for row in rows if row is not RULE)
     best_value = {}
-    # Each metric's shading spans only what that metric reaches in this table,
-    # so a .006 breadth gain is not washed out by a .979 correctness gain.
-    bounds = {}
+    # Shading is scaled within a column, which is the axis the table is read
+    # down: every row is one method on the same domain and metric, so a column
+    # is the comparison, and the bold mark already picks a column's best.
+    # Scaling within a row instead made the colour answer nothing a reader
+    # asks -- a row's own maximum always went full green, so GRPO's +.213 on
+    # Graph and Re:Dr's +.646 on Graph printed the identical shade.
+    # A table-wide ramp is the other failure: domains differ in size by an
+    # order of magnitude, and Graph's half-point effects flatten \pmd{} MathIR
+    # to one shade. Per column keeps both the sign and the within-domain
+    # ordering readable; comparing shades across columns is what the printed
+    # numbers are for.
+    extents = {}
     for metric, _ in METRICS:
-        present = [float(_summary(cells, row, column, metric)['mean'])
-                   for row, _ in drawn for column in COLUMNS
-                   if _summary(cells, row, column, metric)['mean'] is not None]
-        bounds[metric] = (min(present, default=0.0), max(present, default=0.0))
+        for column in COLUMNS:
+            present = [abs(float(_summary(cells, row, column, metric)['mean']))
+                       for row, _ in drawn
+                       if _summary(cells, row, column, metric)['mean'] is not None]
+            extents[(metric, column)] = max(*present, MIN_SPAN) if present else MIN_SPAN
         for column in COLUMNS:
             values = [float(_summary(cells, row, column, metric)['mean'])
                       for row in best_rows
@@ -149,7 +237,8 @@ def _rows(cells: dict, rows: tuple, best_rows: tuple) -> list[str]:
                 best = (row in best_rows and mean is not None
                         and reference is not None
                         and abs(float(mean) - reference) < 1e-12)
-                pieces.append(_cell(summary, best=best, bounds=bounds[metric]))
+                pieces.append(_cell(summary, best=best,
+                                    extent=extents[(metric, column)]))
         lines.append('    ' + ' & '.join(pieces) + r' \\')
     return lines
 
@@ -173,7 +262,9 @@ def main() -> None:
         + _body(record['panel_a']['cells'], PANEL_A_ROWS), encoding='utf-8')
     PANEL_B_OUT.write_text(
         '% Generated by build_paper_retention_matrix_tables.py; do not hand edit.\n'
-        + _body(record['panel_b']['cells'], PANEL_B_ROWS, PANEL_B_BEST_ROWS),
+        + _body(record['panel_b']['cells'],
+                _ordered_panel_b(record['panel_b']['cells']),
+                PANEL_B_BEST_ROWS),
         encoding='utf-8')
     print(json.dumps({'event': 'built',
                       'panel_a': str(PANEL_A_OUT.relative_to(ROOT)),

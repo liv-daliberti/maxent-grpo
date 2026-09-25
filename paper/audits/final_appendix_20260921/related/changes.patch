@@ -1,0 +1,252 @@
+--- before.tex
++++ replacement.tex
+@@ -1,117 +1,143 @@
+ \section{Diversity-Preserving RLVR: Extended Comparison}
+ \label{app:related-extended}
+ 
+-That RLVR concentrates its outputs is not our discovery, and this appendix
+-states what three contemporary lines establish and exactly which of our claims
+-each one already covers.
+-\citet{cui2025entropy} identify entropy collapse in reasoning RL, attribute the
+-fall to a covariance between token probability and advantage, and fit a ceiling
+-on downstream reward as a function of remaining entropy; Clip-Cov and KL-Cov
+-restrict the high-covariance tokens and postpone the fall.
+-\citet{lochab2026ucpo} show that RLVR's objective is indifferent to how correct
+-probability is divided among correct answers, characterize the uniform-correct
+-policy as the optimum of a robustness and entropy-regularized criterion, and
+-add a conditional uniformity penalty to GRPO.
+-\citet{li2026distribution} attribute the same concentration to reverse-KL
+-mode seeking and replace it with an approximate forward-KL objective that
+-aligns the group to a target proportional to sampled rewards.
+-We take the phenomenon as established by this literature and do not claim it.
+-Our three separable claims are a success-conditional measurement, an
+-intervention that is not a fresh-update objective, and a stated reason the two
+-classes differ in reach.
++Diversity-preserving RLVR methods differ in their measurement, training
++signals, and target distributions. \citet{cui2025entropy} study token-level
++entropy decline and its relation to policy-update covariance, and report
++empirical entropy--performance curves. Clip-Cov removes selected token
++updates with positive covariance; KL-Cov applies a KL penalty to tokens with
++large covariance. \citet{lochab2026ucpo} analyze binary reward's indifference
++to allocation within the correct set and add a forward conditional-KL term
++that favors uniform correct-response probabilities. DMPO
++\citep{li2026distribution} uses group-level distribution matching motivated
++by forward KL. Its implemented penalty is mean squared error between a
++Boltzmann reward target and normalized mean-token likelihoods, added to
++GRPO. These mechanisms address different aspects of concentration.
+ 
+-\paragraph{The axis each work reads.}
+-\citet{cui2025entropy} track policy entropy over all sampled tokens. That
+-quantity mixes correct and incorrect mass, so it falls both when a policy stops
+-offering alternative correct answers and when it stops offering wrong ones, and
+-a training run that improves only by suppressing errors registers as a loss of
+-diversity. \citet{lochab2026ucpo} report \texttt{pass@}$K$ and an
+-equation-level count within the correct set; \citet{li2026distribution} read
+-diversity through downstream score on problems with many feasible solutions.
+-\texttt{pass@}$K$ and downstream score rise with the success rate on their
+-own: \eqref{eq:main-occupancy} makes the dependence explicit, and across the
+-\MDcells{} untrained measurements of App.~\ref{app:base-levels-all-scales}
++\paragraph{Measurement and evaluation populations.}
++Token entropy averages uncertainty over generated prefixes and the next-token
++distribution. It does not isolate variation among correct solution modes:
++incorrect responses and differences between strings with the same execution
++key also contribute. UCPO reports \texttt{pass@}$K$ and the fraction of a
++correct response's extracted equations absent from the other correct
++responses for that prompt \citep[App.~F]{lochab2026ucpo}. DMPO reports
++feasibility and solution quality on NP-Bench and MM-NP-Bench; its quality
++ratio assigns zero to invalid responses \citep[Section~4.2]{li2026distribution}.
++These measures describe different response properties.
++
++At a fixed prompt and sampling law, \texttt{pass@}$K$ depends only on
++correctness $P$, while \texttt{distinct@}$K$ depends on both $P$ and the
++conditional allocation $q$ (Equation~\eqref{eq:main-occupancy}). Across the
++\MDcells{} untrained measurements in App.~\ref{app:base-levels-all-scales},
+ \distk{} correlates $\MDdistinctcorr$ with \texttt{pass@8}.
+-\pmd{} removes that dependence by construction --- it is a function of $q$
+-alone --- so correctness and diversity are two axes a method can move in opposite
+-directions, and the concentration Sec.~\ref{sec:results-collapse} reports is
+-not a restatement of a change in the success rate. \mb{} also fixes sameness with the executable check that assigns
+-reward, so the equivalence used to define a mode is the one used to grant
+-credit, with no judge or embedding threshold between them.
++The population quantity $\pmd(q)=1-\sum_cq_c^2$ is unchanged when $P$
++changes at fixed $q$. Its finite-sample estimate still requires verified
++responses, and a change in which prompts meet the eligibility threshold
++can change an aggregate. Section~\ref{sec:results-collapse} therefore uses
++prompts eligible at both checkpoints for its longitudinal contrasts.
++\mb{} measures sameness with domain-specific canonical execution keys
++returned by its validators; it does not infer key equivalence from a learned
++judge or an embedding threshold.
+ 
+-\paragraph{Where the intervention can act.}
+-All three interventions modify the fresh on-policy update. Clip-Cov and KL-Cov
+-reweight tokens of the current rollouts; UCPO reallocates a prompt group's
+-positive advantage mass across that group's verifier-positive rows; DMPO forms
+-its target over the trajectories the group sampled. Each therefore requires a
+-mode to be present in the current group before it can act on that mode, and
+-that requirement is the pressure App.~\ref{app:theory} formalizes.
+-Lemma~\ref{lem:sampled-score-bound} applies to this whole class whenever the
+-per-row scores $a_i$ are detached and uniformly bounded by some $B$: the
+-expected logit velocity on category $b$ is at most $2Bp_b(1-p_b)$, which
+-vanishes with $p_b$, and on a group containing no draw of $b$ the component is
+-exactly $-p_bG^{-1}\sum_i a_i$. UCPO's estimator satisfies the premise as
+-implemented here. Write $G^{+}$ for the number of verifier-positive rows in the
+-group, $A^{+}$ for the per-row positive advantage a uniform split would assign,
+-$\hat q_i$ for row $i$'s estimated within-group mode frequency, and
+-$\omega\in[0,1]$ for the weight UCPO puts on inverse-frequency rather than
+-uniform reallocation. Such a row receives
+-$A_i=G^{+}A^{+}\bigl((1-\omega)/G^{+}+\omega v_i/\sum_j v_j\bigr)$ with
+-$v_i=1/\hat q_i$ self-normalized within the group, so
+-$|A_i|\le G^{+}|A^{+}|$ and the total positive mass is conserved --- it is a
+-redistribution among sampled correct rows, not an addition to an absent one. Verified replay is outside the premise because its
+-target is not a function of the current group: for a banked key the logit
+-velocity is $\rho(w_b-p_b)$, which approaches $\rho w_b>0$ as $p_b\to0$. This
+-is a statement about which mechanism retains a signal at the boundary, and
+-App.~\ref{app:theory-entropy} records what it is not: it does not prove that
+-collapse is inevitable, does not rule out retention by a bounded estimator, and
+-is not an impossibility result for entropy regularization, whose surprisal is
+-unbounded near zero and therefore fails the bounded-score premise.
++\paragraph{Fresh samples and stored exemplars.}
++Clip-Cov and KL-Cov modify token updates on current rollouts; UCPO
++redistributes advantage among sampled correct responses; DMPO matches
++probabilities within the sampled group. None supplies a likelihood term on
++a stored response absent from that group. Absence does not imply an
++unchanged mode probability: softmax normalization and shared neural
++parameters can change unsampled outputs.
+ 
+-\paragraph{The target is shared; the weighting is not.}
+-UCPO's uniform-correct target is the target our replay loss descends, and
+-App.~\ref{app:theory-entropy} shows that exact conditional entropy shares that
+-optimum too, the three differing in the direction of the KL and hence in what
+-happens to the loss when a mode's probability vanishes. So the disagreement
+-with \citet{lochab2026ucpo} is not about where to aim. DMPO is the one of the
+-three that aims elsewhere: a target proportional to rewards over sampled
+-trajectories is, under a binary verifier, uniform over the correct sampled
+-trajectories, which places mass on each mode in proportion to how many times
+-the group produced it. That is frequency weighting, and it is the control we
+-run directly. Holding the bank and the reuse fixed and weighting modes by
+-rediscovery frequency instead of equally costs $+.318$ extra verified modes per
+-prompt ($[+.272,+.358]$) with no aggregate correctness difference
+-(App.~\ref{app:frequency-replay-progress}). Reuse is not the active
+-ingredient; declining to let popularity set the rehearsal rate is.
++Lemma~\ref{lem:sampled-score-bound} quantifies one categorical comparison.
++For an on-policy estimator $G^{-1}\sum_i a_i\nabla_z\log p_{Z_i}$ with
++detached row advantages bounded by a finite $B$ independently of $p_b$,
++$|\E[\widehat g_b]|\le2Bp_b(1-p_b)$. If $b$ is absent from the group,
++its logit component is exactly $-p_bG^{-1}\sum_i a_i$, which is zero when
++the advantages sum to zero. This bound concerns the independent-logit
++abstraction and the specified bounded component; it does not automatically
++cover an entire token-level objective, KL penalty, or neural optimizer.
+ 
+-\paragraph{What we measured rather than cited.}
+-Two of the three lines above are implemented directly and run as matched
+-comparators rather than only discussed; the third is covered by the
+-frequency-weighting control already described, and sparse RLEP-Dr is added
+-beside them for the memory side. UCPO is implemented from its Equations 16, 47
+-and 51, and runs
+-against seed-matched Dr.GRPO at Qwen2.5-0.5B and Falcon3-1B
+-(App.~\ref{app:ucpo-progress}); its gains are local, raising Countdown
+-correctness and \pmd{} there while its MathIR effects are inconclusive. An
+-entropy-shaped objective on the success-conditional axis is implemented as
+-Fixed Semantic MaxEnt (App.~\ref{app:semantic-maxent}), which supplies a
+-bounded surprisal bonus to underrepresented verified outcomes that appear in a
+-fresh rollout; its effects are likewise heterogeneous, and App.~\ref{app:semantic-maxent}
+-states why it carries neither an exact entropy-gradient interpretation nor an
+-individual-mode preservation guarantee. Sparse RLEP-Dr covers the memory side
+-\citep{zhang2025rlep}: the same reuse of verified successes, without uniform
+-canonical-key weighting.
++In the UCPO implementation, let $G^+>0$ count active verifier-positive rows
++and let $A^+$ be their common base advantage. The estimate $\hat q_i$ is
++obtained by normalizing rollout-policy \emph{sequence likelihoods} over
++these rows. For $\omega\in[0,1]$, set $v_i=1/\hat q_i$ and
++$A_i=G^+A^+\bigl((1-\omega)/G^++\omega v_i/\sum_jv_j\bigr)$.
++Thus $|A_i|\le G^+|A^+|$ and the total positive advantage is conserved.
++The weights are not estimates of canonical-key counts. With fixed $G$ and
++bounded base advantages, this redistribution satisfies the row-score bound
++under the lemma's categorical assumptions. Verified replay instead scores
++a fixed stored target: its categorical component is $\rho(w_b-p_b)$,
++which approaches $\rho w_b>0$ for a banked key as $p_b\to0$.
++Neither comparison proves inevitable collapse or neural retention.
++Exact entropy has unbounded surprisal near zero and is outside the bounded-score
++premise (App.~\ref{app:theory-entropy}).
++
++\paragraph{Target distributions and replay weighting.}
++For a known full correct category set, uniform categorical replay and exact
++conditional entropy favor the same conditional target, with penalties
++$\mathrm{KL}(u\|q)$ and $\mathrm{KL}(q\|u)$, respectively
++(App.~\ref{app:theory-entropy}). UCPO also targets a uniform distribution
++over correct responses. These targets coincide only when they refer to the
++same categories. Uniformity over response strings need not be uniformity
++over execution keys. A partial bank covers only discovered keys, and the
++implemented mean-token exemplar loss adds length dependence; neither implies
++uniform neural key probabilities (App.~\ref{app:theory-replay}).
++
++DMPO's target for sampled row $i$ is proportional to
++$\exp(r_i/\alpha)$, with temperature $\alpha>0$
++\citep[Eq.~5]{li2026distribution}. Under binary rewards, correct rows have
++equal target weights and incorrect rows retain positive target mass.
++Conditional on the correct rows, repeated occurrences of a key therefore
++receive target mass proportional to their count. This within-group
++weighting is distinct from replaying a bank with weights proportional to
++cumulative fresh-rollout key counts. The bank-weighting ablation is not an
++evaluation of DMPO's distribution-matching objective.
++
++The replay ablation holds bank construction and the update rule fixed while
++changing uniform versus fresh-frequency weights; subsequent bank contents
++can differ across policies. On Qwen2.5-0.5B, uniform weighting increases
++$B_8=\texttt{distinct@8}-\texttt{pass@8}$ by $+.318$ extra verified modes
++per prompt ($[+.272,+.358]$), averaging the five domains within each of five
++paired seeds. The \texttt{pass@8} contrast is $+.010$ ($[-.119,+.139]$);
++these nominal paired-seed bootstrap intervals establish neither equal
++accuracy nor an accuracy gain. Extra-mode counts remain coupled to
++correctness. The result supports a benefit from uniform weighting within
++this replay procedure; it does not establish that reuse contributes nothing
++(App.~\ref{app:frequency-replay-progress}).
++
++\paragraph{Evaluated comparators.}
++The UCPO implementation follows its Equations~16, 47, and~51 and is compared
++with Dr.GRPO using matched training seeds at Qwen2.5-0.5B and Falcon3-1B
++(App.~\ref{app:ucpo-progress}). In the common-prompt analysis, Qwen2.5-0.5B
++Countdown \texttt{pass@8} improves by $+.133$ ($[+.005,+.262]$), while its
++\pmd{} contrast is inconclusive: $+.002$ ($[-.018,+.023]$). MathIR effects
++are also inconclusive. Intervals are nominal paired 95\% Student-$t$
++intervals over five training seeds. The diversity contrasts average promptwise
++differences where both arms have at least two verified responses, with at
++least 30 common eligible prompts per seed. These populations differ from
++comparisons using separate per-arm eligibility thresholds.
++
++Fixed Semantic MaxEnt uses a bounded surprisal bonus on freshly sampled
++verified outcomes, based on historical and peer counts
++(App.~\ref{app:semantic-maxent}). It is not an implementation of Clip-Cov
++or KL-Cov and does not provide an exact entropy gradient or an individual-mode
++retention guarantee. Sparse RLEP-Dr adapts verified-trajectory replay
++\citep{zhang2025rlep} using an offline response pool and a mixed fresh/replay
++advantage. It preserves response frequency rather than balancing canonical
++keys; its collection and update differ from the online bank procedure.
++Its MathIR correctness gain in App.~\ref{app:ucpo-progress} is consistent
++with reuse helping performance without uniform key weighting.
++Additional fresh-group comparisons with GAPO and SetPO appear in
++App.~\ref{app:diversity-comparators}.
+ 
+ \paragraph{Scope of the comparison.}
+-These comparators are read at the coverage they have. UCPO and sparse RLEP-Dr
+-run at two of our three scales on \mb{}, whose executable domains are not the
+-mathematical reasoning suites of \citet{lochab2026ucpo} or the NP-Bench
+-problems of \citet{li2026distribution}, and the token-level interventions of
+-\citet{cui2025entropy} act at a different granularity from the outcome-level
+-comparators we run. Nothing here ranks these
+-methods on their own benchmarks. The claim is narrower and is the one the
+-lemma and the weighting ablation support jointly: an objective confined to the
+-current group and a memory over verified keys reach different modes, and
+-uniform rehearsal over those keys is what separates our memory from replay that
+-revisits successes as often as it found them.
++UCPO and sparse RLEP-Dr cover the two smaller model scales on \mb{}.
++Clip-Cov, KL-Cov, and DMPO are literature comparisons, without direct runs
++in this evaluation. \mb{}'s executable domains, verified-key metric, and
++eligibility rules differ from the mathematical reasoning and combinatorial
++optimization evaluations in those papers. The comparisons therefore assess
++the specified mechanisms and benchmark conditions, without ranking the
++methods on their original tasks. The categorical boundary calculation and
++the bank-weighting ablation answer separate questions: whether a stored
++target can supply a signal without a fresh occurrence, and how weighting
++stored keys affects measured performance.
+ 

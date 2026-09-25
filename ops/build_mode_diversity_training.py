@@ -66,17 +66,29 @@ def _checkpoint_summary(checkpoint: dict, min_defined: int) -> dict | None:
 
 
 def _terminal_only(issues) -> bool:
-    """True when the only recorded problem is that step 0 was not admitted.
+    """True when every recorded problem is confined to step 0.
 
     The frozen snapshot admits each checkpoint separately, and a step-0 refusal
     says the untrained model could not be measured -- nothing about the trained
     arms being compared. Dropping the whole record for it discards a sound
     terminal measurement, which is the comparison the results actually make.
-    Any other issue, integrity failures included, still removes the record.
+
+    A step-0 ``raw_sample_integrity_failure`` is the same kind of statement.
+    ``load_paper_collision_samples`` checks each step on its own and nulls only
+    the step it failed on, so a step-0 conflict leaves the terminal checkpoint
+    assembled and verified. What conflicts there is the raw payload of origins
+    the snapshot had already found *metric-equivalent* -- a pass-0 requeue
+    artifact, in a field PCMD never reads, since PCMD is computed from canonical
+    keys. Excluding it cost the Falcon3-1B Python arms every seed they had while
+    an independent archive reported the same terminal contrast at five.
+
+    An issue at any other step still removes the record, integrity failures
+    included, and so does a withdrawal: those speak to the terminal comparison.
     """
     return bool(issues) and all(
         isinstance(item, dict)
-        and item.get('kind') == 'not_admitted_in_frozen_snapshot'
+        and item.get('kind') in {'not_admitted_in_frozen_snapshot',
+                                 'raw_sample_integrity_failure'}
         and item.get('step') == 0
         for item in issues
     )

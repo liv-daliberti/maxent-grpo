@@ -12,6 +12,6 @@ Excluded:
 
 - None.
 
-The JSON binds source summaries, audits, prompt identity and the written protocol. The original-protocol figure and tables contain only complete admitted runs. The main breadth figure uses frozen normalization and the complete revised Opus 5 Python condition, with original evidence retained in the appendix.
+The JSON binds source summaries, audits, prompt identity and the written protocol. The original-protocol figure and tables contain only complete admitted runs. The main diversity figure uses frozen normalization and the complete revised Opus 5 Python condition, with original evidence retained in the appendix.
 
 For paper integration, use the generated protocol and strict/normalized cell includes; the overview rows need a six-column tabular wrapper. The figure include references the PDF under figures/. Preserve the paper's existing detailed interface caveats and level provenance. Add the figure to the workshop figure inventory/checker if it is first activated, then synchronize the standalone workshop snapshot and rebuild both PDFs.

@@ -1,0 +1,435 @@
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5130
+       where R ∼ Binomial(G, P ), the exact identities are
+5131
+5132                     ga ] = ca (P )v,
+                       E[b                                                                            (21)
+5133                                              1
+                          ga ) = Var(βR )vv > + 2 E R a(1, R)2 Σ1 + (G − R)a(0, R)2 Σ0 .
+                                                                                           
+5134
+                    Cov(b                                                                             (22)
+                                                  G
+5135
+       In particular, ca is the coefficient in Equation (3), without an independent-logit assumption.
+5136
+5137
+       Proof. The conditional-score identity (Tajwar et al., 2026, Theorem 1) (also He et al., 2026,
+5138   Lemma B.1) applied to the correct and incorrect events gives
+5139
+5140                     E[s(Y ) | Y ∈ C] = v/P,          E[s(Y ) | Y ∈
+                                                                      / C] = −v/(1 − P ).
+5141   Conditioned on the complete reward vector, the response scores remain independent. The conditional
+5142   mean of gba is βR v and its conditional covariance is G−2 [Ra(1, R)2 Σ1 + (G − R)a(0, R)2 Σ0 ].
+5143   Taking expectations proves Equation (21); the law of total covariance proves Equation (22).
+5144
+5145   For one prompt, a common locally Lipschitz preconditioner M (θ) and positive coefficients ca (P )
+5146   give deterministic mean fields θ̇ = ca (P )M (θ)∇θ P that trace the same orbit under a posi-
+5147   tive change of time, wherever the flows exist uniquely. This is a statement about the mean
+5148   direction. Equation (22) shows that outcome-binary estimators can have different sampling co-
+5149   variance, including after their mean magnitudes are matched.
+5150   Corollary P.10 (A finite-step comparison in neural parameters). Under Theorem P.9, suppose
+5151   ca (P ) > 0 and take θ+ = θ + ηb      ga /ca (P ) with η > 0. Let f be a twice differentiable
+5152   scalar observable with k∇2 f kop ≤ Lf along every update segment, which is assumed to re-
+5153   main in its domain. Then, conditional on the current policy,
+5154
+                                                            Lf η 2
+                                                                                         
+                                                                            tr Cov(b ga )
+5155                   E[f (θ+ ) − f (θ)] − η∇f (θ)> v ≤            kvk22 +                 .   (23)
+5156
+                                                              2               ca (P )2
+5157
+5158   Proof. Taylor’s theorem bounds the remainder after the linear term by Lf η 2 kb
+                                                                                     ga k22 /(2ca (P )2 ). Take
+                                                               2          2   2
+5159   expectations and use Equation (21) together with Ekbga k2 = ca (P ) kvk2 + tr Cov(b    ga ).
+5160
+5161   For two estimators satisfying the corollary, division by their respective coefficients ca (P ) gives the
+5162
+       same mean step ηv; the training updates do not use this normalization. Their expected changes
+       in f then differ by at most the sum of the two second-order bounds. Conditional solution mode
+5163
+       probabilities or PCMD may be used as f where the stated smoothness bounds hold. Mean-direction
+5164
+       equivalence is therefore a first-order statement for stochastic finite updates; it does not determine
+5165   their trajectories or eventual surviving solution modes. The bound assumes fresh on-policy score
+5166   updates and does not cover Adam’s moment estimates or subsequent PPO epochs.
+5167   Remark P.11 (Shared prompts need not follow the same trajectory). For a fixed prompt-sampling
+5168   distribution µx and shared parameters, the aggregate mean, assuming integrable updates, is
+5169                                                 X
+5170                                       E[bga ] =    µx ca (Px )∇θ Px .                                 (24)
+5171                                                  x
+5172   Different objectives generally assign different relative coefficients to the prompt gradients, so the
+5173   per-prompt identity does not imply a common aggregate orbit. An explicit example also shows a
+5174   difference in conditional diversity. Let θ = (u, v), σ(t) = (1 + e−t )−1 , and sample two prompts
+5175   A, B equally. Set
+5176
+                       PA = σ(u + v),         PB = σ(u − v),         qA = (σ(v), 1 − σ(v)).
+5177
+5178   For prompt A, the probabilities of two correct responses and one incorrect response are
+5179   (PA σ(v), PA [1−σ(v)], 1−PA ); for B, use (PB /2, PB /2, 1−PB ). At (u, v) = (0, log 3), PA = 3/4,
+5180   PB = 1/4, and ∇PA = (3/16, 3/16), ∇PB = (3/16, −3/16). For G = 3, Lemmas P.2 and P.3
+5181   give cDr = 2/3 and cMax (P ) = 2 − P , hence
+5182                               θ̇Dr = (1/8, 0),       θ̇Max = (9/32, −3/64).
+5183
+
+
+
+                                                          96
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5184                                                  P 2
+       Prompt A has conditional disagreement DA = 1 − c qA,c  = 2σ(v)[1 − σ(v)], so direct differentia-
+5185   tion gives
+5186
+                                   ḊA,Dr = 0,    ḊA,Max = 9/1024 > 0.
+5187
+5188   Both prompts’ correctness increases under both mean fields, since ṖA = (3/16)(u̇ + v̇) > 0 and
+5189   ṖB = (3/16)(u̇ − v̇) > 0 at this point. Changing a binary objective can therefore change conditional
+5190   diversity through shared prompt gradients, despite the exact per-prompt identity.
+5191   Proposition P.12 (The residual from response-dependent normalization). Under Theorem P.9,
+5192   multiply each response’s score by a detached function ω(Y ) with finite conditional second mo-
+5193   ments; inverse response length is the case ω(Y ) = 1/L(Y ). Define
+5194                 1 X                                          E[Ra(1, R)]             E[(G − R)a(0, R)]
+5195       gba,ω =       a(Ri , R)ω(Yi )s(Yi ),           A1 =                ,   A0 =                      ,
+                     G i                                              G                          G
+5196
+5197   and, conditioning on 1[Y ∈ C] = r, let ω̄r = E[ω(Y ) | r], Kr = Cov(ω(Y ), s(Y ) |
+5198             2
+       r), and σω,r    = Var(ω(Y ) | r). Then
+5199
+5200                                                                                     A1 ω̄1   A0 ω̄0
+                             E[b        ca ∇θ P + A1 K1 + A0 K0 ,
+                               ga,ω ] = e                                         ca =          −        ,   (25)
+                                                                                                  1−P
+                                                                                  e
+5201                                                                                      P
+                                        1
+5202                                    X                 p
+5203            kA1 K1 + A0 K0 k2 ≤           |Ar |σω,r    tr Σr .                                           (26)
+5204                                    r=0
+
+5205
+5206
+       Proof. Conditioning on the reward vector gives E[b   ga,ω ] = A1 E[ωs | 1] + A0 E[ωs | 0]. For each
+       outcome, E[ωs | r] = ω̄r E[s | r]+Kr ; substituting the conditional
+                                                                    √      score means proves Equation (25).
+5207
+       The vector Cauchy–Schwarz inequality gives kKr k2 ≤ σω,r tr Σr ; the triangle inequality completes
+5208
+       the bound.
+5209
+5210
+       The residual is a within-outcome covariance between response weighting and the policy score.
+5211
+       For inverse-length weighting, a common response length makes it zero; equal mean lengths for
+5212   correct and incorrect responses need not. Response-dependent weights need not be functions of
+5213   binary outcomes alone. IPS uses outcome-frequency weights (Sinha et al., 2026, Section 4.4,
+5214   v1), and UCPO adds a conditional-uniformity term (Lochab et al., 2026, Section 6, v1); these
+5215   interventions are outside the outcome-binary class analyzed above.
+5216
+       The verified-key diversity metric is a specialization of SetPO’s distributional functional. Its influence
+5217
+       gives an exact metric gradient for shared neural parameters and fixed verified execution keys.
+5218
+5219
+       Corollary P.13 (Verified-key specialization of SetPO). Fix a prompt, a verifier-positive response
+       event C, and a deterministic key map V : C → {1, . . . , m}, all independent of θ. Let πθ be
+5220
+       differentiable with common positive support, Pθ = Prθ (C) > 0, and Qθ = πθ (· | C). Assume the
+5221
+       score sθ (Y ) = ∇θ log πθ (Y ) is integrable under Qθ and differentiation commutes with the response
+5222   sums over each key. Write qc = Qθ (V (Y ) = c) and S2 = c qc2 . For k(y, y 0 ) = 1[V (y) = V (y 0 )]
+                                                                   P
+5223   and g(u) = 1 − u, the functional F(Q) = EY ∼Q [g(EY 0 ∼Q k(Y, Y 0 ))] is exactly PCMD(q). The
+5224   influence formula of Li et al. (2026a, Theorem 4.2, v1) specializes, for y ∈ C, to
+5225
+                           d
+5226                          F((1 − ε)Qθ + εδy )     = 2(S2 − qV (y) ),                                     (27)
+5227                       dε                     ε=0
+5228                                     ∇θ PCMD(q) = 2EY ∼Qθ [(S2 − qV (Y ) )sθ (Y )].                      (28)
+5229
+5230   Proof. The equality kernel and g satisfy SetPO’s Assumption 4.1, and its local mass is qV (y) .
+5231   Substitution into its influence formula proves the first identity. The influence has mean zero under
+5232   Qθ , so the −∇θ log Pθ term in the conditional score cancels, giving the second identity.
+5233
+5234   These identities permit shared neural parameters. Along an update, the sign of the diversity
+5235   change depends on its alignment with this metric gradient; the influence formula alone sup-
+5236
+       plies no monotonicity guarantee for a given training direction.
+5237
+
+
+
+                                                             97
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5238
+       P.5   D IVERSITY AT FINITE STEPS AND SAMPLING BUDGETS
+5239
+5240   Softmax outcome logits amplify probability differences among equally rewarded solutions (Sinha
+5241   et al., 2026, Theorem 3.1 and App. A.1), and sampling imbalances can reinforce this effect (Lochab
+5242   et al., 2026, Section 4.2). Under the categorical model, PCMD decreases from every nonuniform
+5243   correct-mode distribution along both the mean flow and finite expected-gradient steps. Sampled
+5244   updates can also break an initially uniform distribution’s symmetry. The bounds below relate concen-
+5245   tration to the probability of observing a competing solution mode within a finite inference budget.
+5246   Proposition P.14 (Exact diversity drift and matched correctness).        P 2 Under Assumption
+                                                                                                 P 2           P.1, con-
+5247   sider
+       P 3     ż  =  c(P    )∇ z P  with  c(P   )  >   0. Write  D(q)  =  1  −    c q c , S2 =    c q c , and V (q) =
+                      2
+5248      c q c   − S
+                   P 22   =   Var  C∼q  (q C ).    For  incorrect conditional probabilities   ra =   p a /(1 −  P ), set
+5249   T2 =          a  ra .   In   effective   time   dτ   =  c(P )P (1 −  P )dt,
+5250
+                                dD                               dD             2V (q)
+5251                               = −2V (q),                               =−         .                          (29)
+                                dτ                        d log[P/(1 − P )]    S2 + T2
+5252
+5253   Thus diversity strictly decreases at every nonuniform interior q. Positive-coefficient mean
+5254   flows from the same initial logits follow the same D-versus-P curve, independently of their
+5255   chosen outcome-binary advantage or group size.
+5256
+5257   Proof. For the replicator flow (18), the potential U (q) = S2 /2 has fitness ∂U/∂qc = qc . The fitness-
+5258   variance identity of Harper (2009, Theorems 1–2) gives dU/dτ = V (q), hence dD/dτ = −2V (q).
+5259
+       The variance vanishes exactly when the positive coordinates of q are equal. Also,
+5260                              Ṗ = c(P )k∇z P k22 = c(P )P 2 (1 − P )2 (S2 + T2 ),
+5261
+5262   so d log[P/(1−P )]/dτ = S2 +T2 > 0, proving the second identity. Finally, the full logit equation in
+5263
+       effective time is dzc /dτ = qc and dza /dτ = −ra ; it contains no c. The same initial logits therefore
+       give the same full trajectory after the time change, and hence the same curve at matched correctness
+5264
+       for every positive-coefficient outcome-binary estimator considered here.
+5265
+5266   Theorem P.15 (Collapse under finite expected-gradient steps). Retain (A1), (A2), (A4), and
+5267   (A5) of Assumption P.1, and replace (A3) by
+5268                                                                                   ∞
+                                                                                       X
+5269                       zk+1 = zk + ηk c(Pk )∇z Pk ,                  0 < ηk < ∞,          ηk = ∞,             (30)
+5270                                                                                   k=0
+5271
+       where c is continuous and positive on (0, 1). Each step strictly decreases D(qk ) unless qk
+5272
+       is uniform. If q0 has a unique largest coordinate c? , then Pk → 1 and qc? ,k → 1. No
+5273   upper bound on the finite step sizes is required.
+5274
+5275   Proof. Let hk       =    ηk c(Pk )Pk (1 − Pk )           >        0.   The exact updates are zc+     =    zc +
+5276   hk qc and za+       =    za − hk ra , so
+5277
+5278                                                        qc ehk qc
+                                                     qc+ = P      hk qd
+                                                                        .                                         (31)
+5279                                                        d qd e
+5280
+       For fixed q, put uc (s) = qc esqc /                    sqd
+                                                P
+5281                                                 d qd e         . Differentiation gives
+5282                       d X            X
+                                uc (s)2 =
+                                                                        
+                                            uc (s)ud (s) uc (s) − ud (s) (qc − qd ) ≥ 0.
+5283                       ds c
+                                               c,d
+5284
+5285   The ordering of u(s) is that of q, and the inequality is strict whenever q is nonuniform. In-
+5286   tegrating from 0 to hk proves the diversity claim. Equation (31) also preserves the leader
+5287   and makes its conditional probability nondecreasing.
+5288   Every correct logit increases and every incorrect logit decreases, hence Pk increases.
+5289   Jensen’s inequality gives
+5290
+                 Pk+1            Pk         X                 X                 X
+5291       log           − log        = log   qc ehk qc − log   ra e−hk ra ≥ hk   qc2 ≥ hk /m.
+               1 − Pk+1        1 − Pk       c                 a                 c
+
+
+                                                                    98
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5292                                                                          P
+5293                                                                  P imply k hk = ∞, contradict-
+       If Pk had an interior limit, continuity and positivity of c would
+       ing bounded correctness odds. Thus Pk → 1. Moreover, k hk = ∞ is necessary: other-
+5294   wise every logit would have finite total variation and converge to a finite value, contradicting
+5295   Pk → 1. Set α = qc? ,0 and ξc,k = qc,k /qc? ,k . For c 6= c? ,
+5296
+5297                     ξc,k+1 = ξc,k e−hk (qc? ,k −qc,k ) ,        qc? ,k − qc,k ≥ α(1 − ξc,0 ) > 0.
+5298   The divergent sum of hk forces every such ratio to zero, proving qc? ,k → 1.
+5299
+5300   The update uses the exact expected gradient. Finite steps preserve the concentration conclusion
+5301   but can change the trajectory across estimators. The identical diversity-versus-correctness curve in
+5302   Proposition P.14 requires infinitesimal mean flow; it does not extend to these finite updates.
+5303
+       Finite multinomial counts can break a uniform policy’s symmetry (Lochab et al., 2026, Proposi-
+5304
+       tion A.1). For the centered group estimator, the leading expected one-step loss in PCMD is quadratic
+5305
+       in the learning rate, with a coefficient determined by group size and correctness.
+5306
+5307
+       Proposition P.16 (Sampled updates break conditional symmetry). Retain (A1), (A2), (A4), and (A5)
+       of Assumption P.1, and replace (A3) by one sampled update z + = z + ηb  gG from Equation (14),
+5308
+       with η > 0. Suppose 0 < P < 1 and qc = 1/m for every correct mode. Then
+5309
+5310                                   E[D(q + )] < 1 − 1/m,              E[qc+ ] = 1/m.                     (32)
+5311
+       As η → 0, for the fixed initial policy and estimator,
+5312
+                                                    w(R)2 R(G − R)2
+                                                                   
+5313                    +           1     2m − 1
+                  E[D(q )] = 1 −       −η        E                    + O(η 3 ),                             (33)
+5314                                m        m3              G4
+5315
+5316
+       where the summand is zero on R = 0, G. For Dr.GRPO, w = 1 and
+                          R(G − R)2
+                                    
+5317                                     G−1                              
+5318                   E        4
+                                       =   3
+                                             P (1 − P ) 1 + (G − 2)(1 − P ) .                                (34)
+                              G           G
+5319
+5320   Proof. Let Nc count occurrences of correct mode c. The centered advantages sum to zero,
+5321   so the common softmax-score term cancels and gbc = κR Nc , where κR = w(R)(G −
+5322   R)/G2 on mixed groups and κR = 0 otherwise. Conditional on R, the correct counts
+5323   are N ∼ Multinomial(R; 1/m, . . . , 1/m), and
+5324
+                                                            eηκR Nc
+5325                                                 qc+ = P ηκR N .
+                                                            de
+                                                                    d
+5326
+5327   Diversity is at most 1 − 1/m, with equality only at uniform q + . The event R = 1 has positive proba-
+5328   bility; on this event one correct logit increases and the others do not, so q + is nonuniform. This proves
+5329   the strict inequality for every η > 0. Permutation symmetry of the correct labels gives E[qc+ ] = 1/m.
+5330
+       For a fixed vector v, Taylor expansion about uniform logits gives
+5331
+5332               X                          1  η2 X                                             1 X
+5333
+                         softmax(ηv)2c =        + 2  (vc − v̄)2 + O(η 3 ),                 v̄ =       vc .
+                     c
+                                              m m c                                               m c
+5334
+       Use vc = κR Nc and E[ c (Nc − R/m)2 | R] = R(1 − 1/m). There are finitely many
+                               P
+5335
+5336   possible groups and all mixed-group weights are finite, so the Taylor remainder is uniform
+5337   over those groups. Averaging proves Equation (33). Finally,
+5338                 E[R(G − R)2 ] = G(G − 1)(G − 2)P (1 − P )2 + G(G − 1)P (1 − P ),
+5339
+5340   by the binomial factorial moments, yielding Equation (34).
+5341
+5342   At fixed P ∈ (0, 1), the Dr.GRPO coefficient in Equation (34) is P (1−P )2 /G+O(G−2 ) as G → ∞.
+5343   The coefficient of the quadratic learning-rate term therefore decays asymptotically as 1/G; it need
+5344
+       not decrease at every increment in finite group size. This sampling effect is absent from the uniform
+       mean flow. The result concerns one step from a uniform correct-mode distribution and gives neither
+5345
+       monotone expected diversity from an arbitrary initial policy nor stochastic-optimizer convergence.
+
+
+                                                                99
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5346
+       Corollary P.17 (Finite-budget disappearance of competing modes). In the mean flow of The-
+5347   orem P.4, let c? be the unique initial correct leader and define
+5348
+                                                         X qc (0)
+5349                              α = qc? (0),     Γ0 =                  .
+5350                                                        ?
+                                                              α − qc (0)
+                                                                 c6=c
+5351
+5352   At effective time τ ,
+5353                            1 − qc? (τ ) ≤ Γ0 e−ατ ,         D(q(τ )) ≤ 2Γ0 e−ατ .                   (35)
+5354
+5355
+       For K ≥ 1 independent full-policy draws at that checkpoint,
+5356                      Pr(any correct mode other than c? is observed) ≤ KΓ0 e−ατ .                    (36)
+5357
+       In particular, if τ ≥ max{0, α−1 log(KΓ0 /δ)} for 0 < δ < 1, no competing correct mode is
+5358
+       observed with probability at least 1 − δ, although every mode retains positive probability.
+5359
+5360
+       Proof. For c 6= c? , write ξc = qc /qc? < 1. The leader is nondecreasing, and Equation (18) gives
+5361
+5362                                        d        ξc
+                                               log        = −qc? ≤ −α.
+5363                                       dτ      1 − ξc
+5364
+       Hence ξc (τ ) ≤ [qc (0)/(α − qc (0))]e−ατ . Now 1 − qc? = c6=c? ξc /(1 + c6=c? ξc ) and D ≤
+                                                                       P               P
+5365
+       1 − qc2? ≤ 2(1 − qc? ), proving the first bounds. A single full-policy draw hits a competing correct
+5366
+       mode with probability P (1 − qc? ) ≤ 1 − qc? ; a union bound over K draws completes the proof.
+5367
+5368
+       The bound gives a finite-budget interpretation of the rare-output pruning mechanism discussed
+5369
+       by Lochab et al. (2026, Section 4.2.5). It can also be indexed by correctness: Proposition P.14
+5370   and S2 + T2 ≤ 2 imply τ ≥ 12 log{[P/(1 − P )]/[P (0)/(1 − P (0))]}. These are suffi-
+5371   cient visibility bounds within the categorical model; they do not require literal support loss
+5372   or identify an empirical collapse time for neural training.
+5373
+5374   P.6   A REPLAY SIGNAL WHEN FRESH GROUPS SUPPLY NONE
+5375
+5376   Lemma P.18 (Fresh-group starvation). Under Assumption P.1 with correctness probability P , draw
+5377   G fresh categories independently. The probability of a mixed-reward group is
+5378                          hG (P ) = 1 − P G − (1 − P )G ≤ G min{P, 1 − P }.
+5379
+5380   Every all-equal group has zero fresh task component for Equation (14) and for the specified cen-
+5381   tered MaxRL estimator, so a nonzero fresh task component requires a mixed group, an event
+5382
+       whose probability is at most hG (P ) at every correctness level.
+5383
+5384
+       Proof. The all-correct and all-incorrect events are disjoint and have probabilities P G and (1 − P )G .
+       A mixed group requires both a correct and an incorrect sample, so the union bound supplies each of
+5385
+       the two stated bounds, GP and G(1 − P ), and the minimum of the pair is therefore also a bound.
+5386
+5387   Lemma P.19 (Replay ascent persists as fresh signal vanishes). Under AssumptionP    P.1, let B ⊆ C be
+5388   a nonempty fixed verified bank with normalized positive weights wb , let Rw = − b wb log pb with
+5389   ρw > 0, and extend w by zero outside the bank to obtain w̄. The deterministic replay ascent vector is
+5390                                   v replay = −ρw ∇Rw = ρw (w̄ − p),
+5391
+5392   which vanishes only at p = w̄. If pb ≤ wb /2 for a banked mode, then vbreplay ≥ ρw wb /2, even
+5393   when b is absent from the fresh group. For a uniform bank of k ≥ 2 modes and
+                                                                                  p fixed ρw > 0, as
+                                                                    replay
+5394   p → eb at one banked correct mode, hG (P ) → 0 whereas kv           k2 → ρw 1 − 1/k > 0.
+5395                        P
+5396   Proof. For Rw = − b wb log pb , the softmax score identity gives ∂Rw /∂za = pa − w̄a ,
+5397   proving the replay formula and coordinate bound. Finally,
+5398                           kw̄ − eb k22 = (1 − 1/k)2 + (k − 1)/k 2 = 1 − 1/k,
+5399
+       which gives the strictly positive limiting norm for k ≥ 2.
+
+
+                                                           100
+

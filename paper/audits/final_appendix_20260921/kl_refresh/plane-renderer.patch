@@ -1,0 +1,41 @@
+--- ops/plot_paper_reference_kl_plane.py
++++ ops/plot_paper_reference_kl_plane.py
+@@ -3,9 +3,8 @@
+ 
+ The panel equally averages the domains with reportable initial PCMD and
+ uses coefficients available in every included domain. Replay and MaxRL
+-points use the same domain set. Lines connect measured means; the colored
+-regions extend a piecewise-linear guide and are not confidence regions,
+-attainable frontiers, or causal comparisons. Initial-policy rules describe
++points use the same domain set. Lines connect measured means without
++uncertainty bands. Initial-policy rules describe
+ a reference, not upper bounds on neural performance. Only one replay dose
+ is represented, so this figure does not compare dose sensitivity.
+ """
+@@ -31,10 +30,6 @@
+ # The validated five; see paper_style.FRONTIER_FIVE.
+ KL, DRGRPO, REDR, MAXRL, REMAX = (style.COMPARATOR, style.CONTROL, style.METHOD,
+                                   style.ADD_ON, style.ABLATION)
+-# Shading marks the two sides of an interpolated visual guide. It does not
+-# describe statistical confidence or unmeasured attainable policies.
+-BEYOND = "#E7F5EA"
+-SHORT = "#FBEAE7"
+ 
+ 
+ def main() -> int:
+@@ -111,15 +106,6 @@
+     axis.set_xlim(0.40, 0.90)
+     axis.set_ylim(-0.02, 0.62)
+ 
+-    # The current common-domain means increase in PCMD with beta. Shading
+-    # follows their linear interpolation and holds the endpoints outside the
+-    # measured PCMD range. It is a visual guide, not an attainable frontier.
+-    # This aggregate ordering need not hold within individual domains.
+-    (x_lo, x_hi), (y_lo, y_hi) = axis.get_xlim(), axis.get_ylim()
+-    edge_y = [y_lo, *ys, y_hi]
+-    edge_x = [xs[0], *xs, xs[-1]]
+-    axis.fill_betweenx(edge_y, edge_x, x_hi, facecolor=BEYOND, zorder=0)
+-    axis.fill_betweenx(edge_y, x_lo, edge_x, facecolor=SHORT, zorder=0)
+     axis.set_xlabel("terminal pass@8", fontsize=style.FONT, color=style.INK)
+     axis.set_ylabel("terminal PCMD", fontsize=style.FONT, color=style.INK)
+ 

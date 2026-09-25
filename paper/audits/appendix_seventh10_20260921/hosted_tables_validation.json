@@ -1,0 +1,44 @@
+{
+  "checks_passed": 109652,
+  "provider_classifications_verified": 107520,
+  "models": 7,
+  "strict_cell_rows": 105,
+  "normalized_cell_rows": 30,
+  "nonzero_provider_rows": 22,
+  "numeric_record_sha256": "5571694f63d5a18fa1e52e19f014042996ccb5321b225b36e253495bc7522c59",
+  "changed_functions": [
+    "cell_tables",
+    "export"
+  ],
+  "stop_states": {
+    "GPT-5.6 Sol": {
+      "completed": 15360
+    },
+    "Claude Opus 5": {
+      "end_turn": 12838,
+      "refusal": 2522
+    },
+    "GPT-5.4": {
+      "completed": 15355,
+      "incomplete": 5
+    },
+    "Grok 4.3": {
+      "stop": 15360
+    },
+    "Kimi K3": {
+      "length": 15,
+      "stop": 15345
+    },
+    "Claude Opus 4.8": {
+      "end_turn": 15355,
+      "max_tokens": 5
+    },
+    "DeepSeek V4 Pro": {
+      "length": 632,
+      "stop": 14728
+    }
+  },
+  "normalization_extra_correct": 4266.0,
+  "normalized_collision_increases": 14,
+  "normalized_collision_decreases": 16
+}

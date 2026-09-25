@@ -31,6 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 from oat_drgrpo.pantry_plan import validate_pantry_plan  # noqa: E402
+from oat_drgrpo.pantry_support_action import (  # noqa: E402
+    pantry_support_mask_from_allocation,
+)
 
 if str(ROOT / "ops") not in sys.path:
     sys.path.insert(0, str(ROOT / "ops"))
@@ -399,6 +402,15 @@ def load_and_validate() -> dict[str, dict]:
         "almonds+grape_tomatoes",
     )
     assert not set(pantry_keys[0].split("+")) & set(pantry_keys[1].split("+"))
+    # The policy never writes grams: App. C asks for six binary digits in the
+    # printed pantry row order, and a trusted environment fills quantities on
+    # the selected rows. Keep the verified allocations as the witness, but
+    # display the surface the model is actually scored on.
+    pantry_masks = tuple(
+        pantry_support_mask_from_allocation(answer, pantry_spec)
+        for answer in pantry_answers
+    )
+    assert pantry_masks == ("000011", "100100"), pantry_masks
 
     return {
         "graph": {"spec": graph, "modes": graph_modes, "answers": graph_answers},
@@ -408,6 +420,7 @@ def load_and_validate() -> dict[str, dict]:
         "pantry": {
             "spec": pantry_spec,
             "answers": pantry_answers,
+            "masks": pantry_masks,
             "keys": pantry_keys,
         },
     }
@@ -506,19 +519,20 @@ def build_blocks(examples: dict[str, dict]) -> list[dict]:
             "title": "PantryPlan",
             "prompt": [
                 "2–4 ingredients",
-                "125–200 g total",
-                "four exact nutrition bounds",
+                "125–200 g total, four bounds",
+                "reply: six row bits",
             ],
             "check": "✓ feasible",
-            "glyph": "ingredient",
+            # The response is a bit string, not an allocation, so it sets like
+            # any other text line; the ingredient pictograms stay in the key,
+            # which is what the six bits decode to.
             "key_kind": "icons",
             "answers": [
                 {
-                    "response": [line + ";" for line in answer.split(";")[:-1]]
-                    + [answer.rsplit(";", 1)[-1]],
+                    "response": [mask],
                     "key": [tuple(key.split("+"))],
                 }
-                for answer, key in zip(pantry["answers"], pantry["keys"])
+                for mask, key in zip(pantry["masks"], pantry["keys"])
             ],
         },
     ]
@@ -1024,6 +1038,7 @@ def render() -> None:
     assert abs(left - GUTTER - (width - MARGIN)) < 1e-9, "row must close on the margin"
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
+    style.apply_domain_typography(fig)
     fig.savefig(OUT.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.035)
     fig.savefig(OUT.with_suffix(".png"), dpi=240, bbox_inches="tight", pad_inches=0.035)
     plt.close(fig)

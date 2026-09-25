@@ -1,0 +1,52 @@
+[
+  {
+    "record": "paper/results/gpt56_all_levels32_sampling_20260913.json",
+    "field": "builder",
+    "source": "ops/build_paper_gpt56_all_levels32_discovery.py",
+    "recorded": "5b3177c8146d17c1311d342e5261551fe59f53bd2fdf438911f4272538d2cbdd",
+    "before": "5b3177c8146d17c1311d342e5261551fe59f53bd2fdf438911f4272538d2cbdd",
+    "after": "2166215e74f2b926ee460233295c332b883378c7cb3ba99f8a066203e6418d63",
+    "matched_before_this_task": true,
+    "matches_now": false
+  },
+  {
+    "record": "paper/results/hosted_reasoning_off_20260912.json",
+    "field": "renderer",
+    "source": "ops/build_paper_hosted_reasoning_off.py",
+    "recorded": "6e29006bb6fbcf4bf75a02a7f778adfd29177de44faec017c7ca25b57626c4fe",
+    "before": "6e29006bb6fbcf4bf75a02a7f778adfd29177de44faec017c7ca25b57626c4fe",
+    "after": "3b237d8153ceffec4a1f223e9632b85f9dca64e4df9c8f52fc6697f42cb8dedc",
+    "matched_before_this_task": true,
+    "matches_now": false
+  },
+  {
+    "record": "paper/figures/gpt56_temperature_curve.json",
+    "field": "renderer",
+    "source": "ops/plot_paper_gpt56_temperature_curve.py",
+    "recorded": "c5a0a893368847df11698b01e5cff7b3719c41082e11bdff767e76dc36c9f102",
+    "before": "c5a0a893368847df11698b01e5cff7b3719c41082e11bdff767e76dc36c9f102",
+    "after": "9ec2b7bc10187c7453502a0ecb2d9c95c9cb4b7e4a5770d803a2e0a0287b3dd4",
+    "matched_before_this_task": true,
+    "matches_now": false
+  },
+  {
+    "record": "paper/results/frontier_comparison_20260911.json",
+    "field": "builder_sha256",
+    "source": "ops/build_frontier_paper_comparison.py",
+    "recorded": "41f04dbaebfa570808af609b74f449a8a77fb109a05e173b519bafa34f12db60",
+    "before": "41f04dbaebfa570808af609b74f449a8a77fb109a05e173b519bafa34f12db60",
+    "after": "f0c15f3204157364ec956d09801669a1cc41e94b6134bbd367b191f94e4b030c",
+    "matched_before_this_task": true,
+    "matches_now": false
+  },
+  {
+    "record": "paper/results/frontier_temperature_20260911.json",
+    "field": "builder_sha256",
+    "source": "ops/build_frontier_temperature_paper.py",
+    "recorded": "656ef1e2495ebb4abfc5e7118828fc553e5c1e17433650e2d8cd81d15744f9b9",
+    "before": "656ef1e2495ebb4abfc5e7118828fc553e5c1e17433650e2d8cd81d15744f9b9",
+    "after": "341543022efa9dfec18767593c05498dfbf41cd3cd19de918ee880c3d5f7e80f",
+    "matched_before_this_task": true,
+    "matches_now": false
+  }
+]

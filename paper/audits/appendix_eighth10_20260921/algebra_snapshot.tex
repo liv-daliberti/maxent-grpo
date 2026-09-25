@@ -1,0 +1,948 @@
+\section{Mode Collapse and Verified Replay}
+\label{app:theory}
+
+For a fixed prompt, the binary-reward score estimators defined below have
+mean updates along the correctness gradient, while their sampling
+covariances can differ. With independently optimized categorical logits,
+these updates amplify differences among equally rewarded modes, and sampling
+can break an initially exact symmetry. Fixed-bank replay supplies
+probability floors, restoration thresholds, and recovery bounds under the
+stated update assumptions. Neural retention requires additional conditions
+on complete-response likelihoods and local updates. These results do not
+certify the implemented AdamW/PPO trajectories.
+Table~\ref{tab:notation} defines the notation.
+
+\subsection{Categorical abstraction and mean updates}
+\label{app:theory-grpo-mean}
+
+The categorical model assigns one independent logit to each outcome
+category. Its Euclidean mean flow and the subsequent finite-step, sampled,
+and neural updates have different assumptions; a neural solution mode need
+not have an independently optimized logit.
+
+\begin{assumption}[Categorical mean-flow model]
+\label{ass:categorical-mean-flow}
+Fix one isolated prompt and a finite category set
+$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$ with $m\ge2$ correct
+solution modes and $n\ge1$ incorrect categories, and set
+$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+$q_c=p_c/P$, so that $P$ measures correctness while $q$ describes how that
+correct probability is allocated among the individual correct modes.
+\begin{enumerate}
+\item[(A1)] \emph{Independent logits.} The policy carries one independently
+  optimized logit for every category in $\mathcal A$, including one separate
+  logit for each canonical correct mode.
+\item[(A2)] \emph{Common length normalization.} Every response uses the same
+  fixed length-normalization factor, absorbed into the positive coefficient
+  of the group estimator.
+\item[(A3)] \emph{Euclidean mean flow.} Updates are the infinitesimal expected
+  updates in these logits, taken without optimizer preconditioning and without
+  momentum carried between steps.
+\item[(A4)] \emph{No competing regularizer.} Explicit reference KL is zero and
+  no entropy term is present.
+\item[(A5)] \emph{Nondegenerate start.} Logits are finite initially,
+  $0<P(0)<1$, and the group size is $G\ge2$.
+\end{enumerate}
+\end{assumption}
+
+Assumption~\ref{ass:categorical-mean-flow} includes all five conditions.
+AdamW's preconditioning and momentum violate (A3); finite, repeated PPO
+updates are outside its infinitesimal on-policy limit. Response-specific
+length normalization violates (A2), while reference KL and entropy
+regularization violate (A4).
+
+A language model induces probabilities over canonical outcomes, but those
+probabilities alone do not determine its update geometry. Aggregating several
+response strings into a mode does not generally commute with gradient flow
+in response logits. The independent-category model therefore requires an
+additional assumption beyond a neural policy and its validator equivalence
+classes.
+
+Draw a group $Z_1,\ldots,Z_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+write $R_i=\1[Z_i\in\mathcal C]$, and let $R=\sum_iR_i$. At the on-policy
+point where the PPO ratio equals one, consider the common-length estimator
+\begin{equation}
+  \widehat g_G
+  =\frac1G\sum_{i=1}^G
+   w(R)\left(R_i-\frac{R}{G}\right)\nabla_z\log p_{Z_i}.
+  \label{eq:group-estimator}
+\end{equation}
+For the Dr.GRPO abstraction \citep{liu2025understanding}, $w(R)=1$ after
+absorbing the fixed positive length-normalization factor. Reward-standardized
+GRPO \citep{shao2024deepseekmath} with fixed common response-length
+normalization takes $w(R)$ to be the reciprocal group reward standard
+deviation on mixed groups (with a fixed numerical stabilizer if used).
+Standard variable-length GRPO also weights each response by its own inverse
+length; that response-specific factor cannot generally be absorbed into
+$w(R)$ and is outside this equivalence.
+In either included case, $0<w(\ell)<\infty$ for
+$\ell\in\{1,\ldots,G-1\}$. The entire update is zero on all-equal
+groups, without evaluating an undefined reciprocal standard deviation;
+likewise, $w(R)R(G-R)$ below is defined as zero when $R=0$ or $R=G$. All
+advantages and normalization weights are detached in the score estimator.
+
+\begin{lemma}[A group baseline does not remove frequency amplification]
+\enforcehalffinalproseline
+\label{lem:grpo-mean}
+For $0<P<1$, the expected update in Equation~\eqref{eq:group-estimator} is
+\begin{equation}
+  \E[\widehat g_G]
+  =c_G(P)\nabla_z P,
+  \qquad
+  c_G(P)=
+  \frac{\E\!\big[w(R)R(G-R)\big]}{G^2P(1-P)}>0.
+  \label{eq:expected-group-gradient}
+\end{equation}
+For the Dr.GRPO abstraction, $c_G(P)=(G-1)/G$. Group centering and reward
+standardization rescale the expected gradient without changing its direction
+under these assumptions.
+\end{lemma}
+
+\begin{proof}
+\enforcehalffinalproseline
+Condition on the complete binary reward vector, whose sum is $R$. The score
+identities give
+\[
+  \E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P,
+  \qquad
+  \E[\nabla_z\log p_{Z_i}\mid R_i=0]
+  =\nabla_z\log(1-P).
+\]
+There are $R$ correct rows with centered reward $(G-R)/G$ and $G-R$
+incorrect rows with centered reward $-R/G$. Therefore the conditional
+expectation of the unaveraged sum in~\eqref{eq:group-estimator} is
+\[
+  w(R)\frac{R(G-R)}{G}
+  \left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+  =w(R)\frac{R(G-R)}{GP(1-P)}\nabla_zP.
+\]
+The outer factor $1/G$ and expectation over
+$R\sim\operatorname{Binomial}(G,P)$ yield~\eqref{eq:expected-group-gradient}.
+For $w\equiv1$,
+$\E[R(G-R)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
+\end{proof}
+
+The binomial identity also gives the denominator-free expression
+\[
+ c_G(P)=\frac{G-1}{G}\sum_{j=0}^{G-2}\binom{G-2}{j}
+ w(j+1)P^j(1-P)^{G-2-j}.
+\]
+The binomial weights sum to one, so $c_G$ lies between
+$(G-1)\min_j w(j+1)/G$ and $(G-1)\max_j w(j+1)/G$.
+Thus $c_G$ extends smoothly and positively to $P=0,1$.
+
+The practical MaxRL estimator has the same mean-gradient direction
+\citep[Section~4.3 and App.~D, Theorem~5]{tajwar2026maxrl}. Its all-failure
+convention determines the finite-group coefficient.
+
+\begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+\enforcehalffinalproseline
+\label{lem:maxrl-mean}
+Under Assumption~\ref{ass:categorical-mean-flow}, let MaxRL assign
+$A_i^{\mathrm{MaxRL}}=GR_i/R-1$ when $R>0$ and zero when $R=0$, as in
+Section~\ref{sec:method}. For
+$\widehat g_G^{\mathrm{MaxRL}}=G^{-1}\sum_i
+ A_i^{\mathrm{MaxRL}}\nabla_z\log p_{Z_i}$ at the on-policy point, the
+expected update is
+\begin{equation}
+  \E[\widehat g_G^{\mathrm{MaxRL}}]
+  =c_G^{\mathrm{MaxRL}}(P)\nabla_zP,
+  \qquad
+  c_G^{\mathrm{MaxRL}}(P)
+  =\frac{1-(1-P)^{G-1}}{P}>0,
+  \label{eq:maxrl-expected-gradient}
+\end{equation}
+with continuous endpoint values
+$c_G^{\mathrm{MaxRL}}(0)=G-1$ and
+$c_G^{\mathrm{MaxRL}}(1)=1$.
+\end{lemma}
+
+\begin{proof}
+\enforcehalffinalproseline
+With $N=G$ and pass rate $P$, the estimator in
+\citet[Theorem~5]{tajwar2026maxrl} equals
+$\widehat g_G^{\mathrm{MaxRL}}$. Its expected coefficient is
+$\sum_{j=0}^{G-2}(1-P)^j$, whose geometric sum gives
+Equation~\eqref{eq:maxrl-expected-gradient} and its endpoint values.
+The identity requires on-policy independent draws and the score identity.
+\end{proof}
+
+Integrating this coefficient gives the potential
+\begin{equation}
+ \Psi_{\mathrm{MaxRL}}(P)
+ :=\int_0^P c_G^{\mathrm{MaxRL}}(s)\,ds
+ =\sum_{k=1}^{G-1}\frac{1-(1-P)^k}{k}.
+ \label{eq:maxrl-potential-finite-sum}
+\end{equation}
+In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
+For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
+mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
+$G-1$ because the implemented centered estimator sets the entire update
+to zero on all-failure groups. Subtracting an unconditional score baseline
+even on those groups instead gives the order-$G$ estimator. These are exact
+finite-group expectations at the on-policy point; subsequent clipping and
+adaptive optimization can alter the expected update.
+
+
+\subsection{Winner-take-all collapse in the categorical mean flow}
+\label{app:theory-collapse}
+
+Consider $\dot z=c_G(P)\nabla_zP$, with any of the smooth positive
+coefficients established above: Dr.GRPO, common-length reward-standardized
+GRPO, or the specified centered binary MaxRL estimator. This infinitesimal
+expected-update model has
+no sampling noise and uses independently optimized Euclidean logits. The
+conditional dynamics follow the frequency-dependent replicator system
+with fitness $f_c(q)=q_c$
+\citep{hofbauer1998evolutionary,harper2009informationgeometry}.
+Related analyses of collapse among equally rewarded outcomes include
+\citet{sinha2026expected,lochab2026ucpo}.
+
+\begin{theorem}[Winner-take-all collapse in the categorical mean flow]
+\enforcehalffinalproseline
+\label{thm:grpo-collapse}
+Under Assumption~\ref{ass:categorical-mean-flow}, if the conditional correct-mode
+distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+\[
+  P(t)\longrightarrow1,
+  \qquad
+  q_{c^\star}(t)\longrightarrow1,
+  \qquad
+  q_c(t)\longrightarrow0\quad(c\ne c^\star).
+\]
+Thus these categorical mean flows converge to a single correct solution
+mode for generic initial conditions, even though every mode in $\mathcal C$
+has exactly the same reward.
+\end{theorem}
+
+\begin{remark}
+Theorem~\ref{thm:grpo-collapse} is asymptotic and requires (A1)--(A5).
+Finite-time support loss and convergence of the stochastic neural optimizers
+used in the experiments are outside its scope.
+\end{remark}
+
+\begin{proof}
+\enforcehalffinalproseline
+The coefficient $c_G$ is smooth and bounded on $[0,1]$, and the softmax
+reward gradient is bounded. Thus the logit flow exists for all finite times
+and cannot develop infinite logits at finite time.
+For a correct mode $c$ and incorrect category $a$,
+\[
+  \dot z_c=c_G(P)p_c(1-P),
+  \qquad
+  \dot z_a=-c_G(P)p_aP.
+\]
+Also $\dot P=c_G(P)\lVert\nabla_zP\rVert_2^2>0$. If $P$ converged to an
+interior value, continuity and positivity of $c_G$, together with
+\[
+ \lVert\nabla_zP\rVert_2^2
+ \ge P^2(1-P)^2\left(\frac1m+\frac1n\right),
+\]
+would keep $\dot P$ bounded away from zero, a contradiction. Hence $P\to1$.
+
+Define the effective optimization time
+\[
+  \tau(t)=\int_0^t c_G(P(s))P(s)(1-P(s))\,ds.
+\]
+If $\tau(\infty)<\infty$, every correct and incorrect logit would have finite
+total variation, because the absolute velocity of each is at most $\dot\tau$.
+All logits would then converge to finite values, contradicting $P\to1$.
+Therefore $\tau(t)\to\infty$, leaving infinite effective time for the
+correct-simplex dynamics below.
+
+On the correct simplex, changing from $t$ to $\tau$ gives the replicator flow
+\begin{equation}
+  \frac{dq_c}{d\tau}
+  =q_c\left(q_c-\sum_{d\in\mathcal C}q_d^2\right),
+  \qquad
+  \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
+  \label{eq:grpo-replicator}
+\end{equation}
+The initially unique maximum remains the unique maximum. For $c\ne c^\star$,
+set $\xi_c=q_c/q_{c^\star}$, so $\xi_c(0)<1$ and $\xi_c$ is nonincreasing.
+Since $q_{c^\star}\ge1/m$,
+\[
+ \frac{d\log\xi_c}{d\tau}
+ =-q_{c^\star}(1-\xi_c)
+ \le-\frac{1-\xi_c(0)}{m}.
+\]
+Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
+Every competing mode vanishes relative to $c^\star$; normalization then
+yields $q_{c^\star}\to1$, establishing the claimed single-mode limit.
+\end{proof}
+
+If several modes tie for the largest initial probability, symmetry preserves
+the tie; the same ratio argument eliminates strictly smaller coordinates and
+leaves the tied maxima uniform. An exactly uniform correct distribution is
+therefore a special initial condition. The theorem concerns limiting
+concentration: finite softmax logits already give positive probabilities at
+every finite time, so finite-time positivity alone is not a retention result.
+
+\subsection{Conditional trajectories of outcome-binary mean flows}
+\label{app:theory-objective-inertness}
+
+Under Assumption~\ref{ass:categorical-mean-flow}, every outcome-binary
+estimator with a positive correctness coefficient induces the same
+conditional trajectory in $q$. Its advantage changes only the rate at which
+that trajectory is traversed. Conditioning on correctness averages over all
+correct modes, so a reward-dependent advantage cannot distinguish their
+identities.
+
+\paragraph{Proof of Theorem~\ref{thm:objective-inertness}.}
+
+\begin{proof}
+\enforcehalffinalproseline
+The score identities used in Lemma~\ref{lem:grpo-mean} give
+$\E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P$ and
+$\E[\nabla_z\log p_{Z_i}\mid R_i=0]=\nabla_z\log(1-P)$.
+Independence of the draws means that conditioning also on the other rows'
+rewards does not change either conditional mean. Since $a(R_i,R)$ depends
+only on the binary rewards, conditioning on their complete vector and
+summing the $R$ successful and $G-R$ failed rows gives
+\[
+  \E[\widehat g_a]
+  =\frac1G\Big(\E[R\,a(1,R)]\nabla_z\log P
+   +\E[(G-R)\,a(0,R)]\nabla_z\log(1-P)\Big).
+\]
+Substituting $\nabla_z\log P=\nabla_zP/P$ and
+$\nabla_z\log(1-P)=-\nabla_zP/(1-P)$ yields
+Equation~\eqref{eq:objective-inertness}. Hence
+$\frac{d}{dt}\log(q_c/q_d)=\dot z_c-\dot z_d=c_a(P)P(1-P)(q_c-q_d)$.
+For $c_a>0$, setting $d\tau=c_a(P)P(1-P)\,dt$ gives
+Equation~\eqref{eq:grpo-replicator}.
+\end{proof}
+
+For a fixed reward-dependent advantage, the binomial identities
+$R\binom GR=G\binom{G-1}{R-1}$ and
+$(G-R)\binom GR=G\binom{G-1}{R}$ give
+\begin{equation}
+ c_a(P)=\sum_{j=0}^{G-1}\binom{G-1}{j}P^j(1-P)^{G-1-j}
+ \big[a(1,j+1)-a(0,j)\big],
+ \label{eq:inertness-polynomial}
+\end{equation}
+a polynomial in $P$ of degree at most $G-1$. Finite advantage values
+therefore give a smooth, bounded coefficient on $[0,1]$.
+
+The coefficients in this Bernstein expansion are
+\begin{equation}
+ d_j:=a(1,j+1)-a(0,j),\qquad j=0,\ldots,G-1 .
+ \label{eq:leave-one-out-gap}
+\end{equation}
+With the other $G-1$ rows fixed at $j$ successes, $d_j$ is the change in a
+row's advantage when its reward changes from failure to success. The
+Bernstein basis is nonnegative on $[0,1]$ and sums to one, so $c_a(P)$ lies
+between $\min_jd_j$ and $\max_jd_j$. Each basis function is strictly positive
+on $(0,1)$; hence nonnegative gaps, with at least one positive, imply
+$c_a(P)>0$ throughout the interior. This condition is sufficient:
+mixed-sign gaps alone do not determine the sign of $c_a$.
+
+For Dr.GRPO, every $d_j=(G-1)/G$, giving the constant coefficient in
+Lemma~\ref{lem:grpo-mean}. For the centered MaxRL estimator,
+$d_0=G-1$ and $d_j=G/(j+1)$ for $1\le j\le G-1$.
+In particular, $a(1,G)=0$ and $a(0,G-1)=-1$ give $d_{G-1}=1$.
+Substitution into Equation~\eqref{eq:inertness-polynomial} gives
+$[1-(1-P)^{G-1}]/P$, as in Lemma~\ref{lem:maxrl-mean}.
+
+\begin{corollary}[Collapse for correctness-improving outcome-binary mean flows]
+\enforcehalffinalproseline
+\label{cor:class-collapse}
+Under Assumption~\ref{ass:categorical-mean-flow}, let $a(R_i,R)$ be a fixed,
+bounded advantage depending only on the binary rewards. Suppose the gaps
+in Equation~\eqref{eq:leave-one-out-gap} satisfy $d_j\ge0$ for every $j$,
+with at least one strictly positive gap. If $q(0)$ has a unique largest
+coordinate $c^\star$, then
+\[
+ P(t)\longrightarrow1,\qquad
+ q_{c^\star}(t)\longrightarrow1,\qquad
+ q_c(t)\longrightarrow0\quad(c\ne c^\star).
+\]
+The surviving correct mode is the one with the largest initial probability;
+the choice of $a$ changes the rate along the conditional trajectory.
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+By Theorem~\ref{thm:objective-inertness}, the flow is
+$\dot z=c_a(P)\nabla_zP$. Equation~\eqref{eq:inertness-polynomial} makes
+$c_a$ smooth and bounded on $[0,1]$. If $d_{j_0}>0$, the nonnegative-gap
+hypothesis gives
+\[
+ c_a(P)\ge\binom{G-1}{j_0}P^{j_0}(1-P)^{G-1-j_0}d_{j_0}>0
+ \qquad(0<P<1).
+\]
+These are the coefficient properties used in the proof of
+Theorem~\ref{thm:grpo-collapse}: the logit flow exists for all finite times,
+$P\to1$, and the effective time $\tau\to\infty$. The conditional
+replicator equation~\eqref{eq:grpo-replicator} then eliminates all coordinates
+strictly below the initial maximum. It contains neither the advantage
+coefficients nor the rollout group size, so the surviving mode depends only
+on $q(0)$.
+\end{proof}
+
+The nonnegative-gap condition is sufficient rather than necessary. An
+estimator with mixed-sign gaps also has the same limiting behavior if
+$c_a(P)>0$ throughout $(0,1)$. An interior zero of $c_a$ is a stationary
+correctness level for the mean flow, while a negative coefficient gives
+$\dot P=c_a(P)\lVert\nabla_zP\rVert_2^2<0$ at an interior policy.
+The collapse conclusion requires positivity and an initial imbalance under
+Assumption~\ref{ass:categorical-mean-flow}; it does not describe shared-prompt
+or sampled neural updates.
+
+\begin{remark}[Group size in the deterministic conditional flow]
+\label{rem:group-size-inert}
+For each $G\ge2$, group size enters the mean flow through $c_a(P)$.
+When this coefficient is positive, the time change in
+Theorem~\ref{thm:objective-inertness} gives the same conditional replicator
+equation. Increasing $G$ can change the speed of the mean flow but cannot
+change the surviving mode under the conditions of
+Corollary~\ref{cor:class-collapse}.
+Group size also changes the probability of a mixed-reward group in
+Lemma~\ref{lem:replay-gradient-availability}, which is small near both
+$P=0$ and $P=1$, and the MaxRL coefficient in
+Corollary~\ref{cor:maxrl-starvation}. These properties concern total
+correctness $P$; they do not provide a probability floor for an individual
+correct mode. Gradient covariance and finite-sample symmetry breaking can depend on $G$,
+so sampled updates need not share this equivalence.
+\end{remark}
+
+\begin{corollary}[MaxRL amplification of the correctness gradient]
+\enforcehalffinalproseline
+\label{cor:maxrl-starvation}
+For the coefficients of Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean},
+\[
+ \frac{c_G^{\mathrm{MaxRL}}(P)}{c_G^{\mathrm{Dr.GRPO}}}
+ =\frac{G\big[1-(1-P)^{G-1}\big]}{(G-1)P}.
+\]
+This ratio is nonincreasing in $P$, with limits $G$ as $P\to0$ and
+$G/(G-1)$ as $P\to1$. It is strictly decreasing for $G>2$ and constant
+at $2$ for $G=2$. At the same policy, MaxRL therefore multiplies the
+Dr.GRPO correctness-gradient coefficient by a factor approaching $G$ when
+correctness is small. The probability of a nonzero fresh task component
+remains bounded by the mixed-group probability in
+Lemma~\ref{lem:replay-gradient-availability} for both estimators.
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+Divide $c_G^{\mathrm{MaxRL}}(P)=[1-(1-P)^{G-1}]/P$ by $(G-1)/G$.
+The finite-series identity
+$c_G^{\mathrm{MaxRL}}(P)=\sum_{j=0}^{G-2}(1-P)^j$
+gives the endpoint limits and monotonicity. For $G=2$ the sum is the
+constant $1$; for $G>2$ it contains the strictly decreasing term $1-P$.
+\end{proof}
+
+\subsection{Neural score identities and the limits of conditional inertness}
+\label{app:neural-binary-inertness}
+
+Expected binary reward equals the total correct mass; conditional diversity
+depends on its allocation among solution modes.
+\citet[Theorem~3.1, v1]{sinha2026expected} derive the expected-return
+log-ratio dynamics for softmax outcome logits, and
+\citet[Section~4.1, v1]{lochab2026ucpo} identify binary reward's
+indifference to allocation within the correct set. For differentiable neural
+policies, outcome-binary group estimators have per-prompt means proportional
+to the correctness gradient but can differ in covariance. Finite steps,
+shared prompts, and response-dependent weighting limit the resulting
+trajectory equivalence.
+
+\begin{theorem}[Per-prompt neural mean and covariance]
+\enforcehalffinalproseline
+\label{thm:neural-binary-moments}
+Fix a prompt and a differentiable policy $\pi_\theta$ on a finite or countable
+response space with common positive support, where $\theta$ lies in an open
+subset of $\mathbb R^d$. Let $\mathcal C$ be a fixed verifier-positive event,
+$P=\Pr_\theta(Y\in\mathcal C)\in(0,1)$, and
+$s(Y)=\nabla_\theta\log\pi_\theta(Y)$. Assume differentiation may be
+interchanged with the probability sums over the full support and over
+$\mathcal C$, and that $\E\|s(Y)\|_2^2<\infty$. For $G$ independent
+responses, write $R_i=\1[Y_i\in\mathcal C]$, $R=\sum_iR_i$, and let
+$a:\{0,1\}\times\{0,\ldots,G\}\to\mathbb R$ be any finite, detached
+advantage. Define
+\[
+ \widehat g_a=\frac1G\sum_i a(R_i,R)s(Y_i),\qquad
+ v=\nabla_\theta P,\qquad
+ \Sigma_r=\operatorname{Cov}\!\left(s(Y)\mid\1[Y\in\mathcal C]=r\right).
+\]
+With
+\[
+ \beta_r=\frac1G\left(\frac{r\,a(1,r)}P
+          -\frac{(G-r)a(0,r)}{1-P}\right),
+ \qquad c_a(P)=\E[\beta_R],
+\]
+where $R\sim\operatorname{Binomial}(G,P)$, the exact identities are
+\begin{align}
+ \E[\widehat g_a]&=c_a(P)v,
+ \label{eq:neural-binary-mean}\\
+ \operatorname{Cov}(\widehat g_a)
+ &=\operatorname{Var}(\beta_R)vv^\top
+   +\frac1{G^2}\E\!\left[
+       R\,a(1,R)^2\Sigma_1+(G-R)a(0,R)^2\Sigma_0\right].
+ \label{eq:neural-binary-covariance}
+\end{align}
+In particular, $c_a$ is the coefficient in
+Equation~\eqref{eq:objective-inertness}, without an independent-logit
+assumption.
+\end{theorem}
+
+\begin{proof}
+\enforcehalffinalproseline
+The conditional-score identity
+\citep[Theorem~1]{tajwar2026maxrl} (also
+\citealp[Lemma~B.1]{avspo2026}) applied to the correct and incorrect events gives
+\[
+ \E[s(Y)\mid Y\in\mathcal C]=v/P,
+ \qquad
+ \E[s(Y)\mid Y\notin\mathcal C]=-v/(1-P).
+\]
+Conditioned on the complete reward vector, the response scores remain
+independent. The conditional mean of $\widehat g_a$ is $\beta_Rv$ and
+its conditional covariance is
+$G^{-2}[R a(1,R)^2\Sigma_1+(G-R)a(0,R)^2\Sigma_0]$.
+Taking expectations proves Equation~\eqref{eq:neural-binary-mean}; the law
+of total covariance proves Equation~\eqref{eq:neural-binary-covariance}.
+\end{proof}
+
+For one prompt, a common locally Lipschitz preconditioner $M(\theta)$ and
+positive coefficients $c_a(P)$ give deterministic mean fields
+$\dot\theta=c_a(P)M(\theta)\nabla_\theta P$ that trace the same orbit
+under a positive change of time, wherever the flows exist uniquely.
+This is a statement about the mean direction. Equation~\eqref{eq:neural-binary-covariance}
+shows that outcome-binary estimators can have different sampling covariance,
+including after their mean magnitudes are matched.
+
+\begin{corollary}[A finite-step comparison in neural parameters]
+\enforcehalffinalproseline
+\label{cor:neural-binary-finite-step}
+Under Theorem~\ref{thm:neural-binary-moments}, suppose $c_a(P)>0$ and take
+$\theta^+=\theta+\eta\widehat g_a/c_a(P)$ with $\eta>0$. Let $f$ be a
+twice differentiable scalar observable with
+$\|\nabla^2f\|_{\mathrm{op}}\le L_f$ along every update segment, which
+is assumed to remain in its domain. Then, conditional on the current policy,
+\begin{equation}
+ \left|\E[f(\theta^+)-f(\theta)]
+       -\eta\nabla f(\theta)^\top v\right|
+ \le\frac{L_f\eta^2}{2}
+ \left(\|v\|_2^2+
+       \frac{\operatorname{tr}\operatorname{Cov}(\widehat g_a)}{c_a(P)^2}
+ \right).
+ \label{eq:neural-binary-finite-step}
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+Taylor's theorem bounds the remainder after the linear term by
+$L_f\eta^2\|\widehat g_a\|_2^2/(2c_a(P)^2)$. Take expectations and use
+Equation~\eqref{eq:neural-binary-mean} together with
+$\E\|\widehat g_a\|_2^2
+=c_a(P)^2\|v\|_2^2+\operatorname{tr}\operatorname{Cov}(\widehat g_a)$.
+\end{proof}
+
+For two estimators satisfying the corollary, division by their respective
+coefficients $c_a(P)$ gives the same mean step $\eta v$; the training updates
+do not use this normalization. Their expected changes in $f$ then differ by
+at most the sum of the two second-order bounds. Conditional solution mode
+probabilities or \pmd{} may be used as $f$ where the stated smoothness bounds
+hold. Mean-direction equivalence is
+therefore a first-order statement for stochastic finite updates; it does
+not determine their trajectories or eventual surviving solution modes.
+The bound assumes fresh on-policy score updates and does not cover Adam's
+moment estimates or subsequent PPO epochs.
+
+\begin{remark}[Shared prompts need not follow the same trajectory]
+\label{rem:neural-binary-shared-prompts}
+For a fixed prompt-sampling distribution $\mu_x$ and shared parameters,
+the aggregate mean, assuming integrable updates, is
+\begin{equation}
+ \E[\widehat g_a]
+ =\sum_x\mu_x c_a(P_x)\nabla_\theta P_x.
+ \label{eq:neural-binary-prompt-sum}
+\end{equation}
+Different objectives generally assign different relative coefficients to
+the prompt gradients, so the per-prompt identity does not imply a common
+aggregate orbit. An explicit example also shows a difference in conditional
+diversity. Let $\theta=(u,v)$, $\sigma(t)=(1+e^{-t})^{-1}$, and sample two
+prompts $A,B$ equally. Set
+\[
+ P_A=\sigma(u+v),\qquad P_B=\sigma(u-v),\qquad
+ q_A=(\sigma(v),1-\sigma(v)).
+\]
+For prompt $A$, the probabilities of two correct responses and one incorrect
+response are $(P_A\sigma(v),P_A[1-\sigma(v)],1-P_A)$; for $B$, use
+$(P_B/2,P_B/2,1-P_B)$. At $(u,v)=(0,\log3)$,
+$P_A=3/4$, $P_B=1/4$, and
+$\nabla P_A=(3/16,3/16)$, $\nabla P_B=(3/16,-3/16)$.
+For $G=3$, Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} give
+$c_{\mathrm{Dr}}=2/3$ and $c_{\mathrm{Max}}(P)=2-P$, hence
+\[
+ \dot\theta_{\mathrm{Dr}}=(1/8,0),\qquad
+ \dot\theta_{\mathrm{Max}}=(9/32,-3/64).
+\]
+Prompt $A$ has conditional disagreement
+$D_A=1-\sum_cq_{A,c}^2=2\sigma(v)[1-\sigma(v)]$, so direct
+differentiation gives
+\[
+ \dot D_{A,\mathrm{Dr}}=0,\qquad
+ \dot D_{A,\mathrm{Max}}=9/1024>0.
+\]
+Both prompts' correctness increases under both mean fields, since
+$\dot P_A=(3/16)(\dot u+\dot v)>0$ and
+$\dot P_B=(3/16)(\dot u-\dot v)>0$ at this point. Changing a binary
+objective can therefore change conditional diversity through shared prompt
+gradients, despite the exact per-prompt identity.
+\end{remark}
+
+\begin{proposition}[The residual from response-dependent normalization]
+\enforcehalffinalproseline
+\label{prop:neural-binary-length-residual}
+Under Theorem~\ref{thm:neural-binary-moments}, multiply each response's score
+by a detached function $\omega(Y)$ with finite conditional second moments;
+inverse response length is the case $\omega(Y)=1/L(Y)$. Define
+\[
+ \widehat g_{a,\omega}
+ =\frac1G\sum_i a(R_i,R)\omega(Y_i)s(Y_i),\qquad
+ A_1=\frac{\E[R a(1,R)]}{G},\quad
+ A_0=\frac{\E[(G-R)a(0,R)]}{G},
+\]
+and, conditioning on $\1[Y\in\mathcal C]=r$, let
+$\bar\omega_r=\E[\omega(Y)\mid r]$,
+$K_r=\operatorname{Cov}(\omega(Y),s(Y)\mid r)$, and
+$\sigma_{\omega,r}^2=\operatorname{Var}(\omega(Y)\mid r)$.
+Then
+\begin{align}
+ \E[\widehat g_{a,\omega}]
+ &=\widetilde c_a\nabla_\theta P+A_1K_1+A_0K_0,
+ &\widetilde c_a&=\frac{A_1\bar\omega_1}{P}
+                  -\frac{A_0\bar\omega_0}{1-P},
+ \label{eq:neural-binary-length-residual}\\
+ \|A_1K_1+A_0K_0\|_2
+ &\le\sum_{r=0}^1|A_r|\sigma_{\omega,r}
+                 \sqrt{\operatorname{tr}\Sigma_r}.
+ \label{eq:neural-binary-length-bound}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+\enforcehalffinalproseline
+Conditioning on the reward vector gives
+$\E[\widehat g_{a,\omega}]
+=A_1\E[\omega s\mid1]+A_0\E[\omega s\mid0]$.
+For each outcome, $\E[\omega s\mid r]
+=\bar\omega_r\E[s\mid r]+K_r$; substituting the conditional score
+means proves Equation~\eqref{eq:neural-binary-length-residual}.
+The vector Cauchy--Schwarz inequality gives
+$\|K_r\|_2\le\sigma_{\omega,r}\sqrt{\operatorname{tr}\Sigma_r}$;
+the triangle inequality completes the bound.
+\end{proof}
+
+The residual is a within-outcome covariance between response weighting and
+the policy score. For inverse-length weighting, a common response length
+makes it zero; equal mean lengths for correct and incorrect responses need
+not. Response-dependent weights need not be functions of binary outcomes
+alone. IPS uses outcome-frequency weights
+\citep[Section~4.4, v1]{sinha2026expected}, and UCPO adds a
+conditional-uniformity term \citep[Section~6, v1]{lochab2026ucpo}; these
+interventions are outside the outcome-binary class analyzed above.
+
+The verified-key diversity metric is a specialization of SetPO's
+distributional functional. Its influence gives an exact metric gradient
+for shared neural parameters and fixed verified execution keys.
+
+\begin{corollary}[Verified-key specialization of SetPO]
+\enforcehalffinalproseline
+\label{cor:pcmd-setpo-neural}
+Fix a prompt, a verifier-positive response event $\mathcal C$, and a
+deterministic key map $V:\mathcal C\to\{1,\ldots,m\}$, all independent
+of $\theta$. Let $\pi_\theta$ be differentiable with common positive support,
+$P_\theta=\Pr_\theta(\mathcal C)>0$, and
+$Q_\theta=\pi_\theta(\cdot\mid\mathcal C)$. Assume the score
+$s_\theta(Y)=\nabla_\theta\log\pi_\theta(Y)$ is integrable under $Q_\theta$
+and differentiation commutes with the response sums over each key.
+Write $q_c=Q_\theta(V(Y)=c)$ and $S_2=\sum_cq_c^2$.
+For $k(y,y')=\1[V(y)=V(y')]$ and $g(u)=1-u$, the functional
+$\mathcal F(Q)=\E_{Y\sim Q}[g(\E_{Y'\sim Q}k(Y,Y'))]$ is exactly
+$\pmd(q)$. The influence formula of
+\citet[Theorem~4.2, v1]{li2026setpo} specializes, for $y\in\mathcal C$, to
+\begin{align}
+ \left.\frac{d}{d\varepsilon}
+  \mathcal F((1-\varepsilon)Q_\theta+\varepsilon\delta_y)
+  \right|_{\varepsilon=0}
+ &=2(S_2-q_{V(y)}),\label{eq:pcmd-setpo-influence}\\
+ \nabla_\theta\pmd(q)
+ &=2\E_{Y\sim Q_\theta}
+       [(S_2-q_{V(Y)})s_\theta(Y)].
+ \label{eq:pcmd-neural-gradient}
+\end{align}
+\end{corollary}
+\begin{proof}
+\enforcehalffinalproseline
+The equality kernel and $g$ satisfy SetPO's Assumption~4.1, and its local
+mass is $q_{V(y)}$. Substitution into its influence formula proves the first
+identity. The influence has mean zero under $Q_\theta$, so the
+$-\nabla_\theta\log P_\theta$ term in the conditional score cancels,
+giving the second identity.
+\end{proof}
+These identities permit shared neural parameters. Along an update, the
+sign of the diversity change depends on its alignment with this metric
+gradient; the influence formula alone supplies no monotonicity guarantee
+for a given training direction.
+
+\subsection{Diversity at finite steps and sampling budgets}
+\label{app:finite-time-diversity}
+
+Softmax outcome logits amplify probability differences among equally rewarded
+solutions \citep[Theorem~3.1 and App.~A.1]{sinha2026expected}, and
+sampling imbalances can reinforce this effect
+\citep[Section~4.2]{lochab2026ucpo}. Under the categorical model,
+\pmd{} decreases from every nonuniform correct-mode distribution along
+both the mean flow and finite expected-gradient steps. Sampled updates can
+also break an initially uniform distribution's symmetry. The bounds below
+relate concentration to the probability of observing a competing solution
+mode within a finite inference budget.
+
+\begin{proposition}[Exact diversity drift and matched correctness]
+\enforcehalffinalproseline
+\label{prop:pcmd-drift}
+Under Assumption~\ref{ass:categorical-mean-flow}, consider
+$\dot z=c(P)\nabla_zP$ with $c(P)>0$. Write
+$D(q)=1-\sum_cq_c^2$, $S_2=\sum_cq_c^2$, and
+$V(q)=\sum_cq_c^3-S_2^2=\operatorname{Var}_{C\sim q}(q_C)$.
+For incorrect conditional probabilities $r_a=p_a/(1-P)$, set
+$T_2=\sum_ar_a^2$. In effective time $d\tau=c(P)P(1-P)dt$,
+\begin{equation}
+ \frac{dD}{d\tau}=-2V(q),
+ \qquad
+ \frac{dD}{d\log[P/(1-P)]}
+ =-\frac{2V(q)}{S_2+T_2}.
+ \label{eq:pcmd-drift}
+\end{equation}
+Thus diversity strictly decreases at every nonuniform interior $q$.
+Positive-coefficient mean flows from the same initial logits follow the same
+$D$-versus-$P$ curve, independently of their chosen outcome-binary advantage or
+group size.
+\end{proposition}
+
+\begin{proof}
+\enforcehalffinalproseline
+For the replicator flow~\eqref{eq:grpo-replicator}, the potential
+$U(q)=S_2/2$ has fitness $\partial U/\partial q_c=q_c$.
+The fitness-variance identity of
+\citet[Theorems~1--2]{harper2009informationgeometry} gives
+$dU/d\tau=V(q)$, hence $dD/d\tau=-2V(q)$.
+The variance vanishes exactly when the
+positive coordinates of $q$ are equal. Also,
+\[
+ \dot P=c(P)\|\nabla_zP\|_2^2
+       =c(P)P^2(1-P)^2(S_2+T_2),
+\]
+so $d\log[P/(1-P)]/d\tau=S_2+T_2>0$, proving the second identity.
+Finally, the full logit equation in effective time is
+$dz_c/d\tau=q_c$ and $dz_a/d\tau=-r_a$; it contains no $c$.
+The same initial logits therefore give the same full trajectory after the
+time change, and hence the same curve at matched correctness for every positive-coefficient outcome-binary estimator considered here.
+\end{proof}
+
+\begin{theorem}[Collapse under finite expected-gradient steps]
+\enforcehalffinalproseline
+\label{thm:finite-expected-steps}
+Retain (A1), (A2), (A4), and (A5) of
+Assumption~\ref{ass:categorical-mean-flow}, and replace (A3) by
+\begin{equation}
+ z_{k+1}=z_k+\eta_k c(P_k)\nabla_zP_k,
+ \qquad 0<\eta_k<\infty,\quad \sum_{k=0}^\infty\eta_k=\infty,
+ \label{eq:finite-expected-update}
+\end{equation}
+where $c$ is continuous and positive on $(0,1)$. Each step strictly decreases
+$D(q_k)$ unless $q_k$ is uniform. If $q_0$ has a unique largest coordinate
+$c^\star$, then $P_k\to1$ and $q_{c^\star,k}\to1$.
+No upper bound on the finite step sizes is required.
+\end{theorem}
+
+\begin{proof}
+\enforcehalffinalproseline
+Let $h_k=\eta_kc(P_k)P_k(1-P_k)>0$. The exact updates are
+$z_c^+=z_c+h_kq_c$ and $z_a^+=z_a-h_kr_a$, so
+\begin{equation}
+ q_c^+=\frac{q_c e^{h_kq_c}}{\sum_dq_d e^{h_kq_d}}.
+ \label{eq:finite-correct-tilt}
+\end{equation}
+For fixed $q$, put $u_c(s)=q_ce^{sq_c}/\sum_dq_de^{sq_d}$.
+Differentiation gives
+\[
+ \frac{d}{ds}\sum_cu_c(s)^2
+ =\sum_{c,d}u_c(s)u_d(s)
+       \big(u_c(s)-u_d(s)\big)(q_c-q_d)\ge0.
+\]
+The ordering of $u(s)$ is that of $q$, and the inequality is strict whenever
+$q$ is nonuniform. Integrating from $0$ to $h_k$ proves the diversity claim.
+Equation~\eqref{eq:finite-correct-tilt} also preserves the leader and makes
+its conditional probability nondecreasing.
+
+Every correct logit increases and every incorrect logit decreases, hence
+$P_k$ increases. Jensen's inequality gives
+\[
+ \log\frac{P_{k+1}}{1-P_{k+1}}-\log\frac{P_k}{1-P_k}
+ =\log\sum_cq_c e^{h_kq_c}-\log\sum_ar_a e^{-h_kr_a}
+ \ge h_k\sum_cq_c^2\ge h_k/m.
+\]
+If $P_k$ had an interior limit, continuity and positivity of $c$ would imply
+$\sum_kh_k=\infty$, contradicting bounded correctness odds. Thus $P_k\to1$.
+Moreover, $\sum_kh_k=\infty$ is necessary: otherwise every logit would have
+finite total variation and converge to a finite value, contradicting
+$P_k\to1$.
+Set $\alpha=q_{c^\star,0}$ and
+$\xi_{c,k}=q_{c,k}/q_{c^\star,k}$. For $c\ne c^\star$,
+\[
+ \xi_{c,k+1}=\xi_{c,k}
+  e^{-h_k(q_{c^\star,k}-q_{c,k})},
+ \qquad
+ q_{c^\star,k}-q_{c,k}
+ \ge\alpha(1-\xi_{c,0})>0.
+\]
+The divergent sum of $h_k$ forces every such ratio to zero, proving
+$q_{c^\star,k}\to1$.
+\end{proof}
+
+The update uses the exact expected gradient. Finite steps preserve the
+concentration conclusion but can change the trajectory across estimators.
+The identical diversity-versus-correctness curve in
+Proposition~\ref{prop:pcmd-drift} requires infinitesimal mean flow;
+it does not extend to these finite updates.
+
+Finite multinomial counts can break a uniform policy's symmetry
+\citep[Proposition~A.1]{lochab2026ucpo}. For the centered group estimator,
+the leading expected one-step loss in \pmd{} is quadratic in the learning
+rate, with a coefficient determined by group size and correctness.
+
+\begin{proposition}[Sampled updates break conditional symmetry]
+\enforcehalffinalproseline
+\label{prop:stochastic-pcmd}
+Retain (A1), (A2), (A4), and (A5) of
+Assumption~\ref{ass:categorical-mean-flow}, and replace (A3) by one sampled
+update $z^+=z+\eta\widehat g_G$ from
+Equation~\eqref{eq:group-estimator}, with $\eta>0$. Suppose $0<P<1$ and $q_c=1/m$ for every correct mode. Then
+\begin{equation}
+ \E[D(q^+)]<1-1/m,
+ \qquad \E[q_c^+]=1/m.
+ \label{eq:stochastic-strict-decrease}
+\end{equation}
+As $\eta\to0$, for the fixed initial policy and estimator,
+\begin{equation}
+ \E[D(q^+)]
+ =1-\frac1m
+  -\eta^2\frac{m-1}{m^3}
+    \E\!\left[\frac{w(R)^2R(G-R)^2}{G^4}\right]
+  +O(\eta^3),
+ \label{eq:stochastic-pcmd-expansion}
+\end{equation}
+where the summand is zero on $R=0,G$. For Dr.GRPO, $w=1$ and
+\begin{equation}
+ \E\!\left[\frac{R(G-R)^2}{G^4}\right]
+ =\frac{G-1}{G^3}P(1-P)\big[1+(G-2)(1-P)\big].
+ \label{eq:stochastic-dr-coefficient}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+\enforcehalffinalproseline
+Let $N_c$ count occurrences of correct mode $c$. The centered advantages
+sum to zero, so the common softmax-score term cancels and
+$\widehat g_c=\kappa_RN_c$, where
+$\kappa_R=w(R)(G-R)/G^2$ on mixed groups and $\kappa_R=0$ otherwise.
+Conditional on $R$, the correct counts are
+$N\sim\operatorname{Multinomial}(R;1/m,\ldots,1/m)$, and
+\[
+ q_c^+=\frac{e^{\eta\kappa_RN_c}}{\sum_de^{\eta\kappa_RN_d}}.
+\]
+Diversity is at most $1-1/m$, with equality only at uniform $q^+$.
+The event $R=1$ has positive probability; on this event one correct logit
+increases and the others do not, so $q^+$ is nonuniform. This proves the
+strict inequality for every $\eta>0$. Permutation symmetry of the correct
+labels gives $\E[q_c^+]=1/m$.
+
+For a fixed vector $v$, Taylor expansion about uniform logits gives
+\[
+ \sum_c\operatorname{softmax}(\eta v)_c^2
+ =\frac1m+\frac{\eta^2}{m^2}\sum_c(v_c-\bar v)^2+O(\eta^3),
+ \qquad \bar v=\frac1m\sum_cv_c.
+\]
+Use $v_c=\kappa_RN_c$ and
+$\E[\sum_c(N_c-R/m)^2\mid R]=R(1-1/m)$.
+There are finitely many possible groups and all mixed-group weights are
+finite, so the Taylor remainder is uniform over those groups. Averaging
+proves Equation~\eqref{eq:stochastic-pcmd-expansion}.
+Finally,
+\[
+ \E[R(G-R)^2]
+ =G(G-1)(G-2)P(1-P)^2+G(G-1)P(1-P),
+\]
+by the binomial factorial moments, yielding
+Equation~\eqref{eq:stochastic-dr-coefficient}.
+\end{proof}
+
+At fixed $P\in(0,1)$, the Dr.GRPO coefficient in
+Equation~\eqref{eq:stochastic-dr-coefficient} is
+$P(1-P)^2/G+O(G^{-2})$ as $G\to\infty$. The coefficient of the
+quadratic learning-rate term therefore decays asymptotically as $1/G$;
+it need not decrease at every increment in finite group size. This sampling
+effect is absent from the uniform mean flow. The result concerns one step
+from a uniform correct-mode distribution and gives neither monotone expected
+diversity from an arbitrary initial policy nor stochastic-optimizer convergence.
+
+\begin{corollary}[Finite-budget disappearance of competing modes]
+\enforcehalffinalproseline
+\label{cor:finite-budget-invisibility}
+In the mean flow of Theorem~\ref{thm:grpo-collapse}, let $c^\star$ be the
+unique initial correct leader and define
+\[
+ \alpha=q_{c^\star}(0),
+ \qquad
+ \Gamma_0=\sum_{c\ne c^\star}
+             \frac{q_c(0)}{\alpha-q_c(0)}.
+\]
+At effective time $\tau$,
+\begin{equation}
+ 1-q_{c^\star}(\tau)\le\Gamma_0e^{-\alpha\tau},
+ \qquad D(q(\tau))\le2\Gamma_0e^{-\alpha\tau}.
+ \label{eq:finite-minority-bound}
+\end{equation}
+For $K\ge1$ independent full-policy draws at that checkpoint,
+\begin{equation}
+ \Pr(\text{any correct mode other than }c^\star\text{ is observed})
+ \le K\Gamma_0e^{-\alpha\tau}.
+ \label{eq:finite-inference-visibility}
+\end{equation}
+In particular, if
+$\tau\ge\max\{0,\alpha^{-1}\log(K\Gamma_0/\delta)\}$ for
+$0<\delta<1$, no competing correct mode is observed with probability at
+least $1-\delta$, although every mode retains positive probability.
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+For $c\ne c^\star$, write $\xi_c=q_c/q_{c^\star}<1$.
+The leader is nondecreasing, and Equation~\eqref{eq:grpo-replicator} gives
+\[
+ \frac{d}{d\tau}\log\frac{\xi_c}{1-\xi_c}
+ =-q_{c^\star}\le-\alpha.
+\]
+Hence
+$\xi_c(\tau)\le[q_c(0)/(\alpha-q_c(0))]e^{-\alpha\tau}$.
+Now $1-q_{c^\star}=\sum_{c\ne c^\star}\xi_c/(1+\sum_{c\ne c^\star}\xi_c)$
+and $D\le1-q_{c^\star}^2\le2(1-q_{c^\star})$, proving the first bounds.
+A single full-policy draw hits a competing correct mode with probability
+$P(1-q_{c^\star})\le1-q_{c^\star}$; a union bound over $K$ draws completes
+the proof.
+\end{proof}
+
+The bound gives a finite-budget interpretation of the rare-output pruning
+mechanism discussed by \citet[Section~4.2.5]{lochab2026ucpo}.
+It can also be indexed by correctness: Proposition~\ref{prop:pcmd-drift}
+and $S_2+T_2\le2$ imply
+$\tau\ge\tfrac12\log\{[P/(1-P)]/[P(0)/(1-P(0))]\}$.
+These are sufficient visibility bounds within the categorical model;
+they do not require literal support loss or identify an empirical collapse
+time for neural training.
+
+
+\subsection{A replay signal when fresh groups supply none}

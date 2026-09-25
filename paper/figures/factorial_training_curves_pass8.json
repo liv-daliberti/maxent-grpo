@@ -1,7 +1,7 @@
 {
   "builder": {
     "path": "ops/exp_scaling/plot_paper_training_curves.py",
-    "sha256": "c3a77e3f22a2199ce49098dc92b9856481e05754f725ea74163de8d10f01fd12"
+    "sha256": "e4841ffbc535f489c95ff28ecfc9314c68804ecef6a84d71bffcde41442ef18a"
   },
   "level": "level1",
   "methods": [

@@ -1,6 +1,6 @@
 {
   "schema": "paper-baseline-collapse-precheck-figure-v1",
-  "generated_at": "2026-09-04T15:18:12.198059+00:00",
+  "generated_at": "2026-09-21T22:46:48.289059+00:00",
   "figure_key": "baseline-collapse-precheck",
   "comparison": "unmodified Dr.GRPO and unmodified GRPO, pass 0 against pass 8, on five ModeBench domains at three model scales",
   "layout": "three physical model rows by five static-domain columns",

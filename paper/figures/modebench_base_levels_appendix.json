@@ -603,7 +603,7 @@
   },
   "domain_palette_source": {
     "path": "ops/plot_paper_modebench_examples.py",
-    "sha256": "e140d7299edf515f25452d43ab943a5a30959327844377e631d6df9f143cea66"
+    "sha256": "017d9c4031eed482b1e0955bb340aac29d95d0ae2f85aa1d819b5de16ad668c2"
   },
   "metrics": {
     "distinct8": "Mean number of unique verified canonical keys within each eight-draw group, averaged across four independent groups and 128 prompts.",
@@ -1058,8 +1058,8 @@
     }
   ],
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.pdf": "de61d47c99d010b680aa7293925a052e5733894f2dd3b3192a3f3859a11884e1",
-    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.png": "4efae6caca7ac7c9d66d0de3df91d89408fd70f45aa23d6d8187af7527f16391"
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.pdf": "cc0336bcf94b49d259462d4fd02468a4507406c34bd85a5385e989e8b20131f6",
+    "/n/fs/similarity/maxent-grpo/paper/figures/modebench_base_levels_appendix.png": "2416eba293f3ff4cc36ba1bedf60f2bdae844e29e80542d9cc239776f658a6bd"
   },
   "points": [
     {
@@ -195593,7 +195593,7 @@
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_modebench_base_levels_appendix.py",
     "sha256": "6aec0f2185322114970e0001951502f540c4399688c2f7ca85974b5a75b27de4",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
+    "style_sha256": "bb5fe214a14e87bc5bb6b39f821e46c846d015c3564b1a8fdcb6a27f0e43766d"
   },
   "required_cells": 60,
   "sampling": {

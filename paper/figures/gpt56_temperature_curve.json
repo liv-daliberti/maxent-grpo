@@ -6,12 +6,12 @@
   },
   "renderer": {
     "path": "ops/plot_paper_gpt56_temperature_curve.py",
-    "sha256": "18a04006ebfe4ae122da160c8a0938e55b51f39f3d0c2c980e2d56a261c4fed2"
+    "sha256": "e577be4a177f1405bde8765aab952cdc1860050abee5724984dadc4519108685"
   },
   "authenticated_bindings": 186,
   "model": "gpt-5.6-sol",
   "reasoning_effort": "none",
-  "grading": "frozen formatting-normalized",
+  "grading": "formatting-normalized",
   "icons": {
     "gpt-5.6-sol": {
       "path": "paper/icons/openai.png",
@@ -179483,11 +179483,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/gpt56_temperature_curve.pdf",
-      "sha256": "2186d56c0dd3c661beba581a8a3355cc8bcf17a00dee42cf5fed923e9127182c"
+      "sha256": "5e8c5cbd1e26ab662c243f461caaba633962c7afb2ebf17c65b18bfb0a7023be"
     },
     "png": {
       "path": "paper/figures/gpt56_temperature_curve.png",
-      "sha256": "78766ba4f39a79b899a798648081efe61fd8b740daed11e59cc77868278be292"
+      "sha256": "2572a90f6358b1ff018531f875a2e88efe4ffbba105a1f995a3c131366592ebc"
     }
   }
 }

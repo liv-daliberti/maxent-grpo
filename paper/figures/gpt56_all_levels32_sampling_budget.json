@@ -7,7 +7,7 @@
   },
   "renderer": {
     "path": "ops/plot_paper_gpt56_all_levels32_sampling.py",
-    "sha256": "c6a523191477d5f2163f83a6f599452688bb34b0e8bc8efe2c5f2b24f1a98f30"
+    "sha256": "7cd9dfd9fcf4aa94b7def02f732c75ea5c06c97941a19b4e20d5e07e0832fea1"
   },
   "model": "gpt-5.6-sol",
   "icons": {
@@ -162635,7 +162635,7 @@
       "pantry_plan": "#E7ECFB"
     },
     "domain_palette_source": "Figure 2 DOMAIN_PANEL; identical to Figure 3",
-    "y": "Share of available modes found",
+    "y": "Share of certified / enumerated modes found",
     "y_scale": "linear 0-1, shared by all five domains; 1.0 is every enumerated mode",
     "curves": {
       "1": {
@@ -162663,7 +162663,7 @@
     "intervals": "Pointwise 95% whole-problem bootstrap intervals from the bound analysis.",
     "support": "Printed as counts and used as each curve's denominator: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis's conservative certificate is retained per cell as certified_support.",
     "normalization": "Each plotted value is the cell's reconstructed mean distinct verified modes divided by its mean enumerated support. This is a display transform of the retained estimates; no statistic is recomputed.",
-    "shortfall": "The shaded band runs from the best level reached at each budget up to 1.0, so its height is the share of available modes no level ever produced.",
+    "shortfall": "The shaded band runs from the best level reached at each budget up to 1.0, so its height is the share of certified / enumerated modes no level ever produced.",
     "endpoints": "All fifteen curves use complete 512-draw pools; no extrapolation."
   },
   "validation": {
@@ -162679,11 +162679,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/gpt56_all_levels32_sampling_budget.pdf",
-      "sha256": "5b344cfa5dca53c0c45e20c754d04f9342455fa22ab408d5c72083b3eec40a97"
+      "sha256": "43e63235c56d6fd56c119996ef383e6cccff08dd0a6bf7a0aeea6b984585ebfb"
     },
     "png": {
       "path": "paper/figures/gpt56_all_levels32_sampling_budget.png",
-      "sha256": "c7e1973c61c1e32224348e7c09eb2b257e04efb4216cee80bf9c3559c6c495bd"
+      "sha256": "bde54938756b2158da2fa4ed13400151b026423e25a2ed8f6360075051a53e53"
     }
   }
 }

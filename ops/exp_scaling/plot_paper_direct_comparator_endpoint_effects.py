@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import hashlib
+from collections import Counter, defaultdict
 import json
 import math
 from pathlib import Path
@@ -32,6 +33,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "ops"))
 import paper_method_style as method_visuals  # noqa: E402
 import paper_style as style  # noqa: E402
+from mode_diversity import DEFAULT_MIN_DEFINED_PROMPTS, mode_diversity  # noqa: E402
 
 
 DEFAULT_OUTPUT = ROOT / "paper/figures/direct_comparator_endpoint_effects"
@@ -191,7 +193,7 @@ def _terminal_metrics(
                 and isinstance(row.get("metrics"), dict)
             ):
                 draw = int(row["draw_index"])
-                path_records.setdefault(draw, (row["metrics"], path))
+                path_records.setdefault(draw, (row, path))
                 if len(path_records) == EXPECTED_DRAWS:
                     break
         records.update(path_records)
@@ -202,13 +204,48 @@ def _terminal_metrics(
     metrics = {
         output_name: statistics.fmean(
             _finite(
-                records[draw][0].get(source_name),
+                records[draw][0]["metrics"].get(source_name),
                 where=f"{run_dir}:{target}:draw{draw}:{source_name}",
             )
             for draw in range(EXPECTED_DRAWS)
         )
         for output_name, source_name in METRIC_FIELDS.items()
     }
+    # The same four draw records also carry the canonical key of every verified
+    # response, which is what PCMD is read from. Pooling them here keeps the
+    # breadth axis on exactly the draws the other two metrics average, rather
+    # than on a separately extracted copy that could drift from them.
+    counts: dict[int, Counter] = defaultdict(Counter)
+    for draw in range(EXPECTED_DRAWS):
+        for index, prompt in enumerate(records[draw][0].get("prompts") or []):
+            position = int(prompt.get("prompt_index", index))
+            # answer_keys holds every sample's canonical key, correct or not,
+            # so the per-sample reward is what admits one. PCMD counts correct
+            # modes; without this filter a prompt the model never solves still
+            # defines the metric and wrong answers read as breadth.
+            rewards = prompt.get("rewards") or []
+            for slot, key in enumerate(prompt.get("answer_keys") or []):
+                if key is None:
+                    continue
+                if slot >= len(rewards) or not float(rewards[slot]) > 0:
+                    continue
+                counts[position][key] += 1
+    metrics["prompt_counts"] = dict(counts)
+    # The arm's own terminal PCMD, on the whole-cell bar rather than the paired
+    # one, because this is an absolute endpoint and not a difference. It is what
+    # the accuracy-breadth frontier plots for the two comparator arms, whose
+    # runs the curve archive does not carry.
+    defined = [
+        value
+        for value in (mode_diversity(counter) for counter in counts.values())
+        if value is not None
+    ]
+    metrics["pmd"] = (
+        statistics.fmean(defined)
+        if len(defined) >= DEFAULT_MIN_DEFINED_PROMPTS
+        else None
+    )
+    metrics["pmd_defined_prompts"] = len(defined)
     return metrics, {records[draw][1] for draw in range(EXPECTED_DRAWS)}
 
 
@@ -240,15 +277,37 @@ def _interval(values: list[float]) -> dict[str, Any]:
     }
 
 
-def _effect(method: dict[str, float], baseline: dict[str, float]) -> dict[str, float]:
+def _paired_pmd(
+    method: dict[str, Any], baseline: dict[str, Any]
+) -> tuple[float | None, int]:
+    """PCMD difference over the prompts both arms define, and how many those are.
+
+    A prompt enters only when both arms return two verified draws on it. Letting
+    each arm average over its own defined subset would compare two different
+    prompt populations, and the arm that stopped answering a hard prompt twice
+    would leave it out rather than score low on it.
+    """
+
+    method_counts = method["prompt_counts"]
+    baseline_counts = baseline["prompt_counts"]
+    differences = []
+    for position in sorted(method_counts.keys() & baseline_counts.keys()):
+        here = mode_diversity(method_counts[position])
+        there = mode_diversity(baseline_counts[position])
+        if here is None or there is None:
+            continue
+        differences.append(here - there)
+    if len(differences) < DEFAULT_MIN_DEFINED_PROMPTS:
+        return None, len(differences)
+    return statistics.fmean(differences), len(differences)
+
+
+def _effect(method: dict[str, Any], baseline: dict[str, Any]) -> dict[str, Any]:
+    pmd, paired = _paired_pmd(method, baseline)
     return {
         "pass8": method["pass8"] - baseline["pass8"],
-        "adjusted_breadth8": (
-            method["distinct8"]
-            - method["pass8"]
-            - baseline["distinct8"]
-            + baseline["pass8"]
-        ),
+        "pmd": pmd,
+        "pmd_paired_prompts": paired,
     }
 
 
@@ -329,8 +388,16 @@ def build() -> dict[str, Any]:
                         | {marker, baseline_marker}
                     )
                     per_seed[str(seed)] = {
-                        "baseline": baseline_endpoint,
-                        "comparator": method_endpoint,
+                        "baseline": {
+                            key: value
+                            for key, value in baseline_endpoint.items()
+                            if key != "prompt_counts"
+                        },
+                        "comparator": {
+                            key: value
+                            for key, value in method_endpoint.items()
+                            if key != "prompt_counts"
+                        },
                         "effect": _effect(method_endpoint, baseline_endpoint),
                         "comparator_job_id": int(run["job_id"]),
                         "baseline_job_id": int(baseline_run["job_id"]),
@@ -353,12 +420,26 @@ def build() -> dict[str, Any]:
                     "per_seed": per_seed,
                 }
                 if len(seeds) == 5:
-                    record["summaries"] = {
-                        metric: _interval(
-                            [per_seed[str(seed)]["effect"][metric] for seed in seeds]
+                    summaries: dict[str, Any] = {
+                        "pass8": _interval(
+                            [per_seed[str(seed)]["effect"]["pass8"] for seed in seeds]
                         )
-                        for metric in ("pass8", "adjusted_breadth8")
                     }
+                    # A seed whose paired support falls under the bar carries no
+                    # PCMD, so breadth gets a mean only when all five do. The two
+                    # metrics can therefore disagree on n within one comparator,
+                    # which the panel prints rather than reconciles.
+                    pmd_values = [
+                        per_seed[str(seed)]["effect"]["pmd"] for seed in seeds
+                    ]
+                    if all(value is not None for value in pmd_values):
+                        summaries["pmd"] = _interval(pmd_values)
+                    record["summaries"] = summaries
+                record["pmd_seeds"] = [
+                    seed
+                    for seed in seeds
+                    if per_seed[str(seed)]["effect"]["pmd"] is not None
+                ]
                 method_records[method] = record
             cells.append(
                 {
@@ -377,7 +458,7 @@ def build() -> dict[str, Any]:
         raise RuntimeError("model row order drifted")
 
     return {
-        "schema": "paper-direct-comparator-endpoint-effects-v2",
+        "schema": "paper-direct-comparator-endpoint-effects-v3",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "status": (
             "mixed terminal balanced blocks and exact terminal prefixes; "
@@ -394,11 +475,16 @@ def build() -> dict[str, Any]:
         "baseline": "matched Dr.GRPO",
         "metrics": {
             "pass8": "comparator pass@8 minus matched Dr.GRPO pass@8",
-            "adjusted_breadth8": (
-                "comparator (distinct@8-pass@8) minus matched Dr.GRPO "
-                "(distinct@8-pass@8)"
+            "pmd": (
+                "comparator PCMD minus matched Dr.GRPO PCMD, averaged over the "
+                "prompts where both arms return two verified draws"
             ),
         },
+        "pmd_support_rule": (
+            "a seed reports PCMD only when at least "
+            f"{DEFAULT_MIN_DEFINED_PROMPTS} prompts are defined in both arms; "
+            "otherwise the seed contributes pass@8 alone"
+        ),
         "evidence_encoding": {
             "paired_seed": "open circle",
             "balanced_five_seed_mean": "filled diamond",
@@ -430,7 +516,7 @@ def render(payload: dict[str, Any], output: Path) -> None:
     )
     metrics = (
         ("pass8", r"$\Delta P$"),
-        ("adjusted_breadth8", r"$\Delta(D-P)$"),
+        ("pmd", r"$\Delta$PCMD"),
     )
     x_positions = (0.0, 1.0)
     method_offsets = {"grpo": -0.14, "ucpo": 0.0, "rlep_dr": 0.14}
@@ -441,8 +527,11 @@ def render(payload: dict[str, Any], output: Path) -> None:
     for cell in payload["cells"]:
         for method in cell["methods"].values():
             for seed in method["seeds"]:
+                effect = method["per_seed"][str(seed)]["effect"]
                 plotted_values.extend(
-                    method["per_seed"][str(seed)]["effect"].values()
+                    effect[metric]
+                    for metric, _label in metrics
+                    if effect[metric] is not None
                 )
             for summary in method.get("summaries", {}).values():
                 plotted_values.extend(summary["student_t_95"])
@@ -450,11 +539,25 @@ def render(payload: dict[str, Any], output: Path) -> None:
     y_high = math.ceil((max(plotted_values) + 0.12) * 10) / 10
 
     def cell_counts(cell: dict[str, Any]) -> str:
-        return " · ".join(
-            f"{COMPARATOR_SHORT[key]} {cell['methods'][key]['n']}"
-            for key in COMPARATORS
-            if key in cell["methods"]
-        )
+        """Seed counts per comparator, naming both axes when they disagree.
+
+        A seed can carry pass@8 and no PCMD, because PCMD needs the prompt to
+        be defined in both arms. Printing only the pass@8 count would put a
+        badge of 5 over a breadth marker drawn from four seeds.
+        """
+
+        parts = []
+        for key in COMPARATORS:
+            method = cell["methods"].get(key)
+            if method is None:
+                continue
+            breadth = len(method.get("pmd_seeds", []))
+            short = COMPARATOR_SHORT[key]
+            if breadth == method["n"]:
+                parts.append(f"{short} {method['n']}")
+            else:
+                parts.append(f"{short} {method['n']}/{breadth}")
+        return " · ".join(parts)
 
     # Twelve of the fifteen panels carry the same seed counts. Say that once in
     # the subtitle and badge only the panels that differ, so the badge marks a
@@ -485,13 +588,16 @@ def render(payload: dict[str, Any], output: Path) -> None:
                 ]
                 for x, (metric, _label) in zip(x_positions, metrics):
                     center = x + method_offsets[method_key]
-                    values = [
-                        method["per_seed"][str(seed)]["effect"][metric]
-                        for seed in method["seeds"]
+                    drawn = [
+                        (offset, method["per_seed"][str(seed)]["effect"][metric])
+                        for offset, seed in zip(seed_jitter, method["seeds"])
+                        if method["per_seed"][str(seed)]["effect"][metric] is not None
                     ]
+                    if not drawn:
+                        continue
                     axis.scatter(
-                        [center + offset for offset in seed_jitter],
-                        values,
+                        [center + offset for offset, _ in drawn],
+                        [value for _, value in drawn],
                         s=9,
                         marker=visual["marker"],
                         facecolor=style.WHITE,
@@ -595,8 +701,10 @@ def render(payload: dict[str, Any], output: Path) -> None:
         0.5,
         0.96,
         (
-            "Pass 8 only · exact terminal paired seeds; diamonds and intervals "
-            "require all five registered seeds."
+            "Exact terminal paired seeds; diamonds and intervals require all "
+            "five. Counts read pass@8/PCMD where they differ, and PCMD is "
+            "blank where no seed clears the paired-support bar."
+            + (f"  All panels n: {shared_counts} unless marked." if shared_counts else "")
             + (f"  All panels n: {shared_counts} unless marked." if shared_counts else "")
         ),
         ha="center",

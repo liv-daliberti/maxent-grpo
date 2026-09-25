@@ -1,0 +1,7 @@
+{
+  "user_request": "Remove Figure 10 from the main; it was absent from the supplied main.",
+  "main_figure_count": 11,
+  "moved_figure": "fig:replay-key-weighting",
+  "appendix_section": "app:frequency-replay-progress",
+  "removed_added_pagebreak_guard": true
+}

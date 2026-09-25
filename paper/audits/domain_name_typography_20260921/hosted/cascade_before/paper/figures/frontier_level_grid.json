@@ -1,0 +1,159 @@
+{
+  "schema": "paper-frontier-level-grid-v1",
+  "source": {
+    "path": "paper/results/mode_diversity_frontier_points.json",
+    "sha256": "9f95a54f16209faee9664499888d329ec2d9ff611704055fc1872438a33b10bf"
+  },
+  "builder": {
+    "path": "ops/plot_paper_frontier_level_grid.py",
+    "sha256": "e17c99f3f81ca8e4d64dd484518ee2040967b94e6c9124097bada2639f38f4b4"
+  },
+  "deployments": [
+    "Kimi K3",
+    "DeepSeek V4 Pro",
+    "GPT-5.4",
+    "Grok 4.3",
+    "Claude Opus 4.8",
+    "GPT-5.6 Sol",
+    "Claude Opus 5"
+  ],
+  "coverage": {
+    "Kimi K3": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "cells": 15,
+      "reportable": 15
+    },
+    "DeepSeek V4 Pro": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "cells": 15,
+      "reportable": 15
+    },
+    "GPT-5.4": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "cells": 15,
+      "reportable": 15
+    },
+    "Grok 4.3": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "cells": 15,
+      "reportable": 15
+    },
+    "Claude Opus 4.8": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "cells": 15,
+      "reportable": 15
+    },
+    "GPT-5.6 Sol": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3",
+        "level4",
+        "level5"
+      ],
+      "cells": 25,
+      "reportable": 25
+    },
+    "Claude Opus 5": {
+      "levels": [
+        "level1",
+        "level2",
+        "level3"
+      ],
+      "cells": 13,
+      "reportable": 13
+    }
+  },
+  "levels_drawn": [
+    "level1",
+    "level2",
+    "level3"
+  ],
+  "levels_present_but_not_drawn": [
+    "level4",
+    "level5"
+  ],
+  "levels_excluded_note": "a rung is drawn only where every deployment is measured; Levels 4 and 5 exist for one deployment alone and are reported in their own paragraphs instead.",
+  "average_domain_sets": {
+    "Kimi K3": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "DeepSeek V4 Pro": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "GPT-5.4": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "Grok 4.3": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "Claude Opus 4.8": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "GPT-5.6 Sol": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "mathir",
+      "pantry"
+    ],
+    "Claude Opus 5": [
+      "graph_coloring",
+      "countdown",
+      "mathir",
+      "pantry"
+    ]
+  },
+  "encoding_note": "PCMD against level; correctness is not drawn because every hosted cell sits above pass@8 .898.",
+  "encoding": "pass@8 horizontal, PCMD vertical, marker shape is the level; open marks sit below the support bar and floor ticks are cells too rarely solved to place.",
+  "outputs": {
+    "pdf": {
+      "path": "paper/figures/frontier_level_grid.pdf",
+      "sha256": "4c34df88cafeb0a7acd1598518d81c10adb153271b8f9e2c89d33769e79316c5"
+    },
+    "png": {
+      "path": "paper/figures/frontier_level_grid.png",
+      "sha256": "b09e11c4f7eff43d8b5e9aa4dedfbae55767630d8af426ecf539b4801ae967ef"
+    }
+  }
+}

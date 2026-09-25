@@ -278,6 +278,32 @@ def validate_python_diagnostic(paper, report):
             'post_hoc': True, 'counts_reconstructed': True}
 
 
+def validate_pcmd_record(paper):
+    """Rebuild the paired PCMD record the appendix columns are rendered from.
+
+    The statistics in the report are reconstructed from the frozen analyzer, but
+    the success-conditional column is computed by a separate builder from the
+    same retained draws. Rebuilding it here keeps both columns of the table
+    under the same standard as every other published number.
+    """
+    record_path = paper / 'results' / 'prompt_ablation_pmd.json'
+    require(record_path.is_file(), 'Missing paired PCMD record for the appendix columns')
+    builder_path = ROOT / 'ops/build_paper_prompt_ablation_pmd.py'
+    spec = importlib.util.spec_from_file_location('_prompt_ablation_pcmd', builder_path)
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    published = read_json(record_path)
+    require(published == builder.build_record(),
+            'Paired PCMD record differs from its rebuild from the retained draws')
+    require(published['builder']['sha256'] == file_sha(builder_path),
+            'Paired PCMD record was built by different code than is published')
+    for name, digest in published['sources'].items():
+        bound_file({'path': str(builder.SOURCE / name / 'responses.jsonl'), 'sha256': digest})
+    return {'cells': published['coverage']['cells'],
+            'reportable': published['coverage']['reportable'],
+            'sources': len(published['sources'])}
+
+
 def check(paper_dir=PAPER, source_dir=None):
     paper = Path(paper_dir).resolve()
     copied_json = paper / 'results' / (RESULT_STEM + '.json')
@@ -299,6 +325,7 @@ def check(paper_dir=PAPER, source_dir=None):
     exact_copy(directory / 'analysis.json', copied_json)
     exact_copy(directory / 'appendix.tex', paper / 'results' / (RESULT_STEM + '.tex'))
     python_diagnostic = validate_python_diagnostic(paper, report)
+    pcmd = validate_pcmd_record(paper)
     analyzer = load_analyzer(report)
     reconstruct(report, analyzer)
     expected_tex = analyzer.render_appendix(report)
@@ -318,6 +345,7 @@ def check(paper_dir=PAPER, source_dir=None):
             'source_directory': str(directory), 'source_report_sha256': file_sha(directory / 'analysis.json'),
             'paper_directory': str(paper), 'models': len(report['models']),
             'validated_csv_metrics': rows, 'validated_figure_files': figures,
+            'paired_pcmd': pcmd,
             'statistics_reconstructed': True, 'python_failure_diagnostic': python_diagnostic, 'api_calls': 0}
 
 

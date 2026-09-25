@@ -1,0 +1,9 @@
+{
+  "ops/build_reference_kl_comparison.py": "dfedd39dd3098c550666d8f5df522b02dc155841446e1f9a68f91db60d4e0a6f",
+  "ops/plot_paper_reference_kl_plane.py": "04f46e327ac98e2cc429ce0c8346abe091a5b7312247e1bf3a394079f03ca0d3",
+  "ops/plot_paper_reference_kl_knee.py": "e06d6e62ce055c6dea1d99250cf5dd8ea577efc86ad2120f5537b6a7651bbb9d",
+  "paper/figures/reference_kl_plane.pdf": "8920f77dc09e43758218d407421486746ca0a23a3f803401cbd4e0e54f1987f6",
+  "paper/figures/reference_kl_plane.png": "7e7950fb4e220bf5f83589a6e53ab3346964f7bd778f1d3d4ffcf9b60ec58ad5",
+  "paper/figures/reference_kl_knee.pdf": "0f7044f824e211e1310a10184b196d4b9799984f7d5088eea561cada95895898",
+  "paper/figures/reference_kl_knee.png": "da176833f5149182962b46f6ff01cb15dca853b270fbdbe8bf009ccf25861bef"
+}

@@ -11,7 +11,7 @@
   },
   "builder": {
     "path": "ops/plot_paper_reorganized_results.py",
-    "sha256": "15442be342044859150273b678e5dc3d516cdf28ad974b38ac57c854f5b8ee80"
+    "sha256": "5d0e6c1b505b9bbee7e888a48d7039135dbef7c0f9cec3ede0dd3e3e41952fe2"
   },
   "contrast_direction": "uniform key-balanced replay minus fresh-frequency replay",
   "display_metrics": {
@@ -56,11 +56,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/replay_key_weighting.pdf",
-      "sha256": "667121974ab40f678f94da1b02acbe92e51dbe520a72350ebbd8d722a9db961d"
+      "sha256": "56e5571d8f38fa3e1d9519250bdfb9318c1d29c131686ba10d11d106c93b212b"
     },
     "png": {
       "path": "paper/figures/replay_key_weighting.png",
-      "sha256": "027c8d9fe640155624a6af85905ca500c4e419a95df547d087d289201d2d5bf0"
+      "sha256": "d694575f175411b3f7a8fa6be9a615df18f59822a727d875bd7e1e2da08b52c8"
     }
   },
   "paired_seed_counts_by_domain": {

@@ -37,7 +37,7 @@ import paper_style as style  # noqa: E402
 DEFAULT_SNAPSHOT = ROOT / "paper/results/training_curve_snapshot_20260911.json"
 SNAPSHOT_SCHEMA = "training-curve-frozen-snapshot-v1"
 DOMAINS = ("graph_coloring", "countdown", "python_factors", "mathir", "pantry_plan")
-DOMAIN_LABELS = ("Graph", "Countdown", "Python", "MathIR", "Pantry")
+DOMAIN_LABELS = ("Graph", "Countdown", "Python", "MathIR", "PantryPlan")
 SCALES = ("qwen05b", "falcon1b", "qwen3b")
 SCALE_LABELS = {
     "qwen05b": "Qwen2.5-0.5B", "falcon1b": "Falcon3-1B", "qwen3b": "Qwen2.5-3B",
@@ -358,7 +358,7 @@ def build_figure(
                     f"Level 1 · {METRICS[metric]}" if level == "level1" else "Level 2 · Qwen2.5-0.5B",
                     ha="center", va="center", fontsize=10, weight="bold")
         figure.text(.55, .041 if len(rows) == 3 else .055, "Training passes", ha="center", va="center", fontsize=9.4)
-        footer = ("Paired means + seed ranges · † Independent partial histories · Ringed: part of the cohort"
+        footer = ("Seed means and ranges · Ringed points: fewer than five seeds"
                   if level == "level2" else
                   "Paired lines: cohort means · Shading: seed range · Ringed: point rests on part of the cohort")
         figure.text(.55, .008, footer, ha="center", va="bottom", fontsize=8.0, color=style.MUTED)
@@ -385,6 +385,7 @@ def render(snapshot: Path, output_dir: Path) -> list[Path]:
         audit.update(source_snapshot=_relative(snapshot), source_sha256=hashlib.sha256(raw).hexdigest(),
                      builder={"path": _relative(Path(__file__)),
                               "sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()})
+        style.apply_domain_typography(figure)
         figure.savefig(stem.with_suffix(".pdf"), metadata={"CreationDate": None, "ModDate": None})
         figure.savefig(stem.with_suffix(".png"), dpi=220)
         plt.close(figure)

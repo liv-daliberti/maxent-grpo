@@ -1,0 +1,468 @@
+{
+  "incoming": {
+    "checked": 550,
+    "failures": [
+      {
+        "page": 1,
+        "ending": "many ways it can succeed.",
+        "ratio": 0.3247570074467165
+      },
+      {
+        "page": 1,
+        "ending": "correct solutions.",
+        "ratio": 0.17321451796489307
+      },
+      {
+        "page": 2,
+        "ending": "tions and improved model performance.",
+        "ratio": 0.4498108972193064
+      },
+      {
+        "page": 3,
+        "ending": "while producing less diverse solutions.",
+        "ratio": 0.43785436080479817
+      },
+      {
+        "page": 3,
+        "ending": "not correlated with solution mode diversity.",
+        "ratio": 0.4372020158120481
+      },
+      {
+        "page": 21,
+        "ending": "given in App. C, including the chat template.",
+        "ratio": 0.4496593804740311
+      },
+      {
+        "page": 26,
+        "ending": "support thresholds in Fig. 15.",
+        "ratio": 0.29431095971100324
+      },
+      {
+        "page": 27,
+        "ending": "initialization from the model revisions below.",
+        "ratio": 0.45656347938603137
+      },
+      {
+        "page": 33,
+        "ending": "at least two seeds.",
+        "ratio": 0.18096183441149497
+      },
+      {
+        "page": 34,
+        "ending": "shared scale for both arms of each metric.",
+        "ratio": 0.4202158954972314
+      },
+      {
+        "page": 34,
+        "ending": "between arms.",
+        "ratio": 0.14456388328905864
+      },
+      {
+        "page": 37,
+        "ending": "at pass 6.5.",
+        "ratio": 0.11175527599986203
+      },
+      {
+        "page": 42,
+        "ending": "have no intervals.",
+        "ratio": 0.17574781855141042
+      },
+      {
+        "page": 44,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2614871934918833
+      },
+      {
+        "page": 45,
+        "ending": "defined seeds.",
+        "ratio": 0.14102662921354356
+      },
+      {
+        "page": 45,
+        "ending": "defined seeds.",
+        "ratio": 0.1410258203716426
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2614871934918833
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2613787886966709
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2613754331495135
+      },
+      {
+        "page": 47,
+        "ending": "require five defined seeds.",
+        "ratio": 0.26138058516940976
+      },
+      {
+        "page": 47,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2613787886966709
+      },
+      {
+        "page": 47,
+        "ending": "have separate initial references.",
+        "ratio": 0.35876924191917364
+      },
+      {
+        "page": 48,
+        "ending": "level; Countdown increases at Levels 4\u20135.",
+        "ratio": 0.42172813854654534
+      },
+      {
+        "page": 49,
+        "ending": "action reference.",
+        "ratio": 0.16676226783647316
+      },
+      {
+        "page": 51,
+        "ending": "idate the probability floor in Theorem P.21.",
+        "ratio": 0.49770009370366763
+      },
+      {
+        "page": 53,
+        "ending": "interval.",
+        "ratio": 0.08211141944164099
+      },
+      {
+        "page": 54,
+        "ending": "Pantry seed effects.",
+        "ratio": 0.19449002633887721
+      },
+      {
+        "page": 55,
+        "ending": "at width .004 for visibility.",
+        "ratio": 0.26765409467108164
+      },
+      {
+        "page": 58,
+        "ending": "on the deployment.",
+        "ratio": 0.19291327690087612
+      },
+      {
+        "page": 59,
+        "ending": "is fixed; intervals resample paired problems.",
+        "ratio": 0.4438720340684829
+      },
+      {
+        "page": 59,
+        "ending": "the same values in every local cell.",
+        "ratio": 0.34947791837666115
+      },
+      {
+        "page": 62,
+        "ending": "95% whole-problem bootstrap intervals.",
+        "ratio": 0.4043280331071945
+      },
+      {
+        "page": 63,
+        "ending": "checkpoints.",
+        "ratio": 0.12624379097056995
+      },
+      {
+        "page": 65,
+        "ending": "equally; dietary estimates use only five problems.",
+        "ratio": 0.4946600963185337
+      },
+      {
+        "page": 66,
+        "ending": "paired problem-bootstrap intervals.",
+        "ratio": 0.35288368267693265
+      },
+      {
+        "page": 66,
+        "ending": "are not hardware-normalized compute.",
+        "ratio": 0.3883498558194701
+      },
+      {
+        "page": 69,
+        "ending": "observed training seeds.",
+        "ratio": 0.24101250238375385
+      },
+      {
+        "page": 71,
+        "ending": "and the observed seeds.",
+        "ratio": 0.23612620696773448
+      },
+      {
+        "page": 72,
+        "ending": "and share the recovery procedure.",
+        "ratio": 0.3391708222927985
+      },
+      {
+        "page": 74,
+        "ending": "eligible pairs and their weights.",
+        "ratio": 0.3149044954280911
+      },
+      {
+        "page": 77,
+        "ending": "mon difficulty ordering for all deployments.",
+        "ratio": 0.4960646023788463
+      },
+      {
+        "page": 77,
+        "ending": "across deployments.",
+        "ratio": 0.2028863972106916
+      },
+      {
+        "page": 82,
+        "ending": "move with pass@8.",
+        "ratio": 0.2083994617670027
+      },
+      {
+        "page": 87,
+        "ending": "are not matched.",
+        "ratio": 0.16615077173967982
+      },
+      {
+        "page": 88,
+        "ending": "and mode-count differences is given in the text.",
+        "ratio": 0.4752020658692818
+      }
+    ]
+  },
+  "revised": {
+    "checked": 557,
+    "target_checked": 57,
+    "failures": [
+      {
+        "page": 1,
+        "ending": "many ways it can succeed.",
+        "ratio": 0.3247570074467165
+      },
+      {
+        "page": 1,
+        "ending": "correct solutions.",
+        "ratio": 0.17321451796489307
+      },
+      {
+        "page": 2,
+        "ending": "tions and improved model performance.",
+        "ratio": 0.4498108972193064
+      },
+      {
+        "page": 3,
+        "ending": "while producing less diverse solutions.",
+        "ratio": 0.43785436080479817
+      },
+      {
+        "page": 3,
+        "ending": "not correlated with solution mode diversity.",
+        "ratio": 0.4372020158120481
+      },
+      {
+        "page": 21,
+        "ending": "given in App. C, including the chat template.",
+        "ratio": 0.4496593804740311
+      },
+      {
+        "page": 26,
+        "ending": "support thresholds in Fig. 15.",
+        "ratio": 0.29431095971100324
+      },
+      {
+        "page": 27,
+        "ending": "initialization from the model revisions below.",
+        "ratio": 0.45656347938603137
+      },
+      {
+        "page": 33,
+        "ending": "at least two seeds.",
+        "ratio": 0.18096183441149497
+      },
+      {
+        "page": 34,
+        "ending": "shared scale for both arms of each metric.",
+        "ratio": 0.4202158954972314
+      },
+      {
+        "page": 34,
+        "ending": "between arms.",
+        "ratio": 0.14456388328905864
+      },
+      {
+        "page": 37,
+        "ending": "at pass 6.5.",
+        "ratio": 0.11175527599986203
+      },
+      {
+        "page": 42,
+        "ending": "have no intervals.",
+        "ratio": 0.17574781855141042
+      },
+      {
+        "page": 44,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2614871934918833
+      },
+      {
+        "page": 45,
+        "ending": "defined seeds.",
+        "ratio": 0.14102662921354356
+      },
+      {
+        "page": 45,
+        "ending": "defined seeds.",
+        "ratio": 0.1410258203716426
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2614871934918833
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2613787886966709
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2613754331495135
+      },
+      {
+        "page": 47,
+        "ending": "require five defined seeds.",
+        "ratio": 0.26138058516940976
+      },
+      {
+        "page": 47,
+        "ending": "require five defined seeds.",
+        "ratio": 0.2613787886966709
+      },
+      {
+        "page": 47,
+        "ending": "have separate initial references.",
+        "ratio": 0.35876924191917364
+      },
+      {
+        "page": 48,
+        "ending": "level; Countdown increases at Levels 4\u20135.",
+        "ratio": 0.42172813854654534
+      },
+      {
+        "page": 49,
+        "ending": "action reference.",
+        "ratio": 0.16676226783647316
+      },
+      {
+        "page": 51,
+        "ending": "idate the probability floor in Theorem P.21.",
+        "ratio": 0.49770009370366763
+      },
+      {
+        "page": 53,
+        "ending": "interval.",
+        "ratio": 0.08211141944164099
+      },
+      {
+        "page": 54,
+        "ending": "Pantry seed effects.",
+        "ratio": 0.19449002633887721
+      },
+      {
+        "page": 55,
+        "ending": "at width .004 for visibility.",
+        "ratio": 0.26765409467108164
+      },
+      {
+        "page": 58,
+        "ending": "on the deployment.",
+        "ratio": 0.19291327690087612
+      },
+      {
+        "page": 59,
+        "ending": "is fixed; intervals resample paired problems.",
+        "ratio": 0.4438720340684829
+      },
+      {
+        "page": 59,
+        "ending": "the same values in every local cell.",
+        "ratio": 0.34947791837666115
+      },
+      {
+        "page": 62,
+        "ending": "95% whole-problem bootstrap intervals.",
+        "ratio": 0.4043280331071945
+      },
+      {
+        "page": 63,
+        "ending": "checkpoints.",
+        "ratio": 0.12624379097056995
+      },
+      {
+        "page": 65,
+        "ending": "equally; dietary estimates use only five problems.",
+        "ratio": 0.4946600963185337
+      },
+      {
+        "page": 66,
+        "ending": "paired problem-bootstrap intervals.",
+        "ratio": 0.35288368267693265
+      },
+      {
+        "page": 66,
+        "ending": "are not hardware-normalized compute.",
+        "ratio": 0.3883498558194701
+      },
+      {
+        "page": 69,
+        "ending": "observed training seeds.",
+        "ratio": 0.24101250238375385
+      },
+      {
+        "page": 71,
+        "ending": "and the observed seeds.",
+        "ratio": 0.23612620696773448
+      },
+      {
+        "page": 72,
+        "ending": "and share the recovery procedure.",
+        "ratio": 0.3391708222927985
+      },
+      {
+        "page": 74,
+        "ending": "eligible pairs and their weights.",
+        "ratio": 0.3149044954280911
+      },
+      {
+        "page": 77,
+        "ending": "mon difficulty ordering for all deployments.",
+        "ratio": 0.4960646023788463
+      },
+      {
+        "page": 77,
+        "ending": "across deployments.",
+        "ratio": 0.2028863972106916
+      },
+      {
+        "page": 82,
+        "ending": "move with pass@8.",
+        "ratio": 0.2083994617670027
+      },
+      {
+        "page": 87,
+        "ending": "are not matched.",
+        "ratio": 0.16615077173967982
+      },
+      {
+        "page": 88,
+        "ending": "and mode-count differences is given in the text.",
+        "ratio": 0.4752020658692818
+      },
+      {
+        "page": 99,
+        "ending": "?",
+        "ratio": 0.00921052215460604
+      }
+    ]
+  }
+}

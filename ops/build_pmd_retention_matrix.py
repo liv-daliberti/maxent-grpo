@@ -26,20 +26,39 @@ ROOT = Path(__file__).resolve().parents[1]
 CURVES = ROOT / 'paper/results/mode_diversity_curves.json'
 COMPARATORS = ROOT / 'paper/results/mode_diversity_comparators_05b.json'
 RLEP = ROOT / 'paper/results/mode_diversity_comparators_rlep.json'
+#: E126 GAPO, E127 SetPO and the E128 control they are differenced against.
+DIVERSITY = ROOT / 'paper/results/mode_diversity_comparators_diversity_05b.json'
 OUT = ROOT / 'paper/results/mode_diversity_retention_matrix.json'
 MACROS = ROOT / 'paper/results/pmd_retention_macros.tex'
 
 DOMAINS = ('graph_coloring', 'countdown', 'python_factors', 'mathir', 'pantry_plan')
 SCALES = {'qwen05b': (43, 44, 45, 46, 47), 'falcon1b': (55, 56, 57, 58, 59),
-          'qwen3b': (70, 71, 72, 73, 74)}
+          'qwen3b': (70, 71, 72, 73, 74),
+          #: Level 2 runs the same Qwen2.5-0.5B seeds on a harder construction.
+          'qwen05b_level2': (43, 44, 45, 46, 47)}
 #: Defined-prompt bar for a paired difference; see the module docstring for why
 #: it is not the whole-cell ``DEFAULT_MIN_DEFINED_PROMPTS`` of 30.
 MIN_PAIRED_DEFINED_PROMPTS = 20
-PANEL_A = (('replay_drgrpo', 'drgrpo', 'Re:Dr'),)
+#: Each replay arm against the fresh objective it was added to. Re:Max was
+#: missing here for no reason but order of construction: the curve archive
+#: carries per-seed terminal PCMD for maxrl and replay_maxrl at every scale,
+#: and without this panel the Re:Max tables could report breadth only through
+#: distinct@8, the endpoint PCMD exists to replace.
+PANEL_A = (('replay_drgrpo', 'drgrpo', 'Re:Dr'),
+           ('replay_maxrl', 'maxrl', 'Re:Max'))
 PANEL_B = (('before_training', 'Before training'),
            ('replay_drgrpo', 'Re:Dr'), ('replay_maxrl', 'Re:Max'),
            ('maxrl', 'MaxRL'), ('grpo', 'GRPO'),
-           ('semantic_only', 'Fixed Semantic-MaxEnt'), ('ucpo', 'UCPO'), ('rlep', 'RLEP'))
+           ('semantic_only', 'Fixed Semantic-MaxEnt'), ('ucpo', 'UCPO'), ('rlep', 'RLEP'),
+           ('gapo', 'GAPO'), ('setpo', 'SetPO'))
+
+#: Every panel B row differences against the E78-era Dr.GRPO control except
+#: these two. E78's runtime was retired by the 2026-09-04 cleanup and cannot be
+#: rebuilt, the cells run on different hardware, and they take the corrected
+#: disjoint-draw evaluator, so their control was re-run as E128 rather than
+#: inherited. The substitution is disclosed in the output and in the table's
+#: own mark; ``control_shift_vs_e78`` in the source measures what it costs.
+PANEL_B_CONTROL = {'gapo': 'e128_control', 'setpo': 'e128_control'}
 
 
 def terminal(points):
@@ -49,15 +68,18 @@ def terminal(points):
 def load() -> tuple[dict, dict]:
     curve = {}
     for c in json.loads(CURVES.read_text())['curves']:
-        if c['level'] != 'level1':
+        if c['level'] not in ('level1', 'level2'):
             continue
         point = terminal(c['points'])
-        curve[(c['scale'], c['method'], c['domain'], int(c['seed']))] = (
+        # Level 2 is a separate construction, so it is keyed apart rather than
+        # pooled: its scale key carries the level.
+        scale_key = c['scale'] if c['level'] == 'level1' else c['scale'] + '_level2'
+        curve[(scale_key, c['method'], c['domain'], int(c['seed']))] = (
             point.get('pmd'), int(point.get('defined_prompts') or 0))
         if c['method'] == 'drgrpo':
             # The initial reference is these same runs read at step 0.
             first = min(c['points'], key=lambda p: p['step'])
-            curve[(c['scale'], 'before_training', c['domain'], int(c['seed']))] = (
+            curve[(scale_key, 'before_training', c['domain'], int(c['seed']))] = (
                 first.get('pmd'), int(first.get('defined_prompts') or 0))
     extra: dict = {}
     for cell in json.loads(COMPARATORS.read_text())['cells']:
@@ -70,6 +92,8 @@ def load() -> tuple[dict, dict]:
         prior = extra.get(key)
         if prior is None or cell['terminal_step'] > prior['terminal_step']:
             extra[key] = cell
+    for cell in json.loads(DIVERSITY.read_text())['cells']:
+        extra[(cell['method'], cell['domain'], cell['seed'])] = cell
     for cell in json.loads(RLEP.read_text())['cells']:
         key = ('rlep', cell['domain'], cell['seed'])
         prior = extra.get(key)
@@ -96,6 +120,15 @@ def _admissible(arm, ctl) -> bool:
             and ctl[1] >= MIN_PAIRED_DEFINED_PROMPTS)
 
 
+#: Two-sided 95% Student-t multipliers by degrees of freedom. A paired cell can
+#: fall short of five admissible seeds, and the multiplier has to follow: t is
+#: 12.706 at one degree of freedom against 2.776 at four, so pinning 2.776 for
+#: every cell printed an interval up to 4.6 times too narrow on exactly the
+#: cells that carry the least evidence.
+T95 = {1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776,
+       5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306, 9: 2.262}
+
+
 def summarise(per_seed: dict) -> dict:
     values = list(per_seed.values())
     if not values:
@@ -103,7 +136,8 @@ def summarise(per_seed: dict) -> dict:
     mean = statistics.fmean(values)
     if len(values) < 2:
         return {'n': len(values), 'mean': mean, 'student_t_95': None}
-    half = 2.776 * statistics.stdev(values) / len(values) ** 0.5  # t(.975, 4)
+    half = (T95[len(values) - 1] * statistics.stdev(values)
+            / len(values) ** 0.5)
     return {'n': len(values), 'mean': mean,
             'student_t_95': [mean - half, mean + half]}
 
@@ -128,7 +162,8 @@ def main() -> None:
             per_seed = {}
             for seed in SCALES['qwen05b']:
                 arm = value(curve, extra, 'qwen05b', method, domain, seed)
-                ctl = value(curve, extra, 'qwen05b', 'drgrpo', domain, seed)
+                ctl = value(curve, extra, 'qwen05b',
+                            PANEL_B_CONTROL.get(method, 'drgrpo'), domain, seed)
                 if _admissible(arm, ctl):
                     per_seed[str(seed)] = arm[0] - ctl[0]
             panel_b.setdefault(label, {})[domain] = {
@@ -139,29 +174,69 @@ def main() -> None:
             'panel_a': 'replay arm minus the fresh objective it was added to, terminal PCMD',
             'panel_b': 'method minus matched Dr.GRPO, terminal PCMD, Qwen2.5-0.5B',
         },
+        'panel_b_controls': {
+            'default': 'drgrpo (E78)',
+            **{m: f'{c} (E128)' for m, c in PANEL_B_CONTROL.items()},
+        },
+        'control_shift_vs_e78': json.loads(
+            DIVERSITY.read_text())['control_shift_vs_e78'],
         'support': (f'a seed contributes only where both sides define PCMD on at '
                     f'least {MIN_PAIRED_DEFINED_PROMPTS} prompts'),
         'min_paired_defined_prompts': MIN_PAIRED_DEFINED_PROMPTS,
         'uncertainty': 'paired unadjusted two-sided 95% Student-t over seeds',
-        'sources': {p.name: p.stat().st_size for p in (CURVES, COMPARATORS, RLEP)},
+        'sources': {p.name: p.stat().st_size
+                    for p in (CURVES, COMPARATORS, RLEP, DIVERSITY)},
         'panel_a': panel_a, 'panel_b': panel_b,
     }, indent=1) + '\n')
     # Counts move as the grid fills, so the prose quotes them through macros.
-    measurable = above = 0
-    for arms in panel_a.values():
-        for cells in arms.values():
-            for cell in cells.values():
+    # The body claim these macros feed is about Level 1 across the three scales,
+    # so the population is fixed to that and does not widen when a panel is
+    # added. Level 2 is a different construction and gets its own pair.
+    def tally(scales):
+        measurable = above = 0
+        for scale in scales:
+            for cells in panel_a.get(scale, {}).values():
+                for cell in cells.values():
+                    if cell['mean'] is None:
+                        continue
+                    measurable += 1
+                    above += cell['mean'] > 1e-9
+        return measurable, above
+
+    level1 = [s for s in SCALES if not s.endswith('_level2')]
+    measurable, above = tally(level1)
+    l2_measurable, l2_above = tally([s for s in SCALES if s.endswith('_level2')])
+
+    # Per-arm counts too: a sentence about one replay arm must not quote the
+    # pooled figure, and hard-coding it is how the appendix came to claim 13 of
+    # 14 for Re:Dr when every measurable Re:Dr cell was above its control.
+    def arm_tally(label):
+        measurable = above = 0
+        for scale in level1:
+            for domain, cell in panel_a[scale].get(label, {}).items():
                 if cell['mean'] is None:
                     continue
                 measurable += 1
                 above += cell['mean'] > 1e-9
+        return measurable, above
+
+    dr_measurable, dr_above = arm_tally('Re:Dr')
+    max_measurable, max_above = arm_tally('Re:Max')
     MACROS.write_text('\n'.join((
         '% Generated by build_pmd_retention_matrix.py; do not hand edit.',
         f'\\newcommand{{\\PMDblocks}}{{{measurable}}}',
         f'\\newcommand{{\\PMDabove}}{{{above}}}',
+        f'\\newcommand{{\\PMDblocksLevelTwo}}{{{l2_measurable}}}',
+        f'\\newcommand{{\\PMDaboveLevelTwo}}{{{l2_above}}}',
+        f'\\newcommand{{\\PMDblocksReDr}}{{{dr_measurable}}}',
+        f'\\newcommand{{\\PMDaboveReDr}}{{{dr_above}}}',
+        f'\\newcommand{{\\PMDblocksReMax}}{{{max_measurable}}}',
+        f'\\newcommand{{\\PMDaboveReMax}}{{{max_above}}}',
     )) + '\n')
     print(json.dumps({'event': 'built', 'output': str(OUT),
-                      'measurable': measurable, 'above': above}))
+                      'measurable': measurable, 'above': above,
+                      'level2_measurable': l2_measurable,
+                      'level2_above': l2_above}))
 
 
 if __name__ == '__main__':

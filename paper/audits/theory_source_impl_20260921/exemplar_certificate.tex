@@ -1,0 +1,25 @@
+% Insert in app:theory-exemplar-bridge, after its decoding-law qualification.
+\paragraph{A certificate for an execution key.}
+For one fixed prompt $x$, take distinct complete verified responses $e_j$
+with lengths $L_j$, keys $b_j$, and coefficients $\alpha_j>0$. Define
+\[
+ A_x=\sum_j\frac{\alpha_j}{L_j},\qquad
+ w_j=\frac{\alpha_j/L_j}{A_x},\qquad
+ W_b=\sum_{j:b_j=b}w_j.
+\]
+If their mean-token replay loss is at most $C_x$, namely
+$\sum_j(\alpha_j/L_j)[-\log\pi_\theta(e_j\mid x)]\le C_x$, then
+\begin{equation}
+ \operatorname{kl}\!\left(W_b,p_\theta(b\mid x)\right)
+ \le D_x:=C_x/A_x-H(w),\qquad
+ p_\theta(b\mid x)\ge\ell_-(W_b,D_x)\quad(W_b>0).
+ \label{eq:complete-exemplar-key-certificate}
+\end{equation}
+Indeed, the response-level divergence from the normalized exemplar target is
+at most $D_x$; deterministic execution followed by the indicator of key $b$
+is data processing \citep[Theorem~9]{vanerven2014renyi}, followed by
+Corollary~\ref{cor:replay-sharp-kl-certificate}. This uses the same complete
+response and decoding law as Lemma~\ref{lem:shared-exemplar-retention}.
+Normalize separately for each prompt; a bound on total replay loss also
+bounds each prompt's nonnegative summand. A checkpoint certificate supplies
+no trajectory guarantee without a uniform loss bound.

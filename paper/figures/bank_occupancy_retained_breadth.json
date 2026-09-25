@@ -433,7 +433,7 @@
       ]
     }
   ],
-  "comparison": "ReplayDr.GRPO minus matched Dr.GRPO",
+  "comparison": "Re:Dr minus matched Dr.GRPO",
   "domain_order": [
     "graph_coloring",
     "countdown",

@@ -173,6 +173,7 @@ def _terminal_rows(
         raise RuntimeError("current core terminal endpoint schema drifted")
     families = payload["models"]
     plain_grpo = _plain_grpo_endpoints(plain_grpo_payload)
+    pmd_by_cell = _terminal_pmd()
     rows: list[dict[str, Any]] = []
     for model in MODELS:
         domains = families.get(model, {}).get("domains", {})
@@ -188,9 +189,9 @@ def _terminal_rows(
             seeds = sorted(set(map(int, control)) & set(map(int, replay)))
             if not seeds:
                 continue
-            effects = {"pass8": [], "adjusted_breadth8": []}
+            effects = {"pass8": [], "pmd": []}
             per_seed_effects: dict[str, Any] = {}
-            grpo_effects = {"pass8": [], "adjusted_breadth8": []}
+            grpo_effects = {"pass8": [], "pmd": []}
             grpo_per_seed_effects: dict[str, Any] = {}
             per_seed_endpoints: dict[str, Any] = {}
             grpo_endpoints = (
@@ -199,18 +200,31 @@ def _terminal_rows(
             for seed in sorted(set(map(int, control)) | set(map(int, replay))):
                 key = str(seed)
                 per_seed_endpoints[key] = {}
-                if key in control:
-                    per_seed_endpoints[key]["control"] = {
-                        metric: float(control[key][metric])
+                # The frontier plots these endpoints on their own, so each
+                # carries its arm's absolute PCMD from the archive under the
+                # whole-cell bar. A seed that does not clear it stays None and
+                # is dropped from the frontier rather than plotted at zero.
+                for arm, source in (("control", control), ("replay", replay)):
+                    if key not in source:
+                        continue
+                    per_seed_endpoints[key][arm] = {
+                        metric: float(source[key][metric])
                         for metric in ("pass8", "distinct8")
                     }
-                if key in replay:
-                    per_seed_endpoints[key]["replay"] = {
-                        metric: float(replay[key][metric])
-                        for metric in ("pass8", "distinct8")
-                    }
+                    per_seed_endpoints[key][arm]["pmd"] = _absolute(
+                        pmd_by_cell.get(
+                            (SCALE_BY_MODEL[model], ARCHIVE_ARM[arm], domain, seed)
+                        )
+                    )
                 if key in grpo_endpoints and key in control:
-                    per_seed_endpoints[key]["grpo"] = grpo_endpoints[key]
+                    per_seed_endpoints[key]["grpo"] = {
+                        **grpo_endpoints[key],
+                        "pmd": _absolute(
+                            pmd_by_cell.get(
+                                (SCALE_BY_MODEL[model], ARCHIVE_ARM["grpo"], domain, seed)
+                            )
+                        ),
+                    }
             for seed in seeds:
                 key = str(seed)
                 control_endpoint = control[key]
@@ -219,17 +233,27 @@ def _terminal_rows(
                     float(replay_endpoint["pass8"])
                     - float(control_endpoint["pass8"])
                 )
-                adjusted_effect = (
-                    float(replay_endpoint["distinct8"])
-                    - float(replay_endpoint["pass8"])
-                    - float(control_endpoint["distinct8"])
-                    + float(control_endpoint["pass8"])
+                scale_key = SCALE_BY_MODEL[model]
+                replay_pmd = _paired(
+                    pmd_by_cell.get((scale_key, ARCHIVE_ARM["replay"], domain, seed))
+                )
+                control_pmd = _paired(
+                    pmd_by_cell.get((scale_key, ARCHIVE_ARM["control"], domain, seed))
+                )
+                # Both arms must define breadth on this seed; one that does not
+                # clear its support bar leaves the pair out rather than entering
+                # it as a zero.
+                pmd_effect = (
+                    replay_pmd - control_pmd
+                    if replay_pmd is not None and control_pmd is not None
+                    else None
                 )
                 effects["pass8"].append(pass_effect)
-                effects["adjusted_breadth8"].append(adjusted_effect)
+                if pmd_effect is not None:
+                    effects["pmd"].append(pmd_effect)
                 per_seed_effects[key] = {
                     "pass8": pass_effect,
-                    "adjusted_breadth8": adjusted_effect,
+                    "pmd": pmd_effect,
                 }
                 if key not in grpo_endpoints:
                     continue
@@ -237,22 +261,27 @@ def _terminal_rows(
                 grpo_pass_effect = (
                     float(grpo["pass8"]) - float(control_endpoint["pass8"])
                 )
-                grpo_adjusted_effect = (
-                    float(grpo["distinct8"])
-                    - float(grpo["pass8"])
-                    - float(control_endpoint["distinct8"])
-                    + float(control_endpoint["pass8"])
+                grpo_pmd = _paired(
+                    pmd_by_cell.get((SCALE_BY_MODEL[model], ARCHIVE_ARM["grpo"], domain, seed))
+                )
+                grpo_pmd_effect = (
+                    grpo_pmd - control_pmd
+                    if grpo_pmd is not None and control_pmd is not None
+                    else None
                 )
                 grpo_effects["pass8"].append(grpo_pass_effect)
-                grpo_effects["adjusted_breadth8"].append(grpo_adjusted_effect)
+                if grpo_pmd_effect is not None:
+                    grpo_effects["pmd"].append(grpo_pmd_effect)
                 grpo_per_seed_effects[key] = {
                     "pass8": grpo_pass_effect,
-                    "adjusted_breadth8": grpo_adjusted_effect,
+                    "pmd": grpo_pmd_effect,
                 }
 
+            # A metric with no paired seed gets no summary at all, rather than
+            # an empty block or a zero.
             summaries = {
                 metric: _effect_summary(values)
-                for metric, values in effects.items()
+                for metric, values in effects.items() if values
             }
             grpo_summaries = {
                 metric: _effect_summary(values)
@@ -311,7 +340,7 @@ def render(rows: list[dict[str, Any]], output: Path) -> None:
     )
     metrics = (
         ("pass8", r"$\Delta P$"),
-        ("adjusted_breadth8", r"$\Delta(D-P)$"),
+        ("pmd", r"$\Delta$PCMD"),
     )
     contrasts = (
         (
@@ -341,6 +370,7 @@ def render(rows: list[dict[str, Any]], output: Path) -> None:
         for _name, _points_key, summary_key, _visual, _offset in contrasts
         if row.get(summary_key)
         for metric, _label in metrics
+        if metric in row[summary_key]
         for bound in row[summary_key][metric].get(
             "student_t_95", row[summary_key][metric]["range"]
         )
@@ -370,12 +400,18 @@ def render(rows: list[dict[str, Any]], output: Path) -> None:
                         if not row.get(summary_key):
                             continue
                         center = x + offset
+                        # A seed whose breadth is undefined contributes no
+                        # point; the metric can therefore carry fewer seeds
+                        # than pass@8 in the same panel, and no summary at all.
                         values = [
                             row[points_key][str(seed)][metric]
                             for seed in row["seeds"]
                             if str(seed) in row[points_key]
+                            and row[points_key][str(seed)][metric] is not None
                         ]
-                        summary = row[summary_key][metric]
+                        summary = row[summary_key].get(metric)
+                        if summary is None or not values:
+                            continue
                         axis.scatter(
                             [center + seed_offset for seed_offset in seed_jitter(len(values))],
                             values,
@@ -500,9 +536,72 @@ def _endpoint_method(
             )
             for metric in ("pass8", "distinct8")
         }
+        # Breadth averages only the seeds that define it, and the count travels
+        # with the mean so a thinner block is legible rather than implied.
+        breadth = [
+            per_seed[str(seed)]["pmd"]
+            for seed in seeds
+            if per_seed[str(seed)].get("pmd") is not None
+        ]
+        record["summary"]["pmd"] = statistics.fmean(breadth) if breadth else None
+        record["pmd_seeds"] = [
+            seed for seed in seeds if per_seed[str(seed)].get("pmd") is not None
+        ]
     return record
 
 
+
+
+SCALE_BY_MODEL = {"Qwen2.5-0.5B": "qwen05b", "Falcon3-1B": "falcon1b",
+                  "Qwen2.5-3B": "qwen3b"}
+ARCHIVE_ARM = {"control": "drgrpo", "replay": "replay_drgrpo", "grpo": "grpo"}
+MODE_DIVERSITY_CURVES = ROOT / "paper/results/mode_diversity_curves.json"
+
+
+#: A paired difference uses the paired bar, not the whole-cell bar. The archive's
+#: ``reportable`` flag is the 30-prompt standalone bar; gating a difference on it
+#: drops sound cells the retention matrix reports, so the bar here is the paired
+#: one the matrix itself applies.
+MIN_PAIRED_DEFINED_PROMPTS = 20
+#: A standalone endpoint carries the whole-cell bar instead, matching the
+#: archive's own ``reportable`` flag.
+MIN_ABSOLUTE_DEFINED_PROMPTS = 30
+
+
+def _terminal_pmd() -> dict[tuple[str, str, str, int], float]:
+    """Terminal PCMD per (scale, archive method, domain, seed) from the archive.
+
+    The frozen curve archive is the paper's canonical breadth source and is
+    already reward-filtered, so reading it here keeps this figure on the same
+    numbers as the retention matrix rather than pooling the draws a second time.
+    """
+
+    payload = json.loads(MODE_DIVERSITY_CURVES.read_text(encoding="utf-8"))
+    out: dict[tuple[str, str, str, int], float] = {}
+    for curve in payload["curves"]:
+        if curve["level"] != "level1":
+            continue
+        point = max(curve["points"], key=lambda p: p["step"])
+        if point.get("pmd") is None:
+            continue
+        out[(curve["scale"], curve["method"], curve["domain"], int(curve["seed"]))] = (
+            float(point["pmd"]), int(point.get("defined_prompts") or 0)
+        )
+    return out
+
+
+def _paired(entry) -> float | None:
+    """The value if it clears the paired bar, for a difference against a control."""
+    if entry is None or entry[1] < MIN_PAIRED_DEFINED_PROMPTS:
+        return None
+    return entry[0]
+
+
+def _absolute(entry) -> float | None:
+    """The value if it clears the whole-cell bar, for an endpoint plotted alone."""
+    if entry is None or entry[1] < MIN_ABSOLUTE_DEFINED_PROMPTS:
+        return None
+    return entry[0]
 
 
 def _frontier_cells(
@@ -513,7 +612,7 @@ def _frontier_cells(
 
     if (
         direct_comparators.get("schema")
-        != "paper-direct-comparator-endpoint-effects-v2"
+        != "paper-direct-comparator-endpoint-effects-v3"
     ):
         raise RuntimeError("direct-comparator endpoint contract drifted")
 
@@ -563,7 +662,13 @@ def _frontier_cells(
                     metric: float(seed_record["baseline"][metric])
                     for metric in ("pass8", "distinct8")
                 }
-                if seed in baseline_endpoints and baseline != baseline_endpoints[seed]:
+                # Compare only the metrics both sources carry: the archive-backed
+                # endpoint also holds PCMD, which the comparator record states
+                # separately, so a whole-dict comparison would read as drift.
+                if seed in baseline_endpoints and any(
+                    baseline[metric] != baseline_endpoints[seed][metric]
+                    for metric in ("pass8", "distinct8")
+                ):
                     raise RuntimeError(
                         f"baseline endpoint drift for {model}/{domain}/seed {seed}"
                     )
@@ -571,6 +676,13 @@ def _frontier_cells(
                     metric: float(seed_record["comparator"][metric])
                     for metric in ("pass8", "distinct8")
                 }
+                # UCPO and RLEP-Dr are not in the curve archive, so their
+                # absolute PCMD comes from the comparator record, computed on
+                # the same whole-cell bar.
+                comparator_pmd = seed_record["comparator"].get("pmd")
+                endpoints[seed]["pmd"] = (
+                    float(comparator_pmd) if comparator_pmd is not None else None
+                )
             if int(record.get("n", -1)) != len(endpoints):
                 raise RuntimeError(
                     f"direct comparator n drift for {model}/{domain}/{method}"
@@ -598,7 +710,7 @@ def _frontier_cells(
 
 
 def render_frontier(cells: list[dict[str, Any]], output: Path) -> None:
-    """Render pass@8 against distinct@8 for all requested endpoint methods."""
+    """Render pass@8 against PCMD for all requested endpoint methods."""
 
     style.apply_rcparams()
     figure, axes = plt.subplots(
@@ -613,13 +725,16 @@ def render_frontier(cells: list[dict[str, Any]], output: Path) -> None:
         (cell["model"], cell["domain"]): cell for cell in cells
     }
     visuals = FRONTIER_VISUALS
-    maximum = max(
-        endpoint["distinct8"]
+    drawn = [
+        endpoint["pmd"]
         for cell in cells
         for record in cell["methods"].values()
         for endpoint in record["per_seed"].values()
-    )
-    y_high = max(2.0, math.ceil((maximum + 0.15) * 2) / 2)
+        if endpoint.get("pmd") is not None
+    ]
+    # PCMD is a probability, so the axis is its own scale rather than the open
+    # count range distinct@8 needed.
+    y_high = min(1.0, math.ceil((max(drawn) + 0.05) * 10) / 10) if drawn else 1.0
 
     for model_index, model in enumerate(MODELS):
         for domain_index, domain in enumerate(DOMAIN_ORDER):
@@ -639,10 +754,16 @@ def render_frontier(cells: list[dict[str, Any]], output: Path) -> None:
                     continue
                 record = cell["methods"][method]
                 visual = visuals[method]
-                endpoints = record["per_seed"].values()
+                endpoints = [
+                    point
+                    for point in record["per_seed"].values()
+                    if point.get("pmd") is not None
+                ]
+                if not endpoints:
+                    continue
                 axis.scatter(
                     [point["pass8"] for point in endpoints],
-                    [point["distinct8"] for point in endpoints],
+                    [point["pmd"] for point in endpoints],
                     s=21,
                     marker=visual["marker"],
                     facecolor=style.WHITE,
@@ -651,9 +772,11 @@ def render_frontier(cells: list[dict[str, Any]], output: Path) -> None:
                     zorder=3,
                 )
                 summary = record["summary"]
+                if summary.get("pmd") is None:
+                    continue
                 axis.scatter(
                     [summary["pass8"]],
-                    [summary["distinct8"]],
+                    [summary["pmd"]],
                     s=54,
                     marker=visual["marker"],
                     facecolor=visual["color"],
@@ -665,9 +788,12 @@ def render_frontier(cells: list[dict[str, Any]], output: Path) -> None:
                     linewidth=0.8,
                     zorder=4,
                 )
-                if record["n"] != 5:
+                # The badge counts the seeds actually drawn, which is the
+                # breadth-defining subset rather than the pass@8 block.
+                breadth_n = len(record.get("pmd_seeds", record["seeds"]))
+                if breadth_n != 5:
                     partial_labels.append(
-                        f"{FRONTIER_METHOD_SHORT[method]}: n={record['n']}"
+                        f"{FRONTIER_METHOD_SHORT[method]}: n={breadth_n}"
                     )
             if partial_labels:
                 axis.text(
@@ -682,7 +808,7 @@ def render_frontier(cells: list[dict[str, Any]], output: Path) -> None:
                 )
             if domain_index == 0:
                 axis.set_ylabel(
-                    f"{MODEL_SHORT[model]}\ndistinct@8",
+                    f"{MODEL_SHORT[model]}\nPCMD",
                     fontsize=style.LABEL_FONT,
                 )
             else:
@@ -802,13 +928,14 @@ def main() -> int:
         "methods": ["GRPO", "matched Dr.GRPO", "Re:Dr"],
         "metrics": [
             "Re:Dr minus matched Dr.GRPO pass@8",
-            (
-                "Re:Dr minus matched Dr.GRPO "
-                "(distinct@8 - pass@8)"
-            ),
+            "Re:Dr minus matched Dr.GRPO PCMD",
             "GRPO minus matched Dr.GRPO pass@8",
-            "GRPO minus matched Dr.GRPO (distinct@8 - pass@8)",
+            "GRPO minus matched Dr.GRPO PCMD",
         ],
+        "pmd_source": (
+            "terminal PCMD from the frozen curve archive, level 1, per seed; "
+            "a pair is formed only where both arms clear their support bar"
+        ),
     }
     output.with_suffix(".json").write_text(
         json.dumps(provenance, indent=2) + "\n",
@@ -822,7 +949,7 @@ def main() -> int:
             "semantic treatments and endpoint-incomplete DAPO are excluded"
         ),
         "x_metric": "pass@8",
-        "y_metric": "distinct@8",
+        "y_metric": "PCMD",
         "methods": [
             FRONTIER_METHOD_LABELS[method] for method in FRONTIER_METHODS
         ],

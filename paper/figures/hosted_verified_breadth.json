@@ -6472,20 +6472,20 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/hosted_verified_breadth.pdf",
-      "sha256": "018d80d583f85644c6aeb71800a91f3f593599b49af7aecdb156d5d0da28d31f"
+      "sha256": "d2be2b190a3105d7f0cbce32ebea7eef447ca4319fb0cd8394ac271cc8f16744"
     },
     "png": {
       "path": "paper/figures/hosted_verified_breadth.png",
-      "sha256": "5eb3dbeb6383cb228663c8fde292df11a58f56e4b18a61a71ba66311f1399807"
+      "sha256": "30c1f3a38c8ae2952100a272818f0a7d64f2ba1da446315e14d8f61e5a65de99"
     }
   },
   "renderer": {
     "path": "ops/plot_paper_hosted_breadth.py",
-    "sha256": "c5f2da23063ec94b5f481c29046881b1e73c954963d067dab7e1969a910883af"
+    "sha256": "77af738fe0ef9a09c93489b16dbd7a29130a60a97f90f4cb84b72c7857d07cfb"
   },
   "schema": "hosted-verified-breadth-figure-v1",
   "source": {
     "path": "paper/results/frontier_comparison_20260911.json",
-    "sha256": "3a627cde10a2eef8cfe08a0dc2ee629fc15fabecd3cd98de78c6587d70513723"
+    "sha256": "8c45e607ef127bc8de0cbba205f7075340c3069c109b66feac4466382964b3c6"
   }
 }

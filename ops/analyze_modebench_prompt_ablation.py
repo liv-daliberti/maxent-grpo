@@ -14,6 +14,10 @@ import hashlib
 import json
 import math
 from pathlib import Path
+try:
+    from paper_domain_typography import format_domain_names
+except ModuleNotFoundError:
+    from ops.paper_domain_typography import format_domain_names
 import sys
 
 import numpy as np
@@ -30,7 +34,7 @@ GRADINGS = ('strict', 'normalized_secondary')
 METRICS = ('pass1', 'pass8', 'distinct8', 'b8', 'correct_pair_collision',
            'uniform_correct_pair_collision', 'correct_pair_collision_excess_uniform',
            'uniform_expected_distinct_given_correct')
-DOMAIN_LABELS = {'python_factors': 'Python factors', 'mathir': 'MathIR', 'pantry_plan': 'Pantry'}
+DOMAIN_LABELS = {'python_factors': 'Python', 'mathir': 'MathIR', 'pantry_plan': 'PantryPlan'}
 
 
 def require(ok, message):
@@ -861,8 +865,8 @@ def warm_frozen_python(contract):
     return attempts
 
 
-MODEL_LABELS = {'gpt56sol':'GPT-5.6 Sol','gpt54':'GPT-5.4','grok43':'Grok 4.3','qwen05b_initial':'Initial Qwen 0.5B'}
-METHOD_LABELS = {'drgrpo':'DrGRPO','replay_drgrpo':'Re:Dr'}
+MODEL_LABELS = {'gpt56sol':'GPT-5.6 Sol','gpt54':'GPT-5.4','grok43':'Grok 4.3','qwen05b_initial':'Initial Qwen2.5-0.5B'}
+METHOD_LABELS = {'drgrpo':'Dr.GRPO','replay_drgrpo':'Re:Dr'}
 #: Rows carry the display label; the PCMD record is keyed by the method
 #: name, and the untrained rows are the 'initial' cohort in both.
 MODEL_TO_METHOD = {label: method for method, label in METHOD_LABELS.items()}
@@ -979,70 +983,60 @@ def pmd_seed_gaps(report, informative):
     seeds = counts.get((cell['method'], cell['domain'], cell['level']))
     neutral, original = gap['arms']['neutral'], gap['arms']['original']
     return (
-        r'One checkpoint leaves the Level ' + str(cell['level']) + r' cell rather '
-        r'than entering it as a smaller number: with the hint removed it returns '
-        + f"{neutral['verified']:,} verified draw"
-        + ('' if neutral['verified'] == 1 else 's')
-        + f" in {neutral['draws']:,}, against {original['verified']:,} of "
-        + f"{original['draws']:,} under the original wording, so no prompt of its "
-        r'reaches two verified draws in both arms and \pmd{} is undefined for it. '
-        + (f"That cell therefore averages {pmd_word(len(cell['seeds']))} checkpoints "
-           f"where $P_8$ and $D_8$ average {pmd_word(seeds)}. "
-           if seeds else '')
-        + r'App.~\ref{app:sampling-budget-ablation} reads the same six cells at '
-        r'64 draws per prompt, the budget at which this checkpoint becomes '
-        r'estimable again. ')
+        r'At Level ' + str(cell['level']) + r', conditional diversity uses '
+        + f"{pmd_word(len(cell['seeds']))} training seeds"
+        + (f", while $P_8$ and $D_8$ use all {pmd_word(seeds)}; "
+           r'the fifth seed has too few jointly verified responses. '
+           if seeds else '. '))
+
 
 
 def pmd_narrative(report):
-    """Report what the PCMD columns can and cannot carry, from the record."""
+    """Describe the paired conditional population without treating it as all prompts."""
     cells = list(pmd_cells().values())
     if not cells:
         return ''
+    total = len(display_rows(report, 'local', 'strict'))
     reportable = [c for c in cells if c['reportable']]
     degenerate = [c for c in reportable if c['degenerate']]
     informative = [c for c in reportable if not c['degenerate']]
-    # The paragraph names one domain for the degenerate cells and one method
-    # and domain for the informative ones. If either stops being a single
-    # group, the sentence is wrong and has to be written again.
     if (len({c['domain'] for c in degenerate}) != 1
             or len({(c['method'], c['domain']) for c in informative}) != 1):
         raise RuntimeError('prompt-ablation PCMD coverage changed shape; rewrite its paragraph')
     degenerate_cell, informative_cell = degenerate[0], informative[0]
-    # Two point estimates of opposite sign do not establish an effect, and they
-    # do not establish its absence either; say only which it is.
     signs = {c['effect'] > 0 for c in informative if c['effect'] != 0}
-    verdict = (r'The two disagree in sign, so this cohort shows no common '
-               r'direction for concentration under the intervention, and the '
-               r'fall in $D_8$ beside them cannot be read as one. '
+    verdict = (r'The two point estimates have opposite signs; without intervals, '
+               r'they do not establish a shared direction or the reliability of '
+               r'either concentration effect. '
                if len(signs) > 1 else
-               r'Both move the same way, though two cells without intervals '
-               r'fix neither the size nor the reliability of that change. ')
+               r'The two point estimates have the same sign, but no intervals '
+               r'quantify the reliability of either concentration effect. ')
     moves = ' and '.join(
         'from $' + three(c['original']) + r'$ to $' + three(c['neutral'])
         + f"$ at Level {c['level']}" for c in sorted(informative, key=lambda c: c['level']))
     counts = ' and '.join(f"{c['paired_prompts']:,}" for c in
                           sorted(informative, key=lambda c: c['level']))
     return (
-        r'The \pmd{} columns are sparse by construction, and the sparsity is the '
-        r'result. \pmd{} needs two verified responses to a prompt in both arms, and '
-        f"on this cohort only {pmd_word(len(reportable))} of the "
-        f"{pmd_word(len(cells))} checkpoint--domain--level cells reach thirty such "
-        f"prompts. {pmd_word(len(degenerate)).capitalize()} of those "
-        f"{pmd_word(len(reportable))} are "
-        + DOMAIN_LABELS[degenerate_cell['domain']] + r', where every verified draw '
-        r'returns the same key in both arms, so \pmd{} is $.000$ under either '
-        r'wording: the construction admits one canonical answer often enough that '
-        r'breadth cannot move. That leaves the '
+        r'\pmd{} is reported for '
+        f"{pmd_word(len(reportable))} of the {pmd_word(total)} "
+        r'comparisons in Table~\ref{tab:prompt-hints-local-strict}. Each requires at least thirty '
+        r'checkpoint--problem groups with at least two verified draws under each wording. '
+        r'The same 32 problems are evaluated at each checkpoint, so these group '
+        r'counts include repeated problems across training seeds. Within a comparison, '
+        r'\pmd{} weights eligible groups equally; checkpoints with more eligible '
+        r'problems therefore receive more weight. The population depends on '
+        r'success under both wordings and need not represent all evaluated problems. '
+        + f"{pmd_word(len(degenerate)).capitalize()} eligible comparisons are "
+        + DOMAIN_LABELS[degenerate_cell['domain']]
+        + r': all observed verified pairs within each eligible group share a '
+        r'canonical key, giving \pmd{} $=.000$ under both wordings. This observation '
+        r'does not limit the number of valid keys. In the '
         + f"{pmd_word(len(informative))} "
-        + METHOD_LABELS[informative_cell['method']] + ' cells on '
-        + DOMAIN_LABELS[informative_cell['domain']] + r' as the only places '
-        r'this cohort can separate a change in concentration from a change in '
-        r'accuracy, and there removing the hint moves \pmd{} ' + moves
-        + f", on {counts} paired prompts, while correctness also falls. "
-        + verdict
-        + pmd_seed_gaps(report, informative)
-        + r'Read the dashes as absent measurements rather than as null effects.'
+        + METHOD_LABELS[informative_cell['method']] + ' comparisons on '
+        + DOMAIN_LABELS[informative_cell['domain']] + r', hint removal changes \pmd{} '
+        + moves + f", on {counts} eligible checkpoint--problem groups, respectively. "
+        + verdict + pmd_seed_gaps(report, informative)
+        + r'A dash denotes an unavailable conditional estimate, not a zero effect.'
         + '\n')
 
 
@@ -1061,8 +1055,8 @@ def pmd_tex(cell):
 
 
 def render_table(report,family,grading):
-    label = 'Hosted models' if family=='frontier' else 'Local Qwen2.5-0.5B checkpoints'
-    grade_label = 'strict verification' if grading=='strict' else 'frozen formatting normalization'
+    label = 'Hosted models' if family=='frontier' else 'Qwen2.5-0.5B checkpoints'
+    grade_label = 'strict verification' if grading=='strict' else 'formatting normalization'
     # How many cells actually carry PCMD, counted before the caption is built so
     # the reader meets the dashes with their frequency in hand rather than
     # finding it argued in the paragraph below the table.
@@ -1079,31 +1073,32 @@ def render_table(report,family,grading):
     # separation, and ~26pt at 2.2pt; the remainder can only come out of the
     # glyphs, so the body is scaled to the text block rather than bled past it.
     lines = [r'\begin{table}[t]',r'\centering',r'\scriptsize',r'\setlength{\tabcolsep}{2.2pt}',
-             r'\caption{'+label+' under '+grade_label+r'. Each arrow gives original $\to$ neutral. '
-             r'$P_8$ is empirical \texttt{pass@8}, $D_8$ is verified \texttt{distinct@8}, '
-             r'and $B_8=D_8-P_8$. Effects are neutral minus original; brackets are pointwise 95\% intervals. '
-             + ('Local rows average the displayed number of training seeds. Five-seed intervals include seed and paired-prompt resampling; two-seed Pantry intervals condition on the two fixed checkpoints. '
-                if family=='local' else 'Each model--domain--level row contains 32 paired problems and eight draws per arm. ')
-             + r'\pmd{} is the success-conditional axis: the mean probability that two verified draws on a prompt differ, '
-             + r'over the prompts that return two verified draws under both wordings, with $\Delta$ \pmd{} the neutral-minus-original '
-             + r'contrast on that same paired population. Unlike $P_8$ and $D_8$, it cannot fall merely because the model succeeds less '
-             + r'often, since a prompt it stops answering twice leaves the estimate instead of entering it as a smaller number. '
-             + r'A dash is a cell where fewer than thirty prompts clear that bar, '
-             + f'which {carried} of the {len(rows)} cells here do: the sparsity is '
-             + r'itself the finding, and the \pmd{} columns are read as a statement '
-             + r'about how rarely this cohort can carry the measurement rather than '
-             + r'as a survey of it. '
-             + r'}',
+             r'\caption{\textbf{Removing Python guidance reduces correctness and observed breadth.} '
+             + label+' under '+grade_label+r', with original $\to$ neutral wording. '
+             r'$P_8=\texttt{pass@8}$, $D_8=\texttt{distinct@8}$, and $B_8=D_8-P_8$ '
+             r'use eight draws on each of 32 problems per domain and level. Effects are neutral minus original. '
+             + (r'$P_8$, $D_8$, and $B_8$ average the displayed number $s$ of checkpoints. '
+                r'Brackets are pointwise 95\% bootstrap intervals: paired problems and training seeds are resampled '
+                r'for five-seed groups; PantryPlan intervals condition on its two checkpoints, and initial-model intervals '
+                r'on one checkpoint. '
+                if family=='local' else r'Brackets are pointwise 95\% paired-problem bootstrap intervals. ')
+             + r'\pmd{} estimates the probability that two correct responses have different canonical keys, averaging checkpoint--problem groups '
+             r'with at least two verified draws in each arm. Its paired population depends on correctness, and repeated '
+             r'problems at different checkpoints count separately. '
+             + f'Only {carried} of {len(rows)} comparisons meet the minimum of 30 such groups; dashes denote the others. '
+             + r'These \pmd{} point estimates have no reported uncertainty intervals.}',
              r'\label{tab:prompt-hints-'+family+'-'+grading.replace('_','-')+'}',
              r'\resizebox{\linewidth}{!}{%',
              r'\begin{tabular}{llrrrrrrr}',r'\toprule',
-             r'Model & Cell & $P_8$: O$\to$N & $D_8$: O$\to$N & $\Delta P_8$ [95\%] & $\Delta D_8$ [95\%] & $\Delta B_8$ '
+             r'Model & Domain/level & $P_8$: O$\to$N & $D_8$: O$\to$N & $\Delta P_8$ [95\%] & $\Delta D_8$ [95\%] & $\Delta B_8$ '
              r'& \pmd{}: O$\to$N & $\Delta$ \pmd{} \\',r'\midrule']
     for row in rows:
         metrics = row['metrics']
         original,neutral,delta = (metrics[k] for k in (*ARMS,CONTRAST))
-        name = tex_escape(row['label'])+(f" ($s={row['seed_count']}$)" if family=='local' else '')
-        cell = tex_escape(DOMAIN_LABELS[row['domain']])+f" L{row['level']}"
+        table_label = 'Initial' if family == 'local' and row['label'] == 'Initial Qwen2.5-0.5B' else row['label']
+        table_domain = 'Python' if row['domain'] == 'python_factors' else DOMAIN_LABELS[row['domain']]
+        name = tex_escape(table_label)+(f" ($s={row['seed_count']}$)" if family=='local' else '')
+        cell = tex_escape(table_domain)+f" L{row['level']}"
         p = '$'+scalar(original['pass8']['estimate'])+r'\to'+scalar(neutral['pass8']['estimate'])+'$'
         d = '$'+scalar(original['distinct8']['estimate'],2)+r'\to'+scalar(neutral['distinct8']['estimate'],2)+'$'
         method = MODEL_TO_METHOD.get(row['label'], 'initial')
@@ -1117,20 +1112,20 @@ def render_table(report,family,grading):
 
 def render_seed_ranges(report):
     if not report['local_seed_groups']: return ''
-    lines = [r'\paragraph{Two-seed Pantry sensitivity.} '
-             r'Two checkpoints cannot support a stable estimate of training-seed variability. '
-             r'The following lists both strict prompt effects; the intervals in the local table condition on these two checkpoints.']
-    fragments = []
+    lines = [r'\begin{samepage}', r'\paragraph{Two-seed PantryPlan effects.} '
+             r'Intervals condition on the two checkpoints and do not quantify training-seed variability. '
+             r'The effects for each seed are shown below; each pair gives $(\Delta P_8,\Delta D_8)$.',
+             r'\begin{center}\small', r'\begin{tabular}{llcc}', r'\toprule',
+             r'Method & Level & First seed & Second seed \\', r'\midrule']
     for group in report['local_seed_groups'].values():
-        if group['seed_count']!=2: continue
+        if group['seed_count'] != 2: continue
         for cell,values in group['analyses']['strict']['cells'].items():
-            seed_text = []
-            for seed,metrics in values['per_seed'].items():
+            pairs = []
+            for metrics in values['per_seed'].values():
                 d = metrics[CONTRAST]
-                seed_text.append(f"seed {seed}: $\\Delta P_8={scalar(d['pass8']['estimate'],3,True)}$, "
-                                 f"$\\Delta D_8={scalar(d['distinct8']['estimate'],2,True)}$")
-            fragments.append(METHOD_LABELS[group['training_method']]+f" L{cell[5]} ("+'; '.join(seed_text)+')')
-    lines.append('; '.join(fragments)+'.\n')
+                pairs.append('$('+scalar(d['pass8']['estimate'],3,True)+', '+scalar(d['distinct8']['estimate'],2,True)+')$')
+            lines.append(METHOD_LABELS[group['training_method']]+' & '+cell[5]+' & '+' & '.join(pairs)+r' \\')
+    lines.extend([r'\bottomrule', r'\end{tabular}', r'\end{center}', r'\end{samepage}'])
     return '\n'.join(lines)
 
 
@@ -1138,40 +1133,37 @@ def render_appendix(report, figure_prefix='figures/modebench_prompt_ablation'):
     require(report['status']=='complete', 'Appendix cannot present an incomplete panel as a result')
     families = [f for f in ('frontier','local') if any(m['family']==f for m in report['models'])]
     text = [r'\subsection{Removing strategy hints from unchanged problems}',r'\label{sec:prompt-hint-ablation}',
-      r'We freeze a paired follow-up on Python factors, MathIR, and Pantry at Levels 2 and 3. '
-      r'Within each of these six cells, the 32 smallest SHA-256 hashes of '
-      r'$(20260911,\mathrm{level},\mathrm{domain},\mathrm{row\ index})$ select problems from the 128-row evaluation split, '
-      r'without consulting outcomes. Both arms generate eight fresh draws per identical problem. '
-      r'The original arm retains the published prompt. The neutral arm removes the Python suggestions to test small divisors '
-      r'with nested conditionals or dispatch on listed values, the MathIR ordered algebraic-isolation suggestion, '
-      r'and the Pantry preference for high-energy/protein, low-sodium ingredients such as seeds or oats. '
-      r"MathIR changes ``those operations'' to ``the operations'' to preserve the menu-ID instruction. "
-      r'The user problem, answer specification, executable verifier, and remaining format requirements are unchanged.',
-      r'We report the paired neutral-minus-original effects on empirical $P_8=\texttt{pass@8}$ and '
-      r'$D_8=\texttt{distinct@8}$, with $B_8=D_8-P_8$ as additional verified breadth. '
-      r'All returned answers, including incorrect, empty, and truncated outputs, remain in their eight-draw groups; '
-      r'only verifier-accepted outputs create a verified key. '
-      r'Strict verification is primary; one unchanged, previously frozen formatting normalizer is a sensitivity analysis '
-      r'and preserves every strict success and canonical key. Python outputs in both arms undergo the same serial, '
-      r'warmed-verifier recheck, with original grades and any corrections retained in separate receipts.',
-      r'Intervals use 20,000 whole-prompt bootstrap resamples, paired across arms and stratified by domain and level '
-      r'(seed 20260911). Cells contribute equally to reported macros. These are pointwise exploratory intervals for '
-      r'32 problems per cell; crossing zero does not establish equivalence or absence of a prompt effect. '
-      r'A zero-width bootstrap interval records zero observed resampled variation, including all-tied $P_8$ outcomes; '
-      r'it is not precise evidence of population equivalence. '
-      r'Correct-pair collision and the certified-support uniform reference are secondary and retain their correct-pair denominators; '
-      r'the machine-readable report includes joint eligibility counts and undefined cells. Eight sampled draws do not identify total unseen support.','']
-    if report.get('experiment_status')=='partial_panels':
-        omitted=', '.join(report['scope']['omitted_panels'])
-        text.append(r'This appendix reports the complete '+', '.join(families)+r' panel only. The separately registered '+
-                    tex_escape(omitted)+r' panel is not included here, and the overall local-plus-frontier experiment is incomplete.')
+      r'We compare original and neutral prompts on Python, MathIR, and PantryPlan at Levels 2 and 3. '
+      r'Each of the six domain--level combinations uses 32 problems selected independently of model outputs '
+      r'from the 128-problem evaluation split. '
+      r'We sample eight responses per problem under each wording. The original wording uses the standard prompt. '
+      r'The neutral wording removes the Python nested-conditional example and suggestions to test small divisors '
+      r'or dispatch on listed values, the MathIR ordered algebraic-isolation suggestion, '
+      r'and the PantryPlan preference for ingredients high in energy and protein but low in sodium such as seeds or oats. '
+      r"MathIR changes ``those operations'' to ``the operations'' to preserve the instruction to return a menu ID. "
+      r'The problem instance, answer specification, executable verifier, and remaining format requirements are unchanged.',
+      r'The paired effects are neutral minus original on empirical $P_8=\texttt{pass@8}$ and '
+      r'$D_8=\texttt{distinct@8}$, with $B_8=D_8-P_8$ as extra verified modes per problem. '
+      r'Incorrect, empty, and truncated outputs remain in their eight-draw groups; '
+      r'only verifier-accepted outputs contribute a verified key. '
+      r'Results use strict verification. A sensitivity analysis with normalized formatting '
+      r'preserves every strict success and canonical key and applies the same rules to both arms.',
+      r'Intervals use 20,000 whole-problem bootstrap resamples, paired across arms and stratified by domain and level. '
+      r'Domain--level combinations receive equal weight in aggregate estimates. The intervals are pointwise 95\% '
+      r'percentile intervals without multiplicity adjustment. With 32 problems per domain and level, an interval crossing zero '
+      r'does not establish equivalence. A zero-width interval reflects zero variation in the observed bootstrap '
+      r'resamples, including identical paired $P_8$ outcomes, and does not establish population equivalence. '
+      r'Correct-pair collision and its certified-support uniform reference use the same correct-pair weights. '
+      r'Eight draws per prompt do not identify total unseen support.','']
     if 'local' in families:
-        text.append(r'For local models, we evaluate the initial Qwen2.5-0.5B model and fixed Level-2-trained DrGRPO and '
-                    r'Re:Dr checkpoints. Python and MathIR use matched training seeds 43--47; Pantry uses seeds 43 and 46. '
-                    r'Level 3 is transfer evaluation. Seed means retain the same selected problem set across checkpoints. '
-                    r'Five-seed intervals resample whole training seeds and paired prompts; Pantry reports both seed effects '
-                    r'and intervals conditional on the two checkpoints. The native local syntax constraints and 192-token budget '
-                    r'differ from hosted inference, so effects are interpreted within each model and interface.'+'\n')
+        text.append(r'We evaluate the initial Qwen2.5-0.5B-Instruct checkpoint and '
+                    r'Level-2-trained Dr.GRPO and Re:Dr checkpoints. Python and MathIR use five matched training seeds; '
+                    r'PantryPlan uses two. Level 3 tests transfer from Level 2 training. '
+                    r'All checkpoints evaluate the same selected problems under the benchmark syntax constraints '
+                    r'and a 192-token generation budget. Five-seed intervals resample whole training seeds and '
+                    r'paired problems; PantryPlan intervals condition on its two checkpoints, and initial-model '
+                    r'intervals condition on one instruction-tuned checkpoint. These effects concern the specified '
+                    r'models, problems, and interface.'+'\n')
     for family in families:
         # The secondary grading is a registered sensitivity analysis, and its
         # result is sometimes "nothing changed". Printing a second table whose
@@ -1183,22 +1175,26 @@ def render_appendix(report, figure_prefix='figures/modebench_prompt_ablation'):
         text.append(pmd_narrative(report))
         if data_rows(rendered['normalized_secondary']) == data_rows(rendered['strict']):
             text.append(
-                r'The frozen formatting normalizer is a registered secondary grading '
-                r'for these cells. It rescued no additional response for any '
-                + ('hosted deployment' if family == 'frontier' else 'local checkpoint')
-                + r' here, so every strict and normalized figure in the table above '
-                r'is identical and the secondary table is not repeated.' + '\n')
+                r'Formatting normalization adds no verified responses for any '
+                + ('hosted model' if family == 'frontier' else 'Qwen2.5-0.5B checkpoint')
+                + r' in this panel; all tabulated estimates and intervals therefore '
+                r'agree under the two grading rules.' + '\n')
         else:
             text.append(rendered['normalized_secondary'])
         text += [r'\begin{figure}[t]',r'\centering',
                  r'\includegraphics[width=\linewidth]{'+figure_prefix+'_'+family+r'.pdf}',
-                 r'\caption{Prompt-hint removal effects for '+('hosted models' if family=='frontier' else 'local checkpoints')+
-                 r', preserving every registered domain--level cell. Blue circles use strict verification; orange squares use '
-                 r'the same frozen formatting normalizer. Horizontal bars show the intervals described in the tables; '
-                 r'zero is the vertical reference. '+(r'Gray endpoint marks show the two individual Pantry seed effects. '
-                 if family=='local' else '')+r'}',r'\label{fig:prompt-hints-'+family+'}',r'\end{figure}','']
+                 r'\caption{\textbf{Python guidance removal produces the largest wording effects in this panel.} '
+                 r'Neutral-minus-original $D_8$ (left) and $P_8$ (right) for '
+                 + ('hosted models' if family=='frontier' else r'the initial Qwen2.5-0.5B checkpoint and Level-2-trained Dr.GRPO and Re:Dr')
+                 + r' on Python, MathIR, and PantryPlan at Levels 2 and 3, with 32 paired problems and eight draws per arm. '
+                 r'Blue circles use strict verification; orange squares use formatting normalization. '
+                 r'Horizontal bars are pointwise 95\% bootstrap intervals; the vertical dashed line marks zero. '
+                 + (r'Five-seed groups resample training seeds and paired problems; PantryPlan and initial-model intervals '
+                    r'condition on two checkpoints and one checkpoint, respectively. Gray marks show the individual effects for the two PantryPlan training seeds. '
+                    if family=='local' else r'Intervals resample paired problems. ')
+                 + r'}',r'\label{fig:prompt-hints-'+family+'}',r'\end{figure}','']
     text.append(render_seed_ranges(report))
-    return '\n\n'.join(text)
+    return format_domain_names('\n\n'.join(text))
 
 
 def make_figures(report,output):
@@ -1222,13 +1218,18 @@ def make_figures(report,output):
                     if ci:
                         ax.plot(ci,[y,y],color=color,lw=1.3)
                     ax.plot(value,y,marker=marker,markersize=4,color=color,
-                            label=('Strict' if grading=='strict' else 'Frozen normalized') if i==0 else None)
+                            label=('Strict' if grading=='strict' else 'Normalized') if i==0 else None)
                     if row['seed_ranges'] and grading=='strict':
                         lo,hi = row['seed_ranges'][metric]
                         ax.plot([lo,hi],[y,y],'|',color='#555555',markersize=8)
                 plotted.append({'grading':grading,**row})
         labels = [f"{r['label']} · {DOMAIN_LABELS[r['domain']]} L{r['level']}"+
                   (f" (s={r['seed_count']})" if family=='local' else '') for r in rows]
+        try:
+            from ops.paper_domain_figure_typography import domain_mathtext
+        except ModuleNotFoundError:
+            from paper_domain_figure_typography import domain_mathtext
+        labels = [domain_mathtext(label) for label in labels]
         axes[0].set_yticks(range(len(rows)),labels=labels[::-1],fontsize=7)
         for ax,label in zip(axes,(r'$\Delta D_8$: neutral − original',r'$\Delta P_8$: neutral − original')):
             ax.axvline(0,color='#777777',lw=.8,ls='--',zorder=0)
@@ -1237,6 +1238,11 @@ def make_figures(report,output):
             ax.tick_params(axis='y',length=0)
             ax.spines[['top','right','left']].set_visible(False)
         axes[0].legend(frameon=False,fontsize=7,loc='upper center',bbox_to_anchor=(.5,1.075),ncol=2)
+        try:
+            from ops.paper_domain_figure_typography import apply_domain_typography
+        except ModuleNotFoundError:
+            from paper_domain_figure_typography import apply_domain_typography
+        apply_domain_typography(fig)
         fig.tight_layout()
         stem = output/f'modebench_prompt_ablation_{family}'
         for suffix in ('pdf','png'):

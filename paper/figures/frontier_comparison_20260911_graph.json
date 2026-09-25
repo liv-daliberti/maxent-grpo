@@ -1,7 +1,7 @@
 {
   "schema": "frontier-graph-comparison-v1",
   "selection": "Selected after GPT-5.6 Sol for high strict correctness, certified support, and no normalization effect; selected before benchmark responses from the prospective comparison models.",
-  "pdf_sha256": "6237cfca147825a09bff9da3e77dbd0fd8271d60f1646a0eb9a37681b9cb144f",
+  "pdf_sha256": "17a901be2bc91a84c079fe0839861d28d75b11010630e462193273148b9fa69f",
   "png_sha256": "937a9b6f5f17b54d3577ec73d8cf7aee44ed01f83fb8e4a39759f0e1da40fe09",
   "models": [
     {

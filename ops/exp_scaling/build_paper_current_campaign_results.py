@@ -19,6 +19,15 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 MODELS = {"qwen05b": "Qwen-0.5B", "falcon1b": "Falcon-1B", "qwen3b": "Qwen-3B"}
+#: TeX-only display labels. The records above stay plain identifiers because
+#: downstream checkers compare them as data; only the rendered table carries
+#: the provider marks, spelled as Tables \ref{tab:core-terminal-endpoints}
+#: and \ref{tab:cross-scale-terminal-effects} spell them -- these three tables
+#: sit within two pages of each other and named the same models differently.
+TEX_MODELS = {"Qwen-0.5B": r"\qwenmark{}2.5-0.5B",
+              "Falcon-1B": r"\falconmark{}3-1B",
+              "Qwen-3B": r"\qwenmark{}2.5-3B"}
+TEX_DOMAINS = {"Graph": "Graph coloring", "Python": "Python factors"}
 DOMAINS = {"graph_coloring": "Graph", "countdown": "Countdown", "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "PantryPlan"}
 CAMPAIGNS = {"e118": "E118: MaxRL factorial", "e119": "E119: Level-2 factorial", "e120": "E120-R1: fresh-frequency replay ablation"}
 CONTRASTS = {
@@ -27,6 +36,17 @@ CONTRASTS = {
     "uniform_minus_frequency": ("Uniform", "Frequency", "Uniform"),
 }
 METRICS = ("pass8", "distinct8", "breadth8")
+#: PCMD is not in the audited snapshot -- it comes from the independently
+#: resampled paired panel, which applies its own support rule (both sides must
+#: define PCMD on at least 20 prompts). Its paired seed set is therefore a
+#: different population from the snapshot's, so it is carried with its own n
+#: and never silently merged into the snapshot's counts.
+PMD_PANEL = ROOT / "paper/results/mode_diversity_retention_matrix.json"
+PMD_ARMS = {"replay_maxrl_minus_maxrl": "Re:Max",
+            "replay_drgrpo_minus_drgrpo": "Re:Dr"}
+#: E119 is the same Qwen2.5-0.5B seeds on the Level-2 construction, which the
+#: panel keys apart; E120's arms are not in the PCMD curve archive at all.
+PMD_SCALE_SUFFIX = {"e118": "", "e119": "_level2"}
 INTERVALS = ("student_t_95", "paired_bootstrap_percentile_95")
 
 
@@ -145,6 +165,31 @@ def effect(row: dict[str, Any], metric: str, *, tex: bool = False, with_interval
     return f"${result}$" if tex else result
 
 
+def pmd_panel() -> dict[str, Any]:
+    return json.loads(PMD_PANEL.read_text())["panel_a"]
+
+
+def pmd_cell(panel: dict[str, Any], row: dict[str, Any]) -> dict[str, Any] | None:
+    """The paired PCMD effect for this row, or None where the panel has none."""
+    suffix = PMD_SCALE_SUFFIX.get(row["campaign"])
+    arm = PMD_ARMS.get(row["contrast"].removeprefix("four_arm_"))
+    if suffix is None or arm is None:
+        return None
+    cell = panel.get(row["model_key"] + suffix, {}).get(arm, {}).get(row["domain_key"])
+    return cell if cell and cell["n"] else None
+
+
+def pmd_effect(cell: dict[str, Any] | None, *, tex: bool = False) -> tuple[str, str]:
+    if cell is None:
+        return ("---", "---") if tex else ("—", "—")
+    body = f"{cell['mean']:+.3f}"
+    if cell["student_t_95"]:
+        lo, hi = cell["student_t_95"]
+        body += (r"\;" if tex else " ") + f"[{lo:+.3f}, {hi:+.3f}]"
+    count = f"{cell['n']}/5"
+    return (count, f"${body}$") if tex else (count, body)
+
+
 def lookup(data: dict[str, Any], campaign: str, model: str, domain: str, contrast: str) -> dict[str, Any] | None:
     return next((r for r in data["rows"] if (r["campaign"], r["model_key"], r["domain_key"], r["contrast"]) == (campaign, model, domain, contrast) and r["n"]), None)
 
@@ -223,13 +268,39 @@ def render_csv(data: dict[str, Any]) -> str:
 
 
 def render_tex(data: dict[str, Any], campaign: str) -> str:
-    lines = ["% Model & Domain & Contrast & n/5 & Delta P8 & Delta D8 & Delta B8 [95%]", "% E118/E119: replay minus base. E120: uniform minus frequency.", "% Intervals are stored, descriptive, and only present at n=5.", "% E120 dagger: at least one available endpoint pair lacks mechanism eligibility."]
+    # The distinct@8 family is gone from the printed tables wherever PCMD can
+    # replace it. distinct@8 and its derived extra-mode count B8 both move with
+    # correctness, so a breadth column built on them cannot separate succeeding
+    # more often from succeeding in more ways. Both remain in the
+    # machine-readable record and the CSV, which is where the registered
+    # endpoint is reported. E120 keeps B8 because its arms have no PCMD.
+    lines = ["% Model & Domain & Contrast & n/5 & Delta P8 & n/5 & Delta PCMD [95%]",
+             "% E118/E119: replay minus base. E120: uniform minus frequency.",
+             "% Intervals are stored, descriptive, and only present at n=5.",
+             "% The second n/5 is the PCMD pairing, which applies its own support",
+             "% rule and is a different seed population from the first.",
+             "% E120 dagger: at least one available endpoint pair lacks mechanism eligibility."]
+    panel = pmd_panel()
+    # E120's arms never entered the PCMD curve archive, so it gets no PCMD
+    # columns rather than two columns of em dashes.
+    include_pmd = campaign in PMD_SCALE_SUFFIX
     for row in (r for r in data["rows"] if r["campaign"] == campaign):
         n = f"{row['n']}/5"
         if campaign == "e120" and row["n"] > len(row["mechanism_validated_seeds"]):
             n += r"$^{\dagger}$"
-        contrast = "Re:Max" if campaign == "e118" else row["short_contrast"]
-        lines.append(" & ".join([row["model"], row["domain"], contrast, n, effect(row, "pass8", tex=True, with_interval=False), effect(row, "distinct8", tex=True, with_interval=False), effect(row, "breadth8", tex=True)]) + r" \\")
+        # E118 is one contrast throughout, so the column printed "Re:Max"
+        # fifteen times and carried nothing. E119/E120 pair two arms per row
+        # and keep it.
+        cells = [TEX_MODELS.get(row["model"], row["model"]),
+                 TEX_DOMAINS.get(row["domain"], row["domain"])]
+        if campaign != "e118":
+            cells.append(row["short_contrast"])
+        cells.extend([n, effect(row, "pass8", tex=True, with_interval=False)])
+        if include_pmd:
+            cells.extend(pmd_effect(pmd_cell(panel, row), tex=True))
+        else:
+            cells.append(effect(row, "breadth8", tex=True))
+        lines.append(" & ".join(cells) + r" \\")
     lines.append(r"\bottomrule")
     return "\n".join(lines) + "\n"
 

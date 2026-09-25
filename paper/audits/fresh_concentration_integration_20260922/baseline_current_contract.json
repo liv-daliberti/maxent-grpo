@@ -1,0 +1,6 @@
+{
+  "command": "var/seed_paper_eval/paper310/bin/python ops/check_paper_current_contract.py",
+  "exit_code": 1,
+  "output": "Current paper contract failed: hosted source, audit, prompt, provider, or graded evidence changed",
+  "timing": "Baseline before fresh-evaluation integration changes; failed before editorial structure checks."
+}

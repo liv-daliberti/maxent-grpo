@@ -16,26 +16,41 @@ from typing import Sequence
 
 
 ROOT = Path(__file__).resolve().parents[1]
+# Source order, which is also the numbering the contract asserts. The level
+# trend and the reference-KL plane joined the main body in the September 21
+# revision; both were appendix plates before it. The author-supplied main
+# omits the replay-weighting display, which remains in the appendix.
 MAIN_FIGURE_LABELS = (
     "fig:story",
     "fig:modebench-examples",
     "fig:base-levels-all-scales",
+    "fig:levels",
     "fig:gpt56-sampling-budget",
     "fig:replay-bank-balance",
     "fig:verified-support-story",
     "fig:concentration-story",
     "fig:maxrl-factorial",
     "fig:level2-admission",
+    "fig:reference-kl-plane",
 )
 MAIN_TABLE_LABELS: tuple[str, ...] = (
     "tab:direct-comparator-matrix",
 )
 MAIN_SECTION_LABELS = (
-    "sec:introduction", "sec:related", "sec:collapse", "sec:modebench",
+    "sec:introduction", "sec:related", "sec:collapse-mechanism", "sec:modebench",
     "sec:method", "sec:experiments", "sec:results", "sec:conclusion",
 )
 MAIN_END_LABEL = "sec:main-end"
 REFERENCES_LABEL = "sec:references"
+#: ICLR asks for these after the Conclusion and before the references, and they
+#: do not count against the page limit. Whatever pages they occupy between
+#: ``sec:main-end`` and References are therefore excluded from the budget, while
+#: still being required to sit in exactly that gap.
+STATEMENT_HEADINGS = (
+    "AIUSESTATEMENT",
+    "ETHICSSTATEMENT",
+    "REPRODUCIBILITYSTATEMENT",
+)
 REQUIRED_LABELS = (*MAIN_FIGURE_LABELS, *MAIN_TABLE_LABELS, *MAIN_SECTION_LABELS,
                    MAIN_END_LABEL, REFERENCES_LABEL)
 
@@ -145,8 +160,38 @@ def validate_main_length(
             f"{REFERENCES_LABEL} says page {label_pages[REFERENCES_LABEL]}, "
             f"but the first PDF References heading is on page {references_page}"
         )
-    if references_page > max_pages + 1:
-        issues.append(f"References starts on page {references_page}; it must start by page {max_pages + 1}")
+    statement_pages = sorted(
+        number
+        for number, page in enumerate(pages, 1)
+        if main_end_page <= number < references_page
+        and any(_heading(line) in STATEMENT_HEADINGS for line in page.splitlines())
+    )
+    found_statements = {
+        _heading(line)
+        for number, page in enumerate(pages, 1)
+        for line in page.splitlines()
+        if _heading(line) in STATEMENT_HEADINGS
+    }
+    missing = [name for name in STATEMENT_HEADINGS if name not in found_statements]
+    if missing:
+        issues.append(
+            "required statements missing from the PDF: " + ", ".join(missing)
+        )
+    elif not statement_pages:
+        issues.append(
+            "AI Use, Ethics and Reproducibility statements must sit between "
+            f"{MAIN_END_LABEL} and References, not after the bibliography"
+        )
+    # A statement page shared with main-body text would smuggle content past the
+    # budget, so only pages after the last main-body page are excused.
+    excused = [number for number in statement_pages if number > main_end_page]
+    allowed_references_page = max_pages + 1 + len(excused)
+    if references_page > allowed_references_page:
+        issues.append(
+            f"References starts on page {references_page}; it must start by page "
+            f"{allowed_references_page} "
+            f"({max_pages} main pages plus {len(excused)} statement page(s))"
+        )
     if references_page <= main_end_page:
         issues.append(
             f"References page {references_page} must follow {MAIN_END_LABEL} "
@@ -213,6 +258,7 @@ def validate_main_length(
         "main_pages": main_end_page,
         "max_pages": max_pages,
         "references_page": references_page,
+        "statement_pages": excused,
         "pdf_pages": len(pages),
         "figure_pages": {name: label_pages[name] for name in MAIN_FIGURE_LABELS},
         "table_pages": {name: label_pages[name] for name in MAIN_TABLE_LABELS},
@@ -252,6 +298,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         f"Main-length contract passed: {result['main_pages']}/{args.max_pages} main pages, "
         f"all {len(MAIN_FIGURE_LABELS)} figures included; "
         f"References starts on page {result['references_page']} "
+        f"after {len(result['statement_pages'])} excluded statement page(s) "
         f"({result['pdf_pages']} total PDF pages)."
     )
 

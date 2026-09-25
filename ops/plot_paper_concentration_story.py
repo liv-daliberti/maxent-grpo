@@ -24,6 +24,10 @@ FONT = 7.6  # printed size: the plate is included at its own width.
 HEIGHT_IN = None
 XLIM = None
 MARKER = 5.0
+# Axes rectangle as a canvas fraction, so two plates with different row
+# counts can share a baseline and a top edge.
+AXES_BOTTOM = None
+AXES_HEIGHT = None
 DOMAINS = ('graph_coloring', 'countdown', 'python_factors', 'mathir', 'pantry_plan')
 ALL_SCALES = ('qwen05b', 'falcon1b', 'qwen3b')
 # The main plate carries one scale across all five domains. At three scales the
@@ -47,6 +51,10 @@ def geometry(rows: int) -> dict:
         row_in = (HEIGHT_IN - 0.92) / rows
     axes_height = row_in * rows / height
     axes_bottom = .250 * 2.95 / height
+    if AXES_BOTTOM is not None:
+        axes_bottom = AXES_BOTTOM
+    if AXES_HEIGHT is not None:
+        axes_height = AXES_HEIGHT
     return {
         # Matched to the levels plate so the two sit side by side without
         # one being magnified into larger type by \includegraphics.
@@ -297,7 +305,7 @@ def build_figure(source_path: Path = DEFAULT_SOURCE):
                                         markerfacecolor='none', markeredgecolor=colors[m],
                                         linestyle='none', zorder=6, clip_on=False)
                             ax.text(.055 + len(undefined) * .045 + .015, y,
-                                    'initial solves <2 per prompt',
+                                    'no jointly eligible prompts',
                                     transform=ax.get_yaxis_transform(),
                                     fontsize=FONT - 3.0, color=style.MUTED,
                                     ha='left', va='center', style='italic', zorder=6)
@@ -339,10 +347,11 @@ def build_figure(source_path: Path = DEFAULT_SOURCE):
                          rotation=90, ha='center', va='center')
         # Two lines: the single-line form is wider than the wrapped canvas.
         fig.text(.640, g['xlabel_y'],
-                 'Δ PCMD (pp)\n← same answer    different answers →',
+                 'Δ PCMD (pp)\n← lower diversity    higher diversity →',
                  fontsize=FONT - 1.4, ha='center', va='center', linespacing=1.85)
 
         # Reject accidental invisible truncation before any publication file is written.
+        style.apply_domain_typography(fig)
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
         canvas = fig.bbox
@@ -382,14 +391,18 @@ def main() -> None:
     parser.add_argument('--xlow', type=float, default=None)
     parser.add_argument('--xhigh', type=float, default=None)
     parser.add_argument('--markersize', type=float, default=5.0)
+    parser.add_argument('--axes-bottom', type=float, default=None)
+    parser.add_argument('--axes-height', type=float, default=None)
     parser.add_argument('--scales', choices=('main', 'all'), default='main',
                         help="'main' draws Qwen2.5-3B alone; 'all' is the appendix plate")
     args = parser.parse_args()
-    global SCALES, HEIGHT_IN, XLIM, MARKER
+    global SCALES, HEIGHT_IN, XLIM, MARKER, AXES_BOTTOM, AXES_HEIGHT
     SCALES = ALL_SCALES if args.scales == 'all' else MAIN_SCALE
     HEIGHT_IN = args.height
     XLIM = (args.xlow, args.xhigh) if args.xlow is not None else None
     MARKER = args.markersize
+    AXES_BOTTOM = args.axes_bottom
+    AXES_HEIGHT = args.axes_height
     metadata = render(args.source, args.output)
     print(json.dumps({'output': str(args.output), 'displayed_blocks': len(metadata['display']['blocks']),
                       'size_inches': _geo()['figsize'], 'source_sha256': metadata['source']['sha256']}))

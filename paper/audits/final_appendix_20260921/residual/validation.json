@@ -1,0 +1,22 @@
+{
+  "compiled_pdf_sha256": "b75011131430db22c2cfeff15d97db95c38a4a0f406526758cdef474fd70ef17",
+  "pdf_scope": [
+    15,
+    118
+  ],
+  "included_tex_files_scanned": 54,
+  "appendix_figures_checked": 28,
+  "figures_number_range": [
+    13,
+    40
+  ],
+  "all_figure_captions_start_with_bold_takeaway": true,
+  "remaining_actionable_regions": [
+    "B.1 PDF21\u201322",
+    "Tabletasks caption PDF21"
+  ],
+  "r_s_excluded": true,
+  "b1_numeric_macros_preserved": true,
+  "caption_macros_preserved": true,
+  "live_source_edits": false
+}

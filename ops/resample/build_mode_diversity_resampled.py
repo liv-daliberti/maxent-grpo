@@ -128,9 +128,15 @@ def build(receipts_dir: Path, min_defined: int) -> dict:
             'seeds': len(members), 'reportable_seeds': len(usable),
             'pmd_resampled': (statistics.fmean(c['resampled']['pmd'] for c in usable)
                               if usable else None),
-            'pmd_registered': (statistics.fmean(c['registered']['pmd'] for c in usable
-                                                if c['registered'])
-                               if usable and all(c['registered'] for c in usable) else None),
+            # A registered entry can exist and still carry no PCMD: the training
+            # run measured that cell on a budget too small to leave two correct
+            # responses on any prompt. Averaging over it would read a missing
+            # measurement as a value, so the arm reports no registered mean
+            # unless every usable seed has one.
+            'pmd_registered': (statistics.fmean(c['registered']['pmd'] for c in usable)
+                               if usable and all(c['registered'] and
+                                                 c['registered'].get('pmd') is not None
+                                                 for c in usable) else None),
             'pmd_shift_mean': statistics.fmean(shifts) if shifts else None,
             'pmd_shift_range': [min(shifts), max(shifts)] if shifts else None,
             'pass8_resampled': (statistics.fmean(c['resampled']['pass8'] for c in usable)

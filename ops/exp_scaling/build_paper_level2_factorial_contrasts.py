@@ -15,6 +15,9 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paper_domain_typography import format_domain_names
 import statistics
 from typing import Any
 
@@ -148,7 +151,7 @@ def render_table(result: dict[str, Any]) -> str:
                     cells.append(f"${signed(summary['mean'])}$")
             lines.append(" & ".join(cells) + r" \\")
     lines.append(r"    \bottomrule")
-    return "\n".join(lines) + "\n"
+    return format_domain_names("\n".join(lines) + "\n")
 
 
 def main() -> int:

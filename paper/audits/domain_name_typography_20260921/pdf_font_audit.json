@@ -1,0 +1,68 @@
+{
+  "font_counts": {
+    "XRPDXB+NimbusMonL-Regu": 1152,
+    "CLPBHC+DejaVuSansMono-Bold": 30,
+    "RRORLC+NimbusRomNo9L-Regu": 7,
+    "FJGZKM+DejaVuSansMono": 132,
+    "HCHHXA+NimbusMonL-Bold": 41
+  },
+  "ordinary_language_exceptions": [
+    {
+      "page": 2,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "normalized computation tree, executable Python code, algebraic problems and constraint optimization.",
+      "domain_tokens": [
+        "Python"
+      ]
+    },
+    {
+      "page": 22,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "an isolated Python",
+      "domain_tokens": [
+        "Python"
+      ]
+    },
+    {
+      "page": 53,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "Of the 2,560 neutral-wording responses, 1,816 (70.94%) are invalid Python expressions, 59 vi-",
+      "domain_tokens": [
+        "Python"
+      ]
+    },
+    {
+      "page": 74,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "without repairing calculations or program logic. The rules convert a leading LaTeX lambda to Python",
+      "domain_tokens": [
+        "Python"
+      ]
+    },
+    {
+      "page": 76,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "old. These missing entries reflect strict formatting failures, including LaTeX-escaped Python;",
+      "domain_tokens": [
+        "Python"
+      ]
+    },
+    {
+      "page": 79,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "revised instruction asks for a one-line boxed Python lambda returning any proper divisor for",
+      "domain_tokens": [
+        "Python"
+      ]
+    },
+    {
+      "page": 79,
+      "font": "RRORLC+NimbusRomNo9L-Regu",
+      "text": "to Python modulo (",
+      "domain_tokens": [
+        "Python"
+      ]
+    }
+  ],
+  "pdf_sha256": "1e8bf8b90d4431eac350c09f5c7dfcdfd30ac59f05a475bad78c1a5dd0534ea1"
+}

@@ -111488,7 +111488,7 @@
   },
   "builder": {
     "path": "ops/build_paper_gpt56_all_levels32_discovery.py",
-    "sha256": "ceff415dc91f2a6be6ae66d1e8b5e8256aa587e88aa7df3ce702629622961a17"
+    "sha256": "38d5208209ade3b5ba311fcd6f114ea6acf687b6d0d3ddc0c3b0c00f47342d19"
   },
   "draws_per_prompt": 512,
   "interpretation": {
@@ -123245,6 +123245,6 @@
   "status": "complete",
   "validation_dependency": {
     "path": "ops/plot_paper_gpt56_all_levels32_sampling.py",
-    "sha256": "c6a523191477d5f2163f83a6f599452688bb34b0e8bc8efe2c5f2b24f1a98f30"
+    "sha256": "7cd9dfd9fcf4aa94b7def02f732c75ea5c06c97941a19b4e20d5e07e0832fea1"
   }
 }

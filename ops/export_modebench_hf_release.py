@@ -204,6 +204,16 @@ The same executable validation produces acceptance and canonical identity. Repor
 
 The support-count metadata and reference specifications are for construction, checking, and analysis. Do not supply gold support catalogues or hidden evaluation references to the policy. Original prompt strings are retained; [prompt formatting](PROMPTS.md) distinguishes raw problems from the model-specific chat and decoding interfaces.
 
+### What `answer_mode_count` does and does not tell you
+
+`answer_mode_count` is the number of distinct modes the verifier **certifies**, not the number a model can be expected to produce. Treating it as an achievable ceiling will overstate how much diversity a model is losing. At 512 draws per problem, one frontier deployment reaches roughly 2.5 of Graph Coloring's 6.3 certified modes, 3.5 of Countdown's 4.5, 6.9 of PantryPlan's 16.9, and 3.8 of Python Factors' several hundred. Those reached figures come from 32 problems per domain; the certified means are over the full 128-row evaluation split.
+
+**MathIR is a special case, and the gap there is structural rather than a sampling limit.** Its canonical key is the *state trajectory* an action program executes, so two programs that pass through the same equations are one mode and a program that detours through extra equations is a different one. Every certified mode of a MathIR problem ends at the same equation with the same solution: the modes are alternative derivations of one answer, not alternative answers. Each problem certifies exactly 5, but they are not 5 equally short routes. At Level 1 they divide into 192 two-step routes, 128 three-step and 320 at the four-step maximum across the 128 evaluation problems, so half of the certified support is as long as the interface allows, and most of those longest routes apply an action and then its inverse.
+
+No model measured so far has produced one. Across 27,450 verified MathIR draws from local checkpoints and hosted frontier deployments, none is a four-step route. Level 2 additionally leaves every problem a single shortest route, so a policy that solves the problem the short way has exactly one mode available and scores zero on any success-conditional diversity metric without having concentrated at all.
+
+If you are measuring diversity on ModeBench, report MathIR separately or alongside a MathIR-excluded aggregate. If you are building on the benchmark, note that a MathIR variant whose modes were distinct answers rather than distinct derivations would test diversity methods that this construction cannot.
+
 ## Files and provenance
 
 `MANIFEST.json` records every source identity, feature schema, ordered-row digest, split mapping, and Parquet digest. `VALIDATION.json` records full row and feature round trips, unchanged source files, canonical problem-identity checks, and support matching. `code/oat_drgrpo/` preserves verifier and template source files byte for byte; `provenance/` preserves original identities and construction/admission records.

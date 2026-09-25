@@ -1,0 +1,31 @@
+{
+  "pcmd_drift_max_absolute_error_200_cases": 2.265536369616683e-11,
+  "uniform_start_stochastic_symmetry_breaking": {
+    "dr": {
+      "predicted_quadratic_coefficient": 0.0015000000000000002,
+      "enumerated_loss_over_eta_squared": [
+        0.001500645357976893,
+        0.0015003228348575703,
+        0.0015001297426486815
+      ]
+    },
+    "maxrl": {
+      "predicted_quadratic_coefficient": 0.010133333333333333,
+      "enumerated_loss_over_eta_squared": [
+        0.010152112807082503,
+        0.010142731921014558,
+        0.010137095135531737
+      ]
+    }
+  },
+  "neural_score_covariance_max_absolute_error": 2.220446049250313e-16,
+  "signed_advantage_counterexample": {
+    "actual_stationary_banked_probability": 0.1,
+    "superseded_formula_claimed_floor": 29.809579870417295
+  },
+  "two_mode_KL_velocity_coefficient": [
+    1.9957129045433462,
+    1.99995826304813,
+    1.9999995875916083
+  ]
+}

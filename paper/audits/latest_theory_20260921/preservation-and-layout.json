@@ -1,0 +1,302 @@
+{
+  "formal_theory_P1_through_P11_displays_preserved": 102,
+  "formal_environment_counts_preserved": {
+    "theorem": 7,
+    "lemma": 9,
+    "proof": 34,
+    "assumption": 1,
+    "corollary": 12,
+    "proposition": 6
+  },
+  "all_manuscript_labels_preserved": 253,
+  "changed_package_inputs": [
+    "main.tex",
+    "figures/reference_kl_knee.pdf",
+    "figures/reference_kl_plane.pdf"
+  ],
+  "all_latest_numerical_inputs_unchanged": true,
+  "line_fill": {
+    "baseline_count": 46,
+    "current_count": 46,
+    "new_ending_counts": {},
+    "current": [
+      {
+        "page": 1,
+        "block": 6,
+        "fraction": 0.3247570074467165,
+        "ending": "many ways it can succeed."
+      },
+      {
+        "page": 1,
+        "block": 79,
+        "fraction": 0.17321451796489307,
+        "ending": "correct solutions."
+      },
+      {
+        "page": 2,
+        "block": 16,
+        "fraction": 0.4498108972193064,
+        "ending": "tions and improved model performance."
+      },
+      {
+        "page": 3,
+        "block": 25,
+        "fraction": 0.43785436080479817,
+        "ending": "while producing less diverse solutions."
+      },
+      {
+        "page": 3,
+        "block": 69,
+        "fraction": 0.4372020158120481,
+        "ending": "not correlated with solution mode diversity."
+      },
+      {
+        "page": 21,
+        "block": 14,
+        "fraction": 0.4496593804740311,
+        "ending": "given in App. C, including the chat template."
+      },
+      {
+        "page": 26,
+        "block": 91,
+        "fraction": 0.29431095971100324,
+        "ending": "support thresholds in Fig. 15."
+      },
+      {
+        "page": 27,
+        "block": 22,
+        "fraction": 0.45656347938603137,
+        "ending": "initialization from the model revisions below."
+      },
+      {
+        "page": 33,
+        "block": 26,
+        "fraction": 0.18096183441149497,
+        "ending": "at least two seeds."
+      },
+      {
+        "page": 34,
+        "block": 3,
+        "fraction": 0.4202158954972314,
+        "ending": "shared scale for both arms of each metric."
+      },
+      {
+        "page": 34,
+        "block": 28,
+        "fraction": 0.14456388328905864,
+        "ending": "between arms."
+      },
+      {
+        "page": 37,
+        "block": 116,
+        "fraction": 0.11175527599986203,
+        "ending": "at pass 6.5."
+      },
+      {
+        "page": 42,
+        "block": 5,
+        "fraction": 0.17574781855141042,
+        "ending": "have no intervals."
+      },
+      {
+        "page": 44,
+        "block": 27,
+        "fraction": 0.2614871934918833,
+        "ending": "require five defined seeds."
+      },
+      {
+        "page": 45,
+        "block": 22,
+        "fraction": 0.14102662921354356,
+        "ending": "defined seeds."
+      },
+      {
+        "page": 45,
+        "block": 35,
+        "fraction": 0.1410258203716426,
+        "ending": "defined seeds."
+      },
+      {
+        "page": 46,
+        "block": 23,
+        "fraction": 0.2614871934918833,
+        "ending": "require five defined seeds."
+      },
+      {
+        "page": 46,
+        "block": 37,
+        "fraction": 0.2613787886966709,
+        "ending": "require five defined seeds."
+      },
+      {
+        "page": 46,
+        "block": 47,
+        "fraction": 0.2613754331495135,
+        "ending": "require five defined seeds."
+      },
+      {
+        "page": 47,
+        "block": 17,
+        "fraction": 0.26138058516940976,
+        "ending": "require five defined seeds."
+      },
+      {
+        "page": 47,
+        "block": 31,
+        "fraction": 0.2613787886966709,
+        "ending": "require five defined seeds."
+      },
+      {
+        "page": 47,
+        "block": 36,
+        "fraction": 0.35876924191917364,
+        "ending": "have separate initial references."
+      },
+      {
+        "page": 48,
+        "block": 59,
+        "fraction": 0.42172813854654534,
+        "ending": "level; Countdown increases at Levels 4\u20135."
+      },
+      {
+        "page": 49,
+        "block": 145,
+        "fraction": 0.16676226783647316,
+        "ending": "action reference."
+      },
+      {
+        "page": 51,
+        "block": 47,
+        "fraction": 0.49770009370366763,
+        "ending": "idate the probability floor in Theorem P.21."
+      },
+      {
+        "page": 53,
+        "block": 11,
+        "fraction": 0.08211141944164099,
+        "ending": "interval."
+      },
+      {
+        "page": 54,
+        "block": 33,
+        "fraction": 0.19449002633887721,
+        "ending": "Pantry seed effects."
+      },
+      {
+        "page": 55,
+        "block": 43,
+        "fraction": 0.26765409467108164,
+        "ending": "at width .004 for visibility."
+      },
+      {
+        "page": 58,
+        "block": 105,
+        "fraction": 0.19291327690087612,
+        "ending": "on the deployment."
+      },
+      {
+        "page": 59,
+        "block": 11,
+        "fraction": 0.4438720340684829,
+        "ending": "is fixed; intervals resample paired problems."
+      },
+      {
+        "page": 59,
+        "block": 32,
+        "fraction": 0.34947791837666115,
+        "ending": "the same values in every local cell."
+      },
+      {
+        "page": 62,
+        "block": 43,
+        "fraction": 0.4043280331071945,
+        "ending": "95% whole-problem bootstrap intervals."
+      },
+      {
+        "page": 63,
+        "block": 60,
+        "fraction": 0.12624379097056995,
+        "ending": "checkpoints."
+      },
+      {
+        "page": 65,
+        "block": 35,
+        "fraction": 0.4946600963185337,
+        "ending": "equally; dietary estimates use only five problems."
+      },
+      {
+        "page": 66,
+        "block": 6,
+        "fraction": 0.35288368267693265,
+        "ending": "paired problem-bootstrap intervals."
+      },
+      {
+        "page": 66,
+        "block": 14,
+        "fraction": 0.3883498558194701,
+        "ending": "are not hardware-normalized compute."
+      },
+      {
+        "page": 69,
+        "block": 25,
+        "fraction": 0.24101250238375385,
+        "ending": "observed training seeds."
+      },
+      {
+        "page": 71,
+        "block": 14,
+        "fraction": 0.23612620696773448,
+        "ending": "and the observed seeds."
+      },
+      {
+        "page": 72,
+        "block": 11,
+        "fraction": 0.3391708222927985,
+        "ending": "and share the recovery procedure."
+      },
+      {
+        "page": 74,
+        "block": 27,
+        "fraction": 0.3149044954280911,
+        "ending": "eligible pairs and their weights."
+      },
+      {
+        "page": 77,
+        "block": 11,
+        "fraction": 0.4960646023788463,
+        "ending": "mon difficulty ordering for all deployments."
+      },
+      {
+        "page": 77,
+        "block": 39,
+        "fraction": 0.2028863972106916,
+        "ending": "across deployments."
+      },
+      {
+        "page": 82,
+        "block": 51,
+        "fraction": 0.2083994617670027,
+        "ending": "move with pass@8."
+      },
+      {
+        "page": 87,
+        "block": 66,
+        "fraction": 0.16615077173967982,
+        "ending": "are not matched."
+      },
+      {
+        "page": 88,
+        "block": 16,
+        "fraction": 0.4752020658692818,
+        "ending": "and mode-count differences is given in the text."
+      },
+      {
+        "page": 99,
+        "block": 17,
+        "fraction": 0.00921052215460604,
+        "ending": "?"
+      }
+    ],
+    "note": "45 preexisting short prose endings outside P/Q; page99 is a superscript-star math extraction false positive. No new failures."
+  }
+}

@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT / 'ops'))
 import paper_style as style
 
 DOMAINS = ('graph_coloring', 'countdown', 'python_factors', 'mathir', 'pantry_plan')
-LABELS = ('Graph', 'Countdown', 'Python', 'MathIR', 'Pantry')
+LABELS = ('Graph', 'Countdown', 'Python', 'MathIR', 'PantryPlan')
 MODELS = (
     ('qwen05b', 'Qwen2.5-0.5B', [43, 44, 45, 46, 47]),
     ('falcon1b', 'Falcon3-1B', [55, 56, 57, 58, 59]),
@@ -341,7 +341,7 @@ def build_weighting(root: Path = ROOT):
             _forest_axis(ax, ax is axes[0])
             ax.set_xlim((-77, 67) if metric == 'pass8' else (-.045, .82))
             ax.set_xticks([-60, 0, 60] if metric == 'pass8' else [0, .3, .6])
-            ax.set_xlabel('Δpass@8 (probability points)' if metric == 'pass8' else 'Δextra@8 (expected extra keys)', labelpad=1.5)
+            ax.set_xlabel('Δpass@8 (probability points)' if metric == 'pass8' else 'Δextra@8 (expected extra modes)', labelpad=1.5)
             for y, row in enumerate(metadata['rows']):
                 _point(ax, row['summaries'][metric], y, metric, color=style.METHOD, marker='D')
                 # Exact mean labels preserve legibility beside Python's wide interval.
@@ -399,6 +399,11 @@ def render(output_dir: Path = ROOT / 'paper/figures', root: Path = ROOT) -> dict
     result = {}
     for stem, (figure, metadata) in build_figures(root).items():
         target = output_dir / stem
+        try:
+            from ops.paper_domain_figure_typography import apply_domain_typography
+        except ModuleNotFoundError:
+            from paper_domain_figure_typography import apply_domain_typography
+        apply_domain_typography(figure)
         figure.canvas.draw()
         from matplotlib.text import Text
         for text in figure.findobj(match=Text):

@@ -5,6 +5,15 @@ import argparse
 import hashlib
 import json
 
+try:
+    from ops.paper_domain_typography import format_domain_names
+except ModuleNotFoundError:
+    from paper_domain_typography import format_domain_names
+
+_DOMAIN_LANGUAGE_EXCEPTIONS = (
+    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
+)
+
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/'artifacts/frontier_temperature_20260911/TEMPERATURE_ABLATION.json'
 STEM='frontier_temperature_20260911'
@@ -51,91 +60,128 @@ def number(item,metric,interval=False,signed=False):
     value=item['estimate']
     if value is None:return '--'
     fmt=('+' if signed else '')+f'.{digits}f'
-    result=format(value*factor,fmt)
+    # Typeset negative values with a true minus rather than a hyphen.
+    signs=lambda text:text.replace('-','$-$')
+    result=signs(format(value*factor,fmt))
     if interval:
         if item['ci95'] is None:return result+' [--]'
         if item.get('defined_replicates') != 20000:return result+r' [--]$^\dagger$'
-        result+=' ['+', '.join(format(v*factor,fmt) for v in item['ci95'])+']'
+        result+=' ['+', '.join(signs(format(v*factor,fmt)) for v in item['ci95'])+']'
     return result
 
 def render(record):
-    lines=[r'\subsection{A matched requested-temperature sensitivity test}',
+    lines=[r'\subsection{Requested-temperature sensitivity}',
            r'\label{app:hosted-temperature}',
-           'A separate fixed subset contains eight prompts from each of the five domains',
-           'at each of three levels: 120 prompts, with eight independent draws per prompt',
-           'and temperature. Grok 4.3 and Kimi K3 each receive requested temperatures',
-           '$T=1.0$ and $T=1.5$, giving 960 draws per condition and 3,840 in total.',
-           'The two conditions share task rows and all non-temperature request settings;',
-           'both temperatures are collected concurrently within each deployment.',
-           'Every response is retained. This subset is a separate experiment and does not',
-           'replace any full-cohort result in the main hosted display.', '',
-           'Provider API contracts support the requested controls and the deployments accept',
-           'the requests, but native responses do not report effective sampling temperature.',
-           'DeepSeek is excluded from this contrast because its documented thinking-mode',
-           'interface ignores the temperature setting. These contrasts therefore concern',
-           'the tested requested settings, not arbitrary temperatures or all deployments.', '',
-           'Tables average all five domains equally within each level; All equally averages',
-           'all 15 domain--level cells. Confidence intervals use 20,000 paired whole-prompt',
-           'bootstrap resamples stratified by domain and level, retaining each eight-draw',
-           'group. They are pointwise and have no multiplicity adjustment. Correct-pair',
-           'collision remains conditional on correct draws and can change its eligible',
-           'prompt population; an undefined cell makes the corresponding macro undefined.', '']
+           'Grok 4.3 and Kimi K3 each receive requested temperatures $T=1.0$ and',
+           '$T=1.5$ on the same 120 tasks: eight prompts in each of five domains and',
+           'three levels. Eight responses from separate requests per prompt give 960',
+           'responses per deployment--temperature condition and 3,840 in total.',
+           'Within each deployment, the two conditions share all non-temperature',
+           'request settings and run concurrently. Accuracy and mode counts include',
+           'all responses, including verification failures and truncated outputs.', '',
+           'The providers accept both requested temperature settings, but their responses',
+           'do not report effective sampling temperatures. DeepSeek is outside this',
+           'comparison because its thinking-mode interface ignores the temperature setting.',
+           'The results concern these requested settings on this 120-task subset and',
+           'do not establish a general temperature response for all hosted deployments.', '',
+           'Each level summary averages five domains equally; All averages the 15',
+           'domain--level cells equally. Collision pools correct pairs within each cell,',
+           'so tasks with more correct responses receive more weight. Eligible tasks',
+           'and pair weights can differ between temperatures; the contrast does not',
+           'hold accuracy or the correct-pair population fixed. An undefined cell makes',
+           'the corresponding average undefined. Pointwise 95\% intervals use 20,000',
+           'paired whole-prompt bootstrap resamples, stratified by domain and level.',
+           'Each resampled prompt includes all eight responses. Prompts are paired',
+           'across conditions; output draws are not. Intervals have no multiplicity adjustment.', '']
     grok=record['models']['grok-4.3']['analyses']['strict']['groups']['five_domain_macro']['overall']
     kimi=record['models']['FW-Kimi-K3']['analyses']['strict']['groups']['five_domain_macro']['overall']
     kimi_counts=record['models']['FW-Kimi-K3']['analyses']['strict']['totals']
     sparse_replicates=[record['models']['FW-Kimi-K3']['analyses']['strict']['groups']['five_domain_macro']['levels'][level]['t1p5_minus_t1p0']['collision']['defined_replicates'] for level in ('1','2')]
     lines += [r'\paragraph{Observed sensitivity.}',
-              'For Grok, the observed breadth change is '
+              'For Grok, the observed diversity change is '
               + number(grok['t1p5_minus_t1p0']['distinct8'],'distinct8',True,True)
               + ' modes, and the collision change is '
               + number(grok['t1p5_minus_t1p0']['collision'],'collision',True,True)
-              + ' percentage points. These intervals do not show a clear broadening at the tested setting.',
+              + ' percentage points. Both intervals include zero, so neither shows a clear diversity gain.',
               'The per-response accuracy change is '
               + number(grok['t1p5_minus_t1p0']['accuracy'],'accuracy',True,True)
-              + ' percentage points. This does not establish invariance to temperature in general.', '',
-              f'Kimi returns {kimi_counts["t1p5"]["truncated_responses"]:,}/{kimi_counts["t1p5"]["responses"]:,} token-limited outputs at $T=1.5$,',
+              + ' percentage points. These results do not establish invariance to temperature in general.', '',
+              f'At $T=1.5$, {kimi_counts["t1p5"]["truncated_responses"]:,} of Kimi\'s {kimi_counts["t1p5"]["responses"]:,} outputs reach the token limit,',
               f'compared with {kimi_counts["t1p0"]["truncated_responses"]:,} at $T=1.0$. Strict accuracy falls from '
               + number(kimi['t1p0']['accuracy'],'accuracy') + r'\% to '
-              + number(kimi['t1p5']['accuracy'],'accuracy') + r'\%, while raw breadth falls from '
+              + number(kimi['t1p5']['accuracy'],'accuracy') + r'\%, while raw diversity falls from '
               + number(kimi['t1p0']['distinct8'],'distinct8') + ' to '
               + number(kimi['t1p5']['distinct8'],'distinct8') + ' modes.',
-              'This is a severe token-limit and accuracy failure, not a clean increase in',
-              'correct-output concentration. The five-domain collision mean is undefined at',
+              'The large increase in truncation accompanies losses in accuracy and distinct modes.',
+              'These results do not isolate correct-output concentration at matched accuracy.',
+              'The five-domain collision mean is undefined at',
               '$T=1.5$ because some cells have no eligible correct pairs. Neither model',
               'has provider-declared refusals in this experiment.', '',
-              r'$\dagger$ marks an omitted interval when fewer than all 20,000 bootstrap',
-              f'replicates define the contrast. For Kimi collision, only {sparse_replicates[0]:,} and {sparse_replicates[1]:,}',
-              'replicates are defined at Levels 1 and 2; the raw conditional percentile',
-              'summaries remain in the source record. We do not present them as ordinary',
-              '95\% intervals. Undefined cells are never replaced by zero or silently omitted.', '']
-    for grade,title in [('strict','Strict executable grades'),('normalized_secondary','Frozen formatting-normalized grades')]:
+              r'$\dagger$ marks a defined contrast whose interval is omitted because some',
+              'bootstrap resamples have undefined cells. Five-domain averages require all',
+              'five cell estimates; conditioning on only the estimable resamples would',
+              'change the uncertainty calculation.', '']
+    def measure(grade,model,level,metric):
+        groups=record['models'][model]['analyses'][grade]['groups']['five_domain_macro']
+        group=groups['overall'] if level=='All' else groups['levels'][level]
+        return [number(group['t1p0'][metric],metric),number(group['t1p5'][metric],metric),
+                number(group['t1p5_minus_t1p0'][metric],metric,True,True)]
+
+    # The normalized table repeated the strict one almost entirely: the
+    # normalizer rescues a response in a minority of these macro cells, and the
+    # rest were printed twice to show that nothing changed. It now carries the
+    # rows it changes, with the full grade retained in the source record.
+    for grade in ('strict', 'normalized_secondary'):
+        secondary=grade!='strict'
+        body=[]
+        for index,(model,label) in enumerate(MODELS.items()):
+            block=[]
+            for level in ('1','2','3','All'):
+                for metric,short in [('accuracy','A'),('distinct8','D'),('collision','C')]:
+                    values=measure(grade,model,level,metric)
+                    if secondary and values==measure('strict',model,level,metric):
+                        continue
+                    block.append([label,level,short,*values])
+            if not block: continue
+            if body: body.append(None)
+            for row in block: body.append(row)
+        if secondary and not body:
+            lines += ['Formatting normalization leaves every grade unchanged.', '']
+            continue
+        caption=(r'  \caption{\textbf{Higher requested temperature yields no clear Grok diversity gain and much lower Kimi accuracy.}'
+                 r' Strict executable grades compare $T=1.5$ with $T=1.0$.'
+                 if not secondary else
+                 r'  \caption{\textbf{Formatting normalization leaves the temperature sensitivity largely unchanged.}'
+                 r' Only rows differing from strict grading appear; all other rows are identical.')
         lines += [r'\begin{table}[!htbp]',r'  \centering',r'  \setlength{\parfillskip}{0pt plus .20\linewidth}',
-                  r'  \caption{\textbf{Requested-temperature sensitivity: '+title+'.}',
-                  r'  A is per-response accuracy (\%), D is \texttt{distinct@8},',
-                  r'  and C is correct-pair collision (\%). D differences are mode counts;',
-                  '  A/C differences are percentage points. Brackets give paired pointwise',
-                  r'  95\% intervals for the paired change in requested temperature.',
-                  r'  Every fixed draw remains in its original denominator.}',r'  \small',
+                  caption,
+                  '  Each condition contains eight responses on each of 120 tasks.',
+                  '  Level summaries average five domains equally; All averages 15 domain--level cells.',
+                  r'  A is per-response accuracy (\%); D is mean \texttt{distinct@8};',
+                  r'  C is correct-pair collision (\%), pooling pairs within each cell.',
+                  r'  Differences subtract $T=1.0$ from $T=1.5$: mode counts for D and percentage points for A/C.',
+                  r'  Brackets give pointwise 95\% intervals from paired whole-prompt bootstrap resampling.',
+                  r'  $\dagger$ marks an omitted interval when some resamples have undefined cells;',
+                  r'  -- denotes an undefined estimate or omitted interval.}',r'  \small',
                   r'  \setlength{\tabcolsep}{5pt}',r'  \begin{tabular}{@{}llrrrr@{}}',r'    \toprule',
                   r'    Deployment & Level & Metric & $T=1.0$ & $T=1.5$ & Difference [95\% interval] \\',r'    \midrule']
-        for index,(model,label) in enumerate(MODELS.items()):
-            if index:lines.append(r'    \midrule')
-            groups=record['models'][model]['analyses'][grade]['groups']['five_domain_macro']
-            for level in ('1','2','3','All'):
-                group=groups['overall'] if level=='All' else groups['levels'][level]
-                for metric,short in [('accuracy','A'),('distinct8','D'),('collision','C')]:
-                    cols=[label if level=='1' and short=='A' else '',level if short=='A' else '',short,
-                          number(group['t1p0'][metric],metric),number(group['t1p5'][metric],metric),
-                          number(group['t1p5_minus_t1p0'][metric],metric,True,True)]
-                    lines.append('    '+' & '.join(cols)+r' \\')
+        previous=None
+        for row in body:
+            if row is None:
+                lines.append(r'    \midrule'); previous=None; continue
+            label,level,short,*values=row
+            cols=[label if label!=previous else '', level if short=='A' or secondary else '',
+                  short,*values]
+            lines.append('    '+' & '.join(cols)+r' \\')
+            previous=label
         lines += [r'    \bottomrule',r'  \end{tabular}',r'\end{table}','']
-    lines += ['Full domain--level estimates, counts, native outcomes and collision eligibility',
-              'remain in the source-bound temperature analysis. Countdown has no finite-total-support',
-              'uniform reference; finite-support sensitivity summaries use the other four domains.',
-              'The paper record authenticates every included condition summary, native completion',
-              'audit, frozen normalizer, paired analysis source and sampling-control review,',
-              'with the complete fixed response cohort retained throughout.', '']
-    return '\n'.join(lines)
+    lines += ['Across the hosted comparisons, Countdown has no uniform reference because its',
+              'total support is not certified, so uniform-reference comparisons use the other',
+              'four domains. Cross-level differences',
+              'also reflect different task populations and do not establish a common ordering',
+              'of model difficulty. These inference-only results do not identify a training',
+              'or parameter-scale cause of concentration.', '']
+    return format_domain_names('\n'.join(lines), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--source',type=Path,default=SOURCE)

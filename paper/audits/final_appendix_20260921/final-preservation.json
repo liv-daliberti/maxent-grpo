@@ -1,0 +1,380 @@
+{
+  "main_math_displays_preserved": 124,
+  "included_math_displays_preserved": 6,
+  "formal_statement_and_proof_blocks_preserved_ignoring_domain_font_markup": 69,
+  "manuscript_labels_preserved": 252,
+  "removed_unreferenced_metadata_label": "tab:pinned-revisions",
+  "changed_package_inputs": [
+    "main.tex",
+    "figures/factorial_training_curves_pass8.pdf",
+    "figures/decoding_objection.pdf",
+    "figures/modebench_discovery_curves_frontier.pdf",
+    "figures/modebench_discovery_curves_local.json",
+    "figures/e121_fixed_bank_survival.pdf",
+    "figures/modebench_prompt_ablation_local.pdf",
+    "figures/frontier_level_grid.json",
+    "figures/modebench_discovery_curves_local.pdf",
+    "figures/gpt56_all_levels32_sampling_budget.pdf",
+    "figures/level2_training_curves_pmd.pdf",
+    "figures/concentration_story_all_scales.pdf",
+    "figures/reference_kl_knee.pdf",
+    "figures/modebench_discovery_curves_frontier.json",
+    "figures/modebench_prompt_ablation_local.json",
+    "figures/level2_factorial_training_curves.json",
+    "figures/replay_key_weighting.json",
+    "figures/mode_diversity_families_appendix.pdf",
+    "figures/mode_diversity_levels_appendix.json",
+    "figures/direct_baseline_learning_curves_pass8.pdf",
+    "figures/baseline_collapse_precheck.pdf",
+    "figures/hosted_verified_breadth.pdf",
+    "figures/modebench_examples.pdf",
+    "figures/concentration_levels.pdf",
+    "figures/concentration_story_resampled.pdf",
+    "figures/mode_diversity_level_construction.pdf",
+    "figures/level2_factorial_training_curves.pdf",
+    "figures/concentration_levels.json",
+    "figures/factorial_training_curves_pass8.json",
+    "figures/factorial_training_curves_pmd.pdf",
+    "figures/mode_diversity_level_construction.json",
+    "figures/replay_factorial_effects.json",
+    "figures/factorial_training_curves_pmd.json",
+    "figures/modebench_discovery_correct_budget_frontier.pdf",
+    "figures/level2_training_curves_pmd.json",
+    "figures/replay_key_weighting.pdf",
+    "figures/modebench_discovery_correct_budget_local.json",
+    "figures/gpt56_all_levels32_sampling_budget.json",
+    "figures/mode_diversity_levels_appendix.pdf",
+    "figures/modebench_discovery_correct_budget_local.pdf",
+    "figures/replay_factorial_effects.pdf",
+    "figures/reference_kl_plane.pdf",
+    "figures/e118_scale_extensions_appendix.pdf",
+    "figures/replay_level2_effects.pdf",
+    "figures/frontier_level_grid.pdf",
+    "figures/replay_level2_effects.json",
+    "figures/concentration_story_resampled.json",
+    "figures/mode_diversity_families_appendix.json",
+    "figures/replay_bank_decomposition.pdf",
+    "figures/hosted_verified_breadth.json",
+    "figures/concentration_story_all_scales.json",
+    "figures/withdrawal_pmd_agreement.pdf",
+    "figures/modebench_discovery_correct_budget_frontier.json",
+    "figures/replay_bank_decomposition.json",
+    "results/frontier_comparison_20260911_normalized_cells.tex",
+    "results/hosted_reasoning_off_20260912_appendix.tex",
+    "results/frontier_comparison_20260911_protocol.tex",
+    "results/hosted_level_averages_20260911_parity.tex",
+    "results/gpt56sol_python_parity_20260918.tex",
+    "results/modebench_discovery_curves_20260911.tex",
+    "results/frontier_hosted_20260911_normalized_rows.tex",
+    "results/frontier_comparison_20260911_strict_cells.tex",
+    "results/reference_kl_table_body.tex",
+    "results/frontier_hosted_20260911_appendix.tex",
+    "results/absolute_support_references_table_body.tex",
+    "results/frontier_comparison_20260911_provider_outcomes.tex",
+    "results/frontier_temperature_20260911.tex",
+    "results/mode_diversity_coverage.tex",
+    "results/portfolio_withdrawals_20260917.tex",
+    "results/inference_followups_20260912.tex",
+    "results/core_terminal_endpoints_table_body.tex",
+    "results/control_learning_table_body.tex",
+    "results/conditional_concentration_20260912_appendix.tex",
+    "results/frontier_comparison_20260911_appendix.tex",
+    "results/frontier_comparison_20260911_graph_figure.tex",
+    "results/frontier_comparison_20260911_python_sensitivity.tex",
+    "results/semantic_current_summary_20260912.tex",
+    "results/control_learning_macros.tex",
+    "results/gpt56_all_levels32_sampling_20260913.tex",
+    "results/reference_kl_macros.tex",
+    "results/discovery_hosted_interpretation_20260912.tex",
+    "results/level2_factorial_contrasts_20260912_table_body.tex",
+    "results/hosted_level_averages_20260911.tex",
+    "results/modebench_prompt_ablation_20260911.tex",
+    "results/frontier_hosted_20260911_strict_rows.tex",
+    "results/gpt56_temperature_curve_20260911_appendix.tex",
+    "results/conditional_concentration_20260912_tables.tex"
+  ],
+  "latest_live_snapshot_matches": true,
+  "appendix_heading_count": 89,
+  "broken_references_overfull_duplicate_diagnostics": [],
+  "operational_identifier_scan_hits": [],
+  "figure_inventory_count": 40,
+  "manifest_paths_valid": true,
+  "length_contract": {
+    "main_pages": 9,
+    "max_pages": 9,
+    "references_page": 11,
+    "statement_pages": [
+      10
+    ],
+    "pdf_pages": 122,
+    "figure_pages": {
+      "fig:story": 1,
+      "fig:modebench-examples": 2,
+      "fig:base-levels-all-scales": 3,
+      "fig:levels": 4,
+      "fig:gpt56-sampling-budget": 4,
+      "fig:replay-bank-balance": 5,
+      "fig:verified-support-story": 6,
+      "fig:concentration-story": 7,
+      "fig:maxrl-factorial": 8,
+      "fig:replay-key-weighting": 8,
+      "fig:level2-admission": 9,
+      "fig:reference-kl-plane": 9
+    },
+    "table_pages": {
+      "tab:direct-comparator-matrix": 7
+    },
+    "section_pages": {
+      "sec:introduction": 1,
+      "sec:related": 9,
+      "sec:collapse-mechanism": 5,
+      "sec:modebench": 2,
+      "sec:method": 5,
+      "sec:experiments": 6,
+      "sec:results": 6,
+      "sec:conclusion": 9
+    }
+  },
+  "line_fill": {
+    "before": 46,
+    "after": 47,
+    "remaining": [
+      {
+        "page": 1,
+        "ending": "many ways it can succeed.",
+        "fraction": 0.3247570074467165
+      },
+      {
+        "page": 1,
+        "ending": "correct solutions.",
+        "fraction": 0.17321451796489307
+      },
+      {
+        "page": 2,
+        "ending": "tions and improved model performance.",
+        "fraction": 0.4498108972193064
+      },
+      {
+        "page": 3,
+        "ending": "while producing less diverse solutions.",
+        "fraction": 0.43785436080479817
+      },
+      {
+        "page": 3,
+        "ending": "not correlated with solution mode diversity.",
+        "fraction": 0.4372020158120481
+      },
+      {
+        "page": 26,
+        "ending": "support thresholds in Fig. 15.",
+        "fraction": 0.29431095971100324
+      },
+      {
+        "page": 33,
+        "ending": "comparisons with at least two seeds.",
+        "fraction": 0.36429379665263917
+      },
+      {
+        "page": 34,
+        "ending": "shared scale for both arms of each metric.",
+        "fraction": 0.4202158954972314
+      },
+      {
+        "page": 34,
+        "ending": "differ between arms.",
+        "fraction": 0.20578328207033872
+      },
+      {
+        "page": 37,
+        "ending": "seeds and gaps indicate unavailable estimates.",
+        "fraction": 0.46248785674587395
+      },
+      {
+        "page": 39,
+        "ending": "undefined estimates.",
+        "fraction": 0.20458552147328005
+      },
+      {
+        "page": 40,
+        "ending": "paired seeds.",
+        "fraction": 0.12937360422489932
+      },
+      {
+        "page": 42,
+        "ending": "have no intervals.",
+        "fraction": 0.17575049020486025
+      },
+      {
+        "page": 44,
+        "ending": "require five defined seeds.",
+        "fraction": 0.2614871934918833
+      },
+      {
+        "page": 45,
+        "ending": "defined seeds.",
+        "fraction": 0.14102662921354356
+      },
+      {
+        "page": 45,
+        "ending": "defined seeds.",
+        "fraction": 0.1410258203716426
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "fraction": 0.2614871934918833
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "fraction": 0.2613787886966709
+      },
+      {
+        "page": 46,
+        "ending": "require five defined seeds.",
+        "fraction": 0.2613754331495135
+      },
+      {
+        "page": 47,
+        "ending": "require five defined seeds.",
+        "fraction": 0.26138058516940976
+      },
+      {
+        "page": 47,
+        "ending": "specified uniform-action reference.",
+        "fraction": 0.3509691247445438
+      },
+      {
+        "page": 47,
+        "ending": "fer despite shared model weights.",
+        "fraction": 0.3884544616410757
+      },
+      {
+        "page": 51,
+        "ending": "then resampling the five seeds.",
+        "fraction": 0.3619855020346003
+      },
+      {
+        "page": 51,
+        "ending": "idate the probability floor in Theorem P.21.",
+        "fraction": 0.49770009370366763
+      },
+      {
+        "page": 53,
+        "ending": "reported interval.",
+        "fraction": 0.17187659928234286
+      },
+      {
+        "page": 54,
+        "ending": "Pantry seed effects.",
+        "fraction": 0.21964320602793871
+      },
+      {
+        "page": 55,
+        "ending": "displayed at width .004 for visibility.",
+        "fraction": 0.36992312379481057
+      },
+      {
+        "page": 58,
+        "ending": "condition on the deployment.",
+        "fraction": 0.29336038951406684
+      },
+      {
+        "page": 59,
+        "ending": "is fixed; intervals resample paired problems.",
+        "fraction": 0.4438720340684829
+      },
+      {
+        "page": 59,
+        "ending": "gives the same values in every local cell.",
+        "fraction": 0.4078208038806095
+      },
+      {
+        "page": 60,
+        "ending": "without exhausting the available modes.",
+        "fraction": 0.45053045789771234
+      },
+      {
+        "page": 61,
+        "ending": "checkpoints.",
+        "fraction": 0.12594367210513907
+      },
+      {
+        "page": 63,
+        "ending": "the observed checkpoints.",
+        "fraction": 0.2590925429550682
+      },
+      {
+        "page": 65,
+        "ending": "equally; dietary estimates use only five problems.",
+        "fraction": 0.4946600963185337
+      },
+      {
+        "page": 66,
+        "ending": "paired problem-bootstrap intervals.",
+        "fraction": 0.35288368267693265
+      },
+      {
+        "page": 70,
+        "ending": "seeds.",
+        "fraction": 0.06046829216043357
+      },
+      {
+        "page": 71,
+        "ending": "seeds.",
+        "fraction": 0.060515252321845965
+      },
+      {
+        "page": 72,
+        "ending": "and share the recovery procedure.",
+        "fraction": 0.3391708222927985
+      },
+      {
+        "page": 72,
+        "ending": "intervals condition on those two seeds.",
+        "fraction": 0.387285910932432
+      },
+      {
+        "page": 75,
+        "ending": "eligible pairs and their weights.",
+        "fraction": 0.3149044954280911
+      },
+      {
+        "page": 78,
+        "ending": "mon difficulty ordering for all deployments.",
+        "fraction": 0.4960646023788463
+      },
+      {
+        "page": 78,
+        "ending": "the cost of all attempted requests.",
+        "fraction": 0.39097801819598477
+      },
+      {
+        "page": 78,
+        "ending": "across deployments.",
+        "fraction": 0.2028863972106916
+      },
+      {
+        "page": 83,
+        "ending": "move with pass@8.",
+        "fraction": 0.2083994617670027
+      },
+      {
+        "page": 88,
+        "ending": "compute are not matched.",
+        "fraction": 0.2586264328319359
+      },
+      {
+        "page": 89,
+        "ending": "and mode-count differences is given in the text.",
+        "fraction": 0.4752020658692818
+      },
+      {
+        "page": 100,
+        "ending": "?",
+        "fraction": 0.00921052215460604
+      }
+    ],
+    "note": "This global typography check remains nonpassing. Some endings changed under the simultaneous domain-font formatting and the caption cuts; no clipping or overfull boxes occur. The one-symbol flag is a mathematical-star extraction artifact."
+  }
+}

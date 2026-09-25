@@ -17147,7 +17147,7 @@
     },
     "size_inches": [
       3.95,
-      6.6
+      6.0
     ],
     "x_limits_percentage_points": [
       -130.0,
@@ -17157,16 +17157,16 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/concentration_story_all_scales.pdf",
-      "sha256": "ac4e2c94bb8bd3acd73fa75298227b02408483c5fc2a5c2b5d3d4603d4a5c9bf"
+      "sha256": "4043be1f919fcf5aa6f8ec2c879c774b01a4f5b6f8b8cfa3e0e9f1b5a43aba3f"
     },
     "png": {
       "path": "paper/figures/concentration_story_all_scales.png",
-      "sha256": "1c6bdcfcf3ed3e7c367b2223d290bbdb11b2429bd1fb9a9fb6faba4bcaae14fd"
+      "sha256": "5eb5554757c20888de052683c9aedcfb3798c8938f0260f9b9d5fd54e5ef20a2"
     }
   },
   "renderer": {
     "path": "ops/plot_paper_concentration_story.py",
-    "sha256": "dd61a9403a90cc4f40752c898ff9512bda26eb5506d4c487ff95bf940df675b6"
+    "sha256": "8fe59c6860fba788bd8d4047f4fa32840c12c0e1fe8791328e21c1e5b9319efc"
   },
   "schema": "paper-concentration-story-v1",
   "source": {
@@ -17177,6 +17177,6 @@
   },
   "style_source": {
     "path": "ops/paper_style.py",
-    "sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
+    "sha256": "bb5fe214a14e87bc5bb6b39f821e46c846d015c3564b1a8fdcb6a27f0e43766d"
   }
 }

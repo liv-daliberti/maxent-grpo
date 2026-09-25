@@ -1,0 +1,610 @@
+{
+  "checks": 143,
+  "passed": 143,
+  "source_sha256": "4a56ac67242af8fed9372e6c5f7ed8396bc7d53a40d1f5fec405283a4eb613d0",
+  "common_domains": [
+    "graph_coloring",
+    "mathir",
+    "pantry_plan"
+  ],
+  "aggregate_means": {
+    "0.001": {
+      "pmd": 0.07189293699710998,
+      "pass8": 0.5340625
+    },
+    "0.01": {
+      "pmd": 0.3017440310202667,
+      "pass8": 0.6561458333333333
+    },
+    "0.04": {
+      "pmd": 0.4317861179381998,
+      "pass8": 0.6138541666666667
+    },
+    "0.1": {
+      "pmd": 0.4775729558909032,
+      "pass8": 0.5403125
+    },
+    "0.2": {
+      "pmd": 0.49768179129643464,
+      "pass8": 0.526875
+    },
+    "0.3": {
+      "pmd": 0.49641423005914587,
+      "pass8": 0.5277083333333333
+    }
+  },
+  "checks_detail": [
+    {
+      "name": "Numerical source unchanged from preserved latest input",
+      "passed": true
+    },
+    {
+      "name": "28 terminal KL coefficient cells",
+      "passed": true
+    },
+    {
+      "name": "One three-seed cell and 27 five-seed cells",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklTotalCells",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklThinCells",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklSeedsMin",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklWinBeta",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklWinPmd",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklWinPass",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklWinSeeds",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklKneeBeta",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklKneePmd",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklKneePass",
+      "passed": true
+    },
+    {
+      "name": "Macro MDklKneeSeeds",
+      "passed": true
+    },
+    {
+      "name": "Graph table numeric cells and n labels match latest JSON",
+      "passed": true
+    },
+    {
+      "name": "Countdown table numeric cells and n labels match latest JSON",
+      "passed": true
+    },
+    {
+      "name": "Python table numeric cells and n labels match latest JSON",
+      "passed": true
+    },
+    {
+      "name": "MathIR table numeric cells and n labels match latest JSON",
+      "passed": true
+    },
+    {
+      "name": "Pantry table numeric cells and n labels match latest JSON",
+      "passed": true
+    },
+    {
+      "name": "Knee source hash current",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring pmd beta locations",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.001 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.01 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.04 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.1 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.2 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.3 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring pass8 beta locations",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.001 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.01 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.04 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.1 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.2 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring beta=0.3 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "graph_coloring all plotted values within axes",
+      "passed": true
+    },
+    {
+      "name": "countdown pmd beta locations",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.001 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.01 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.04 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.1 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.2 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.3 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown pass8 beta locations",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.001 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.01 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.04 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.1 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.2 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown beta=0.3 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "countdown all plotted values within axes",
+      "passed": true
+    },
+    {
+      "name": "python_factors pmd beta locations",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.001 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.01 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.04 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.1 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors pass8 beta locations",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.001 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.01 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.04 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors beta=0.1 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "python_factors all plotted values within axes",
+      "passed": true
+    },
+    {
+      "name": "mathir pmd beta locations",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.001 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.01 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.04 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.1 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.2 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.3 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir pass8 beta locations",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.001 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.01 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.04 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.1 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.2 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir beta=0.3 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "mathir all plotted values within axes",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan pmd beta locations",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.001 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.01 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.04 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.1 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.2 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.3 pmd ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan pass8 beta locations",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.001 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.01 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.04 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.1 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.2 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan beta=0.3 pass8 ordinate",
+      "passed": true
+    },
+    {
+      "name": "pantry_plan all plotted values within axes",
+      "passed": true
+    },
+    {
+      "name": "All measured lines, reference rules and arm markers unchanged",
+      "passed": true
+    },
+    {
+      "name": "Concurrent overlap ring uses the exact final measured point",
+      "passed": true
+    },
+    {
+      "name": "Plane axes unchanged",
+      "passed": true
+    },
+    {
+      "name": "Plane legend unchanged",
+      "passed": true
+    },
+    {
+      "name": "All coefficient labels represented",
+      "passed": true
+    },
+    {
+      "name": "Plane final annotation position $\\beta=0$",
+      "passed": true
+    },
+    {
+      "name": "Plane final annotation position $\\beta=.001$",
+      "passed": true
+    },
+    {
+      "name": "Plane final annotation position $\\beta=.01$",
+      "passed": true
+    },
+    {
+      "name": "Plane final annotation position $\\beta=.04$",
+      "passed": true
+    },
+    {
+      "name": "Plane final annotation position $\\beta=.1$",
+      "passed": true
+    },
+    {
+      "name": "Plane final annotation position $\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Plane exactly two background fills removed",
+      "passed": true
+    },
+    {
+      "name": "Common-domain aggregate population",
+      "passed": true
+    },
+    {
+      "name": "All six KL coefficients in aggregate",
+      "passed": true
+    },
+    {
+      "name": "Plane 0.001 measured point",
+      "passed": true
+    },
+    {
+      "name": "Plane 0.01 measured point",
+      "passed": true
+    },
+    {
+      "name": "Plane 0.04 measured point",
+      "passed": true
+    },
+    {
+      "name": "Plane 0.1 measured point",
+      "passed": true
+    },
+    {
+      "name": "Plane 0.2 measured point",
+      "passed": true
+    },
+    {
+      "name": "Plane 0.3 measured point",
+      "passed": true
+    },
+    {
+      "name": "Main-text .01 through .2 trend",
+      "passed": true
+    },
+    {
+      "name": "New .3 point reverses both .2 trends",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient label within figure $\\beta=0$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient label within figure $\\beta=.001$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient label within figure $\\beta=.01$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient label within figure $\\beta=.04$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient label within figure $\\beta=.1$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient label within figure $\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=0$/$\\beta=.001$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=0$/$\\beta=.01$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=0$/$\\beta=.04$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=0$/$\\beta=.1$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=0$/$\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.001$/$\\beta=.01$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.001$/$\\beta=.04$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.001$/$\\beta=.1$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.001$/$\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.01$/$\\beta=.04$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.01$/$\\beta=.1$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.01$/$\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.04$/$\\beta=.1$",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.04$/$\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Plane coefficient labels separate $\\beta=.1$/$\\beta=.2$, $.3$ (overlapping)",
+      "passed": true
+    },
+    {
+      "name": "Unique source replacement figure12_caption",
+      "passed": true
+    },
+    {
+      "name": "Unique source replacement main_coefficient_interval",
+      "passed": true
+    },
+    {
+      "name": "Unique source replacement P12_coefficient_dependence",
+      "passed": true
+    },
+    {
+      "name": "Unique source replacement P12_aggregate_curve",
+      "passed": true
+    },
+    {
+      "name": "Unique source replacement P13_limits",
+      "passed": true
+    },
+    {
+      "name": "Unique source replacement P12_figure_caption",
+      "passed": true
+    },
+    {
+      "name": "All labels preserved",
+      "passed": true
+    },
+    {
+      "name": "Only obsolete separate-knee pointer removed",
+      "passed": true
+    },
+    {
+      "name": "Latest source unchanged after validation",
+      "passed": true
+    }
+  ]
+}

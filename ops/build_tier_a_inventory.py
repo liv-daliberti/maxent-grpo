@@ -38,10 +38,29 @@ DATA_ROOT = ROOT / 'var/data'
 # The 2026-09-11 plan is being archived separately; a run in both plans would be
 # uploaded twice and its local weights retired by whichever pass reached it first.
 PLAN_715 = ROOT / 'var/artifacts/hf_model_archive_20260911/all/plan_completed_delta715.json'
+# The Tier-A pass ran with keep_local, so its 141 models carry no MODEL_ARCHIVE.json
+# and reappear here unless the plan that published them is excluded too. Reading
+# only the 715 plan re-emits them, which would re-upload 226 GB already on the Hub
+# and collide on their repo prefixes when the combined plan is prepared.
+PLAN_COMBINED = ROOT / 'var/artifacts/hf_model_archive_20260911/all/plan_combined_856_20260915.json'
+PUBLISHED_PLANS = (PLAN_715, PLAN_COMBINED)
 OUT = ROOT / 'var/artifacts/hf_tier_a_20260915/inventory.json'
 ADMITTED_KINDS = ('semantic', 'replay_dose', 'paired')
-# Run directories spell the half-billion scale two ways; both are the same model.
+# Some studies are registered as several cohorts, one per model scale, so their
+# tags carry a scale suffix the archive does not use: the published plan records
+# 'e115', never 'e115_05b'. archive_expanded_registry keys its public study text
+# the same way, and prepare_expanded_archive_plan rejects a source_experiment it
+# cannot find there. Map the split tags back to the study they belong to; any tag
+# that is already a study key passes through unchanged.
+STUDY_KEYS = {'e95_3b': 'e95', 'e95_1b': 'e95', 'e95_05b': 'e95', 'e95r_05b': 'e95r',
+              'e115_05b': 'e115', 'e115_3b': 'e115', 'e116_05b': 'e116', 'e116_3b': 'e116'}
+# Run directories spell the half-billion scale three ways; all are the same model.
+# E95-R was launched from the current source tree, which names the directory after
+# the pretrained snapshot rather than the campaign's own short scale token, so its
+# runs read xdr_qwen_qwen2.5-0.5b-instruct_. Verified against the export itself:
+# Qwen2ForCausalLM, hidden 896, 24 layers, 14 heads, vocab 151936.
 MODEL_KEYS = {'qwen25_0p5b_instruct': 'qwen05b', 'qwen25_05b_instruct': 'qwen05b',
+              'qwen_qwen2.5-0.5b-instruct': 'qwen05b',
               'qwen25_3b_instruct': 'qwen3b', 'falcon3_1b_instruct': 'falcon1b'}
 WEIGHTS = ('*.safetensors', 'pytorch_model*.bin')
 
@@ -76,9 +95,11 @@ def cohort_index() -> dict[str, registry.Cohort]:
 
 
 def already_planned() -> set[str]:
-    if not PLAN_715.is_file():
-        return set()
-    return {m['terminal_export'] for m in json.loads(PLAN_715.read_text())['models']}
+    planned: set[str] = set()
+    for path in PUBLISHED_PLANS:
+        if path.is_file():
+            planned |= {m['terminal_export'] for m in json.loads(path.read_text())['models']}
+    return planned
 
 
 def build() -> dict:
@@ -121,12 +142,13 @@ def build() -> dict:
             skipped.append({'run_dir': run_dir_text, 'cohort': cohort.tag,
                             'reason': 'no scheduler identity to check for live consumers'})
             continue
+        study = STUDY_KEYS.get(cohort.tag, cohort.tag)
         records.append({
             'audited_candidate': True, 'endpoint_status': 'admitted',
-            'source_experiment': cohort.tag, 'cohort_label': cohort.label,
+            'source_experiment': study, 'cohort_label': cohort.label,
             # Cross-list key rendered onto the public model card, so a reader can
             # see which campaign a model belongs to without the run directory.
-            'campaign': cohort.tag,
+            'campaign': study,
             'cohort_kind': cohort.kind, 'model_key': model_key,
             'scale': model_key, 'domain': run.get('domain'),
             'source_arm': run.get('arm'), 'arm': run.get('arm'),
@@ -149,7 +171,8 @@ def build() -> dict:
         if cohort.kind not in ADMITTED_KINDS:
             continue
         path = cohort.path()
-        if path.is_file() and any(r['source_experiment'] == cohort.tag for r in records):
+        study = STUDY_KEYS.get(cohort.tag, cohort.tag)
+        if path.is_file() and any(r['source_experiment'] == study for r in records):
             pins[str(path)] = digest(path)
     return {
         'schema': 'hf-tier-a-inventory-v1',
@@ -158,7 +181,7 @@ def build() -> dict:
         'selection': ('local-only completed runs claimed by a registered cohort whose kind is '
                       'a treatment arm; repair-kind cohorts are excluded, not deleted'),
         'admitted_kinds': list(ADMITTED_KINDS),
-        'excludes_plan_715': str(PLAN_715.relative_to(ROOT)),
+        'excludes_published_plans': [str(p.relative_to(ROOT)) for p in PUBLISHED_PLANS if p.is_file()],
         'records': records, 'record_count': len(records),
         'total_bytes': sum(r['terminal_bytes'] for r in records),
         'by_cohort': dict(sorted(Counter(r['source_experiment'] for r in records).items())),

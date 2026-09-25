@@ -1,0 +1,17 @@
+[
+  {
+    "old": "Uniform weighting breaks the link between discovery frequency, ------, and rehearsal frequency, ------.",
+    "new": "Uniform weighting breaks the link between discovery frequency, how often a mode appears in fresh rollouts, and rehearsal frequency, how often a stored mode is replayed.",
+    "count": 1
+  },
+  {
+    "old": "Some of these methods produce substantial gains in individual domains, e.g., GAPO increases \\pmd{} by $0.653$ in \\texttt{PantryPlan}, while SetPO increases \\texttt{pass@8} by .497 in \\texttt{Python}.",
+    "new": "Some of these methods produce substantial gains in individual domains, e.g., GAPO increases \\pmd{} by $65.3$ percentage points in \\texttt{PantryPlan}, while SetPO increases \\texttt{pass@8} by $49.7$ percentage points in \\texttt{Python}.",
+    "count": 1
+  },
+  {
+    "old": "Yet these gains are domain-specific, while Re:Max improves both metrics across domains, averaging gains of $0.358$ in \\texttt{pass@8} and $0.320$ in \\pmd{} over Dr.GRPO.",
+    "new": "Yet these gains are domain-specific, while Re:Max improves both metrics across domains, averaging gains of $35.8$ percentage points in \\texttt{pass@8} and $32.0$ percentage points in \\pmd{} over Dr.GRPO.",
+    "count": 1
+  }
+]

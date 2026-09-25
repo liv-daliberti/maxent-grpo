@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Plot hosted correctness and breadth using explicit, complete display cohorts.
+"""Plot hosted correctness and diversity using explicit, complete display cohorts.
 
 All original cells use the frozen formatting normalizer. Only Opus 5 Python
 uses the complete separately collected direct-expression prompt cohort, under
 that same normalizer. No prompt or draw is selected by correctness or provider
-outcome. The strict original cohorts and prompt-condition comparison remain in
-the appendix; this figure is a descriptive display, not a prompting experiment.
+outcome. Opus 5's original-prompt Python cells are drawn beside the displayed
+ones as hollow companion marks, so no reader has to take the substituted
+condition on trust. The strict original cohorts and prompt-condition comparison
+remain in the appendix; this figure is a descriptive display, not a prompting
+experiment.
 """
 from __future__ import annotations
 
@@ -54,6 +57,23 @@ def _assert_metric(value: Any, expected: float | None, field: str) -> None:
         raise ValueError(f"{field}: metric does not match complete-cohort counts")
 
 
+#: Promptwise PCMD per hosted cell. It is joined rather than derived from the
+#: pooled collision this builder already computes: one minus pooled collision
+#: weights every correct pair equally across prompts, while \pmd{} averages the
+#: per-prompt value, and the paper reports the promptwise form. The two agree to
+#: about .003 in the median but differ by more than .05 on 19 of 70 cells, so
+#: substituting one for the other would quietly change the estimand.
+PMD_COHORT = ROOT / "paper/results/mode_diversity_hosted_cohort_20260917.json"
+
+
+def pmd_cells() -> dict[tuple[str, str, int], dict[str, Any]]:
+    payload = json.loads(PMD_COHORT.read_text(encoding="utf-8"))
+    if payload.get("schema") != "paper-mode-diversity-hosted-cohort-v1":
+        raise ValueError("hosted cohort PCMD record schema drifted")
+    return {(model["model"], cell["domain"], cell["level"]): cell
+            for model in payload["models"] for cell in model["cells"]}
+
+
 def _metrics(counts: dict[str, int]) -> dict[str, float | None]:
     if counts["prompts"] != PROMPTS or counts["responses"] != PROMPTS * DRAWS:
         raise ValueError("Every display cell must retain all 128 prompts and 1,024 responses")
@@ -88,8 +108,45 @@ def admitted_model_order(record: dict[str, Any]) -> tuple[str, ...]:
     )
 
 
+def _original_cell(model_id: str, index: int, model: dict[str, Any],
+                   domain: str, level: int) -> tuple[dict[str, int], dict[str, Any], dict[str, Any]]:
+    """Read one complete original-prompt cell, with its own source binding."""
+    key = f"level{level}/{domain}"
+    source = model["normalized_secondary"]["cells"][key]
+    if (source["complete_prompts"] != PROMPTS or source["expected_prompts"] != PROMPTS
+            or source["missing_prompts"] != 0 or source["domain"] != domain
+            or source["level"] != level):
+        raise ValueError(f"{model_id} {key}: incomplete or misidentified original cohort")
+    raw = source["counts"]
+    counts = {
+        "prompts": _integer(raw["prompts"], "prompts"),
+        "responses": PROMPTS * DRAWS,
+        "correct_responses": _integer(raw["correct_draws"], "correct_draws"),
+        "distinct_correct_modes": _integer(raw["distinct_correct_modes"], "distinct_correct_modes"),
+        "correct_pairs": _integer(raw["correct_pairs"], "correct_pairs"),
+        "colliding_correct_pairs": _integer(raw["colliding_correct_pairs"], "colliding_correct_pairs"),
+    }
+    fields = f"/models/{index}/normalized_secondary/cells/{key.replace('/', '~1')}"
+    source_names = {"accuracy": "pass1", "distinct8": "distinct8",
+                    "correct_pair_collision": "correct_pair_collision"}
+    supplied = {metric: source["metrics"][name]["estimate"] for metric, name in source_names.items()}
+    provenance = {
+        "condition": "original_benchmark_prompt",
+        "cohort": model["run_directory"],
+        "primary_samples": {"path": model["primary_samples_path"], "sha256": model["primary_samples_sha256"]},
+        "summary_sha256": model["summary_sha256"],
+        "completion_audit_sha256": model["completion_audit_sha256"],
+        "source_cell": fields,
+        "source_counts": deepcopy(raw),
+        "source_metric_fields": {metric: f"{fields}/metrics/{name}/estimate"
+                                 for metric, name in source_names.items()},
+    }
+    return counts, supplied, provenance
+
+
 def build_display_data(record: dict[str, Any]) -> dict[str, Any]:
     """Select display cells without reading files, mutating data, or filtering draws."""
+    pmd = pmd_cells()
     if record.get("schema") != "frontier-paper-comparison-v1":
         raise ValueError("Unexpected hosted comparison schema")
     if record.get("prompt_count_per_cell") != PROMPTS or record.get("draws_per_prompt") != DRAWS:
@@ -158,37 +215,12 @@ def build_display_data(record: dict[str, Any]) -> dict[str, Any]:
                         "source_metric_fields": metric_fields,
                     }
                 else:
-                    source = normalized["cells"][key]
-                    if (source["complete_prompts"] != PROMPTS or source["expected_prompts"] != PROMPTS
-                            or source["missing_prompts"] != 0 or source["domain"] != domain
-                            or source["level"] != level):
-                        raise ValueError(f"{model_id} {key}: incomplete or misidentified original cohort")
-                    raw = source["counts"]
-                    counts = {
-                        "prompts": _integer(raw["prompts"], "prompts"),
-                        "responses": PROMPTS * DRAWS,
-                        "correct_responses": _integer(raw["correct_draws"], "correct_draws"),
-                        "distinct_correct_modes": _integer(raw["distinct_correct_modes"], "distinct_correct_modes"),
-                        "correct_pairs": _integer(raw["correct_pairs"], "correct_pairs"),
-                        "colliding_correct_pairs": _integer(raw["colliding_correct_pairs"], "colliding_correct_pairs"),
-                    }
-                    fields = f"/models/{index}/normalized_secondary/cells/{key.replace('/', '~1')}"
-                    source_names = {"accuracy": "pass1", "distinct8": "distinct8",
-                                    "correct_pair_collision": "correct_pair_collision"}
-                    supplied = {metric: source["metrics"][name]["estimate"]
-                                for metric, name in source_names.items()}
-                    provenance = {
-                        "condition": "original_benchmark_prompt",
-                        "cohort": model["run_directory"],
-                        "primary_samples": {"path": model["primary_samples_path"], "sha256": model["primary_samples_sha256"]},
-                        "summary_sha256": model["summary_sha256"],
-                        "completion_audit_sha256": model["completion_audit_sha256"],
-                        "source_cell": fields,
-                        "source_counts": deepcopy(raw),
-                        "source_metric_fields": {metric: f"{fields}/metrics/{name}/estimate"
-                                                 for metric, name in source_names.items()},
-                    }
+                    counts, supplied, provenance = _original_cell(
+                        model_id, index, model, domain, level)
                 metrics = _metrics(counts)
+                joined = pmd.get((model_id, domain, level))
+                if joined and joined.get("reportable") and joined.get("pmd") is not None:
+                    metrics["pmd"] = joined["pmd"]
                 for metric, value in supplied.items():
                     _assert_metric(value, metrics[metric], f"{model_id} {key} {metric}")
                 cells.append({
@@ -207,6 +239,27 @@ def build_display_data(record: dict[str, Any]) -> dict[str, Any]:
                                ("colliding_correct_pairs", "colliding_correct_pairs")):
         if sum(cell["counts"][field] for cell in alternate_cells) != totals["normalized"][source_name]:
             raise ValueError(f"Alternate prompt cohort {field} do not match its complete totals")
+    # The substituted cells are the only place this figure departs from one
+    # protocol, so the condition they replace is carried alongside them rather
+    # than left to the appendix: every displayed point has its counterpart here.
+    companion_cells = []
+    for cell in alternate_cells:
+        index, model = indexed[cell["model"]]
+        counts, supplied, provenance = _original_cell(
+            cell["model"], index, model, cell["domain"], cell["level"])
+        metrics = _metrics(counts)
+        for metric, value in supplied.items():
+            _assert_metric(value, metrics[metric],
+                           f"{cell['model']} companion level{cell['level']}/{cell['domain']} {metric}")
+        companion_cells.append({
+            "model": cell["model"], "label": cell["label"], "domain": cell["domain"],
+            "level": cell["level"], "role": "replaced_condition",
+            "grading": "frozen_formatting_normalized", "counts": counts,
+            "metrics": metrics, "provenance": provenance,
+        })
+    if len(companion_cells) != len(alternate_cells):
+        raise ValueError("Every substituted cell requires the condition it replaced")
+
     icons = record.get("model_icons", {})
     if not set(model_order).issubset(icons):
         raise ValueError("Every displayed deployment requires its source-bound model icon")
@@ -222,11 +275,13 @@ def build_display_data(record: dict[str, Any]) -> dict[str, Any]:
                      "selection": "Complete cohorts; no response or prompt filtered by outcome.",
                      "alternate_cohort_responses": sum(cell["counts"]["responses"] for cell in alternate_cells)},
         "condition_disclosure": "Claude Opus 5 Python uses a separately collected direct-expression prompt without a system message; all other cells use the original benchmark prompt.",
+        "companion_disclosure": "Every substituted cell is shown beside the original-prompt cell it replaces; companion cells are display marks only and enter no average.",
         "limits": ["This descriptive mixed-condition display is not a controlled comparison of prompting or deployment rankings.",
                    "Distinct@8 averages over all prompts, including those with no correct draw.",
                    "Benchmark levels contain different task populations; no monotonic difficulty claim is made.",
                    "Static concentration does not establish training-induced collapse."],
         "cells": cells,
+        "companion_cells": companion_cells,
     }
 
 
@@ -250,8 +305,9 @@ def build_record(source_path: Path = DEFAULT_SOURCE) -> dict[str, Any]:
         "display": build_display_data(json.loads(source_path.read_text(encoding="utf-8"))),
         "figure": {"size_inches": list(FIGSIZE), "minimum_font_points": 8,
                    "layout": "Two metric rows by five domain columns; one row per admitted deployment, with three level marks each.",
-                   "accuracy_axis_percent": [0, 100], "distinct8_axis": [0, 5],
+                   "accuracy_axis_percent": [0, 100], "pmd_axis": [0, 1],
                    "marks": "Point estimates; source prompt-bootstrap intervals are reported in the appendix.",
+                   "companion_marks": "Hollow marks repeat the original-prompt cell that each substituted cell replaces.",
                    "level_colors": list(LEVEL_COLORS), "level_markers": list(LEVEL_MARKERS)},
     }
 
@@ -264,6 +320,8 @@ def build_figure(display: dict[str, Any]):
     from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
     cells = {(cell["model"], cell["domain"], cell["level"]): cell for cell in display["cells"]}
+    companions = {(cell["model"], cell["domain"], cell["level"]): cell
+                  for cell in display["companion_cells"]}
     model_order = tuple(model["model"] for model in display["models"])
     rc = {"font.family": "DejaVu Sans", "font.size": 8, "axes.titlesize": 8,
           "axes.labelsize": 8, "xtick.labelsize": 8, "ytick.labelsize": 8,
@@ -273,17 +331,35 @@ def build_figure(display: dict[str, Any]):
         fig, axes = plt.subplots(2, 5, figsize=FIGSIZE)
         fig.subplots_adjust(left=.202, right=.967, bottom=.072, top=.82, wspace=.24, hspace=.64)
         labels = [model["label"].replace("Claude ", "") for model in display["models"]]
-        for row, metric in enumerate(("accuracy", "distinct8")):
+        for row, metric in enumerate(("accuracy", "pmd")):
             for column, domain in enumerate(DOMAIN_ORDER):
                 ax = axes[row, column]
                 for model_index in range(len(model_order)):
                     if model_index % 2 == 0:
                         ax.axhspan(model_index-.48, model_index+.48, color="#F1F5F8", zorder=0)
                 for level, color, marker, offset in zip(LEVELS, LEVEL_COLORS, LEVEL_MARKERS, (-.25, 0, .25)):
-                    values = [cells[(model, domain, level)]["metrics"][metric] for model in model_order]
+                    # A cell with no \pmd{} is one whose successes are too rare
+                    # to define it; it is left off the row rather than drawn at
+                    # zero, so its position carries no reading either way.
+                    drawn = [(index, cells[(model, domain, level)]["metrics"].get(metric))
+                             for index, model in enumerate(model_order)]
+                    drawn = [(index, value) for index, value in drawn if value is not None]
                     if metric == "accuracy":
-                        values = [100 * value for value in values]
-                    ax.plot(values, [i+offset for i in range(len(model_order))], linestyle="none",
+                        drawn = [(index, 100 * value) for index, value in drawn]
+                    # The replaced condition is drawn first and hollow, so a
+                    # substituted point never hides the one it stands in for.
+                    replaced = [(index, companions[(model, domain, level)]["metrics"][metric])
+                                for index, model in enumerate(model_order)
+                                if (model, domain, level) in companions
+                                and companions[(model, domain, level)]["metrics"].get(metric) is not None]
+                    if replaced:
+                        scale = 100 if metric == "accuracy" else 1
+                        ax.plot([scale * value for _, value in replaced],
+                                [index + offset for index, _ in replaced], linestyle="none",
+                                marker=marker, markerfacecolor="white", markeredgecolor=color,
+                                markersize=3.4, markeredgewidth=.7, clip_on=False, zorder=2)
+                    ax.plot([value for _, value in drawn],
+                            [index + offset for index, _ in drawn], linestyle="none",
                             marker=marker, color=color, markersize=3.4, markeredgewidth=0,
                             clip_on=False, zorder=3)
                 ax.set_ylim(len(model_order) - .45, -.55)
@@ -302,8 +378,8 @@ def build_figure(display: dict[str, Any]):
                                       annotation_clip=False))
                 ax.tick_params(axis="y", length=0, pad=7)
                 ax.tick_params(axis="x", length=2.5, width=.5, pad=2)
-                ax.set_xlim(0, 100 if metric == "accuracy" else 5)
-                ax.set_xticks((0, 50, 100) if metric == "accuracy" else (0, 2, 4))
+                ax.set_xlim(0, 100 if metric == "accuracy" else 1)
+                ax.set_xticks((0, 50, 100) if metric == "accuracy" else (0, .5, 1))
                 ax.grid(axis="x", color="#D8E2EA", linewidth=.5, zorder=1)
                 for side in ("top", "right", "left"):
                     ax.spines[side].set_visible(False)
@@ -312,12 +388,22 @@ def build_figure(display: dict[str, Any]):
                 if row == 0:
                     ax.set_title(DOMAIN_LABELS[column], pad=7, fontweight="bold")
         fig.text(.018, .985, "(a) Accuracy (%)", va="top", fontsize=9, fontweight="bold")
-        fig.text(.018, .432, "(b) Verified modes (distinct@8)", va="bottom", fontsize=9, fontweight="bold")
+        fig.text(.018, .432, "(b) Diversity over successes (PCMD)", va="bottom", fontsize=9, fontweight="bold")
         handles = [Line2D([], [], linestyle="none", marker=marker, color=color,
                           markersize=4, markeredgewidth=0, label=f"Level {level}")
                    for level, color, marker in zip(LEVELS, LEVEL_COLORS, LEVEL_MARKERS)]
-        fig.legend(handles=handles, loc="upper right", bbox_to_anchor=(.99, 1.006), ncol=3,
-                   frameon=False, fontsize=8, handletextpad=.3, columnspacing=1.0)
+        if companions:
+            replaced_domains = sorted({DOMAIN_LABELS[DOMAIN_ORDER.index(domain)]
+                                       for _, domain, _ in companions})
+            replaced_labels = sorted({cell["label"].replace("Claude ", "")
+                                      for cell in companions.values()})
+            handles.append(Line2D([], [], linestyle="none", marker="o", markerfacecolor="white",
+                                  markeredgecolor="#607487", markersize=4, markeredgewidth=.7,
+                                  label=", ".join(replaced_labels) + " "
+                                        + "/".join(replaced_domains) + ", original prompt"))
+        fig.legend(handles=handles, loc="upper right", bbox_to_anchor=(.99, 1.006),
+                   ncol=len(handles), frameon=False, fontsize=8, handletextpad=.3,
+                   columnspacing=1.0)
     return fig
 
 
@@ -326,6 +412,11 @@ def render(record: dict[str, Any], output: Path = DEFAULT_OUTPUT) -> dict[str, A
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig = build_figure(record["display"])
+    try:
+        from ops.paper_domain_figure_typography import apply_domain_typography
+    except ModuleNotFoundError:
+        from paper_domain_figure_typography import apply_domain_typography
+    apply_domain_typography(fig)
     outputs = {}
     for suffix in (".pdf", ".png"):
         path = output.with_suffix(suffix)

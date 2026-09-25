@@ -1,0 +1,539 @@
+
+
+% Provider marks: one definition each, so every table that names a model
+% picks up the logo without its builder knowing about graphics.
+\newcommand{\providermark}[1]{\raisebox{-.18ex}{\includegraphics[height=1.75ex]{icons/#1}}\,}
+\newcommand{\qwenmark}{\providermark{qwen.png}Qwen}
+% No Falcon/TII mark ships with the paper, and HuggingFace's logo would name
+% the host rather than the maker. Text until a real one is added here.
+\newcommand{\falconmark}{Falcon}
+\newcommand{\openaimark}{\providermark{openai.png}GPT}
+
+% Ten main figures across eight pages of body text exceed what the default
+% float parameters will place, which strands the last floats past the end of
+% the scientific main. These loosen placement only; no content moves.
+% Float pages (pages holding only tables or figures) default to \@fpsep
+% "8pt plus 2fil", so LaTeX spreads whatever floats land there across the full
+% height. That is where the large gaps between stacked appendix tables came
+% from: two tables of twenty lines on a fifty-line page, pushed apart to fill
+% it. Packing them to the top with a fixed separation lets a third fit and
+% lets the leftover space fall at the foot, where it reads as a page ending
+% rather than as a gap between two objects.
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{14pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
+
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.60}
+\renewcommand{\textfraction}{0.06}
+\renewcommand{\floatpagefraction}{0.80}
+
+
+\title{Measuring and Mitigating Solution Mode Collapse in RLVR}
+
+\author{Anonymous Authors}
+
+\begin{document}
+
+\maketitle
+\raggedbottom
+
+\begin{abstract}
+A language model (LM) can usually answer the same question in more than one way, but reinforcement learning with verifiable rewards (RLVR) is indifferent to which correct answer a model produces. A solution will earn the same reward whether it is the thousandth copy of a familiar answer or one the model has never produced before.
+Yet, there is potential value in having the model retain multiple correct solutions as it is trained. For instance, multiple modes may give users a choice and provide problem-solving strategies that improve overall model performance.
+Here, we measure solution diversity through RLVR training using \mb{}, a set of multi-solution tasks, where the verifier returns both correctness and mode discovered.
+We find that RLVR post-training concentrates probability onto fewer correct modes even as accuracy holds or improves, and moreover, that frontier models are already highly concentrated.
+We then introduce Re:Max, which uses the verifier to index a memory containing one verified example per discovered mode and rehearses those modes uniformly.
+A solution found once is, therefore, practiced as often as one found repeatedly.
+Across three model scales, two RL objectives, and harder task constructions, Re:Max improves both how often a policy succeeds and how many different ways it can succeed.
+
+\end{abstract}
+
+% Artifact links as an unnumbered footnote so they sit at the foot of page 1
+% rather than between the abstract and the teaser figure, where the [H]-placed
+% figure crowds them out.
+\artifactfootnote{%
+  \micon{huggingface.png}\;%
+  \artifactlink{https://huggingface.co/datasets/XXXXXXXX}%
+  {ModeBench dataset and models}\qquad
+  \micon{gh_logo.png}\;%
+  \artifactlink{https://anonymous.4open.science/r/XXXXXXXX}%
+  {Code repository}\quad
+  \textit{Links anonymized for review.}}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
+\caption{\textbf{Motivation.}
+Consider the \texttt{Graph} coloring problem shown in \textbf{A} (left), with six valid solutions. 
+We evaluate Qwen2.5-3B across training, tracking the number and diversity of correct solutions. At each training pass, we show 32 sampled questions, eight from each of four matched runs. 
+Training with Dr. GRPO (\textbf{B}) improves accuracy and leads to a single solution dominating the output. In contrast, Re:Max (\textbf{C}) increases both accuracy and diversity of correct solutions.
+}
+\label{fig:story}
+\end{figure}
+\section{Introduction}
+\label{sec:introduction}
+
+Training and evaluation of reinforcement learning with verifiable rewards (RLVR) algorithms are driven entirely by model accuracy.
+However, what makes models useful at deployment depends on having different candidates to choose from, i.e. test-time search and reranking \citep{brown2024monkeys,snell2024testtime,cobbe2021training,wang2023selfconsistency}. This raises a question: as a model gets better at finding a correct answer during RLVR, \textit{what happens to other correct candidates}?
+
+RLVR trains against an executable check \citep{guo2025deepseekr1}, but its binary reward does not distinguish a solution the model has produced a thousand times from one it has never produced before.
+Nothing in the objective asks the model to maintain diversity.
+Fig.~\ref{fig:story} shows what this can look like on a graph-coloring problem with six valid answers: under Dr.GRPO \citep{liu2025understanding}, the policy becomes more accurate while its correct outputs concentrate onto a single mode.
+
+Mode collapse, or narrowing of the output space, has been observed in alignment \citep{kirk2024understanding,cui2025entropy}, creative generation \citep{doshi2024generative}, brainstorming and ideation \citep{anderson2024homogenization}, public argument \citep{kim2026argument}, and LM-assisted writing \citep{abdulhai2026distort}. 
+Quantifying this narrowing requires deciding whether two outputs are actually the same answer. 
+Token-level diversity \citep{li2016diversity,zhu2018texygen} counts two spellings of one solution as variety, while a judge that groups answers by meaning uses a second model to evaluate whether a given response is distinct \citep{farquhar2024detecting,zheng2023judging}.
+
+Here, we investigate the prevalence and impact of mode collapse in problem-solving tasks under RLVR post-training. Our contributions are threefold:
+
+\begingroup
+\setlength{\leftmargini}{1.1em}
+\begin{compactenum}
+    \item \mb{}: We contribute a benchmark for empirically studying mode collapse in tasks allowing for multiple correct solutions, ranging from code evaluation to constrained planning. \mb{} provides both output correctness and maintains a unique identity for each available modal solution to a given problem. The benchmark spans five executable domains, each with five difficulty levels (Sec.~\ref{sec:modebench}).
+    
+    \item We conduct comprehensive experiments on \mb{} across 4 open-weight model families and \MDfrontierdeployments{} frontier models.
+    Across open-weight models and at 3 model scales, the number of solution modes collapses in every domain under both Dr.GRPO and GRPO. 
+    Further, in inference, all frontier models we measured reached fewer than $1.5$ effective modes out of up to 355 unique solutions (Sec.~\ref{sec:results-collapse} and App.~\ref{app:hosted-mode-diversity}).
+    
+    \item We propose \emph{mode replay}, which stores one verified exemplar per mode and rehearses all modes equally. Added to Dr.GRPO \citep{liu2025understanding}, it raises accuracy and pairwise correct mode diversity across 3 model scales and all 5 \mb{} domains. We outperform 8 other RLVR baselines. Added to MaxRL \citep{tajwar2026maxrl} (which we dub as Re:Max), it adds diversity and accuracy across \mb{} difficulty levels (Sections~\ref{sec:method} and~\ref{sec:results-retention}--\ref{sec:results-levels}).
+    % MARWA GOOD IDEA: Get percentage increase in accuracy and percentage increase in PCMD!!!
+
+\end{compactenum}
+\endgroup
+
+Overall, our results quantify the severity of mode collapse and suggest that incorporating mode replay as part of RLVR post-training can lead to both increased diversity of solutions and improved model performance.
+
+\section{\mb: Measuring Successful Alternatives}
+\label{sec:modebench}
+\label{sec:collapse}
+
+\begin{figure}[!b]
+  \centering
+  \includegraphics[width=\linewidth]{figures/modebench_examples.pdf}
+  \caption{\textbf{\mb{} comprises questions with many acceptable solutions across domains.}
+  %color the (1) and (2) like we have inline for solutions for each domain
+  (1) and (2) identify different solution modes across the five domains, which include Graph coloring,  a normalized computation tree, executable Python code, algebraic problems and constraint optimization.
+  }
+  \label{fig:modebench-examples}
+\end{figure}
+
+%% LIV TO DO: In graph, take out the 1234 2235 bit, we're not going to do this here. No numbers or colors. Just a 1 and 2 AND USE A SUPER DIFFERENT PASTEL COLORS. 
+
+Building a benchmark to study solution model collapse is challenging for two reasons.
+First, each problem must allow for several valid discrete solutions.
+Second, given a model's reasoning trace, we must be able to determine which solution mode was reached. For example, in Fig.~\ref{fig:modebench-examples}D, we show algebra problems in our benchmark. In this example, we show that the same algebraic solution can be reached through two different series of steps.
+
+Ensuring these two properties hold is domain-specific. Fig.~\ref{fig:modebench-examples} illustrates a subset of solution modes across the considered domains; e.g., in \texttt{Countdown} and \texttt{MathIR}, modes mean the model reached the same answer by a different route, whereas in \texttt{Graph} and \texttt{PantryPlan}, modes mean a different valid answer altogether. We provide the number of unique possible solutions per domain in Table~\ref{tab:tasks}. Refer to App.~\ref{app:domain-overview} and App.~\ref{app:prompts} for per-domain rules and prompts for dataset generation.
+
+For each domain, we provide a verifier that evaluates whether a valid solution exists within the models reasoning trace, as well as the mode a solution belongs to. This was built by creating in advance a comprehensive set of potential solutions to the problem. Precisely, for a prompt $x$ with specification $s_x$, the validator maps an output $y$ either to failure $\bot$ or to a key $V(y,s_x)\in\mathcal C_x$. 
+Two accepted outputs are the same mode if and only if their keys agree. 
+The full set of valid keys $\mathcal C_x$ is never revealed, neither its members nor its size. 
+A policy, and the memory that stores its successes, only ever sees keys for answers the policy actually produced.
+
+\begin{figure}[b]
+  \centering
+  \includegraphics[width=0.95\linewidth]{figures/mode_diversity_levels_appendix.pdf}
+  % This panel carries its own whitespace under the axes, so the default gap on
+  % top of that reads as a break; pulled back, but not all the way.
+  \caption{\textbf{Higher performance is not associated with increased solution mode diversity.} We show the relationship between a performance-related metric (\texttt{pass@}8; $x$-axis) and our proposed solution mode diversity metric (\pmd{}; $y$-axis) for GPT-5.6 Sol (in black), and Qwen2.5-Instruct models of various sizes (where parameter count is indicated by color). Note that accuracy and model size are not correlated with solution mode diversity.}
+  \label{fig:base-levels-all-scales}
+\end{figure}
+
+\subsection{Success and verified-mode diversity}
+\label{sec:collapse-metrics}
+
+To measure performance on \mb{}, we must consider two distinct properties: how often the output is accurate, and, given that it is right, which of the available right answers has been given. 
+A benchmark reporting only accuracy cannot capture the failure we study.
+
+The obvious way to measure modal diversity is to count distinct correct answers in $K$ samples. We define $P$ as the chance a sample is correct and $q_c$ be how that correct probability is divided among the valid answers:
+\vspace{-0.05em}
+\begin{equation}
+ \underbrace{\Pr[D_K>0]}_{\texttt{pass@}K}=1-(1-P)^K,
+ \qquad
+ \underbrace{\E[D_K]}_{\texttt{distinct@}K}
+ =\sum_c[1-(1-Pq_c)^K],
+ \label{eq:main-occupancy}
+\end{equation}
+\vspace{-1em}
+
+where $D_K$ counts the distinct correct answers. However, both metrics increase with $P$, and thus a policy that is right more often may have higher $\texttt{pass@K}$ and $\texttt{distinct@}K$ while producing less diverse solutions.
+
+We therefore propose an alternative metric, denoted as pairwise correct-mode diversity:
+\begin{equation}
+ \pmd = 1-\sum_c q_c^2
+ = \Pr[Z_1\ne Z_2\mid \text{both responses verified}],
+ \label{eq:main-pmd}
+\end{equation}
+\vspace{-1.2em}
+
+measuring the joint probability of different solution modes given two correct responses. A \pmd{} of zero thus implies every correct answer belongs to the same solution mode, and an even spread over $m$ yields a \pmd{} of $1-1/m$, e.g., if answers spread evenly across two possible solution modes, then the \pmd{} is $1/2$. We note that when infinite solution modes are possible, the maximum \pmd{} converges to 1, and that when the model outputs no correct solutions, we cannot calculate the metric. We only calculate \pmd{} when models yield a minimum of correct solutions  Refer to App.~\ref{app:registered-endpoints} on how we choose this threshold. 
+
+Fig.~\ref{fig:base-levels-all-scales} shows how \pmd{} captures diversity of responses independently of accuracy. GPT-5.6 Sol has near-perfect \texttt{pass@8} for all five tasks considered, yet much weaker models in the Qwen2.5-Instruct family have higher \pmd{}. 
+For the context of this work, we define a \textit{solution mode collapse} as a decline in \pmd{} during RLVR.   
+
+\begin{wrapfigure}{r}{0.56\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{figures/qwen_level_trends.pdf}
+  \caption{\textbf{Harder problems of the same domain exhibit fewer solution modes.} When we ask the Qwen2.5-Instruct family and GPT-5.6 Sol increasingly difficult questions from harder levels of \mb{}, \texttt{pass@8} declined and so too does \pmd{}. For our benchmark, as problems get harder, solution mode collapse worsens.}
+  \label{fig:levels}
+  % \vspace{0.4cm}
+\end{wrapfigure}
+
+\subsection{Harder tasks with the same notion of a mode}
+\label{sec:levels-design}
+
+We construct \mb{} so that tasks can be made more or less challenging, which helps prevent \texttt{pass@8} accuracy saturation. This allows us to explore the impact of problem difficulty on mode collapse. 
+For each domain, we include 5 independent difficulty levels,  e.g. for our \texttt{Graph} domain we allow more hidden vertices, and for \texttt{Countdown} we give the model more operands. Each difficulty level holds constant (1) our definition of mode, (2) our approximate distribution of modes, (3) our verifier constant, and (4) the sample size of 384 train and 128 test problems. 
+To ensure (2) holds, and moreover, that the problems we sample are in fact more challenging, we fit each level with consideration to \texttt{pass@1} and \texttt{pass@8} of a reference model, e.g. Level 4 was tuned such that a Qwen2.5-Instruct-7B model has the same \texttt{pass@1} and \texttt{pass@8} scores as a Qwen2.5-Instruct-0.5B on Level 1.
+
+LMs with a higher parameter count generally have higher \texttt{pass@8} and can solve more problems. Yet, in Fig. \ref{fig:levels}, for our harder problems, we find that solution mode diversity declines, even as our underlying mode count per level remains stable. This is most noticeable when frontier models are evaluated. Even though correctness is saturated, we are able to use \pmd{} to isolate solution mode collapse (App.~\ref{app:hosted-mode-diversity}), and this phenomena happens across \mb{}. For example, frontier models answer $\MDfrontierpass$ of questions from Level 1-3 correctly, but their mean \pmd{} is 0.991, which is below the 0.57 of a 1.5B model that answers 0.27 of its own prompts.
+
+\subsection{Concentration in frontier models}
+\label{sec:hosted-concentration}
+
+\begin{figure}[!b]
+  \centering
+  \includegraphics[width=\linewidth]{figures/gpt56_all_levels32_sampling_budget.pdf}
+  % The legend row sits inside the image, so the default caption gap reads as a
+  % second break; close it as for Fig.~\ref{fig:base-levels-all-scales}.
+  \vspace{-9pt}
+  \caption{\textbf{Asking the model more times may not recover all available modes.}
+  We ask each frontier model the same question eight times in our early experiments. However, a potential critique could be that we simply need to ask the model more times. So, we ask GPT-5.6 Sol, with medium reasoning on; 32 problems per domain and level, 512 responses each. Curves are distinct verified modes in random $k$-subsets as a share of the modes those problems admit, and the shaded band is what no level ever produced. Shading is the pointwise 95\% problem bootstrap. Printed counts are the enumerated support those problems admit, in Level 1/2/3 order, and every panel shares one scale (App.~\ref{app:gpt56-all-levels-discovery}).}
+  \label{fig:gpt56-sampling-budget}
+\end{figure}
+
+A common fix for solution mode collapse is to increase the sampling budget, as repeated sampling
+can substantially increase solution coverage at test time \citep{brown2024monkeys,yue2025rlvrlimit}. But, across \mb{}, we find that more samples do not recover the complete set of modes. For example, when asked a Level-3 \texttt{Graph} problem with six valid colorings, GPT-5.6 Sol is right in all 1,024 draws, but only gives one of the six available answers. Fig.~\ref{fig:gpt56-sampling-budget} follows \mb{} at three levels out to 512 draws per problem, and the curves flatten far below the modal set: an LM that has settled on two colorings does not find the other four even after being asked five hundred times.
+
+\texttt{Python} is the extreme case. Its problems admit several hundred distinct return vectors on average, and five hundred draws surface between one and four solutions, under two percent of all possible solutions, and under one percent at Levels 2 and 3. Each doubling of the sampling budget buys a fraction of one mode, against gaps of several modes everywhere and several hundred in \texttt{Python}. This problem becomes worse as we increase problem difficulty. All 7 frontier models tested narrow in \pmd{} from Level 1 to Level 3 while staying near-perfect on correctness (Fig.~\ref{fig:frontier-level-grid}, App.~\ref{app:hosted-mode-diversity}). 
+
+We similarly check our local models over larger samplings, and we find quadrupling to sampling $K=32$ draws per problem moves the mode count by less than 1/1000 and \texttt{MathIR} at $K=64$ draws is as concentrated as at $K=8$ (Apps.~\ref{app:decoding-objection} and~\ref{app:sampling-budget-ablation}), while disabling reasoning costs correctness and \pmd{} together (Table~\ref{tab:hosted-reasoning-matched-levels}, App.~\ref{app:hosted-reasoning-control}).
+
+We do, however, note that cheap inference interventions do exist. For example, we find that because different models collapse onto different answers, mixing responses from two independent models covers more verified solution modes than either alone (App.~\ref{app:cross-model-overlap}). Additionally, raising inference temperature gives more solution modes too, but at the cost of model accuracy (Fig.~\ref{fig:gpt56-temperature-curve}).
+
+\section{Re:Max: Learn from New Samples and Remember Successes}
+\label{sec:method}
+
+
+\begin{wrapfigure}{r}{0.56\linewidth}
+  \centering
+   \vspace{-0.1cm}
+  \includegraphics[width=0.95\linewidth]{figures/replay_bank_balance.pdf}
+  \caption{\textbf{RLVR early "winner" (A) becomes the predominant way to solve.} Under the base model, we see that before RLVR, many modes exist. However, RLVR-only training concentrates it on the mode found first. Our uniform replay approach keeps every buffered mode and leaves room to find more.}
+  % \vspace{-0.5cm}
+  \label{fig:replay-bank-balance}
+\end{wrapfigure}
+
+
+% \subsection{Why memory avoids solution mode collapse}
+\subsection{Theoretical intuition for mode collapse} 
+\label{sec:collapse-mechanism}
+
+Solution mode collapse follows from two properties of the objective:
+1) the binary verifier assigns the same reward to every correct answer, so the objective provides no incentive to preserve one correct mode over another; and 2) an on-policy update can reinforce only the modes that appear in its fresh rollout samples, which are drawn according to the policy's current preferences. Together, these properties create a positive feedback loop, where a mode with even a small early advantage is sampled more often, receives more reinforcement, and therefore becomes even more likely to be sampled in subsequent updates. Figure~\ref{fig:replay-bank-balance} illustrates this process. 
+
+We formalize this intuition in three theoretical results, developed in detail in the appendices.
+First, Theorem~\ref{thm:grpo-collapse} shows that, under an independent-logit parametrization and Euclidean expected-gradient flow, this positive feedback leads to a ``winner-takes-all'' limit: a unique initial leader among correct modes eventually dominates.
+Second, App.~\ref{app:theory-entropy} shows that this result depends on the interaction between binary rewards and optimization geometry; binary rewards alone do not force this concentration.
+Third, Lemma~\ref{lem:sampled-score-bound} characterizes a limitation of standard RLVR; LMs post-trained with RLVR can amplify rare modes when sampled, but both the chance of sampling a mode and its expected absolute logit-gradient contribution vanish as its probability approaches zero. When the applied advantages sum to zero within the group, a mode absent from the current batch has no gradient.
+
+\subsection{Replaying distinct verified successes}
+\label{sec:replay}
+
+Our theoretical analysis suggests that, to achieve diversity in inference we need to maintain our solution modes during training. 
+We address this challenge drawing inspiration from classic RL approaches towards memory management through replay \citep{lin1992selfimproving, DBLP:journals/corr/MnihKSGAWR13, rolnick2019replay}. Once a successful solution mode has been found and stored, replay allows us to continue training on it whether or not the current policy rediscovers it.
+Under a fixed-buffer analysis, a constant replay from the existing set of unique found modes keeps every buffered mode above a positive probability floor (Theorem~\ref{thm:replay-retention}).
+
+For each training prompt $x$, we maintain an initially empty, bounded buffer $\mathcal B_x$.
+The first time a verified mode appears, we store one exemplar $e_c$ that realizes it (subsequent rediscoveries do not modify the buffer).
+A deterministic schedule revisits nonempty buffer throughout training.
+For an exemplar of token length $|e_c|$, the replay loss is
+
+\begin{equation}
+ L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+\end{equation}
+
+Uniform weighting breaks the link between discovery frequency, how often a mode appears in fresh rollouts, and rehearsal frequency, how often a stored mode is replayed.
+Once a mode enters the buffer, it is rehearsed as often as every other retained mode, so frequently sampled modes receive no additional replay.
+
+Adding this loss to the fresh update from standard MaxRL \citep{tajwar2026maxrl} gives our primary method, Re:Max. But, this principle is modular, and can be applied to any RLVR algorithm. For example, we also evaluate with Dr.GRPO \citep{liu2025understanding} resulting in the algorithm, Re:Dr. Solution modes discovered during training do not enter the on-policy reward group, and contribute only through the separate replay loss.
+This separation allows one to vary the RLVR objective and the replay mechanism independently. Finally, our replay buffers contain only responses to training prompts; held-out evaluation therefore measures changes in the policy itself rather than retrieval or recitation from the buffer (App.~\ref{app:algorithm}).
+
+Fig.~\ref{fig:verified-support-story} illustrates how replay changes learning dynamics.
+In the standard RLVR setting, a policy learns only from modes present in the current sampling, which often leads previously discovered modes to disappear. Re:Max adds an additional incentive for the policy to continuously generate previously found solution modes that yield correct solutions.
+We note that this is fundamentally different from approaches that encourage diversity by modifying the on-policy learning signal to favor rare or diverse outcomes
+\citep{song2025outcome,li2026setpo}, as we do not use mode identity to modify the task reward or advantage.
+
+\begin{figure}[b]
+  \centering
+  \includegraphics[width=0.9\linewidth]{figures/verified_support_story.pdf}
+    \caption{\textbf{Replay preserves successes that on-policy learning may stop seeing.}
+    MaxRL learns from the policy's current samples, while replay stores one verified exemplar per discovered mode and revisits those exemplars with equal weight.
+    Together, these two learning paths allows Re:Max to preserve previously discovered solution modes while continuing to explore for new ones.}
+  \label{fig:verified-support-story}
+\end{figure}
+
+\section{Experimental Design}
+\label{sec:experiments}
+\label{sec:shared-protocol}
+
+In our main experiment, we examine whether replay improves correctness and reasoning-mode diversity across different RLVR objectives. 
+We compare the impact of our replay component against both Dr.GRPO \citep{liu2025understanding} and MaxRL \citep{tajwar2026maxrl}. 
+First, on all five \mb{} Level 1 train/test sets we carry out five seeds of post-training using Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B. We train for eight epochs with $G=16$ new rollouts. 
+We note that replay does not increase this sampling budget. Instead, it performs an additional training update using at most $M=16$ previously collected exemplars from the replay buffer for each visited prompt (Table~\ref{tab:run-contract}).
+Second, we conduct the same experiment on \mb{} Levels 2 and 3 using only a Qwen2.5-0.5B. 
+Third, we compare our method with other approaches, including frequency-weighted replay, UCPO \citep{lochab2026ucpo}, RLEP \citep{zhang2025rlep}, GAPO \citep{anschel2025groupaware}, SetPO \citep{li2026setpo}, and fixed Semantic-MaxEnt under a specific setting (Qwen2.5-0.5B, five seed, level 1).
+
+% are all explored under the same Qwen2.5-0.5B, five seed, level 1 \mb{}. Evaluation averages 4 eight-sample draws on 128 held-out prompts that do not enter either training or the bank% (Tab.~\ref{tab:run-contract}).
+
+We additionally evaluate 5 hosted models: GPT-5.6 Sol \citep{openai2026gpt56}, GPT-5.4 \citep{openai2026gpt54}, Grok 4.3 \citep{xai2026grok43}, Kimi K3 \citep{kimiteam2026kimik3}, and Claude Opus 4.8 \citep{anthropic2026opus48} on \mb{} Levels 1--3, collecting eight responses per prompt and grading them through a fixed formatting normalizer so that presentation differences are not counted as verified alternatives (App.~\ref{app:hosted-comparison}). We carry out the same inference-only evaluation Level 1--5 across the available scales and benchmark levels of SmolLM2 \citep{allal2025smollm2},
+Qwen2.5 \citep{yang2024qwen25}, Falcon3 \citep{falconllm2024falcon3}, and OLMo-2 \citep{olmo20242olmo2furious}. These experiments are inference-only; no replay (or training) is applied.
+
+\section{Results}
+\label{sec:results}
+
+Our results are three-fold.  First, we document reasoning-mode collapse under RLVR on \mb{} (Section~\ref{sec:results-collapse});
+Second, we find that replay reverses this collapse without sacrificing correctness (Section~\ref{sec:results-retention}), outperforming 8 existing RLVR approaches.
+Third, we show that replay gains persist across difficulty levels (Section~\ref{sec:results-levels}), KL-chaining, and domain changes.
+% come back to this one!
+
+\subsection{RLVR concentrates solution modes}
+\label{sec:results-collapse}
+
+\begin{wrapfigure}{r}{0.55\textwidth}
+  \centering
+  \includegraphics[width=0.53\textwidth]{figures/concentration_story_resampled.pdf}
+  \caption{\textbf{Training reduces solution mode diversity.} We compare \pmd{} before and after RLVR on Qwen2.5-3B, over \mb{} Level 1 test set, under three objectives, five domains,
+  five seeds. The figure shows the change in \pmd{} from before to after. Marks are means over training seeds with nominal 95\%  intervals. In 14 of 15 comparisons, we find fewer solution modes after training. See  Fig.~\ref{fig:concentration-all-scales} for other model scales.}
+  \label{fig:concentration-story}
+  % \vspace{-1\baselineskip}
+\end{wrapfigure}
+
+
+\textbf{RLVR replaces diverse correct attempts with the same repeated answers.}
+We compare each policy's solution-mode distribution before and after training using \pmd{}. 
+Across Dr.GRPO, GRPO, and MaxRL results, we find fewer solution modes after RLVR post-training in 14 out of 15 domains for Qwen2.5-3B (Fig.~\ref{fig:concentration-story}), with the same pattern appearing across model scales and difficulty levels (Fig.~\ref{fig:concentration-all-scales}).
+The starkest case is \texttt{Python}, where Qwen2.5-3B goes from solving 73 of 128 held-out prompts in multiple ways to as few as 22 after Dr.GRPO post-training. 
+
+\begin{table}[t]
+  \centering
+  \caption{\textbf{Compared objectives under Qwen2.5-0.5B, \mb{} Level 1.} Each method is compared against the same task performed under Dr.GRPO; avg weights the five domains equally within seed (5-seeds). Bold marks a column's best. An em-dash means that there are few more-than-one solution pairs to evaluate. Worst LMs are in red; best LMs are in green; scaled to that column's largest magnitude.}
+  \label{tab:direct-comparator-matrix}
+  \scriptsize
+  % Thirteen columns with the domains spelled out. The two widest headers,
+  % Countdown and PantryPlan, are split across two lines to keep the table
+  % compact while preserving full domain names.
+  \setlength{\tabcolsep}{1.4pt}
+  \renewcommand{\arraystretch}{0.95}
+  \begin{tabular}{@{}l*{12}{r}@{}}
+    \toprule
+    & \multicolumn{6}{c}{\textbf{$\Delta$ \texttt{pass@8}}}
+      & \multicolumn{6}{c}{\textbf{$\Delta$ \pmd{}}} \\
+    \cmidrule(lr){2-7}\cmidrule(l){8-13}
+    & \texttt{Graph}
+    & \shortstack{\texttt{Count}\\\texttt{down}}
+    & \texttt{Python}
+    & \texttt{MathIR}
+    & \shortstack{\texttt{Pantry}\\\texttt{Plan}}
+    & Avg
+    & \texttt{Graph}
+    & \shortstack{\texttt{Count}\\\texttt{down}}
+    & \texttt{Python}
+    & \texttt{MathIR}
+    & \shortstack{\texttt{Pantry}\\\texttt{Plan}}
+    & Avg \\
+    \midrule
+    \input{results/retention_matrix_panel_b_table_body.tex}
+  \end{tabular}
+\end{table}
+
+\textbf{As outputs concentrate, rollouts under RLVR lose training signal.}
+Dr.GRPO and MaxRL learn from a rollout group only when it contains a mix of correct and incorrect responses. Thus,
+we audit every rollout group during training to track how often they have provided a non-zero learning signal. 
+We find that Re:Max systematically increases the percentage of rollout groups with a learning signal (App.~\ref{app:degenerate-groups}); e.g., on \texttt{Python}, 18.5\% of groups have successes and failures under replay, compared to only 1.5\% without.
+
+\subsection{Replay improves both accuracy and diversity}
+\label{sec:results-retention}
+
+\textbf{Replay improves accuracy and diversity across RLVR algorithms and model scales.}
+We add our proposed verified-mode replay mechanism to Dr.GRPO and MaxRL and compare each against its matched no-replay control across five \mb{} domains and three model scales. Across these comparisons, we find that replay shifts the outcome toward both higher \texttt{pass@8} and greater reasoning-mode diversity (Fig.~\ref{fig:maxrl-factorial}; Tab.~\ref{tab:cross-scale-terminal-effects}).
+
+\begin{wrapfigure}{r}{0.65\textwidth}
+  \centering
+  \vspace{-0.9\baselineskip}
+  \includegraphics[width=0.63\textwidth]{figures/e118_all_scale_factorial_progress.pdf}
+  \caption{\textbf{Replay leads to higher accuracy and solution mode diversity.} Diamonds are initial LMs; open/filled markers are training without/with replay. (A) averages all five domains within seed; faint paths
+  show seeds. (B) draws both arrows from the untrained model, one to the standard RLVR objective alone, one to it with replay, over the domains where every arm clears the support bar. App. Fig.~\ref{fig:maxrl-factorial-scale-extensions} provides results for each domain at every scale.}
+  \label{fig:maxrl-factorial}
+\end{wrapfigure}
+
+
+\textbf{Mode diversity gains come from balancing retained modes.}
+To isolate the role of mode balancing, we compare uniform replay with a frequency-weighted variant that rehearses modes in proportion to their discovery rate. Holding replay buffer construction, replay advantage scheduling, and loss update unchanged, we find that uniform weighting preserves greater verified diversity, most clearly in \texttt{Graph}, \texttt{Countdown}, and \texttt{PantryPlan}.
+For example, the post-trained LM recovers roughly 0.6 additional modes per prompt in \texttt{Graph}, while also increasing \texttt{pass@8} by 6.6 percentage points.
+Across domains, these gains come without an aggregate difference in correctness (App.~\ref{app:frequency-replay-progress}, App. Fig.~\ref{fig:replay-key-weighting}).
+
+\textbf{Alternative diversity mechanisms produce isolated rather than consistent gains.}
+We compare Re:Max and Re:Dr.(ours) against UCPO \citep{lochab2026ucpo}, RLEP \citep{zhang2025rlep}, GAPO \citep{anschel2025groupaware}, SetPO \citep{li2026setpo}, and fixed Semantic-MaxEnt (Tab.~\ref{tab:direct-comparator-matrix}, App.~\ref{app:ucpo-progress}). 
+Some of these methods produce substantial gains in individual domains, e.g., GAPO increases \pmd{} by $65.3$ percentage points in \texttt{PantryPlan}, while SetPO increases \texttt{pass@8} by $49.7$ percentage points in \texttt{Python}.
+Yet these gains are domain-specific, while Re:Max improves both metrics across domains, averaging gains of $35.8$ percentage points in \texttt{pass@8} and $32.0$ percentage points in \pmd{} over Dr.GRPO.
+
+%% MIGHT JUST PUT IN THE PERCENTAGE IMPROVEMENT IN BRACKETS!!!
+
+\begin{wrapfigure}{l}{0.45\textwidth}
+  \centering
+  \includegraphics[width=0.34\textwidth]{figures/modebench_level_admission.pdf}
+
+ \caption{\textbf{Replay gains persist across difficulty levels.}
+  Bars show the gain from adding replay to Dr.GRPO (Re:Dr) and MaxRL (Re:Max) at each \mb{} level, averaged across domains for Qwen2.5-0.5B. Replay improves both \pmd{} (top) and \texttt{pass@8} (bottom) at all three levels.}
+  % \caption{\textbf{Replay across difficulty levels at Qwen2.5-0.5B.}
+  % Arrows run within a level, from a fresh objective to the same objective with
+  % replay; open, half and filled marks denote Levels 1--3.
+  % (App.~\ref{app:level2-interim}).}
+  \label{fig:level2-admission}
+  % Reclaim wrapfig's line rounding, as for Fig.~\ref{fig:concentration-story}.
+  \vspace{-5mm}
+\end{wrapfigure} % \textbf{Takeaway.}
+% Replay improves accuracy and reasoning diversity across model scales and RLVR objectives. The observed gains depend on balancing retained modes and are more consistent across domains than those of alternative diversity mechanisms.
+
+% Yet, we find that our method produces much more 
+
+% Although individual methods improve particular domains, their gains do not
+% extend consistently across both \texttt{pass@8} and \pmd{} (Tab.~\ref{tab:direct-comparator-matrix}, App.~\ref{app:ucpo-progress}).
+
+
+
+
+\subsection{Replay remains effective beyond the base training setting}
+\label{sec:results-levels}
+
+\textbf{Replay's gains persist on harder task constructions.}
+We repeat the replay-versus-control comparison within each of the first three \mb{} levels, holding the level and fresh objective fixed. Replay improves average \texttt{pass@8} and \pmd{} under both Dr.GRPO and MaxRL at every level (Fig.~\ref{fig:level2-admission}).
+At Level 2, for instance, replay increases \pmd{} on \texttt{Graph} by $0.314$ under Dr.GRPO and $0.212$ under MaxRL. Gains vary across domains, but remain positive in aggregate even at Level 3 (App.~\ref{app:level2-interim}).
+
+
+
+\textbf{Replay leaves more usable alternative correct solutions when the task changes.}
+We take a portfolio of eight generated answers, remove one option from the underlying task---e.g. an ingredient in \texttt{PantryPlan} or a color in \texttt{Graph}---and re-check the saved answers under the modified task.
+Across all five domains, replay-trained policies are more likely to have an alternative answer that remains valid after removal. 
+ When none of the saved answers remains valid, replay-trained policies also find a new valid answer in fewer additional attempts than ordinary or tuned-temperature sampling (Apps.~\ref{app:withdrawal-recovery},~\ref{app:pantry-adaptation}).
+
+
+
+
+
+
+\textbf{Reference KL and replay preserve different sources of diversity.}
+A potential explanation is that replay need not remember individual modes at all: perhaps anchoring the policy to its initially broader distribution is enough to prevent collapse.
+To test this, we sweep the coefficient of a KL penalty to the initial policy and compare its
+correctness--diversity curve with Re:Max/ Re:Dr.
+The anchor is limited by the diversity already present in its reference, whereas replay is limited
+by the modes its buffer discovers. On the four-domain aggregate, matching replay's diversity with
+the anchor costs model correctness (Fig.~\ref{fig:reference-kl-plane}). We further show analytically that diversity depends on whether all modes were contained within the initial policy or discovered during training (App.~\ref{app:theory-kl}).
+
+% \textbf{Takeaway.}
+% Re:Max remains useful beyond the training setting. Replay gains persist on harder tasks, its retained modes provide valid fallbacks when constraints change, and it preserves discovered diversity rather than anchoring the policy to the diversity of the base.
+
+
+\begin{wrapfigure}{r}{0.45\textwidth}
+  \centering
+  \vspace{-0.7\baselineskip}
+  \includegraphics[width=\linewidth]{figures/reference_kl_plane.pdf}
+  \caption{\textbf{Replay outperforms KL anchoring.}
+  Means over five domains for Qwen2.5-0.5B. The anchor forms a curve because
+  we sweep several $\beta$-KL coefficients. Increasing $\beta$ preserves more
+  solution diversity, but at a lower \texttt{pass@8}.
+  Green indicates where an arm achieves higher \texttt{pass@8} than the anchor
+  at the same level of diversity
+  (App.~\ref{app:theory-kl-measured}).}
+  \label{fig:reference-kl-plane}
+\end{wrapfigure}
+
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{Measuring solution diversity under alignment} RLHF and reasoning RL can reduce
+output diversity, entropy, and high-budget coverage
+\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.
+Measuring this collapse, however, requires defining when two correct answers differ meaningfully.
+Semantic clustering infers it from language \citep{farquhar2024detecting}, which is general but depends on a judge.
+\mb{} instead defines solution identity through the same executable check that is used to assign reward, such that two outputs differ exactly when they execute differently.
+This gives us a narrower but cheaper and verifier-grounded measure of solution diversity, shared between training and evaluation. Preserving such alternatives matters because sampling-based selection relies on generating multiple viable proposals \citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.
+
+
+% The literature establishes the impact of solution mode collapse. Our work tries to quantify the impact and establish both a benchmark for evaluation and a potential path forward to resolve solution mode collapse.
+
+% \textbf{What is a different answer?} 
+% Diversity can only be measured once sameness is defined.
+% Semantic clustering infers it from language \citep{farquhar2024detecting}, which is general but depends on a judge.
+% \mb{} instead defines solution identity through the same executable check that used to assign reward, such that two outputs differ exactly when they execute differently.
+
+% narrower, cheaper, and shared by training and evaluation. 
+% Alternatives matter because sampling-based selection consumes proposals
+% \citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.
+
+\textbf{Expanding diversity.} 
+Outcome bonuses, set prediction, distribution matching, and uniform-correct objectives all reshape the learning signal\citep{song2025outcome,chen2025passktraining,li2025divergence,li2026setpo,li2026distribution,lochab2026ucpo}, while MaxRL combines objectives across sampling budgets \citep{tajwar2026maxrl}.
+Yet these approaches still depend on what the current policy samples---precisely where our analysis finds that solution diversity disappears.
+Memory can break this dependence on current samples, but what it preserves depends on how it replays experience.
+Both standard replay~\citep{lin1992selfimproving,rolnick2019replay} and RLEP~\citep{zhang2025rlep} mitigate forgetting by revisiting successes in proportion to how their occurrences.
+Instead, we homogeneously balance replay across solution modes, an idea related to explicitly preserving behavioral diversity in quality-diversity methods \citep{mouret2015illuminating,ecoffet2021return}.
+
+
+% Balancing modes independently of discovery frequency separates our memory from those and connects it to behavioral archives in quality-diversity methods \citep{mouret2015illuminating,ecoffet2021return}.
+
+
+\section{Conclusion}
+\label{sec:conclusion}
+\label{sec:discussion}
+\label{sec:limitations}
+
+
+
+We contribute \mb{}, a benchmark for studying solution mode diversity in RLVR, and Re:Max, a replay-based method that preserves discovered solution modes during post-training. 
+Across objectives, model scales, and task difficulties, we find that replay can retain solution diversity while improving correctness. 
+Our results further suggest that solution diversity may be itself a target for optimization. Future work can move beyond preserving discovered modes towards training models to produce desired distributions over ways to solve a problem.
+
+
+% \mb{} makes accurate answering and diversity separately observable, and Re:Max keeps discovered successes in play after fresh sampling stops producing them. Given we show that model diversity can be retained via replay, follow up work should explore whether we can carry out post-training to produce a pre-determined / pre-desired output mode distribution or solution mode ordering.
+
+
+\textbf{Limitations.} We acknowledge that replay retains only what sampling finds, thus why a more capable objective like MaxRL outperforms when combined with our replay mechanism. We also recognize that mode count says nothing about the ``worth'' of additional solutions. Our experiments are designed such that the equivalence is executable by construction, so future work is needed to evaluate the benefit (and feasibility) of replay in more open-ended solution spaces. 
+
+% ICLR wants the AI Use, Ethics and Reproducibility statements after the
+% Conclusion and before the references, where they do not count against the
+% page limit. They used to close the appendix, which put them after the
+% bibliography and failed the layout contract.
+\label{sec:main-end}
+\clearpage
+\subsubsection*{AI Use Statement}
+\label{sec:ai-use}
+
+Generative AI assisted manuscript preparation, mathematical analysis, and supporting code. The authors reviewed and verified the resulting content and take responsibility for the final manuscript.
+
+\subsubsection*{Ethics Statement}
+
+The benchmark and experiment-specific data are synthetic; this study collects
+no human-subject or personal data. More verified modes are not inherently
+better: a distinct execution may be risky or costly even when it passes the
+validator, and \pmd{} does not measure downstream value. Systems
+that evaluate or optimize breadth should report correctness, invalidity, and
+application-specific costs alongside mode counts.
+
+\subsubsection*{Reproducibility Statement}
+
+Every reported number is computed from a versioned result file.
+App.~\ref{app:reproducibility} records protocols, hashes, validations,
+and regeneration commands, and links the public dataset and model archive;
+App.~\ref{app:data} records split identities.
+The AI Use Statement above discloses generative-AI assistance.
+

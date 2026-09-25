@@ -18,9 +18,15 @@ MANUSCRIPT = ROOT / "paper/main.tex"
 MODELS = ("05b", "3b", "7b", "14b")
 # The appendix scale table's own ladder and levels. build_mode_diversity_table
 # counts the scale trend over these, so a claim about that count is only
-# reproducible when this test reads the same scope.
-SCALE_LADDER = ("05b", "3b", "7b", "14b", "qwen32b", "qwen72b")
-SCALE_LEVELS = ("level1", "level2", "level3", "level4")
+# reproducible when this test reads the same scope. Both axes grow as the grid
+# fills -- qwen15b and Level 5 each arrived after this test was first written --
+# so they are resolved from the builder rather than repeated here, which would
+# relocate the staleness into the test exactly as the docstring warns.
+def _scale_axes() -> tuple[tuple[str, ...], tuple[str, ...]]:
+    import sys
+    sys.path.insert(0, str(ROOT / "ops"))
+    import build_mode_diversity_table as builder
+    return builder.grid_axes(_payload("mode_diversity_base_grid.json")["cells"])
 
 
 def _payload(name: str) -> dict:
@@ -44,7 +50,11 @@ def hosted() -> dict:
 
 @pytest.fixture(scope="module")
 def cohort() -> dict:
-    return _payload("mode_diversity_hosted_cohort.json")
+    # The 2026-09-17 payload carries both readings: macro_pmd over whatever
+    # cells a deployment reports, and macro_pmd_common_cells over the thirteen
+    # every deployment reports. The prose quotes the second, so the test has to
+    # read the second; the older file has only the first.
+    return _payload("mode_diversity_hosted_cohort_20260917.json")
 
 
 @pytest.fixture(scope="module")
@@ -72,11 +82,32 @@ def test_support_counts_in_the_prose_are_generated_not_hand_written(grid):
     assert int(macros["MDreportable"]) == len(reportable)
     assert int(macros["MDgaps"]) == len(cells) - len(reportable)
 
+    # The gap composition and the definedness correlation are quoted in the
+    # support paragraph, so they are pinned to the payload like the counts are.
+    from collections import Counter
+    gaps = Counter(c["domain"] for c in cells if not c["reportable"])
+    assert int(macros["MDtopgapcount"]) == gaps.most_common(1)[0][1]
+
+    def _corr(xs, ys):
+        mx, my = sum(xs) / len(xs), sum(ys) / len(ys)
+        num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+        den = (sum((x - mx) ** 2 for x in xs) * sum((y - my) ** 2 for y in ys)) ** .5
+        return num / den
+
+    def _fmt(v):
+        text = f"{v:.3f}"
+        return text.replace("0.", ".", 1) if text.startswith(("0.", "-0.")) else text
+
+    defined = _corr([c["pass8"] for c in cells],
+                    [c["defined_prompts"] / c["prompts"] for c in cells])
+    assert macros["MDdefinedcorr"] == _fmt(defined)
+
     body = MANUSCRIPT.read_text(encoding="utf-8")
     assert r"\input{results/mode_diversity_coverage.tex}" in body
-    # MDgaps is generated for the record but the prose no longer quotes it;
-    # what must hold is that every count the prose does quote is a macro.
-    for macro in ("MDcells", "MDreportable", "MDdistinctcorr", "MDpmdcorr"):
+    # Every count and coefficient the prose quotes must be a macro, so a rebuild
+    # moves the sentence with the payload instead of leaving it stale.
+    for macro in ("MDcells", "MDreportable", "MDgaps", "MDtopgapcount",
+                  "MDdistinctcorr", "MDpmdcorr", "MDdefinedcorr"):
         assert "\\" + macro in body, f"{macro} is generated but never used"
 
 
@@ -97,13 +128,14 @@ def test_scale_raises_correctness_and_lowers_diversity(grid, manuscript):
     # Table 4 is the Qwen table, so its scale claim is scoped to Qwen; pooling
     # families here would compare parameter count across different pretraining.
 
+    scale_ladder, scale_levels = _scale_axes()
     declining = total = 0
     for domain in sorted({c["domain"] for c in reportable}):
-        for level in SCALE_LEVELS:
+        for level in scale_levels:
             block = {c["model_label"]: c for c in reportable
                      if c["domain"] == domain and c["level"] == level
-                     and c["model_label"] in SCALE_LADDER}
-            present = [m for m in SCALE_LADDER if m in block]
+                     and c["model_label"] in scale_ladder}
+            present = [m for m in scale_ladder if m in block]
             if len(present) < 2:
                 continue
             total += 1
@@ -155,14 +187,25 @@ def test_replay_beats_its_control_on_the_conditional_axis(training, manuscript):
                 continue
             measurable += 1
             wins += treated["pmd_after"] > control["pmd_after"]
-    # The payload grows as excluded cells are recovered, so the count is read
-    # back from the prose rather than frozen here; what must hold is that the
-    # sentence names the number of comparisons replay does not win.
-    losses = measurable - wins
-    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five"}
     assert measurable >= 31, "the conditional-axis comparison lost coverage"
     assert wins * 5 > measurable * 4, "replay must still win the large majority"
-    assert f"all but {words[losses]} of the comparisons" in manuscript
+
+    # The prose used to spell this out as "all but three of the comparisons".
+    # It now states it through \PMDabove/\PMDblocks, which are generated by
+    # build_pmd_retention_matrix.py on the paired support bar of 20 rather than
+    # the whole-cell bar of 30 counted above, so the two totals differ by
+    # construction and neither is a restatement of the other. What must hold is
+    # that the sentence still spends the macros instead of a frozen number.
+    import re
+    macros = dict(re.findall(r"\\newcommand\{\\(PMD\w+)\}\{([^}]*)\}",
+                             (ROOT / "paper/results/pmd_retention_macros.tex")
+                             .read_text(encoding="utf-8")))
+    above, blocks = int(macros["PMDabove"]), int(macros["PMDblocks"])
+    assert 0 < above <= blocks, "the retention macros are not a sub-count"
+    assert above * 5 > blocks * 4, "replay must still win the large majority there too"
+    for macro in ("PMDabove", "PMDblocks"):
+        assert "\\" + macro in MANUSCRIPT.read_text(encoding="utf-8"), (
+            f"{macro} is generated but the prose no longer spends it")
 
 
 def test_verifier_only_training_collapses_diversity_at_every_scale(training):
@@ -215,11 +258,17 @@ def test_hosted_deployments_are_all_concentrated(hosted, cohort, manuscript):
     assert cells[(2, "python_factors")]["defined_prompts"] == 14
     assert cells[(3, "python_factors")]["defined_prompts"] == 15
 
-    macros = [m["macro_pmd"] for m in cohort["models"]]
-    assert len(macros) == 7
-    assert (round(min(macros), 3), round(max(macros), 3)) == (0.142, 0.311)
-    assert all(1 / (1 - value) < 1.5 for value in macros), "none may reach 1.5 effective modes"
-    for token in ("$.142$", "$.311$", "$1.5$"):
+    # The manuscript reports the common-cell macro, because averaging each
+    # deployment over whatever it can report ranks them against different sets
+    # of cells. Both readings are checked; only the quoted one is asserted to
+    # appear in the prose.
+    common = [m["macro_pmd_common_cells"] for m in cohort["models"]]
+    own = [m["macro_pmd"] for m in cohort["models"]]
+    assert len(common) == 7 and len(own) == 7
+    assert all(1 / (1 - value) < 1.5 for value in common), "none may reach 1.5 effective modes"
+    assert all(1 / (1 - value) < 1.5 for value in own), "nor on the per-deployment reading"
+    lo, hi = round(min(common), 3), round(max(common), 3)
+    for token in (f"${lo:.3f}$".replace("0.", "."), f"${hi:.3f}$".replace("0.", "."), "$1.5$"):
         assert token in manuscript, f"{token} no longer appears in the manuscript"
 
 

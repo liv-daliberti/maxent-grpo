@@ -1,0 +1,62 @@
+[
+  {
+    "old": "Yet, there is potential value in having the model retain multiple correct solutions as it is trained. For instance, multiple modes may give users a choice and provide problem-solving strategies that improve overall model performance.",
+    "new": "Retaining alternatives can matter when requirements change and a previously correct solution becomes unusable."
+  },
+  {
+    "old": "We then introduce Re:Max, which uses the verifier to index a memory containing one verified example per discovered mode and rehearses those modes uniformly.",
+    "new": "An idealized independent-logit analysis shows that a broad class of correctness-improving binary-reward objectives shares the same conditional mode trajectory.\nWe then introduce Re:Max, which uses the verifier to index a memory containing one verified example per discovered mode and rehearses those modes uniformly."
+  },
+  {
+    "old": "Across three model scales, two RL objectives, and harder task constructions, rehearsing verified successes raises how often a policy succeeds, and rehearsing them uniformly is what preserves how many ways it can succeed.",
+    "new": "Across three model scales, two RL objectives, and harder task constructions, replay improves accuracy and correct-mode diversity; uniform rehearsal adds verified alternatives beyond frequency-weighted reuse. At a fixed number of correct draws, replay also improves Graph portfolio survival after an available option is withdrawn."
+  },
+  {
+    "old": "Further, in inference, all frontier models we measured reached fewer than $1.5$ effective modes (Sections~\\ref{sec:results-collapse} and~\\ref{sec:hosted-concentration}).",
+    "new": "Under strict grading, each hosted deployment's mean \\pmd{} over the same 13 reportable domain--level cells corresponds to fewer than $1.5$ effective modes (Sections~\\ref{sec:results-collapse} and~\\ref{sec:hosted-concentration})."
+  },
+  {
+    "old": "Overall, our findings shed light on solution mode collapse and suggest that incorporating mode replay as part of RLVR post-training can lead to both increased diversity of solutions and improved model performance.",
+    "new": "Together, these studies connect how successful alternatives are measured, why reward-driven learning concentrates them, and when retaining them helps a policy cope with changed requirements."
+  },
+  {
+    "old": "For each domain, we provide a verifier that evaluates whether a solution is correct and which solution mode a solution belongs to. This was built by creating in advance a comprehensive set of potential solutions to the problem, which at training time allows us to quickly sort the reasoning traces associated with a solution into a pre-computed solution mode. Precisely, for a prompt $x$ with specification $s_x$, the validator maps an output $y$ either to failure $\\bot$ or to a key $V(y,s_x)\\in\\mathcal C_x$.",
+    "new": "For each domain, the verifier checks correctness and computes a canonical key from the accepted output or its execution. This keying does not require an exhaustive catalogue of valid solutions. For a prompt $x$ with specification $s_x$, the validator maps an output $y$ either to failure $\\bot$ or to a key $V(y,s_x)\\in\\mathcal C_x$."
+  },
+  {
+    "old": "\\caption{\\textbf{Higher performance is not associated with increased solution mode diversity.} We show the relationship between a performance-related metric (\\texttt{pass@}8; $x$-axis) and our proposed solution mode diversity metric (\\pmd{}; $y$-axis) for GPT-5.6 Sol (in black), and Qwen2.5-Instruct models of various sizes (where parameter count is indicated by color). Note that accuracy and model size are not correlated with solution mode diversity.}",
+    "new": "\\caption{\\textbf{Higher accuracy or model scale does not ensure higher diversity.} We compare \\texttt{pass@8} ($x$-axis) with \\pmd{} ($y$-axis) for GPT-5.6 Sol (black) and Qwen2.5-Instruct models of different sizes (color). Models can achieve similar accuracy while distributing correct responses differently across modes.}"
+  },
+  {
+    "old": "measuring the joint probability of different solution modes given two correct responses. A \\pmd{} of zero thus implies every correct answer belongs to the same solution mode, and an even spread over $m$ yields a \\pmd{} of $1-1/m$, e.g., if answers spread evenly across two possible solution modes, then the \\pmd{} is $1/2$. We note that when infinite solution modes are possible, the maximum \\pmd{} converges to 1, and that when the model outputs no correct solutions, we cannot calculate the metric. We only calculate \\pmd{} when models yield at least 30 correct solutions for a specific problem, to avoid excessively noisy measurements.",
+    "new": "the probability that two independent correct responses belong to different modes. A \\pmd{} of zero means all correct probability lies on one mode; a uniform distribution over $m$ modes yields $1-1/m$. The promptwise estimator requires at least two verified responses. Frozen-model plots use filled markers for cells with at least 30 eligible prompts and hollow markers for 5--29; App.~\\ref{app:reported-endpoints} gives the study-specific reporting thresholds."
+  },
+  {
+    "old": "Fig.~\\ref{fig:base-levels-all-scales} shows how \\pmd{} captures diversity of responses independently of accuracy.",
+    "new": "Fig.~\\ref{fig:base-levels-all-scales} separates how often models succeed from how they distribute their correct responses."
+  },
+  {
+    "old": "\\caption{\\textbf{Harder problems of the same domain exhibit fewer solution modes.} When we ask the Qwen2.5-Instruct family and GPT-5.6 Sol increasingly difficult questions from harder levels of \\mb{}, \\texttt{pass@8} declined and so too does \\pmd{}. For our benchmark, as problems get harder, solution mode collapse worsens.}",
+    "new": "\\caption{\\textbf{Correct-mode diversity can decline across task levels.} We compare \\texttt{pass@8} and \\pmd{} for Qwen2.5-Instruct models and GPT-5.6 Sol. Level comparisons combine task structure and test population; valid-mode count distributions can differ (App.~\\ref{app:data-levels}).}"
+  },
+  {
+    "old": "We construct \\mb{} so that tasks can be made more or less challenging, which helps prevent saturation.\n%To demonstrate this task flexibility,\nFor each domain, we include 5 independent difficulty levels,  e.g. for our \\texttt{Graph} domain we allow more hidden vertices, and for \\texttt{Countdown} we give the model more operands. Each difficulty level holds constant (1) our definition of mode, (2) our approximate distribution of modes, (3) our verifier constant, and (4) the sample size of 384 train and 128 test problems.\n% Then, we make the problems more challenging, e.g. for our \\texttt{Graph} domain we allow more hidden vertices, and for \\texttt{Countdown} we give the model more operands.\nTo ensure (2) holds, and moreover, that the problems sample are in fact more challenging, we fit each level with consideration to \\texttt{pass@1} and \\texttt{pass@8} of a reference model, e.g. Level 4 was tuned such that a Qwen2.5-Instruct-7B model has the same \\texttt{pass@1} and \\texttt{pass@8} scores as a Qwen2.5-Instruct-0.5B on Level 1.\n\n\n\nLMs with a higher parameter count generally have higher \\texttt{pass@8} and can solve more problems. Yet, in Fig. \\ref{fig:levels}, for our harder problems, we find that solution mode diversity declines, even as our underlying mode count per level remains stable. This is most noticeable when frontier models are evaluated. Even though correctness is saturated, we are able to use  \\pmd{} to isolate solution mode collapse (App.~\\ref{app:hosted-concentration}), and this phenomena happen across \\mb{}. Frontier models answer $\\MDfrontierpass$ of questions from level 1-3 correctly, but their mean \\pmd{}  is $\\MDfrontierpmdmean{}$, which is below the $\\MDsmallbestpmd{}$ of a 1.5B model that answers $\\MDsmallbestpassall$ of its own prompts.\n\n\n",
+    "new": "We construct five levels per domain by increasing structural difficulty, such as hiding more vertices in \\texttt{Graph} or adding operands in \\texttt{Countdown}. Each level retains the verifier, canonicalizer, and definition of a mode, with 384 training and 128 test problems. Valid-mode count distributions can differ across the evaluated test sets. Levels 3--5 calibrate larger models against the Level-1 Qwen2.5-0.5B reference using \\texttt{pass@1} and \\texttt{pass@8} tolerances; Level-4 \\texttt{MathIR} does not meet this criterion (App.~\\ref{app:data-levels}).\n\nFig.~\\ref{fig:levels} shows that correct-mode diversity can decline across levels even for highly accurate models. These comparisons combine changes in task structure and test population. Across Levels 1--3, frontier models answer $\\MDfrontierpass$ of questions correctly, but their mean \\pmd{} is $\\MDfrontierpmdmean{}$, below the $\\MDsmallbestpmd{}$ of a 1.5B model that answers $\\MDsmallbestpassall$ of its own prompts (App.~\\ref{app:hosted-concentration}).\n\n"
+  },
+  {
+    "old": "Binary rewards treat all correct modes alike, while fresh samples follow the policy's current preferences. A mode with an early probability advantage is therefore sampled and reinforced more often (Fig.~\\ref{fig:replay-bank-balance}). Under independent logit updates, this feedback can produce winner-take-all concentration. Changing the binary-reward estimator alone does not change the trajectory of this concentration, as the following result makes precise.",
+    "new": "Maintaining alternatives requires understanding why training reallocates their probability. Binary rewards treat all correct modes alike, while fresh samples follow the policy's current preferences. Under independent logit updates, a mode with an early probability advantage is sampled and reinforced more often (Fig.~\\ref{fig:replay-bank-balance}). The following result shows that a broad class of correctness-improving binary-reward objectives shares the same conditional mode trajectory, up to a change of time."
+  },
+  {
+    "old": "We test three claims: RLVR concentrates correct responses onto fewer modes; verified replay improves accuracy and diversity; and balancing replay across modes contributes additional diversity. We then examine harder task levels and compare replay with anchoring to the initial policy.",
+    "new": "We first test whether RLVR concentrates correct responses, then whether replay and equal weighting preserve alternatives. We examine harder task levels, compare replay with anchoring to the initial policy, and test whether retained solutions remain useful after requirements change."
+  },
+  {
+    "old": "\\section{Related Work}\n\\label{sec:related}",
+    "new": "\\textbf{Retained alternatives can remain useful when requirements change.}\nAt four verified draws, Re:Dr and Re:Max improve \\texttt{Graph} portfolio survival after a binding option withdrawal by $19.65$ and $10.99$ percentage points over their matched controls (App.~\\ref{app:portfolio-withdrawals}). In a two-seed recovery study, Re:Dr reduces recovery calls under ordinary and temperature-tuned sampling across all five domains, while diversity prompting reverses the \\texttt{Pantry} advantage (App.~\\ref{app:withdrawal-recovery}).\n\n\\section{Related Work}\n\\label{sec:related}"
+  },
+  {
+    "old": "Paired method comparisons match model, domain, and seed at the specified\ntraining endpoint. Initial-to-terminal analyses use each method's own\ninitial evaluation; terminal replay effects compare trained checkpoints.\nEach result states its measured population and sample size. Conditional\nsolution-mode diversity uses the eligibility rules defined for that\nanalysis.",
+    "new": "Paired method comparisons match model, domain, and seed at the specified\ntraining endpoint. Initial references follow each study's protocol.\nHistorical saved-output comparisons use each method's own initial evaluation.\nIn the fresh 64-response evaluation (App.~\\ref{app:fresh-concentration}),\neach training seed is paired with an initial sampling replica shared across\nthe four methods; all five replicas use the same initial model weights.\nTerminal replay effects compare trained checkpoints. Each result states its\nmeasured population, sample size, and conditional-diversity eligibility rule."
+  }
+]

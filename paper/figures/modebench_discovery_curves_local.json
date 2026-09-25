@@ -2,12 +2,12 @@
   "family": "local",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260919_merged/modebench_discovery_curves_local.pdf",
-      "sha256": "3f1feeb244988722f91453c0e9d40facb597214d5e689ca5effe073e44b50204"
+      "path": "/n/fs/similarity/maxent-grpo/paper/figures/modebench_discovery_curves_local.pdf",
+      "sha256": "6f321a0e6153bea2da698939d81de5824db9fa3571ab9e8a8411c740c279999e"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260919_merged/modebench_discovery_curves_local.png",
-      "sha256": "f939566de9c24ac3cd85be2824eee648216edf4f9e3a6418fa6d3e8937573b40"
+      "path": "/n/fs/similarity/maxent-grpo/paper/figures/modebench_discovery_curves_local.png",
+      "sha256": "835bbd26f3da76abca0b4c4b06fd24eb49ab752cf0cd88f8bea1489be72b1187"
     }
   },
   "plotted_records": [
@@ -86,7 +86,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 2,
       "method": "drgrpo",
       "metrics": {
@@ -2836,7 +2836,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 2,
       "method": "initial",
       "metrics": {
@@ -8360,7 +8360,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 3,
       "method": "drgrpo",
       "metrics": {
@@ -11110,7 +11110,7 @@
       "domain": "python_factors",
       "grading": "strict",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 3,
       "method": "initial",
       "metrics": {
@@ -16514,7 +16514,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 2,
       "method": "drgrpo",
       "metrics": {
@@ -19564,7 +19564,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 2,
       "method": "initial",
       "metrics": {
@@ -25142,7 +25142,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 3,
       "method": "drgrpo",
       "metrics": {
@@ -28156,7 +28156,7 @@
       "domain": "mathir",
       "grading": "strict",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 3,
       "method": "initial",
       "metrics": {
@@ -33734,7 +33734,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 2,
       "method": "drgrpo",
       "metrics": {
@@ -36959,7 +36959,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 2,
       "method": "initial",
       "metrics": {
@@ -42900,7 +42900,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 3,
       "method": "drgrpo",
       "metrics": {
@@ -46151,7 +46151,7 @@
       "domain": "pantry_plan",
       "grading": "strict",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 3,
       "method": "initial",
       "metrics": {
@@ -52122,7 +52122,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 2,
       "method": "drgrpo",
       "metrics": {
@@ -54872,7 +54872,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 2,
       "method": "initial",
       "metrics": {
@@ -60396,7 +60396,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 3,
       "method": "drgrpo",
       "metrics": {
@@ -63146,7 +63146,7 @@
       "domain": "python_factors",
       "grading": "normalized_secondary",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 3,
       "method": "initial",
       "metrics": {
@@ -68550,7 +68550,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 2,
       "method": "drgrpo",
       "metrics": {
@@ -71600,7 +71600,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 2,
       "method": "initial",
       "metrics": {
@@ -77178,7 +77178,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "seed + paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 3,
       "method": "drgrpo",
       "metrics": {
@@ -80192,7 +80192,7 @@
       "domain": "mathir",
       "grading": "normalized_secondary",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 3,
       "method": "initial",
       "metrics": {
@@ -85770,7 +85770,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 2,
       "method": "drgrpo",
       "metrics": {
@@ -88995,7 +88995,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 2,
       "method": "initial",
       "metrics": {
@@ -94936,7 +94936,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "fixed-seed paired prompts",
-      "label": "DrGRPO",
+      "label": "Dr.GRPO",
       "level": 3,
       "method": "drgrpo",
       "metrics": {
@@ -98187,7 +98187,7 @@
       "domain": "pantry_plan",
       "grading": "normalized_secondary",
       "interval_kind": "paired prompts",
-      "label": "Initial Qwen 0.5B",
+      "label": "Initial Qwen2.5-0.5B",
       "level": 3,
       "method": "initial",
       "metrics": {
@@ -104084,6 +104084,6 @@
       }
     }
   ],
-  "report_sha256": "708059b600e1ca528e2fbdbf5d8e1d1438ca99f2ce42a3a0742e7e724f17ceae",
+  "report_sha256": "52253cf29925a35408350e2c97f0c689c2aa7e9672bf1ddd63a63acd1df10483",
   "schema": "modebench-discovery-figure-v1"
 }

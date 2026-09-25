@@ -6,6 +6,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paper_domain_typography import format_domain_names
 
 ROOT = Path(__file__).resolve().parents[2]
 PRECHECK = ROOT / "paper/results/baseline_collapse_precheck.json"
@@ -17,7 +20,7 @@ MODELS = ("Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B")
 SCALES = {"Qwen2.5-0.5B": "qwen05b", "Falcon3-1B": "falcon1b", "Qwen2.5-3B": "qwen3b"}
 MODEL_LABELS = {"Qwen2.5-0.5B": r"\qwenmark{}2.5-0.5B", "Falcon3-1B": "Falcon3-1B", "Qwen2.5-3B": r"\qwenmark{}2.5-3B"}
 DOMAINS = ("graph_coloring", "countdown", "python_factors", "mathir", "pantry_plan")
-DOMAIN_LABELS = {"graph_coloring": "Graph coloring", "countdown": "Countdown", "python_factors": "Python factors", "mathir": "MathIR", "pantry_plan": "PantryPlan"}
+DOMAIN_LABELS = {"graph_coloring": "Graph", "countdown": "Countdown", "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "PantryPlan"}
 
 def load(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -55,7 +58,7 @@ def render(payload: dict) -> str:
             lines.append("    " + (MODEL_LABELS[model] if first else "") + " & " + DOMAIN_LABELS[row["domain"]] + " & " + " & ".join(cell(value) for value in values) + r" \\")
             first = False
         lines.append(r"    \addlinespace[2pt]")
-    return "\n".join(lines[:-1]) + "\n    \\bottomrule\n"
+    return format_domain_names("\n".join(lines[:-1]) + "\n    \\bottomrule\n")
 
 def main() -> int:
     payload = build()

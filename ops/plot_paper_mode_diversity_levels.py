@@ -329,7 +329,7 @@ def build_figure(payload: dict, models=MODELS, *, figsize=(6.4, 2.10),
         levels.append(Line2D([], [], marker='o', linestyle='none', markersize=4.7,
                              markerfacecolor='none', markeredgecolor=style.MUTED,
                              markeredgewidth=.7,
-                             label='below support at every level' if collapse else 'provisional'))
+                             label='below support at every level' if collapse else '5–29 prompts'))
         # The tick strip survives collapsing: a series whose every level stayed
         # under the estimation floor still gets no height, so it still needs its
         # legend entry. Only drop the entry when no tick is actually drawn.
@@ -425,7 +425,7 @@ def build_scale_grid(payload: dict, models, *, frontier=None, figsize=None):
               for level in levels_in(cells)]
     levels.append(Line2D([], [], marker='o', linestyle='none', markersize=4.7,
                          markerfacecolor='none', markeredgecolor=style.MUTED,
-                         markeredgewidth=.7, label='provisional'))
+                         markeredgewidth=.7, label='5–29 prompts'))
     levels.append(Line2D([], [], marker='|', linestyle='none', markersize=5,
                          color=style.MUTED, markeredgewidth=.9, label='too rare to estimate'))
     if frontier:
@@ -490,6 +490,7 @@ def publish(payload: dict, models, output: Path, *, figsize, legends,
                                 connect=connect, frontier_models=frontier_models,
                                 collapse=collapse))
     output.parent.mkdir(parents=True, exist_ok=True)
+    style.apply_domain_typography(figure)
     figure.savefig(output.with_suffix('.pdf'))
     plt.close(figure)
     record = record_for(payload, models, output, frontier_models, collapse=collapse)

@@ -1,0 +1,171 @@
+--- before/main.tex
++++ after/main.tex
+@@ -881,18 +881,16 @@
+ The conditional distribution is defined only when $P_\theta^+(x)>0$;
+ when $P_\theta^+(x)=0$, all three sampling metrics below are zero, while
+ \pmd{} is undefined rather than zero.
+-The first quantity measures correctness. The second describes the distribution
+-of verified behaviors conditional on being correct. We call concentration of
+-$p_\theta^+$ onto fewer keys \emph{mode collapse}, particularly when
++We call concentration of $p_\theta^+$ onto fewer solution keys
++\emph{mode collapse}, particularly when
+ $P_\theta^+$ remains stable or increases. Estimating \pmd{} requires at
+-least two verified responses per prompt. The full-support threshold for
++least two verified responses per prompt. The reporting threshold for
+ absolute estimates is 30 defining prompts; paired training comparisons
+ require at least 20 per arm
+ (App.~\ref{app:reported-endpoints}).
+ Moving correct probability onto keys that already hold more of it can only
+-lower $\pmd{}=1-\sum_c q_c^2$ (Lemma~\ref{lem:success-breadth}), so the
+-concentration defined here always lowers \pmd{}
+-\eqref{eq:main-pmd} that the main text reports. The converse does not follow:
++lower $\pmd{}=1-\sum_c q_c^2$ (Lemma~\ref{lem:success-breadth}), the
++diversity measure in \eqref{eq:main-pmd}. The converse does not follow:
+ \pmd{} summarizes an allocation in one number, so a fall in it need not arise
+ from any such ordered movement of mass. Neither statement claims that a key
+ reached probability zero, which finite samples cannot establish.
+@@ -900,8 +898,8 @@
+ \subsection{Measuring success and diversity}
+ \label{app:metric-sampling}
+ 
+-Write $n_c$ for the number of a prompt's draws verified on key $c$, and
+-$n_+=\sum_c n_c$ for its verified draws in all. Where $n_+\ge2$, the estimator
++Write $n_c$ for the number of responses verified on key $c$ for a given
++prompt, and $n_+=\sum_c n_c$ for its total verified responses. Where $n_+\ge2$, the estimator
+ of \eqref{eq:main-pmd} is the fraction of verified pairs that differ:
+ \begin{equation}
+  \widehat{\pmd}
+@@ -915,24 +913,22 @@
+ estimator uses the verified count $n_+$, not the draw budget: under the
+ pooling rule below a local prompt's four $K=8$ groups contribute 32 draws, a
+ hosted prompt contributes its eight, and $n_+$ counts the verified ones. The
+-identity is promptwise, and does not survive joint selection on other
+-conditions or dependent prompts. Two equivalent readings are sometimes useful:
++identity assumes independent responses from a fixed policy for each prompt;
++it does not establish unbiasedness after further selection on observed
++outcomes. Two equivalent interpretations are useful:
+ \texttt{rarefied-distinct@}$2=1+\pmd$ is the expected number of distinct modes
+ in exactly two verified draws, which fixes sampling depth rather than success
+ count; and $\neff=1/(1-\pmd)$ is an effective number of verified modes. Both
+ are monotone transforms of \pmd{} and order policies identically.
+ 
+-Each \pmd{} estimate averages this prompt-level estimator. Where a protocol draws
+-more than one group per prompt, those draws are pooled before scoring --- $q$
+-is a property of the policy and prompt rather than of the draw budget, so
+-pooling estimates the same quantity from more pairs and defines it far more
+-often. The local evaluations draw four groups of eight and pool to 32; the
+-hosted deployments answer each prompt eight times, with nothing to pool. Either
+-way a reported value is the unweighted mean over the prompts where \pmd{} is
+-defined, carried with its across-prompt standard error. Each prompt receives equal weight. Weighting a prompt by its number of verified pairs --- equivalently, pooling verified pairs across prompts before
+-taking the ratio --- lets the prompts a
+-policy solves most often dominate the estimate, which reintroduces the accuracy
+-dependence \pmd{} exists to remove.
++Local evaluations pool four groups of eight responses within each prompt;
++hosted evaluations use eight responses per prompt. Pooling independent draws
++from the same policy estimates the same conditional allocation $q$ with more
++verified pairs. Reported \pmd{} is the equally weighted mean over prompts
++where the estimator is defined, with an across-prompt standard error.
++Pooling pairs across prompts would instead weight each prompt by its number
++of verified pairs, giving greater influence to prompts the policy solves
++more often.
+ 
+ For $K$ independent samples $Y_{1:K}$, let
+ \[
+@@ -1035,9 +1031,8 @@
+ defining prompts. Filled markers indicate at least 30 such prompts; hollow
+ markers indicate 5--29 and include standard errors. Estimates based on fewer
+ than five prompts are omitted. Of the \MDcells{} frozen-model measurements,
+-\MDreportable{} meet the 30-prompt threshold. The gaps concentrate where
+-success is rarest: \MDtopgapcount{} of the \MDgaps{} are \MDtopgapdomain{}.
+-An absent estimate indicates insufficient verified responses, not zero diversity.
++\MDreportable{} meet the 30-prompt threshold. An absent estimate indicates
++insufficient verified responses, not zero diversity.
+ For paired training comparisons, each arm must define \pmd{} on at least 20
+ evaluation prompts; comparisons failing either threshold are omitted. The
+ eligible prompt subsets can differ between arms.
+@@ -1230,8 +1225,8 @@
+ 
+ \begin{table}[!htbp]
+ \centering
+-\caption{\textbf{Dataset sizes and valid-mode counts.} \texttt{Python} and \texttt{MathIR}
+-use disjoint training and evaluation splits. Mode-count ranges refer to the
++\caption{\textbf{Dataset sizes and certified mode counts.} \texttt{Python} and \texttt{MathIR}
++use disjoint training and evaluation splits. Catalogue ranges refer to the
+ training split; Table~\ref{tab:tasks} gives evaluation-split counts.}
+ 
+ \label{tab:materialization-identities}
+@@ -1242,7 +1237,7 @@
+ \midrule
+ Training rows & 384 & 384 \\
+ Evaluation rows & 128 & 128 \\
+-Exact modes per prompt (train) & \MDvmPythonTrainRange & \MDvmMathIRTrainRange \\
++Certified modes per prompt (train) & \MDvmPythonTrainRange & \MDvmMathIRTrainRange \\
+ \bottomrule
+ \end{tabular}
+ \end{table}
+@@ -1278,18 +1273,13 @@
+ 
+ \paragraph{External execution.}
+ \label{app:python-process}
+-The trainer never executes candidate code. A locked parent client launches
+-an isolated Python \texttt{-I} process in a fresh session, with a persistent
+-JSON-lines worker accepting only restricted source and trusted task JSON.
+-The worker repeats the AST checks, compiles the expression with empty
+-\texttt{\_\_builtins\_\_}, and executes the frozen inputs under a
+-0.25-second real-time alarm; the parent enforces a separate one-second
+-response deadline. A valid response contains the integer vector and key.
+-Timeouts, empty or malformed responses, broken pipes, non-integer outputs,
+-and failed divisor checks yield $\bot$ and zero reward. Broken pipes,
+-operating-system errors, and malformed responses permit one clean worker
+-restart; a timed-out request remains failed. Worker stdout is never parsed
+-as a candidate answer, and exceptions never produce a key.
++Candidate expressions are evaluated outside the trainer in an isolated
++Python process with empty \texttt{\_\_builtins\_\_}. Execution repeats the
++syntax checks and applies the candidate to the fixed inputs under a
++0.25-second execution limit and a one-second response deadline. Only the
++validated integer return vector determines the key. Timeouts, execution
++errors, malformed results, non-integer outputs, and failed divisor checks
++receive $\bot$ and zero reward.
+ 
+ \paragraph{Behavioral identity.}
+ \label{app:python-identity}
+@@ -1465,8 +1455,9 @@
+   indicates level. Black marks show the \MDfrontierdeployments{} hosted
+   deployments. Frozen checkpoints use four groups of eight responses to 128
+   held-out prompts per cell; hosted deployments use eight responses per prompt.
+-  Filled marks, hollow marks with standard-error bars, and ticks follow the
+-  support thresholds in Fig.~\ref{fig:level-construction}.}
++  Filled marks use at least 30 prompts with two correct responses; hollow
++  marks use 5--29 and show one-standard-error bars. Ticks below the axis
++  indicate fewer than five defining prompts.}
+   \label{fig:families-appendix}
+ \end{figure}
+ 
+@@ -1499,10 +1490,10 @@
+ % remainder. Floating lets the prose that follows it close the gap.
+ \begin{table}[!htbp]
+   \centering
+-  \caption{\textbf{Training settings for paired comparisons.} Settings are
+-  shared within each model--domain--seed comparison, including the
+-  zero-derivative replay control. Both arms use the same optimizer-update and
+-  fresh-rollout budgets and retain the replay scoring/backward path. Realized
++  \caption{\textbf{Paired comparisons match optimizer updates and fresh rollouts.}
++  Each pair shares the listed settings. Both arms retain the replay
++  scoring/backward path, with an exact-zero replay
++  derivative in the control. Realized
+   bank workloads, total FLOPs, and wall-clock time are not matched. The control
+   does not reallocate replay work to additional useful baseline training
+   (App.~\ref{app:compute-matching}).}
+@@ -1562,9 +1553,9 @@
+ and four draws; \texttt{mean@8} measures the fraction of correct responses.
+ Evaluation supplies no training data, bank entries, checkpoint selection, or
+ stopping rule. Complete paired five-seed blocks use nominal pointwise 95\%
+-Student-$t$ intervals. Incomplete primary endpoint blocks give exact seed
+-counts and descriptive means without intervals. Support-filtered diversity
+-comparisons specify their eligible seed sets and interval rules separately.
++Student-$t$ intervals. Other primary endpoint blocks report sample sizes and
++descriptive means. Diversity comparisons apply the prompt-support thresholds
++and interval rules specified with their results.
+ Intervals condition on the fixed prompts and evaluation requests. Terminal
+ comparisons use paired final checkpoints; the replay-weighting comparison
+ uses a paired-seed bootstrap.

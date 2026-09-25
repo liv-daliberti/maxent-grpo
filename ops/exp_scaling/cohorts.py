@@ -207,6 +207,20 @@ REGISTRY: tuple[Cohort, ...] = (
     Cohort("e123", "E123 Qwen-3B Level-3 Dr.GRPO / Re:Dr / MaxRL / Re:Max factorial",
            "e123_level3_factorial_jobs.json",
            "repair", reader="smoke"),
+    # E124 lifts the same comparison to Qwen-7B across all three levels, under its
+    # own plan, transaction and supervisor. Read like E123: its systems benchmark
+    # is a qualification gate rather than science progress, and its cells sit held
+    # until that gate and the storage gate pass, so held and released allocations
+    # stay distinct. Registering it as "repair" also keeps it out of the archive
+    # inventory's admitted kinds, which was correct while no cell had an endpoint.
+    # Six Level-1 cells have since terminalized. They reach the paper through
+    # ops/build_paper_e124_qwen7b_level1.py, which reads the plan and the ledger
+    # directly rather than this registry, so the kind stays "repair" here: the
+    # archive inventory would otherwise demand endpoints from every cell in the
+    # cohort, and most of the thirty do not have one.
+    Cohort("e124", "E124 Qwen-7B Level-1/2/3 MaxRL / Re:Max three-level sweep",
+           "e124_qwen7b_three_level_jobs.json",
+           "repair", reader="smoke"),
     # Conditional full efficacy successor to E105; preregistered before E111
     # terminalization and visible here before its release ledger exists.
     Cohort("e112", "E112 all scales    failed sampler-contract launch",
@@ -298,6 +312,63 @@ REGISTRY: tuple[Cohort, ...] = (
            "e116_sparse_rlep_qwen05b_domain_extension_jobs.json", "paired", "Qwen2.5-0.5B"),
     Cohort("e116_3b", "E116 Qwen-3B     sparse RLEP-Dr",
            "e116_sparse_rlep_qwen3b_jobs.json", "paired", "Qwen2.5-3B"),
+    # Diversity-preserving RLVR comparators, added 2026-09-18 in answer to a
+    # reviewer. Unlike every comparator above, these are NOT read against the
+    # completed E78 control: they run on cs A5000 rather than mltheory
+    # node302/node105, under a runtime that could not inherit E78's (retired by
+    # the irreversible 2026-09-04 snapshot cleanup and not reproducible from any
+    # commit), and with the corrected disjoint eval-draw sampler. E128 supplies
+    # a control matched on all three, so the paired difference stays inside this
+    # set. Reading E126 or E127 against E78 would put placement, runtime and
+    # evaluator terms inside a reported method effect.
+    Cohort("e126", "E126 Qwen-0.5B   GAPO group frequency reward",
+           "e126_gapo_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    Cohort("e127", "E127 Qwen-0.5B   SetPO set-level diversity",
+           "e127_setpo_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    Cohort("e128", "E128 Qwen-0.5B   matched control for E126/E127",
+           "e128_matched_control_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    # E129 asks what a reference KL does to breadth, at three coefficients, and
+    # is differenced against the completed E78 control rather than against a
+    # control of its own. Two of the three terms E128 exists to absorb are
+    # matched here and one is not. Placement is matched cell by cell: every
+    # cell inherits `source_node` from the same E72 manifest E78 read, and the
+    # launcher refuses to submit a cell whose node differs from its matched
+    # control's. The evaluator is matched at the level of the reported metric,
+    # because the manuscript's Level-1 PMD is the 32-disjoint-stream resample
+    # rather than the registered draws. The runtime is *not* matched: E78's
+    # snapshot was retired by the 2026-09-04 cleanup, so E129 runs current
+    # source, which differs from it by additive comparator modules that are
+    # inert unless selected and touch no line of the beta/k3 path.
+    Cohort("e129", "E129 Qwen-0.5B   Dr.GRPO + reference KL, three coefficients",
+           "e129_drgrpo_reference_kl_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    # E129-X extends that sweep upward. The registered three coefficients all
+    # sit where the flow predicts no correctness cost; these two bracket the
+    # predicted knee. They were chosen after reading E129's first seven
+    # terminal cells, so they are an extension driven by an observed trend and
+    # not part of the frozen design -- amendment 2 records that and registers
+    # the two predictions they test. Pinned to E129's own snapshot rather than
+    # a fresh one, so the coefficient curve does not span two source trees.
+    Cohort("e129x", "E129-X Qwen-0.5B reference KL, high-coefficient extension",
+           "e129x_reference_kl_high_beta_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    # E129-Y is one coefficient, beta = .30, chosen to straddle the per-domain
+    # knee beta* = c_G / (-logit mu(C)): above it for Countdown (.22) and
+    # MathIR (.29), below it for Graph (.55) and PantryPlan (1.05). Amendment 3
+    # registers that prediction. Submitted straight onto the cs a5000 pool the
+    # other two cohorts were rerouted to, so node302 stays with the 7B sweep.
+    Cohort("e129y", "E129-Y Qwen-0.5B reference KL at the predicted knee",
+           "e129y_reference_kl_knee_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    # E130 and E131 answer one reviewer question from two sides: how much of
+    # the replay result is the supervised likelihood term rather than the mode
+    # keying, and how much is simply more gradient work. E130 keeps the term
+    # and removes the keying by reducing the bank to one slot. E131 keeps the
+    # objective exactly and gives the control twelve passes instead of eight,
+    # which is more additional computation than replay consumes. Both pair
+    # against the completed E128 control on the same two cs A5000 nodes, under
+    # a snapshot that differs from E128's by one inert validator hunk.
+    Cohort("e130", "E130 Qwen-0.5B   mode-agnostic replay, bank capacity one",
+           "e130_mode_agnostic_replay_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
+    Cohort("e131", "E131 Qwen-0.5B   extended-horizon Dr.GRPO control (12 passes)",
+           "e131_extended_horizon_control_05b_jobs.json", "paired", "Qwen2.5-0.5B"),
     # One direct DAPO arm spans both completed E78/E79 control families. Its
     # two smoke gates live in the same ledger but are operational checks, not
     # scientific cells; campaign_stats reports them separately from the 50

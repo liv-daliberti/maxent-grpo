@@ -1,0 +1,70 @@
+[
+  {
+    "before": "prompts of the Level-1 evaluation splits; Levels 2--5 use separate problems\nwith the same interface (App.~\\ref{app:data-levels}).",
+    "after": "prompts of the Level-1 evaluation splits. App.~\\ref{app:data-levels}\nspecifies the separate problems and prompting differences at Levels 2--5."
+  },
+  {
+    "before": "bank's original prompt and response tokens form a right-padded\nteacher-forcing batch, with prompt and padding positions masked. Each key\ncontributes its exemplar's mean response-token log probability.",
+    "after": "bank is scored by teacher forcing on its original prompts and exemplars.\nEach key contributes its exemplar's mean response-token log probability,\nexcluding prompt and padding tokens."
+  },
+  {
+    "before": "\\texttt{MathIR} is included in every five-domain mean. In all \\MIRshiftcells{} cells\nwith complete five-domain results, its smaller gain reduces the aggregate\nby \\MIRshiftmin{}--\\MIRshiftmax{} \\pmd{} relative to the corresponding\nfour-domain mean.",
+    "after": "Across the \\MIRshiftcells{} five-domain comparisons, including \\texttt{MathIR}\nreduces the mean gain by \\MIRshiftmin{}--\\MIRshiftmax{} \\pmd{} relative to\nthe corresponding four-domain mean."
+  },
+  {
+    "before": "domains and \\MIRfour{} over the four domains with alternative-answer modes.",
+    "after": "domains and \\MIRfour{} over the remaining four domains."
+  },
+  {
+    "before": "A quality criterion can restrict bank admission in addition to correctness\nand canonical validity. Examples include a token budget, a process-reward\nthreshold, or a trace-quality classifier; a quality score could also guide\nexemplar selection within a key or eviction at capacity. These changes\nalter the replay target and are not part of the uniform-replay comparison.\nQuality and diversity can conflict when alternative modes require longer\nsolutions. \\texttt{MathIR} alternatives include trajectories through additional\nstates, and \\texttt{Python}'s rarer return vectors require longer lambdas than its\nmodal vector. A brevity filter can therefore remove valid alternatives;\ndiversity is measured after applying the filter.",
+    "after": "Additional quality criteria, such as a token budget or trace-quality score,\nwould change admission, exemplar selection, or eviction and hence the replay\ntarget. They are not used in these comparisons. A brevity filter can remove\nvalid alternatives: \\texttt{MathIR} includes longer state trajectories, and\n\\texttt{Python}'s rarer return vectors require longer lambdas than its modal\nvector. Any such filter would need evaluation of both solution quality and\ndiversity among the retained modes."
+  },
+  {
+    "before": "Each exact prompt-token sequence has an independent count table. Counts\ninclude only responses with positive task reward and a valid canonical\nkey; invalid and unsuccessful responses affect neither the predictor nor\nits history. Counts accumulate throughout training, with no window, decay,\neviction, or reset. Each eligible response is scored against the preceding groups'\ncounts and its own successful leave-one-out peers. The current group's\ncounts are added after all its responses have been scored, so a response\nnever contributes to its own predictor.",
+    "after": "Counts are maintained separately for each exact prompt-token sequence and\naccumulate throughout training without decay or reset. Only responses with\npositive reward and a valid key contribute. Each response is scored using\npreceding groups and its successful leave-one-out peers; the current group\nis added afterward. A response therefore never contributes to its own\npredictor."
+  },
+  {
+    "before": "\\caption{\\textbf{Replay improves correctness across all three model scales.}\nTerminal paired effects of Re:Dr minus Dr.GRPO (circles) and Re:Max minus\nMaxRL (squares), in percentage points of \\texttt{pass@8} and changes in\n\\pmd{}. Open marks have fewer than five seeds. Correctness uses four seeds\nonly for Falcon \\texttt{Countdown} Dr.GRPO. For Re:Dr diversity, $n=4$ for Falcon\n\\texttt{Countdown}, $n=1$ for Falcon \\texttt{MathIR}, and $n=2$ for Qwen2.5-3B \\texttt{Python}; Falcon\n\\texttt{Python} has no eligible pair. Other comparisons use five seeds. Diversity\nrequires at least 20 defining prompts per arm. Bars are nominal paired 95\\%\nStudent-$t$ intervals for five-seed correctness comparisons and diversity\ncomparisons with at least two seeds.}",
+    "after": "\\caption{\\textbf{Replay raises mean correctness at all three model scales.}\nTerminal Re:Dr minus Dr.GRPO (circles) and Re:Max minus MaxRL (squares).\nThe axes show percentage-point changes in \\texttt{pass@8} and changes in\n\\pmd{}. Filled marks use five paired seeds; open marks use fewer. For\nRe:Dr, correctness uses four seeds in Falcon \\texttt{Countdown}; diversity\nuses four in Falcon \\texttt{Countdown}, one in Falcon \\texttt{MathIR}, and two\nin Qwen2.5-3B \\texttt{Python}. Blank cells have no eligible comparison.\nDiversity requires at least 20 defining prompts per arm. Bars are nominal\npaired 95\\% Student-$t$ intervals, requiring five seeds for correctness\nand at least two for diversity.}"
+  },
+  {
+    "before": "  estimate. These arm-specific means can use different seeds and need not\n  subtract to the paired effects in Table~\\ref{tab:cross-scale-terminal-effects},\n  which uses a 20-prompt threshold per arm. Shading increases from red to green\n  on a shared scale for both arms of each metric.}",
+    "after": "  estimate. Arm-specific means need not subtract to the paired effects in\n  Table~\\ref{tab:cross-scale-terminal-effects}, which uses a 20-prompt threshold\n  per arm. Red-to-green shading uses the same scale for both arms within\n  each metric.}"
+  },
+  {
+    "before": "  excludes \\texttt{Python} at both larger scales and additionally \\texttt{Countdown} and \\texttt{MathIR}\n  at Falcon3-1B. Eligible prompt subsets can differ between arms.}",
+    "after": "  uses \\texttt{Graph} and \\texttt{PantryPlan} for Falcon3-1B, all domains except\n  \\texttt{Python} for Qwen2.5-3B, and all five at 0.5B. The prompt subsets\n  defining diversity can differ between arms.}"
+  },
+  {
+    "before": "replay increases mean \\texttt{pass@8} and \\distk{} in all 14 complete\nfive-seed blocks;",
+    "after": "replay increases mean \\texttt{pass@8} and \\distk{} in all 14 five-seed\ncomparisons;"
+  },
+  {
+    "before": "Fig.~\\ref{fig:maxrl-factorial-scale-extensions} gives the absolute results\nby domain. MaxRL/Re:Max correctness comparisons use five paired seeds.\nDr.GRPO/Re:Dr also uses five except Falcon \\texttt{Countdown}, which uses four. Diversity has separate\nsupport requirements and seed populations. A factorial interaction requires\nthe common four-arm seed intersection.",
+    "after": "Fig.~\\ref{fig:maxrl-factorial-scale-extensions} gives the absolute results\nby domain. Pairwise effects use seeds shared by the two arms; factorial\ninteractions use seeds shared by all four methods. Diversity additionally\nrequires enough verified responses to define the conditional estimator."
+  },
+  {
+    "before": "dashed for fewer. Replay counts can differ; Falcon \\texttt{Countdown} uses five\nDr.GRPO and four Re:Dr diversity seeds. Missing tracks or diamonds indicate\ninsufficient support. No uncertainty intervals are shown.\nTable~\\ref{tab:cross-scale-terminal-effects} gives paired diversity effects\nat a 20-prompt threshold.}",
+    "after": "dashed for fewer. Seed counts can differ between arms; estimates below the\nsupport threshold are not plotted. Table~\\ref{tab:cross-scale-terminal-effects}\ngives paired diversity effects at a 20-prompt threshold. This figure shows\narm means without uncertainty intervals.}"
+  },
+  {
+    "before": "($[+.285,+.441]$). The four-arm factorial has 14 complete five-seed blocks\nand four seeds for Falcon \\texttt{Countdown}. Cross-domain \\pmd{} averages in",
+    "after": "($[+.285,+.441]$). Cross-domain \\pmd{} averages in"
+  },
+  {
+    "before": "Within Level 2, all five domains have five terminal seeds for each of the\nfour methods (100 endpoints). The paired diversity contrasts in\nFig.~\\ref{fig:replay-level2-effects} use their own eligible seed sets.\n\\texttt{Graph} improves under both objectives:",
+    "after": "At Level 2, each method uses five terminal seeds per domain. Paired diversity\ncontrasts apply the support threshold in Fig.~\\ref{fig:replay-level2-effects}.\n\\texttt{Graph} improves under both objectives:"
+  },
+  {
+    "before": "Diversity has less support than correctness. Re:Dr uses three paired seeds\nfor \\texttt{Graph} and \\texttt{PantryPlan}, four for \\texttt{MathIR}, none for \\texttt{Countdown}, and five for\n\\texttt{Python}. Re:Max uses one for \\texttt{Countdown}, four for \\texttt{PantryPlan}, and five for the\nother domains. An absent comparison indicates insufficient support, not a\nzero effect. Each Level-2 \\texttt{MathIR} prompt admits one shortest derivation and",
+    "after": "Each Level-2 \\texttt{MathIR} prompt admits one shortest derivation and"
+  },
+  {
+    "before": "  Both count metrics remain coupled to correctness. Four-arm \\pmd{}\n  comparisons have five eligible seeds in \\texttt{Python}, four in \\texttt{MathIR}, three in\n  \\texttt{Graph}, two in \\texttt{PantryPlan}, and none in \\texttt{Countdown}, so they do not share this\n  table's five-seed population.}",
+    "after": "  Both count metrics depend on correctness. The conditional-diversity effects\n  in Fig.~\\ref{fig:replay-level2-effects} use separate support thresholds and\n  seed populations.}"
+  },
+  {
+    "before": "Each objective pair uses five terminal training seeds except Falcon \\texttt{Countdown}\nDr.GRPO/Re:Dr ($n=4$). Lines show seed means and bands their ranges;\nringed points use fewer seeds and gaps indicate unavailable estimates.}",
+    "after": "Terminal sample sizes are shown above each panel. Lines show means over\ntraining seeds and bands show their ranges, not confidence intervals.\nRinged points average fewer seeds than the terminal comparison.}"
+  }
+]

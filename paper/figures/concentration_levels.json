@@ -1,29 +1,34 @@
 {
- "cells_drawn": 90,
- "outputs": {
-  "pdf": "paper/figures/concentration_levels.pdf"
- },
- "renderer": {
-  "path": "ops/plot_paper_concentration_levels.py",
-  "sha256": "f79972d8b11d42dd8ca614e6a5b3f22262384f2a5d24c7cca7b721dc38ada3f5"
- },
- "rows": 25,
- "scales_pooled": [
-  "qwen3b"
- ],
- "schema": "paper-concentration-levels-figure-v1",
- "source": {
-  "path": "/n/fs/similarity/maxent-grpo/paper/results/concentration_across_levels.json",
-  "sha256": "dfd1a3b49b24fe898fa8037430360345d92b145980041c2501dbd1b8b9975d7d"
- },
- "transfer_levels": [
-  "level2",
-  "level3",
-  "level4",
-  "level5"
- ],
- "x_limits_percentage_points": [
-  -130.0,
-  40.0
- ]
+  "cells_drawn": 97,
+  "outputs": {
+    "pdf": {
+      "path": "paper/figures/concentration_levels.pdf",
+      "sha256": "6d274537866909ced33b96798c06d99bae6c222b78b520d74cfbcf8b1cb4e47a"
+    },
+    "png": {
+      "path": "paper/figures/concentration_levels.png",
+      "sha256": "a7e4f4ac08d3fa63bde1f123a43210d776d68488504e760262c58eb79beba008"
+    }
+  },
+  "renderer": {
+    "path": "ops/plot_paper_concentration_levels.py",
+    "sha256": "0bb8f79d16904cbad91b3c9b787cabb29ab77f75fa478aecd2c03e4af7bed9d4"
+  },
+  "rows": 25,
+  "scales_pooled": "all",
+  "schema": "paper-concentration-levels-figure-v1",
+  "source": {
+    "path": "paper/results/concentration_across_levels.json",
+    "sha256": "af0846bbaaf85d7536e6e074034aae454fa3a29466e521f9d0d12d0138db2e67"
+  },
+  "transfer_levels": [
+    "level2",
+    "level3",
+    "level4",
+    "level5"
+  ],
+  "x_limits_percentage_points": [
+    -90.0,
+    40.0
+  ]
 }

@@ -1,0 +1,38 @@
+{
+  "scope": "P.3: conditional trajectories of outcome-binary mean flows; no build and no data/model calls",
+  "checks": {
+    "structure": 7,
+    "maxrl_endpoints": 31,
+    "drgrpo_bernstein_gaps": 527,
+    "maxrl_bernstein_gaps": 527,
+    "drgrpo_binomial_identity": 589,
+    "drgrpo_closed_form": 589,
+    "maxrl_binomial_identity": 589,
+    "maxrl_closed_form": 589,
+    "general_reward_map_binomial_identity": 589,
+    "maxrl_ratio_monotonicity": 558,
+    "ratio_endpoints": 31,
+    "direct_categorical_mean": 48,
+    "conditional_log_ratio": 12,
+    "mixed_group_probability": 589,
+    "mixed_group_symmetry": 589
+  },
+  "total_checks": 5864,
+  "maxrl_last_bernstein_gap": "Unchanged and verified: a(1,G)=0; a(0,G-1)=-1; d_(G-1)=1.",
+  "substantive_corrections": [
+    "G=2 coefficient ratio is constant at 2; strict decrease requires G>2.",
+    "Fresh mixed-reward groups become rare near both P=0 and P=1."
+  ],
+  "preserved_labels": [
+    "app:theory-objective-inertness",
+    "eq:inertness-polynomial",
+    "eq:leave-one-out-gap",
+    "cor:class-collapse",
+    "rem:group-size-inert",
+    "cor:maxrl-starvation"
+  ],
+  "sha256": {
+    "before_block": "c99ba059dfe91ef2a610011dcbff8efa21fb8bed150dc5ec920e2af4773e6b43",
+    "replacement": "f6cd44d760c11db248c2d21d93b9f11a3618fe27fa5dfef485311bc7d3a82e36"
+  }
+}

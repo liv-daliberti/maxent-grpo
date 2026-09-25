@@ -1,0 +1,355 @@
+{
+  "status": "passed",
+  "families": 8,
+  "domain_font_spans": 46,
+  "figures": {
+    "hosted_verified_breadth": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "d2be2b190a3105d7f0cbce32ebea7eef447ca4319fb0cd8394ac271cc8f16744",
+      "png_sha256": "30c1f3a38c8ae2952100a272818f0a7d64f2ba1da446315e14d8f61e5a65de99",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "gpt56_all_levels32_sampling_budget": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "64eac0f05327dd0a2db352b0f5d362d5794e51ddd7b6a17869bfda178a49c972",
+      "png_sha256": "b72e3821936ad5cf84ff154e195a302fa76b9e639429a053493f02ac1863dc47",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "frontier_level_grid": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "4c34df88cafeb0a7acd1598518d81c10adb153271b8f9e2c89d33769e79316c5",
+      "png_sha256": "b09e11c4f7eff43d8b5e9aa4dedfbae55767630d8af426ecf539b4801ae967ef",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "modebench_discovery_curves_frontier": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "8141f47e437f7211923ab5c6997898415e3aa81ad7f8c398c901283fd481582c",
+      "png_sha256": "496616e381019cb4d011098ad37b7df08aa80c1c5a62085b8b8c26847e0dbaa7",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "modebench_discovery_curves_local": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "954f91792d300bfa533b988ca83fd523670139c874f65a8a7be12f9b88a2a4b0",
+      "png_sha256": "a89cbaa1e990bc0a8d5ad014a25a49ccd445f3d03fcd3db7be6cc886948de3fe",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "modebench_discovery_correct_budget_frontier": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "b03c06135729fc795dc94e4b2f9e347682846f94489522c4eac88f6c880f2d4f",
+      "png_sha256": "8cf66765c7de5859e7e272e0115fe0a3997db737ae7505dd6247a3990f7ecdfa",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "modebench_discovery_correct_budget_local": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "5a259a95ea631a19e026c11c7d09a3db4ba83957e3a4434664cba2d17912412b",
+      "png_sha256": "648e11e70aa6dfe958e4b788b0d9030a7c0e6988c7aea29d5e49955a72b9ce30",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    },
+    "modebench_prompt_ablation_local": {
+      "all_measurements_and_descriptive_fields_unchanged": true,
+      "pdf_sha256": "e8f3358069b4f389659ce0d221011c8924d2ab8f91baa7403b6b6d1fb5683ecf",
+      "png_sha256": "3edd6b7b00e8288de7059afccd4f5834106089e206d07ad8cb2e6dc2d8c14fa7",
+      "numeric_text_tokens_preserved": true,
+      "numeric_text_before_only": {},
+      "numeric_text_after_only": {}
+    }
+  },
+  "embedded_domain_fonts": {
+    "hosted_verified_breadth": [
+      {
+        "domain": "Graph",
+        "text": "Graph",
+        "font": "CLPBHC+DejaVuSansMono"
+      },
+      {
+        "domain": "Countdown",
+        "text": "Countdown",
+        "font": "CLPBHC+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "CLPBHC+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "CLPBHC+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "CLPBHC+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "gpt56_all_levels32_sampling_budget": [
+      {
+        "domain": "Graph",
+        "text": "Graph",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Countdown",
+        "text": "Countdown",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "frontier_level_grid": [
+      {
+        "domain": "Graph",
+        "text": "Graph",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Countdown",
+        "text": "Countdown",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "modebench_discovery_curves_frontier": [
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python (six rotated character spans)",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "modebench_discovery_curves_local": [
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python (six rotated character spans)",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "modebench_discovery_correct_budget_frontier": [
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python (six rotated character spans)",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "modebench_discovery_correct_budget_local": [
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python (six rotated character spans)",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ],
+    "modebench_prompt_ablation_local": [
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Pantry",
+        "text": "Pantry",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "MathIR",
+        "text": "MathIR",
+        "font": "FJGZKM+DejaVuSansMono"
+      },
+      {
+        "domain": "Python",
+        "text": "Python",
+        "font": "FJGZKM+DejaVuSansMono"
+      }
+    ]
+  },
+  "plot_array_checks": [
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 6
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 5
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 5
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 3
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 3
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 3
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 3
+    },
+    {
+      "type": "plotted_arrays_unchanged_by_typography",
+      "changed_labels": 18
+    }
+  ],
+  "reports_and_point_estimates_recomputed": false,
+  "bootstrap_or_experimental_runs": 0
+}

@@ -1,0 +1,18 @@
+[
+  [
+    "In a separate concentration evaluation, we draw 64 fresh responses per prompt from initial and trained checkpoints on the original 128-prompt Level-1 \\texttt{Graph}/\\texttt{PantryPlan} cohorts at all three scales. We average paired \\pmd{} differences on prompts with at least two correct responses in both conditions (App.~\\ref{app:fresh-concentration}).",
+    "A separate evaluation draws 64 responses per prompt from initial and trained checkpoints on the same 128 Level-1 \\texttt{Graph}/\\texttt{PantryPlan} prompts at each scale. Paired \\pmd{} differences use jointly eligible prompts (App.~\\ref{app:fresh-concentration})."
+  ],
+  [
+    "Fresh sampling corroborates the Dr.GRPO result: \\pmd{} decreases in all six \\texttt{Graph}/\\texttt{PantryPlan} domain--scale comparisons and all 30 paired seed effects; all six nominal 95\\% intervals lie below zero (App.~\\ref{app:fresh-concentration}).",
+    "The 64-response evaluation confirms Dr.GRPO concentration in all six domain--scale comparisons and 30 seed pairs; all six nominal 95\\% intervals lie below zero (App.~\\ref{app:fresh-concentration})."
+  ],
+  [
+    "In the fresh evaluation, replay raises \\pmd{} in all twelve comparisons against its matched Dr.GRPO or MaxRL control and all 60 paired seed effects. Both replay variants nevertheless remain below initial \\pmd{} in \\texttt{PantryPlan} at every scale (App.~\\ref{app:fresh-concentration}).",
+    "In that evaluation, replay raises \\pmd{} in all twelve matched comparisons and 60 seed pairs. Both variants remain below initial \\texttt{PantryPlan} diversity at every scale (App.~\\ref{app:fresh-concentration})."
+  ],
+  [
+    "A KL penalty anchors the policy to its initial distribution; replay rehearses modes discovered during training. From $\\beta=.01$ to $.2$, the three-domain mean gains diversity while losing correctness (Fig.~\\ref{fig:reference-kl-plane}). At matched breadth across all \\MDklMatchedDomains{} domains---$\\beta=\\MDklMatchedBeta{}$, where the anchor's mean \\pmd{} of $\\MDklMatchedKLpmd{}$ meets Re:Max's $\\MDklMatchedRemaxPmd{}$---Re:Max is $\\MDklMatchedGain{}$ higher on \\texttt{pass@8}, $\\MDklMatchedRemaxPass{}$ against $\\MDklMatchedKLpass{}$, and Re:Dr holds $\\MDklMatchedRedrPmd{}$ \\pmd{} at $\\MDklMatchedRedrPass{}$. The anchor exceeds both replay arms on both axes in \\MDklFreeNames{} alone. App.~\\ref{app:theory-kl-measured} gives the domain-level comparisons and distinguishes the reference's initial diversity from the modes the bank discovers.",
+    "A reference-KL penalty anchors the initial policy; replay rehearses discovered modes. Across the three plotted domains, increasing $\\beta$ from $.01$ to $.2$ trades correctness for diversity (Fig.~\\ref{fig:reference-kl-plane}). Across all \\MDklMatchedDomains{} domains at $\\beta=\\MDklMatchedBeta{}$, KL and Re:Max have mean \\pmd{} $\\MDklMatchedKLpmd{}$ and $\\MDklMatchedRemaxPmd{}$, but Re:Max raises \\texttt{pass@8} by $\\MDklMatchedGain{}$ ($\\MDklMatchedRemaxPass{}$ versus $\\MDklMatchedKLpass{}$). Re:Dr reaches $\\MDklMatchedRedrPmd{}$ \\pmd{} at $\\MDklMatchedRedrPass{}$ \\texttt{pass@8}. Only in \\MDklFreeNames{} does KL exceed both replay arms on both axes (App.~\\ref{app:theory-kl-measured})."
+  ]
+]

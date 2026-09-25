@@ -1,0 +1,241 @@
+{
+  "changed_figures": 29,
+  "domain_occurrences": 166,
+  "all_numbers_preserved": true,
+  "metadata_comparison": "All non-binding top-level figure metadata unchanged; renderer, style, source and output bindings excluded. Hosted source changes verified separately against its full display data.",
+  "figures": [
+    {
+      "figure": "figures/baseline_collapse_precheck.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/concentration_levels.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/concentration_story_all_scales.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs",
+        "style_source"
+      ]
+    },
+    {
+      "figure": "figures/concentration_story_resampled.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/decoding_objection.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/direct_baseline_learning_curves_pass8.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/e118_scale_extensions_appendix.pdf",
+      "domains": 15,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/factorial_training_curves_pass8.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/factorial_training_curves_pmd.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/frontier_level_grid.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/gpt56_all_levels32_sampling_budget.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/hosted_verified_breadth.pdf",
+      "domains": 6,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "source",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/level2_factorial_training_curves.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/level2_training_curves_pmd.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_families_appendix.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_level_construction.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_levels_appendix.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_correct_budget_frontier.pdf",
+      "domains": 3,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_correct_budget_local.pdf",
+      "domains": 3,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_curves_frontier.pdf",
+      "domains": 3,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_curves_local.pdf",
+      "domains": 3,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_examples.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/modebench_prompt_ablation_local.pdf",
+      "domains": 18,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/reference_kl_knee.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/replay_bank_decomposition.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/replay_factorial_effects.pdf",
+      "domains": 10,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs",
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/replay_key_weighting.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs",
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/replay_level2_effects.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": [
+        "outputs",
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/withdrawal_pmd_agreement.pdf",
+      "domains": 5,
+      "numeric_tokens_unchanged": true,
+      "changed_metadata_topkeys": []
+    }
+  ]
+}

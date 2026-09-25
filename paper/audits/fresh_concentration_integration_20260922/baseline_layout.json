@@ -1,0 +1,21 @@
+{
+  "pdf": "paper/main.pdf",
+  "main_length": {
+    "command": "var/seed_paper_eval/paper310/bin/python ops/check_paper_main_length.py",
+    "exit_code": 0,
+    "main_pages": 9,
+    "main_page_limit": 9,
+    "main_figures": 12,
+    "references_start_page": 11,
+    "excluded_statement_pages": 1,
+    "total_pdf_pages": 122
+  },
+  "line_fill": {
+    "command": "python ops/check_paper_line_fill.py --pdf paper/main.pdf",
+    "exit_code": 1,
+    "violating_blocks": 46,
+    "checked_blocks": 549,
+    "main_violating_blocks": 5,
+    "note": "Violations predate this integration; main violations on pages1\u20133,41 others in appendix."
+  }
+}

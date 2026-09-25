@@ -13,9 +13,10 @@ Three states are drawn, and they mean different things:
 * initial below support -- the untrained checkpoint never returns two correct
   responses to one prompt, so there is no initial breadth to subtract and no
   amount of sampling fixes it;
-* awaiting baseline -- the step-0 cell has not been collected yet.
+* not measured -- the cell is outside this plate's measured set.  At present
+  that is GRPO above Level 1, which was read at Level 1 only.
 
-The third is a hole in the collection and the second is a property of the task.
+The third is a statement about scope and the second is a property of the task.
 Printing them the same way would be the one mistake this plate must not make.
 """
 from __future__ import annotations
@@ -45,6 +46,10 @@ ROW_IN = .285
 HEIGHT_IN = None
 XLIM = None
 MARKER = 3.8
+# Axes rectangle as a canvas fraction; shared with the story plate so the
+# two align on a baseline and a top edge when printed side by side.
+AXES_BOTTOM = None
+AXES_HEIGHT = None
 
 
 def _sha(path: Path) -> str:
@@ -93,15 +98,22 @@ def collect(record: dict, scales: tuple[str, ...] | None,
         if combine_levels and len(entry['pooled']) >= 2:
             import statistics as _st
             n = len(entry['pooled'])
-            half = T95.get(n, 1.96) * _st.stdev(entry['pooled']) / (n ** .5)
+            if n not in T95:
+                raise RuntimeError(f'no t multiplier tabulated for n={n}')
+            half = T95[n] * _st.stdev(entry['pooled']) / (n ** .5)
             entry['mean'] = _st.fmean(entry['pooled'])
             entry['interval'] = [entry['mean'] - half, entry['mean'] + half]
     return out
 
 
 # Student-t 95% half-widths for n-1 degrees of freedom, as the builder uses.
+# Gaps here used to fall back to the normal 1.96, which narrows the interval
+# without saying so, so every n in range is tabulated and the rest raises.
 T95 = {2: 12.706, 3: 4.303, 4: 3.182, 5: 2.776, 6: 2.571, 7: 2.447, 8: 2.365,
-       9: 2.306, 10: 2.262, 12: 2.201, 15: 2.145, 20: 2.093, 25: 2.064, 30: 2.045}
+       9: 2.306, 10: 2.262, 11: 2.228, 12: 2.201, 13: 2.179, 14: 2.160,
+       15: 2.145, 16: 2.131, 17: 2.120, 18: 2.110, 19: 2.101, 20: 2.093,
+       21: 2.086, 22: 2.080, 23: 2.074, 24: 2.069, 25: 2.064, 26: 2.060,
+       27: 2.056, 28: 2.052, 29: 2.045, 30: 2.045}
 
 
 def build(source: Path, scales: tuple[str, ...] | None,
@@ -128,9 +140,17 @@ def build(source: Path, scales: tuple[str, ...] | None,
             drawn.extend(e['interval'])
     if not drawn:
         raise ValueError('no measured block to draw yet')
-    span = max(abs(min(drawn)), abs(max(drawn))) * 100
-    low = -10 * int(span / 10 + 1.4)
-    high = max(10, int(round(abs(low) * .28 / 10)) * 10)
+    # Each side of the window is sized from the data on that side. The positive
+    # limit used to be .28 of the negative one, which is a rule keyed on how far
+    # the collapse goes: on a plate where most arms narrow, the broadening side
+    # got a window proportional to the narrowing, and the one genuine
+    # broadening result -- Countdown at the upper levels -- was drawn outside
+    # the axis. A rule that selects on magnitude, on a quantity whose magnitude
+    # differs by direction, selects on direction.
+    values = [value * 100 for value in drawn]
+    decade = lambda edge: max(10, -(-int(abs(edge) * 1.06) // 10) * 10)
+    low = -decade(min(min(values), 0.0))
+    high = decade(max(max(values), 0.0))
 
     rows = len(DOMAINS) * len(levels)
     height = ROW_IN * rows + 0.86
@@ -149,8 +169,9 @@ def build(source: Path, scales: tuple[str, ...] | None,
 
     with plt.rc_context(rc):
         fig = plt.figure(figsize=(width, round(height, 3)))
-        axes_bottom = .50 / height
-        axes_height = row_in * rows / height
+        axes_bottom = .50 / height if AXES_BOTTOM is None else AXES_BOTTOM
+        axes_height = (row_in * rows / height if AXES_HEIGHT is None
+                       else AXES_HEIGHT)
         ax = fig.add_axes((gutter, axes_bottom, .940 - gutter, axes_height))
         ax.set_xlim(low, high)
         ax.set_ylim(-.60, rows - .40)
@@ -170,12 +191,12 @@ def build(source: Path, scales: tuple[str, ...] | None,
                 entry = data.get((domain, level, method))
                 offset = .26 - 2 * .26 * slot / (len(METHODS) - 1)
                 if entry is None:
-                    states.add('awaiting baseline')
+                    states.add('not measured')
                     continue
                 if entry['mean'] is None:
                     states.add('initial below support'
                                if 'initial_below_support' in entry['status']
-                               else 'awaiting baseline')
+                               else 'not measured')
                     continue
                 if entry['interval'] is not None:
                     ax.plot([entry['interval'][0] * 100, entry['interval'][1] * 100],
@@ -189,8 +210,8 @@ def build(source: Path, scales: tuple[str, ...] | None,
                         linestyle='none', zorder=5)
             if not any(data.get((domain, level, m), {}).get('mean') is not None
                        for m in METHODS):
-                note = ('initial below support' if 'initial below support' in states
-                        else 'awaiting baseline')
+                note = ('<2 eligible initial prompts' if 'initial below support' in states
+                        else 'not measured')
                 ax.text(.5, y, note, transform=ax.get_yaxis_transform(),
                         fontsize=FONT - 1.8, color=style.MUTED, ha='center',
                         va='center', style='italic', zorder=6)
@@ -220,15 +241,16 @@ def build(source: Path, scales: tuple[str, ...] | None,
                           color=colors[m], label=METHOD_LABELS[m]) for m in present]
         handles.append(Line2D([], [], marker='o', linestyle='none', markersize=MARKER,
                               markerfacecolor='none', markeredgecolor=style.MUTED,
-                              markeredgewidth=.8, label='below support'))
+                              markeredgewidth=.8, label='few eligible prompts'))
         fig.legend(handles=handles, loc='lower center',
                    bbox_to_anchor=(.630, axes_bottom + axes_height + .006),
                    ncol=len(handles), frameon=False, fontsize=FONT - 2.0,
                    handletextpad=.25, columnspacing=.62, borderaxespad=0)
         fig.text(.630, .150 / height,
-                 'Δ PCMD (pp)\n← same answer    different answers →',
+                 'Δ PCMD (pp)\n← lower diversity    higher diversity →',
                  fontsize=FONT - 1.4, ha='center', va='center', linespacing=1.55)
 
+        style.apply_domain_typography(fig)
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
         canvas = fig.bbox
@@ -266,15 +288,19 @@ def main() -> None:
     parser.add_argument('--xlow', type=float, default=None)
     parser.add_argument('--xhigh', type=float, default=None)
     parser.add_argument('--markersize', type=float, default=3.8)
+    parser.add_argument('--axes-bottom', type=float, default=None)
+    parser.add_argument('--axes-height', type=float, default=None)
     parser.add_argument('--gutter', type=float, default=.268,
                         help='left fraction reserved for row and domain labels; short row labels need less of it')
     parser.add_argument('--width', type=float, default=3.95,
                         help='canvas width in inches; a wrapped column needs its own')
     args = parser.parse_args()
-    global HEIGHT_IN, XLIM, MARKER
+    global HEIGHT_IN, XLIM, MARKER, AXES_BOTTOM, AXES_HEIGHT
     HEIGHT_IN = args.height
     XLIM = (args.xlow, args.xhigh) if args.xlow is not None else None
     MARKER = args.markersize
+    AXES_BOTTOM = args.axes_bottom
+    AXES_HEIGHT = args.axes_height
     import matplotlib.pyplot as plt
     fig, metadata = build(args.source, tuple(args.scale) if args.scale else None,
                           args.gutter,
@@ -285,7 +311,24 @@ def main() -> None:
                 metadata={'CreationDate': None, 'ModDate': None})
     fig.savefig(args.output.with_suffix('.png'), dpi=220)
     plt.close(fig)
-    metadata['outputs'] = {'pdf': str(args.output.with_suffix('.pdf'))}
+    # Both shipped assets are bound by content, not merely named. A bare path
+    # records nothing: the PNG is written and included in the release, and a
+    # record that lists only the PDF's filename lets either file drift without
+    # anything noticing.
+    root = Path(__file__).resolve().parents[1]
+    metadata['outputs'] = {
+        extension: {
+            'path': args.output.with_suffix('.' + extension).resolve()
+                        .relative_to(root).as_posix(),
+            'sha256': hashlib.sha256(
+                args.output.with_suffix('.' + extension).read_bytes()).hexdigest(),
+        }
+        for extension in ('pdf', 'png')
+    }
+    metadata['source'] = {
+        'path': Path(metadata['source']['path']).resolve().relative_to(root).as_posix(),
+        'sha256': metadata['source']['sha256'],
+    } if isinstance(metadata.get('source'), dict) else metadata.get('source')
     args.output.with_suffix('.json').write_text(
         json.dumps(metadata, indent=1, sort_keys=True) + '\n')
     print(json.dumps({'event': 'built', 'cells_drawn': metadata['cells_drawn'],

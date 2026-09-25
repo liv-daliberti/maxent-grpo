@@ -1,0 +1,22 @@
+{
+  "status": "complete",
+  "paper": "paper/main.pdf",
+  "pdf_sha256": "fc55f79f0dcfdf7bc904ce7eafb56b6c3e09fc2857e9d6eb8d3982af84f8090a",
+  "requested_corrections": [
+    "PCMD sample eligibility versus cell reporting threshold",
+    "Verifier keying without exhaustive catalogues and qualified cross-level support/calibration",
+    "Hosted common-cell aggregate scope and accuracy/diversity caption",
+    "Study-specific initial references and shared fresh sampling replicas"
+  ],
+  "story_changes": [
+    "Concrete changed-requirement motivation",
+    "Theory contribution surfaced in abstract",
+    "Sharper introduction, measurement, theory, and results transitions",
+    "Graph survival and two-seed withdrawal-recovery findings in main results"
+  ],
+  "main_pages": 9,
+  "main_figures_preserved": 12,
+  "formal_blocks_preserved": 68,
+  "new_material_scientifically_and_visually_reviewed": true,
+  "existing_unrelated_global_checks": "Previously recorded hosted-evidence mismatch and remaining paragraph-ending issues remain outside this edit."
+}

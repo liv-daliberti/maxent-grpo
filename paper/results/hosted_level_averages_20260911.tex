@@ -19,24 +19,22 @@
     \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/deepseek.png}}\hspace{0.4em}DeepSeek V4 Pro & 98.4 & 2.01 & .289 & 99.1 & 1.84 & .319 & 99.7 & 1.62 & .232 \\
     \bottomrule
   \end{tabular}}
-  \caption{\textbf{Hosted success and output diversity with medium reasoning, averaged by level.}
-  Each level averages five domains equally, using 128 prompts per domain
-  and eight responses per prompt. \texttt{pass@8} is the fraction with any
-  verified response; \# modes is mean \texttt{distinct@8} over all prompts,
-  with zero modes for every prompt lacking a verified response.
-  Both of those fall when a deployment simply succeeds less often, so
-  \pmd{} carries the success-conditional axis beside them: the mean
-  probability that two verified draws on the same prompt differ, averaged
-  over prompts and then over domains. It is repeated here from
-  Table~\ref{tab:hosted-cohort-mode-diversity}, which reads the same
-  draws, and a cell enters it only from the domains where at least thirty
-  prompts return two verified draws: \textsuperscript{\textdagger} marks the
-  four cells that average fewer domains than the five,
-  each of them missing Python to provider refusals.
-  \textsuperscript{\ensuremath{\ddagger}} marks the three Claude Opus 5 cells whose Python column is the
-  revised-wording cohort of App.~\ref{app:hosted-python-prompt} rather than the
-  original benchmark prompt the other deployments answer; the \pmd{} column is
-  the original prompt throughout. Table~\ref{tab:hosted-level-averages-parity}
-  repeats every deployment over the four domains that share one prompt.}
+  \caption{\textbf{High prompt success coexists with few verified solution modes.}
+  Each deployment requests medium reasoning effort, with 128 prompts per domain
+  and level and eight responses per prompt. \texttt{pass@8} and \# modes use
+  formatting-normalized grading and average the five domains equally:
+  \texttt{pass@8} is empirical prompt success; \# modes is mean
+  \texttt{distinct@8}, including zero for prompts without a verified response.
+  \textsuperscript{\ensuremath{\ddagger}} marks the three Claude Opus 5 cells using
+  revised \texttt{Python} wording without a system message (App.~\ref{app:hosted-python-prompt}).
+  \pmd{} instead uses strict grading and the original wording throughout,
+  averaging per-prompt diversity over prompts with at least two verified draws
+  and then equally over reportable domains. These are the per-level columns of
+  Table~\ref{tab:hosted-cohort-mode-diversity}, not its common-cell macro.
+  \textsuperscript{\textdagger} marks four cells omitting \texttt{Python} because fewer
+  than thirty prompts qualify: GPT-5.6 Sol has strict-formatting failures;
+  Opus 5 has provider refusals. All entries are point estimates.
+  Table~\ref{tab:hosted-level-averages-parity} gives normalized success and mode
+  counts on the four domains with common wording.}
   \label{tab:hosted-level-averages-medium}
 \end{table}

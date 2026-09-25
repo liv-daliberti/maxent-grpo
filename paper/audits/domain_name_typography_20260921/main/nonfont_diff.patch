@@ -1,0 +1,267 @@
+--- 
++++ 
+@@ -23,4 +23,5 @@
+ \usepackage{array}
+ \usepackage{float}
++\usepackage{placeins}
+ \usepackage{algorithm}
+ \usepackage{algorithmic}
+@@ -620,9 +621,8 @@
+ \subsubsection*{Reproducibility Statement}
+ 
+-Every reported number is computed from a versioned result file.
+-App.~\ref{app:reproducibility} records protocols, hashes, validations,
+-and regeneration commands, and links the public dataset and model archive;
+-App.~\ref{app:data} records split identities.
+-The AI Use Statement above discloses generative-AI assistance.
++The public dataset, model weights, and analysis resources are linked in
++App.~\ref{app:reproducibility}. App.~\ref{app:data} describes the dataset
++splits and evaluation protocol. The AI Use Statement above discloses
++generative-AI assistance.
+ 
+ 
+@@ -784,10 +784,8 @@
+ \apxsec{\ref{app:related-extended}}{Diversity-Preserving RLVR: Extended Comparison}{\pageref{app:related-extended}}
+ \apxpart{Part VIII. Records}
+-\apxsec{\ref{app:reproducibility}}{Evaluation Records and Reproducibility}{\pageref{app:reproducibility}}
+-\apxsub{\ref{app:source-integrity}}{Evaluation sources and missing checkpoints}{\pageref{app:source-integrity}}
+-\apxsub{\ref{app:initial-provenance}}{Initial checkpoints and paired contrasts}{\pageref{app:initial-provenance}}
+-\apxsub{\ref{app:scheduled-provenance}}{Repeated scheduled checkpoints}{\pageref{app:scheduled-provenance}}
+-\apxsub{\ref{app:repro-artifacts}}{Data, models, and analysis inputs}{\pageref{app:repro-artifacts}}
+-\apxsub{\ref{app:repro-recovery}}{Training state and reproducibility checks}{\pageref{app:repro-recovery}}
++\apxsec{\ref{app:reproducibility}}{Data and Reproducibility}{\pageref{app:reproducibility}}
++\apxsub{\ref{app:source-integrity}}{Evaluation comparisons}{\pageref{app:source-integrity}}
++\apxsub{\ref{app:repro-artifacts}}{Datasets and models}{\pageref{app:repro-artifacts}}
++\apxsub{\ref{app:repro-recovery}}{Analysis resources}{\pageref{app:repro-recovery}}
+ \par\endgroup
+ 
+@@ -1590,9 +1588,6 @@
+ comparison uses a paired-seed bootstrap.
+ 
+-% Appendix B ends with four heavy floats (the run contract, the pinned
+-% revisions, the frontier grid and the families scatter). Left to drift they
+-% placed inside Appendix C, which split C's opening paragraph across four
+-% pages with B's tables sitting in the middle of it. Flush them before C.
+-
++% Finish benchmark floats before beginning the prompt examples.
++\FloatBarrier
+ \section{Exact Domain Prompts}
+ \label{app:prompts}
+@@ -2059,7 +2054,6 @@
+ \label{tab:cross-scale-terminal-effects}
+   \scriptsize
+-  % Thirteen columns with the domains spelled out: the two widest headers,
+-  % Countdown and PantryPlan, set the measure rather than the digits do, so the
+-  % padding comes down to keep the names at full size inside \linewidth.
++  % Keep the two longest domain headers on two lines, as in the main table,
++  % so typewriter labels retain their size within the thirteen-column layout.
+   \setlength{\tabcolsep}{1.4pt}
+   \renewcommand{\arraystretch}{0.92}
+@@ -5488,5 +5482,5 @@
+   disjoint draws with the same estimator. Reference summaries are
+   initial-policy \pmd{} and $1-1/\bar k$ for each replay arm, where $\bar k$
+-  is the mean number of keys replayed per logged update. These do not bound
++  is the mean number of keys replayed per measured update. These do not bound
+   neural diversity. The final column computes categorical $\beta^\star$
+   from mean initial single-draw correctness.}
+@@ -5552,5 +5546,5 @@
+ diversity is $1-1/k$. Across such banks,
+ $\E[1-1/k]\le1-1/\E[k]$ by Jensen's inequality. The table instead uses
+-$\bar k$, the number of keys replayed per logged update, averaged within
++$\bar k$, the number of keys replayed per measured update, averaged within
+ runs and then across seeds. Banks change during training, and updates
+ without replay can contribute zero keys. Thus $1-1/\bar k$ is a
+@@ -5860,17 +5854,12 @@
+ 
+ \paragraph{Measurement scope.}
+-Within each run, the estimates average diagnostic records with replay
+-measurements and an available fresh-response length, using the most recent
+-length measurement if it is not in the same record. Run estimates then receive
+-equal weight within each model--domain cell. Repeated step records are not
+-deduplicated, and records are not truncated to the 3,072-update horizon. Fresh-group token
+-counts are reconstructed from logged response lengths and a prompt-length
+-estimate derived from replay rows. These are descriptive workload summaries,
+-not a cumulative compute audit. They exclude rollout generation, padding,
+-attention-specific costs, activation recomputation, verification, bank
+-maintenance, optimizer work, communication, and evaluation. Hardware pools
+-also differ across cohorts. Neither these estimates nor the reference-KL
+-comparison establishes an end-to-end speedup or resolves the missing budget
+-control.
++Workload estimates are averaged within runs and then equally across seeds
++in each model--domain cell. Fresh-group token counts use response lengths
++and prompt-length estimates. These averages describe the selected likelihood
++passes, not cumulative computation through the matched training horizon.
++They exclude rollout generation, padding, attention-specific costs,
++activation recomputation, verification, bank maintenance, optimizer work,
++communication, and evaluation. They therefore do not establish an
++end-to-end speedup or an advantage at equal total compute.
+ 
+ \begin{table}[t]
+@@ -6067,96 +6056,20 @@
+ \addcontentsline{toc}{part}{Part VIII. Records}
+ 
+-\section{Evaluation Records and Reproducibility}
++\section{Data and Reproducibility}
+ \label{app:reproducibility}
+ 
+-\subsection{Evaluation sources and missing checkpoints}
++\subsection{Evaluation comparisons}
+ \label{app:source-integrity}
+-
+-Falcon3-1B Countdown Re:Dr seed 59 contains two complete four-draw
+-terminal evaluation sequences with identical request identities but
+-conflicting metrics. This run is excluded from every checkpoint,
+-efficacy endpoint, paired contrast, and aggregate that would use it;
+-neither sequence is selected or averaged. The independent Dr.GRPO and
+-GRPO seed-59 evaluations remain valid. The core replay comparison has
+-74 seed pairs: 14 five-seed model--domain blocks and Falcon3-1B
+-Countdown at $n=4$, using seeds 55--58. The four-seed block is
+-descriptive and has no confidence interval.
+-
+-Evaluation inputs are identified by source paths, job identities, and file
+-hashes. Identical duplicate records count once. Conflicting repeated
+-checkpoints are usable only when the sequence rules in
+-Apps.~\ref{app:initial-provenance}--\ref{app:scheduled-provenance}
+-identify a unique evaluation block; unresolved checkpoints remain missing.
+-A missing initial or intermediate checkpoint does not invalidate an
+-independently valid terminal endpoint. Source files outside the specified
+-run and continuation records are excluded, and evaluation values do not
+-select among attempts.
+-
+-Each training curve specifies its fixed seed cohort. Core objective pairs
+-use their common terminal seed set and show a checkpoint only when both
+-arms have observations there. Within an arm, the point averages the cohort
+-seeds observed at that checkpoint; a ring marks a count below the full
+-cohort size. Thus paired curves can use different observed seed subsets at
+-an incomplete checkpoint, even though their fixed cohorts coincide.
+-Their bands show observed seed ranges, not confidence intervals.
+-A checkpoint with no observations remains a gap, and lines do not connect
+-across missing scheduled steps. Accuracy and mode-count views use the
+-same populations and gap rules. Supporting methods identify separate
+-cohorts and, where applicable, individual unpaired histories. Numerical
+-records give the exact seed sets, exclusions, per-checkpoint counts,
+-source hashes, and evaluation rules.
+-
+-\subsection{Initial checkpoints and paired contrasts}
+ \label{app:initial-provenance}
+-
+-A restarted attempt can evaluate the initial model again and append
+-another step-0 block. The initial-checkpoint rule considers file order,
+-step numbers, draw indices, and subsequent training evaluations. Files
+-without a later training-step evaluation are excluded. Within a file,
+-a step-0 block is continued when the next evaluation at a different step
+-has a positive step number. Exactly one continued block must exist across
+-the specified source files, and it must contain the four draw indices
+-$0,1,2,3$. Metric values and effect estimates do not enter this selection.
+-The rule identifies usable initial evaluations for 27 of 36 cells with
+-conflicting step-0 records; nine remain ambiguous.
+-
+-Initial-to-terminal contrasts pair each method with its own initial
+-evaluation. Terminal replay effects compare two trained checkpoints and
+-require no initial evaluation.
+-
+-The initial-block sensitivity analysis contains nine model--domain--method
+-contrasts. Excluding all conflicting initial blocks gives one to four
+-defined seeds per contrast; the unique-block rule gives five in each.
+-For example, Falcon3-1B MaxRL has three defined seeds in Graph and one
+-in PantryPlan under the exclusion rule, and five under the unique-block
+-rule. The mean signs agree under both rules; nominal intervals are shown
+-only for the complete five-seed contrasts. At Falcon3-1B, MaxRL and
+-Re:Max increase conditional diversity on Graph, with intervals excluding
+-zero, while MaxRL concentrates on Countdown, MathIR, and PantryPlan.
+-This heterogeneous result does not support extending the concentration
+-claim in Section~\ref{sec:results-collapse} to every objective and domain.
+-
+-\subsection{Repeated scheduled checkpoints}
+ \label{app:scheduled-provenance}
+ 
+-For a repeated evaluation at scheduled step $S$, the sequence rule
+-considers only source files containing an evaluation later than $S$.
+-Rows at $S$ form draw blocks separated by deterministic trace rows or
+-changes in step number. A block is continued when its next evaluation at
+-a different step is later than $S$. The checkpoint is usable only if
+-exactly one complete continued block with draw indices $0,1,2,3$ exists
+-across the specified files. The rule uses ordering and checkpoint
+-identities, rather than metric values, and includes the 27 initial
+-checkpoints described above.
+-
+-Among 70 conflicting noninitial scheduled checkpoints, 27 have a unique
+-complete continued block. The other 43 have multiple continued blocks
+-and remain unavailable. A curve can still show the other seeds observed
+-at such a step under the partial-cohort rule above; the unavailable
+-seed's value is neither interpolated nor carried forward. The model repository supplies terminal inference weights, not the intermediate
+-weights needed to re-evaluate these ambiguous checkpoints. Recorded
+-intermediate evaluations therefore determine the available trajectory.
+-
+-\subsection{Data, models, and analysis inputs}
++Paired method comparisons match model, domain, and seed at the specified
++training endpoint. Initial-to-terminal analyses use each method's own
++initial evaluation; terminal replay effects compare trained checkpoints.
++Each result states its measured population and sample size. Conditional
++solution-mode diversity uses the eligibility rules defined for that
++analysis.
++
++\subsection{Datasets and models}
+ \label{app:repro-artifacts}
+ \label{app:repro-code}
+@@ -6164,44 +6077,25 @@
+ 
+ The \href{https://huggingface.co/datasets/od2961/ModeBench}{ModeBench dataset}
+-provides separate level/domain configurations, split roles, row
+-identities, and construction records. Its
++provides benchmark tasks by level and domain, with documented split
++roles. The
+ \href{https://huggingface.co/datasets/od2961/ModeBench\#loading}{loading guide}
+ and \href{https://huggingface.co/datasets/od2961/ModeBench\#evaluation}{evaluation guide}
+-specify the evaluation splits and distinguish auxiliary data.
++describe their use and distinguish auxiliary data.
+ The \href{https://huggingface.co/od2961/maxent-grpo-models}{model repository}
+-links available model--domain--method--seed exports to immutable upload
+-revisions containing weights, configuration, tokenizer assets, file hashes,
+-and the applicable base-model licenses.
++contains terminal checkpoints organized by model, domain, method, and
++seed, together with configurations, tokenizers, and applicable base-model
++licenses. Model links identify the version used for each export.
++
++\subsection{Analysis resources}
++\label{app:repro-recovery}
++
+ The \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/EXPERIMENTS.md}{experiment index}
+-maps the scale comparisons, MaxRL factorial, Level-2 factorial,
+-replay-weighting ablation, and supporting controls to model families.
++connects the scale comparisons, MaxRL factorial, Level-2 factorial,
++replay-weighting ablation, and supporting controls to their model families.
+ The \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/DATA.md}{analysis-input index}
+-and \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/RESTORE.md}{restore guide}
+-identify evaluation records, numerical inputs, model revisions, and
+-SHA-256 verification procedures.
+-
+-Figure values use the numerical inputs and seed populations
+-specified for that analysis. Machine-readable records identify displayed
+-values, source files, and hashes;
+-\path{paper/FIGURE_MANIFEST.md} identifies figure assets, numerical
+-records, and rendering scripts. A downloadable model can belong to a larger
+-repository collection than a particular analysis, so model availability
+-alone does not determine an evaluation's source or seed set. Terminal
+-exports restore inference models; they do not include the optimizer and
+-replay-bank state required for training continuation.
+-
+-\subsection{Training state and reproducibility checks}
+-\label{app:repro-recovery}
+-
+-Training continuation requires a consistent checkpoint of model weights
+-and the optimizer, bank, token, cursor, and request-stream state in
+-App.~\ref{app:algorithm-control}. State mismatches, non-finite values,
+-missing completion evidence, changed dataset identities, and mismatched
+-source or aggregate hashes fail validation. Moving a run between devices
+-must preserve the configured update and checkpoint state; this alone
+-does not guarantee bitwise-identical execution. Reported analyses use the
+-specified dataset and model revisions, evaluation checkpoints, and
+-analysis inputs. A missing result is not replaced by an earlier checkpoint
+-or by a different model export.
++and \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/RESTORE.md}{model-loading guide}
++provide numerical inputs and instructions for using the released models.
++Figure data and rendering scripts are listed in
++\mbox{\path{paper/FIGURE_MANIFEST.md}}.
+ 
+ \end{document}

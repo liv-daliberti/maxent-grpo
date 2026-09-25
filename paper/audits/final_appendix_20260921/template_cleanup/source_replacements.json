@@ -1,0 +1,200 @@
+[
+  {
+    "path": "ops/build_paper_semantic_current_summary.py",
+    "old": "training seeds: five in nine cells and four (55--58) for Falcon Countdown.",
+    "new": "training seeds: five in nine cells and four for Falcon Countdown.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_semantic_current_summary.py",
+    "old": "At Qwen2.5-3B, seed 70 compares Re:Dr with and without the bonus across",
+    "new": "At Qwen2.5-3B, one training seed compares Re:Dr with and without the bonus across",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_prompt_ablation.py",
+    "old": "      r'Each of these six cells contains the 32 problems with the smallest SHA-256 hashes of '\n      r'$(20260911,\\mathrm{level},\\mathrm{domain},\\mathrm{row\\ index})$ from the 128-problem evaluation split. '\n",
+    "new": "      r'Each of these six cells uses 32 problems selected independently of model outputs '\n      r'from the 128-problem evaluation split. '\n",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_prompt_ablation.py",
+    "old": "r'Intervals use 20,000 whole-problem bootstrap resamples, paired across arms and stratified by domain and level '\n      r'(seed 20260911). Domain--level cells receive equal weight in averages across cells.",
+    "new": "r'Intervals use 20,000 whole-problem bootstrap resamples, paired across arms and stratified by domain and level. '\n      r'Domain--level cells receive equal weight in averages across cells.",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_prompt_ablation.py",
+    "old": "r'Level-2-trained DrGRPO and Re:Dr checkpoints. Python and MathIR use matched training seeds '\n                    r'43--47; Pantry uses seeds 43 and 46.",
+    "new": "r'Level-2-trained DrGRPO and Re:Dr checkpoints. Python and MathIR use five matched training seeds; '\n                    r'Pantry uses two.",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_prompt_ablation.py",
+    "old": "        r'At Level ' + str(cell['level']) + r', seed ' + str(gap['seed'])\n        + r' produces ' + f\"{neutral['verified']:,} verified draw\"\n        + ('' if neutral['verified'] == 1 else 's')\n        + f\" among {neutral['draws']:,} neutral outputs, compared with \"\n        + f\"{original['verified']:,} of {original['draws']:,} original outputs. \"\n        r'No problem at that checkpoint has two verified draws in both arms, '\n        r'so it contributes no groups to \\pmd{}. '\n        + (f\"Thus {pmd_word(len(cell['seeds']))} checkpoints contribute to \"\n           f\"\\\\pmd{{}}, while $P_8$ and $D_8$ average all {pmd_word(seeds)}. \"\n           if seeds else ''))",
+    "new": "        r'At Level ' + str(cell['level']) + r', conditional diversity uses '\n        + f\"{pmd_word(len(cell['seeds']))} training seeds\"\n        + (f\", while $P_8$ and $D_8$ use all {pmd_word(seeds)}; \"\n           r'the fifth seed has too few jointly verified responses. '\n           if seeds else '. '))",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_prompt_ablation.py",
+    "old": "            for seed,metrics in values['per_seed'].items():\n                d = metrics[CONTRAST]\n                seed_text.append(f\"seed {seed}: $\\\\Delta P_8={scalar(d['pass8']['estimate'],3,True)}$, \"",
+    "new": "            for seed_index,metrics in enumerate(values['per_seed'].values()):\n                d = metrics[CONTRAST]\n                seed_label = ('first seed', 'second seed')[seed_index]\n                seed_text.append(f\"{seed_label}: $\\\\Delta P_8={scalar(d['pass8']['estimate'],3,True)}$, \"",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_discovery_curves.py",
+    "old": "selected by the sixteen lowest ranks in the outcome-independent hash ordering of the prompt-hint ablation.",
+    "new": "selected independently of model outputs from the prompt-hint ablation population.",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_discovery_curves.py",
+    "old": "The eight-draw estimates below are subsets of these 64-draw pools; responses from the separate eight-draw evaluation are excluded.",
+    "new": "The eight-draw estimates are computed from these same 64-draw pools.",
+    "count": 1
+  },
+  {
+    "path": "ops/analyze_modebench_discovery_curves.py",
+    "old": "bootstrap replicates (seed 20260911), paired across wordings",
+    "new": "bootstrap replicates, paired across wordings",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_gpt56_all_levels32_discovery.py",
+    "old": "selected by an outcome-independent SHA256 ranking (seed 20260911).",
+    "new": "selected independently of model outputs.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_gpt56_all_levels32_discovery.py",
+    "old": "        r'\\texttt{gpt-5.6-sol-2026-07-09}. All problems and response slots are included;',\n        'invalid, refused, and truncated answers remain in the sampling denominator.',\n        'Transport retries do not count as additional responses.', '',\n",
+    "new": "        r'\\texttt{gpt-5.6-sol-2026-07-09}. Invalid, refused, and truncated answers remain in the sampling denominator.', '',\n",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_gpt56_all_levels32_discovery.py",
+    "old": "        f'within domain and level (seed {bootstrap[\"seed\"]}); the same resampled problems',",
+    "new": "        'within domain and level; the same resampled problems',",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "paired problem-bootstrap replicates (seed 20260911).",
+    "new": "paired problem-bootstrap replicates.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "Re:Dr checkpoints at fixed seeds 43 and 46 on 32 held-out problems.",
+    "new": "Re:Dr checkpoints from two matched training seeds on 32 held-out problems.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "trained curves average fixed seeds 43 and 46.",
+    "new": "trained curves average two matched seeds.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "averaged over fixed seeds 43 and 46 on 32 paired problems.",
+    "new": "averaged over two matched seeds on 32 paired problems.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "initial-portfolio generation, whose timing is unavailable. Training costs",
+    "new": "initial-portfolio generation. Training costs",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "rows.append([checkpoint(label),kind,model['chosen_temperature']",
+    "new": "rows.append([checkpoint(label).replace(' 43', ' (a)').replace(' 46', ' (b)'),kind,model['chosen_temperature']",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_inference_followups.py",
+    "old": "Seconds measure generation time, exclude training, and are not hardware-normalized compute.",
+    "new": "Seconds measure generation time, exclude training, and are not hardware-normalized compute. Labels (a) and (b) identify the two paired training replicates.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_portfolio_withdrawals.py",
+    "old": "checkpoints, using seeds 43 and 44: ''' + macros['PWRecCells'] + r''' checkpoint evaluations across five\ndomains.",
+    "new": "checkpoints from two matched training seeds in each of five domains.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_portfolio_withdrawals.py",
+    "old": "paired bootstrap replicates (seed 20260917).",
+    "new": "paired bootstrap replicates.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_portfolio_withdrawals.py",
+    "old": "                 r'pointwise 95\\% intervals from 20{,}000 paired prompt-bootstrap replicates '\n                 '(seed 20260917), keeping all groups and five seeds of a prompt together. '\n",
+    "new": "                 r'pointwise 95\\% intervals from 20{,}000 paired prompt-bootstrap replicates, '\n                 'keeping all groups and five seeds of a prompt together. '\n",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_portfolio_withdrawals.py",
+    "old": "prompt-bootstrap replicates (seed 20260917).",
+    "new": "prompt-bootstrap replicates.",
+    "count": 1
+  },
+  {
+    "path": "ops/build_frontier_paper_comparison.py",
+    "old": "The revised condition has no API failures or token-limit truncations. Strict grading",
+    "new": "The revised condition has no token-limit truncations. Strict grading",
+    "count": 1
+  },
+  {
+    "path": "ops/build_frontier_paper_comparison.py",
+    "old": "              r'of 1.43/1.15/1.15\\%. The three refusals occur on two tasks whose other',\n              'identical requests produce accepted answers. These results use all eight responses',\n              'per task, without selecting or replacing outputs according to their validity.', '',\n",
+    "new": "              r'of 1.43/1.15/1.15\\%. All eight responses per task contribute to these results, including the three refusals.', '',\n",
+    "count": 1
+  },
+  {
+    "path": "ops/build_frontier_temperature_paper.py",
+    "old": "              r'$\\dagger$ marks a defined contrast with an omitted interval because at least',\n              'one bootstrap replicate has an undefined cell. For Kimi collision, only',\n              f'{sparse_replicates[0]:,} and {sparse_replicates[1]:,} of 20,000 replicates define the contrast at Levels 1 and 2.',\n              'Percentiles over those subsets would condition on bootstrap estimability.',\n              'The five-domain average requires all five cell estimates; an undefined cell',\n              'does not contribute zero or disappear from its denominator.', '']",
+    "new": "              r'$\\dagger$ marks a defined contrast whose interval is omitted because some',\n              'bootstrap resamples have undefined cells. Five-domain averages require all',\n              'five cell estimates; conditioning on only the estimable resamples would',\n              'change the uncertainty calculation.', '']",
+    "count": 1
+  },
+  {
+    "path": "ops/plot_paper_gpt56_temperature_curve.py",
+    "old": "        'Prompts are selected by an outcome-independent hash ranking within each',\n        'domain--level cell. Ranks 1--8 form a 120-prompt subset (4,800 responses);',\n        'ranks 9--32 form a 360-prompt subset (14,400 responses). These subsets have',\n        'different collection times. The 360-prompt requests interleave all five',\n        'temperatures within each prompt/draw slot. For the 120-prompt subset,',\n        'zero-temperature responses and nonzero-temperature responses come from',\n        'separate collection periods. Prompt composition and service changes can',\n        'therefore contribute to differences between subsets and conditions.', '',\n",
+    "new": "        'Prompts are selected independently of model outputs within each',\n        'domain--level cell. The evaluation comprises 120-prompt and 360-prompt',\n        'subsets collected at different times. Temperatures are interleaved for the',\n        '360-prompt subset; zero and nonzero temperatures are collected separately',\n        'for the 120-prompt subset. Service changes can therefore confound temperature',\n        'contrasts, and prompt composition can affect comparisons between subsets.', '',\n",
+    "count": 1
+  },
+  {
+    "path": "ops/plot_paper_gpt56_temperature_curve.py",
+    "old": "    lines += ['Unsuccessful answers remain in the eight-response groups. API errors',\n        'are retried without adding responses to those groups; the 19,200-response',\n        'budget excludes failed API attempts.', '']",
+    "new": "    lines += ['Unsuccessful answers remain in the eight-response groups.', '']",
+    "count": 1
+  },
+  {
+    "path": "ops/plot_paper_gpt56_temperature_curve.py",
+    "old": "We compare the same temperature contrast within each hash-rank subset.",
+    "new": "We compare the same temperature contrast within each prompt subset.",
+    "count": 1
+  },
+  {
+    "path": "ops/plot_paper_gpt56_temperature_curve.py",
+    "old": "('original_120','Ranks 1--8 (120 prompts)'),('additional_360','Ranks 9--32 (360 prompts)')",
+    "new": "('original_120','120-prompt subset'),('additional_360','360-prompt subset')",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_hosted_reasoning_off.py",
+    "old": "The sample uses rows 0--31 in each of five",
+    "new": "The sample uses 32 prompts in each of five",
+    "count": 1
+  },
+  {
+    "path": "ops/build_paper_hosted_reasoning_off.py",
+    "old": "        '\\\\paragraph{Response coverage and control compliance.}',\n        'DeepSeek V4 Pro has 3,839 disabled-condition responses; one Level-1',\n        'PantryPlan prompt has seven instead of eight. The missing response has an',\n        'unknown outcome and is not scored as a failure. Under strict grading,',\n        'the 437 jointly eligible prompts have \\\\pmd{} $.282$ with medium reasoning',\n        'and $.369$ with disabled reasoning, a difference of $+.087$. The seven-response',\n        'prompt has only one verified answer and is excluded. This estimate uses',\n        'different grading from the normalized comparisons.',\n",
+    "new": "        '\\\\paragraph{Additional deployments.}',\n        'For DeepSeek V4 Pro, strict grading gives \\\\pmd{} $.282$ with medium',\n        'reasoning and $.369$ with disabled reasoning, a difference of $+.087$',\n        'on 437 jointly eligible prompts. This comparison uses different grading',\n        'from the normalized tables.',\n",
+    "count": 1
+  }
+]

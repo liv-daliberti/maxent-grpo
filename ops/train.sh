@@ -228,6 +228,10 @@ rlep_sparse_flag="$(
   bool_flag "${OAT_ZERO_RLEP_SPARSE_FALLBACK:-0}" \
     --rlep-sparse-fallback --no-rlep-sparse-fallback
 )"
+rlep_online_flag="$(
+  bool_flag "${OAT_ZERO_RLEP_ONLINE_POOL:-0}" \
+    --rlep-online-pool --no-rlep-online-pool
+)"
 maxrl_flag="$(
   bool_flag "${OAT_ZERO_MAXRL_TASK_OBJECTIVE:-0}" \
     --maxrl-task-objective --no-maxrl-task-objective
@@ -365,6 +369,29 @@ elif [[ "$EVAL_MODE_COVERAGE_TOP_P" != "1.0" && "$EVAL_MODE_COVERAGE_TOP_P" != "
   echo "Frozen source lacks eval_mode_coverage_top_p: $ARG_SOURCE_ROOT" >&2
   exit 1
 fi
+# Every terminal evaluation this repo has published was recorded before
+# eval_mode_coverage_disjoint_draws existed, when consecutive draws seeded at
+# base+draw_index shared vLLM child streams. That seeding is now off by default
+# because it is wrong for a fresh run, but a sweep that re-measures a published
+# checkpoint has to reproduce the draws the published number came from, or its
+# T=1 column will not match the paper and its reproduction gate will fail for a
+# reason that has nothing to do with decoding. Unset leaves the source default
+# alone, so no existing protocol changes.
+EVAL_MODE_COVERAGE_DISJOINT_DRAWS="${OAT_ZERO_EVAL_MODE_COVERAGE_DISJOINT_DRAWS:-}"
+if [[ -n "$EVAL_MODE_COVERAGE_DISJOINT_DRAWS" ]]; then
+  if grep -q 'eval_mode_coverage_disjoint_draws' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+    if [[ "$EVAL_MODE_COVERAGE_DISJOINT_DRAWS" == "1" ]]; then
+      cmd+=(--eval-mode-coverage-disjoint-draws)
+    else
+      cmd+=(--no-eval-mode-coverage-disjoint-draws)
+    fi
+  elif [[ "$EVAL_MODE_COVERAGE_DISJOINT_DRAWS" == "1" ]]; then
+    # A source that predates the flag always shares streams, so it can satisfy
+    # a request for 0 but never one for 1.
+    echo "Frozen source lacks eval_mode_coverage_disjoint_draws: $ARG_SOURCE_ROOT" >&2
+    exit 1
+  fi
+fi
 if grep -q 'eval_only:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
   if [[ "$EVAL_ONLY" == "1" ]]; then
     cmd+=(--eval-only)
@@ -400,6 +427,42 @@ elif [[ "$DAPO_ENABLED" == "1" ]]; then
   exit 1
 else
   echo "[train] compatibility: frozen source predates DAPO; omitting inert flags"
+fi
+
+# GAPO and SetPO are default-off diversity-preserving comparators. They follow
+# DAPO's compatibility contract: older frozen snapshots stay runnable, but a run
+# that asks for either against code that cannot represent it fails closed rather
+# than training a silently different objective.
+GAPO_ENABLED="${OAT_ZERO_GAPO_ENABLED:-0}"
+if grep -q 'gapo_enabled:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+  if [[ "$GAPO_ENABLED" == "1" ]]; then
+    cmd+=(--gapo-enabled)
+  else
+    cmd+=(--no-gapo-enabled)
+  fi
+  cmd+=(
+    --gapo-support-index "${OAT_ZERO_GAPO_SUPPORT_INDEX:-}"
+    --gapo-reward-scale "${OAT_ZERO_GAPO_REWARD_SCALE:-unit}"
+  )
+elif [[ "$GAPO_ENABLED" == "1" ]]; then
+  echo "Frozen source lacks GAPO support: $ARG_SOURCE_ROOT" >&2
+  exit 1
+else
+  echo "[train] compatibility: frozen source predates GAPO; omitting inert flags"
+fi
+
+SETPO_COEFFICIENT="${OAT_ZERO_SETPO_COEFFICIENT:-0.0}"
+if grep -q 'setpo_coefficient:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+  cmd+=(
+    --setpo-coefficient "$SETPO_COEFFICIENT"
+    --setpo-embedder-path "${OAT_ZERO_SETPO_EMBEDDER_PATH:-}"
+    --setpo-embed-batch-size "${OAT_ZERO_SETPO_EMBED_BATCH_SIZE:-64}"
+  )
+elif [[ "$SETPO_COEFFICIENT" != "0.0" && "$SETPO_COEFFICIENT" != "0" ]]; then
+  echo "Frozen source lacks SetPO support: $ARG_SOURCE_ROOT" >&2
+  exit 1
+else
+  echo "[train] compatibility: frozen source predates SetPO; omitting inert flags"
 fi
 
 if grep -q 'maxent_inverse_adaptation' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
@@ -666,6 +729,14 @@ if grep -q 'online_canonical_bank_alpha' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; 
       fi
     elif [[ "$ONLINE_CANONICAL_REPLAY_BANK_NORMALIZED" == "1" ]]; then
       echo "Frozen source lacks bank-normalized replay: $ARG_SOURCE_ROOT" >&2
+      exit 1
+    fi
+    # The online RLEP pool (E135) is newer than most frozen runtimes; only a
+    # source tree that declares the field is handed the flag.
+    if grep -q 'rlep_online_pool:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then
+      cmd+=("$rlep_online_flag")
+    elif [[ "${OAT_ZERO_RLEP_ONLINE_POOL:-0}" == "1" ]]; then
+      echo "OAT_ZERO_RLEP_ONLINE_POOL=1 but $ARG_SOURCE_ROOT has no rlep_online_pool" >&2
       exit 1
     fi
     if grep -q 'online_canonical_replay_objective:' "$ARG_SOURCE_ROOT/oat_drgrpo/args.py"; then

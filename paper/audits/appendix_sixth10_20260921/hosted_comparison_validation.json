@@ -1,0 +1,31 @@
+{
+  "comparison_generator_only_rendering_functions_changed": [
+    "python_sensitivity_tex",
+    "export"
+  ],
+  "retry_generator_only_render_function_changed": [
+    "render"
+  ],
+  "python_sensitivity_tabular_byte_identical": true,
+  "unchanged_numeric_records_and_graph_assets": {
+    "paper/results/frontier_comparison_20260911.json": "5571694f63d5a18fa1e52e19f014042996ccb5321b225b36e253495bc7522c59",
+    "paper/results/frontier_python_retry_20260911.json": "5278dba865ebbdfee3765d6dfb9ddc71e41d922cf6bd226b7cfacb9d5f7c681d",
+    "paper/figures/frontier_comparison_20260911_graph.json": "0dc6af8140c35113388208f766817c74fa1d5c0900309d454f6be58d2eb8eaaa",
+    "paper/figures/frontier_comparison_20260911_graph.png": "937a9b6f5f17b54d3577ec73d8cf7aee44ed01f83fb8e4a39759f0e1da40fe09",
+    "paper/figures/frontier_comparison_20260911_graph.pdf": "17a901be2bc91a84c079fe0839861d28d75b11010630e462193273148b9fa69f"
+  },
+  "graph_cells": 21,
+  "graph_minimum_accuracy": 0.9404296875,
+  "graph_collision_range": [
+    0.6902043269230769,
+    0.9938616071428571
+  ],
+  "retry_valid_selected_slots": 3072,
+  "retry_additional_responses": 3,
+  "all_five_fragments_match_final_generators": true,
+  "deepseek_native_refusal_count": 0,
+  "anthropic_requests_validated": {
+    "artifacts/frontier_modebench_claude_opus5_20260911": 15360,
+    "artifacts/frontier_modebench_claude_opus48_20260911": 15360
+  }
+}

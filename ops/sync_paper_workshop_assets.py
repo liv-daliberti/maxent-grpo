@@ -105,6 +105,8 @@ def main() -> None:
         f"conditional_concentration_{stamp}.json",
         "e120_frequency_progress.json", "e120_primary_breadth.json",
         "e121_fixed_bank_survival.json", "modebench_level_comparison_snapshot.json",
+        "modebench_level3_comparison_snapshot.json",
+        "modebench_level_baseline_snapshot.json",
         f"training_curve_snapshot_{stamp}.json", f"latest_results_{stamp}.json",
         f"current_campaign_results_{stamp}.json", f"level2_factorial_contrasts_{stamp}.json",
         f"frontier_hosted_{hosted_stamp}.json", f"frontier_comparison_{hosted_stamp}.json", f"frontier_temperature_{hosted_stamp}.json", f"frontier_python_retry_{hosted_stamp}.json",

@@ -1,0 +1,44 @@
+{
+  "finite_step_and_drift_checks": 1584,
+  "max_tilt_absolute_error": 5.551115123125783e-16,
+  "max_drift_absolute_error": 4.440892098500626e-16,
+  "exact_binomial_coefficient_checks": 92,
+  "finite_group_nonmonotonicity_counterexample": {
+    "P": "1/10",
+    "G2": "9/800",
+    "G3": "19/1500"
+  },
+  "stochastic_enumeration": [
+    {
+      "G": 2,
+      "quadratic_coefficient": 0.0022222222222222222,
+      "enumerated_loss_over_eta_squared": [
+        0.0022240729147249283,
+        0.002223147856916796,
+        0.0022226851115192403
+      ]
+    },
+    {
+      "G": 3,
+      "quadratic_coefficient": 0.0021069958847736627,
+      "enumerated_loss_over_eta_squared": [
+        0.002108360714903057,
+        0.0021076785028384393,
+        0.0021073372558078063
+      ]
+    },
+    {
+      "G": 4,
+      "quadratic_coefficient": 0.0018333333333333335,
+      "enumerated_loss_over_eta_squared": [
+        0.0018342563457007799,
+        0.0018337950091762423,
+        0.0018335643048317252
+      ]
+    }
+  ],
+  "displayed_equations_unchanged": true,
+  "labels_unchanged": true,
+  "model_calls": 0,
+  "experimental_data_changes": 0
+}

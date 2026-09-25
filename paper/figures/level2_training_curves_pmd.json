@@ -8,13 +8,13 @@
   },
   "level": "level2",
   "outputs": {
-    "paper/figures/level2_training_curves_pmd.pdf": "61a0c4b761a4f4f5f275479eda60c744933e09d842fb5fdff55c57ddfa0f8c79"
+    "/n/fs/similarity/maxent-grpo/paper/figures/level2_training_curves_pmd.pdf": "0f7fbc0ccdd2b6baaff8820e77e177110c6539047f78e7618e6eff0dc07dbfc4"
   },
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_paper_mode_diversity_curves.py",
-    "sha256": "61dc5a61715d799247072932d0215d011b45e5416bcad3219cb61976d7c754a7",
+    "sha256": "60bc62ae7c686b6e91b200835ca8e1c9118e6080a4c09a0e7f9ce10586f6b229",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
+    "style_sha256": "bb5fe214a14e87bc5bb6b39f821e46c846d015c3564b1a8fdcb6a27f0e43766d"
   },
   "schema": "paper-mode-diversity-curves-figure-v1",
   "scope": {

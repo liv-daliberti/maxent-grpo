@@ -1,0 +1,86 @@
+--- ops/build_frontier_paper_comparison.py (before)
++++ ops/build_frontier_paper_comparison.py (after)
+@@ -16,6 +16,15 @@
+ from pathlib import Path
+ import re
+ import sys
++
++try:
++    from ops.paper_domain_typography import format_domain_names
++except ModuleNotFoundError:
++    from paper_domain_typography import format_domain_names
++
++_DOMAIN_LANGUAGE_EXCEPTIONS = (
++    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
++)
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ DOMAINS = {'graph_coloring': 'Graph', 'countdown': 'Countdown',
+@@ -365,7 +374,7 @@
+                                          level, domain, *columns]) + r' \\')
+         previous = label
+     text += [r'\end{longtable}', r'\endgroup', '']
+-    return '\n'.join(text)
++    return format_domain_names('\n'.join(text), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def model_identity(run):
+@@ -463,7 +472,7 @@
+               'Collision weights tasks by their numbers of correct pairs, which differ between',
+               'conditions. Its raw difference therefore compares different correct-pair populations',
+               'and does not estimate a prompt effect at matched accuracy or on a common set of pairs.', '']
+-    return '\n'.join(lines)
++    return format_domain_names('\n'.join(lines), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def graph_figure(record, path):
+@@ -527,10 +536,10 @@
+     output.mkdir(parents=True, exist_ok=True)
+     figures.mkdir(parents=True, exist_ok=True)
+     output.joinpath(stem + '.json').write_text(json.dumps(record, indent=2) + '\n')
+-    output.joinpath(stem + '_python_sensitivity.tex').write_text(python_sensitivity_tex(record['python_prompt_sensitivity']))
++    output.joinpath(stem + '_python_sensitivity.tex').write_text(format_domain_names(python_sensitivity_tex(record['python_prompt_sensitivity']), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+     for secondary, suffix in [(False, 'strict'), (True, 'normalized')]:
+-        output.joinpath(f'{stem}_{suffix}_overview_rows.tex').write_text(overview_table(record, secondary))
+-        output.joinpath(f'{stem}_{suffix}_cells.tex').write_text(cell_tables(record, secondary))
++        output.joinpath(f'{stem}_{suffix}_overview_rows.tex').write_text(format_domain_names(overview_table(record, secondary), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
++        output.joinpath(f'{stem}_{suffix}_cells.tex').write_text(format_domain_names(cell_tables(record, secondary), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+     graph_figure(record, figures / (stem + '_graph'))
+     figure_include = r'''\begin{figure}[!htbp]
+   \centering
+@@ -547,7 +556,7 @@
+   \label{fig:hosted-graph-comparison}
+ \end{figure}
+ '''.replace('STEM', stem)
+-    output.joinpath(stem + '_graph_figure.tex').write_text(figure_include)
++    output.joinpath(stem + '_graph_figure.tex').write_text(format_domain_names(figure_include, exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+     names = ', '.join(tex(run['label']) for run in record['models'])
+     protocol = [r'\paragraph{Evaluation population.}',
+                 f'The deployments are {names}. The original-instruction cohort contains',
+@@ -597,7 +606,7 @@
+                          f'{unknown} request attempts have unknown outcomes and usage. These incomplete',
+                          'attempts are not scored as model responses. Token totals cover known usage',
+                          'only and can therefore understate the usage and cost of all attempted requests.']
+-    output.joinpath(stem + '_protocol.tex').write_text('\n'.join(protocol) + '\n')
++    output.joinpath(stem + '_protocol.tex').write_text(format_domain_names('\n'.join(protocol) + '\n', exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+     outcome_text = [r'\subsection{Native provider outcomes and undefined concentration}',
+                     r'\label{app:hosted-provider-outcomes}',
+                     'Provider metadata distinguish refusal and filtering from executable correctness.',
+@@ -695,7 +704,7 @@
+                                                  level, domain, *counters]) + r' \\')
+         previous = label
+     outcome_text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
+-    output.joinpath(stem + '_provider_outcomes.tex').write_text('\n'.join(outcome_text) + '\n')
++    output.joinpath(stem + '_provider_outcomes.tex').write_text(format_domain_names('\n'.join(outcome_text) + '\n', exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+     appendix = r'''\section{Comparison across Hosted Deployments}
+ \label{app:hosted-comparison}
+ 
+@@ -750,7 +759,7 @@
+ \input{results/STEM_normalized_cells.tex}
+ 
+ '''.replace('STEM', stem)
+-    output.joinpath(stem + '_appendix.tex').write_text(appendix)
++    output.joinpath(stem + '_appendix.tex').write_text(format_domain_names(appendix, exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+     included = '\n'.join(f'- {r["model"]}: 15,360 audited responses ({r["run_directory"]})'
+                          for r in record['models'])
+     excluded = '\n'.join(f'- {r["directory"]}: {r["reason"]}' for r in record['excluded_runs']) or '- None.'

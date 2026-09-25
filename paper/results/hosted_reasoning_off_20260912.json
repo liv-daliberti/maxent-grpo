@@ -6,11 +6,11 @@
   },
   "renderer": {
     "path": "ops/build_paper_hosted_reasoning_off.py",
-    "sha256": "a3dd9f102960ffea9d432a602f367f284fb752bc3c783196653befc9faf28139"
+    "sha256": "b8fbb9927f6e7593f350258a78e44f42a3eda108ba6a36dc16337691640a36cb"
   },
   "icon_catalog": {
     "path": "paper/results/frontier_comparison_20260911.json",
-    "sha256": "3a627cde10a2eef8cfe08a0dc2ee629fc15fabecd3cd98de78c6587d70513723"
+    "sha256": "8c45e607ef127bc8de0cbba205f7075340c3069c109b66feac4466382964b3c6"
   },
   "analysis_script": {
     "path": "/n/fs/similarity/maxent-grpo/ops/summarize_hosted_reasoning_off.py",

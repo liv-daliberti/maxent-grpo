@@ -1,0 +1,38 @@
+{
+  "paper/main.tex": "7de5b9ace7a69345a799227815b36ced9450fea4eff64ff55a6f916321f3d0d5",
+  "paper/Makefile": "7310adee18c71e4ee27d6bc9de660fe6ed6586d62f9f9f853c78b4578b72bfa7",
+  "paper/results/conditional_concentration_20260912_appendix.tex": "8313dfd63926defae497069eb0a73265f9cd7feb5422167eeac6daae899deb20",
+  "ops/check_paper_current_contract.py": "3f63ae0b52762e8733bcefef62be5f866daa58440260a0c5d26d4820a2b1d28e",
+  "paper/main.pdf": "c99135c9f0da776a932060cd6d320f6bd7dd39436906a8b07eb9ffdea8f5673d",
+  "title": "Measuring and Mitigating Solution Mode Collapse in RLVR",
+  "main_figures": [
+    "icons/#1",
+    "icons/#1",
+    "figures/modecollapse_story.pdf",
+    "figures/modebench_examples.pdf",
+    "figures/mode_diversity_levels_appendix.pdf",
+    "figures/qwen_level_trends.pdf",
+    "figures/gpt56_all_levels32_sampling_budget.pdf",
+    "figures/replay_bank_balance.pdf",
+    "figures/verified_support_story.pdf",
+    "figures/concentration_story_resampled.pdf",
+    "figures/e118_all_scale_factorial_progress.pdf",
+    "figures/replay_key_weighting.pdf",
+    "figures/modebench_level_admission.pdf",
+    "figures/reference_kl_plane.pdf"
+  ],
+  "main_figure_labels": [
+    "fig:story",
+    "fig:modebench-examples",
+    "fig:base-levels-all-scales",
+    "fig:levels",
+    "fig:gpt56-sampling-budget",
+    "fig:replay-bank-balance",
+    "fig:verified-support-story",
+    "fig:concentration-story",
+    "fig:maxrl-factorial",
+    "fig:replay-key-weighting",
+    "fig:level2-admission",
+    "fig:reference-kl-plane"
+  ]
+}

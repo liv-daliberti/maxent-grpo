@@ -273,6 +273,30 @@ def test_replay_capacity_is_compute_bound_while_full_discovery_counts_continue()
         mismatched.load_state_dict(bank.state_dict())
 
 
+def test_replay_capacity_of_one_is_a_legal_single_slot_bank():
+    """Capacity one keeps the first mode and admits no second one.
+
+    This is the bank the E130 mode-agnostic ablation trains against: the replay
+    loss still rehearses a verified success, but mode identity cannot enter it
+    because there is never more than one key to weight.
+    """
+
+    bank = OnlineCanonicalBank(
+        entropy_alpha=0.0,
+        retain_exemplars=True,
+        replay_capacity=1,
+    )
+    assert bank.replay_capacity == 1
+    assert bank.state_dict()["replay_capacity"] == 1
+
+    with pytest.raises(ValueError, match="replay_capacity"):
+        OnlineCanonicalBank(
+            entropy_alpha=0.0,
+            retain_exemplars=True,
+            replay_capacity=0,
+        )
+
+
 def test_global_replay_round_robins_model_discovered_prompt_banks_and_resumes():
     bank = OnlineCanonicalBank(
         entropy_alpha=0.0,

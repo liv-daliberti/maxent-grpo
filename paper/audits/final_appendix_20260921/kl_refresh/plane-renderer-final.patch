@@ -1,0 +1,65 @@
+--- ops/plot_paper_reference_kl_plane.py
++++ ops/plot_paper_reference_kl_plane.py
+@@ -30,9 +30,6 @@
+ # The validated five; see paper_style.FRONTIER_FIVE.
+ KL, DRGRPO, REDR, MAXRL, REMAX = (style.COMPARATOR, style.CONTROL, style.METHOD,
+                                   style.ADD_ON, style.ABLATION)
+-# Washes rather than marks: the side of the anchor's curve that beats it at a
+-# given breadth, and the side that falls short.
+-BEYOND, SHORT = "#EAF4EC", "#FBECEC"
+ 
+ 
+ def main() -> int:
+@@ -75,6 +72,12 @@
+         mean((lambda b: lambda r: r["kl"][b]["pmd"])(b)) for b in betas]
+     axis.plot(xs, ys, color=KL, lw=style.MEAN_LW, marker="o", markersize=4.2,
+               markerfacecolor=style.WHITE, markeredgewidth=1.3, zorder=3)
++    # Two coincident points print as one dot. A wider ring around the outer
++    # one makes the pair legible without moving either off its value.
++    if (len(xs) >= 2 and abs(xs[-1] - xs[-2]) < 0.01
++            and abs(ys[-1] - ys[-2]) < 0.01):
++        axis.plot([xs[-1]], [ys[-1]], marker="o", markersize=8.4, color=KL,
++                  markerfacecolor="none", markeredgewidth=1.3, zorder=3)
+     # One offset for all six put labels on the curve, on the breadth rule, and
+     # on the key. These are placed per coefficient instead: the direction each
+     # one leans is the direction that is empty at that point.
+@@ -83,10 +86,9 @@
+     # left of the rule, so its label leans left into the margin.
+     nudge = {"0": ((-6, 1), "right"), "0.001": ((9, -4), "left"),
+              "0.01": ((5, 10), "left"), "0.04": ((11, 1), "left"),
+-             "0.1": ((10, -11), "left"), "0.2": ((9, 7), "left")}
+-    # The last two coefficients land on one spot: .2 and .3 differ by about
+-    # .001 on each axis, because the curve has stopped moving. One label names
+-    # both; two would imply two positions and hide exactly that.
++             "0.1": ((-2, -13), "center"), "0.2": ((9, 7), "left")}
++    # The final two points nearly coincide at this figure's scale. A shared
++    # annotation keeps both coefficient labels legible.
+     same = (len(xs) >= 2 and abs(xs[-1] - xs[-2]) < 0.01
+             and abs(ys[-1] - ys[-2]) < 0.01)
+     for index, (beta, x, y) in enumerate(zip(labels, xs, ys)):
+@@ -94,7 +96,7 @@
+             continue
+         if same and index == len(labels) - 2:
+             text = (r"$\beta=" + labels[-2].lstrip("0") + r"$, $"
+-                    + labels[-1].lstrip("0") + r"$")
++                    + labels[-1].lstrip("0") + r"$ (overlapping)")
+         else:
+             text = r"$\beta=" + (beta.lstrip("0") or "0") + r"$"
+         offset, align = nudge.get(beta, ((-6, 8), "right"))
+@@ -113,16 +115,6 @@
+ 
+     axis.set_xlim(0.40, 0.90)
+     axis.set_ylim(-0.02, 0.62)
+-
+-    # PCMD rises monotonically with beta, so the curve is a function of
+-    # breadth: at each breadth it gives the pass@8 the anchor manages there.
+-    # Green is the side that beats it at the same breadth, red the side that
+-    # does not. Beyond the swept range the endpoints are held, which is why
+-    # the wash reaches the frame although the curve does not.
+-    (x_lo, x_hi), (y_lo, y_hi) = axis.get_xlim(), axis.get_ylim()
+-    edge_y, edge_x = [y_lo, *ys, y_hi], [xs[0], *xs, xs[-1]]
+-    axis.fill_betweenx(edge_y, edge_x, x_hi, facecolor=BEYOND, zorder=0)
+-    axis.fill_betweenx(edge_y, x_lo, edge_x, facecolor=SHORT, zorder=0)
+ 
+     axis.set_xlabel("terminal pass@8", fontsize=style.FONT, color=style.INK)
+     axis.set_ylabel("terminal PCMD", fontsize=style.FONT, color=style.INK)

@@ -1,0 +1,23 @@
+{
+  "status": "integrated_and_compiled",
+  "paper": "paper/main.pdf",
+  "pdf_sha256": "707a1e6ad3dfa5048526abd72e3e6c6ccb716777792671a6e0981c98a3f85c8c",
+  "main_pages": 9,
+  "main_figures_preserved": 12,
+  "formal_blocks_preserved": 68,
+  "fresh_contrasts": 36,
+  "core_intervals": 18,
+  "core_seed_effects": 90,
+  "new_appendix": "H.1",
+  "fresh_appendix_pages": [
+    42,
+    43,
+    44
+  ],
+  "all_local_inputs_stable_during_build": true,
+  "local_inputs_checked": 110,
+  "existing_full_paper_check_failure": "See baseline_current_contract.json (hosted evidence mismatch); checker unchanged.",
+  "existing_line_fill_failures_before": 46,
+  "remaining_line_fill_failures": 43,
+  "new_material_visually_and_numerically_reviewed": true
+}

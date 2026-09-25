@@ -64,7 +64,7 @@ DOMAIN_ORDER = (
 )
 DOMAIN_LABEL = {
     "graph_coloring": "Graph", "countdown": "Countdown",
-    "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "Pantry",
+    "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "PantryPlan",
 }
 ARMS = ("drgrpo", "grpo")
 ARM_LABEL = {"drgrpo": "Dr.GRPO", "grpo": "GRPO"}
@@ -186,8 +186,7 @@ def render(payload: dict[str, Any], output: Path) -> dict[str, Any]:
     # every word of it belonged in the LaTeX caption, where it is not competing
     # with the data for canvas.
     figure.suptitle(
-        "Both binary objectives trade verified breadth for correctness, at "
-        "every scale",
+        "RLVR-only training reduces average extra verified modes at every tested scale",
         fontsize=style.TITLE_FONT, color=style.INK, y=0.995,
     )
     # The metric name is written once, down the left edge. Repeating it inside

@@ -38,7 +38,7 @@ DOMAIN_ORDER = (
 )
 DOMAIN_LABEL = {
     "graph_coloring": "Graph", "countdown": "Countdown",
-    "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "Pantry",
+    "python_factors": "Python", "mathir": "MathIR", "pantry_plan": "PantryPlan",
 }
 SCALE_LABEL = {
     "qwen05b": "Qwen2.5-0.5B", "falcon1b": "Falcon3-1B",
@@ -1376,7 +1376,7 @@ def render_ucpo(
     ylabel = "distinct@8" if metric == "distinct8" else "pass@8"
     figure, axes_grid = model_row_axes(
         f"Direct baseline learning curves: {ylabel}",
-        "Core arms use matched seeds; alternatives use admitted terminal seeds. Shading: seed range.",
+        "Seed means by method; shading shows the seed range.",
         ylabel=ylabel, height=4.9, model_order=DIRECT_MODEL_ORDER,
     )
     maximum = max(point[metric]["range"][1]

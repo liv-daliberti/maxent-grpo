@@ -68,6 +68,11 @@ esac
 
 VARIANT="${OAT_ZERO_VARIANT:-xdr}"
 UCPO_TAU="${OAT_ZERO_UCPO_TAU:-0.2}"
+GAPO_SUPPORT_INDEX="${OAT_ZERO_GAPO_SUPPORT_INDEX:-}"
+GAPO_REWARD_SCALE="${OAT_ZERO_GAPO_REWARD_SCALE:-unit}"
+SETPO_COEFFICIENT="${OAT_ZERO_SETPO_COEFFICIENT:-0.1}"
+SETPO_EMBEDDER_PATH="${OAT_ZERO_SETPO_EMBEDDER_PATH:-}"
+SETPO_EMBED_BATCH_SIZE="${OAT_ZERO_SETPO_EMBED_BATCH_SIZE:-64}"
 DAPO_CLIP_LOW="${OAT_ZERO_DAPO_CLIP_LOW:-0.20}"
 DAPO_CLIP_HIGH="${OAT_ZERO_DAPO_CLIP_HIGH:-0.28}"
 DAPO_MAX_NUM_GEN_BATCHES="${OAT_ZERO_DAPO_MAX_NUM_GEN_BATCHES:-10}"
@@ -76,6 +81,7 @@ DAPO_OVERLONG_PENALTY_FACTOR="${OAT_ZERO_DAPO_OVERLONG_PENALTY_FACTOR:-1.0}"
 RLEP_EXPERIENCE_ROOT="${OAT_ZERO_RLEP_EXPERIENCE_ROOT:-}"
 RLEP_REPLAY_COUNT="${OAT_ZERO_RLEP_REPLAY_COUNT:-2}"
 RLEP_SPARSE_FALLBACK="${OAT_ZERO_RLEP_SPARSE_FALLBACK:-0}"
+RLEP_ONLINE_POOL="${OAT_ZERO_RLEP_ONLINE_POOL:-0}"
 MAXENT_BASE_ALPHA="${OAT_ZERO_MAXENT_ALPHA:-0.05}"
 MAXENT_CONTROL_TARGET_ENTROPY="${OAT_ZERO_MAXENT_CONTROL_TARGET_ENTROPY:-0.0}"
 MAXENT_DUAL_TARGET_ENTROPY="${OAT_ZERO_MAXENT_DUAL_TARGET_ENTROPY:-0.0}"
@@ -226,6 +232,7 @@ export OAT_ZERO_DAPO_OVERLONG_PENALTY_FACTOR=1.0
 export OAT_ZERO_RLEP_EXPERIENCE_ROOT=""
 export OAT_ZERO_RLEP_REPLAY_COUNT=0
 export OAT_ZERO_RLEP_SPARSE_FALLBACK=0
+export OAT_ZERO_RLEP_ONLINE_POOL=0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_PSEUDOCOUNT=1.0
 export OAT_ZERO_ONLINE_CANONICAL_BANK_SURPRISAL_CLIP=5.0
@@ -286,6 +293,58 @@ case "$VARIANT" in
     VARIANT_TAG="ucpo"
     ;;
 
+  gapo)
+    # GAPO's defining intervention: the group's frequency-aware reward
+    # replaces the binary task reward, so a mode the group has already
+    # produced is worth less than one it has not. L is ModeBench's enumerated
+    # support, read from the frozen index. Everything else --- including the
+    # passive compute-only replay traversal --- matches E78's control, so the
+    # reward surface is the only live-gradient difference.
+    export OAT_ZERO_POLICY_ENTROPY_COEF=0.0
+    export OAT_ZERO_XDR_TAU=inf
+    export OAT_ZERO_SEED_ENTROPY_ALPHA=0.0
+    export OAT_ZERO_UCPO_TAU=0.0
+    export OAT_ZERO_GAPO_ENABLED=1
+    export OAT_ZERO_GAPO_SUPPORT_INDEX="$GAPO_SUPPORT_INDEX"
+    export OAT_ZERO_GAPO_REWARD_SCALE="$GAPO_REWARD_SCALE"
+    export OAT_ZERO_OUTCOME_COLLISION_COEF=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE="$ONLINE_CANONICAL_KEY_MODE"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA="$ONLINE_CANONICAL_REPLAY_ALPHA"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY="$ONLINE_CANONICAL_REPLAY_CAPACITY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=1
+    VARIANT_TAG="gapo"
+    ;;
+
+  setpo)
+    # SetPO's defining intervention: each row's leave-one-out marginal
+    # contribution to its group's kernelized set diversity is added to the
+    # Dr.GRPO advantage. The kernel embeds generated text, not canonical keys,
+    # which is what keeps it SetPO rather than a restatement of this campaign's
+    # own objective. Same control-matched compute envelope as the GAPO arm.
+    export OAT_ZERO_POLICY_ENTROPY_COEF=0.0
+    export OAT_ZERO_XDR_TAU=inf
+    export OAT_ZERO_SEED_ENTROPY_ALPHA=0.0
+    export OAT_ZERO_UCPO_TAU=0.0
+    export OAT_ZERO_SETPO_COEFFICIENT="$SETPO_COEFFICIENT"
+    export OAT_ZERO_SETPO_EMBEDDER_PATH="$SETPO_EMBEDDER_PATH"
+    export OAT_ZERO_SETPO_EMBED_BATCH_SIZE="$SETPO_EMBED_BATCH_SIZE"
+    export OAT_ZERO_ONLINE_CANONICAL_BANK_ALPHA=0.0
+    export OAT_ZERO_ONLINE_CANONICAL_KEY_MODE="$ONLINE_CANONICAL_KEY_MODE"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_ALPHA="$ONLINE_CANONICAL_REPLAY_ALPHA"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_OBJECTIVE=verified_likelihood_per_rollout
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_CAPACITY="$ONLINE_CANONICAL_REPLAY_CAPACITY"
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_GROUPS_PER_STEP=1
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_GLOBAL_BOOTSTRAP_STEPS=0
+    export OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY=1
+    VARIANT_TAG="setpo"
+    ;;
+
   dapo)
     # DAPO's full optimizer recipe: standard GRPO-normalized advantages,
     # decoupled lower/upper clipping, token-level policy-loss aggregation,
@@ -320,6 +379,8 @@ case "$VARIANT" in
     export OAT_ZERO_RLEP_EXPERIENCE_ROOT="$RLEP_EXPERIENCE_ROOT"
     export OAT_ZERO_RLEP_REPLAY_COUNT="$RLEP_REPLAY_COUNT"
     export OAT_ZERO_RLEP_SPARSE_FALLBACK="$RLEP_SPARSE_FALLBACK"
+    # E135: the same update with the pool built online from fresh rollouts.
+    export OAT_ZERO_RLEP_ONLINE_POOL="$RLEP_ONLINE_POOL"
     VARIANT_TAG="rlep"
     ;;
 

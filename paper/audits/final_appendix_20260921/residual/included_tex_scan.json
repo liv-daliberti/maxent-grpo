@@ -1,0 +1,101 @@
+{
+  "files_scanned": [
+    "paper/results/absolute_support_references_table_body.tex",
+    "paper/results/conditional_concentration_20260912_appendix.tex",
+    "paper/results/conditional_concentration_20260912_tables.tex",
+    "paper/results/control_learning_macros.tex",
+    "paper/results/control_learning_table_body.tex",
+    "paper/results/core_terminal_endpoints_table_body.tex",
+    "paper/results/discovery_hosted_interpretation_20260912.tex",
+    "paper/results/domain_support_macros.tex",
+    "paper/results/frontier_comparison_20260911_appendix.tex",
+    "paper/results/frontier_comparison_20260911_graph_figure.tex",
+    "paper/results/frontier_comparison_20260911_normalized_cells.tex",
+    "paper/results/frontier_comparison_20260911_protocol.tex",
+    "paper/results/frontier_comparison_20260911_provider_outcomes.tex",
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+    "paper/results/frontier_comparison_20260911_strict_cells.tex",
+    "paper/results/frontier_comparison_20260911_strict_overview_rows.tex",
+    "paper/results/frontier_hosted_20260911_appendix.tex",
+    "paper/results/frontier_hosted_20260911_macro_rows.tex",
+    "paper/results/frontier_hosted_20260911_normalized_rows.tex",
+    "paper/results/frontier_hosted_20260911_strict_rows.tex",
+    "paper/results/frontier_python_retry_20260911.tex",
+    "paper/results/frontier_temperature_20260911.tex",
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+    "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+    "paper/results/gpt56sol_python_parity_20260918.tex",
+    "paper/results/hosted_level_averages_20260911.tex",
+    "paper/results/hosted_level_averages_20260911_parity.tex",
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex",
+    "paper/results/hosted_reasoning_off_20260912_main.tex",
+    "paper/results/inference_followups_20260912.tex",
+    "paper/results/kl_replay_recovery_macros.tex",
+    "paper/results/kl_replay_recovery_table_body.tex",
+    "paper/results/level2_factorial_contrasts_20260912_table_body.tex",
+    "paper/results/mathir_scope_macros.tex",
+    "paper/results/mathir_support_geometry_macros.tex",
+    "paper/results/mode_diversity_coverage.tex",
+    "paper/results/mode_diversity_hosted_cohort_macros.tex",
+    "paper/results/mode_diversity_hosted_cohort_table_body.tex",
+    "paper/results/mode_keying_macros.tex",
+    "paper/results/modebench_discovery_curves_20260911.tex",
+    "paper/results/modebench_prompt_ablation_20260911.tex",
+    "paper/results/pmd_retention_macros.tex",
+    "paper/results/portfolio_withdrawal_macros.tex",
+    "paper/results/portfolio_withdrawals_20260917.tex",
+    "paper/results/qwen_level_trend_macros.tex",
+    "paper/results/reference_kl_macros.tex",
+    "paper/results/reference_kl_table_body.tex",
+    "paper/results/replay_bank_decomposition_macros.tex",
+    "paper/results/replay_cost_macros.tex",
+    "paper/results/replay_cost_table_body.tex",
+    "paper/results/retention_matrix_panel_a_table_body.tex",
+    "paper/results/retention_matrix_panel_b_table_body.tex",
+    "paper/results/semantic_current_summary_20260912.tex",
+    "paper/main.tex [appendix through Q]"
+  ],
+  "hits": [
+    {
+      "file": "paper/results/portfolio_withdrawals_20260917.tex",
+      "line": 52,
+      "text": "\\label{tab:withdrawal-inventory}"
+    },
+    {
+      "file": "paper/results/portfolio_withdrawals_20260917.tex",
+      "line": 155,
+      "text": "(Table~\\ref{tab:withdrawal-inventory}). Re:Dr's pooled survival gain at four"
+    },
+    {
+      "file": "paper/main.tex [appendix through Q]",
+      "line": 116,
+      "text": "\\apxsub{\\ref{app:initial-provenance}}{Conflicted initial checkpoints, admitted by provenance}{\\pageref{app:initial-provenance}}"
+    },
+    {
+      "file": "paper/main.tex [appendix through Q]",
+      "line": 117,
+      "text": "\\apxsub{\\ref{app:scheduled-provenance}}{Conflicted scheduled checkpoints, admitted by provenance}{\\pageref{app:scheduled-provenance}}"
+    },
+    {
+      "file": "paper/main.tex [appendix through Q]",
+      "line": 441,
+      "text": "\\label{app:data-inventory}"
+    },
+    {
+      "file": "paper/main.tex [appendix through Q]",
+      "line": 520,
+      "text": "deliberation. So a reader may fairly ask whether what collapses is reasoning or"
+    },
+    {
+      "file": "paper/main.tex [appendix through Q]",
+      "line": 551,
+      "text": "room to exist. That is the sense in which these are reasoning modes: they are"
+    },
+    {
+      "file": "paper/main.tex [appendix through Q]",
+      "line": 592,
+      "text": "The validator checks exact inventory, serving steps, mass, nutrient bounds,"
+    }
+  ],
+  "main_scope_end_offset": 313360
+}

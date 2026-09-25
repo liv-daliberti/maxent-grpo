@@ -1,0 +1,14 @@
+[
+  {
+    "old": "Serialized round-robin replay cursor",
+    "new": "Round-robin replay cursor"
+  },
+  {
+    "old": "At each update, the scheduler sorts nonempty banks by prompt hash and selects\none by a round-robin cursor; singleton banks are eligible. Selection is",
+    "new": "At each update, a deterministic round-robin schedule selects one nonempty\nbank; singleton banks are eligible. Selection is"
+  },
+  {
+    "old": "available evaluations. Control and replay means use five runs per cell\n  separately; Falcon \\texttt{Countdown} includes an additional replay seed relative\n  to the paired endpoint comparison. \\texttt{mean@8} is per-response",
+    "new": "available evaluations. Control and replay columns are unpaired means of\n  five runs per cell. \\texttt{mean@8} is per-response"
+  }
+]

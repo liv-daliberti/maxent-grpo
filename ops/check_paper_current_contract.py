@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TEX = ROOT / "paper/main.tex"
+APPENDIX_TEX = ROOT / "paper/appendix.tex"
 PDF = ROOT / "paper/main.pdf"
 MAKEFILE = ROOT / "paper/Makefile"
 LINE_FILL_CHECKER = ROOT / "ops/check_paper_line_fill.py"
@@ -35,14 +36,14 @@ MAIN_FIGURES = (
     "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
     "gpt56_all_levels32_sampling_budget", "replay_bank_balance",
     "verified_support_story", "concentration_story_resampled",
-    "e118_all_scale_factorial_progress",
+    "e118_all_scale_factorial_progress", "replay_key_weighting",
     "modebench_level_admission",
 )
 MAIN_LABELS = (
     "fig:story", "fig:modebench-examples", "fig:base-levels-all-scales",
     "fig:gpt56-sampling-budget", "fig:replay-bank-balance",
     "fig:verified-support-story", "fig:concentration-story",
-    "fig:maxrl-factorial", "fig:level2-admission",
+    "fig:maxrl-factorial", "fig:replay-key-weighting", "fig:level2-admission",
 )
 # The retention matrix reads as two tables: at the width the main body allows a
 # heatmap of that many cells was not legible, and a table also carries the
@@ -61,7 +62,6 @@ MOVED_APPENDIX_FIGURES = {
     "gpt56_temperature_curve": "fig:gpt56-temperature-curve",
     "hosted_verified_breadth": "fig:hosted-verified-breadth",
     "replay_factorial_effects": "fig:replay-factorial-effects",
-    "replay_key_weighting": "fig:replay-key-weighting",
     "replay_level2_effects": "fig:replay-level2-effects",
 }
 APPENDIX_FIGURES = (
@@ -69,7 +69,10 @@ APPENDIX_FIGURES = (
     *MOVED_APPENDIX_FIGURES,
     "baseline_collapse_precheck",
     "e118_scale_extensions_appendix",
-    "direct_baseline_learning_curves_static_strip",
+    # The comparators' distinct@8 strip is still built, and its record is still
+    # cross-checked against the accuracy figure below, but it is no longer
+    # compiled: distinct@8 rises with correctness, which is the confound PCMD
+    # was adopted to remove, and the strip carried no PCMD counterpart.
     "factorial_training_curves_pass8",
     "factorial_training_curves_pmd",
     "level2_factorial_training_curves",
@@ -81,17 +84,12 @@ APPENDIX_FIGURES = (
     "concentration_levels",
     "frontier_level_grid",
 )
-# Re-frozen 2026-09-19. The September 17 reference held the 20-block chain from
-# before the appendix reorganization; the manuscript has since gained the
-# reference-KL and objective-inertness development (Thm. objective-inertness,
-# Prop. kl-stationary, Lems. kl-no-barrier and kl-boundary-force, Cors.
-# class-collapse, maxrl-starvation, kl-recovery-time and pmd-limits, with their
-# proofs), and restated two existing blocks. The predecessor is kept beside this
-# one so the pre-reorganization chain stays recoverable; what this check
-# preserves is the chain as it now stands, against accidental drift.
-PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_20260919/main.tex"
-PROOF_REFERENCE_SHA256 = "a21062501ba2646deea97f0c8dc74f036179227e42ef4762791085bec0ea5a73"
-PROOF_REFERENCE_BLOCKS = 36
+# Re-frozen 2026-09-21 for the authorized source-based Appendix P corollaries.
+# Earlier proof_chain_20260919 and proof_chain_20260921 references are retained.
+# See paper/audits/theory_source_impl_20260921 for independent reviews/checks.
+PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_source_reuse_20260921/main.tex"
+PROOF_REFERENCE_SHA256 = "431330d89e60a44b4bcfd353eb30b0f64f7e612de8db04f07aa4c59a1a4d1c89"
+PROOF_REFERENCE_BLOCKS = 68
 RETIRED = (
     # The registered distinct@8 training curves. The endpoint is still reported
     # -- its direction in the body, its per-cell values in the machine-readable
@@ -116,6 +114,26 @@ RETIRED = (
 DOMAINS = {
     "graph_coloring", "countdown", "python_factors", "mathir", "pantry_plan"
 }
+
+
+def manuscript_text() -> str:
+    """Return main.tex with ``\\input{appendix}`` expanded.
+
+    The appendix is its own file, but every structural check here is about the
+    document the compiler sees --- which label sits before which, what appears
+    in the main body and not in the supplement --- so the checks read the
+    spliced text rather than one file. A check that genuinely cares about main
+    body alone still splits this on ``\\appendix``.
+    """
+
+    text = TEX.read_text(encoding="utf-8")
+    token = "\\input{appendix}"
+    if text.count(token) != 1:
+        raise SystemExit(
+            "Current paper contract failed: main.tex must pull in the appendix "
+            f"exactly once with {token}"
+        )
+    return text.replace(token, APPENDIX_TEX.read_text(encoding="utf-8"))
 
 
 def require(ok: bool, message: str) -> None:
@@ -530,7 +548,7 @@ def check_hosted_comparison(appendix: str) -> None:
             "GPT temperature appendix missing or duplicated")
     require((ROOT / "paper/results" / curve_appendix).read_text() == curve["render_appendix"](curve_record),
             "GPT temperature numerical appendix drifted")
-    main_source = TEX.read_text().split(r"\appendix", 1)[0]
+    main_source = manuscript_text().split(r"\appendix", 1)[0]
     intro = main_source.split(r"\section{Introduction}", 1)[1].split(r"\section{", 1)[0]
     require("frontier_comparison_20260911_motivation" not in main_source
             and "tab:frontier-motivation" not in main_source,
@@ -621,7 +639,7 @@ def check_hosted_comparison(appendix: str) -> None:
 
 
 def main() -> None:
-    manuscript = TEX.read_text(encoding="utf-8")
+    manuscript = manuscript_text()
     main_body, appendix = manuscript.split(r"\appendix", 1)
     makefile = MAKEFILE.read_text(encoding="utf-8")
     check_hosted_comparison(appendix)
@@ -746,25 +764,37 @@ def main() -> None:
         r"\label{eq:success-breadth-identities}",
         r"\label{eq:fixed-success-breadth-bounds}",
         # The claim-evidence map was withdrawn from the manuscript; the scope
-        # statements it carried now live in Conclusion and Limitations. Every
-        # other proof-chain block below stays required.
-        r"\label{lem:shared-exemplar-retention}",
+        # statements it carried now live in Conclusion and Limitations.
+        # The theory part was cut on 2026-09-24 to the results the paper
+        # actually uses: the restated (cited) collapse limit, the
+        # conditional-inertness identity, the starvation and sampled-score
+        # lemmas, fixed-buffer retention with its full-coverage and coupon
+        # corollaries, the reference-KL stationary target, and the one local
+        # neural statement.  The proof-chain blocks below are those.
         r"\label{lem:maxrl-mean}",
         r"\label{thm:grpo-collapse}",
-        "Thus these categorical mean flows converge to a single correct execution mode",
+        "Thus these categorical mean flows converge to a single correct solution mode",
+        "it is not a new result",
+        r"\label{thm:objective-inertness}",
+        r"\label{lem:replay-gradient-availability}",
+        r"\label{lem:sampled-score-bound}",
         r"\label{thm:replay-retention}",
         r"p_b(t)\ge \exp(-kC_T)>0",
         r"\label{cor:replay-no-collapse}",
         r"q(t)\longrightarrow u",
+        r"\label{cor:coupon-uniform-coverage}",
+        r"\label{prop:kl-stationary}",
+        r"\label{prop:neural-replay-local-response}",
         "do not certify the implemented AdamW/PPO trajectories",
-        "not a new general theorem about replicator dynamics",
         r"e^{-2560}",
         "full-coverage corollary therefore cannot supply a domain-wide guarantee there",
         r"\label{app:fixed-bank-survival}",
-        "The fixed-bank study tracks Qwen2.5-0.5B Re:Dr",
-        "score surrogates, not exact probabilities of sampling canonical modes",
-        "Without a matched no-replay fixed-bank arm",
-        "supplies no probability floor for an unbanked key",
+        # These two fixed-bank pins were repointed 2026-09-24: the "bank" ->
+        # "buffer" prose rename had left the old strings matching nothing,
+        # and the "score surrogates" sentence no longer exists at all.
+        "We examine the likelihoods of stored responses during Qwen2.5-0.5B Re:Dr",
+        "A matched fixed-buffer control without replay would be needed to isolate",
+        "supplies no probability floor for an unbuffered key",
     ):
         require(normalized(token) in normalized(manuscript), f"proof contract missing {token!r}")
 
@@ -1018,9 +1048,12 @@ def main() -> None:
         }
         and display.get("appendix_figure")
         == "all three models across five domains and both terminal metrics"
-        and ("equal domain averages within each paired seed, with seed paths"
+        and ("equal domain averages within each paired seed, drawn as marks without seed paths"
              if qwen3b_complete else "no pooled seed paths or intervals")
         in display.get("qwen3b_display", "")
+        and display.get("main_figure_marks")
+        == ("marks only: untrained diamond, open control, filled replay on one row; "
+            "no connectors, seed traces or arrows")
         and display.get("qwen3b_maxrl_average")
         == (paired_definition if qwen3b_complete else domain_definition)
         and display.get("dashed_connector")
@@ -1409,7 +1442,7 @@ def main() -> None:
             require("Overfull" not in log.read_text(errors="replace"),
                     "LaTeX reports an overfull box")
 
-    print("Current paper contract passed: eight main figures plus the hosted level-average table, preserved 20-block proof chain, and all current/appendix evidence gates.")
+    print("Current paper contract passed: eight main figures plus the hosted level-average table, preserved 58-block proof chain, and all current/appendix evidence gates.")
 
 
 if __name__ == "__main__":

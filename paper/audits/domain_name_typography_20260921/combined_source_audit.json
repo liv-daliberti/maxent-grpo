@@ -1,0 +1,264 @@
+{
+  "compiled_tex_inputs": 54,
+  "unformatted_domain_files": [],
+  "nested_texttt_files": [],
+  "unhandled_domain_compounds": [],
+  "generic_python_exclusions": {
+    "paper/main.tex": [
+      "executable Python code",
+      "isolated Python \\texttt{-I} process",
+      "are invalid Python",
+      "LaTeX-escaped Python"
+    ],
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex": [
+      "Python lambda",
+      "Python modulo"
+    ],
+    "paper/results/frontier_hosted_20260911_appendix.tex": [
+      "Python \\texttt{lambda}"
+    ]
+  },
+  "generic_python_exclusions_semantically_reviewed": true,
+  "concurrent_prose_edits_preserved": [
+    "paper/results/conditional_concentration_20260912_appendix.tex",
+    "paper/results/inference_followups_20260912.tex",
+    "paper/results/modebench_discovery_curves_20260911.tex",
+    "paper/results/modebench_prompt_ablation_20260911.tex",
+    "paper/results/portfolio_withdrawals_20260917.tex",
+    "paper/results/semantic_current_summary_20260912.tex",
+    "paper/results/frontier_comparison_20260911_protocol.tex",
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+    "paper/results/frontier_hosted_20260911_appendix.tex",
+    "paper/results/frontier_temperature_20260911.tex",
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex"
+  ],
+  "concurrent_replicate_label_rows_preserved": 8,
+  "changed_result_fragments": 32,
+  "result_fragments_with_tabular_rows": 25,
+  "fragments": {
+    "paper/results/absolute_support_references_table_body.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 6,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/conditional_concentration_20260912_appendix.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/conditional_concentration_20260912_tables.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 143,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/control_learning_macros.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/control_learning_table_body.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 15,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/core_terminal_endpoints_table_body.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 15,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/inference_followups_20260912.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 109,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/level2_factorial_contrasts_20260912_table_body.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 15,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/mode_diversity_coverage.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/modebench_discovery_curves_20260911.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 95,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/modebench_prompt_ablation_20260911.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 19,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/portfolio_withdrawals_20260917.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 70,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/reference_kl_macros.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/reference_kl_table_body.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 5,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/semantic_current_summary_20260912.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 36,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/discovery_hosted_interpretation_20260912.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_appendix.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 1,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_graph_figure.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_normalized_cells.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 32,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_protocol.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 0,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_provider_outcomes.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 22,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 7,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_comparison_20260911_strict_cells.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 107,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_hosted_20260911_appendix.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 3,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_hosted_20260911_normalized_rows.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 15,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_hosted_20260911_strict_rows.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 15,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/frontier_temperature_20260911.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 32,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 16,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/gpt56sol_python_parity_20260918.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 8,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/hosted_level_averages_20260911.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 9,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/hosted_level_averages_20260911_parity.tex": {
+      "typography_only": true,
+      "tabular_rows_checked": 9,
+      "protected_identifiers_and_literals_unchanged": true
+    },
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex": {
+      "typography_only": false,
+      "tabular_rows_checked": 22,
+      "protected_identifiers_and_literals_unchanged": true
+    }
+  },
+  "main_protected_identifiers_unchanged": false,
+  "main_literal_blocks_unchanged": true,
+  "main_all_table_rows_unchanged": false,
+  "main_only_typography_and_two_header_splits": false,
+  "helper_sha256": "58da3dd3e4d3650f532e895fb564275367332640d548ba4876062b449efa2545",
+  "source_sha256": {
+    "paper/main.tex": "14349386f7cdbd2ec4142b4fae9adc3813a80e7111654b4c785774f5b06d7b23",
+    "paper/results/absolute_support_references_table_body.tex": "35d38f8b62c9b4fd612b7168ff6f3ead032fe32c10ee143eccaf0d5bfa6bb1ab",
+    "paper/results/conditional_concentration_20260912_appendix.tex": "8313dfd63926defae497069eb0a73265f9cd7feb5422167eeac6daae899deb20",
+    "paper/results/conditional_concentration_20260912_tables.tex": "c137ed5896c529ef84a87aec3a21ac5216185ecf689cb0c940887965578cb4a9",
+    "paper/results/control_learning_macros.tex": "639fb0015a5343fc9e399b7dcb6b945dcf67875bc1df046d880527f51d924c2c",
+    "paper/results/control_learning_table_body.tex": "b0c37c1967be80dd6da87ac8bb414eb42d476596eb095ced80bf2139c7927ae9",
+    "paper/results/core_terminal_endpoints_table_body.tex": "02e40b51ca0ff3df38e3ab84e70b5e38ad1501e37f9ae920b450c2b0681edd92",
+    "paper/results/discovery_hosted_interpretation_20260912.tex": "4780edc49bcf4f06f82131d0b8ccd4176afbf55c9e3a181a8af513c446559a10",
+    "paper/results/domain_support_macros.tex": "897c3f4abba7f8a0352131833e050d279b1ad5074914591ec1a3f92def5c1ace",
+    "paper/results/frontier_comparison_20260911_appendix.tex": "a8a6a86bc56ec83c8d7868a3dad7abfb422c35b628e5e48622a1fc957a01411b",
+    "paper/results/frontier_comparison_20260911_graph_figure.tex": "a31923dca5057a9bf7c00af5da505d30be823c1bf279ad9b833c0694d0e31aa3",
+    "paper/results/frontier_comparison_20260911_normalized_cells.tex": "9889106722e965842f1e136d68a98d46918a795397fb7c642cce48a818996058",
+    "paper/results/frontier_comparison_20260911_protocol.tex": "450ab3f96a85eec0ed58f215892401d927dea68a74f51bbcd3277ecc298c0510",
+    "paper/results/frontier_comparison_20260911_provider_outcomes.tex": "3cb8d3c961afdf7b64bbf4f1504da868ebff2cd63fe594cb5d5c88bd253d46d1",
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex": "8866be0ed8a32b98b72575e9234232adff318dff08f6485a86bf4b30eff34f68",
+    "paper/results/frontier_comparison_20260911_strict_cells.tex": "c360c53ef06c870da083e8f519e6c5f1d7f5522f697be34168196887477c7833",
+    "paper/results/frontier_comparison_20260911_strict_overview_rows.tex": "4423fd6ad5000bbb85bbfeceea9563a3773ad15597875026b9c1eefbfd1db0dd",
+    "paper/results/frontier_hosted_20260911_appendix.tex": "ec7eb2f3969ac4e088146fb0938facc933def7100fc522a49533b19d67368f43",
+    "paper/results/frontier_hosted_20260911_macro_rows.tex": "3b3cfd134eacba9f270317a2365db7869483ce045b9ece3def202da1d55f4f6f",
+    "paper/results/frontier_hosted_20260911_normalized_rows.tex": "669c31bd7e470a730146c3738f43671105f4faf78e965baf6b20639906b2dde4",
+    "paper/results/frontier_hosted_20260911_strict_rows.tex": "07bb6e6b8d33b4be6d75d0089fb7f7fdf7da270370f1736452064fa1644c7f22",
+    "paper/results/frontier_python_retry_20260911.tex": "1b062efb36c8855bf35ccab7a1776618b3865493d204747699f40b2ab5320c94",
+    "paper/results/frontier_temperature_20260911.tex": "74bb47974f8e9ba975ae90d7fc4063b4f7e628556cfbe83401210b538629282a",
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex": "43d42f34e079501fd6fc3efd98ff23036783b1473fc95322d9d314ccba1dfda7",
+    "paper/results/gpt56_temperature_curve_20260911_appendix.tex": "e7a2a1e102356c23608a5fe0c7476c4fffcbde059295c7ea1bf5bed631df5694",
+    "paper/results/gpt56sol_python_parity_20260918.tex": "bf76f560d8222ebb253a646993f10230752dccebb37852854375b040011ad9b3",
+    "paper/results/hosted_level_averages_20260911.tex": "33fe84eff20fe1001b5df1324627744cd9d35555ff63400732f5a12978bc75de",
+    "paper/results/hosted_level_averages_20260911_parity.tex": "79fb47b9b03be362a3130c3ec7871b2bf1118c291b507729b61e73e60cfd7534",
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex": "2b147bacfa6d355a06f2b461eb6baf10585485a1654b6e88cd196dd1f4a5cb40",
+    "paper/results/hosted_reasoning_off_20260912_main.tex": "1c66ddb208d5e45658f86ffa2ad20fff3d1658a08c1f74ec0862ff76c38bbae8",
+    "paper/results/inference_followups_20260912.tex": "2067115e51483bb40b232983bc7d4e03a72f53218c27f7012c0741a5694a5bbf",
+    "paper/results/kl_replay_recovery_macros.tex": "3794f1d16b93ce004fef3294753af57785a7a8559a3d4035668dcc5e41a77ced",
+    "paper/results/kl_replay_recovery_table_body.tex": "8dc031be56b79360a9cf2f4647632b3cadd76c040efe78e744945fa99a09b503",
+    "paper/results/level2_factorial_contrasts_20260912_table_body.tex": "33541f723131f26be5071142820c7f5335dab37816676998d6862fad81c6b502",
+    "paper/results/mathir_scope_macros.tex": "d1d4a627e40503888f16ca97cce1ad5f030e8b995b3254919058272693832006",
+    "paper/results/mathir_support_geometry_macros.tex": "567fb33715612b44aad18f8a6fd95bc5ac6911c2dc894acd648a7e8619faf198",
+    "paper/results/mode_diversity_coverage.tex": "5433a09898e28c1836b2fa5c51bf46b217957bf24929c25386b6d82efa1b8825",
+    "paper/results/mode_diversity_hosted_cohort_macros.tex": "37768ac20046e62194f735548bc69f97a82da8d77ccd37a54bb82f746041fe47",
+    "paper/results/mode_diversity_hosted_cohort_table_body.tex": "6857c07952f3693c3ae9592b69e9cda9596860ce007749f1e7cfd2989b0bf399",
+    "paper/results/mode_keying_macros.tex": "28f0b09779f002248ad56dc38376580862e8a253341e010c79f290dda72f9f12",
+    "paper/results/modebench_discovery_curves_20260911.tex": "31698992007b620161e0146dca24d3f0f9549dfc4d460b05f51f1dc76799fadc",
+    "paper/results/modebench_prompt_ablation_20260911.tex": "94e4963efa0c6eee0b01b6299c788f379d58bd63e893d18dd09c8027070ff642",
+    "paper/results/pmd_retention_macros.tex": "aba11eeabd54b65591a2e5e99b1c44e15eea5fa8dc3f750f47d62ac26132ed1c",
+    "paper/results/portfolio_withdrawal_macros.tex": "015b5a5f360e60fdfdfe5980f2d680a4a282660a3bcc523ec1dd38a7310bea05",
+    "paper/results/portfolio_withdrawals_20260917.tex": "db1677a02de79a9707f1cbe628eb82a2f8a037ac7320981b2b9ea9f77d03f29c",
+    "paper/results/qwen_level_trend_macros.tex": "16bd5ce455400629f80c972e85c4d039363cf693e31a798d076c08236dc01f05",
+    "paper/results/reference_kl_macros.tex": "4d863e7f4920384803f2872fe5657a5ac391b978079c70751db9b9eb62859c55",
+    "paper/results/reference_kl_table_body.tex": "897d02936535720cd6f7ddbb52c1b96625d130abd6a5bda80d2eeb72f12f5413",
+    "paper/results/replay_bank_decomposition_macros.tex": "07bb612257112eb8ad911c0b20983d2a53875cf9a159a176c298a7464f6f4543",
+    "paper/results/replay_cost_macros.tex": "094116f219919c7abc49914a0099ac55ab4c9e966cd828de0da758c0aa9b1f8d",
+    "paper/results/replay_cost_table_body.tex": "fecdcbe59b6abe44dd1da066cd44cfc2c344b999ad72896a2848151527771a94",
+    "paper/results/retention_matrix_panel_a_table_body.tex": "3b46e5145f2b6368f737bdfdab1ce8981c5214abcfb21ebfddb431fabb0e57a5",
+    "paper/results/retention_matrix_panel_b_table_body.tex": "3df3ce571b25b9e710acd2c7ba7cac8dcc7a1eba21e3f87ab25205811471d6f2",
+    "paper/results/semantic_current_summary_20260912.tex": "3d3ce9b2e1a03c262e7a6b597042d1a10f6083606ae6f8527c2046fb939c32c4"
+  },
+  "experiments_or_bootstrap_runs": 0,
+  "result_tabular_measured_fields_unchanged_rows": 826
+}

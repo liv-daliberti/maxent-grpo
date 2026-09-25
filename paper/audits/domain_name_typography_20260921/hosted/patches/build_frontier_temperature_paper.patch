@@ -1,0 +1,27 @@
+--- ops/build_frontier_temperature_paper.py (before)
++++ ops/build_frontier_temperature_paper.py (after)
+@@ -4,6 +4,15 @@
+ import argparse
+ import hashlib
+ import json
++
++try:
++    from ops.paper_domain_typography import format_domain_names
++except ModuleNotFoundError:
++    from paper_domain_typography import format_domain_names
++
++_DOMAIN_LANGUAGE_EXCEPTIONS = (
++    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
++)
+ 
+ ROOT=Path(__file__).resolve().parents[1]
+ SOURCE=ROOT/'artifacts/frontier_temperature_20260911/TEMPERATURE_ABLATION.json'
+@@ -171,7 +180,7 @@
+               'also reflect different task populations and do not establish a common ordering',
+               'of model difficulty. These inference-only results do not identify a training',
+               'or parameter-scale cause of concentration.', '']
+-    return '\n'.join(lines)
++    return format_domain_names('\n'.join(lines), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ def main():
+     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--source',type=Path,default=SOURCE)

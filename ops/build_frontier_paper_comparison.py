@@ -17,6 +17,15 @@ from pathlib import Path
 import re
 import sys
 
+try:
+    from ops.paper_domain_typography import format_domain_names
+except ModuleNotFoundError:
+    from paper_domain_typography import format_domain_names
+
+_DOMAIN_LANGUAGE_EXCEPTIONS = (
+    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 DOMAINS = {'graph_coloring': 'Graph', 'countdown': 'Countdown',
            'python_factors': 'Python', 'mathir': 'MathIR', 'pantry_plan': 'PantryPlan'}
@@ -284,11 +293,16 @@ def _cell_columns(cell):
             metric(cell, 'uniform_correct_pair_collision', True)]
 
 
-LAYOUT_LEGEND = (r'Each cell has 128 prompts and 1,024 responses. '
-                 r'M/P denote \texttt{mean@8}/\texttt{pass@8} (\%); '
-                 r'D is \texttt{distinct@8}. C is correct-pair collision '
-                 r'(\%) with pointwise 95\% prompt-bootstrap intervals. U is its '
-                 r'conditional uniform reference (\%).')
+LAYOUT_LEGEND = (r'Each original-instruction cell contains 128 prompts with eight responses each. '
+                 r'M/P are \texttt{mean@8}/\texttt{pass@8} (\%); '
+                 r'D averages distinct correct solution modes per prompt, including zeros. '
+                 r'C is the fraction of correct pairs sharing a mode (\%), pooling pairs '
+                 r'across prompts; it differs from one minus prompt-averaged \pmd{}. '
+                 r'Intervals are pointwise 95\% percentiles from 2,000 whole-prompt '
+                 r'bootstrap resamples within each cell. U is the uniform-correct-mode '
+                 r'reference (\%), using certified support counts and the same pair weights. '
+                 r'A dash in C denotes no eligible pairs; U is also undefined when total '
+                 r'support is unknown (Countdown).')
 
 
 def cell_tables(record, secondary=False):
@@ -323,24 +337,35 @@ def cell_tables(record, secondary=False):
                      if run.get('normalized_secondary') is not None
                      and not any(r[0] == tex(run['label']) for r in rows)]
         if not rows:
-            return ('The frozen formatting normalizer rescued no response in any '
-                    'cell of this cohort, so every normalized grade repeats its '
-                    'strict counterpart and no second table is printed.\n')
-        caption = (r'\caption{\textbf{Post hoc formatting diagnostic: the cells it changes.} '
+            return ('Formatting-normalized and strict grading have identical displayed '
+                    'entries in every cell of this cohort.\n')
+        caption = (r'\caption{\textbf{Formatting normalization increases accuracy without consistently reducing collision.} '
                    + LAYOUT_LEGEND
-                   + r' Only cells whose normalized grade differs from its strict grade appear; '
-                   + r'every cell absent here is identical under both gradings.'
-                   + (' The normalizer rescued no response for ' + ', '.join(unchanged) + '.'
+                   + r' Typography corrections precede the same executable verifier; mathematical '
+                   + r'values and program logic are not repaired. Only cells with at least one '
+                   + r'changed displayed entry appear; omitted cells match at the printed precision.'
+                   + (' Every displayed entry is unchanged for ' + ', '.join(unchanged) + '.'
                       if unchanged else '')
                    + r'}')
     else:
-        caption = (r'\caption{\textbf{Strict executable grades, every hosted deployment.} '
-                   + LAYOUT_LEGEND + r'}')
-    text = [r'\begin{table}[!htbp]', r'  \centering', '  ' + caption,
-            r'  \scriptsize', r'  \setlength{\tabcolsep}{4pt}',
-            r'  \begin{tabular}{@{}lrlrrrrr@{}}', r'    \toprule',
-            r'    Deployment & Level & Domain & M & P & D & C (95\% interval) & U \\',
-            r'    \midrule']
+        caption = (r'\caption{\textbf{Verified hosted outputs concentrate on a few observed solution modes.} '
+                   + LAYOUT_LEGEND + r' Grades use the original executable answers.}')
+    # A longtable, not a table. One deployment per float fitted a page; the
+    # whole cohort in one float does not, and an over-tall float does not
+    # break -- it runs off the page and silently takes its last rows with it.
+    # The longtable keeps the single caption and single header this merge is
+    # for, and breaks across pages instead of overflowing.
+    header = (r'    Deployment & Level & Domain & M & P & D & '
+              r'C (95\% interval) & U \\')
+    text = [r'\begingroup', r'\scriptsize', r'\setlength{\tabcolsep}{4pt}',
+            r'\begin{longtable}{@{}lrlrrrrr@{}}',
+            '  ' + caption + r' \\',
+            r'  \toprule', header, r'  \midrule', r'\endfirsthead',
+            r'  \multicolumn{8}{@{}l}{\scriptsize\itshape '
+            + ('Formatting-normalized grades, continued.' if secondary
+               else 'Strict executable grades, continued.') + r'}\\',
+            r'  \toprule', header, r'  \midrule', r'\endhead',
+            r'  \bottomrule', r'\endlastfoot']
     previous = None
     for label, level, domain, columns in rows:
         if previous is not None and label != previous:
@@ -348,8 +373,8 @@ def cell_tables(record, secondary=False):
         text.append('    ' + ' & '.join([label if label != previous else '',
                                          level, domain, *columns]) + r' \\')
         previous = label
-    text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
-    return '\n'.join(text)
+    text += [r'\end{longtable}', r'\endgroup', '']
+    return format_domain_names('\n'.join(text), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
 
 
 def model_identity(run):
@@ -387,26 +412,26 @@ def load_python_sensitivity(path):
 
 
 def python_sensitivity_tex(report):
-    lines = [r'\subsection{A separate Python prompt sensitivity test}',
+    lines = [r'\subsection{Python prompt sensitivity}',
              r'\label{app:hosted-python-prompt}',
-             'After the original Opus 5 Python refusals, synthetic tasks were used to select',
-             'a direct arithmetic-expression formulation with no system message. We then',
-             'collected eight independent draws for every original Python test task: all',
-             '384 prompts across three levels, with unchanged adaptive thinking, medium',
-             'effort, 8,192 output tokens, allowed operators, public inputs and frozen graders.',
-             'The revised user instruction asks for a one-line boxed Python lambda returning',
-             'any proper divisor for each listed input. It does not prescribe a preferred divisor.',
-             'Both task wording and system-message presence change; collection time also differs.',
-             'This exploratory follow-up therefore supports a practical prompt repair without',
-             'isolating its cause. Original refusals and all three residual refusals are retained.',
-             'The original-protocol appendix tables retain all original Python responses;',
-             'the main display uses this complete revised condition with an explicit caption note.', '',
+             'Opus 5 receives the same 384 Python tasks under the original instructions',
+             'and a direct arithmetic-expression instruction without a system message.',
+             'Each condition has eight separately requested responses per task, and the tasks span three',
+             'levels. Adaptive thinking, medium effort, an 8,192-token output limit,',
+             'allowed operators, public inputs, and graders are the same in both conditions.',
+             'The revised instruction asks for a one-line boxed Python lambda returning',
+             'any proper divisor for each listed input, without a preferred divisor.',
+             'Task wording and system-message presence both change; provider state and',
+             'collection time can also differ. The comparison describes these two',
+             'configurations and does not isolate which change accounts for their difference.',
+             'All responses contribute to accuracy and mode counts, including provider refusals.', '',
              r'\begin{table}[!htbp]', r'  \centering',
-             r'  \caption{\textbf{Opus 5 Python: original versus plain task wording.}',
-             '  Each row has 1,024 responses. R counts native refusals; A is per-response accuracy (\\%),',
-             r'  D is \texttt{distinct@8}, and C is correct-pair collision (\%).',
-             '  Strict and normalized results use the same frozen grader and typography rule.',
-             '  Original Level-2/3 collision is undefined because no prompt has two correct draws.}',
+             r'  \caption{\textbf{Opus 5 rarely refuses Python tasks with direct instructions and no system message.}',
+             '  Each row contains 128 tasks with eight responses each (1,024 responses).',
+             '  R counts provider-declared refusals; A is per-response accuracy (\\%);',
+             r'  D is mean \texttt{distinct@8}; C is correct-pair collision (\%), pooling pairs within each level.',
+             '  Both conditions use the same executable grader and formatting normalizer.',
+             '  Original Level-2/3 collision is undefined because no task has two correct responses.}',
              r'  \small', r'  \setlength{\tabcolsep}{4pt}',
              r'  \begin{tabular}{@{}llrrrrrrr@{}}', r'    \toprule',
              r'    & & & \multicolumn{3}{c}{Strict} & \multicolumn{3}{c}{Normalized} \\',
@@ -432,22 +457,20 @@ def python_sensitivity_tex(report):
         gains.append(f'{item["estimate"] * 100:.1f} [{item["ci95"][0] * 100:.1f}, {item["ci95"][1] * 100:.1f}]')
     rescued = plain['normalized']['correct_responses'] - plain['strict']['correct_responses']
     lines += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '',
-              'The new condition has no API failures or token-limit truncations. Strict grading',
-              f'accepts {plain["strict"]["correct_responses"]:,} responses; the frozen rule rescues {rescued:,} more',
+              'The revised condition has no token-limit truncations. Strict grading',
+              f'accepts {plain["strict"]["correct_responses"]:,} responses; formatting normalization accepts {rescued:,} additional responses',
               r'by converting escaped percent signs (\verb|\%|) to Python modulo (\verb|%|).',
-              'Thus every non-refused answer passes after this formatting-only correction.',
+              'Every non-refused answer therefore passes the executable checks after normalization.',
               'Normalized collision is ' + collisions + r'\%, versus conditional uniform references',
-              r'of 1.43/1.15/1.15\%. The residual three refusals occur on two prompts whose',
-              'other identical requests are accepted. No retry-until-accepted selection is used.', '',
-              'The paired analysis resamples whole eight-draw prompt groups across conditions',
-              '(20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are',
+              r'of 1.43/1.15/1.15\%. All eight responses per task contribute to these results, including the three refusals.', '',
+              'Accuracy differences use a paired bootstrap of whole eight-response task groups',
+              'across conditions (20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are',
               ', '.join(gains[:-1]) + ', and ' + gains[-1] + ' percentage points',
-              '(pointwise 95\\% intervals). Output draws themselves are independent, and the',
-              'different correct-pair populations preclude interpreting a raw collision',
-              'difference as a matched-population prompt effect.', '',
-              'The saved sensitivity record binds the original and revised native receipts,',
-              'request payloads, strict regrade audit and frozen normalization outputs.', '']
-    return '\n'.join(lines)
+              '(pointwise 95\\% intervals). Tasks are paired; output draws are not paired across conditions.',
+              'Collision weights tasks by their numbers of correct pairs, which differ between',
+              'conditions. Its raw difference therefore compares different correct-pair populations',
+              'and does not estimate a prompt effect at matched accuracy or on a common set of pairs.', '']
+    return format_domain_names('\n'.join(lines), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
 
 
 def graph_figure(record, path):
@@ -511,80 +534,80 @@ def export(record, output, figures, stem):
     output.mkdir(parents=True, exist_ok=True)
     figures.mkdir(parents=True, exist_ok=True)
     output.joinpath(stem + '.json').write_text(json.dumps(record, indent=2) + '\n')
-    output.joinpath(stem + '_python_sensitivity.tex').write_text(python_sensitivity_tex(record['python_prompt_sensitivity']))
+    output.joinpath(stem + '_python_sensitivity.tex').write_text(format_domain_names(python_sensitivity_tex(record['python_prompt_sensitivity']), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
     for secondary, suffix in [(False, 'strict'), (True, 'normalized')]:
-        output.joinpath(f'{stem}_{suffix}_overview_rows.tex').write_text(overview_table(record, secondary))
-        output.joinpath(f'{stem}_{suffix}_cells.tex').write_text(cell_tables(record, secondary))
+        output.joinpath(f'{stem}_{suffix}_overview_rows.tex').write_text(format_domain_names(overview_table(record, secondary), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+        output.joinpath(f'{stem}_{suffix}_cells.tex').write_text(format_domain_names(cell_tables(record, secondary), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
     graph_figure(record, figures / (stem + '_graph'))
     figure_include = r'''\begin{figure}[!htbp]
   \centering
   \includegraphics[width=\linewidth]{figures/STEM_graph.pdf}
-  \caption{\textbf{Verified correctness and concentration in hosted Graph outputs.}
-  Each deployment receives the same 128 prompts per level, with eight stateless
-  samples per prompt. Intervals resample whole prompts. The gray band spans
-  the models' uniform-correct-key references, conditional on their observed
-  correct draws. Graph was selected after the GPT-5.6 Sol run and before the
-  prospective comparison runs. Level labels do not guarantee increasing
-  difficulty for each model.}
+  \caption{\textbf{Hosted Graph answers are usually correct but concentrated relative to uniform sampling.}
+  Panel A shows strict per-response accuracy; panel B shows the fraction of
+  correct pairs sharing a solution mode, pooling pairs across prompts. Colors
+  and markers identify seven deployments, each with the same 128 prompts per
+  level and eight stateless responses per prompt. Error bars are pointwise
+  95\% intervals from resampling whole prompts. The gray band spans the
+  deployments' uniform-correct-mode references, weighted by their observed
+  correct-pair counts; the dashed line is their mean. Level labels do not
+  imply equal or monotonically increasing difficulty across deployments.}
   \label{fig:hosted-graph-comparison}
 \end{figure}
 '''.replace('STEM', stem)
-    output.joinpath(stem + '_graph_figure.tex').write_text(figure_include)
+    output.joinpath(stem + '_graph_figure.tex').write_text(format_domain_names(figure_include, exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
     names = ', '.join(tex(run['label']) for run in record['models'])
-    protocol = [r'\paragraph{Completed hosted comparison.}',
-                f'The admitted deployments are {names}: {len(record["models"])} complete runs,',
-                f'{record["completed_response_count"]:,} responses, and the same 128 held-out prompts',
-                'per domain and level with eight stateless samples per prompt. Only runs with',
-                'a passing completion audit and the identical frozen prompt digest enter these tables.',
-                'No training, model-side tools or conversation history is added.', '',
+    protocol = [r'\paragraph{Evaluation population.}',
+                f'The deployments are {names}. The original-instruction cohort contains',
+                f'{record["completed_response_count"]:,} responses: 15,360 per deployment, with the same 128 held-out',
+                'prompts in each of five domains and three levels, and eight stateless responses',
+                'per prompt. Requests use no model-side tools or conversation history, and',
+                'the evaluation includes no task training or replay intervention.', '',
                 r'\paragraph{Provider configurations.}']
-    for run in record['models']:
-        config = run['run_configuration']
-        provider = config.get('provider', config.get('api', config.get('api_type', 'hosted API')))
-        protocol.append(tex(run['label']) + ': ' + tex(provider) + ', requested reasoning setting '
-                        + tex(config.get('reasoning_effort', 'see saved native request'))
-                        + ', native output limit ' + tex(config.get('max_output_tokens', 'see request')) + '.')
-    protocol += ['', 'Provider effort labels do not establish equal compute, and native token',
-                 'accounting differs. The saved native request and returned usage determine each',
-                 'configuration; provider defaults remain unspecified whenever native responses omit them.', '',
-                 'The appendix retains strict executable grades alongside formatting-normalized',
-                 'scores. The main display uses the same frozen formatting rule for every cell',
-                 'and the complete separately collected revised Opus 5 Python condition;',
-                 'all other displayed cells retain the original request wording.',
-                 'The shared typography diagnostic',
-                 'was developed after the first 15 GPT-5.6 Sol responses and frozen before the',
-                 'prospective comparison runs. It retains its post hoc status for GPT-5.6 Sol.',
-                 'Inherited route preferences and the Level-1 PantryPlan interface change limit',
-                 'cross-level interpretation. Countdown has no certified finite-total-support',
-                 'uniform reference. These data establish neither a training cause nor a causal',
-                 'model-size or difficulty effect. All pair-collision intervals are pointwise;',
-                 'overlapping or nonoverlapping cell intervals are not a paired model-difference test.']
+    configurations = [run['run_configuration'] for run in record['models']]
+    if all(str(config.get('reasoning_effort', '')).startswith('medium')
+           and config.get('max_output_tokens') == 8192 for config in configurations):
+        protocol += ['All deployments request medium reasoning effort and an 8,192-token native',
+                     'output limit. Claude Opus 5 and Claude Opus 4.8 use Anthropic Messages with',
+                     'adaptive thinking; the other deployments use hosted API routes.']
+    else:
+        for run in record['models']:
+            config = run['run_configuration']
+            provider = config.get('provider', config.get('api', config.get('api_type', 'hosted API')))
+            protocol.append(tex(run['label']) + ': ' + tex(provider) + ', requested reasoning setting '
+                            + tex(config.get('reasoning_effort', 'unspecified'))
+                            + ', native output limit ' + tex(config.get('max_output_tokens', 'unspecified')) + '.')
+    protocol += ['', 'The requested reasoning setting and output limit do not match compute across',
+                 'providers: effort labels and token accounting have provider-specific meanings.',
+                 'Temperature and nucleus sampling use provider defaults, whose exact values',
+                 'are unknown when the provider does not return them.', '',
+                 'Strict grading checks the original executable answer; formatting-normalized',
+                 'grading applies the same typography corrections across deployments before',
+                 'the executable checks. The tables below report original-instruction results',
+                 'under both grading rules. Prompt preferences and the Level-1 PantryPlan',
+                 'interface difference limit comparisons across levels. Countdown has no uniform',
+                 'reference, because its total support is not certified. This inference-only comparison does not identify a training',
+                 'cause, a model-size effect, or a difficulty effect. Collision intervals are',
+                 'pointwise estimates for individual cells, not intervals for paired deployment differences.']
     for run in record['models']:
         collection = run.get('collection_attempt_accounting')
         if collection:
-            unknown = collection['interruption_accounting']['registered_interrupted_attempts_with_unknown_outcome']
-            malformed = collection['nonterminal_protocol_receipts']
-            protocol += ['', r'\paragraph{Collection interruption: ' + tex(run['label']) + '.}',
-                         f'{malformed} HTTP-200 bodies had no terminal finish reason or visible answer',
-                         'and were preserved as provider protocol failures. A later storage interruption',
-                         f'left {unknown} logged physical request starts without a saved outcome or usage;',
-                         'their outcome and possible billing remain unknown. The audit registers these',
-                         'attempts separately from the 15,360 terminal draws. Only missing terminal',
-                         'draws were recollected; saved terminal responses, including truncations, were',
-                         'retained. Reported token totals are subtotals of known usage, not zero-cost',
-                         'claims for failed or interrupted attempts. Source-bound recovery sidecars',
-                         'preserve the original receipts and the exact interruption accounting.']
-    output.joinpath(stem + '_protocol.tex').write_text('\n'.join(protocol) + '\n')
+            protocol += ['', 'The 15,360 scored ' + tex(run['label'])
+                         + ' responses include verification failures',
+                         'and truncations. Usage totals omit requests without reported usage and',
+                         'therefore give a lower bound on the cost of all attempted requests.']
+    output.joinpath(stem + '_protocol.tex').write_text(format_domain_names('\n'.join(protocol) + '\n', exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
     outcome_text = [r'\subsection{Native provider outcomes and undefined concentration}',
                     r'\label{app:hosted-provider-outcomes}',
-                    'Provider-declared refusals and filtering are deployment outcomes, not evidence',
-                    'that the underlying model cannot solve the mathematical task. Empty refusals',
-                    'remain failed draws under the frozen verifier; no requests or grades are',
-                    'overwritten. Classification uses native metadata,',
-                    'not a semantic detector of refusals written as ordinary answer text.', '',
-                    'Correct-pair collision is undefined when no prompt supplies two correct draws.',
-                    'The five-domain mean is therefore undefined if any domain has no eligible',
-                    'pairs; such entries remain -- rather than zero or a mean over fewer domains.', '']
+                    'Provider metadata distinguish refusal and filtering from executable correctness.',
+                    'A refusal does not establish that the underlying model cannot solve the task.',
+                    'Classification uses native stop reasons, refusal fields and filter metadata;',
+                    'it does not detect refusals expressed only in ordinary answer text.',
+                    'An empty visible answer is a failed draw, including when the response contains',
+                    'reasoning output. Empty-answer and refusal counts therefore need not agree.', '',
+                    'Correct-pair collision requires at least two correct draws on one prompt.',
+                    'It is undefined otherwise, as is a five-domain mean containing any undefined',
+                    'domain. Dashes denote these undefined values. Accuracy and distinct-mode',
+                    'counts include all responses, with zero correct modes on unsuccessful prompts.', '']
     # Native completion states, one line per deployment rather than one
     # paragraph each: the sentence that followed every count was identical, so
     # it is stated once for the group and the counts become a list.
@@ -603,14 +626,13 @@ def export(record, output, figures, stem):
                       + tex(', '.join(f'{reason}: {count:,}'
                                       for reason, count in sorted(stop_counts.items()))))
     if states:
-        outcome_text += ['Native completion states, summed over every cell of each deployment. '
-                         'Empty visible answers are reported separately from provider refusals '
-                         'throughout.', '',
+        outcome_text += ['Native completion states over the 15,360 original-instruction responses '
+                         'per deployment are:', '',
                          r'\begin{itemize}\setlength{\itemsep}{0pt}', *states,
                          r'\end{itemize}', '']
     if unaudited:
-        outcome_text += ['No native-outcome audit is included for ' + ', '.join(unaudited)
-                         + '; refusal counts are not inferred as zero for them.', '']
+        outcome_text += ['Native refusal and filter metadata are unavailable for ' + ', '.join(unaudited)
+                         + '; their refusal counts are unknown.', '']
     for run in record['models']:
         outcomes = run.get('provider_outcomes')
         if outcomes is None:
@@ -622,17 +644,16 @@ def export(record, output, figures, stem):
                 for category, count in outcomes['cells'][f'level{level}/python_factors'].get('refusal_category_counts', {}).items():
                     categories[category] = categories.get(category, 0) + count
             if any(python_counts):
+                counts_text = [f'{count:,}' for count in python_counts]
+                labels = (('The provider assigns them the refusal categor'
+                           + ('y ' if len(categories) == 1 else 'ies ')
+                           + tex(', '.join(f'{key} ({value:,})' for key, value in categories.items())) + '.')
+                          if categories else 'The provider assigns them no refusal category.')
                 outcome_text += [tex(run['label']) + ' returns provider-declared refusals for '
-                                 + ', '.join(str(count) for count in python_counts)
+                                 + ', '.join(counts_text[:-1]) + ' and ' + counts_text[-1]
                                  + ' of the 1,024 Python requests at Levels 1, 2 and 3, respectively.',
-                                 # The category totals are summed over the three levels,
-                                 # which a reader cannot tell from a bare number sitting
-                                 # beside the per-level counts just printed.
-                                 'Summed over those three levels, the native refusal categories on '
-                                 'these Python draws are '
-                                 + tex(', '.join(f'{key}: {value}' for key, value in categories.items()) or 'not supplied')
-                                 + '. These are benign factor-selection tasks; the reported deployment policy',
-                                 'must be distinguished from concentration among correct Python outputs.', '']
+                                 labels + ' These labels describe service behavior on factor-selection tasks;',
+                                 'they do not measure concentration among correct Python outputs.', '']
 
     # One table for the cohort, listing only the cells that carry a counter. A
     # table per deployment printed 105 rows to report 22 non-zero ones, and
@@ -655,15 +676,16 @@ def export(record, output, figures, stem):
             quiet.append(tex(run['label']))
     total = sum(1 for run in record['models'] if run.get('provider_outcomes') is not None) * 15
     outcome_text += [r'\begin{table}[!htbp]', r'  \centering',
-                     r'  \caption{\textbf{Native service outcomes, every non-zero cell.} Each '
-                     + r'deployment answers 1,024 responses per level and domain. R counts '
-                     + r'provider-declared refusals, F content-filtered stops, and E empty visible '
-                     + r'answers. Counters may overlap; they do not replace the frozen verifier '
-                     + f'grades. Only cells with a non-zero counter are listed: the other {total - len(rows)} of the '
-                     + f'{total} are $0/0/0$'
-                     + (', including every cell for ' + ', '.join(quiet)
-                        + ', whose service returned no refusal, filter or empty answer anywhere'
-                        if quiet else '') + r'.}',
+                     r'  \caption{\textbf{Provider-declared refusals occur only for Opus 5 in this cohort.} '
+                     + r'Each original-instruction cell contains 128 prompts with eight responses '
+                     + r'each (1,024 responses). R counts native refusal signals, F native content '
+                     + r'filters, and E responses without visible answer text, including reasoning-only '
+                     + r'outputs. Counters can overlap and are separate from executable grades. '
+                     + f'Only cells with a nonzero counter appear; the other {total - len(rows)} of {total} cells have '
+                     + r'$R=F=E=0$'
+                     + (', including all cells for ' + (', '.join(quiet[:-1]) + ' and ' + quiet[-1]
+                                                       if len(quiet) > 1 else quiet[0]) if quiet else '')
+                     + r'. Zero R does not exclude refusals expressed only in answer text.}',
                      r'  \label{tab:hosted-provider-outcomes}',
                      r'  \small', r'  \setlength{\tabcolsep}{5pt}',
                      r'  \begin{tabular}{@{}llrrrr@{}}', r'    \toprule',
@@ -675,26 +697,25 @@ def export(record, output, figures, stem):
                                                  level, domain, *counters]) + r' \\')
         previous = label
     outcome_text += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '']
-    output.joinpath(stem + '_provider_outcomes.tex').write_text('\n'.join(outcome_text) + '\n')
-    appendix = r'''\clearpage
-\section{Comparison across Hosted Deployments}
+    output.joinpath(stem + '_provider_outcomes.tex').write_text(format_domain_names('\n'.join(outcome_text) + '\n', exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
+    appendix = r'''\section{Comparison across Hosted Deployments}
 \label{app:hosted-comparison}
 
-Figure~\ref{fig:hosted-verified-breadth} compares verified output breadth across
-hosted deployments. Its main display applies the frozen formatting normalizer
-to every deployment and uses the complete revised-wording Opus 5 Python cohort
-at all three levels. Every response enters its accuracy and mode-count metrics;
-outputs are not selected by correctness or provider outcome. The other cells
-use their original prompts. This is a descriptive comparison across the stated
-task formulations, rather than a common-prompt model ranking.
+Figure~\ref{fig:hosted-verified-breadth} compares accuracy and success-conditional
+solution-mode diversity across hosted deployments. Its accuracy row uses a
+common formatting normalizer and the revised Opus 5 Python instructions at
+each level; hollow marks show that deployment's original Python condition.
+Other accuracy cells use the original instructions. The diversity row uses
+strict grades and original instructions for every deployment, with the
+prompt-level estimand and eligibility criteria of App.~\ref{app:hosted-mode-diversity}.
+Accuracy includes every response, including refusals and verification failures.
+Provider settings differ, so the figure describes the stated configurations
+rather than ranking models under matched prompts and compute.
 
-The tables and Graph figure below preserve every original-protocol result,
-including failed draws and native refusals. The separate Python comparison
-reports the original and revised conditions under both grading rules. These
-records expose the effect of the prompt change without replacing the original
-evidence. Level 3 remains an exploratory test extension; no hosted-model
-training or replay intervention is performed. Original deployments enter the
-comparison only with a passing integrity audit and all 15,360 responses.
+The tables and Graph figure use the original instructions for every deployment.
+The Python comparison reports both instruction conditions under strict and
+formatting-normalized grading. Level 3 extends the evaluation beyond the
+training levels, and difficulty need not increase with level for every deployment.
 
 \input{results/STEM_protocol.tex}
 \input{results/STEM_graph_figure.tex}
@@ -708,11 +729,15 @@ comparison only with a passing integrity audit and all 15,360 responses.
 
 \begin{table}[!htbp]
   \centering
-  \caption{\textbf{Strict level summaries for completed hosted deployments.}
-  Each level weights the five domains equally. M and P are \texttt{mean@8}
-  and \texttt{pass@8} (\%); D is raw \texttt{distinct@8}. C is correct-pair
-  collision (\%, with pointwise 95\% whole-prompt intervals), pair weighted
-  within each domain. Provider settings differ; these are descriptive outputs.}
+  \caption{\textbf{Hosted deployments average fewer than three distinct correct modes per prompt.}
+  Each row averages five domains equally under strict grading and original
+  instructions, with 128 prompts per domain and eight responses per prompt.
+  M/P are \texttt{mean@8}/\texttt{pass@8} (\%); D averages distinct correct
+  solution modes, including zeros. C is correct-pair collision (\%), pooling
+  pairs within each domain before averaging domains. Pointwise 95\% intervals
+  use 2,000 whole-prompt bootstrap resamples within domains. A dash denotes
+  an undefined domain collision and hence an undefined five-domain mean.
+  Provider settings differ, so these are descriptive deployment comparisons.}
   \small
   \setlength{\tabcolsep}{3pt}
   \begin{tabular}{@{}lrrrrr@{}}
@@ -726,16 +751,8 @@ comparison only with a passing integrity audit and all 15,360 responses.
 \input{results/STEM_strict_cells.tex}
 \input{results/STEM_normalized_cells.tex}
 
-The result record \path{results/STEM.json} binds every source summary,
-completion audit, frozen prompt digest, raw-sample digest and primary graded
-sample digest. Pending deployments are omitted from both the figure and
-numerical comparisons. The figure was selected after the reference GPT run
-for its high strict correctness, certified support and lack of formatting
-corrections, and before collecting the prospective comparison runs. All five
-domains are retained in the tables, including disagreement across models.
-\clearpage
 '''.replace('STEM', stem)
-    output.joinpath(stem + '_appendix.tex').write_text(appendix)
+    output.joinpath(stem + '_appendix.tex').write_text(format_domain_names(appendix, exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS))
     included = '\n'.join(f'- {r["model"]}: 15,360 audited responses ({r["run_directory"]})'
                          for r in record['models'])
     excluded = '\n'.join(f'- {r["directory"]}: {r["reason"]}' for r in record['excluded_runs']) or '- None.'
@@ -743,7 +760,7 @@ domains are retained in the tables, including disagreement across models.
         '# Generated hosted comparison\n\n' + included + '\n\nExcluded:\n\n' + excluded +
         '\n\nThe JSON binds source summaries, audits, prompt identity and the written protocol. '
         'The original-protocol figure and tables contain only complete admitted runs. '
-        'The main breadth figure uses frozen normalization and the complete revised Opus 5 Python condition, with original evidence retained in the appendix.\n\n'
+        'The main diversity figure uses frozen normalization and the complete revised Opus 5 Python condition, with original evidence retained in the appendix.\n\n'
         'For paper integration, use the generated protocol and strict/normalized cell includes; '
         'the overview rows need a six-column tabular wrapper. The figure include references the '
         'PDF under figures/. Preserve the paper\'s existing detailed interface caveats and level provenance. '

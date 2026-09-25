@@ -2,15 +2,15 @@
   "schema": "hosted-level-averages-v1",
   "source": {
     "path": "paper/results/frontier_comparison_20260911.json",
-    "sha256": "3a627cde10a2eef8cfe08a0dc2ee629fc15fabecd3cd98de78c6587d70513723"
+    "sha256": "8c45e607ef127bc8de0cbba205f7075340c3069c109b66feac4466382964b3c6"
   },
   "renderer": {
     "path": "ops/build_paper_hosted_level_averages.py",
-    "sha256": "20dcbf548a1e8faa77399274250e03c7d3e332ef2ae064572d6b43b107ad61d1"
+    "sha256": "2256f9cd397d6d44891d0fff14dab6c2c7af02d10d3c97783d4bd92c07179914"
   },
   "cohort_builder": {
     "path": "ops/plot_paper_hosted_breadth.py",
-    "sha256": "c5f2da23063ec94b5f481c29046881b1e73c954963d067dab7e1969a910883af"
+    "sha256": "77af738fe0ef9a09c93489b16dbd7a29130a60a97f90f4cb84b72c7857d07cfb"
   },
   "aggregation": "Equal-domain arithmetic mean over all five domains within each model and level; 128 prompts per domain, including zero-success prompts.",
   "metric_definitions": {
@@ -7352,7 +7352,7 @@
   "concentration": {
     "record": {
       "path": "paper/results/mode_diversity_hosted_cohort_20260917.json",
-      "sha256": "c678f5f0677d1e7a2ceb7f2efe3b0642bdc55aabaec6ca77f55ed78841c9bb8f"
+      "sha256": "c4e3882bc8438257c8f8762078de6f1939aa1302c0ded105c5b76815a0442517"
     },
     "table_body": {
       "path": "paper/results/mode_diversity_hosted_cohort_table_body.tex",
@@ -7519,7 +7519,7 @@
   "wording_sensitivity": {
     "record": {
       "path": "paper/results/modebench_discovery_curves_20260911.json",
-      "sha256": "708059b600e1ca528e2fbdbf5d8e1d1438ca99f2ce42a3a0742e7e724f17ceae"
+      "sha256": "52253cf29925a35408350e2c97f0c689c2aa7e9672bf1ddd63a63acd1df10483"
     },
     "metric": "Pooled correct-pair PCMD over the correct pairs of each cell.",
     "population": {

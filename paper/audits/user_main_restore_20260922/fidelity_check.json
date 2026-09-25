@@ -1,0 +1,14 @@
+{
+  "author_text_exact_after_documented_reference_repairs_and_user_requested_edits": true,
+  "user_requested_edits": 3,
+  "main_link_repairs": 14,
+  "retained_main_figures": 11,
+  "main_figure_order_and_bytes_unchanged": true,
+  "preamble_unchanged": true,
+  "appendix_changes_limited_to_recorded_repairs_and_theorem_and_figure_relocation": true,
+  "formal_blocks_preserved": 68,
+  "existing_bibliography_prefix_preserved": true,
+  "new_bibliography_entries": 10,
+  "main_tex_sha256": "12f8819ecfc73f10d2d13b3e801c35ab7d6ae5f94e7cdcff1214a3d55955a0f4",
+  "bib_sha256": "36a366d0183ac19dbc5e49e1265e0a241ea29028d8423ccf9f73e9db91b5c99f"
+}

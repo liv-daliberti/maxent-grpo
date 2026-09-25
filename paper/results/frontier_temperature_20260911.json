@@ -1,6 +1,6 @@
 {
   "schema": "frontier-temperature-paper-v1",
-  "builder_sha256": "37d3c6654657e5cc1781fd69dbdd4944e0be48d1668199ab03e6686d4a6ccb49",
+  "builder_sha256": "6e7f073cdc2c62fc87bb692b0ba354f5b717abafba9a4262178b9b8137fd261c",
   "source": {
     "path": "artifacts/frontier_temperature_20260911/TEMPERATURE_ABLATION.json",
     "sha256": "e5c7f6c4a520a54ca067cf285d78947f78352b129a99e75ffb74d5b666048621"

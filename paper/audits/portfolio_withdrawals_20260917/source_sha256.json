@@ -1,0 +1,10 @@
+{
+  "artifacts/modebench_portfolio_withdrawal_controls_20260917/results.json": "438ead4c3376728d9cdf1d53de9c284b1cca9071b1bb41ee96d6307207b23a03",
+  "artifacts/modebench_portfolio_withdrawals_20260917/independent_audit.json": "2a371b60868b0e8363841729c3540e2f34345b230d120d440d9892d916ed12be",
+  "artifacts/modebench_portfolio_withdrawals_20260917/inputs.json": "7d32c6969aebd45f71bcf955ccfd7724a2cfdbe9570ca3fcca1e99b93b893297",
+  "artifacts/modebench_portfolio_withdrawals_20260917/results.json": "faa49593b9a8d2d3b6f75ba0153f13f84ffd06692fc699633a07afbc99f268d6",
+  "artifacts/modebench_portfolio_withdrawals_20260917/table.json.gz": "67112e2abbdafd7691579ead9ccc186a9df549e86e247790d92ffc3ceeff734b",
+  "artifacts/modebench_recovery_five_domain_20260917/inputs.json": "ccc7db86755c46287944003242b19697a46361cd327bd1718873b4694c0b431b",
+  "artifacts/modebench_recovery_five_domain_20260917/results.json": "1c0c5808a5ef79e4e36f21874513893d391ff015e20d9eaf4f7b53429a41b589",
+  "paper/results/mode_diversity_retention_matrix.json": "08ee86f816539077f6be129aba2a20ae9e2fb36110a0f6b2117fbd22c56ba79e"
+}

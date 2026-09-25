@@ -1,0 +1,10 @@
+{
+  "main_only_pages": 10,
+  "main_only_text_matches_full_pdf": true,
+  "main_tex_sha256": "c4d39c9be05cc1474e256e9020aee47536e529791bd7854747737d01882e6e23",
+  "outputs": {
+    "paper/main.pdf": "e67c3cb35b41f50fdf2a7fd2d9e11744e5bdfabf2936c65ed2cbff1e1e34fa60",
+    "paper/main-body.pdf": "ce36d18b469098a559eb61d2b7eb789b6625bc83475b41f21a97fdc404cf4272",
+    "paper/main-with-figures.pdf": "e67c3cb35b41f50fdf2a7fd2d9e11744e5bdfabf2936c65ed2cbff1e1e34fa60"
+  }
+}

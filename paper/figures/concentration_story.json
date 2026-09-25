@@ -11635,16 +11635,16 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/concentration_story.pdf",
-      "sha256": "adebc4d9050c3f4bbd0c7a2ff2542ed9eebdcc125a86a33d1b91476532cd9eff"
+      "sha256": "72a7096bb7cb535b0c279cce20eea4b5b2b1c77e7719b4d68adc79f57a86282d"
     },
     "png": {
       "path": "paper/figures/concentration_story.png",
-      "sha256": "979413f2f45d2df80fd4e4c96411ef36a20c1f493b2970374af9db9e1caf107a"
+      "sha256": "6948e113c60132f4ab87ccc8112d78f59e62643685b3a7c6f4c5c17409824dec"
     }
   },
   "renderer": {
     "path": "ops/plot_paper_concentration_story.py",
-    "sha256": "dad17df0e778fba7c8a0d965a598e8395412ac336de9daad5e208257da7aec26"
+    "sha256": "c7990e88aba3cef597058a77f715c3b992c824e8edd83ae0d84ac7ab4034390c"
   },
   "schema": "paper-concentration-story-v1",
   "source": {

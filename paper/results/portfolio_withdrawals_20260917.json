@@ -1,0 +1,5589 @@
+{
+  "agreement_figure": {
+    "pdf": {
+      "path": "paper/figures/withdrawal_pmd_agreement.pdf",
+      "sha256": "8012ecf02bed65cbadcc1ed3be99f7eae4ac2877a0f4a9d9383978abf6622bed"
+    },
+    "png": {
+      "path": "paper/figures/withdrawal_pmd_agreement.png",
+      "sha256": "bcacca877ff783a85262094f6c3bf0558a8eacf11ee4b58a09a6d560863eff84"
+    }
+  },
+  "audit": {
+    "endpoint_parity": {
+      "cells": 474,
+      "curve_cells": 474,
+      "differing": 0,
+      "unregistered": 0
+    },
+    "exhaustive_budget": {
+      "comparisons": 4084,
+      "max_absolute_difference": 1.1102230246251565e-16,
+      "units": 240
+    },
+    "independent_pairs": {
+      "by_domain": {
+        "countdown": 2,
+        "graph_coloring": 48,
+        "mathir": 42,
+        "pantry_plan": 47,
+        "python_factors": 48
+      },
+      "pairs": 187
+    },
+    "independent_support": {
+      "checked": 60,
+      "domains": {
+        "countdown": 12,
+        "graph_coloring": 12,
+        "mathir": 12,
+        "pantry_plan": 12,
+        "python_factors": 12
+      }
+    },
+    "key_membership": {
+      "by_domain": {
+        "countdown": {
+          "keys": 165538,
+          "outside_census": 50
+        },
+        "graph_coloring": {
+          "keys": 124054,
+          "outside_census": 0
+        },
+        "mathir": {
+          "keys": 180579,
+          "outside_census": 0
+        },
+        "pantry_plan": {
+          "keys": 186408,
+          "outside_census": 0
+        },
+        "python_factors": {
+          "keys": 189819,
+          "outside_census": 0
+        }
+      },
+      "keys": 846398,
+      "outside_census": 50,
+      "undecidable": 0
+    },
+    "monotone_budget": {
+      "units": 240,
+      "violations": 0
+    },
+    "pairs": {
+      "binding": 26927,
+      "by_domain": {
+        "countdown": {
+          "pairs": 148,
+          "strictly_smaller": 0
+        },
+        "graph_coloring": {
+          "pairs": 6400,
+          "strictly_smaller": 0
+        },
+        "mathir": {
+          "pairs": 1344,
+          "strictly_smaller": 0
+        },
+        "pantry_plan": {
+          "pairs": 2726,
+          "strictly_smaller": 0
+        },
+        "python_factors": {
+          "pairs": 18595,
+          "strictly_smaller": 0
+        }
+      },
+      "exact_by_intersection": 29213,
+      "pairs": 29213,
+      "strictly_smaller": 0
+    },
+    "prompt_identity": {
+      "files": 24,
+      "mismatched": 0
+    },
+    "published_results": {
+      "bootstrap_replicates": 20000,
+      "contrasts": 40,
+      "endpoint_parity": {
+        "cells": 474,
+        "curve_cells": 474,
+        "differing": 0,
+        "unregistered": 0
+      },
+      "pmd_pearson": 0.5746005864043658,
+      "pooled": 10
+    },
+    "structural": {
+      "certified_reproduced": 1280,
+      "options": 9864,
+      "rows": 1280
+    }
+  },
+  "census_coverage": {
+    "distinct_keys_outside_census": {
+      "countdown": 2,
+      "graph_coloring": 0,
+      "mathir": 0,
+      "pantry_plan": 0,
+      "python_factors": 0
+    },
+    "undecidable_outcomes": 0
+  },
+  "contrasts": [
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 369,
+          "estimate": -0.005287371358799928,
+          "seeds": 4
+        },
+        "binding/2": {
+          "blocks": 281,
+          "estimate": 0.007767993041965648,
+          "seeds": 4
+        },
+        "binding/4": {
+          "blocks": 179,
+          "estimate": 0.012222222222222223,
+          "seeds": 4
+        },
+        "feasible/1": {
+          "blocks": 633,
+          "estimate": -0.002328149001536098,
+          "seeds": 4
+        },
+        "feasible/2": {
+          "blocks": 537,
+          "estimate": 0.0031977264590046547,
+          "seeds": 4
+        },
+        "feasible/4": {
+          "blocks": 377,
+          "estimate": 0.005288461538461539,
+          "seeds": 4
+        },
+        "pair/1": {
+          "blocks": 127,
+          "estimate": -0.035900297619047616,
+          "seeds": 4
+        },
+        "pair/2": {
+          "blocks": 95,
+          "estimate": -0.009571428571428571,
+          "seeds": 4
+        },
+        "pair/4": {
+          "blocks": 64,
+          "estimate": -0.002272727272727272,
+          "seeds": 4
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 633,
+          "estimate": -8.422110147812247e-19
+        },
+        "2": {
+          "blocks": 537,
+          "estimate": 0.18432577706358236
+        },
+        "4": {
+          "blocks": 377,
+          "estimate": 0.40154677943722833
+        }
+      },
+      "domain": "countdown",
+      "level": "level1",
+      "raw": {
+        "binding": 0.022087191358024692,
+        "feasible": 0.20406087239583331,
+        "pair": 0.0
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1322,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1247,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1143,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1658,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1583,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1469,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 220,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 220,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 213,
+          "estimate": 0.0,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1658,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 1583,
+          "estimate": 0.07027972338607866
+        },
+        "4": {
+          "blocks": 1469,
+          "estimate": 0.12482153036800217
+        }
+      },
+      "domain": "countdown",
+      "level": "level1",
+      "raw": {
+        "binding": 0.0049382716049382715,
+        "feasible": 0.017447916666666667,
+        "pair": 0.0
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1354,
+          "estimate": 7.602813372852392e-19,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 760,
+          "estimate": 0.026051855859160172,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 209,
+          "estimate": 0.038990091479830284,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1354,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 760,
+          "estimate": 0.019037256479652803,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 209,
+          "estimate": 0.03004913332738494,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1354,
+          "estimate": -9.467110858128177e-19,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 760,
+          "estimate": 0.03280429524952548,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 209,
+          "estimate": 0.05906769991861401,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1354,
+          "estimate": -9.52830808200153e-18
+        },
+        "2": {
+          "blocks": 760,
+          "estimate": 0.2712744377813218
+        },
+        "4": {
+          "blocks": 209,
+          "estimate": 0.7704677701474077
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level1",
+      "raw": {
+        "binding": 0.1496510726686508,
+        "feasible": 0.14876302083333334,
+        "pair": 0.12654041199634272
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 2255,
+          "estimate": 1.1296208315009314e-18,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1657,
+          "estimate": -0.0018468520852049982,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 527,
+          "estimate": -0.014518782420114552,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 2255,
+          "estimate": -1.4626118676230188e-19,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1657,
+          "estimate": -0.0018498109198510243,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 527,
+          "estimate": -0.010791153049172176,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 2255,
+          "estimate": -4.394748997713244e-19,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1657,
+          "estimate": -0.0033874815745491386,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 527,
+          "estimate": -0.021110469930383784,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 2255,
+          "estimate": 2.5486953237730818e-18
+        },
+        "2": {
+          "blocks": 1657,
+          "estimate": -0.010834057624587265
+        },
+        "4": {
+          "blocks": 527,
+          "estimate": -0.010452193291259595
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level1",
+      "raw": {
+        "binding": -0.010616629464285713,
+        "feasible": -0.003011067708333336,
+        "pair": -0.021315396970268293
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 221,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 168,
+          "estimate": -0.0022222222222222235,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 44,
+          "estimate": -0.0075757575757575794,
+          "seeds": 4
+        },
+        "feasible/1": {
+          "blocks": 221,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 168,
+          "estimate": -0.0013333333333333316,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 44,
+          "estimate": -0.004545454545454544,
+          "seeds": 4
+        },
+        "pair/1": {
+          "blocks": 221,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 168,
+          "estimate": -0.003333333333333333,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 44,
+          "estimate": -0.011363636363636364,
+          "seeds": 4
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 221,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 168,
+          "estimate": -0.006666666666666666
+        },
+        "4": {
+          "blocks": 44,
+          "estimate": -0.022727272727272728
+        }
+      },
+      "domain": "mathir",
+      "level": "level1",
+      "raw": {
+        "binding": 0.46904296875,
+        "feasible": 0.516015625,
+        "pair": 0.43720703125
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1112,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 938,
+          "estimate": -1.585372298261367e-05,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 803,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1112,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 938,
+          "estimate": -9.512233789568235e-06,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 803,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1112,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 938,
+          "estimate": -2.378058447392046e-05,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 803,
+          "estimate": 0.0,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1112,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 938,
+          "estimate": -4.756116894784092e-05
+        },
+        "4": {
+          "blocks": 803,
+          "estimate": 0.0
+        }
+      },
+      "domain": "mathir",
+      "level": "level1",
+      "raw": {
+        "binding": 0.3089192708333333,
+        "feasible": 0.343125,
+        "pair": 0.2810546875
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1559,
+          "estimate": -0.014178203603091744,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1534,
+          "estimate": 0.06028780663587171,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1372,
+          "estimate": 0.12392432182536331,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1559,
+          "estimate": -0.013253968394881355,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1534,
+          "estimate": 0.05683490779114404,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1372,
+          "estimate": 0.11731284393120209,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1559,
+          "estimate": -0.011165421011691302,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1534,
+          "estimate": 0.04282554101452357,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1372,
+          "estimate": 0.09817391976018955,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1559,
+          "estimate": -7.049035076985121e-19
+        },
+        "2": {
+          "blocks": 1534,
+          "estimate": 0.39518043661985663
+        },
+        "4": {
+          "blocks": 1372,
+          "estimate": 0.8394648603030739
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level1",
+      "raw": {
+        "binding": 0.1579231770833333,
+        "feasible": 0.15934895833333335,
+        "pair": 0.10692784645909645
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1620,
+          "estimate": -0.005004409171075837,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1620,
+          "estimate": 0.016761463844797177,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1620,
+          "estimate": 0.03387566137566137,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1620,
+          "estimate": -0.004794238683127567,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1620,
+          "estimate": 0.015565843621399181,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1620,
+          "estimate": 0.03146678424456202,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1620,
+          "estimate": -0.0033896673579213213,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1620,
+          "estimate": 0.01310022062006189,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1620,
+          "estimate": 0.02669277175890932,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1620,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 1620,
+          "estimate": 0.12067901234567899
+        },
+        "4": {
+          "blocks": 1620,
+          "estimate": 0.24532627865961198
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level1",
+      "raw": {
+        "binding": 0.07296875,
+        "feasible": 0.07653645833333333,
+        "pair": 0.04504604987026862
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1,
+          "estimate": -0.20000000000000007,
+          "seeds": 1
+        },
+        "feasible/1": {
+          "blocks": 1,
+          "estimate": -0.20000000000000007,
+          "seeds": 1
+        },
+        "pair/1": {
+          "blocks": 1,
+          "estimate": -0.3023255813953489,
+          "seeds": 1
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1,
+          "estimate": 0.0
+        }
+      },
+      "domain": "python_factors",
+      "level": "level1",
+      "raw": {
+        "binding": 0.6606546139055088,
+        "feasible": 0.6606546139055088,
+        "pair": 0.4569324295064695
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 2036,
+          "estimate": -0.03482363916977298,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 2033,
+          "estimate": -0.0195857789783583,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 2014,
+          "estimate": -0.005013774340111072,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 2036,
+          "estimate": -0.03482363916977298,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 2033,
+          "estimate": -0.0195857789783583,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 2014,
+          "estimate": -0.005013774340111072,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 2036,
+          "estimate": -0.05912201286403982,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 2033,
+          "estimate": -0.03765061139278594,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 2014,
+          "estimate": -0.0168183591785237,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 2036,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 2033,
+          "estimate": 0.0871894283385726
+        },
+        "4": {
+          "blocks": 2014,
+          "estimate": 0.1572942612942613
+        }
+      },
+      "domain": "python_factors",
+      "level": "level1",
+      "raw": {
+        "binding": 0.11360268067093723,
+        "feasible": 0.11360268067093723,
+        "pair": 0.09846639771319868
+      },
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 898,
+          "estimate": 0.056982985415942024,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 872,
+          "estimate": 0.09677747428533708,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 839,
+          "estimate": 0.14751730989804507,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1226,
+          "estimate": 0.015621048098726678,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1196,
+          "estimate": 0.026302564725349288,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1152,
+          "estimate": 0.03933380942035132,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 196,
+          "estimate": 0.055938852813852816,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 196,
+          "estimate": 0.09066017316017316,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 196,
+          "estimate": 0.12816017316017317,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1226,
+          "estimate": -5.490113858036488e-19
+        },
+        "2": {
+          "blocks": 1196,
+          "estimate": 0.5402957828703008
+        },
+        "4": {
+          "blocks": 1152,
+          "estimate": 1.1078115394051031
+        }
+      },
+      "domain": "countdown",
+      "level": "level1",
+      "raw": {
+        "binding": 0.11141975308641976,
+        "feasible": 0.15631510416666666,
+        "pair": 0.0894736842105263
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1157,
+          "estimate": -0.08917952413190226,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1146,
+          "estimate": -0.050204269950531955,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1110,
+          "estimate": -0.0037068361807095856,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1485,
+          "estimate": -0.02792873514311453,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1470,
+          "estimate": -0.01841641356169779,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1430,
+          "estimate": -0.0073897287415868014,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 208,
+          "estimate": -0.16234036796536794,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 208,
+          "estimate": -0.1449585137085137,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 208,
+          "estimate": -0.1202222222222222,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1485,
+          "estimate": -1.077507858084943e-18
+        },
+        "2": {
+          "blocks": 1470,
+          "estimate": 0.5483424736905689
+        },
+        "4": {
+          "blocks": 1430,
+          "estimate": 1.1334611932515626
+        }
+      },
+      "domain": "countdown",
+      "level": "level1",
+      "raw": {
+        "binding": 0.0027777777777777735,
+        "feasible": 0.053971354166666666,
+        "pair": -0.05789473684210526
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 810,
+          "estimate": 1.630426671113129e-18,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 717,
+          "estimate": 0.23072671644515585,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 356,
+          "estimate": 0.3617618622154044,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 810,
+          "estimate": 2.7078610356711135e-19,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 717,
+          "estimate": 0.18086296078598613,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 356,
+          "estimate": 0.29524414994579223,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 810,
+          "estimate": 1.0777745590027018e-17,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 717,
+          "estimate": 0.21022098483959928,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 356,
+          "estimate": 0.4347966125987467,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 810,
+          "estimate": -1.468668326851226e-17
+        },
+        "2": {
+          "blocks": 717,
+          "estimate": 0.8056632131607839
+        },
+        "4": {
+          "blocks": 356,
+          "estimate": 2.137486989169789
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level1",
+      "raw": {
+        "binding": 0.6490685453869048,
+        "feasible": 0.6587727864583333,
+        "pair": 0.5211147201159657
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1334,
+          "estimate": 9.91603601919155e-19,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1100,
+          "estimate": 0.18138678026784705,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 495,
+          "estimate": 0.2657580511083954,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1334,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1100,
+          "estimate": 0.1363005583944345,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 495,
+          "estimate": 0.2044866088861313,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1334,
+          "estimate": 8.093273336132136e-18,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1100,
+          "estimate": 0.16364475193946978,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 495,
+          "estimate": 0.32088451236045595,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1334,
+          "estimate": -1.37350336967443e-17
+        },
+        "2": {
+          "blocks": 1100,
+          "estimate": 0.6319071102976669
+        },
+        "4": {
+          "blocks": 495,
+          "estimate": 1.5655574935397856
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level1",
+      "raw": {
+        "binding": 0.4641981336805555,
+        "feasible": 0.45538194444444446,
+        "pair": 0.3893131778616371
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1202,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1153,
+          "estimate": 0.002481290468925822,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1066,
+          "estimate": 0.0039613763774559475,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1202,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1153,
+          "estimate": 0.0014887742813554914,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1066,
+          "estimate": 0.002376825826473567,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1202,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1153,
+          "estimate": 0.0037219357033887327,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1066,
+          "estimate": 0.00594206456618392,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1202,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 1153,
+          "estimate": 0.007443871406777465
+        },
+        "4": {
+          "blocks": 1066,
+          "estimate": 0.01188412913236784
+        }
+      },
+      "domain": "mathir",
+      "level": "level1",
+      "raw": {
+        "binding": 0.2080078125,
+        "feasible": 0.23390625000000004,
+        "pair": 0.181640625
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1010,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 972,
+          "estimate": 0.00153102358984712,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 916,
+          "estimate": 0.002369351552199449,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1010,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 972,
+          "estimate": 0.0009186141539082711,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 916,
+          "estimate": 0.0014216109313196688,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1010,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 972,
+          "estimate": 0.0022965353847706786,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 916,
+          "estimate": 0.0035540273282991725,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1010,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 972,
+          "estimate": 0.004593070769541357
+        },
+        "4": {
+          "blocks": 916,
+          "estimate": 0.007108054656598345
+        }
+      },
+      "domain": "mathir",
+      "level": "level1",
+      "raw": {
+        "binding": 0.24567057291666666,
+        "feasible": 0.27718750000000003,
+        "pair": 0.21572265625
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1277,
+          "estimate": -0.04239439649491019,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1242,
+          "estimate": 0.03524117108159432,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1163,
+          "estimate": 0.09294205710887009,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1277,
+          "estimate": -0.04050250003242815,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1242,
+          "estimate": 0.03399274756417444,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1163,
+          "estimate": 0.08933287790505222,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1277,
+          "estimate": -0.03646692746405229,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1242,
+          "estimate": 0.016520147931800414,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1163,
+          "estimate": 0.062391882880570425,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1277,
+          "estimate": -1.1795032171901754e-18
+        },
+        "2": {
+          "blocks": 1242,
+          "estimate": 0.433898015232681
+        },
+        "4": {
+          "blocks": 1163,
+          "estimate": 0.9682888652572661
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level1",
+      "raw": {
+        "binding": 0.16272786458333333,
+        "feasible": 0.1723828125,
+        "pair": 0.08391687414148352
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1298,
+          "estimate": -0.03215200464571462,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1273,
+          "estimate": 0.04753223601391854,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1189,
+          "estimate": 0.10304265803209303,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1298,
+          "estimate": -0.0311053292181361,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1273,
+          "estimate": 0.045711218291656946,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1189,
+          "estimate": 0.09935028518680185,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1298,
+          "estimate": -0.02835940255615409,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1273,
+          "estimate": 0.026448562610482923,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1189,
+          "estimate": 0.07287619324632162,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1298,
+          "estimate": -1.913192720688126e-18
+        },
+        "2": {
+          "blocks": 1273,
+          "estimate": 0.4033573844012416
+        },
+        "4": {
+          "blocks": 1189,
+          "estimate": 0.8919060183070483
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level1",
+      "raw": {
+        "binding": 0.15155598958333333,
+        "feasible": 0.16131510416666667,
+        "pair": 0.08358063377594628
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 440,
+          "estimate": 0.08780687874124538,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 440,
+          "estimate": 0.10699636939168547,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 436,
+          "estimate": 0.11743512757932162,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 440,
+          "estimate": 0.08780687874124538,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 440,
+          "estimate": 0.10699636939168547,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 436,
+          "estimate": 0.11743512757932162,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 440,
+          "estimate": 0.14320475563466442,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 440,
+          "estimate": 0.1713003310293296,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 436,
+          "estimate": 0.18582529628881822,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 440,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 440,
+          "estimate": 0.08979978354978355
+        },
+        "4": {
+          "blocks": 436,
+          "estimate": 0.1593181818181818
+        }
+      },
+      "domain": "python_factors",
+      "level": "level1",
+      "raw": {
+        "binding": 0.2709362001973989,
+        "feasible": 0.2709362001973989,
+        "pair": 0.215661622354176
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 440,
+          "estimate": 0.14208765665158307,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 440,
+          "estimate": 0.20258556599955088,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 440,
+          "estimate": 0.24408133191293047,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 440,
+          "estimate": 0.14208765665158307,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 440,
+          "estimate": 0.20258556599955088,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 440,
+          "estimate": 0.24408133191293047,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 440,
+          "estimate": 0.23167538816643618,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 440,
+          "estimate": 0.3197958069594564,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 440,
+          "estimate": 0.3793893900598985,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 440,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 440,
+          "estimate": 0.2786796536796537
+        },
+        "4": {
+          "blocks": 440,
+          "estimate": 0.49597402597402596
+        }
+      },
+      "domain": "python_factors",
+      "level": "level1",
+      "raw": {
+        "binding": 0.4852831129058635,
+        "feasible": 0.4852831129058635,
+        "pair": 0.41652460314672135
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1136,
+          "estimate": 0.02597971812446555,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1087,
+          "estimate": 0.04650185000714206,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 957,
+          "estimate": 0.056215560471058544,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1474,
+          "estimate": 0.004587632251828701,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1419,
+          "estimate": 0.012496957675868203,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1268,
+          "estimate": 0.016118315762689923,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 164,
+          "estimate": -0.0549237270665842,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 151,
+          "estimate": -0.020653594771241828,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 141,
+          "estimate": -0.0125,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1474,
+          "estimate": -9.058520940129472e-19
+        },
+        "2": {
+          "blocks": 1419,
+          "estimate": 0.1368556049010367
+        },
+        "4": {
+          "blocks": 1268,
+          "estimate": 0.2651316148542705
+        }
+      },
+      "domain": "countdown",
+      "level": "level1",
+      "raw": {
+        "binding": 0.0595679012345679,
+        "feasible": 0.1048828125,
+        "pair": -0.08684210526315789
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1173,
+          "estimate": 0.03506151121755317,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1082,
+          "estimate": 0.04943695247882987,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 938,
+          "estimate": 0.0653288596955339,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1466,
+          "estimate": 0.007777130180232443,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1366,
+          "estimate": 0.012796219858012853,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1211,
+          "estimate": 0.017024718388010597,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 156,
+          "estimate": -0.029473124914301384,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 139,
+          "estimate": -0.006054154995331465,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 113,
+          "estimate": 0.0,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1466,
+          "estimate": -1.4469284622173675e-19
+        },
+        "2": {
+          "blocks": 1366,
+          "estimate": 0.1037159115159894
+        },
+        "4": {
+          "blocks": 1211,
+          "estimate": 0.20208044291065072
+        }
+      },
+      "domain": "countdown",
+      "level": "level1",
+      "raw": {
+        "binding": 0.05617283950617284,
+        "feasible": 0.11624348958333333,
+        "pair": -0.02894736842105263
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1501,
+          "estimate": 2.094731392379782e-19,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 988,
+          "estimate": 0.06196455271123176,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 395,
+          "estimate": 0.11856032659106788,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1501,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 988,
+          "estimate": 0.047388432289589284,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 395,
+          "estimate": 0.08827855825359075,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1501,
+          "estimate": 1.862504525526355e-18,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 988,
+          "estimate": 0.0604146837564966,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 395,
+          "estimate": 0.1339794569540243,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1501,
+          "estimate": -6.135947435260722e-18
+        },
+        "2": {
+          "blocks": 988,
+          "estimate": 0.2657227321074371
+        },
+        "4": {
+          "blocks": 395,
+          "estimate": 0.7470617665475981
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level1",
+      "raw": {
+        "binding": 0.16101453993055553,
+        "feasible": 0.16435004340277778,
+        "pair": 0.1325265155931637
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1859,
+          "estimate": -8.062993485725497e-19,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1292,
+          "estimate": 0.029582287688452356,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 480,
+          "estimate": 0.056329074347240514,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1859,
+          "estimate": -5.737586690569285e-20,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1292,
+          "estimate": 0.022816255868194437,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 480,
+          "estimate": 0.03965359809863949,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1859,
+          "estimate": -3.2996269329418378e-19,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1292,
+          "estimate": 0.028553670903023066,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 480,
+          "estimate": 0.05972190897006143,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1859,
+          "estimate": -2.2515665223799475e-18
+        },
+        "2": {
+          "blocks": 1292,
+          "estimate": 0.1266094805518841
+        },
+        "4": {
+          "blocks": 480,
+          "estimate": 0.37810569063303223
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level1",
+      "raw": {
+        "binding": 0.04036845858134921,
+        "feasible": 0.03650716145833334,
+        "pair": 0.03527464334153334
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 642,
+          "estimate": 0.0008547008547008548,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 503,
+          "estimate": 0.0021952521421547974,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 401,
+          "estimate": -0.0009390048154093095,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 642,
+          "estimate": 0.000683760683760684,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 503,
+          "estimate": 0.0013171512852928773,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 401,
+          "estimate": -0.0005634028892455855,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 642,
+          "estimate": 0.0017094017094017096,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 503,
+          "estimate": 0.0032928782132321957,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 401,
+          "estimate": -0.0014085072231139648,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 642,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 503,
+          "estimate": 0.0065857564264643915
+        },
+        "4": {
+          "blocks": 401,
+          "estimate": -0.0028170144462279297
+        }
+      },
+      "domain": "mathir",
+      "level": "level1",
+      "raw": {
+        "binding": 0.29811197916666665,
+        "feasible": 0.330546875,
+        "pair": 0.2720703125
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 582,
+          "estimate": 0.0013392857142857143,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 465,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 394,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 582,
+          "estimate": 0.0010714285714285717,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 465,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 394,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 582,
+          "estimate": 0.0026785714285714286,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 465,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 394,
+          "estimate": 0.0,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 582,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 465,
+          "estimate": 0.0
+        },
+        "4": {
+          "blocks": 394,
+          "estimate": 0.0
+        }
+      },
+      "domain": "mathir",
+      "level": "level1",
+      "raw": {
+        "binding": 0.18072916666666666,
+        "feasible": 0.20078125,
+        "pair": 0.16513671875
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1566,
+          "estimate": -0.011279433627413977,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1508,
+          "estimate": 0.03803199816632525,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1354,
+          "estimate": 0.0789349345526201,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1566,
+          "estimate": -0.011131665913146661,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1508,
+          "estimate": 0.03464607788242863,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1354,
+          "estimate": 0.07216837515879569,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1566,
+          "estimate": -0.00967334955273937,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1508,
+          "estimate": 0.026434374406684075,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1354,
+          "estimate": 0.05730699799741843,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1566,
+          "estimate": -1.909602556226795e-19
+        },
+        "2": {
+          "blocks": 1508,
+          "estimate": 0.31282290614658825
+        },
+        "4": {
+          "blocks": 1354,
+          "estimate": 0.689175704843029
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level1",
+      "raw": {
+        "binding": 0.09936848958333333,
+        "feasible": 0.10173177083333333,
+        "pair": 0.05928168402777778
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1751,
+          "estimate": -0.011357024174515498,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1687,
+          "estimate": 0.0352914395155257,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1496,
+          "estimate": 0.07340974518975384,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1751,
+          "estimate": -0.011053452045514178,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1687,
+          "estimate": 0.03213104085562386,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1496,
+          "estimate": 0.06734074589422531,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1751,
+          "estimate": -0.009872979738406434,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1687,
+          "estimate": 0.023741786654315467,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1496,
+          "estimate": 0.057067929872008094,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1751,
+          "estimate": -1.4347328485187374e-18
+        },
+        "2": {
+          "blocks": 1687,
+          "estimate": 0.26710126799750444
+        },
+        "4": {
+          "blocks": 1496,
+          "estimate": 0.6220302969325957
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level1",
+      "raw": {
+        "binding": 0.09445963541666666,
+        "feasible": 0.09385416666666667,
+        "pair": 0.06362110328907204
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 176,
+          "estimate": 0.2131958797107527,
+          "seeds": 2
+        },
+        "binding/2": {
+          "blocks": 176,
+          "estimate": 0.2525456879449968,
+          "seeds": 2
+        },
+        "binding/4": {
+          "blocks": 176,
+          "estimate": 0.27603984434550466,
+          "seeds": 2
+        },
+        "feasible/1": {
+          "blocks": 176,
+          "estimate": 0.2131958797107527,
+          "seeds": 2
+        },
+        "feasible/2": {
+          "blocks": 176,
+          "estimate": 0.2525456879449968,
+          "seeds": 2
+        },
+        "feasible/4": {
+          "blocks": 176,
+          "estimate": 0.27603984434550466,
+          "seeds": 2
+        },
+        "pair/1": {
+          "blocks": 176,
+          "estimate": 0.34799241029566935,
+          "seeds": 2
+        },
+        "pair/2": {
+          "blocks": 176,
+          "estimate": 0.4056945001596094,
+          "seeds": 2
+        },
+        "pair/4": {
+          "blocks": 176,
+          "estimate": 0.4386647665175656,
+          "seeds": 2
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 176,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 176,
+          "estimate": 0.1834415584415584
+        },
+        "4": {
+          "blocks": 176,
+          "estimate": 0.3326298701298701
+        }
+      },
+      "domain": "python_factors",
+      "level": "level1",
+      "raw": {
+        "binding": 0.5197350147625127,
+        "feasible": 0.5197350147625127,
+        "pair": 0.45741278511914274
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 912,
+          "estimate": 0.1332675914985499,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 912,
+          "estimate": 0.16677804400960058,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 912,
+          "estimate": 0.18142207633007662,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 912,
+          "estimate": 0.1332675914985499,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 912,
+          "estimate": 0.16677804400960058,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 912,
+          "estimate": 0.18142207633007662,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 912,
+          "estimate": 0.21739006350173168,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 912,
+          "estimate": 0.2664578082384547,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 912,
+          "estimate": 0.28552064529597054,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 912,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 912,
+          "estimate": 0.1574901795735129
+        },
+        "4": {
+          "blocks": 912,
+          "estimate": 0.29734327400994065
+        }
+      },
+      "domain": "python_factors",
+      "level": "level1",
+      "raw": {
+        "binding": 0.2604449391821199,
+        "feasible": 0.2604449391821199,
+        "pair": 0.2421213253085272
+      },
+      "scale": "qwen3b",
+      "seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 113,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 83,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "binding/4": {
+          "blocks": 49,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "feasible/1": {
+          "blocks": 113,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 83,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "feasible/4": {
+          "blocks": 49,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "pair/1": {
+          "blocks": 23,
+          "estimate": 0.0,
+          "seeds": 3
+        },
+        "pair/2": {
+          "blocks": 20,
+          "estimate": 0.0,
+          "seeds": 3
+        },
+        "pair/4": {
+          "blocks": 12,
+          "estimate": 0.0,
+          "seeds": 2
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 113,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 83,
+          "estimate": 0.17916666666666667
+        },
+        "4": {
+          "blocks": 49,
+          "estimate": 0.44999999999999996
+        }
+      },
+      "domain": "countdown",
+      "level": "level2",
+      "raw": {
+        "binding": 0.01842818428184282,
+        "feasible": 0.018815104166666666,
+        "pair": 0.011538461538461539
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 101,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "binding/2": {
+          "blocks": 70,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "binding/4": {
+          "blocks": 56,
+          "estimate": 0.0,
+          "seeds": 3
+        },
+        "feasible/1": {
+          "blocks": 101,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "feasible/2": {
+          "blocks": 70,
+          "estimate": 0.0,
+          "seeds": 4
+        },
+        "feasible/4": {
+          "blocks": 56,
+          "estimate": 0.0,
+          "seeds": 3
+        },
+        "pair/1": {
+          "blocks": 16,
+          "estimate": 0.0,
+          "seeds": 2
+        },
+        "pair/2": {
+          "blocks": 12,
+          "estimate": 0.0,
+          "seeds": 1
+        },
+        "pair/4": {
+          "blocks": 12,
+          "estimate": 0.0,
+          "seeds": 1
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 101,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 70,
+          "estimate": 0.02905844155844155
+        },
+        "4": {
+          "blocks": 56,
+          "estimate": 0.12261904761904763
+        }
+      },
+      "domain": "countdown",
+      "level": "level2",
+      "raw": {
+        "binding": 0.01483739837398374,
+        "feasible": 0.0240234375,
+        "pair": 0.02403846153846154
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 416,
+          "estimate": 3.1515266381485926e-18,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 239,
+          "estimate": 0.1777544959418711,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 38,
+          "estimate": 0.27598589637875354,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 416,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 239,
+          "estimate": 0.14125621820480197,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 38,
+          "estimate": 0.23465769944341375,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 416,
+          "estimate": 9.383172148465828e-18,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 239,
+          "estimate": 0.16706828957054876,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 38,
+          "estimate": 0.35979189495066816,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 416,
+          "estimate": -6.038509069445296e-19
+        },
+        "2": {
+          "blocks": 239,
+          "estimate": 0.6373354608126776
+        },
+        "4": {
+          "blocks": 38,
+          "estimate": 1.688825396825397
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level2",
+      "raw": {
+        "binding": 0.4313992886453824,
+        "feasible": 0.47435487689393935,
+        "pair": 0.3036046483331357
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 943,
+          "estimate": 1.0981130564794175e-18,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 600,
+          "estimate": 0.1323010616152632,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 142,
+          "estimate": 0.25131416214565483,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 943,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 600,
+          "estimate": 0.09713744889987361,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 142,
+          "estimate": 0.18748160177150688,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 943,
+          "estimate": 7.721750180882955e-18,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 600,
+          "estimate": 0.11792212817116657,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 142,
+          "estimate": 0.25427121809870445,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 943,
+          "estimate": -1.5853629817107591e-18
+        },
+        "2": {
+          "blocks": 600,
+          "estimate": 0.4309644101624907
+        },
+        "4": {
+          "blocks": 142,
+          "estimate": 1.0002303130672414
+        }
+      },
+      "domain": "graph_coloring",
+      "level": "level2",
+      "raw": {
+        "binding": 0.2650624549062049,
+        "feasible": 0.2807327178030303,
+        "pair": 0.19516355486667503
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 1280,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1257,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1219,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1280,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1257,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1219,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1280,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1257,
+          "estimate": 0.0,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1219,
+          "estimate": 0.0,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1280,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 1257,
+          "estimate": 0.0
+        },
+        "4": {
+          "blocks": 1219,
+          "estimate": 0.0
+        }
+      },
+      "domain": "mathir",
+      "level": "level2",
+      "raw": {
+        "binding": 0.36943359375,
+        "feasible": 0.39406250000000004,
+        "pair": 0.36943359375
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 1901,
+          "estimate": -0.0002886836027713626,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 1873,
+          "estimate": 7.510013351134846e-05,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 1845,
+          "estimate": 0.00039625850340136066,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 1901,
+          "estimate": -0.00023094688221709015,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 1873,
+          "estimate": 6.008010680907866e-05,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 1845,
+          "estimate": 0.0003170068027210884,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 1901,
+          "estimate": -0.0005773672055427252,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 1873,
+          "estimate": -9.457053849577217e-05,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 1845,
+          "estimate": 0.0003571428571428572,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 1901,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 1873,
+          "estimate": 0.0009790832220738766
+        },
+        "4": {
+          "blocks": 1845,
+          "estimate": 0.001741496598639456
+        }
+      },
+      "domain": "mathir",
+      "level": "level2",
+      "raw": {
+        "binding": 0.13017578125,
+        "feasible": 0.13875,
+        "pair": 0.13017578125
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 249,
+          "estimate": 0.2035233011369224,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 57,
+          "estimate": 0.06445628335509286,
+          "seeds": 3
+        },
+        "binding/4": {
+          "blocks": 5,
+          "estimate": 0.14095238095238097,
+          "seeds": 1
+        },
+        "feasible/1": {
+          "blocks": 249,
+          "estimate": 0.18721093195711136,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 57,
+          "estimate": 0.06538731991112941,
+          "seeds": 3
+        },
+        "feasible/4": {
+          "blocks": 5,
+          "estimate": 0.08285714285714285,
+          "seeds": 1
+        },
+        "pair/1": {
+          "blocks": 249,
+          "estimate": 0.2035446775935148,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 57,
+          "estimate": 0.1788535491341614,
+          "seeds": 3
+        },
+        "pair/4": {
+          "blocks": 5,
+          "estimate": 0.06714285714285714,
+          "seeds": 1
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 249,
+          "estimate": -6.00120553851436e-19
+        },
+        "2": {
+          "blocks": 57,
+          "estimate": -0.5062607366178794
+        },
+        "4": {
+          "blocks": 5,
+          "estimate": 0.09714285714285734
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level2",
+      "raw": {
+        "binding": 0.24204427083333332,
+        "feasible": 0.2523567708333333,
+        "pair": 0.16658800509386446
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 304,
+          "estimate": 0.20581316574657307,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 99,
+          "estimate": 0.04885899979649978,
+          "seeds": 4
+        },
+        "binding/4": {
+          "blocks": 23,
+          "estimate": 0.05710144927536234,
+          "seeds": 1
+        },
+        "feasible/1": {
+          "blocks": 304,
+          "estimate": 0.18679905284011833,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 99,
+          "estimate": 0.045488400488400485,
+          "seeds": 4
+        },
+        "feasible/4": {
+          "blocks": 23,
+          "estimate": 0.05165631469979299,
+          "seeds": 1
+        },
+        "pair/1": {
+          "blocks": 304,
+          "estimate": 0.20034338930922094,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 99,
+          "estimate": 0.10959153763412008,
+          "seeds": 4
+        },
+        "pair/4": {
+          "blocks": 23,
+          "estimate": 0.06574484866410334,
+          "seeds": 1
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 304,
+          "estimate": -1.4852129646313765e-18
+        },
+        "2": {
+          "blocks": 99,
+          "estimate": -0.3808038258038258
+        },
+        "4": {
+          "blocks": 23,
+          "estimate": 0.2749482401656315
+        }
+      },
+      "domain": "pantry_plan",
+      "level": "level2",
+      "raw": {
+        "binding": 0.20257161458333334,
+        "feasible": 0.20755859375000002,
+        "pair": 0.14568922180250304
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 2080,
+          "estimate": -0.03940395753024132,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 2080,
+          "estimate": 0.009015346784475759,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 2080,
+          "estimate": 0.05109751784273301,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 2080,
+          "estimate": -0.03940395753024132,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 2080,
+          "estimate": 0.009015346784475759,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 2080,
+          "estimate": 0.05109751784273301,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 2080,
+          "estimate": -0.0626434007540188,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 2080,
+          "estimate": -0.000978651740337487,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 2080,
+          "estimate": 0.05428145917159812,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 2080,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 2080,
+          "estimate": 0.19690934065934065
+        },
+        "4": {
+          "blocks": 2080,
+          "estimate": 0.34791208791208794
+        }
+      },
+      "domain": "python_factors",
+      "level": "level2",
+      "raw": {
+        "binding": 0.10810325083520711,
+        "feasible": 0.10810325083520711,
+        "pair": 0.10094316956622555
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 2080,
+          "estimate": -0.022087118811915638,
+          "seeds": 5
+        },
+        "binding/2": {
+          "blocks": 2080,
+          "estimate": 0.0010604059438523673,
+          "seeds": 5
+        },
+        "binding/4": {
+          "blocks": 2080,
+          "estimate": 0.02331524559643606,
+          "seeds": 5
+        },
+        "feasible/1": {
+          "blocks": 2080,
+          "estimate": -0.022087118811915638,
+          "seeds": 5
+        },
+        "feasible/2": {
+          "blocks": 2080,
+          "estimate": 0.0010604059438523673,
+          "seeds": 5
+        },
+        "feasible/4": {
+          "blocks": 2080,
+          "estimate": 0.02331524559643606,
+          "seeds": 5
+        },
+        "pair/1": {
+          "blocks": 2080,
+          "estimate": -0.035079395779524215,
+          "seeds": 5
+        },
+        "pair/2": {
+          "blocks": 2080,
+          "estimate": -0.005415704355609108,
+          "seeds": 5
+        },
+        "pair/4": {
+          "blocks": 2080,
+          "estimate": 0.02436062696920613,
+          "seeds": 5
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 2080,
+          "estimate": 0.0
+        },
+        "2": {
+          "blocks": 2080,
+          "estimate": 0.09655448717948718
+        },
+        "4": {
+          "blocks": 2080,
+          "estimate": 0.175521978021978
+        }
+      },
+      "domain": "python_factors",
+      "level": "level2",
+      "raw": {
+        "binding": 0.05435814455635953,
+        "feasible": 0.05435814455635953,
+        "pair": 0.051260285756990244
+      },
+      "scale": "qwen05b",
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    }
+  ],
+  "endpoint_parity": {
+    "cells": 474,
+    "curve_cells": 474,
+    "differing": 0,
+    "unregistered": 0
+  },
+  "headline": {
+    "broad_budget_range": {
+      "1": {
+        "max": 0.03506928672369849,
+        "min": -0.023988956982562096
+      },
+      "2": {
+        "max": 0.10505663556401881,
+        "min": -0.0125007276065104
+      },
+      "4": {
+        "max": 0.19647806177186364,
+        "min": 0.000977703472313885
+      }
+    },
+    "broad_domains": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "pantry_plan"
+    ],
+    "cells/binding/1": {
+      "cells": 40,
+      "mean": 0.01496192271226121,
+      "positive": 18
+    },
+    "cells/binding/2": {
+      "cells": 39,
+      "mean": 0.052771859697466214,
+      "positive": 29
+    },
+    "cells/binding/4": {
+      "cells": 39,
+      "mean": 0.08262898973264791,
+      "positive": 28
+    },
+    "cells/binding/raw": {
+      "cells": 40,
+      "mean": 0.20768010190187383,
+      "positive": 39
+    },
+    "cells/feasible/1": {
+      "cells": 40,
+      "mean": 0.013536632258982653,
+      "positive": 12
+    },
+    "cells/feasible/2": {
+      "cells": 39,
+      "mean": 0.0443825986390057,
+      "positive": 29
+    },
+    "cells/feasible/4": {
+      "cells": 39,
+      "mean": 0.06764884867475626,
+      "positive": 28
+    },
+    "cells/feasible/raw": {
+      "cells": 40,
+      "mean": 0.22610472917910665,
+      "positive": 39
+    },
+    "cells/pair/1": {
+      "cells": 40,
+      "mean": 0.014079112180208075,
+      "positive": 14
+    },
+    "cells/pair/2": {
+      "cells": 39,
+      "mean": 0.0576728889158537,
+      "positive": 23
+    },
+    "cells/pair/4": {
+      "cells": 39,
+      "mean": 0.08846847115892056,
+      "positive": 25
+    },
+    "cells/pair/raw": {
+      "cells": 40,
+      "mean": 0.16200010287701955,
+      "positive": 34
+    },
+    "domains": 5,
+    "per_domain": {
+      "countdown": {
+        "1": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 2516,
+            "ci95": [
+              0.018757400976596283,
+              0.05299665178571429
+            ],
+            "estimate": 0.03506928672369849,
+            "prompts": 191
+          },
+          "max": 0.03506928672369849,
+          "min": -0.023988956982562096
+        },
+        "2": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 2323,
+            "ci95": [
+              0.042706605440250296,
+              0.08937464957562402
+            ],
+            "estimate": 0.06517827248563367,
+            "prompts": 182
+          },
+          "max": 0.06517827248563367,
+          "min": -0.0125007276065104
+        },
+        "4": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 2024,
+            "ci95": [
+              0.06813514483006008,
+              0.12631913588558263
+            ],
+            "estimate": 0.09577686805947674,
+            "prompts": 159
+          },
+          "max": 0.09577686805947674,
+          "min": 0.000977703472313885
+        },
+        "distinct4": {
+          "blocks": 2846,
+          "ci95": [
+            0.5476840403271828,
+            0.7028479979097263
+          ],
+          "estimate": 0.6256868453635845,
+          "prompts": 209
+        }
+      },
+      "graph_coloring": {
+        "1": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 4081,
+            "ci95": [
+              5.488003087618173e-20,
+              1.884728742069231e-18
+            ],
+            "estimate": 1.0065731906672578e-18,
+            "prompts": 353
+          },
+          "max": 1.0065731906672578e-18,
+          "min": 5.906365645009439e-19
+        },
+        "2": {
+          "arms_positive_ci": 2,
+          "best": {
+            "blocks": 2704,
+            "ci95": [
+              0.08762507992701123,
+              0.12314937573284072
+            ],
+            "estimate": 0.10505663556401881,
+            "prompts": 284
+          },
+          "max": 0.10505663556401881,
+          "min": 0.06616820431108451
+        },
+        "4": {
+          "arms_positive_ci": 2,
+          "best": {
+            "blocks": 998,
+            "ci95": [
+              0.15606064956482396,
+              0.2382442106376229
+            ],
+            "estimate": 0.19647806177186364,
+            "prompts": 139
+          },
+          "max": 0.19647806177186364,
+          "min": 0.10989322587645495
+        },
+        "distinct4": {
+          "blocks": 998,
+          "ci95": [
+            1.0920493617822995,
+            1.4891069526852276
+          ],
+          "estimate": 1.290137417692528,
+          "prompts": 139
+        }
+      },
+      "mathir": {
+        "1": {
+          "arms_positive_ci": 0,
+          "best": {
+            "blocks": 3345,
+            "ci95": [
+              0.0,
+              0.0004652605459057072
+            ],
+            "estimate": 0.00014947683109118088,
+            "prompts": 303
+          },
+          "max": 0.00014947683109118088,
+          "min": 2.714440825190011e-05
+        },
+        "2": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 3081,
+            "ci95": [
+              0.00031396904073484,
+              0.0022790741573532765
+            ],
+            "estimate": 0.0012106974132290592,
+            "prompts": 283
+          },
+          "max": 0.0012106974132290592,
+          "min": 0.00032928661106627216
+        },
+        "4": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 2730,
+            "ci95": [
+              4.342340756388808e-05,
+              0.003006943305450769
+            ],
+            "estimate": 0.0013663585092156525,
+            "prompts": 261
+          },
+          "max": 0.0013663585092156525,
+          "min": 0.0008515002767150318
+        },
+        "distinct4": {
+          "blocks": 2730,
+          "ci95": [
+            0.0001302702226916645,
+            0.009020829916352306
+          ],
+          "estimate": 0.004099075527646956,
+          "prompts": 261
+        }
+      },
+      "pantry_plan": {
+        "1": {
+          "arms_positive_ci": 0,
+          "best": {
+            "blocks": 4973,
+            "ci95": [
+              -0.010417997507413564,
+              -0.0021192693912028197
+            ],
+            "estimate": -0.006440943794905185,
+            "prompts": 326
+          },
+          "max": -0.006440943794905185,
+          "min": -0.011146109558278982
+        },
+        "2": {
+          "arms_positive_ci": 2,
+          "best": {
+            "blocks": 4341,
+            "ci95": [
+              0.03815661722856474,
+              0.04872408280226589
+            ],
+            "estimate": 0.04357613635948122,
+            "prompts": 272
+          },
+          "max": 0.04357613635948122,
+          "min": 0.03120813360608189
+        },
+        "4": {
+          "arms_positive_ci": 2,
+          "best": {
+            "blocks": 3894,
+            "ci95": [
+              0.08899830383390621,
+              0.10654758911359365
+            ],
+            "estimate": 0.09782487913843846,
+            "prompts": 244
+          },
+          "max": 0.09782487913843846,
+          "min": 0.06607630636974444
+        },
+        "distinct4": {
+          "blocks": 3894,
+          "ci95": [
+            0.7491416282642089,
+            0.871492271820389
+          ],
+          "estimate": 0.8102489788930466,
+          "prompts": 244
+        }
+      },
+      "python_factors": {
+        "1": {
+          "arms_positive_ci": 1,
+          "best": {
+            "blocks": 5468,
+            "ci95": [
+              0.008655239734833243,
+              0.022438255843804832
+            ],
+            "estimate": 0.015325495776562932,
+            "prompts": 335
+          },
+          "max": 0.015325495776562932,
+          "min": -0.0022257064099597697
+        },
+        "2": {
+          "arms_positive_ci": 2,
+          "best": {
+            "blocks": 2696,
+            "ci95": [
+              0.03173407859553726,
+              0.05078011795240714
+            ],
+            "estimate": 0.040904438027585546,
+            "prompts": 148
+          },
+          "max": 0.040904438027585546,
+          "min": 0.03847462269606323
+        },
+        "4": {
+          "arms_positive_ci": 2,
+          "best": {
+            "blocks": 2692,
+            "ci95": [
+              0.06816998513681986,
+              0.08577432783737658
+            ],
+            "estimate": 0.07672262475950781,
+            "prompts": 148
+          },
+          "max": 0.07672262475950781,
+          "min": 0.05679490396167802
+        },
+        "distinct4": {
+          "blocks": 2692,
+          "ci95": [
+            0.3016528486394558,
+            0.3312846481876333
+          ],
+          "estimate": 0.31660475482912337,
+          "prompts": 148
+        }
+      }
+    },
+    "pooled_domains_positive_ci_budget4": [
+      "countdown",
+      "graph_coloring",
+      "mathir",
+      "pantry_plan",
+      "python_factors"
+    ],
+    "pooled_positive_ci_budget4": 8
+  },
+  "inventory": {
+    "level1|countdown": {
+      "binding": 147,
+      "binding_pairs": 21,
+      "feasible": 393,
+      "mean_pair_surviving_fraction": 0.44019274376417233,
+      "mean_support": 4.5234375,
+      "mean_surviving_fraction": 0.47739714933592486,
+      "options": 512,
+      "pairs": 53,
+      "prompts": 128
+    },
+    "level1|graph_coloring": {
+      "binding": 818,
+      "binding_pairs": 1957,
+      "feasible": 1123,
+      "mean_pair_surviving_fraction": 0.33520694941236584,
+      "mean_support": 6.265625,
+      "mean_surviving_fraction": 0.5660146699266504,
+      "options": 1152,
+      "pairs": 2294,
+      "prompts": 128
+    },
+    "level1|mathir": {
+      "binding": 448,
+      "binding_pairs": 384,
+      "feasible": 640,
+      "mean_pair_surviving_fraction": 0.23333333333333336,
+      "mean_support": 5.0,
+      "mean_surviving_fraction": 0.39999999999999997,
+      "options": 768,
+      "pairs": 576,
+      "prompts": 128
+    },
+    "level1|pantry_plan": {
+      "binding": 651,
+      "binding_pairs": 1231,
+      "feasible": 734,
+      "mean_pair_surviving_fraction": 0.17904951661190702,
+      "mean_support": 18.1875,
+      "mean_surviving_fraction": 0.441472151697341,
+      "options": 768,
+      "pairs": 1358,
+      "prompts": 128
+    },
+    "level1|python_factors": {
+      "binding": 1433,
+      "binding_pairs": 7716,
+      "feasible": 1433,
+      "mean_pair_surviving_fraction": 0.5009622788728705,
+      "mean_support": 229.4375,
+      "mean_surviving_fraction": 0.6795132692818928,
+      "options": 1433,
+      "pairs": 7964,
+      "prompts": 128
+    },
+    "level2|countdown": {
+      "binding": 185,
+      "binding_pairs": 40,
+      "feasible": 290,
+      "mean_pair_surviving_fraction": 0.3738690476190476,
+      "mean_support": 4.3671875,
+      "mean_surviving_fraction": 0.48637709137709134,
+      "options": 512,
+      "pairs": 95,
+      "prompts": 128
+    },
+    "level2|graph_coloring": {
+      "binding": 1068,
+      "binding_pairs": 3457,
+      "feasible": 1487,
+      "mean_pair_surviving_fraction": 0.353485681226497,
+      "mean_support": 6.0859375,
+      "mean_surviving_fraction": 0.5664794007490637,
+      "options": 1536,
+      "pairs": 4106,
+      "prompts": 128
+    },
+    "level2|mathir": {
+      "binding": 512,
+      "binding_pairs": 512,
+      "feasible": 640,
+      "mean_pair_surviving_fraction": 0.25,
+      "mean_support": 5.0,
+      "mean_surviving_fraction": 0.45,
+      "options": 768,
+      "pairs": 768,
+      "prompts": 128
+    },
+    "level2|pantry_plan": {
+      "binding": 653,
+      "binding_pairs": 1228,
+      "feasible": 731,
+      "mean_pair_surviving_fraction": 0.18768840821777805,
+      "mean_support": 18.1875,
+      "mean_surviving_fraction": 0.44597133650676085,
+      "options": 768,
+      "pairs": 1368,
+      "prompts": 128
+    },
+    "level2|python_factors": {
+      "binding": 1647,
+      "binding_pairs": 10381,
+      "feasible": 1647,
+      "mean_pair_surviving_fraction": 0.5452194940078001,
+      "mean_support": 251.6875,
+      "mean_surviving_fraction": 0.7136903958777062,
+      "options": 1647,
+      "pairs": 10631,
+      "prompts": 128
+    }
+  },
+  "macros": {
+    "PWBindingOptions": "8{,}308",
+    "PWBindingPairs": "26{,}927",
+    "PWBroadDomains": "4",
+    "PWBroadDomainsWord": "four",
+    "PWBudgetFourCells": "39",
+    "PWBudgetFourMax": "19.6",
+    "PWBudgetFourPositive": "28",
+    "PWBudgetOnePositive": "18",
+    "PWBudgetTwoPositive": "29",
+    "PWCells": "40",
+    "PWCohortCells": "474",
+    "PWCtrlGapMax": "37.0",
+    "PWCtrlGapMin": "1.4",
+    "PWCtrlSettings": "11",
+    "PWCtrlSpanMax": "3.6",
+    "PWDomains": "5",
+    "PWDomainsWord": "five",
+    "PWFeasibleOptions": "9{,}118",
+    "PWOptions": "9{,}864",
+    "PWPairCells": "39",
+    "PWPairPositive": "25",
+    "PWPairs": "29{,}213",
+    "PWPmdCells": "38",
+    "PWPmdPearson": ".57",
+    "PWPromptRows": "1{,}280",
+    "PWRawPositive": "39",
+    "PWRecCallsMax": "5.37",
+    "PWRecCallsMin": "0.55",
+    "PWRecCells": "20",
+    "PWRecWithdrawals": "533"
+  },
+  "pmd_agreement": {
+    "correlation": {
+      "n": 38,
+      "pearson": 0.5746005864043658,
+      "spearman": 0.5738857643994558
+    },
+    "points": [
+      {
+        "arm": "Re:Dr",
+        "domain": "countdown",
+        "level": "level1",
+        "pmd_gain": 0.03229262460767264,
+        "scale": "falcon1b",
+        "survival_gain_budget4": 0.012222222222222223
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "countdown",
+        "level": "level1",
+        "pmd_gain": 0.05690167811274678,
+        "scale": "falcon1b",
+        "survival_gain_budget4": 0.0
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "graph_coloring",
+        "level": "level1",
+        "pmd_gain": 0.22425095288600522,
+        "scale": "falcon1b",
+        "survival_gain_budget4": 0.038990091479830284
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "graph_coloring",
+        "level": "level1",
+        "pmd_gain": -0.008847068711760497,
+        "scale": "falcon1b",
+        "survival_gain_budget4": -0.014518782420114552
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "mathir",
+        "level": "level1",
+        "pmd_gain": 0.022123210123210123,
+        "scale": "falcon1b",
+        "survival_gain_budget4": -0.0075757575757575794
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "mathir",
+        "level": "level1",
+        "pmd_gain": 0.009790256374284679,
+        "scale": "falcon1b",
+        "survival_gain_budget4": 0.0
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "pantry_plan",
+        "level": "level1",
+        "pmd_gain": 0.31720154460349426,
+        "scale": "falcon1b",
+        "survival_gain_budget4": 0.12392432182536331
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "pantry_plan",
+        "level": "level1",
+        "pmd_gain": 0.10397809900379067,
+        "scale": "falcon1b",
+        "survival_gain_budget4": 0.03387566137566137
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "python_factors",
+        "level": "level1",
+        "pmd_gain": 0.08114361022573208,
+        "scale": "falcon1b",
+        "survival_gain_budget4": -0.005013774340111072
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "countdown",
+        "level": "level1",
+        "pmd_gain": 0.48029289658054247,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.14751730989804507
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "countdown",
+        "level": "level1",
+        "pmd_gain": 0.4888375719621763,
+        "scale": "qwen05b",
+        "survival_gain_budget4": -0.0037068361807095856
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "graph_coloring",
+        "level": "level1",
+        "pmd_gain": 0.5587438240891245,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.3617618622154044
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "graph_coloring",
+        "level": "level1",
+        "pmd_gain": 0.43944944595794294,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.2657580511083954
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "mathir",
+        "level": "level1",
+        "pmd_gain": 0.01695636167310551,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.0039613763774559475
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "mathir",
+        "level": "level1",
+        "pmd_gain": 0.005796363058247064,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.002369351552199449
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "pantry_plan",
+        "level": "level1",
+        "pmd_gain": 0.3337722535273154,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.09294205710887009
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "pantry_plan",
+        "level": "level1",
+        "pmd_gain": 0.3174006329255384,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.10304265803209303
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "python_factors",
+        "level": "level1",
+        "pmd_gain": 0.0822045755597403,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.11743512757932162
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "python_factors",
+        "level": "level1",
+        "pmd_gain": 0.2493095484970666,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.24408133191293047
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "countdown",
+        "level": "level1",
+        "pmd_gain": 0.10018456365025967,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.056215560471058544
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "countdown",
+        "level": "level1",
+        "pmd_gain": 0.07723844945050075,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.0653288596955339
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "graph_coloring",
+        "level": "level1",
+        "pmd_gain": 0.1756600224726364,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.11856032659106788
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "graph_coloring",
+        "level": "level1",
+        "pmd_gain": 0.07612355872310253,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.056329074347240514
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "mathir",
+        "level": "level1",
+        "pmd_gain": 0.012612800231571058,
+        "scale": "qwen3b",
+        "survival_gain_budget4": -0.0009390048154093095
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "mathir",
+        "level": "level1",
+        "pmd_gain": 0.006295521293857685,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.0
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "pantry_plan",
+        "level": "level1",
+        "pmd_gain": 0.2467281659694128,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.0789349345526201
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "pantry_plan",
+        "level": "level1",
+        "pmd_gain": 0.2239247231100207,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.07340974518975384
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "python_factors",
+        "level": "level1",
+        "pmd_gain": 0.046022500995619275,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.27603984434550466
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "python_factors",
+        "level": "level1",
+        "pmd_gain": 0.05792568460575109,
+        "scale": "qwen3b",
+        "survival_gain_budget4": 0.18142207633007662
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "countdown",
+        "level": "level2",
+        "pmd_gain": 0.09229054591067176,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.0
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "graph_coloring",
+        "level": "level2",
+        "pmd_gain": 0.3140189843427474,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.27598589637875354
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "graph_coloring",
+        "level": "level2",
+        "pmd_gain": 0.21239072277720733,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.25131416214565483
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "mathir",
+        "level": "level2",
+        "pmd_gain": 0.0,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.0
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "mathir",
+        "level": "level2",
+        "pmd_gain": 0.0007620073891625615,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.00039625850340136066
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "pantry_plan",
+        "level": "level2",
+        "pmd_gain": 0.02050397206913523,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.14095238095238097
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "pantry_plan",
+        "level": "level2",
+        "pmd_gain": 0.07057134593585263,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.05710144927536234
+      },
+      {
+        "arm": "Re:Dr",
+        "domain": "python_factors",
+        "level": "level2",
+        "pmd_gain": 0.1810483870967742,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.05109751784273301
+      },
+      {
+        "arm": "Re:Max",
+        "domain": "python_factors",
+        "level": "level2",
+        "pmd_gain": 0.08831870038975156,
+        "scale": "qwen05b",
+        "survival_gain_budget4": 0.02331524559643606
+      }
+    ]
+  },
+  "pooled": [
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 4081,
+          "ci95": [
+            5.488003087618173e-20,
+            1.884728742069231e-18
+          ],
+          "estimate": 1.0065731906672578e-18,
+          "prompts": 353
+        },
+        "binding/2": {
+          "blocks": 2704,
+          "ci95": [
+            0.08762507992701123,
+            0.12314937573284072
+          ],
+          "estimate": 0.10505663556401881,
+          "prompts": 284
+        },
+        "binding/4": {
+          "blocks": 998,
+          "ci95": [
+            0.15606064956482396,
+            0.2382442106376229
+          ],
+          "estimate": 0.19647806177186364,
+          "prompts": 139
+        },
+        "feasible/1": {
+          "blocks": 4081,
+          "ci95": [
+            0.0,
+            1.693273550521337e-19
+          ],
+          "estimate": 5.440936165768961e-20,
+          "prompts": 353
+        },
+        "feasible/2": {
+          "blocks": 2704,
+          "ci95": [
+            0.06804964440979769,
+            0.09546736617198101
+          ],
+          "estimate": 0.08149435478161443,
+          "prompts": 284
+        },
+        "feasible/4": {
+          "blocks": 998,
+          "ci95": [
+            0.1236965711041455,
+            0.18989708349464454
+          ],
+          "estimate": 0.15656613853006643,
+          "prompts": 139
+        },
+        "pair/1": {
+          "blocks": 4081,
+          "ci95": [
+            1.7868396319074407e-18,
+            5.1164886665084026e-18
+          ],
+          "estimate": 3.441392124848868e-18,
+          "prompts": 353
+        },
+        "pair/2": {
+          "blocks": 2704,
+          "ci95": [
+            0.08552397419287497,
+            0.11535445865948217
+          ],
+          "estimate": 0.1001516874062535,
+          "prompts": 284
+        },
+        "pair/4": {
+          "blocks": 998,
+          "ci95": [
+            0.19144571637732832,
+            0.2825365823512263
+          ],
+          "estimate": 0.2365106979616715,
+          "prompts": 139
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 4081,
+          "ci95": [
+            -1.1000977468555902e-17,
+            -6.0124381418432486e-18
+          ],
+          "estimate": -8.43345105694189e-18,
+          "prompts": 353
+        },
+        "2": {
+          "blocks": 2704,
+          "ci95": [
+            0.3857685574229692,
+            0.48808523409363747
+          ],
+          "estimate": 0.43616247534516767,
+          "prompts": 284
+        },
+        "4": {
+          "blocks": 998,
+          "ci95": [
+            1.0920493617822995,
+            1.4891069526852276
+          ],
+          "estimate": 1.290137417692528,
+          "prompts": 139
+        }
+      },
+      "domain": "graph_coloring",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.3137394593253968,
+            0.3810027521306818
+          ],
+          "estimate": 0.34778336165787344,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.32550783716066917,
+            0.39673998283617423
+          ],
+          "estimate": 0.361560181897096,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.24468149987355092,
+            0.2965879666830874
+          ],
+          "estimate": 0.270946574009652,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 6391,
+          "ci95": [
+            -3.414494924266205e-19,
+            1.524009259661029e-18
+          ],
+          "estimate": 5.906365645009439e-19,
+          "prompts": 445
+        },
+        "binding/2": {
+          "blocks": 4649,
+          "ci95": [
+            0.05232695987867626,
+            0.07980636793824508
+          ],
+          "estimate": 0.06616820431108451,
+          "prompts": 381
+        },
+        "binding/4": {
+          "blocks": 1644,
+          "ci95": [
+            0.0825366461080747,
+            0.13806524842648532
+          ],
+          "estimate": 0.10989322587645495,
+          "prompts": 201
+        },
+        "feasible/1": {
+          "blocks": 6391,
+          "ci95": [
+            -1.9493141693338743e-19,
+            0.0
+          ],
+          "estimate": -6.948665464716986e-20,
+          "prompts": 445
+        },
+        "feasible/2": {
+          "blocks": 4649,
+          "ci95": [
+            0.03912028725750912,
+            0.05949991770221552
+          ],
+          "estimate": 0.04940153204188481,
+          "prompts": 381
+        },
+        "feasible/4": {
+          "blocks": 1644,
+          "ci95": [
+            0.06239890973224307,
+            0.10447584944143141
+          ],
+          "estimate": 0.08313622407600509,
+          "prompts": 201
+        },
+        "pair/1": {
+          "blocks": 6391,
+          "ci95": [
+            1.1725270447132401e-18,
+            3.9782711949827955e-18
+          ],
+          "estimate": 2.566663306029837e-18,
+          "prompts": 445
+        },
+        "pair/2": {
+          "blocks": 4649,
+          "ci95": [
+            0.047603857697485596,
+            0.070724853609618
+          ],
+          "estimate": 0.05929062299765661,
+          "prompts": 381
+        },
+        "pair/4": {
+          "blocks": 1644,
+          "ci95": [
+            0.09365015187415363,
+            0.15689269684148482
+          ],
+          "estimate": 0.1250747732104589,
+          "prompts": 201
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 6391,
+          "ci95": [
+            -5.016759570303014e-18,
+            -6.650137915472249e-19
+          ],
+          "estimate": -2.8315811768721722e-18,
+          "prompts": 445
+        },
+        "2": {
+          "blocks": 4649,
+          "ci95": [
+            0.1889271609703952,
+            0.272000407000407
+          ],
+          "estimate": 0.23089809380409512,
+          "prompts": 381
+        },
+        "4": {
+          "blocks": 1644,
+          "ci95": [
+            0.49998862149399786,
+            0.7918355671788165
+          ],
+          "estimate": 0.6455219557409339,
+          "prompts": 201
+        }
+      },
+      "domain": "graph_coloring",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.16163850770540225,
+            0.2179672104696519
+          ],
+          "estimate": 0.189753104425956,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.16411487926136364,
+            0.22093020044191922
+          ],
+          "estimate": 0.1924026889993687,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.1271356540367891,
+            0.17248474978866452
+          ],
+          "estimate": 0.14960899477489428,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 2516,
+          "ci95": [
+            0.018757400976596283,
+            0.05299665178571429
+          ],
+          "estimate": 0.03506928672369849,
+          "prompts": 191
+        },
+        "binding/2": {
+          "blocks": 2323,
+          "ci95": [
+            0.042706605440250296,
+            0.08937464957562402
+          ],
+          "estimate": 0.06517827248563367,
+          "prompts": 182
+        },
+        "binding/4": {
+          "blocks": 2024,
+          "ci95": [
+            0.06813514483006008,
+            0.12631913588558263
+          ],
+          "estimate": 0.09577686805947674,
+          "prompts": 159
+        },
+        "feasible/1": {
+          "blocks": 3446,
+          "ci95": [
+            0.0034907203538209917,
+            0.012757163766613944
+          ],
+          "estimate": 0.007943503625090978,
+          "prompts": 242
+        },
+        "feasible/2": {
+          "blocks": 3235,
+          "ci95": [
+            0.011256080993337133,
+            0.02331818750963169
+          ],
+          "estimate": 0.017078948014033028,
+          "prompts": 233
+        },
+        "feasible/4": {
+          "blocks": 2846,
+          "ci95": [
+            0.017709942084942087,
+            0.03327304218188197
+          ],
+          "estimate": 0.02526826846925231,
+          "prompts": 209
+        },
+        "pair/1": {
+          "blocks": 510,
+          "ci95": [
+            -0.03871001354589976,
+            0.03084983993597439
+          ],
+          "estimate": -0.003333333333333331,
+          "prompts": 37
+        },
+        "pair/2": {
+          "blocks": 462,
+          "ci95": [
+            -0.004438642297650129,
+            0.07480519480519482
+          ],
+          "estimate": 0.03289527932385075,
+          "prompts": 35
+        },
+        "pair/4": {
+          "blocks": 413,
+          "ci95": [
+            0.0087038789025544,
+            0.12223106512800105
+          ],
+          "estimate": 0.061143779545716585,
+          "prompts": 31
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 3446,
+          "ci95": [
+            -1.41273192621735e-18,
+            -2.829795304906941e-19
+          ],
+          "estimate": -7.410078225878874e-19,
+          "prompts": 242
+        },
+        "2": {
+          "blocks": 3235,
+          "ci95": [
+            0.25824963083176167,
+            0.330080574912892
+          ],
+          "estimate": 0.29437624199602563,
+          "prompts": 233
+        },
+        "4": {
+          "blocks": 2846,
+          "ci95": [
+            0.5476840403271828,
+            0.7028479979097263
+          ],
+          "estimate": 0.6256868453635845,
+          "prompts": 209
+        }
+      },
+      "domain": "countdown",
+      "raw": {
+        "binding": {
+          "blocks": 8508,
+          "ci95": [
+            0.036672172408368724,
+            0.07002123643227938
+          ],
+          "estimate": 0.053224416235699734,
+          "prompts": 447
+        },
+        "feasible": {
+          "blocks": 9728,
+          "ci95": [
+            0.09661426222770242,
+            0.1369428394552208
+          ],
+          "estimate": 0.11664782072368421,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 1584,
+          "ci95": [
+            -0.028409090909090908,
+            0.03680203045685279
+          ],
+          "estimate": 0.004419191919191919,
+          "prompts": 83
+        }
+      }
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 3753,
+          "ci95": [
+            -0.046166464670159245,
+            -0.002113690012729721
+          ],
+          "estimate": -0.023988956982562096,
+          "prompts": 226
+        },
+        "binding/2": {
+          "blocks": 3545,
+          "ci95": [
+            -0.03700420058733876,
+            0.011413421378608497
+          ],
+          "estimate": -0.0125007276065104,
+          "prompts": 212
+        },
+        "binding/4": {
+          "blocks": 3247,
+          "ci95": [
+            -0.026150251704121198,
+            0.027764359150771696
+          ],
+          "estimate": 0.000977703472313885,
+          "prompts": 197
+        },
+        "feasible/1": {
+          "blocks": 4710,
+          "ci95": [
+            -0.014297161172161175,
+            -0.001972730972730971
+          ],
+          "estimate": -0.007979076096114314,
+          "prompts": 277
+        },
+        "feasible/2": {
+          "blocks": 4489,
+          "ci95": [
+            -0.011049568934446322,
+            0.002097910141388404
+          ],
+          "estimate": -0.004325432185200508,
+          "prompts": 263
+        },
+        "feasible/4": {
+          "blocks": 4166,
+          "ci95": [
+            -0.007932200859118372,
+            0.006691690322286446
+          ],
+          "estimate": -0.0004921739859329887,
+          "prompts": 248
+        },
+        "pair/1": {
+          "blocks": 600,
+          "ci95": [
+            -0.12930501930501928,
+            -0.015264161220043574
+          ],
+          "estimate": -0.06595436507936507,
+          "prompts": 38
+        },
+        "pair/2": {
+          "blocks": 579,
+          "ci95": [
+            -0.12170329670329672,
+            -0.0012454212454212448
+          ],
+          "estimate": -0.05527592729665269,
+          "prompts": 36
+        },
+        "pair/4": {
+          "blocks": 546,
+          "ci95": [
+            -0.11802869619463507,
+            0.007615640173779708
+          ],
+          "estimate": -0.04871794871794872,
+          "prompts": 32
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 4710,
+          "ci95": [
+            -5.845843043221535e-19,
+            -1.180334918801995e-19
+          ],
+          "estimate": -3.300025975531251e-19,
+          "prompts": 277
+        },
+        "2": {
+          "blocks": 4489,
+          "ci95": [
+            0.2023733972283383,
+            0.26831338121840914
+          ],
+          "estimate": 0.23505181979229653,
+          "prompts": 263
+        },
+        "4": {
+          "blocks": 4166,
+          "ci95": [
+            0.41984600183980103,
+            0.5618792537711457
+          ],
+          "estimate": 0.4896257686944197,
+          "prompts": 248
+        }
+      },
+      "domain": "countdown",
+      "raw": {
+        "binding": {
+          "blocks": 8940,
+          "ci95": [
+            0.003262490678598061,
+            0.035682326621923936
+          ],
+          "estimate": 0.019519015659955254,
+          "prompts": 447
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.03843587239583333,
+            0.06813151041666667
+          ],
+          "estimate": 0.05292154947916665,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 1660,
+          "ci95": [
+            -0.04397590361445783,
+            0.014759036144578313
+          ],
+          "estimate": -0.012349397590361445,
+          "prompts": 83
+        }
+      }
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 2697,
+          "ci95": [
+            -0.012532516390425057,
+            0.00910854626028222
+          ],
+          "estimate": -0.0022257064099597697,
+          "prompts": 149
+        },
+        "binding/2": {
+          "blocks": 2696,
+          "ci95": [
+            0.03173407859553726,
+            0.05078011795240714
+          ],
+          "estimate": 0.040904438027585546,
+          "prompts": 148
+        },
+        "binding/4": {
+          "blocks": 2692,
+          "ci95": [
+            0.06816998513681986,
+            0.08577432783737658
+          ],
+          "estimate": 0.07672262475950781,
+          "prompts": 148
+        },
+        "feasible/1": {
+          "blocks": 2697,
+          "ci95": [
+            -0.012532516390425057,
+            0.00910854626028222
+          ],
+          "estimate": -0.0022257064099597697,
+          "prompts": 149
+        },
+        "feasible/2": {
+          "blocks": 2696,
+          "ci95": [
+            0.03173407859553726,
+            0.05078011795240714
+          ],
+          "estimate": 0.040904438027585546,
+          "prompts": 148
+        },
+        "feasible/4": {
+          "blocks": 2692,
+          "ci95": [
+            0.06816998513681986,
+            0.08577432783737658
+          ],
+          "estimate": 0.07672262475950781,
+          "prompts": 148
+        },
+        "pair/1": {
+          "blocks": 2697,
+          "ci95": [
+            -0.01893485901758677,
+            0.015859424946905367
+          ],
+          "estimate": -0.002352184819601153,
+          "prompts": 149
+        },
+        "pair/2": {
+          "blocks": 2696,
+          "ci95": [
+            0.038562898798642706,
+            0.07010412197138649
+          ],
+          "estimate": 0.0536864918624237,
+          "prompts": 148
+        },
+        "pair/4": {
+          "blocks": 2692,
+          "ci95": [
+            0.0877135696372003,
+            0.11549268207509493
+          ],
+          "estimate": 0.10099315169060016,
+          "prompts": 148
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 2697,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "estimate": 0.0,
+          "prompts": 149
+        },
+        "2": {
+          "blocks": 2696,
+          "ci95": [
+            0.16994522772824658,
+            0.18697453016815033
+          ],
+          "estimate": 0.17854935000706512,
+          "prompts": 148
+        },
+        "4": {
+          "blocks": 2692,
+          "ci95": [
+            0.3016528486394558,
+            0.3312846481876333
+          ],
+          "estimate": 0.31660475482912337,
+          "prompts": 148
+        }
+      },
+      "domain": "python_factors",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.36421264071542453,
+            0.4156572159047919
+          ],
+          "estimate": 0.3898572699251569,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.36421264071542453,
+            0.4156572159047919
+          ],
+          "estimate": 0.3898572699251569,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.286628596562019,
+            0.32875421933475185
+          ],
+          "estimate": 0.3077375016365035,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 5468,
+          "ci95": [
+            0.008655239734833243,
+            0.022438255843804832
+          ],
+          "estimate": 0.015325495776562932,
+          "prompts": 335
+        },
+        "binding/2": {
+          "blocks": 5465,
+          "ci95": [
+            0.030415845019738725,
+            0.047199691726184385
+          ],
+          "estimate": 0.03847462269606323,
+          "prompts": 335
+        },
+        "binding/4": {
+          "blocks": 5446,
+          "ci95": [
+            0.047960622931071444,
+            0.06637994708973972
+          ],
+          "estimate": 0.05679490396167802,
+          "prompts": 335
+        },
+        "feasible/1": {
+          "blocks": 5468,
+          "ci95": [
+            0.008655239734833243,
+            0.022438255843804832
+          ],
+          "estimate": 0.015325495776562932,
+          "prompts": 335
+        },
+        "feasible/2": {
+          "blocks": 5465,
+          "ci95": [
+            0.030415845019738725,
+            0.047199691726184385
+          ],
+          "estimate": 0.03847462269606323,
+          "prompts": 335
+        },
+        "feasible/4": {
+          "blocks": 5446,
+          "ci95": [
+            0.047960622931071444,
+            0.06637994708973972
+          ],
+          "estimate": 0.05679490396167802,
+          "prompts": 335
+        },
+        "pair/1": {
+          "blocks": 5468,
+          "ci95": [
+            0.01386457076354004,
+            0.03588125497656515
+          ],
+          "estimate": 0.024484563866917008,
+          "prompts": 335
+        },
+        "pair/2": {
+          "blocks": 5465,
+          "ci95": [
+            0.04368622052512496,
+            0.07016066082176309
+          ],
+          "estimate": 0.05643133859488464,
+          "prompts": 335
+        },
+        "pair/4": {
+          "blocks": 5446,
+          "ci95": [
+            0.0679271743306055,
+            0.09642171246402917
+          ],
+          "estimate": 0.08164686390703373,
+          "prompts": 335
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 5468,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "estimate": 0.0,
+          "prompts": 335
+        },
+        "2": {
+          "blocks": 5465,
+          "ci95": [
+            0.10064112946766009,
+            0.11958220697303668
+          ],
+          "estimate": 0.10996645318694724,
+          "prompts": 335
+        },
+        "4": {
+          "blocks": 5446,
+          "ci95": [
+            0.18076057200489878,
+            0.21546190564097153
+          ],
+          "estimate": 0.19783764405505128,
+          "prompts": 335
+        }
+      },
+      "domain": "python_factors",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.2099819142664235,
+            0.24692419436106547
+          ],
+          "estimate": 0.22842221932882006,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.2099819142664235,
+            0.24692419436106547
+          ],
+          "estimate": 0.22842221932882006,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.18646890508336447,
+            0.21789259990450355
+          ],
+          "estimate": 0.20209315298135935,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 3345,
+          "ci95": [
+            0.0,
+            0.0004652605459057072
+          ],
+          "estimate": 0.00014947683109118088,
+          "prompts": 303
+        },
+        "binding/2": {
+          "blocks": 3081,
+          "ci95": [
+            0.00031396904073484,
+            0.0022790741573532765
+          ],
+          "estimate": 0.0012106974132290592,
+          "prompts": 283
+        },
+        "binding/4": {
+          "blocks": 2730,
+          "ci95": [
+            4.342340756388808e-05,
+            0.003006943305450769
+          ],
+          "estimate": 0.0013663585092156525,
+          "prompts": 261
+        },
+        "feasible/1": {
+          "blocks": 3345,
+          "ci95": [
+            0.0,
+            0.00037220843672456586
+          ],
+          "estimate": 0.00011958146487294474,
+          "prompts": 303
+        },
+        "feasible/2": {
+          "blocks": 3081,
+          "ci95": [
+            0.00018838142444090373,
+            0.0013674444944119638
+          ],
+          "estimate": 0.0007264184479374347,
+          "prompts": 283
+        },
+        "feasible/4": {
+          "blocks": 2730,
+          "ci95": [
+            2.605404453833285e-05,
+            0.0018041659832704606
+          ],
+          "estimate": 0.0008198151055293909,
+          "prompts": 261
+        },
+        "pair/1": {
+          "blocks": 3345,
+          "ci95": [
+            0.0,
+            0.0009305210918114144
+          ],
+          "estimate": 0.00029895366218236175,
+          "prompts": 303
+        },
+        "pair/2": {
+          "blocks": 3081,
+          "ci95": [
+            0.0004709535611022601,
+            0.0034186112360299146
+          ],
+          "estimate": 0.0018160461198435884,
+          "prompts": 283
+        },
+        "pair/4": {
+          "blocks": 2730,
+          "ci95": [
+            6.513511134583225e-05,
+            0.004510414958176153
+          ],
+          "estimate": 0.002049537763823478,
+          "prompts": 261
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 3345,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "estimate": 0.0,
+          "prompts": 303
+        },
+        "2": {
+          "blocks": 3081,
+          "ci95": [
+            0.0009419071222045202,
+            0.006837222472059829
+          ],
+          "estimate": 0.0036320922396871767,
+          "prompts": 283
+        },
+        "4": {
+          "blocks": 2730,
+          "ci95": [
+            0.0001302702226916645,
+            0.009020829916352306
+          ],
+          "estimate": 0.004099075527646956,
+          "prompts": 261
+        }
+      },
+      "domain": "mathir",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.31353352864583334,
+            0.3582682291666666
+          ],
+          "estimate": 0.3361490885416667,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.343984375,
+            0.39283203125000005
+          ],
+          "estimate": 0.3686328125,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.293408203125,
+            0.3363525390625
+          ],
+          "estimate": 0.315087890625,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 4605,
+          "ci95": [
+            -0.00040064102564102563,
+            0.000487012987012987
+          ],
+          "estimate": 2.714440825190011e-05,
+          "prompts": 349
+        },
+        "binding/2": {
+          "blocks": 4248,
+          "ci95": [
+            -0.00032172547808406054,
+            0.001034600100990143
+          ],
+          "estimate": 0.00032928661106627216,
+          "prompts": 334
+        },
+        "binding/4": {
+          "blocks": 3958,
+          "ci95": [
+            -8.362602441879917e-05,
+            0.0020760364657078276
+          ],
+          "estimate": 0.0008515002767150318,
+          "prompts": 308
+        },
+        "feasible/1": {
+          "blocks": 4605,
+          "ci95": [
+            -0.0003205128205128207,
+            0.00038961038961038977
+          ],
+          "estimate": 2.1715526601520082e-05,
+          "prompts": 349
+        },
+        "feasible/2": {
+          "blocks": 4248,
+          "ci95": [
+            -0.00018447639736560812,
+            0.0006286624566194456
+          ],
+          "estimate": 0.00020513855259617956,
+          "prompts": 334
+        },
+        "feasible/4": {
+          "blocks": 3958,
+          "ci95": [
+            -5.005005005005004e-05,
+            0.001320618927671824
+          ],
+          "estimate": 0.0005529488197502345,
+          "prompts": 308
+        },
+        "pair/1": {
+          "blocks": 4605,
+          "ci95": [
+            -0.0008012820512820513,
+            0.000974025974025974
+          ],
+          "estimate": 5.428881650380022e-05,
+          "prompts": 349
+        },
+        "pair/2": {
+          "blocks": 4248,
+          "ci95": [
+            -0.0005885122410546139,
+            0.0014415066210646315
+          ],
+          "estimate": 0.00038953905479329197,
+          "prompts": 334
+        },
+        "pair/4": {
+          "blocks": 3958,
+          "ci95": [
+            -0.00012658227848101267,
+            0.0029195597577190125
+          ],
+          "estimate": 0.0011513751533963762,
+          "prompts": 308
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 4605,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "estimate": 0.0,
+          "prompts": 349
+        },
+        "2": {
+          "blocks": 4248,
+          "ci95": [
+            -0.0007333879110383407,
+            0.0037126041063048933
+          ],
+          "estimate": 0.001367590350641198,
+          "prompts": 334
+        },
+        "4": {
+          "blocks": 3958,
+          "ci95": [
+            -0.00025025025025025025,
+            0.006785806785806785
+          ],
+          "estimate": 0.002847758608243702,
+          "prompts": 308
+        }
+      },
+      "domain": "mathir",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.19530436197916667,
+            0.2379231770833333
+          ],
+          "estimate": 0.2163736979166667,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.21652343750000003,
+            0.26400390625000003
+          ],
+          "estimate": 0.23996093750000003,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.1788330078125,
+            0.2177978515625
+          ],
+          "estimate": 0.1980224609375,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Dr",
+      "budget": {
+        "binding/1": {
+          "blocks": 4651,
+          "ci95": [
+            -0.016496437292865863,
+            -0.005427046610786262
+          ],
+          "estimate": -0.011146109558278982,
+          "prompts": 304
+        },
+        "binding/2": {
+          "blocks": 4341,
+          "ci95": [
+            0.03815661722856474,
+            0.04872408280226589
+          ],
+          "estimate": 0.04357613635948122,
+          "prompts": 272
+        },
+        "binding/4": {
+          "blocks": 3894,
+          "ci95": [
+            0.08899830383390621,
+            0.10654758911359365
+          ],
+          "estimate": 0.09782487913843846,
+          "prompts": 244
+        },
+        "feasible/1": {
+          "blocks": 4651,
+          "ci95": [
+            -0.01603380713987722,
+            -0.005600886024273116
+          ],
+          "estimate": -0.010989939012944814,
+          "prompts": 304
+        },
+        "feasible/2": {
+          "blocks": 4341,
+          "ci95": [
+            0.03586027167277168,
+            0.04561450980392159
+          ],
+          "estimate": 0.040878646936007006,
+          "prompts": 272
+        },
+        "feasible/4": {
+          "blocks": 3894,
+          "ci95": [
+            0.08370467676214803,
+            0.10018312095861162
+          ],
+          "estimate": 0.09198392317036383,
+          "prompts": 244
+        },
+        "pair/1": {
+          "blocks": 4651,
+          "ci95": [
+            -0.013155932357269202,
+            -0.002425070888325264
+          ],
+          "estimate": -0.007995735976296988,
+          "prompts": 304
+        },
+        "pair/2": {
+          "blocks": 4341,
+          "ci95": [
+            0.024389001706890505,
+            0.03233331536891101
+          ],
+          "estimate": 0.028465785281816813,
+          "prompts": 272
+        },
+        "pair/4": {
+          "blocks": 3894,
+          "ci95": [
+            0.06509700546775377,
+            0.07953386308828488
+          ],
+          "estimate": 0.0723166594786853,
+          "prompts": 244
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 4651,
+          "ci95": [
+            -1.0734859498954027e-18,
+            -2.25298922697326e-19
+          ],
+          "estimate": -6.445070235407273e-19,
+          "prompts": 304
+        },
+        "2": {
+          "blocks": 4341,
+          "ci95": [
+            0.3342574300180285,
+            0.3888750112521379
+          ],
+          "estimate": 0.3622563376882658,
+          "prompts": 272
+        },
+        "4": {
+          "blocks": 3894,
+          "ci95": [
+            0.7491416282642089,
+            0.871492271820389
+          ],
+          "estimate": 0.8102489788930466,
+          "prompts": 244
+        }
+      },
+      "domain": "pantry_plan",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.14788899739583333,
+            0.18305338541666666
+          ],
+          "estimate": 0.16551595052083332,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.15299804687500002,
+            0.18985026041666667
+          ],
+          "estimate": 0.171455078125,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.09300617297199329,
+            0.1155215845352564
+          ],
+          "estimate": 0.10417860243055554,
+          "prompts": 512
+        }
+      }
+    },
+    {
+      "arm": "Re:Max",
+      "budget": {
+        "binding/1": {
+          "blocks": 4973,
+          "ci95": [
+            -0.010417997507413564,
+            -0.0021192693912028197
+          ],
+          "estimate": -0.006440943794905185,
+          "prompts": 326
+        },
+        "binding/2": {
+          "blocks": 4679,
+          "ci95": [
+            0.027230181296782348,
+            0.03532422988828122
+          ],
+          "estimate": 0.03120813360608189,
+          "prompts": 295
+        },
+        "binding/4": {
+          "blocks": 4328,
+          "ci95": [
+            0.05834869841269841,
+            0.07385090468155354
+          ],
+          "estimate": 0.06607630636974444,
+          "prompts": 261
+        },
+        "feasible/1": {
+          "blocks": 4973,
+          "ci95": [
+            -0.010525578319182965,
+            -0.00288270611122291
+          ],
+          "estimate": -0.006849950047717989,
+          "prompts": 326
+        },
+        "feasible/2": {
+          "blocks": 4679,
+          "ci95": [
+            0.025444875308067494,
+            0.03293935025868516
+          ],
+          "estimate": 0.02914231775206343,
+          "prompts": 295
+        },
+        "feasible/4": {
+          "blocks": 4328,
+          "ci95": [
+            0.05476471153064917,
+            0.06933607205539162
+          ],
+          "estimate": 0.06204060675410029,
+          "prompts": 261
+        },
+        "pair/1": {
+          "blocks": 4973,
+          "ci95": [
+            -0.008547035477999329,
+            -0.0006683714962179262
+          ],
+          "estimate": -0.0047816408866615655,
+          "prompts": 326
+        },
+        "pair/2": {
+          "blocks": 4679,
+          "ci95": [
+            0.01731651110041805,
+            0.02320882560297625
+          ],
+          "estimate": 0.020251189307802446,
+          "prompts": 295
+        },
+        "pair/4": {
+          "blocks": 4328,
+          "ci95": [
+            0.04345647718389092,
+            0.05566722991855083
+          ],
+          "estimate": 0.04944530254950773,
+          "prompts": 261
+        }
+      },
+      "distinct": {
+        "1": {
+          "blocks": 4973,
+          "ci95": [
+            -1.6215970941860958e-18,
+            -5.926457426824679e-19
+          ],
+          "estimate": -1.0716007476776094e-18,
+          "prompts": 326
+        },
+        "2": {
+          "blocks": 4679,
+          "ci95": [
+            0.21824058376213282,
+            0.2678842905405405
+          ],
+          "estimate": 0.24272076858099512,
+          "prompts": 295
+        },
+        "4": {
+          "blocks": 4328,
+          "ci95": [
+            0.48796420731980467,
+            0.6076689140084304
+          ],
+          "estimate": 0.547346184314761,
+          "prompts": 261
+        }
+      },
+      "domain": "pantry_plan",
+      "raw": {
+        "binding": {
+          "blocks": 10240,
+          "ci95": [
+            0.11652180989583334,
+            0.14459309895833333
+          ],
+          "estimate": 0.13038899739583334,
+          "prompts": 512
+        },
+        "feasible": {
+          "blocks": 10240,
+          "ci95": [
+            0.12043619791666667,
+            0.14957519531250002
+          ],
+          "estimate": 0.13481608072916668,
+          "prompts": 512
+        },
+        "pair": {
+          "blocks": 10240,
+          "ci95": [
+            0.07447681468921703,
+            0.09475463718139499
+          ],
+          "estimate": 0.0844842521844475,
+          "prompts": 512
+        }
+      }
+    }
+  ],
+  "protocol": {
+    "binding_options": 8308,
+    "binding_pairs": 26927,
+    "bootstrap": {
+      "replicates": 20000,
+      "seed": 20260917
+    },
+    "budgets": [
+      1,
+      2,
+      4
+    ],
+    "cells": 596,
+    "certificate": "exhaustive_original_support_enumeration_then_exclusion_check",
+    "design_disclosure": {
+      "chosen_with_the_raw_contrast_visible": [
+        "fixed verified-draw budget estimator",
+        "restriction to binding options"
+      ],
+      "fixed_before_any_contrast": [
+        "withdrawal family per domain",
+        "option enumeration order",
+        "exclusion-only feasibility certificate",
+        "terminal-endpoint cohort",
+        "survival definition"
+      ],
+      "mitigation": "Raw, all-feasible and binding variants at budgets 1, 2 and 4 are all reported."
+    },
+    "feasible_options": 9118,
+    "feasible_pairs": 26927,
+    "options": 9864,
+    "pair_by_intersection": [
+      "graph_coloring",
+      "countdown",
+      "python_factors",
+      "pantry_plan"
+    ],
+    "pairs": 29213,
+    "withdrawal": {
+      "countdown": "one arithmetic operation becomes unavailable",
+      "graph_coloring": "a colour becomes unavailable at one vertex",
+      "mathir": "one menu action is withdrawn",
+      "pantry_plan": "one ingredient goes out of stock",
+      "python_factors": "one returned divisor value is rejected"
+    }
+  },
+  "schema": "paper-portfolio-withdrawals-v1",
+  "source_sha256": {
+    "artifacts/modebench_portfolio_withdrawal_controls_20260917/results.json": "438ead4c3376728d9cdf1d53de9c284b1cca9071b1bb41ee96d6307207b23a03",
+    "artifacts/modebench_portfolio_withdrawals_20260917/independent_audit.json": "2a371b60868b0e8363841729c3540e2f34345b230d120d440d9892d916ed12be",
+    "artifacts/modebench_portfolio_withdrawals_20260917/inputs.json": "7d32c6969aebd45f71bcf955ccfd7724a2cfdbe9570ca3fcca1e99b93b893297",
+    "artifacts/modebench_portfolio_withdrawals_20260917/results.json": "faa49593b9a8d2d3b6f75ba0153f13f84ffd06692fc699633a07afbc99f268d6",
+    "artifacts/modebench_portfolio_withdrawals_20260917/table.json.gz": "67112e2abbdafd7691579ead9ccc186a9df549e86e247790d92ffc3ceeff734b",
+    "artifacts/modebench_recovery_five_domain_20260917/inputs.json": "ccc7db86755c46287944003242b19697a46361cd327bd1718873b4694c0b431b",
+    "artifacts/modebench_recovery_five_domain_20260917/results.json": "1c0c5808a5ef79e4e36f21874513893d391ff015e20d9eaf4f7b53429a41b589",
+    "paper/results/mode_diversity_retention_matrix.json": "08ee86f816539077f6be129aba2a20ae9e2fb36110a0f6b2117fbd22c56ba79e"
+  },
+  "validation": "Frozen protocol and audit authenticated; every printed value read from the bound analysis record."
+}

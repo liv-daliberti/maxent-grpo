@@ -1,0 +1,10 @@
+[
+  {
+    "old": "At a fixed number of correct draws, replay also improves Graph portfolio survival after an available option is withdrawn.",
+    "new": "At four correct draws, replay also improves the chance that a Graph portfolio retains a valid solution when an available option is withdrawn."
+  },
+  {
+    "old": "Models can achieve similar accuracy while distributing correct responses differently across modes.",
+    "new": "Similar accuracy can coexist with different distributions over correct modes."
+  }
+]

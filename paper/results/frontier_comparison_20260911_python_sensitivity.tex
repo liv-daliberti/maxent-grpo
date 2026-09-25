@@ -1,25 +1,25 @@
-\subsection{A separate Python prompt sensitivity test}
+\subsection{\texttt{Python} prompt sensitivity}
 \label{app:hosted-python-prompt}
-After the original Opus 5 Python refusals, synthetic tasks were used to select
-a direct arithmetic-expression formulation with no system message. We then
-collected eight independent draws for every original Python test task: all
-384 prompts across three levels, with unchanged adaptive thinking, medium
-effort, 8,192 output tokens, allowed operators, public inputs and frozen graders.
-The revised user instruction asks for a one-line boxed Python lambda returning
-any proper divisor for each listed input. It does not prescribe a preferred divisor.
-Both task wording and system-message presence change; collection time also differs.
-This exploratory follow-up therefore supports a practical prompt repair without
-isolating its cause. Original refusals and all three residual refusals are retained.
-The original-protocol appendix tables retain all original Python responses;
-the main display uses this complete revised condition with an explicit caption note.
+Opus 5 receives the same 384 \texttt{Python} tasks under the original instructions
+and a direct arithmetic-expression instruction without a system message.
+Each condition has eight separately requested responses per task, and the tasks span three
+levels. Adaptive thinking, medium effort, an 8,192-token output limit,
+allowed operators, public inputs, and graders are the same in both conditions.
+The revised instruction asks for a one-line boxed Python lambda returning
+any proper divisor for each listed input, without a preferred divisor.
+Task wording and system-message presence both change; provider state and
+collection time can also differ. The comparison describes these two
+configurations and does not isolate which change accounts for their difference.
+All responses contribute to accuracy and mode counts, including provider refusals.
 
 \begin{table}[!htbp]
   \centering
-  \caption{\textbf{Opus 5 Python: original versus plain task wording.}
-  Each row has 1,024 responses. R counts native refusals; A is per-response accuracy (\%),
-  D is \texttt{distinct@8}, and C is correct-pair collision (\%).
-  Strict and normalized results use the same frozen grader and typography rule.
-  Original Level-2/3 collision is undefined because no prompt has two correct draws.}
+  \caption{\textbf{Opus 5 rarely refuses \texttt{Python} tasks with direct instructions and no system message.}
+  Each row contains 128 tasks with eight responses each (1,024 responses).
+  R counts provider-declared refusals; A is per-response accuracy (\%);
+  D is mean \texttt{distinct@8}; C is correct-pair collision (\%), pooling pairs within each level.
+  Both conditions use the same executable grader and formatting normalizer.
+  Original Level-2/3 collision is undefined because no task has two correct responses.}
   \small
   \setlength{\tabcolsep}{4pt}
   \begin{tabular}{@{}llrrrrrrr@{}}
@@ -38,20 +38,17 @@ the main display uses this complete revised condition with an explicit caption n
   \end{tabular}
 \end{table}
 
-The new condition has no API failures or token-limit truncations. Strict grading
-accepts 2,282 responses; the frozen rule rescues 787 more
+The revised condition has no token-limit truncations. Strict grading
+accepts 2,282 responses; formatting normalization accepts 787 additional responses
 by converting escaped percent signs (\verb|\%|) to Python modulo (\verb|%|).
-Thus every non-refused answer passes after this formatting-only correction.
+Every non-refused answer therefore passes the executable checks after normalization.
 Normalized collision is 79.9/85.7/84.1\%, versus conditional uniform references
-of 1.43/1.15/1.15\%. The residual three refusals occur on two prompts whose
-other identical requests are accepted. No retry-until-accepted selection is used.
+of 1.43/1.15/1.15\%. All eight responses per task contribute to these results, including the three refusals.
 
-The paired analysis resamples whole eight-draw prompt groups across conditions
-(20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are
+Accuracy differences use a paired bootstrap of whole eight-response task groups
+across conditions (20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are
 40.0 [34.7, 45.5], 99.7 [99.3, 100.0], and 99.7 [99.2, 100.0] percentage points
-(pointwise 95\% intervals). Output draws themselves are independent, and the
-different correct-pair populations preclude interpreting a raw collision
-difference as a matched-population prompt effect.
-
-The saved sensitivity record binds the original and revised native receipts,
-request payloads, strict regrade audit and frozen normalization outputs.
+(pointwise 95\% intervals). Tasks are paired; output draws are not paired across conditions.
+Collision weights tasks by their numbers of correct pairs, which differ between
+conditions. Its raw difference therefore compares different correct-pair populations
+and does not estimate a prompt effect at matched accuracy or on a common set of pairs.

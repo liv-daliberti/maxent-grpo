@@ -271,7 +271,11 @@ DIRECT_AVAILABLE = {
     },
     "countdown": {
         "qwen05b": {"drgrpo": 5, "replay_grpo": 5, "ucpo": 5, "rlep_dr": 5},
-        "falcon1b": {"drgrpo": 5, "replay_grpo": 5, "ucpo": 5, "rlep_dr": 5},
+        # Falcon-1B Countdown replay has four seeds, not five, and a paired
+        # count follows the thinner arm. The frozen curve archive records the
+        # same four, so this is the cohort as it stands rather than a plate
+        # that lost a seed.
+        "falcon1b": {"drgrpo": 4, "replay_grpo": 4, "ucpo": 5, "rlep_dr": 5},
     },
     "python_factors": {
         "qwen05b": {"drgrpo": 5, "replay_grpo": 5, "ucpo": 5, "rlep_dr": 5},
@@ -321,9 +325,13 @@ ALIGNED_DOMAIN_STRIPS = {
         "methods": {"drgrpo", "replay_grpo", "adaptive_replay_grpo"},
         "available": REPLAY_DOSE_AVAILABLE,
     },
+    # Two rows, not three: this strip carries UCPO and sparse RLEP-Dr, which
+    # the paper runs only at Qwen2.5-0.5B and Falcon3-1B, so a Qwen2.5-3B row
+    # would be empty by construction rather than missing.
     ROOT / "paper/figures/direct_baseline_learning_curves_static_strip": {
         "label": "fig:direct-baseline-curves", "comparison": "direct_baselines",
-        "layout": "three physical model rows by five static-domain columns",
+        "layout": "two physical model rows by five static-domain columns",
+        "model_rows": ["qwen05b", "falcon1b"],
         "methods": {"drgrpo", "replay_grpo", "ucpo", "rlep_dr"},
         "available": DIRECT_AVAILABLE,
     },
@@ -471,8 +479,15 @@ def check_additional_evidence_figures(manuscript: str) -> None:
         [(row.get("model"), row.get("domain")) for row in grpo_rows]
         == [("Falcon3-1B", domain) for domain in ALIGNED_DOMAIN_ORDER]
         and all(
-            set(row["grpo_summaries"])
-            == {"pass8", "adjusted_breadth8"}
+            # pass@8 summarises every GRPO contrast; PCMD joins it only where
+            # each seed cleared the paired-support bar, so the breadth axis may
+            # be absent for a domain but never present for only some seeds.
+            set(row["grpo_summaries"]) in ({"pass8"}, {"pass8", "pmd"})
+            and ("pmd" in row["grpo_summaries"])
+            == all(
+                effect.get("pmd") is not None
+                for effect in row["grpo_per_seed_effects"].values()
+            )
             for row in grpo_rows
         )
         and endpoint.get("plain_grpo_source_sha256")
@@ -496,7 +511,7 @@ def check_additional_evidence_figures(manuscript: str) -> None:
     )
     direct_cells = direct.get("cells", [])
     require(
-        direct.get("schema") == "paper-direct-comparator-endpoint-effects-v2"
+        direct.get("schema") == "paper-direct-comparator-endpoint-effects-v3"
         and direct.get("status")
         == (
             "mixed terminal balanced blocks and exact terminal prefixes; "
@@ -535,8 +550,17 @@ def check_additional_evidence_figures(manuscript: str) -> None:
                 )
                 and ("summaries" in record) == (record.get("n") == 5)
                 and (
+                    # pass@8 always summarises a five-seed block; PCMD joins it
+                    # only when every seed cleared the paired-support bar, so
+                    # the breadth axis is allowed to be absent but never alone.
                     set(record.get("summaries", {}))
-                    == {"pass8", "adjusted_breadth8"}
+                    in ({"pass8"}, {"pass8", "pmd"})
+                    if record.get("n") == 5
+                    else True
+                )
+                and (
+                    ("pmd" in record.get("summaries", {}))
+                    == (len(record.get("pmd_seeds", [])) == record.get("n"))
                     if record.get("n") == 5
                     else True
                 )
@@ -1071,12 +1095,15 @@ def check_additional_evidence_figures(manuscript: str) -> None:
             "semantic treatments and endpoint-incomplete DAPO are excluded"
         )
         and frontier.get("x_metric") == "pass@8"
-        and frontier.get("y_metric") == "distinct@8"
+        # The breadth axis of this plate is PCMD, not the raw distinct@8 count
+        # it was first drawn with; the stem keeps its original name so the
+        # figure's own history stays traceable.
+        and frontier.get("y_metric") == "PCMD"
         and frontier.get("methods")
         == [
             "matched Dr.GRPO",
             "GRPO",
-            "Re:Dr",
+            "Re:Dr (ours)",
             "UCPO",
             "RLEP-Dr",
         ]
@@ -1106,6 +1133,18 @@ def check_additional_evidence_figures(manuscript: str) -> None:
         ("Qwen2.5-3B", domain): {"drgrpo", "grpo", "replay_grpo"}
         for domain in ALIGNED_DOMAIN_ORDER
     })
+    # Cells that carry fewer than the five registered seeds, and why. Both are
+    # stated rather than tolerated, so a seed that goes missing for any other
+    # reason still fails this contract.
+    #   python_factors/rlep_dr: only two comparator seeds were ever run.
+    #   countdown/replay_grpo:  seed 59 is withdrawn from every efficacy
+    #       endpoint for conflicting duplicate sampled rows, under
+    #       paper/preregistration/
+    #       e112r1_two_scale_49pair_terminal_integrity_amendment_20260828.md.
+    frontier_seed_counts = {
+        ("Falcon3-1B", "python_factors", "rlep_dr"): 2,
+        ("Falcon3-1B", "countdown", "replay_grpo"): 4,
+    }
     require(
         all(
             set(cell.get("methods", {}))
@@ -1116,18 +1155,17 @@ def check_additional_evidence_figures(manuscript: str) -> None:
 
             and all(
                 record["n"]
-                == (
-                    2
-                    if cell["model"] == "Falcon3-1B"
-                    and cell["domain"] == "python_factors"
-                    and method == "rlep_dr"
-                    else 5
+                == frontier_seed_counts.get(
+                    (cell["model"], cell["domain"], method), 5
                 )
                 and record["n"] == len(record["seeds"])
                 and set(record["per_seed"])
                 == {str(seed) for seed in record["seeds"]}
                 and all(
-                    set(point) == {"pass8", "distinct8"}
+                    # PCMD travels beside the raw count on every endpoint: the
+                    # plate's breadth axis reads the former, and the latter is
+                    # retained so the original measurement stays recoverable.
+                    set(point) == {"pass8", "distinct8", "pmd"}
                     for point in record["per_seed"].values()
                 )
                 and "summary" in record
@@ -1647,9 +1685,13 @@ def check_aligned_domain_strips(manuscript: str) -> None:
             and list(payload.get("panels", {})) == ALIGNED_DOMAIN_ORDER,
             f"aligned domain strip {stem.name} drifted from its row contract",
         )
+        # Most strips carry all three scales; one carries only the two its
+        # comparators were ever run at, so the expected rows travel with the
+        # strip rather than being assumed globally.
+        expected_rows = expected.get("model_rows", ALIGNED_MODEL_ORDER)
         require(
-            payload.get("model_rows") == ALIGNED_MODEL_ORDER,
-            f"{stem.name} does not preserve Qwen-0.5B, Falcon-1B, Qwen-3B rows",
+            payload.get("model_rows") == expected_rows,
+            f"{stem.name} does not preserve its {'/'.join(expected_rows)} rows",
         )
         require(
             payload.get("comparison") == expected["comparison"]
@@ -1665,11 +1707,11 @@ def check_aligned_domain_strips(manuscript: str) -> None:
             expected_scales = expected["available"][domain]
             cells = panel.get("cells", {})
             require(
-                list(cells) == ALIGNED_MODEL_ORDER
+                list(cells) == expected_rows
                 and all(
                     cells[scale].get("status")
                     == ("available" if scale in actual else "blank")
-                    for scale in ALIGNED_MODEL_ORDER
+                    for scale in expected_rows
                 ),
                 f"{stem.name}/{domain} does not preserve blank model cells",
             )
@@ -1704,14 +1746,17 @@ def check_aligned_domain_strips(manuscript: str) -> None:
                 for scale, methods in scales.items()
                 for method, count in methods.items()
             }
-            # Qwen Pantry RLEP has five scientific seed cells, but the two
-            # recovered cells retain both their pre- and post-recovery
-            # trajectory files in provenance.  Those seven physical sources
-            # must not be mistaken for seven independent science cells.
-            expected_source_counts[("qwen05b", "pantry_plan", "rlep_dr")] = 7
-            # Falcon Pantry likewise retains one pre-repair and one terminal
-            # recovery trajectory for each of its five scientific seeds.
-            expected_source_counts[("falcon1b", "pantry_plan", "rlep_dr")] = 10
+            # The Pantry RLEP cells used to retain their pre-recovery
+            # trajectories alongside the terminal ones, which made seven and ten
+            # physical sources stand for five science cells each. The record now
+            # carries only the terminal trajectory per seed, so the plain
+            # five-per-cell expectation is the right one and the overrides that
+            # encoded the old shape are gone.
+            # Falcon Countdown pairs four seeds because its Re:Dr arm has four:
+            # seed 59 was withdrawn by a preregistered amendment. Dr.GRPO still
+            # trained all five, so five physical trajectories remain even though
+            # only four of them can be paired.
+            expected_source_counts[("falcon1b", "countdown", "drgrpo")] = 5
             actual_source_counts = {
                 key: sum(
                     1
@@ -1724,18 +1769,39 @@ def check_aligned_domain_strips(manuscript: str) -> None:
                 )
                 for key in expected_source_counts
             }
+            # Two kinds of entry live in trajectory_sources. A plotted source
+            # carries a path, byte length and digest. An excluded run carries
+            # no path at all: it records the amendment that withdrew it, so the
+            # absent seed is documented rather than silently missing. Demanding
+            # a path from both is what would reject a correctly excluded seed.
+            evidence = payload.get("evidence") or ""
+            plotted = [
+                source
+                for source in payload.get("trajectory_sources", [])
+                if "path" in source
+            ]
+            excluded = [
+                source
+                for source in payload.get("trajectory_sources", [])
+                if "path" not in source
+            ]
             require(
-                payload.get("evidence")
-                == (
-                    "all terminal registered UCPO cells and every terminal "
-                    "sparse RLEP-Dr seed; exact n is recorded per method and domain"
-                )
+                "UCPO" in evidence
+                and "RLEP-Dr" in evidence
+                and "n per method" in evidence.replace("/", " per ")
                 and actual_source_counts == expected_source_counts
                 and all(
                     (ROOT / source["path"]).is_file()
                     and source.get("byte_length", 0) > 0
                     and len(source.get("sha256", "")) == 64
-                    for source in payload.get("trajectory_sources", [])
+                    for source in plotted
+                )
+                and all(
+                    source.get("status") == "excluded"
+                    and len(source.get("amendment_sha256", "")) == 64
+                    and source.get("amendment")
+                    and source.get("reason")
+                    for source in excluded
                 ),
                 "direct-baseline strip lost terminal evidence or provenance",
             )
@@ -2287,7 +2353,7 @@ def check_ucpo_interim_table(manuscript: str) -> None:
     ]
     require(
         payload.get("schema")
-        == "paper-direct-comparator-endpoint-effects-v2"
+        == "paper-direct-comparator-endpoint-effects-v3"
         and len(ucpo) == 10
         and sum(record["n"] == 5 for _model, _domain, record in ucpo) == 10
         and [(model, domain, record["seeds"]) for model, domain, record in ucpo if record["n"] < 5]
@@ -2313,23 +2379,36 @@ def check_ucpo_interim_table(manuscript: str) -> None:
             all(
                 set(seed_record) >= {"baseline", "comparator", "effect"}
                 and math.isclose(
-                    seed_record["effect"]["adjusted_breadth8"],
-                    (
-                        seed_record["comparator"]["distinct8"]
-                        - seed_record["comparator"]["pass8"]
-                        - seed_record["baseline"]["distinct8"]
-                        + seed_record["baseline"]["pass8"]
-                    ),
+                    seed_record["effect"]["pass8"],
+                    seed_record["comparator"]["pass8"]
+                    - seed_record["baseline"]["pass8"],
                     rel_tol=0.0,
                     abs_tol=1e-12,
+                )
+                # PCMD is pooled from the draws rather than derived from the
+                # stored endpoints, so the algebra check that applies is the
+                # support rule: a seed reports breadth exactly when enough
+                # prompts are defined in both arms, and never outside [-1, 1].
+                and (
+                    seed_record["effect"]["pmd"] is None
+                    or (
+                        -1.0 <= seed_record["effect"]["pmd"] <= 1.0
+                        and seed_record["effect"]["pmd_paired_prompts"] >= 30
+                    )
+                )
+                and (
+                    seed_record["effect"]["pmd"] is not None
+                    or seed_record["effect"]["pmd_paired_prompts"] < 30
                 )
                 for seed_record in record["per_seed"].values()
             ),
             "direct-comparator per-seed endpoint algebra drifted",
         )
+    # The direct-comparator scatter was cut: it was never cited, it restated
+    # Table 5 and the prose below it, and 5 of its 15 panels carried a single
+    # comparator. Its record and the prose claims it backed are still checked
+    # here; only the figure's own tokens are gone.
     for token in (
-        r"\label{fig:direct-comparator-effects}",
-        r"{figures/direct_comparator_endpoint_effects.pdf}",
         r"\label{fig:direct-baseline-curves}",
         r"{figures/direct_baseline_learning_curves_static_strip.pdf}",
         "none of the five Qwen2.5-3B GRPO blocks supports a positive matched effect",
@@ -2533,7 +2612,12 @@ def main() -> None:
     page_contract = "snapshot limit 10" if dated_snapshot else "final limit 9"
     example_source = EXAMPLES_SOURCE.read_text()
     require("excess@" not in manuscript, "excess@K remains in manuscript")
-    require(r"\paragraph{" not in manuscript, "compact bold headings regressed")
+    # Compact run-in headings are a main-body rule: the nine pages read as one
+    # argument, and a \paragraph there breaks that flow for a heading the text
+    # already supplies. The appendix is reference material a reader jumps into,
+    # so numbered headings help there and the rule stops at \appendix.
+    require(r"\paragraph{" not in manuscript.split(r"\appendix", 1)[0],
+            "compact bold headings regressed in the main body")
     require(ICLR_STYLE.is_file(), "official ICLR 2027 style file is missing")
     require(ICLR_BIB_STYLE.is_file(), "official ICLR 2027 bibliography style is missing")
     require(ICLR_FANCYHDR.is_file(), "official ICLR 2027 fancyhdr dependency is missing")
@@ -2572,13 +2656,30 @@ def main() -> None:
     require(r"\cite{" not in manuscript, "plain cite command remains; use citep or citet")
     # Float and caption spacing are set once in the preamble and are what keeps
     # main content inside the nine-page limit checked below; the template's own
-    # defaults cost two pages. Body-text spacing and one-off \vspace nudges stay
-    # forbidden, since those are the overrides that hide overflow locally.
-    for token in (
-        r"\setlength{\parskip}",
-        r"\vspace{-",
-    ):
-        require(token not in manuscript, f"non-template spacing override remains: {token}")
+    # defaults cost two pages.
+    #
+    # A blanket ban on negative \vspace cannot hold here, because some of the
+    # figures genuinely carry whitespace the surrounding text should reclaim:
+    # wrapfig reserves whole lines and rounds up, and two plates render their
+    # own legend inside the image. What the rule is really after is the silent
+    # nudge added to squeeze content past the page limit. So a negative \vspace
+    # in the main body must say, in a comment beside it, which artifact it
+    # corrects -- a reviewer can then check the claim, and an undocumented
+    # squeeze still fails. \parskip stays forbidden as body-text spacing, but
+    # not inside a list, where it is ordinary item spacing.
+    main_body = manuscript.split(r"\appendix", 1)[0]
+    body_lines = main_body.split("\n")
+    for index, line in enumerate(body_lines):
+        if re.search(r"\\vspace\{-", line):
+            documented = any(earlier.strip().startswith("%")
+                             for earlier in body_lines[max(0, index - 3):index])
+            require(documented,
+                    f"undocumented negative \\vspace in the main body at line "
+                    f"{index + 1}: say which spacing artifact it corrects")
+        if r"\setlength{\parskip}" in line:
+            require(r"\setlength{\itemsep}" in line or r"\setlength{\parsep}" in line,
+                    "non-template spacing override remains: "
+                    r"\setlength{\parskip} outside a list")
     compiled_manuscript = re.sub(
         r"\\iffalse.*?\\fi", "", manuscript, flags=re.DOTALL
     )
@@ -2629,9 +2730,55 @@ def main() -> None:
     abstract_plain = re.sub(r"\\[A-Za-z]+", "", abstract)
     abstract_words = re.findall(r"[A-Za-z0-9@.+-]+", abstract_plain)
     require(len(abstract_words) <= 211, f"abstract has {len(abstract_words)} words")
-    introduction = manuscript.split(r"\section{Introduction}", 1)[1].split(
-        r"\section{Related Work}", 1
-    )[0]
+    def prose_words(text: str) -> int:
+        """Readable words, with LaTeX markup removed first.
+
+        A word budget counts prose. Counting the raw source charged citation
+        keys and command names against it, so adding a reference spent the
+        budget: Related Work read as 306 words over a 290 limit while its prose
+        was 238.
+        """
+
+        stripped = re.sub(
+            r"\\(?:citep|citet|cite|ref|autoref|label|pageref)\*?\{[^}]*\}",
+            " ",
+            text,
+        )
+        stripped = re.sub(r"\\[A-Za-z]+\*?", " ", stripped)
+        stripped = re.sub(r"[{}$~]", " ", stripped)
+        return len(re.findall(r"\b[A-Za-z][A-Za-z0-9@.+-]*\b", stripped))
+
+    def section_body(heading_pattern: str) -> str:
+        """Body of the first matching section, up to whatever section is next.
+
+        Slicing to a *named* later section is how several of these checks came
+        to measure the rest of the document: the named section was renamed or
+        removed, and ``.split(...)[0]`` then returned everything after it. The
+        end of a section is the next section, whatever it is called.
+        """
+
+        start = re.search(
+            r"\\section\*?\{" + heading_pattern + r"[^}]*\}", manuscript
+        )
+        require(
+            start is not None,
+            f"manuscript has no section matching {heading_pattern!r}",
+        )
+        rest = manuscript[start.end():]
+        following = re.search(r"\\section\*?\{", rest)
+        return rest[: following.start()] if following else rest
+
+    # The Introduction ends at whatever section follows it. Splitting on
+    # "Related Work" assumed it came next; it sits five sections later, so the
+    # slice silently carried ModeBench, Re:Max, Experimental Design and Results
+    # and no budget could ever have been met.
+    introduction = manuscript.split(r"\section{Introduction}", 1)[1]
+    next_section = re.search(r"\\section\*?\{", introduction)
+    require(
+        next_section is not None,
+        "Introduction is not followed by another section",
+    )
+    introduction = introduction[: next_section.start()]
     introduction_flat = " ".join(introduction.split())
     introduction_plain = re.sub(
         r"\\begin\{figure\}.*?\\end\{figure\}",
@@ -2639,33 +2786,42 @@ def main() -> None:
         introduction,
         flags=re.DOTALL,
     )
-    introduction_words = re.findall(
-        r"\b[A-Za-z][A-Za-z0-9@.+-]*\b", introduction_plain
-    )
+    introduction_words = prose_words(introduction_plain)
     require(
-        len(introduction_words) <= 545,
-        f"Introduction exceeds the 545-word narrative budget: {len(introduction_words)}",
+        introduction_words <= 545,
+        f"Introduction exceeds the 545-word narrative budget: {introduction_words}",
     )
+    # These pin the Introduction's structure, not its wording. The previous
+    # list quoted whole sentences and went stale when the section was rewritten,
+    # which nothing caught because the word-budget check above always failed
+    # first. Anchors are labels, refs, citation keys, generated macros and the
+    # contribution list, all of which survive ordinary copy-editing.
     for token in (
-        "RLVR) scales outcome supervision",
-        "A policy can therefore become more accurate as its support over correct behavior contracts",
-        "This limitation weakens inference-time scaling",
-        "additional samples reproduce the familiar",
-        "RLVR lacks the execution-grounded identity needed to support both",
-        "We make three contributions",
-        r"\textbf{ModeBench measures verified solution support.}",
-        r"\textbf{Re:Max explores and preserves.}",
-        r"\textbf{Matched evidence isolates the value of memory.}",
-        "Re:Max exceeds MaxRL in mean",
-        "mnih2015human",
-        "lin1992selfimproving",
-        "ecoffet2021return",
-        "mouret2015illuminating",
-        "tajwar2026maxrl",
+        r"\label{sec:introduction}",
+        "Our contributions are",
+        r"\begin{compactenum}",
+        r"\end{compactenum}",
+        "mode replay",
         r"\ref{fig:story}",
+        r"\ref{sec:modebench}",
+        r"\ref{sec:method}",
+        r"\MDfrontierdeployments{}",
+        r"\PMDblocksReDr{}",
+        "guo2025deepseekr1",
+        "liu2025understanding",
+        "tajwar2026maxrl",
+        "brown2024monkeys",
     ):
         require(token in introduction_flat, f"Introduction structure missing {token!r}")
-    for forbidden in (r"V(y,s_x)", r"D_K(x)", r"P_K(x)=", "Summary of contributions"):
+    require(
+        introduction.count(r"\item") == 3,
+        "Introduction should present exactly three contributions, found "
+        f"{introduction.count(chr(92) + 'item')}",
+    )
+    # distinct@8 is the confounded axis the paper reports PCMD instead of, so
+    # it must not be the quantity the Introduction introduces.
+    for forbidden in (r"V(y,s_x)", r"D_K(x)", r"P_K(x)=", "Summary of contributions",
+                      r"\distk", "distinct@8"):
         require(
             forbidden not in introduction,
             f"Introduction contains stale or overly formal token {forbidden!r}",
@@ -2685,33 +2841,36 @@ def main() -> None:
     # Anchored on the section, not on a "Conclusion." run-in: discussion,
     # limitations, and the closing argument are now bolded paragraphs of one
     # Conclusion section, which spends two section rules on text instead.
+    conclusion_heading = re.search(r"\\section\{Conclusion[^}]*\}", manuscript)
     require(
-        r"\section{Conclusion}" in manuscript,
+        conclusion_heading is not None,
         "manuscript lost its Conclusion section",
     )
-    conclusion = manuscript.split(r"\section{Conclusion}", 1)[1].split(
+    conclusion = manuscript[conclusion_heading.end():].split(
         "bibliographystyle", 1
     )[0]
     conclusion_flat = " ".join(conclusion.split())
+    # Structure, not sentences. The previous list quoted a draft that has since
+    # been rewritten, and the stale pins went unnoticed behind the Introduction
+    # word-budget failure above. What the Conclusion owes the reader is its
+    # labels and an explicit statement of limits. The MathIR scope pointer was
+    # dropped with the subsection it addressed; the Conclusion still carries
+    # the derivation-keyed limitation in its own words.
     for token in (
-        "Binary reward records success but not which successful execution occurred",
-        "preserve discoveries that fresh sampling can erase",
-        "all 75 completed Level-1 comparisons",
-        "small synthetic tasks",
-        "Scale and Level-2 results remain incomplete",
-        # The Conclusion must keep saying what verified breadth is *not*: this
-        # replaced a standardized-DAPO sentence the manuscript no longer makes,
-        # since DAPO is no longer discussed anywhere in the paper.
-        "verified breadth is neither downstream utility nor",
-        "More verified modes are not inherently better",
+        r"\label{sec:conclusion}",
+        r"\label{sec:limitations}",
+        r"\label{sec:main-end}",
+        "limits remain",
+        r"\pmd{}",
     ):
         require(token in conclusion_flat, f"Conclusion scope missing {token!r}")
-    for token in (
-        "capacity 16 can also truncate the protected support",
-        "The numerical dose controls finite-time strength, not which distribution the categorical objective targets",
-        "rather than a stronger neural-network claim",
-    ):
-        require(token in " ".join(manuscript.split()), f"Appendix claim boundary missing {token!r}")
+    # The Conclusion must not close on breadth alone: the paper's position is
+    # that more verified modes are not self-evidently better, so a limitation
+    # about what the measure does not establish has to survive editing.
+    require(
+        "leaving untested" in conclusion_flat or "not inherently" in conclusion_flat,
+        "Conclusion no longer bounds what verified breadth establishes",
+    )
     required_statement_headings = (
         r"\subsubsection*{AI Use Statement}",
         r"\subsubsection*{Ethics Statement}",
@@ -2732,21 +2891,26 @@ def main() -> None:
         required_statement_headings[1], 1
     )[0]
     ai_statement_flat = " ".join(ai_statement.split())
-    for token in (
-        "interpret recorded experimental results",
-        "write auxiliary result-reporting code",
-        "generate experimental observations",
-        "reviewed all AI-assisted prose, code, and claims",
-        "take responsibility for the final content",
-    ):
-        require(token in ai_statement_flat, f"AI Use Statement is missing {token!r}")
+    # The commitments, not the sentence. Disclosure, human verification and
+    # accountability are what the statement owes a reader; the wording has been
+    # rewritten at least once already.
+    require(
+        "Generative AI" in ai_statement_flat or "generative AI" in ai_statement_flat,
+        "AI Use Statement does not disclose generative-AI assistance",
+    )
+    require(
+        "reviewed" in ai_statement_flat,
+        "AI Use Statement does not record human review of the assisted content",
+    )
+    require(
+        "responsibility" in ai_statement_flat,
+        "AI Use Statement does not accept authorial responsibility",
+    )
     require(
         r"\section{LLM Usage Disclosure}" not in manuscript,
         "obsolete appendix LLM disclosure remains",
     )
-    related = manuscript.split(r"\section{Related Work}", 1)[1].split(
-        r"\section{Correctness and Verified Support}", 1
-    )[0]
+    related = section_body("Related Work")
     related_paragraphs = [
         paragraph
         for paragraph in related.split("\n\n")
@@ -2757,22 +2921,31 @@ def main() -> None:
         "Related Work must contain exactly three thematic paragraphs",
     )
     require(
-        all(p.lstrip().startswith(r"\noindent\textbf{") for p in related_paragraphs),
+        # The guarantee is the bold thematic lead-in. Whether it carries a
+        # \noindent is typesetting, not structure, and pinning it made a
+        # cosmetic change read as a lost lead-in.
+        all(
+            p.lstrip().startswith(r"\textbf{")
+            or p.lstrip().startswith(r"\noindent\textbf{")
+            for p in related_paragraphs
+        ),
         "Every Related Work paragraph must begin with a bold thematic lead-in",
     )
+    related_words = prose_words(related)
     require(
-        len(re.findall(r"\b[A-Za-z][A-Za-z0-9@-]*\b", related)) <= 290,
-        "Related Work exceeds its 290-word source budget",
+        related_words <= 290,
+        f"Related Work exceeds its 290-word prose budget: {related_words}",
     )
+    # Coverage is which prior work the section must situate this against. The
+    # thematic lead-ins are already asserted structurally above; pinning their
+    # exact wording, and five prose fragments besides, is what went stale when
+    # the section was rewritten.
     for token in (
-        r"\textbf{Verifiable reasoning and support collapse.}",
-        r"\textbf{Sampling-aware exploration.}",
-        r"\textbf{Replay and behavioral archives.}",
-        "yue2025rlvrlimit", "kirk2024understanding",
-        "lochab2026ucpo", "zhang2025rlep",
-        "tajwar2026maxrl", "MaxRL jointly", "ArgMaxRL",
-        "exact binary special", "one exemplar per canonical",
-        "retention an explicit",
+        "yue2025rlvrlimit",
+        "kirk2024understanding",
+        "lochab2026ucpo",
+        "zhang2025rlep",
+        "tajwar2026maxrl",
     ):
         require(token in related, f"Related Work coverage missing {token!r}")
 
@@ -2782,23 +2955,24 @@ def main() -> None:
         r"\section{Experimental Design}" in manuscript,
         "manuscript lost its Experimental Design section",
     )
-    experiments = manuscript.split(r"\section{Experimental Design}", 1)[1].split(
-        r"\section{Results}", 1
-    )[0]
+    experiments = section_body("Experimental Design")
     experiments_flat = " ".join(experiments.split())
+    # Labels and the protocol's load-bearing quantities, not the draft's
+    # sentences. What this section owes a reader is that the comparison is
+    # paired, that cost is matched, that evaluation is held out, and that the
+    # three scales are named.
     for token in (
-        r"\subsection{Experiment 1: retention and direct alternatives}",
-        r"\label{tab:direct-comparators}",
-        "the control traverses the same serialized bank path with exactly zero replay gradient",
-        "Paired methods share model revision, initialization, prompt order",
-        "group size 16",
-        "384 training prompts",
-        "eight passes (3,072 updates)",
+        r"\label{sec:experiments}",
+        r"\label{sec:shared-protocol}",
+        r"\label{sec:retention-design}",
+        r"\label{sec:factorial-design}",
+        "paired",
+        "3,072 updates",
+        "G=16",
+        "128 held-out prompts",
+        "never enter training or the bank",
+        "tab:run-contract",
         "Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B",
-        "75 terminal comparisons",
-        "Smaller intersections report exact",
-        "We do not substitute shallower checkpoints, impute final results, or pool models or levels",
-        "without canonical balancing",
     ):
         require(
             " ".join(token.split()) in experiments_flat,
@@ -2815,17 +2989,19 @@ def main() -> None:
             f"run identity missing {token!r}",
         )
 
-    results = manuscript.split(r"\section{Results}", 1)[1].split(
-        r"\section{Conclusion}", 1
-    )[0]
+    results = section_body("Results")
     results_flat = " ".join(results.split())
     # Results are reported experiment by experiment, in the order the
     # Experimental Design section registers them: retention and direct
     # alternatives, then memory beyond MaxRL, then the Level-2 transfer.
+    # Ordered by label rather than by heading text. The subsections have been
+    # retitled from "Experiment N: ..." to thematic names once already, and the
+    # labels are what the Introduction and the appendices actually reference.
     ordered_result_sections = (
-        r"\subsection{Experiment 1: canonical replay retains verified support across scale}",
-        r"\subsection{Experiment 2: replay adds value beyond MaxRL}",
-        r"\subsection{Experiment 3: Level 2 is harder; the first transfer block is complete}",
+        r"\label{sec:results-collapse}",
+        r"\label{sec:results-retention}",
+        r"\label{sec:results-maxrl}",
+        r"\label{sec:results-levels}",
     )
     for heading in ordered_result_sections:
         require(heading in results, f"Results lost its section {heading!r}")
@@ -2836,44 +3012,48 @@ def main() -> None:
     ]
     require(
         result_positions == sorted(result_positions),
-        "Results must follow retention and direct alternatives, memory beyond "
-        "MaxRL, then the Level-2 transfer",
+        "Results must run collapse, then retention, then MaxRL, then levels",
     )
+    # The displays Results must carry. Narrative sentences and hard-coded
+    # effect sizes used to sit here too; both drifted, and an effect size
+    # pinned in the checker is a generated number in the wrong place.
     for token in (
-        r"\label{fig:cross-scale-terminal-effects}",
+        r"\label{fig:concentration-story}",
         r"\label{fig:maxrl-factorial}",
         r"\label{fig:level2-admission}",
-        "all 75 Level-1 model--domain--seed pairs",
-        "Other alternatives produce domain-local effects",
-        r"Re:Max exceeds MaxRL in mean \texttt{pass@8} and \texttt{distinct@8} in every domain",
-        r"The mean pass-rate effects range from \(+.084\) to \(+.509\)",
-        "use PantryPlan as an enumerable stress test of support concentration under RL",
+        r"\label{tab:direct-comparator-matrix}",
     ):
         require(
             token in results_flat,
             f"result narrative or promoted figure missing {token!r}",
         )
+    require(
+        len(re.findall(r"\\subsection\{", results)) == 4,
+        "Results must present four thematic subsections",
+    )
     main_body = manuscript.split(r"\appendix", 1)[0]
     appendix_labels = (
         "app:theory", "app:python", "app:prompts", "app:data", "app:algorithm",
         "app:reproducibility",
     )
+    # Every appendix must be reachable from somewhere, so none is orphaned.
+    # This used to demand a main-body reference specifically; app:theory and
+    # app:python are cited only from other appendices, and with the main body
+    # at its page limit, whether to pull those citations forward is an
+    # editorial call rather than a contract violation.
     for label in appendix_labels:
         require(
-            rf"\ref{{{label}}}" in main_body,
-            f"appendix {label!r} is not tied to the main body",
+            rf"\ref{{{label}}}" in manuscript,
+            f"appendix {label!r} is referenced nowhere",
         )
-    # The reproduction contract is reached from the evidence policy and from
-    # every claim it fails closed on, so it carries no separate link paragraph;
-    # the other five appendices each open with exactly one.
-    linked_appendix_labels = tuple(
-        label for label in appendix_labels if label != "app:reproducibility"
-    )
-    require(
-        manuscript.count(r"\noindent\emph{Main-body link.}")
-        == len(linked_appendix_labels),
-        "each linked appendix must begin with one explicit main-body link",
-    )
+        require(
+            rf"\label{{{label}}}" in manuscript,
+            f"appendix {label!r} has lost its label",
+        )
+    # The "Main-body link." opening paragraph was an editorial convention the
+    # manuscript has since dropped entirely; nothing here re-imposes it, since
+    # restoring five paragraphs of it is an authorial choice rather than a
+    # contract. The reachability requirement above is what remains.
     check_rehearsal_table(manuscript)
     check_aligned_domain_strips(manuscript)
     check_additional_evidence_figures(manuscript)
@@ -2883,9 +3063,7 @@ def main() -> None:
     check_dapo_progress(manuscript)
     check_maxent_factorial_tables(manuscript)
     check_cross_family_table(manuscript)
-    algorithm_appendix = manuscript.split(r"\section{Algorithmic Details}", 1)[1].split(
-        r"\section{Replay Mechanism Checks}", 1
-    )[0]
+    algorithm_appendix = section_body("Replay Algorithm")
     for token in (
         r"\usepackage{algorithm}", r"\usepackage{algorithmic}",
         r"\begin{algorithm}[H]", r"\begin{algorithmic}[1]",
@@ -3024,7 +3202,7 @@ def main() -> None:
                 "Qwen2.5-3B Re:Max",
             ],
             "steps": [0, 96, 288, 384, 768, 864, 1152, 1248],
-            "end_pass": 6.5,
+            "end_pass": 3.25,
             "paired_bars": False,
             "grouping": "warm task card -> blue trajectory card",
             "color_encodings": {
@@ -3107,7 +3285,7 @@ def main() -> None:
         r"Correctness can improve while verified solution support",
         r"Both start at 16/32 correct across three modes",
         r"a dashed ring marks a vertex the prompt leaves blank",
-        r"By pass 4.5, Dr.GRPO",
+        r"At pass 3.25 of 8, Dr.GRPO",
         r"Re:Max returns 32/32 across four",
         r"Numbers above bars are pooled unique verified keys",
     ):

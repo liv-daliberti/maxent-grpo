@@ -1,0 +1,2 @@
+Expanded GPT contract passed: 480 prompts, 19,200 authenticated responses, old/new cohort sensitivity.
+Current paper contract failed: main role label sec:results-maxrl missing or duplicated

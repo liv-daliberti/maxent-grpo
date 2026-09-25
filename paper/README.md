@@ -1,4 +1,4 @@
-# There’s More Than One Way: Mode Collapse in RLVR & ModeBench
+# Measuring and Mitigating Solution Mode Collapse in RLVR
 
 The [ICLR manuscript](main.pdf) opens with diverse successful model outputs,
 including explanations, plans, and programs. Its main hosted table now reports

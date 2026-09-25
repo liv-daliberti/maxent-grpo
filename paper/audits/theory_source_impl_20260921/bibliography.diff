@@ -1,0 +1,56 @@
+--- bibliography before
++++ bibliography after
+@@ -233,7 +233,7 @@
+   eprint       = {2509.07430},
+   archivePrefix = {arXiv},
+   primaryClass = {cs.LG},
+-  url          = {https://arxiv.org/abs/2509.07430}
++  url          = {https://arxiv.org/abs/2509.07430v4}
+ }
+ 
+ @misc{agrae2026,
+@@ -253,7 +253,7 @@
+   eprint       = {2605.21125},
+   archivePrefix = {arXiv},
+   primaryClass = {cs.LG},
+-  url          = {https://arxiv.org/abs/2605.21125}
++  url          = {https://arxiv.org/abs/2605.21125v2}
+ }
+ 
+ @misc{sinha2026expected,
+@@ -283,7 +283,7 @@
+   eprint        = {2602.01062},
+   archivePrefix = {arXiv},
+   primaryClass  = {cs.AI},
+-  url       = {https://arxiv.org/abs/2602.01062}
++  url       = {https://arxiv.org/abs/2602.01062v1}
+ }
+ 
+ @inproceedings{ouyang2022training,
+@@ -860,7 +860,7 @@
+   archivePrefix = {arXiv},
+   primaryClass  = {cs.LG},
+   howpublished  = {arXiv preprint arXiv:2505.22617},
+-  url       = {https://arxiv.org/abs/2505.22617}
++  url       = {https://arxiv.org/abs/2505.22617v1}
+ }
+ 
+ @inproceedings{zhu2025negative,
+@@ -1076,7 +1076,7 @@
+   year = {2015},
+   eprint = {1504.03878},
+   archivePrefix = {arXiv},
+-  url = {https://arxiv.org/abs/1504.03878}
++  url = {https://arxiv.org/abs/1504.03878v1}
+ }
+ 
+ @article{branicky1998multiple,
+@@ -1131,7 +1131,7 @@
+   eprint        = {0911.1383},
+   archivePrefix = {arXiv},
+   primaryClass  = {cs.IT},
+-  url           = {https://arxiv.org/abs/0911.1383}
++  url           = {https://arxiv.org/abs/0911.1383v1}
+ }
+ @article{vanerven2014renyi,
+   author = {van Erven, Tim and Harremo{\"e}s, Peter},

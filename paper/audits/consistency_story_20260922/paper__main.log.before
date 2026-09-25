@@ -1,0 +1,1942 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.21 (TeX Live 2020) (preloaded format=pdflatex 2026.9.1)  22 SEP 2026 11:23
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**main.tex
+(./main.tex
+LaTeX2e <2020-10-01> patch level 4
+L3 programming layer <2021-02-18>
+(/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2020/04/10 v1.4m Standard LaTeX document class
+(/usr/share/texlive/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2020/04/10 v1.4m Standard LaTeX file (size option)
+)
+\c@part=\count179
+\c@section=\count180
+\c@subsection=\count181
+\c@subsubsection=\count182
+\c@paragraph=\count183
+\c@subparagraph=\count184
+\c@figure=\count185
+\c@table=\count186
+\abovecaptionskip=\skip47
+\belowcaptionskip=\skip48
+\bibindent=\dimen138
+)
+(./iclr2027_conference.sty
+(/usr/share/texlive/texmf-dist/tex/latex/eso-pic/eso-pic.sty
+Package: eso-pic 2020/10/14 v3.0a eso-pic (RN)
+\ESO@tempdima=\dimen139
+\ESO@tempdimb=\dimen140
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/keyval.sty
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks15
+)
+(/usr/share/texlive/texmf-dist/tex/latex/xcolor/xcolor.sty
+Package: xcolor 2016/05/11 v2.12 LaTeX color extensions (UK)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/color.cfg
+File: color.cfg 2016/01/02 v1.6 sample color configuration
+)
+Package xcolor Info: Driver file: pdftex.def on input line 225.
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-def/pdftex.def
+File: pdftex.def 2020/10/05 v1.2a Graphics/color driver for pdftex
+)
+Package xcolor Info: Model `cmy' substituted by `cmy0' on input line 1348.
+Package xcolor Info: Model `hsb' substituted by `rgb' on input line 1352.
+Package xcolor Info: Model `RGB' extended on input line 1364.
+Package xcolor Info: Model `HTML' substituted by `rgb' on input line 1366.
+Package xcolor Info: Model `Hsb' substituted by `hsb' on input line 1367.
+Package xcolor Info: Model `tHsb' substituted by `hsb' on input line 1368.
+Package xcolor Info: Model `HSB' substituted by `hsb' on input line 1369.
+Package xcolor Info: Model `Gray' substituted by `gray' on input line 1370.
+Package xcolor Info: Model `wave' substituted by `hsb' on input line 1371.
+))
+(./fancyhdr.sty
+\fancy@headwidth=\skip49
+\f@ncyO@elh=\skip50
+\f@ncyO@erh=\skip51
+\f@ncyO@olh=\skip52
+\f@ncyO@orh=\skip53
+\f@ncyO@elf=\skip54
+\f@ncyO@erf=\skip55
+\f@ncyO@olf=\skip56
+\f@ncyO@orf=\skip57
+) (./natbib.sty
+Package: natbib 2009/07/16 8.31 (PWD, AO)
+\bibhang=\skip58
+\bibsep=\skip59
+LaTeX Info: Redefining \cite on input line 694.
+\c@NAT@ctr=\count187
+)
+\iclrrulerbox=\box47
+\iclrrulercount=\count188
+\iclrruleroffset=\dimen141
+\cv@lineheight=\dimen142
+\cv@boxheight=\dimen143
+\cv@tmpbox=\box48
+\cv@refno=\count189
+\cv@tot=\count190
+\cv@tmpc@=\count191
+\cv@tmpc=\count192
+)
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/times.sty
+Package: times 2020/03/25 PSNFSS-v9.3 (SPQR) 
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/inputenc.sty
+Package: inputenc 2020/08/01 v1.3d Input encoding file
+\inpenc@prehook=\toks16
+\inpenc@posthook=\toks17
+)
+(/usr/share/texlive/texmf-dist/tex/latex/base/fontenc.sty
+Package: fontenc 2020/08/10 v2.0s Standard LaTeX package
+LaTeX Font Info:    Trying to load font information for T1+ptm on input line 11
+2.
+
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/t1ptm.fd
+File: t1ptm.fd 2001/06/04 font definitions for T1/ptm.
+))
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amsfonts.sty
+Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
+\@emptytoks=\toks18
+\symAMSa=\mathgroup4
+\symAMSb=\mathgroup5
+LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
+LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
+(Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsmath.sty
+Package: amsmath 2020/09/23 v2.17i AMS math features
+\@mathmargin=\skip60
+
+For additional information on amsmath, use the `?' option.
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amstext.sty
+Package: amstext 2000/06/29 v2.01 AMS text
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsgen.sty
+File: amsgen.sty 1999/11/30 v2.0 generic functions
+\@emptytoks=\toks19
+\ex@=\dimen144
+))
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsbsy.sty
+Package: amsbsy 1999/11/29 v1.2d Bold Symbols
+\pmbraise@=\dimen145
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsmath/amsopn.sty
+Package: amsopn 2016/03/08 v2.02 operator names
+)
+\inf@bad=\count193
+LaTeX Info: Redefining \frac on input line 234.
+\uproot@=\count194
+\leftroot@=\count195
+LaTeX Info: Redefining \overline on input line 399.
+\classnum@=\count196
+\DOTSCASE@=\count197
+LaTeX Info: Redefining \ldots on input line 496.
+LaTeX Info: Redefining \dots on input line 499.
+LaTeX Info: Redefining \cdots on input line 620.
+\Mathstrutbox@=\box49
+\strutbox@=\box50
+\big@size=\dimen146
+LaTeX Font Info:    Redeclaring font encoding OML on input line 743.
+LaTeX Font Info:    Redeclaring font encoding OMS on input line 744.
+\macc@depth=\count198
+\c@MaxMatrixCols=\count199
+\dotsspace@=\muskip16
+\c@parentequation=\count266
+\dspbrk@lvl=\count267
+\tag@help=\toks20
+\row@=\count268
+\column@=\count269
+\maxfields@=\count270
+\andhelp@=\toks21
+\eqnshift@=\dimen147
+\alignsep@=\dimen148
+\tagshift@=\dimen149
+\tagwidth@=\dimen150
+\totwidth@=\dimen151
+\lineht@=\dimen152
+\@envbody=\toks22
+\multlinegap=\skip61
+\multlinetaggap=\skip62
+\mathdisplay@stack=\toks23
+LaTeX Info: Redefining \[ on input line 2923.
+LaTeX Info: Redefining \] on input line 2924.
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/amssymb.sty
+Package: amssymb 2013/01/14 v3.01 AMS font symbols
+)
+(/usr/share/texlive/texmf-dist/tex/latex/colortbl/colortbl.sty
+Package: colortbl 2020/01/04 v1.0e Color table columns (DPC)
+
+(/usr/share/texlive/texmf-dist/tex/latex/tools/array.sty
+Package: array 2020/10/01 v2.5c Tabular extension package (FMi)
+\col@sep=\dimen153
+\ar@mcellbox=\box51
+\extrarowheight=\dimen154
+\NC@list=\toks24
+\extratabsurround=\skip63
+\backup@length=\skip64
+\ar@cellbox=\box52
+)
+\everycr=\toks25
+\minrowclearance=\skip65
+)
+(/usr/share/texlive/texmf-dist/tex/latex/amscls/amsthm.sty
+Package: amsthm 2020/05/29 v2.20.6
+\thm@style=\toks26
+\thm@bodyfont=\toks27
+\thm@headfont=\toks28
+\thm@notefont=\toks29
+\thm@headpunct=\toks30
+\thm@preskip=\skip66
+\thm@postskip=\skip67
+\thm@headsep=\skip68
+\dth@everypar=\toks31
+)
+(/usr/share/texlive/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2020/01/12 v1.61803398 Publication quality tables
+\heavyrulewidth=\dimen155
+\lightrulewidth=\dimen156
+\cmidrulewidth=\dimen157
+\belowrulesep=\dimen158
+\belowbottomsep=\dimen159
+\aboverulesep=\dimen160
+\abovetopsep=\dimen161
+\cmidrulesep=\dimen162
+\cmidrulekern=\dimen163
+\defaultaddspace=\dimen164
+\@cmidla=\count271
+\@cmidlb=\count272
+\@aboverulesep=\dimen165
+\@belowrulesep=\dimen166
+\@thisruleclass=\count273
+\@lastruleclass=\count274
+\@thisrulewidth=\dimen167
+)
+(/usr/share/texlive/texmf-dist/tex/latex/tools/longtable.sty
+Package: longtable 2020/01/07 v4.13 Multi-page Table package (DPC)
+\LTleft=\skip69
+\LTright=\skip70
+\LTpre=\skip71
+\LTpost=\skip72
+\LTchunksize=\count275
+\LTcapwidth=\dimen168
+\LT@head=\box53
+\LT@firsthead=\box54
+\LT@foot=\box55
+\LT@lastfoot=\box56
+\LT@cols=\count276
+\LT@rows=\count277
+\c@LT@tables=\count278
+\c@LT@chunks=\count279
+\LT@p@ftn=\toks32
+)
+(/usr/share/texlive/texmf-dist/tex/latex/fancyvrb/fancyvrb.sty
+Package: fancyvrb 2021/01/20 v3.7 verbatim text (tvz,hv)
+\FV@CodeLineNo=\count280
+\FV@InFile=\read2
+\FV@TabBox=\box57
+\c@FancyVerbLine=\count281
+\FV@StepNumber=\count282
+\FV@OutFile=\write3
+)
+(/usr/share/texlive/texmf-dist/tex/latex/etoolbox/etoolbox.sty
+Package: etoolbox 2020/10/05 v2.5k e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count283
+)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 2020/09/09 v1.2b Enhanced LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2020/08/30 v1.4c Standard LaTeX Graphics (DPC,SPQR)
+
+(/usr/share/texlive/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 2016/01/03 v1.10 sin cos tan (DPC)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
+)
+Package graphics Info: Driver file: pdftex.def on input line 105.
+)
+\Gin@req@height=\dimen169
+\Gin@req@width=\dimen170
+)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref.sty
+Package: hyperref 2021-02-27 v7.00k Hypertext links for LaTeX
+
+(/usr/share/texlive/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty
+Package: ltxcmds 2020-05-10 v1.25 LaTeX kernel commands for general use (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/iftex/iftex.sty
+Package: iftex 2020/03/06 v1.0d TeX engine tests
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+Package: pdftexcmds 2020-06-27 v0.33 Utility functions of pdfTeX for LuaTeX (HO
+)
+
+(/usr/share/texlive/texmf-dist/tex/generic/infwarerr/infwarerr.sty
+Package: infwarerr 2019/12/03 v1.5 Providing info/warning/error messages (HO)
+)
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+)
+(/usr/share/texlive/texmf-dist/tex/generic/kvsetkeys/kvsetkeys.sty
+Package: kvsetkeys 2019/12/15 v1.18 Key value parser (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
+Package: kvdefinekeys 2019-12-19 v1.6 Define keys (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/pdfescape/pdfescape.sty
+Package: pdfescape 2019/12/09 v1.15 Implements pdfTeX's escape features (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/hycolor/hycolor.sty
+Package: hycolor 2020-01-27 v1.10 Color options for hyperref/bookmark (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/letltxmacro/letltxmacro.sty
+Package: letltxmacro 2019/12/03 v1.6 Let assignment for LaTeX macros (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/auxhook/auxhook.sty
+Package: auxhook 2019-12-17 v1.6 Hooks for auxiliary files (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/latex/kvoptions/kvoptions.sty
+Package: kvoptions 2020-10-07 v3.14 Key value format for package options (HO)
+)
+\@linkdim=\dimen171
+\Hy@linkcounter=\count284
+\Hy@pagecounter=\count285
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/pd1enc.def
+File: pd1enc.def 2021-02-27 v7.00k Hyperref: PDFDocEncoding definition (HO)
+Now handling font encoding PD1 ...
+... no UTF-8 mapping file for font encoding PD1
+)
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hyperref-langpatches.def
+File: hyperref-langpatches.def 2021-02-27 v7.00k Hyperref: patches for babel la
+nguages
+)
+(/usr/share/texlive/texmf-dist/tex/generic/intcalc/intcalc.sty
+Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/etexcmds/etexcmds.sty
+Package: etexcmds 2019/12/15 v1.7 Avoid name clashes with e-TeX commands (HO)
+)
+\Hy@SavedSpaceFactor=\count286
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/puenc.def
+File: puenc.def 2021-02-27 v7.00k Hyperref: PDF Unicode definition (HO)
+Now handling font encoding PU ...
+... no UTF-8 mapping file for font encoding PU
+)
+Package hyperref Info: Hyper figures OFF on input line 4192.
+Package hyperref Info: Link nesting OFF on input line 4197.
+Package hyperref Info: Hyper index ON on input line 4200.
+Package hyperref Info: Plain pages OFF on input line 4207.
+Package hyperref Info: Backreferencing OFF on input line 4212.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4445.
+\c@Hy@tempcnt=\count287
+
+(/usr/share/texlive/texmf-dist/tex/latex/url/url.sty
+\Urlmuskip=\muskip17
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 4804.
+\XeTeXLinkMargin=\dimen172
+
+(/usr/share/texlive/texmf-dist/tex/generic/bitset/bitset.sty
+Package: bitset 2019/12/09 v1.3 Handle bit-vector datatype (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty
+Package: bigintcalc 2019/12/15 v1.5 Expandable calculations on big integers (HO
+)
+))
+\Fld@menulength=\count288
+\Field@Width=\dimen173
+\Fld@charsize=\dimen174
+Package hyperref Info: Hyper figures OFF on input line 6075.
+Package hyperref Info: Link nesting OFF on input line 6080.
+Package hyperref Info: Hyper index ON on input line 6083.
+Package hyperref Info: backreferencing OFF on input line 6090.
+Package hyperref Info: Link coloring OFF on input line 6095.
+Package hyperref Info: Link coloring with OCG OFF on input line 6100.
+Package hyperref Info: PDF/A mode OFF on input line 6105.
+LaTeX Info: Redefining \ref on input line 6145.
+LaTeX Info: Redefining \pageref on input line 6149.
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/atbegshi-ltx.sty
+Package: atbegshi-ltx 2020/08/17 v1.0a Emulation of the original atbegshi packa
+ge
+with kernel methods
+)
+\Hy@abspage=\count289
+\c@Item=\count290
+\c@Hfootnote=\count291
+)
+Package hyperref Info: Driver (autodetected): hpdftex.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/hpdftex.def
+File: hpdftex.def 2021-02-27 v7.00k Hyperref driver for pdfTeX
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/atveryend-ltx.sty
+Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atvery packag
+e
+with kernel methods
+)
+\Fld@listcount=\count292
+\c@bookmark@seq@number=\count293
+
+(/usr/share/texlive/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+Package: rerunfilecheck 2019/12/05 v1.9 Rerun checks for auxiliary files (HO)
+
+(/usr/share/texlive/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+Package: uniquecounter 2019/12/15 v1.4 Provide unlimited unique counter (HO)
+)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+86.
+)
+\Hy@SectionHShift=\skip73
+)
+(/usr/share/texlive/texmf-dist/tex/latex/mathtools/mathtools.sty
+Package: mathtools 2021/03/18 v1.25 mathematical typesetting tools
+
+(/usr/share/texlive/texmf-dist/tex/latex/tools/calc.sty
+Package: calc 2017/05/25 v4.3 Infix arithmetic (KKT,FJ)
+\calc@Acount=\count294
+\calc@Bcount=\count295
+\calc@Adimen=\dimen175
+\calc@Bdimen=\dimen176
+\calc@Askip=\skip74
+\calc@Bskip=\skip75
+LaTeX Info: Redefining \setlength on input line 80.
+LaTeX Info: Redefining \addtolength on input line 81.
+\calc@Ccount=\count296
+\calc@Cskip=\skip76
+)
+(/usr/share/texlive/texmf-dist/tex/latex/mathtools/mhsetup.sty
+Package: mhsetup 2021/03/18 v1.4 programming setup (MH)
+)
+LaTeX Info: Thecontrolsequence`\('isalreadyrobust on input line 130.
+LaTeX Info: Thecontrolsequence`\)'isalreadyrobust on input line 130.
+LaTeX Info: Thecontrolsequence`\['isalreadyrobust on input line 130.
+LaTeX Info: Thecontrolsequence`\]'isalreadyrobust on input line 130.
+\g_MT_multlinerow_int=\count297
+\l_MT_multwidth_dim=\dimen177
+\origjot=\skip77
+\l_MT_shortvdotswithinadjustabove_dim=\dimen178
+\l_MT_shortvdotswithinadjustbelow_dim=\dimen179
+\l_MT_above_intertext_sep=\dimen180
+\l_MT_below_intertext_sep=\dimen181
+\l_MT_above_shortintertext_sep=\dimen182
+\l_MT_below_shortintertext_sep=\dimen183
+\xmathstrut@box=\box58
+\xmathstrut@dim=\dimen184
+)
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.sty
+Package: microtype 2021/03/14 v2.8c Micro-typographical refinements (RS)
+\MT@toks=\toks33
+\MT@count=\count298
+LaTeX Info: Redefining \textls on input line 790.
+\MT@outer@kern=\dimen185
+LaTeX Info: Redefining \textmicrotypecontext on input line 1374.
+\MT@listname@count=\count299
+
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype-pdftex.def
+File: microtype-pdftex.def 2021/03/14 v2.8c Definitions specific to pdftex (RS)
+
+LaTeX Info: Redefining \lsstyle on input line 915.
+LaTeX Info: Redefining \lslig on input line 915.
+\MT@outer@space=\skip78
+)
+Package microtype Info: Loading configuration file microtype.cfg.
+
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/microtype.cfg
+File: microtype.cfg 2021/03/14 v2.8c microtype main configuration file (RS)
+))
+(/usr/share/texlive/texmf-dist/tex/latex/tools/tabularx.sty
+Package: tabularx 2020/01/15 v2.11c `tabularx' package (DPC)
+\TX@col@width=\dimen186
+\TX@old@table=\dimen187
+\TX@old@col=\dimen188
+\TX@target=\dimen189
+\TX@delta=\dimen190
+\TX@cols=\count300
+\TX@ftn=\toks34
+)
+(/usr/share/texlive/texmf-dist/tex/latex/float/float.sty
+Package: float 2001/11/08 v1.3d Float enhancements (AL)
+\c@float@type=\count301
+\float@exts=\toks35
+\float@box=\box59
+\@float@everytoks=\toks36
+\@floatcapt=\box60
+)
+(/usr/share/texlive/texmf-dist/tex/latex/placeins/placeins.sty
+Package: placeins 2005/04/18  v 2.2
+)
+(/usr/share/texlive/texmf-dist/tex/latex/algorithms/algorithm.sty
+Package: algorithm 2009/08/24 v0.1 Document Style `algorithm' - floating enviro
+nment
+
+(/usr/share/texlive/texmf-dist/tex/latex/base/ifthen.sty
+Package: ifthen 2014/09/29 v1.1c Standard LaTeX ifthen package (DPC)
+)
+\@float@every@algorithm=\toks37
+\c@algorithm=\count302
+)
+(/usr/share/texlive/texmf-dist/tex/latex/algorithms/algorithmic.sty
+Package: algorithmic 2009/08/24 v0.1 Document Style `algorithmic'
+\c@ALC@unique=\count303
+\c@ALC@line=\count304
+\c@ALC@rem=\count305
+\c@ALC@depth=\count306
+\ALC@tlm=\skip79
+\algorithmicindent=\skip80
+)
+(/usr/share/texlive/texmf-dist/tex/latex/paralist/paralist.sty
+Package: paralist 2017/01/22 v2.7 Extended list environments
+\pltopsep=\skip81
+\plpartopsep=\skip82
+\plitemsep=\skip83
+\plparsep=\skip84
+\pl@lab=\toks38
+)
+Package hyperref Info: Option `hypertexnames' set `false' on input line 48.
+ (./wrapfig.sty
+\wrapoverhang=\dimen191
+\WF@size=\dimen192
+\c@WF@wrappedlines=\count307
+\WF@box=\box61
+\WF@everypar=\toks39
+Package: wrapfig 2003/01/31  v 3.6
+) (./results/mode_diversity_coverage.tex) (./results/pmd_retention_macros.tex)
+(./results/replay_bank_decomposition_macros.tex)
+(./results/domain_support_macros.tex) (./results/replay_cost_macros.tex)
+(./results/kl_replay_recovery_macros.tex) (./results/reference_kl_macros.tex)
+(./results/control_learning_macros.tex) (./results/mode_keying_macros.tex)
+(./results/mathir_support_geometry_macros.tex)
+(./results/mathir_scope_macros.tex)
+(./results/mode_diversity_hosted_cohort_macros.tex)
+(./results/qwen_level_trend_macros.tex)
+(./results/portfolio_withdrawal_macros.tex)
+\c@lemma=\count308
+
+(/usr/share/texlive/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+File: l3backend-pdftex.def 2021-03-18 L3 backend support: PDF output (pdfTeX)
+\l__color_backend_stack_int=\count309
+\l__pdf_internal_box=\box62
+)
+(/n/fs/similarity/maxent-grpo/paper/audits/fresh_concentration_integration_2026
+0922/build/main.aux)
+\openout1 = `main.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 164.
+LaTeX Font Info:    ... okay on input line 164.
+
+(/usr/share/texlive/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count310
+\scratchdimen=\dimen193
+\scratchbox=\box63
+\nofMPsegments=\count311
+\nofMParguments=\count312
+\everyMPshowfont=\toks40
+\MPscratchCnt=\count313
+\MPscratchDim=\dimen194
+\MPnumerator=\count314
+\makeMPintoPDFobject=\count315
+\everyMPtoPDFconversion=\toks41
+) (/usr/share/texlive/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
+Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 4
+85.
+
+(/usr/share/texlive/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
+e
+))
+Package hyperref Info: Link coloring OFF on input line 164.
+
+(/usr/share/texlive/texmf-dist/tex/latex/hyperref/nameref.sty
+Package: nameref 2021-04-02 v2.47 Cross-referencing by name of section
+
+(/usr/share/texlive/texmf-dist/tex/latex/refcount/refcount.sty
+Package: refcount 2019/12/15 v3.6 Data extraction from label references (HO)
+)
+(/usr/share/texlive/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+Package: gettitlestring 2019/12/15 v1.6 Cleanup title references (HO)
+)
+\c@section@level=\count316
+)
+LaTeX Info: Redefining \ref on input line 164.
+LaTeX Info: Redefining \pageref on input line 164.
+LaTeX Info: Redefining \nameref on input line 164.
+
+(/n/fs/similarity/maxent-grpo/paper/audits/fresh_concentration_integration_2026
+0922/build/main.out)
+(/n/fs/similarity/maxent-grpo/paper/audits/fresh_concentration_integration_2026
+0922/build/main.out)
+\@outlinefile=\write4
+\openout4 = `main.out'.
+
+LaTeX Info: Redefining \microtypecontext on input line 164.
+Package microtype Info: Generating PDF output.
+Package microtype Info: Character protrusion enabled (level 2).
+Package microtype Info: Using default protrusion set `alltext'.
+Package microtype Info: Automatic font expansion enabled (level 2),
+(microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
+Package microtype Info: Using default expansion set `alltext-nott'.
+LaTeX Info: Redefining \showhyphens on input line 164.
+Package microtype Info: No adjustment of tracking.
+Package microtype Info: No adjustment of interword spacing.
+Package microtype Info: No adjustment of character kerning.
+
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-ptm.cfg
+File: mt-ptm.cfg 2006/04/20 v1.7 microtype config. file: Times (RS)
+)
+Underfull \hbox (badness 2376) in paragraph at lines 167--167
+[]\T1/ptm/m/sc/17.28 (+20) Measuring and Mit-i-gat-ing So-lu-tion Mode
+ []
+
+
+Underfull \hbox (badness 2351) in paragraph at lines 167--167
+\T1/ptm/m/sc/17.28 (+20) Col-lapse in RLVR 
+ []
+
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-cmr.cfg
+File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman 
+(RS)
+)
+LaTeX Font Info:    Trying to load font information for U+msa on input line 167
+.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
+File: umsa.fd 2013/01/14 v3.01 AMS symbols A
+)
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
+File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
+)
+LaTeX Font Info:    Trying to load font information for U+msb on input line 167
+.
+
+(/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
+File: umsb.fd 2013/01/14 v3.01 AMS symbols B
+)
+(/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msb.cfg
+File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
+)
+Underfull \hbox (badness 3281) in paragraph at lines 167--167
+[][] 
+ []
+
+
+Package hyperref Warning: Ignoring empty anchor on input line 193.
+
+<icons/huggingface.png, id=458, 513.92pt x 477.785pt>
+File: icons/huggingface.png Graphic file (type png)
+<use icons/huggingface.png>
+Package pdftex.def Info: icons/huggingface.png  used on input line 193.
+(pdftex.def)             Requested size: 9.67674pt x 9.0pt.
+<icons/gh_logo.png, id=461, 352.40228pt x 352.40228pt>
+File: icons/gh_logo.png Graphic file (type png)
+<use icons/gh_logo.png>
+Package pdftex.def Info: icons/gh_logo.png  used on input line 193.
+(pdftex.def)             Requested size: 8.99608pt x 9.0pt.
+<figures/modecollapse_story.pdf, id=463, 953.96402pt x 341.42993pt>
+File: figures/modecollapse_story.pdf Graphic file (type pdf)
+<use figures/modecollapse_story.pdf>
+Package pdftex.def Info: figures/modecollapse_story.pdf  used on input line 197
+.
+(pdftex.def)             Requested size: 397.48499pt x 142.26385pt.
+LaTeX Font Info:    Trying to load font information for T1+pcr on input line 20
+2.
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/t1pcr.fd
+File: t1pcr.fd 2001/06/04 font definitions for T1/pcr.
+)
+Package microtype Info: Loading generic protrusion settings for font family
+(microtype)             `pcr' (encoding: T1).
+(microtype)             For optimal results, create family-specific settings.
+(microtype)             See the microtype manual for details.
+ [1{/usr/share/texlive/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}
+
+ <./figures/modecollapse_story.pdf> <./icons/huggingface.png> <./icons/gh_logo.
+png>]
+Underfull \hbox (badness 2103) in paragraph at lines 241--242
+\T1/ptm/m/n/10 (+20) tions and im-proved model per-for-mance. 
+ []
+
+<figures/modebench_examples.pdf, id=541, 1211.78723pt x 276.79411pt>
+File: figures/modebench_examples.pdf Graphic file (type pdf)
+<use figures/modebench_examples.pdf>
+Package pdftex.def Info: figures/modebench_examples.pdf  used on input line 249
+.
+(pdftex.def)             Requested size: 397.48499pt x 90.78905pt.
+[2 <./figures/modebench_examples.pdf>]
+<figures/mode_diversity_levels_appendix.pdf, id=597, 462.52798pt x 151.767pt>
+File: figures/mode_diversity_levels_appendix.pdf Graphic file (type pdf)
+<use figures/mode_diversity_levels_appendix.pdf>
+Package pdftex.def Info: figures/mode_diversity_levels_appendix.pdf  used on in
+put line 276.
+(pdftex.def)             Requested size: 377.60951pt x 123.91016pt.
+
+Underfull \hbox (badness 1087) in paragraph at lines 290--292
+[]\T1/ptm/m/n/10 (+20) That ob-vi-ous way to mea-sure modal di-ver-sity is to c
+ount dis-tinct cor-rect an-swers in $\OML/cmm/m/it/10 K$
+ []
+
+
+Underfull \hbox (badness 1226) in paragraph at lines 290--292
+\T1/ptm/m/n/10 (+20) ity is di-vided among the valid an-swers. Then 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 293--293
+[] 
+ []
+
+
+Underfull \hbox (badness 2261) in paragraph at lines 301--302
+\T1/ptm/m/n/10 (+20) while pro-duc-ing less di-verse so-lu-tions. 
+ []
+
+<figures/qwen_level_trends.pdf, id=599, 246.4407pt x 140.9265pt>
+File: figures/qwen_level_trends.pdf Graphic file (type pdf)
+<use figures/qwen_level_trends.pdf>
+Package pdftex.def Info: figures/qwen_level_trends.pdf  used on input line 318.
+
+(pdftex.def)             Requested size: 222.5906pt x 127.28854pt.
+[3 <./figures/mode_diversity_levels_appendix.pdf>]
+
+Package wrapfig Warning: Stationary wrapfigure forced to float on input line 32
+4.
+
+<figures/gpt56_all_levels32_sampling_budget.pdf, id=638, 462.52798pt x 137.313p
+t>
+File: figures/gpt56_all_levels32_sampling_budget.pdf Graphic file (type pdf)
+<use figures/gpt56_all_levels32_sampling_budget.pdf>
+Package pdftex.def Info: figures/gpt56_all_levels32_sampling_budget.pdf  used o
+n input line 343.
+(pdftex.def)             Requested size: 397.48499pt x 118.00934pt.
+[4 <./figures/qwen_level_trends.pdf> <./figures/gpt56_all_levels32_sampling_bud
+get.pdf>]
+Underfull \hbox (badness 1184) in paragraph at lines 358--359
+\T1/ptm/m/n/10 (+20) also adds modes, at an ac-cu-racy cost (Fig. []39[]). 
+ []
+
+<figures/replay_bank_balance.pdf, id=777, 199.70108pt x 96.25177pt>
+File: figures/replay_bank_balance.pdf Graphic file (type pdf)
+<use figures/replay_bank_balance.pdf>
+Package pdftex.def Info: figures/replay_bank_balance.pdf  used on input line 36
+8.
+(pdftex.def)             Requested size: 211.46039pt x 101.92503pt.
+
+Package wrapfig Warning: Stationary wrapfigure forced to float on input line 37
+6.
+
+[5 <./figures/replay_bank_balance.pdf>]
+Underfull \hbox (badness 10000) in paragraph at lines 420--420
+[] 
+ []
+
+
+Underfull \hbox (badness 1584) in paragraph at lines 426--429
+\T1/ptm/m/n/10 (+20) sam-pled modes re-ceive no ad-di-tional re-play. 
+ []
+
+<figures/verified_support_story.pdf, id=838, 532.53104pt x 145.91313pt>
+File: figures/verified_support_story.pdf Graphic file (type pdf)
+<use figures/verified_support_story.pdf>
+Package pdftex.def Info: figures/verified_support_story.pdf  used on input line
+ 434.
+(pdftex.def)             Requested size: 357.73405pt x 98.024pt.
+<figures/concentration_story_resampled.pdf, id=856, 227.6505pt x 165.13695pt>
+File: figures/concentration_story_resampled.pdf Graphic file (type pdf)
+<use figures/concentration_story_resampled.pdf>
+Package pdftex.def Info: figures/concentration_story_resampled.pdf  used on inp
+ut line 458.
+(pdftex.def)             Requested size: 194.76982pt x 141.28929pt.
+[6 <./figures/verified_support_story.pdf>]
+(./results/retention_matrix_panel_b_table_body.tex)
+<figures/e118_all_scale_factorial_progress.pdf, id=895, 267.84656pt x 143.68411
+pt>
+File: figures/e118_all_scale_factorial_progress.pdf Graphic file (type pdf)
+<use figures/e118_all_scale_factorial_progress.pdf>
+Package pdftex.def Info: figures/e118_all_scale_factorial_progress.pdf  used on
+ input line 520.
+(pdftex.def)             Requested size: 250.41748pt x 134.33517pt.
+ [7 <./figures/concentration_story_resampled.pdf>]
+<figures/replay_key_weighting.pdf, id=978, 484.209pt x 130.086pt>
+File: figures/replay_key_weighting.pdf Graphic file (type pdf)
+<use figures/replay_key_weighting.pdf>
+Package pdftex.def Info: figures/replay_key_weighting.pdf  used on input line 5
+38.
+(pdftex.def)             Requested size: 397.48499pt x 106.79028pt.
+
+Underfull \hbox (badness 1314) in paragraph at lines 544--546
+[]\T1/ptm/b/n/10 (+20) Other di-ver-sity mech-a-nisms give smaller ag-gre-gate 
+gains. \T1/ptm/m/n/10 (+20) Ta-ble []1[] com-pares UCPO,
+ []
+
+
+Underfull \hbox (badness 1112) in paragraph at lines 544--546
+\T1/ptm/m/n/10 (+20) tage does not im-ply dom-i-nance in ev-ery do-main. 
+ []
+
+<figures/modebench_level_admission.pdf, id=981, 190.60648pt x 137.74342pt>
+File: figures/modebench_level_admission.pdf Graphic file (type pdf)
+<use figures/modebench_level_admission.pdf>
+Package pdftex.def Info: figures/modebench_level_admission.pdf  used on input l
+ine 556.
+(pdftex.def)             Requested size: 135.0087pt x 97.56493pt.
+
+Underfull \hbox (badness 1406) in paragraph at lines 557--557
+\T1/ptm/m/n/10 (+20) 0.5B, Lev-els 1--3. App. []F.2[] gives
+ []
+
+<figures/reference_kl_plane.pdf, id=984, 261.70009pt x 188.88516pt>
+File: figures/reference_kl_plane.pdf Graphic file (type pdf)
+<use figures/reference_kl_plane.pdf>
+Package pdftex.def Info: figures/reference_kl_plane.pdf  used on input line 562
+.
+(pdftex.def)             Requested size: 135.17436pt x 97.56493pt.
+[8 <./figures/e118_all_scale_factorial_progress.pdf> <./figures/replay_key_weig
+hting.pdf>] [9 <./figures/modebench_level_admission.pdf> <./figures/reference_k
+l_plane.pdf>] [10
+
+]
+(/n/fs/similarity/maxent-grpo/paper/audits/fresh_concentration_integration_2026
+0922/build/main.bbl
+Underfull \hbox (badness 1137) in paragraph at lines 10--14
+\T1/ptm/m/n/10 (+20) Weiner, and Natasha Jaques.  How LLMs dis-tort our writ-te
+n lan-guage, 2026.  URL
+ []
+
+
+Underfull \hbox (badness 1715) in paragraph at lines 26--30
+[]\T1/ptm/m/n/10 (+20) Emmanuelle An-ceaume, Yann Bus-nel, Ernst Schulte-Geers,
+ and Bruno Seri-cola.  Op-ti-
+ []
+
+
+Underfull \hbox (badness 2837) in paragraph at lines 26--30
+\T1/ptm/m/n/10 (+20) miza-tion re-sults for a gen-er-al-ized coupon col-lec-tor
+ prob-lem, 2015.  URL []$\T1/pcr/m/n/10 https :
+ []
+
+
+Underfull \hbox (badness 1354) in paragraph at lines 88--95
+\T1/ptm/m/n/10 (+20) Yu Cheng, Bowen Zhou, and Ning Ding.  The en-tropy mech-a-
+nism of re-in-force-ment
+ []
+
+[11
+
+]
+Underfull \hbox (badness 1168) in paragraph at lines 222--228
+\T1/ptm/m/n/10 (+20) Ma, Tianyi Lyu, Linyang Li, Dahua Lin, Qipeng Guo, Qing-we
+n Liu, and Kai Chen.
+ []
+
+
+Underfull \hbox (badness 2495) in paragraph at lines 222--228
+\T1/ptm/m/n/10 (+20) Be-yond mode col-lapse: Dis-tri-bu-tion match-ing for di-v
+erse rea-son-ing, 2026b.  URL
+ []
+
+[12]
+Underfull \hbox (badness 2671) in paragraph at lines 317--321
+\T1/ptm/m/n/10 (+20) pute op-ti-mally can be more ef-fec-tive than scal-ing mod
+el pa-ram-e-ters, 2024.  URL
+ []
+
+
+Underfull \hbox (badness 3049) in paragraph at lines 345--353
+[]\T1/ptm/m/n/10 (+20) Nino Vieil-lard, Tadashi Kozuno, Bruno Scher-rer, Olivie
+r Pietquin, Rémi Munos, and
+ []
+
+
+Underfull \hbox (badness 1163) in paragraph at lines 345--353
+\T1/ptm/m/n/10 (+20) ume 33, 2020.  URL []$\T1/pcr/m/n/10 https : / / proceedin
+gs . neurips . cc / paper / 2020 / hash /
+ []
+
+[13]) [14] [15
+
+] [16] [17
+
+]
+Underfull \hbox (badness 2245) in paragraph at lines 936--937
+[]\T1/ptm/m/n/10 (+20) For $\OML/cmm/m/it/10 K$ \T1/ptm/m/n/10 (+20) in-de-pen-
+dent sam-ples $\OML/cmm/m/it/10 Y[]$\T1/ptm/m/n/10 (+20) , let 
+ []
+
+
+Underfull \hbox (badness 1337) in paragraph at lines 941--946
+\T1/pcr/m/n/10 mean@$\OML/cmm/m/it/10 K \OT1/cmr/m/n/10 = \U/msb/m/n/10 E\OT1/c
+mr/m/n/10 [\OML/cmm/m/it/10 F[]\OT1/cmr/m/n/10 ]$ \T1/ptm/m/n/10 (+20) are prob
+-a-bil-i-ties in $\OT1/cmr/m/n/10 [0\OML/cmm/m/it/10 ; \OT1/cmr/m/n/10 1]$\T1/p
+tm/m/n/10 (+20) . 
+ []
+
+LaTeX Font Info:    Font shape `T1/pcr/m/it' in size <10> not available
+(Font)              Font shape `T1/pcr/m/sl' tried instead on input line 953.
+[18
+
+] [19]
+<figures/replay_bank_decomposition.pdf, id=1479, 457.31227pt x 206.30049pt>
+File: figures/replay_bank_decomposition.pdf Graphic file (type pdf)
+<use figures/replay_bank_decomposition.pdf>
+Package pdftex.def Info: figures/replay_bank_decomposition.pdf  used on input l
+ine 1081.
+(pdftex.def)             Requested size: 341.83733pt x 154.21501pt.
+ [20 <./figures/replay_bank_decomposition.pdf>] [21
+
+] [22]
+Underfull \hbox (badness 1038) in paragraph at lines 1356--1359
+\T1/ptm/m/n/10 (+20) so its dif-fi-culty is not cov-ered by that cal-i-bra-tion
+. 
+ []
+
+
+Underfull \hbox (badness 1221) in paragraph at lines 1361--1365
+\T1/ptm/m/n/10 (+20) meets these cri-te-ria in all five do-mains. Level 4 meets
+ them in \T1/pcr/m/n/10 Graph\T1/ptm/m/n/10 (+20) , \T1/pcr/m/n/10 Countdown\T1
+/ptm/m/n/10 (+20) ,
+ []
+
+
+Underfull \hbox (badness 1297) in paragraph at lines 1361--1365
+\T1/pcr/m/n/10 Python\T1/ptm/m/n/10 (+20) , and \T1/pcr/m/n/10 PantryPlan\T1/pt
+m/m/n/10 (+20) , but not \T1/pcr/m/n/10 MathIR\T1/ptm/m/n/10 (+20) . 
+ []
+
+[23]
+File: figures/qwen_level_trends.pdf Graphic file (type pdf)
+<use figures/qwen_level_trends.pdf>
+Package pdftex.def Info: figures/qwen_level_trends.pdf  used on input line 1409
+.
+(pdftex.def)             Requested size: 246.43874pt x 140.92615pt.
+<figures/mode_diversity_level_construction.pdf, id=1578, 462.52798pt x 604.1771
+9pt>
+File: figures/mode_diversity_level_construction.pdf Graphic file (type pdf)
+<use figures/mode_diversity_level_construction.pdf>
+Package pdftex.def Info: figures/mode_diversity_level_construction.pdf  used on
+ input line 1423.
+(pdftex.def)             Requested size: 397.48499pt x 519.24115pt.
+<figures/frontier_level_grid.pdf, id=1579, 569.26115pt x 173.55159pt>
+File: figures/frontier_level_grid.pdf Graphic file (type pdf)
+<use figures/frontier_level_grid.pdf>
+Package pdftex.def Info: figures/frontier_level_grid.pdf  used on input line 14
+38.
+(pdftex.def)             Requested size: 397.48499pt x 121.18338pt.
+<figures/mode_diversity_families_appendix.pdf, id=1582, 462.52798pt x 151.767pt
+>
+File: figures/mode_diversity_families_appendix.pdf Graphic file (type pdf)
+<use figures/mode_diversity_families_appendix.pdf>
+Package pdftex.def Info: figures/mode_diversity_families_appendix.pdf  used on 
+input line 1453.
+(pdftex.def)             Requested size: 365.68546pt x 119.99649pt.
+
+Underfull \hbox (badness 1215) in paragraph at lines 1471--1476
+\T1/ptm/m/n/10 (+20) ers Level 5. Colour in-di-cates pa-ram-e-ter count. 
+ []
+
+[24] [25 <./figures/mode_diversity_level_construction.pdf>] [26 <./figures/fron
+tier_level_grid.pdf> <./figures/mode_diversity_families_appendix.pdf>] [27]
+Underfull \hbox (badness 1888) in paragraph at lines 1589--1590
+\T1/ptm/m/n/10 (+20) 384 train-ing and 128 eval-u-a-tion prompts. 
+ []
+
+
+Underfull \hbox (badness 1888) in paragraph at lines 1608--1609
+\T1/ptm/m/n/10 (+20) 384 train-ing and 128 eval-u-a-tion prompts. 
+ []
+
+
+Underfull \hbox (badness 1888) in paragraph at lines 1625--1626
+\T1/ptm/m/n/10 (+20) 384 train-ing and 128 eval-u-a-tion prompts. 
+ []
+
+
+Underfull \hbox (badness 1888) in paragraph at lines 1645--1646
+\T1/ptm/m/n/10 (+20) 384 train-ing and 128 eval-u-a-tion prompts. 
+ []
+
+[28
+
+]
+Underfull \hbox (badness 1888) in paragraph at lines 1665--1666
+\T1/ptm/m/n/10 (+20) 384 train-ing and 128 eval-u-a-tion prompts. 
+ []
+
+
+Underfull \hbox (badness 1430) in paragraph at lines 1722--1724
+\T1/ptm/m/n/10 (+20) uses $\OML/cmm/m/it/10 A[] \OT1/cmr/m/n/10 = \OML/cmm/m/it
+/10 R[] \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 R=G$\T1/ptm/m/n/10 (+20) , while 
+MaxRL uses 
+ []
+
+[29]
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on in
+put line 1744.
+
+Underfull \hbox (badness 1509) in paragraph at lines 1748--1752
+[] []\T1/ptm/m/n/9 (+20) Policy $\OML/cmm/m/it/9 ^^Y[]$\T1/ptm/m/n/9 (+20) ; pr
+ompt $\OML/cmm/m/it/9 x$ \T1/ptm/m/n/9 (+20) and ver-i-fier spec-i-fi-ca-tion $
+\OML/cmm/m/it/9 s[]$\T1/ptm/m/n/9 (+20) ; group size $\OML/cmm/m/it/9 G$\T1/ptm
+/m/n/9 (+20) ; fresh ob-jec-tive $\OML/cmm/m/it/9 o \OMS/cmsy/m/n/9 2
+ []
+
+[30]
+Underfull \hbox (badness 1242) in paragraph at lines 1853--1858
+\T1/ptm/m/n/10 (+20) re-ports re-sults for the same four-domain sub-set. 
+ []
+
+
+Underfull \hbox (badness 1142) in paragraph at lines 1912--1915
+\T1/ptm/m/n/10 (+20) A sam-pled key out-side $\OMS/cmsy/m/n/10 K[]$ \T1/ptm/m/n
+/10 (+20) re-ceives the unseen-bucket prob-a-bil-ity. Un-suc-cess-ful and in-
+ []
+
+
+Underfull \hbox (badness 3189) in paragraph at lines 1912--1915
+\T1/ptm/m/n/10 (+20) valid peers con-tribute no count. 
+ []
+
+[31] [32]
+<figures/replay_factorial_effects.pdf, id=1757, 484.209pt x 224.037pt>
+File: figures/replay_factorial_effects.pdf Graphic file (type pdf)
+<use figures/replay_factorial_effects.pdf>
+Package pdftex.def Info: figures/replay_factorial_effects.pdf  used on input li
+ne 1979.
+(pdftex.def)             Requested size: 397.48499pt x 183.91663pt.
+ (./results/core_terminal_endpoints_table_body.tex
+<icons/qwen.png, id=1761, 89.3739pt x 89.3739pt>
+File: icons/qwen.png Graphic file (type png)
+<use icons/qwen.png>
+Package pdftex.def Info: icons/qwen.png  used on input line 1.
+(pdftex.def)             Requested size: 5.5122pt x 5.51248pt.
+File: icons/qwen.png Graphic file (type png)
+<use icons/qwen.png>
+Package pdftex.def Info: icons/qwen.png  used on input line 13.
+(pdftex.def)             Requested size: 5.5122pt x 5.51248pt.
+)
+(./results/retention_matrix_panel_a_table_body.tex
+File: icons/qwen.png Graphic file (type png)
+<use icons/qwen.png>
+Package pdftex.def Info: icons/qwen.png  used on input line 2.
+(pdftex.def)             Requested size: 5.5122pt x 5.51248pt.
+File: icons/qwen.png Graphic file (type png)
+<use icons/qwen.png>
+Package pdftex.def Info: icons/qwen.png  used on input line 4.
+(pdftex.def)             Requested size: 5.5122pt x 5.51248pt.
+) [33
+
+ <./figures/replay_factorial_effects.pdf> <./icons/qwen.png>]
+<figures/e118_scale_extensions_appendix.pdf, id=1797, 487.25375pt x 523.92448pt
+>
+File: figures/e118_scale_extensions_appendix.pdf Graphic file (type pdf)
+<use figures/e118_scale_extensions_appendix.pdf>
+Package pdftex.def Info: figures/e118_scale_extensions_appendix.pdf  used on in
+put line 2071.
+(pdftex.def)             Requested size: 389.53358pt x 418.84436pt.
+<figures/replay_level2_effects.pdf, id=1805, 484.209pt x 130.086pt>
+File: figures/replay_level2_effects.pdf Graphic file (type pdf)
+<use figures/replay_level2_effects.pdf>
+Package pdftex.def Info: figures/replay_level2_effects.pdf  used on input line 
+2135.
+(pdftex.def)             Requested size: 397.48499pt x 106.79028pt.
+ [34] [35 <./figures/e118_scale_extensions_appendix.pdf>] (./results/level2_fac
+torial_contrasts_20260912_table_body.tex)
+[36 <./figures/replay_level2_effects.pdf>]
+<figures/factorial_training_curves_pass8.pdf, id=1887, 531.18451pt x 415.5525pt
+>
+File: figures/factorial_training_curves_pass8.pdf Graphic file (type pdf)
+<use figures/factorial_training_curves_pass8.pdf>
+Package pdftex.def Info: figures/factorial_training_curves_pass8.pdf  used on i
+nput line 2238.
+(pdftex.def)             Requested size: 397.48499pt x 310.97246pt.
+<figures/factorial_training_curves_pmd.pdf, id=1888, 531.18451pt x 435.7881pt>
+File: figures/factorial_training_curves_pmd.pdf Graphic file (type pdf)
+<use figures/factorial_training_curves_pmd.pdf>
+Package pdftex.def Info: figures/factorial_training_curves_pmd.pdf  used on inp
+ut line 2249.
+(pdftex.def)             Requested size: 397.48499pt x 326.11545pt.
+<figures/level2_factorial_training_curves.pdf, id=1891, 531.18451pt x 307.1475p
+t>
+File: figures/level2_factorial_training_curves.pdf Graphic file (type pdf)
+<use figures/level2_factorial_training_curves.pdf>
+Package pdftex.def Info: figures/level2_factorial_training_curves.pdf  used on 
+input line 2265.
+(pdftex.def)             Requested size: 397.48499pt x 229.8492pt.
+<figures/level2_training_curves_pmd.pdf, id=1894, 531.18451pt x 182.84311pt>
+File: figures/level2_training_curves_pmd.pdf Graphic file (type pdf)
+<use figures/level2_training_curves_pmd.pdf>
+Package pdftex.def Info: figures/level2_training_curves_pmd.pdf  used on input 
+line 2278.
+(pdftex.def)             Requested size: 397.48499pt x 136.82788pt.
+ [37 <./figures/factorial_training_curves_pass8.pdf>]
+Underfull \hbox (badness 1173) in paragraph at lines 2323--2331
+\T1/ptm/m/n/10 (+20) counts re-main cou-pled to cor-rect-ness (App. []F.6[]). 
+ []
+
+<figures/direct_baseline_learning_curves_pass8.pdf, id=2064, 511.70944pt x 350.
+56732pt>
+File: figures/direct_baseline_learning_curves_pass8.pdf Graphic file (type pdf)
+
+<use figures/direct_baseline_learning_curves_pass8.pdf>
+Package pdftex.def Info: figures/direct_baseline_learning_curves_pass8.pdf  use
+d on input line 2338.
+(pdftex.def)             Requested size: 397.48499pt x 272.32343pt.
+[38 <./figures/factorial_training_curves_pmd.pdf>] [39 <./figures/level2_factor
+ial_training_curves.pdf> <./figures/level2_training_curves_pmd.pdf>] [40 <./fig
+ures/direct_baseline_learning_curves_pass8.pdf>]
+(./results/semantic_current_summary_20260912.tex) [41]
+(./results/fresh_concentration_20260912_appendix.tex
+<figures/fresh_concentration_pcmd_20260912.pdf, id=2289, 531.18451pt x 263.7854
+9pt>
+File: figures/fresh_concentration_pcmd_20260912.pdf Graphic file (type pdf)
+<use figures/fresh_concentration_pcmd_20260912.pdf>
+Package pdftex.def Info: figures/fresh_concentration_pcmd_20260912.pdf  used on
+ input line 34.
+(pdftex.def)             Requested size: 397.48499pt x 197.39989pt.
+ [42]
+(./results/fresh_concentration_20260912_initial_table.tex)
+(./results/fresh_concentration_20260912_replay_table.tex) [43 <./figures/fresh_
+concentration_pcmd_20260912.pdf>])
+(./results/conditional_concentration_20260912_appendix.tex [44]
+Underfull \hbox (badness 1062) in paragraph at lines 30--36
+\T1/ptm/m/n/10 (+20) there-fore in-creases strictly along this ideal cat-e-gor-
+i-cal flow when-ever the pos-i-tive co-or-di-
+ []
+
+
+Underfull \hbox (badness 1377) in paragraph at lines 30--36
+\T1/ptm/m/n/10 (+20) a mono-tonic de-crease un-der finite-bank re-play. 
+ []
+
+[45] (./results/conditional_concentration_20260912_tables.tex))
+<figures/concentration_story_all_scales.pdf, id=2350, 285.46649pt x 433.62pt>
+File: figures/concentration_story_all_scales.pdf Graphic file (type pdf)
+<use figures/concentration_story_all_scales.pdf>
+Package pdftex.def Info: figures/concentration_story_all_scales.pdf  used on in
+put line 2450.
+(pdftex.def)             Requested size: 194.76982pt x 295.8634pt.
+<figures/concentration_levels.pdf, id=2351, 285.46649pt x 476.98201pt>
+File: figures/concentration_levels.pdf Graphic file (type pdf)
+<use figures/concentration_levels.pdf>
+Package pdftex.def Info: figures/concentration_levels.pdf  used on input line 2
+455.
+(pdftex.def)             Requested size: 194.76982pt x 325.44975pt.
+
+Underfull \hbox (badness 2302) in paragraph at lines 2509--2511
+[]\T1/ptm/m/n/10 (+20) Each method uses its own ini-tial eval-u-a-tion, so fini
+te-sample ini-tial es-ti-mates can dif-
+ []
+
+
+Underfull \hbox (badness 2894) in paragraph at lines 2509--2511
+\T1/ptm/m/n/10 (+20) fer de-spite shared model weights. 
+ []
+
+<figures/baseline_collapse_precheck.pdf, id=2353, 527.16988pt x 305.60815pt>
+File: figures/baseline_collapse_precheck.pdf Graphic file (type pdf)
+<use figures/baseline_collapse_precheck.pdf>
+Package pdftex.def Info: figures/baseline_collapse_precheck.pdf  used on input 
+line 2514.
+(pdftex.def)             Requested size: 397.48499pt x 230.43196pt.
+[46] [47] [48]
+
+LaTeX Warning: Text page 49 contains only floats.
+
+[49] (./results/absolute_support_references_table_body.tex
+File: icons/qwen.png Graphic file (type png)
+<use icons/qwen.png>
+Package pdftex.def Info: icons/qwen.png  used on input line 1.
+(pdftex.def)             Requested size: 5.5122pt x 5.51248pt.
+File: icons/qwen.png Graphic file (type png)
+<use icons/qwen.png>
+Package pdftex.def Info: icons/qwen.png  used on input line 7.
+(pdftex.def)             Requested size: 5.5122pt x 5.51248pt.
+) [50 <./figures/concentration_story_all_scales.pdf> <./figures/concentration_l
+evels.pdf>] [51 <./figures/baseline_collapse_precheck.pdf>]
+(./results/control_learning_table_body.tex) [52]
+<figures/e121_fixed_bank_survival.pdf, id=2609, 507.3423pt x 210.17395pt>
+File: figures/e121_fixed_bank_survival.pdf Graphic file (type pdf)
+<use figures/e121_fixed_bank_survival.pdf>
+Package pdftex.def Info: figures/e121_fixed_bank_survival.pdf  used on input li
+ne 2720.
+(pdftex.def)             Requested size: 377.60951pt x 156.43706pt.
+
+Underfull \hbox (badness 2237) in paragraph at lines 2732--2735
+[]\T1/ptm/m/n/10 (+20) Pooled sum-maries weight ex-em-plars equally. De-scrip-t
+ive 95% per-centile in-ter-vals use
+ []
+
+
+Underfull \hbox (badness 3302) in paragraph at lines 2732--2735
+\T1/ptm/m/n/10 (+20) then re-sam-pling the five seeds. 
+ []
+
+
+Underfull \hbox (badness 1603) in paragraph at lines 2736--2741
+\T1/ptm/m/n/10 (+20) i-date the prob-a-bil-ity floor in The-o-rem []P.21[]. 
+ []
+
+[53 <./figures/e121_fixed_bank_survival.pdf>]
+(./results/modebench_prompt_ablation_20260911.tex
+<figures/modebench_prompt_ablation_local.pdf, id=2627, 570.8082pt x 441.79747pt
+>
+File: figures/modebench_prompt_ablation_local.pdf Graphic file (type pdf)
+<use figures/modebench_prompt_ablation_local.pdf>
+Package pdftex.def Info: figures/modebench_prompt_ablation_local.pdf  used on i
+nput line 60.
+(pdftex.def)             Requested size: 397.48499pt x 307.65843pt.
+) [54
+
+] [55] [56 <./figures/modebench_prompt_ablation_local.pdf>]
+Underfull \hbox (badness 1147) in paragraph at lines 2860--2867
+\T1/ptm/m/n/10 (+20) out iden-ti-fy-ing the ef-fect of the Re:Dr ob-jec-tive. 
+ []
+
+<figures/decoding_objection.pdf, id=2730, 453.27094pt x 194.75774pt>
+File: figures/decoding_objection.pdf Graphic file (type pdf)
+<use figures/decoding_objection.pdf>
+Package pdftex.def Info: figures/decoding_objection.pdf  used on input line 287
+0.
+(pdftex.def)             Requested size: 397.48499pt x 170.79297pt.
+(./results/modebench_discovery_curves_20260911.tex [57 <./figures/decoding_obje
+ction.pdf>]
+Underfull \hbox (badness 2707) in paragraph at lines 14--15
+[]\T1/ptm/m/n/10 (+20) To com-pare breadth at a fixed num-ber of cor-rect draws
+, rar-efy $\OML/cmm/m/it/10 m$ \T1/ptm/m/n/10 (+20) out-puts from the
+ []
+
+
+Underfull \hbox (badness 4846) in paragraph at lines 14--15
+\T1/ptm/m/n/10 (+20) cor-rect re-sponses alone: 
+ []
+
+<figures/modebench_discovery_curves_frontier.pdf, id=2763, 525.6128pt x 469.643
+95pt>
+File: figures/modebench_discovery_curves_frontier.pdf Graphic file (type pdf)
+<use figures/modebench_discovery_curves_frontier.pdf>
+Package pdftex.def Info: figures/modebench_discovery_curves_frontier.pdf  used 
+on input line 95.
+(pdftex.def)             Requested size: 397.49689pt x 355.17023pt.
+<figures/modebench_discovery_correct_budget_frontier.pdf, id=2764, 527.25798pt 
+x 462.38083pt>
+File: figures/modebench_discovery_correct_budget_frontier.pdf Graphic file (typ
+e pdf)
+<use figures/modebench_discovery_correct_budget_frontier.pdf>
+Package pdftex.def Info: figures/modebench_discovery_correct_budget_frontier.pd
+f  used on input line 139.
+(pdftex.def)             Requested size: 397.48601pt x 348.57681pt.
+<figures/modebench_discovery_curves_local.pdf, id=2765, 525.6128pt x 469.64395p
+t>
+File: figures/modebench_discovery_curves_local.pdf Graphic file (type pdf)
+<use figures/modebench_discovery_curves_local.pdf>
+Package pdftex.def Info: figures/modebench_discovery_curves_local.pdf  used on 
+input line 183.
+(pdftex.def)             Requested size: 397.49689pt x 355.17023pt.
+<figures/modebench_discovery_correct_budget_local.pdf, id=2766, 521.40297pt x 4
+62.38083pt>
+File: figures/modebench_discovery_correct_budget_local.pdf Graphic file (type p
+df)
+<use figures/modebench_discovery_correct_budget_local.pdf>
+Package pdftex.def Info: figures/modebench_discovery_correct_budget_local.pdf  
+used on input line 227.
+(pdftex.def)             Requested size: 397.50354pt x 352.50665pt.
+) (./results/discovery_hosted_interpretation_20260912.tex
+Underfull \hbox (badness 1019) in paragraph at lines 4--11
+\T1/ptm/m/n/10 (+20) hosted eval-u-a-tion in-cludes no task-specific train-ing.
+ 
+ []
+
+[58] [59]) (./results/gpt56_all_levels32_sampling_20260913.tex [60 <./figures/m
+odebench_discovery_curves_frontier.pdf>] [61]
+Underfull \hbox (badness 2111) in paragraph at lines 82--88
+\T1/ptm/m/n/10 (+20) with-out ex-haust-ing the avail-able modes. 
+ []
+
+[62 <./figures/modebench_discovery_correct_budget_frontier.pdf>]) [63 <./figure
+s/modebench_discovery_curves_local.pdf>] [64] [65 <./figures/modebench_discover
+y_correct_budget_local.pdf>] (./results/inference_followups_20260912.tex
+Underfull \hbox (badness 1072) in paragraph at lines 16--23
+\T1/ptm/m/n/10 (+20) a-rately be-cause only five prob-lem clus-ters qual-ify. 
+ []
+
+
+Underfull \hbox (badness 1152) in paragraph at lines 32--39
+\T1/ptm/m/n/10 (+20) their con-text lengths and to-tal to-ken costs dif-fer. 
+ []
+
+<figures/pantry_adaptation_recovery_20260912.pdf, id=3322, 528.86334pt x 190.13
+61pt>
+File: figures/pantry_adaptation_recovery_20260912.pdf Graphic file (type pdf)
+<use figures/pantry_adaptation_recovery_20260912.pdf>
+Package pdftex.def Info: figures/pantry_adaptation_recovery_20260912.pdf  used 
+on input line 42.
+(pdftex.def)             Requested size: 397.48499pt x 142.90634pt.
+[66] [67 <./figures/pantry_adaptation_recovery_20260912.pdf>] [68] [69]
+Underfull \hbox (badness 1009) in paragraph at lines 333--339
+\T1/ptm/m/n/10 (+20) nor factor-pair vec-tors iden-tify dif-fer-ent al-go-rithm
+s. 
+ []
+
+) (./results/portfolio_withdrawals_20260917.tex [70]
+<figures/withdrawal_pmd_agreement.pdf, id=3384, 329.3344pt x 209.58301pt>
+File: figures/withdrawal_pmd_agreement.pdf Graphic file (type pdf)
+<use figures/withdrawal_pmd_agreement.pdf>
+Package pdftex.def Info: figures/withdrawal_pmd_agreement.pdf  used on input li
+ne 114.
+(pdftex.def)             Requested size: 246.43874pt x 156.83188pt.
+ [71] [72 <./figures/withdrawal_pmd_agreement.pdf>] [73]) [74] [75]
+(./results/frontier_hosted_20260911_appendix.tex
+Underfull \hbox (badness 10000) in paragraph at lines 10--17
+ []\T1/ptm/b/n/10 (+20) Evaluation setup.[] \T1/ptm/m/n/10 (+20) The de-ploy-me
+nt is \T1/pcr/m/n/10 gpt-5.6-sol\T1/ptm/m/n/10 (+20) , with model snap-shot
+ []
+
+(./results/frontier_hosted_20260911_macro_rows.tex)
+(./results/frontier_hosted_20260911_strict_rows.tex) [76
+
+]
+(./results/frontier_hosted_20260911_normalized_rows.tex) [77]) [78]
+(./results/mode_diversity_hosted_cohort_table_body.tex)
+(./results/frontier_comparison_20260911_appendix.tex
+Underfull \hbox (badness 1067) in paragraph at lines 15--19
+\T1/ptm/m/n/10 (+20) ing. Level 3 ex-tends the test tasks; per-for-mance across
+ lev-els need not fol-low a com-
+ []
+
+
+Underfull \hbox (badness 1616) in paragraph at lines 15--19
+\T1/ptm/m/n/10 (+20) mon dif-fi-culty or-der-ing for all de-ploy-ments. 
+ []
+
+(./results/frontier_comparison_20260911_protocol.tex [79])
+(./results/frontier_comparison_20260911_graph_figure.tex
+<figures/frontier_comparison_20260911_graph.pdf, id=3496, 509.39758pt x 196.141
+54pt>
+File: figures/frontier_comparison_20260911_graph.pdf Graphic file (type pdf)
+<use figures/frontier_comparison_20260911_graph.pdf>
+Package pdftex.def Info: figures/frontier_comparison_20260911_graph.pdf  used o
+n input line 3.
+(pdftex.def)             Requested size: 397.48499pt x 153.05562pt.
+)
+(./results/frontier_comparison_20260911_python_sensitivity.tex
+Underfull \hbox (badness 1221) in paragraph at lines 31--1
+\T1/ptm/m/n/10 (+20) Us-age to-tals omit re-quests with-out re-ported us-age an
+d there-fore give a lower bound on
+ []
+
+
+Underfull \hbox (badness 1867) in paragraph at lines 31--1
+\T1/ptm/m/n/10 (+20) the cost of all at-tempted re-quests.   
+ []
+
+[80 <./figures/frontier_comparison_20260911_graph.pdf>])
+(./results/frontier_python_retry_20260911.tex)
+(./results/frontier_temperature_20260911.tex [81])
+(./results/gpt56_temperature_curve_20260911_appendix.tex [82] [83]
+Underfull \hbox (badness 1077) in paragraph at lines 126--129
+\T1/ptm/m/n/10 (+20) prompt sub-set. The sub-sets dif-fer in prompts and col-le
+c-tion pe-ri-ods, so dif-fer-ences be-
+ []
+
+)
+<figures/gpt56_temperature_curve.pdf, id=3591, 476.98201pt x 224.037pt>
+File: figures/gpt56_temperature_curve.pdf Graphic file (type pdf)
+<use figures/gpt56_temperature_curve.pdf>
+Package pdftex.def Info: figures/gpt56_temperature_curve.pdf  used on input lin
+e 27.
+(pdftex.def)             Requested size: 389.53358pt x 182.96628pt.
+ (./results/frontier_comparison_20260911_provider_outcomes.tex [84]
+LaTeX Font Info:    Trying to load font information for TS1+ptm on input line 1
+8.
+
+(/usr/share/texlive/texmf-dist/tex/latex/psnfss/ts1ptm.fd
+File: ts1ptm.fd 2001/06/04 font definitions for TS1/ptm.
+))
+(./results/frontier_comparison_20260911_strict_overview_rows.tex)
+(./results/frontier_comparison_20260911_strict_cells.tex [85 <./figures/gpt56_t
+emperature_curve.pdf>] [86])
+(./results/frontier_comparison_20260911_normalized_cells.tex [87] [88]))
+(./results/hosted_level_averages_20260911.tex
+<icons/openai.png, id=3713, 128.48pt x 128.48pt>
+File: icons/openai.png Graphic file (type png)
+<use icons/openai.png>
+Package pdftex.def Info: icons/openai.png  used on input line 21.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+<icons/claude.png, id=3714, 92.5056pt x 92.5056pt>
+File: icons/claude.png Graphic file (type png)
+<use icons/claude.png>
+Package pdftex.def Info: icons/claude.png  used on input line 21.
+(pdftex.def)             Requested size: 9.4487pt x 9.4487pt.
+File: icons/openai.png Graphic file (type png)
+<use icons/openai.png>
+Package pdftex.def Info: icons/openai.png  used on input line 21.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+<icons/grok_official_docs_print.png, id=3715, 513.92pt x 513.92pt>
+File: icons/grok_official_docs_print.png Graphic file (type png)
+<use icons/grok_official_docs_print.png>
+Package pdftex.def Info: icons/grok_official_docs_print.png  used on input line
+ 21.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+<icons/kimi.png, id=3716, 128.48pt x 119.44624pt>
+File: icons/kimi.png Graphic file (type png)
+<use icons/kimi.png>
+Package pdftex.def Info: icons/kimi.png  used on input line 21.
+(pdftex.def)             Requested size: 9.44934pt x 8.78493pt.
+File: icons/claude.png Graphic file (type png)
+<use icons/claude.png>
+Package pdftex.def Info: icons/claude.png  used on input line 21.
+(pdftex.def)             Requested size: 9.4487pt x 9.4487pt.
+<icons/deepseek.png, id=3717, 128.48pt x 94.3525pt>
+File: icons/deepseek.png Graphic file (type png)
+<use icons/deepseek.png>
+Package pdftex.def Info: icons/deepseek.png  used on input line 21.
+(pdftex.def)             Requested size: 9.44934pt x 6.93935pt.
+)
+<figures/hosted_verified_breadth.pdf, id=3724, 462.52798pt x 231.26399pt>
+File: figures/hosted_verified_breadth.pdf Graphic file (type pdf)
+<use figures/hosted_verified_breadth.pdf>
+Package pdftex.def Info: figures/hosted_verified_breadth.pdf  used on input lin
+e 3151.
+(pdftex.def)             Requested size: 397.48499pt x 198.75258pt.
+
+(./results/hosted_level_averages_20260911_parity.tex
+Underfull \hbox (badness 10000) in paragraph at lines 3--19
+ []\T1/ptm/b/n/10 (+20) Comparison with com-mon prompts.[] \T1/ptm/m/n/10 (+20)
+ The ac-cu-racy pan-els of Fig. []40[] and the
+ []
+
+[89 <./icons/openai.png> <./icons/claude.png> <./icons/grok_official_docs_print
+.png> <./icons/kimi.png> <./icons/deepseek.png> <./figures/hosted_verified_brea
+dth.pdf>]) (./results/gpt56sol_python_parity_20260918.tex [90])
+(./results/hosted_reasoning_off_20260912_main.tex
+File: icons/openai.png Graphic file (type png)
+<use icons/openai.png>
+Package pdftex.def Info: icons/openai.png  used on input line 19.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+File: icons/openai.png Graphic file (type png)
+<use icons/openai.png>
+Package pdftex.def Info: icons/openai.png  used on input line 19.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+File: icons/grok_official_docs_print.png Graphic file (type png)
+<use icons/grok_official_docs_print.png>
+Package pdftex.def Info: icons/grok_official_docs_print.png  used on input line
+ 19.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+File: icons/kimi.png Graphic file (type png)
+<use icons/kimi.png>
+Package pdftex.def Info: icons/kimi.png  used on input line 19.
+(pdftex.def)             Requested size: 9.44934pt x 8.78493pt.
+File: icons/claude.png Graphic file (type png)
+<use icons/claude.png>
+Package pdftex.def Info: icons/claude.png  used on input line 19.
+(pdftex.def)             Requested size: 9.4487pt x 9.4487pt.
+)
+(./results/hosted_reasoning_off_20260912_appendix.tex
+Underfull \hbox (badness 10000) in paragraph at lines 13--24
+[]\T1/ptm/m/n/10 (+20) Both con-di-tions have an 8,192-token out-put cap. GPT-5
+.6 Sol and GPT-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 13--24
+\T1/ptm/m/n/10 (+20) 5.4 re-quest \T1/pcr/m/n/10 reasoning.effort=none\T1/ptm/m
+/n/10 (+20) ; Grok 4.3 and Kimi K3 re-quest
+ []
+
+
+Underfull \hbox (badness 1742) in paragraph at lines 13--24
+\T1/pcr/m/n/10 reasoning_effort=none\T1/ptm/m/n/10 (+20) . Claude Opus 4.8 re-q
+uests \T1/pcr/m/n/10 thinking.type=disabled
+ []
+
+[91]
+File: icons/openai.png Graphic file (type png)
+<use icons/openai.png>
+Package pdftex.def Info: icons/openai.png  used on input line 49.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+File: icons/openai.png Graphic file (type png)
+<use icons/openai.png>
+Package pdftex.def Info: icons/openai.png  used on input line 55.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+File: icons/grok_official_docs_print.png Graphic file (type png)
+<use icons/grok_official_docs_print.png>
+Package pdftex.def Info: icons/grok_official_docs_print.png  used on input line
+ 61.
+(pdftex.def)             Requested size: 9.44934pt x 9.44934pt.
+File: icons/kimi.png Graphic file (type png)
+<use icons/kimi.png>
+Package pdftex.def Info: icons/kimi.png  used on input line 67.
+(pdftex.def)             Requested size: 9.44934pt x 8.78493pt.
+File: icons/claude.png Graphic file (type png)
+<use icons/claude.png>
+Package pdftex.def Info: icons/claude.png  used on input line 73.
+(pdftex.def)             Requested size: 9.4487pt x 9.4487pt.
+ [92]) [93]
+Underfull \hbox (badness 1609) in paragraph at lines 3267--3268
+\OT1/cmr/m/n/10 1$\T1/ptm/m/it/10 (+20) , the ex-pected up-date in Equa-tion []
+ is 
+ []
+
+[94
+
+]
+Underfull \hbox (badness 1478) in paragraph at lines 3350--3351
+[]\T1/ptm/m/n/10 (+20) Integrating this co-ef-fi-cient gives the po-ten-tial 
+ []
+
+[95]
+Underfull \hbox (badness 1052) in paragraph at lines 3414--3417
+\T1/ptm/m/n/10 (+20) Also $[] \OT1/cmr/m/n/10 = \OML/cmm/m/it/10 c[]\OT1/cmr/m/
+n/10 (\OML/cmm/m/it/10 P\OT1/cmr/m/n/10 )\OMS/cmsy/m/n/10 kr[]\OML/cmm/m/it/10 
+P\OMS/cmsy/m/n/10 k[] \OML/cmm/m/it/10 > \OT1/cmr/m/n/10 0$\T1/ptm/m/n/10 (+20)
+ . If $\OML/cmm/m/it/10 P$ \T1/ptm/m/n/10 (+20) con-verged to an in-te-rior val
+ue, con-ti-nu-ity and
+ []
+
+
+Underfull \hbox (badness 3291) in paragraph at lines 3414--3417
+\T1/ptm/m/n/10 (+20) pos-i-tiv-ity of $\OML/cmm/m/it/10 c[]$\T1/ptm/m/n/10 (+20
+) , to-gether with 
+ []
+
+
+Underfull \hbox (badness 2293) in paragraph at lines 3423--3424
+[]\T1/ptm/m/n/10 (+20) Define the ef-fec-tive op-ti-miza-tion time 
+ []
+
+[96]
+Underfull \hbox (badness 1552) in paragraph at lines 3493--3496
+[]\T1/ptm/m/n/10 (+20) For a fixed reward-dependent ad-van-tage, the bi-no-mial
+ iden-ti-ties $\OML/cmm/m/it/10 R[] \OT1/cmr/m/n/10 = \OML/cmm/m/it/10 G[]$ \T1
+/ptm/m/n/10 (+20) and
+ []
+
+
+Underfull \hbox (badness 3168) in paragraph at lines 3493--3496
+\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 G \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 R\OT1
+/cmr/m/n/10 )[] = \OML/cmm/m/it/10 G[]$ \T1/ptm/m/n/10 (+20) give 
+ []
+
+
+Underfull \hbox (badness 2343) in paragraph at lines 3500--3503
+\T1/ptm/m/n/10 (+20) smooth, bounded co-ef-fi-cient on $\OT1/cmr/m/n/10 [0\OML/
+cmm/m/it/10 ; \OT1/cmr/m/n/10 1]$\T1/ptm/m/n/10 (+20) . 
+ []
+
+
+Underfull \hbox (badness 1237) in paragraph at lines 3504--3505
+[]\T1/ptm/m/n/10 (+20) The co-ef-fi-cients in this Bern-stein ex-pan-sion are 
+ []
+
+
+Underfull \hbox (badness 1117) in paragraph at lines 3536--3539
+\T1/ptm/m/it/10 (+20) changes the rate along the con-di-tional tra-jec-tory. 
+ []
+
+[97]
+Underfull \hbox (badness 1221) in paragraph at lines 3589--3590
+[][]\T1/ptm/b/n/10 (+20) Corollary P.8 \T1/ptm/m/n/10 (+20) (MaxRL am-pli-fi-ca
+-tion of the cor-rect-ness gra-di-ent)\T1/ptm/b/n/10 (+20) . []\T1/ptm/m/it/10 
+(+20) For the co-ef-fi-cients of
+ []
+
+
+Underfull \hbox (badness 5274) in paragraph at lines 3589--3590
+\T1/ptm/m/it/10 (+20) Lem-mas []P.2[] and []P.3[], 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 3643--3645
+\T1/ptm/m/it/10 (+20) With 
+ []
+
+[98]
+Underfull \hbox (badness 1629) in paragraph at lines 3784--3790
+\OML/cmm/m/it/10 r\OT1/cmr/m/n/10 )$\T1/ptm/m/it/10 (+20) , and $\OML/cmm/m/it/
+10 ^^[[] \OT1/cmr/m/n/10 = [](\OML/cmm/m/it/10 !\OT1/cmr/m/n/10 (\OML/cmm/m/it/
+10 Y\OT1/cmr/m/n/10 ) \OMS/cmsy/m/n/10 j \OML/cmm/m/it/10 r\OT1/cmr/m/n/10 )$\T
+1/ptm/m/it/10 (+20) . Then 
+ []
+
+[99] [100]
+Underfull \hbox (badness 1231) in paragraph at lines 3897--3902
+\T1/ptm/m/it/10 (+20) cho-sen outcome-binary ad-van-tage or group size. 
+ []
+
+
+Underfull \hbox (badness 1412) in paragraph at lines 3927--3929
+\T1/ptm/m/it/10 (+20) (A5) of As-sump-tion []P.1[], and re-place (A3) by 
+ []
+
+
+Underfull \hbox (badness 1163) in paragraph at lines 3933--3938
+\T1/ptm/m/it/10 (+20) up-per bound on the fi-nite step sizes is re-quired. 
+ []
+
+
+Underfull \hbox (badness 2205) in paragraph at lines 3942--3944
+[]\T1/ptm/m/n/10 (+20) Let $\OML/cmm/m/it/10 h[] \OT1/cmr/m/n/10 = \OML/cmm/m/i
+t/10 ^^Q[]c\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 P[]\OT1/cmr/m/n/10 )\OML/cmm/m/it/
+10 P[]\OT1/cmr/m/n/10 (1 \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 P[]\OT1/cmr/m/n/
+10 ) \OML/cmm/m/it/10 > \OT1/cmr/m/n/10 0$\T1/ptm/m/n/10 (+20) . The ex-act up-
+dates are $\OML/cmm/m/it/10 z[] \OT1/cmr/m/n/10 = \OML/cmm/m/it/10 z[] \OT1/cmr
+/m/n/10 +
+ []
+
+
+Underfull \hbox (badness 2726) in paragraph at lines 3942--3944
+\OML/cmm/m/it/10 h[]q[]$ \T1/ptm/m/n/10 (+20) and $\OML/cmm/m/it/10 z[] \OT1/cm
+r/m/n/10 = \OML/cmm/m/it/10 z[] \OMS/cmsy/m/n/10 ^^@ \OML/cmm/m/it/10 h[]r[]$\T
+1/ptm/m/n/10 (+20) , so 
+ []
+
+
+Underfull \hbox (badness 3364) in paragraph at lines 3960--3962
+[]\T1/ptm/m/n/10 (+20) Every cor-rect logit in-creases and ev-ery in-cor-rect l
+ogit de-creases, hence $\OML/cmm/m/it/10 P[]$ \T1/ptm/m/n/10 (+20) in-creases.
+ []
+
+
+Underfull \hbox (badness 4647) in paragraph at lines 3960--3962
+\T1/ptm/m/n/10 (+20) Jensen's in-equal-ity gives 
+ []
+
+[101]
+Underfull \hbox (badness 1281) in paragraph at lines 4027--4033
+\T1/ptm/m/n/10 (+20) are $\OML/cmm/m/it/10 N \OMS/cmsy/m/n/10 ^^X []\OT1/cmr/m/
+n/10 (\OML/cmm/m/it/10 R\OT1/cmr/m/n/10 ; 1\OML/cmm/m/it/10 =m; [] ; \OT1/cmr/m
+/n/10 1\OML/cmm/m/it/10 =m\OT1/cmr/m/n/10 )$\T1/ptm/m/n/10 (+20) , and 
+ []
+
+
+Underfull \hbox (badness 5726) in paragraph at lines 4081--4083
+\T1/ptm/m/it/10 (+20) At ef-fec-tive time $\OML/cmm/m/it/10 ^^\$\T1/ptm/m/it/10
+ (+20) , 
+ []
+
+[102]
+Underfull \hbox (badness 1253) in paragraph at lines 4196--4199
+\T1/ptm/m/n/10 (+20) Let $\OMS/cmsy/m/n/10 B ^^R C$ \T1/ptm/m/n/10 (+20) be a n
+onempty fixed bank of $\OML/cmm/m/it/10 k$ \T1/ptm/m/n/10 (+20) modes that the 
+pol-icy has pro-duced and
+ []
+
+
+Underfull \hbox (badness 1552) in paragraph at lines 4196--4199
+\T1/ptm/m/n/10 (+20) and, in the cat-e-gor-i-cal re-duc-tion, min-i-mizes 
+ []
+
+[103]
+Underfull \hbox (badness 1038) in paragraph at lines 4234--4237
+\T1/ptm/m/n/10 (+20) Then [] is ex-actly gra-di-ent flow $[] \OT1/cmr/m/n/10 = 
+\OMS/cmsy/m/n/10 ^^@r[]\OML/cmm/m/it/10 F[]$\T1/ptm/m/n/10 (+20) . 
+ []
+
+
+Underfull \hbox (badness 1454) in paragraph at lines 4253--4255
+\T1/ptm/m/it/10 (+20) Then for ev-ery $\OML/cmm/m/it/10 b \OMS/cmsy/m/n/10 2 B$
+ \T1/ptm/m/it/10 (+20) and ev-ery $\OML/cmm/m/it/10 t \OMS/cmsy/m/n/10 ^^U \OML
+/cmm/m/it/10 T$\T1/ptm/m/it/10 (+20) , 
+ []
+
+
+Underfull \hbox (badness 4156) in paragraph at lines 4273--4275
+\T1/ptm/m/n/10 (+20) Since $\OT1/cmr/m/n/10 	(\OML/cmm/m/it/10 P\OT1/cmr/m/n/10
+ (\OML/cmm/m/it/10 t\OT1/cmr/m/n/10 )) \OMS/cmsy/m/n/10 ^^T \OT1/cmr/m/n/10 	[]
+$\T1/ptm/m/n/10 (+20) , 
+ []
+
+[104]
+Underfull \hbox (badness 1721) in paragraph at lines 4356--4356
+ []\T1/ptm/b/n/10 (+20) Full cov-er-age and the cat-e-gor-i-cal tar-get.[] 
+ []
+
+
+Underfull \hbox (badness 1062) in paragraph at lines 4359--4364
+\OMS/cmsy/m/n/10 C$\T1/ptm/m/it/10 (+20) . Then the cat-e-gor-i-cal mean flow c
+on-verges to 
+ []
+
+
+Underfull \hbox (badness 7963) in paragraph at lines 4367--4369
+\T1/ptm/m/it/10 (+20) Consequently 
+ []
+
+
+Underfull \hbox (badness 4647) in paragraph at lines 4379--4380
+[]\T1/ptm/m/n/10 (+20) For full cov-er-age, 
+ []
+
+
+Underfull \hbox (badness 1490) in paragraph at lines 4383--4392
+\T1/ptm/m/n/10 (+20) over in-ter-vals of a uni-form min-i-mum length. 
+ []
+
+
+Underfull \hbox (badness 1112) in paragraph at lines 4414--4420
+\T1/ptm/m/it/10 (+20) over a fi-nite cat-a-logue of ver-i-fied ex-e-cu-tion key
+s. 
+ []
+
+[105] [106]
+Underfull \hbox (badness 2150) in paragraph at lines 4525--4526
+\T1/ptm/m/it/10 (+20) as-sump-tions and a fixed uni-form bank, 
+ []
+
+
+Underfull \hbox (badness 1048) in paragraph at lines 4561--4564
+\T1/ptm/m/n/10 (+20) fresh con-cen-tra-tion pres-sure van-ishes as $\OML/cmm/m/
+it/10 P \OMS/cmsy/m/n/10 ! \OT1/cmr/m/n/10 1$\T1/ptm/m/n/10 (+20) . 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4574--4576
+\T1/ptm/m/it/10 (+20) Then 
+ []
+
+
+Underfull \hbox (badness 1565) in paragraph at lines 4599--4603
+\OML/cmm/m/it/10 r[]$ \T1/ptm/m/n/10 (+20) and $\OML/cmm/m/it/10 r[]$ \T1/ptm/m
+/n/10 (+20) for the ex-tremal co-or-di-nates, 
+ []
+
+[107]
+Underfull \hbox (badness 1622) in paragraph at lines 4707--4711
+\T1/ptm/m/it/10 (+20) Suppose $\OML/cmm/m/it/10 F\OT1/cmr/m/n/10 (\OML/cmm/m/it
+/10 ^^R\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 T\OT1/cmr/m/n/10 ))$ \T1/ptm/m/it/10 (
++20) is fi-nite and $\OML/cmm/m/it/10 F\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 ^^R\OT
+1/cmr/m/n/10 (\OML/cmm/m/it/10 t\OT1/cmr/m/n/10 )) \OMS/cmsy/m/n/10 ^^T \OML/cm
+m/m/it/10 F\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 ^^R\OT1/cmr/m/n/10 (\OML/cmm/m/it/
+10 T\OT1/cmr/m/n/10 ))$ \T1/ptm/m/it/10 (+20) for ev-ery $\OML/cmm/m/it/10 t \O
+MS/cmsy/m/n/10 ^^U \OML/cmm/m/it/10 T$\T1/ptm/m/it/10 (+20) . With $\OML/cmm/m/
+it/10 D \OT1/cmr/m/n/10 =
+ []
+
+[108] [109]
+Underfull \hbox (badness 1394) in paragraph at lines 4868--4869
+[][]\T1/ptm/b/n/10 (+20) Proposition P.30 \T1/ptm/m/n/10 (+20) (Lo-cal re-play 
+re-sponse un-der shared pa-ram-e-ters)\T1/ptm/b/n/10 (+20) . []\T1/ptm/m/it/10 
+(+20) For a fixed bank of
+ []
+
+
+Underfull \hbox (badness 3612) in paragraph at lines 4868--4869
+\OML/cmm/m/it/10 k$ \T1/ptm/m/it/10 (+20) com-plete ex-em-plars, de-fine 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 4886--4888
+\T1/ptm/m/it/10 (+20) Then 
+ []
+
+[110]
+Underfull \hbox (badness 1314) in paragraph at lines 4916--4919
+\T1/ptm/m/n/10 (+20) ar-bi-trar-ily in-creas-ing $\OML/cmm/m/it/10 ^^U$ \T1/ptm
+/m/n/10 (+20) is not a suf-fi-cient rule. 
+ []
+
+
+Underfull \hbox (badness 1205) in paragraph at lines 4929--4932
+\T1/ptm/m/n/10 (+20) mode while im-prov-ing the av-er-age re-play score. 
+ []
+
+
+Underfull \hbox (badness 2698) in paragraph at lines 4960--4961
+[]\T1/ptm/m/n/10 (+20) For this anal-y-sis, re-place (A4) by 
+ []
+
+
+Underfull \hbox (badness 2735) in paragraph at lines 4978--4982
+\T1/ptm/m/n/10 (+20) which is the neg-a-tive gra-di-ent flow of $\OML/cmm/m/it/
+10 F[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 z\OT1/cmr/m/n/10 ) = \OMS/cmsy/m/n/10 ^
+^@\OT1/cmr/m/n/10 	(\OML/cmm/m/it/10 P\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 z\OT1/c
+mr/m/n/10 )) + \OML/cmm/m/it/10 ^^LD\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 z\OT1/cmr
+/m/n/10 )$\T1/ptm/m/n/10 (+20) , with $\OT1/cmr/m/n/10 	[] =
+ []
+
+
+Underfull \hbox (badness 4569) in paragraph at lines 4978--4982
+\OML/cmm/m/it/10 c[]$ \T1/ptm/m/n/10 (+20) as in Equa-tion []. 
+ []
+
+
+Underfull \hbox (badness 2376) in paragraph at lines 4986--4989
+[]\OT1/cmr/m/n/10 (\OML/cmm/m/it/10 p\OMS/cmsy/m/n/10 k\OML/cmm/m/it/10 ^^V\OT1
+/cmr/m/n/10 ) \OMS/cmsy/m/n/10 ^^T []\OT1/cmr/m/n/10 (1\OML/cmm/m/it/10 = [][] 
+^^V[]\OT1/cmr/m/n/10 )$ \T1/ptm/m/it/10 (+20) on the sim-plex, while $\OML/cmm/
+m/it/10 R[] \OMS/cmsy/m/n/10 ! 1$ \T1/ptm/m/it/10 (+20) if a banked co-or-di-
+ []
+
+
+Underfull \hbox (badness 3179) in paragraph at lines 4986--4989
+\T1/ptm/m/it/10 (+20) nate van-ishes. More pre-cisely, 
+ []
+
+[111]
+Underfull \hbox (badness 1152) in paragraph at lines 5019--5022
+\T1/ptm/m/it/10 (+20) (A4$[]$), us-ing the Dr.GRPO or cen-tered MaxRL co-ef-fi-
+cient, the flow [] has ex-actly one
+ []
+
+
+Underfull \hbox (badness 3058) in paragraph at lines 5019--5022
+\T1/ptm/m/it/10 (+20) sta-tion-ary pol-icy of full sup-port, 
+ []
+
+
+Underfull \hbox (badness 1810) in paragraph at lines 5028--5031
+\T1/ptm/m/it/10 (+20) for the MaxRL co-ef-fi-cient. Con-se-quently 
+ []
+
+
+Underfull \hbox (badness 4291) in paragraph at lines 5084--5086
+\T1/ptm/m/it/10 (+20) Then $\OML/cmm/m/it/10 p[] \OMS/cmsy/m/n/10 ! \OML/cmm/m/
+it/10 p[]$\T1/ptm/m/it/10 (+20) , where 
+ []
+
+[112]
+Underfull \hbox (badness 1048) in paragraph at lines 5171--5176
+[]\T1/ptm/m/n/10 (+20) The dis-played ve-loc-ity is the soft-max score iden-tit
+y used above. For the bound,
+ []
+
+
+Underfull \hbox (badness 3769) in paragraph at lines 5194--5198
+\T1/ptm/m/it/10 (+20) In par-tic-u-lar their ra-tio di-verges. The KL or-der is
+ $\OT1/cmr/m/n/10 ^^B(1\OML/cmm/m/it/10 =\OT1/cmr/m/n/10 [\OML/cmm/m/it/10 s []
+\OT1/cmr/m/n/10 (1\OML/cmm/m/it/10 =s\OT1/cmr/m/n/10 )])$\T1/ptm/m/it/10 (+20) 
+, and the re-
+ []
+
+
+Underfull \hbox (badness 4181) in paragraph at lines 5194--5198
+\T1/ptm/m/it/10 (+20) play or-der is $\OT1/cmr/m/n/10 ^^B([](1\OML/cmm/m/it/10 
+=s\OT1/cmr/m/n/10 ))$\T1/ptm/m/it/10 (+20) . 
+ []
+
+[113] (./results/kl_replay_recovery_table_body.tex) [114]
+Underfull \hbox (badness 1231) in paragraph at lines 5366--5374
+\T1/ptm/m/n/10 (+20) ta-tion, quan-ti-fied in Equa-tion [] and App. []Q[]. 
+ []
+
+<figures/reference_kl_knee.pdf, id=4346, 261.27173pt x 192.59442pt>
+File: figures/reference_kl_knee.pdf Graphic file (type pdf)
+<use figures/reference_kl_knee.pdf>
+Package pdftex.def Info: figures/reference_kl_knee.pdf  used on input line 5390
+.
+(pdftex.def)             Requested size: 310.0378pt x 228.55836pt.
+(./results/reference_kl_table_body.tex) [115] [116 <./figures/reference_kl_knee
+.pdf>]
+Underfull \hbox (badness 1184) in paragraph at lines 5477--5484
+\T1/ptm/m/n/10 (+20) i-cal mod-els, not mea-sured neu-ral re-cov-ery rates. 
+ []
+
+[117]
+Underfull \hbox (badness 5217) in paragraph at lines 5628--5630
+\T1/ptm/m/it/10 (+20) For ev-ery cat-e-gory $\OML/cmm/m/it/10 b$\T1/ptm/m/it/10
+ (+20) , 
+ []
+
+[118]
+Underfull \hbox (badness 1810) in paragraph at lines 5658--5659
+ []\T1/ptm/b/n/10 (+20) Exact en-tropy is a dif-fer-ent com-para-tor.[] \T1/ptm
+/m/n/10 (+20) For a known full cor-rect sup-port and uni-
+ []
+
+
+Underfull \hbox (badness 2903) in paragraph at lines 5658--5659
+\T1/ptm/m/n/10 (+20) form $\OML/cmm/m/it/10 u$\T1/ptm/m/n/10 (+20) , the el-e-m
+en-tary iden-ti-ties 
+ []
+
+
+Underfull \hbox (badness 1019) in paragraph at lines 5674--5681
+\T1/ptm/m/n/10 (+20) score lemma is an im-pos-si-bil-ity re-sult for en-tropy. 
+
+ []
+
+[119] (./results/replay_cost_table_body.tex) [120] [121]
+Underfull \hbox (badness 1205) in paragraph at lines 5896--5904
+\T1/ptm/m/n/10 (+20) level ob-jec-tive, KL penalty, or neu-ral op-ti-mizer. 
+ []
+
+[122
+
+] [123] [124
+
+]
+(/n/fs/similarity/maxent-grpo/paper/audits/fresh_concentration_integration_2026
+0922/build/main.aux)
+Package rerunfilecheck Info: File `main.out' has not changed.
+(rerunfilecheck)             Checksum: C47E2615146A56ECCC1E25AD0767ED18;28094.
+ ) 
+Here is how much of TeX's memory you used:
+ 16788 strings out of 481008
+ 259773 string characters out of 5909440
+ 751690 words of memory out of 5000000
+ 32210 multiletter control sequences out of 15000+600000
+ 523445 words of font info for 468 fonts, out of 8000000 for 9000
+ 14 hyphenation exceptions out of 8191
+ 74i,16n,78p,1776b,548s stack positions out of 5000i,500n,10000p,200000b,80000s
+{/usr/share/texlive/texmf-dist/fonts/enc/dvips/base/8r.enc}</usr/share/texliv
+e/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/share/texlive/texm
+f-dist/fonts/type1/public/amsfonts/cm/cmbx7.pfb></usr/share/texlive/texmf-dist/
+fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/fonts/
+type1/public/amsfonts/cmextra/cmex7.pfb></usr/share/texlive/texmf-dist/fonts/ty
+pe1/public/amsfonts/cmextra/cmex9.pfb></usr/share/texlive/texmf-dist/fonts/type
+1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
+ic/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm
+/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.
+pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></u
+sr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/share
+/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/share/texlive
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texlive/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texlive/texmf-dist/font
+s/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type
+1/public/amsfonts/cm/cmsy5.pfb></usr/share/texlive/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmsy6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfo
+nts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
+cmsy9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/symbols/ms
+bm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrb8a.pfb></us
+r/share/texlive/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/urw/courier/ucrro8a.pfb></usr/share/texlive/texmf-dis
+t/fonts/type1/urw/helvetic/uhvb8a.pfb></usr/share/texlive/texmf-dist/fonts/type
+1/urw/times/utmb8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utm
+r8a.pfb></usr/share/texlive/texmf-dist/fonts/type1/urw/times/utmri8a.pfb>
+Output written on /n/fs/similarity/maxent-grpo/paper/audits/fresh_concentration
+_integration_20260922/build/main.pdf (124 pages, 2703286 bytes).
+PDF statistics:
+ 4750 PDF objects out of 5155 (max. 8388607)
+ 2854 compressed objects within 29 object streams
+ 711 named destinations out of 1000 (max. 500000)
+ 102526 words of extra memory for PDF output out of 106986 (max. 10000000)
+

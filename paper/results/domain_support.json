@@ -86,6 +86,33 @@
     6,
     96
    ]
+  },
+  "Reached": {
+   "Graph": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 2.53125
+   },
+   "Countdown": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 3.46875
+   },
+   "Python": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 3.75
+   },
+   "MathIR": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 1.90625
+   },
+   "Pantry": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 6.90625
+   }
   }
  }
 }

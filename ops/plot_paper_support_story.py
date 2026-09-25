@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Explain the paper's two-bottleneck verified-support story in one diagram.
 
-Both paths share one column grid: POLICY SAMPLES, REWARD (+ KEY), a split
+Both paths share one column grid: POLICY SAMPLES, REWARD (+ MODE), a split
 stage, an UPDATE, and the resulting SUPPORT. The reward-only path has no split
 stage of its own, so its reward box simply spans that column too -- the same
 "card spans N columns" trick as the ModeBench card grid -- which is what keeps
@@ -234,10 +234,10 @@ def text_row(value, **kwargs):
 # --- column grid --------------------------------------------------------
 # Five columns wide enough for their busiest row: samples, reward(+key), the
 # split, an update, and the resulting support. Weights, not equal widths,
-# because "REWARD + KEY" and "SUPPORT MAINTAINED + EXPANDED" carry more text
+# because "REWARD + MODE" and "SUPPORT MAINTAINED + EXPANDED" carry more text
 # than the split stage's two one-word titles.
 MARGIN = 0.014
-# Only the column-1/column-2 gutter carries the rotated "reward"/"key" labels
+# Only the column-1/column-2 gutter carries the rotated "reward"/"mode" labels
 # in their own whitespace (see the fork-in arrows below); the other three
 # gutters separate boxes with nothing living between them, so they can run
 # narrower and hand that space to the columns, which is where every measured
@@ -367,7 +367,7 @@ def draw() -> plt.Figure:
     col1_right = x + w
     cx = x + w / 2
     rounded_box(axis, x, row2_bottom, w, row2_h, face=STAGE_FILL["reward"], edge=STAGE_EDGE)
-    fixed_label(axis, cx, row2_top - 0.045, "REWARD + KEY", fontsize=style.SMALL_FONT, fontweight="bold")
+    fixed_label(axis, cx, row2_top - 0.045, "REWARD + MODE", fontsize=style.SMALL_FONT, fontweight="bold")
     row_stack(cx, row2_top, row2_bottom, [
         text_row("one validator returns both", fontsize=style.SMALL_FONT, color=MUTED),
         text_row("reward:  1  1  1  0", fontweight="bold"),
@@ -445,7 +445,7 @@ def draw() -> plt.Figure:
         ha="center", va="bottom", rotation=90, fontsize=style.SMALL_FONT, color=DISCOVERY,
     )
     label(
-        axis, fork_in_x - 0.006, row2_mid - 0.026, "key",
+        axis, fork_in_x - 0.006, row2_mid - 0.026, "mode",
         ha="center", va="top", rotation=90, fontsize=style.SMALL_FONT, color=RETENTION,
     )
 

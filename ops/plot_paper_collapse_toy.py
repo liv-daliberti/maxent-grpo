@@ -130,9 +130,17 @@ LABEL_COLORS = {
     "invalid": MUTED,
 }
 # The checkpoints the bar panels show, named once so the figure and the audit
-# record cannot drift apart. The 3B cohorts evaluate on a half-pass grid; this
-# subset keeps the requested early checkpoints and the first 32/32 endpoint.
-STEPS_PER_PASS = 192
+# record cannot drift apart. This subset keeps the requested early checkpoints
+# and the first 32/32 endpoint.
+#
+# A pass is one epoch over the domain's 384 training prompts, and the trainer
+# takes one prompt group per update, so a pass is 384 updates and the run's
+# eight passes are its 3,072 (Table 7; this run's terminal step is 3,073).
+# This was 192, which is the evaluation cadence rather than the epoch length,
+# and it doubled every tick: the displayed endpoint printed as pass 6.5 when
+# step 1,248 is pass 3.25 of 8.
+STEPS_PER_PASS = 384
+TOTAL_PASSES = 8
 DISPLAY_STEPS = [0, 96, 288, 384, 768, 864, 1152, 1248]
 END_PASS = DISPLAY_STEPS[-1] / STEPS_PER_PASS
 
@@ -768,7 +776,12 @@ def render_method_trajectory(
     # hardcoded copy and silently kept naming the old checkpoints when the
     # window moved.
     ax.set_xticks(centers, [f"{step / STEPS_PER_PASS:g}" for step in steps])
-    ax.set_xlabel(f"training pass (of {END_PASS:g})", labelpad=4)
+    # The bars sit at equal widths but the checkpoints behind them are not
+    # equally spaced in time (0.25 pass apart within a pair, up to a full pass
+    # between pairs), so the axis is named as the selection it is rather than
+    # as a continuous pass axis a reader would read distances off.
+    ax.set_xlabel(
+        f"selected checkpoints (training pass, of {TOTAL_PASSES:g})", labelpad=4)
     ax.set_yticks([0, 8, 16, 24, 32])
     if show_ylabel:
         ax.set_ylabel("fixed-seed samples (of 32)", labelpad=4)

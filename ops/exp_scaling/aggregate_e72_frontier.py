@@ -99,9 +99,19 @@ def read_cell(cell_dir: Path) -> dict[str, Any] | None:
     }
 
 
-def collect(root: Path, stages: Iterable[str]) -> list[dict[str, Any]]:
+def collect(
+    root: Path, stages: Iterable[str], cells_root: Path | None = None
+) -> list[dict[str, Any]]:
+    """Read every completed cell under one sweep's data root.
+
+    ``cells_root`` exists because E125 runs this same grid on the current
+    eight-pass checkpoints and writes to its own root. The layout, the cell tag
+    and the reproduction gate are shared; only the directory differs, and
+    defaulting it keeps the E72 call sites unchanged.
+    """
+
     cells: list[dict[str, Any]] = []
-    frontier_root = root / "var" / "data" / "e72_frontier"
+    frontier_root = cells_root or (root / "var" / "data" / "e72_frontier")
     for stage in stages:
         stage_root = frontier_root / stage
         if not stage_root.is_dir():
@@ -526,11 +536,18 @@ def main() -> int:
         type=Path,
         default=root / "var" / "artifacts" / "e72_decoding_frontier_cells.jsonl",
     )
+    parser.add_argument(
+        "--cells-root",
+        type=Path,
+        default=root / "var" / "data" / "e72_frontier",
+        help="sweep data root; point it at var/data/e125_frontier to read the "
+        "same grid measured on the current eight-pass checkpoints",
+    )
     args = parser.parse_args()
 
     manifest = json.loads(args.manifest.read_text())
     stages = [part for part in args.stages.split(",") if part]
-    cells = collect(root, stages)
+    cells = collect(root, stages, args.cells_root)
     base_reference = base_pass0_reference(manifest, root)
     gate = reproduction_gate(cells, manifest, base_reference)
     # Every untruncated cell, not just the K=8 sweep. The filter here predated

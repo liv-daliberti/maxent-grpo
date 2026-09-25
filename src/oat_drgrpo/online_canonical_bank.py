@@ -256,12 +256,18 @@ class OnlineCanonicalBank:
             if self.proposal_retention_tracking
             else None
         )
+        # One slot is a legal bank: it retains each prompt's first discovered
+        # mode and admits no other, which is the E130 mode-agnostic ablation.
+        # The bank does not know which replay objective will score it, and one
+        # of them -- ``bank_balance`` -- cannot score a one-mode group, so the
+        # objective-dependent floor is enforced in ``validate_zero_math_args``
+        # rather than duplicated here with only half the information.
         if (
             isinstance(replay_capacity, bool)
             or int(replay_capacity) != replay_capacity
-            or int(replay_capacity) < 2
+            or int(replay_capacity) < 1
         ):
-            raise ValueError("replay_capacity must be an integer at least two")
+            raise ValueError("replay_capacity must be an integer at least one")
         self.replay_capacity = int(replay_capacity)
         if (
             isinstance(global_replay_groups_per_step, bool)

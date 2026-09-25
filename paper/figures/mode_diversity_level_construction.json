@@ -53,7 +53,7 @@
   },
   "output": "paper/figures/mode_diversity_level_construction",
   "outputs": {
-    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "fb2e09735d4b15743ea99b61feb9057a5b1db8a8a1036dabf3744e1da09f1b0c"
+    "/n/fs/similarity/maxent-grpo/paper/figures/mode_diversity_level_construction.pdf": "43e06780965cb1b2450573b05767b575c192951ec0aa0fc77e8631c13db692c3"
   },
   "points": [
     {
@@ -3809,9 +3809,9 @@
   ],
   "renderer": {
     "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py",
-    "sha256": "db372e70d8e9e778159b7d78307da083dffe6cdb5487ab78ee5bd970fc52ff80",
+    "sha256": "11a2ff6f67a48e2d61179828b905d69f8d4e968da02f4fef2040927f42847f19",
     "style_path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py",
-    "style_sha256": "9f3732f5d0126d89f76596a8c39ce5f2dad1ee6fdf146e270d742f4da00c7416"
+    "style_sha256": "bb5fe214a14e87bc5bb6b39f821e46c846d015c3564b1a8fdcb6a27f0e43766d"
   },
   "schema": "paper-mode-diversity-levels-v1",
   "scope": {

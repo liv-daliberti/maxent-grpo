@@ -286,14 +286,14 @@ def build_record(source=SOURCE):
                         'x_range': [1, DRAWS], 'x_ticks': list(X_TICKS),
                         'domain_backgrounds': deepcopy(DOMAIN_BACKGROUNDS),
                         'domain_palette_source': 'Figure 2 DOMAIN_PANEL; identical to Figure 3',
-                        'y': 'Share of available modes found',
+                        'y': 'Share of certified / enumerated modes found',
                         'y_scale': 'linear 0-1, shared by all five domains; 1.0 is every enumerated mode',
                         'curves': {str(level): {'label': f'Level {level}', **style}
                                    for level, style in STYLES.items()},
                         'intervals': 'Pointwise 95% whole-problem bootstrap intervals from the bound analysis.',
                         'support': 'Printed as counts and used as each curve\'s denominator: the mean number of modes the registered rows enumerate for the prompts each level used, in Level 1 / Level 2 / Level 3 order. The bound analysis\'s conservative certificate is retained per cell as certified_support.',
                         'normalization': 'Each plotted value is the cell\'s reconstructed mean distinct verified modes divided by its mean enumerated support. This is a display transform of the retained estimates; no statistic is recomputed.',
-                        'shortfall': 'The shaded band runs from the best level reached at each budget up to 1.0, so its height is the share of available modes no level ever produced.',
+                        'shortfall': 'The shaded band runs from the best level reached at each budget up to 1.0, so its height is the share of certified / enumerated modes no level ever produced.',
                         'endpoints': 'All fifteen curves use complete 512-draw pools; no extrapolation.'},
             'validation': {'all_five_domains_and_three_levels': True, 'all_480_prompts_retained': True,
                            'all_245760_responses_retained': True, 'both_grading_pools_reconstructed': True,
@@ -305,7 +305,7 @@ def build_record(source=SOURCE):
 def support_label(cells):
     means = [cell['support']['mean'] for cell in sorted(cells, key=lambda c: c['level'])]
     count = ' / '.join(f'{round(value):,d}' for value in means)
-    return count + '\nmodes available, L1–L3'
+    return count + '\ncertified / enumerated\nmodes, L1–L3'
 
 
 def coverage(cell, point, bound=None):
@@ -349,13 +349,13 @@ def build_budget_figure(record, *, draws, x_ticks, title):
           'ps.fonttype': 42, 'text.color': '#19324A', 'axes.labelcolor': '#19324A'}
     with plt.rc_context(rc):
         fig, axes = plt.subplots(1, 5, figsize=FIGSIZE, sharex=True, sharey=True)
-        fig.subplots_adjust(left=.076, right=.99, bottom=.30, top=.87, wspace=.16)
+        fig.subplots_adjust(left=.076, right=.99, bottom=.30, top=.79, wspace=.16)
         for index, (ax, domain, domain_title) in enumerate(zip(axes, DOMAINS, LABELS)):
             ax.set_facecolor(DOMAIN_BACKGROUNDS[domain])
             cells = {cell['level']: cell for cell in record['cells'] if cell['domain'] == domain}
             grid = [p['k'] for p in cells[1]['points']]
             # The shaded band is the point of the panel: its height at each
-            # budget is the share of available modes that no level ever found.
+            # budget is the share of certified / enumerated modes that no level ever found.
             best = [max(coverage(cells[level], cells[level]['points'][position])
                         for level in LEVELS) for position in range(len(grid))]
             # A single deeper wash rather than a tint plus hatching: the
@@ -397,7 +397,7 @@ def build_budget_figure(record, *, draws, x_ticks, title):
             for side in ('left', 'bottom'):
                 ax.spines[side].set_color('#AABAC7')
                 ax.spines[side].set_linewidth(.6)
-            ax.set_title(domain_title, fontsize=8.5, pad=9)
+            ax.set_title(domain_title, fontsize=8.5, pad=20)
         handles = [Line2D([], [], **STYLES[level], linewidth=1.15,
                           markerfacecolor=STYLES[level]['color'] if level == 2 else 'none',
                           label=f'Level {level}') for level in LEVELS]
@@ -408,8 +408,13 @@ def build_budget_figure(record, *, draws, x_ticks, title):
         width = provider_logo(fig, (.076, .063))
         fig.text(.076 + width + .008, .063, record['model'].replace('gpt-5.6-sol', 'GPT-5.6 Sol'),
                  ha='left', va='center', fontsize=7.1, fontweight='bold')
-        fig.text(.02, .58, 'Share of available\nmodes found', rotation=90, ha='center', va='center', fontsize=7.5)
+        fig.text(.02, .58, 'Share of certified /\nenumerated modes found', rotation=90, ha='center', va='center', fontsize=7.5)
         fig.text(.54, .155, 'Samples per prompt, $k$', ha='center', va='center', fontsize=7.5)
+    try:
+        from ops.paper_domain_figure_typography import apply_domain_typography
+    except ModuleNotFoundError:
+        from paper_domain_figure_typography import apply_domain_typography
+    apply_domain_typography(fig)
     return fig
 
 

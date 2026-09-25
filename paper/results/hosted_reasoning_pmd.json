@@ -1,0 +1,397 @@
+{
+ "builder": {
+  "path": "ops/build_paper_hosted_reasoning_pmd.py",
+  "sha256": "28c63a3f616f6cc42a90e4bdc25983d1fd55e7ec23c6352bc011f4740adc26b3"
+ },
+ "deployments": {
+  "claude_opus48": {
+   "by_domain": {
+    "countdown": {
+     "effect": -0.01809523809523809,
+     "paired_prompts": 95,
+     "reasoning_off": 0.31160401002506266,
+     "reasoning_on": 0.32969924812030077,
+     "reportable": true
+    },
+    "graph_coloring": {
+     "effect": 0.03912280701754386,
+     "paired_prompts": 95,
+     "reasoning_off": 0.1748370927318296,
+     "reasoning_on": 0.1357142857142857,
+     "reportable": true
+    },
+    "mathir": {
+     "effect": 0.01640502354788069,
+     "paired_prompts": 91,
+     "reasoning_off": 0.07762951334379906,
+     "reasoning_on": 0.061224489795918366,
+     "reportable": true
+    },
+    "pantry_plan": {
+     "effect": -0.07128339140534264,
+     "paired_prompts": 82,
+     "reasoning_off": 0.2980836236933798,
+     "reasoning_on": 0.36936701509872244,
+     "reportable": true
+    },
+    "python_factors": {
+     "effect": 0.05852130325814536,
+     "paired_prompts": 95,
+     "reasoning_off": 0.18759398496240604,
+     "reasoning_on": 0.12907268170426067,
+     "reportable": true
+    }
+   },
+   "by_level": {
+    "1": {
+     "effect": 0.014217687074829932,
+     "paired_prompts": 140,
+     "reasoning_off": 0.21620748299319728,
+     "reasoning_on": 0.20198979591836735,
+     "reportable": true
+    },
+    "2": {
+     "effect": 0.007472297094938606,
+     "paired_prompts": 159,
+     "reasoning_off": 0.22550164719976043,
+     "reasoning_on": 0.2180293501048218,
+     "reportable": true
+    },
+    "3": {
+     "effect": 0.00016471997604072737,
+     "paired_prompts": 159,
+     "reasoning_off": 0.1850104821802935,
+     "reasoning_on": 0.18484576220425278,
+     "reportable": true
+    }
+   },
+   "defined_reasoning_off_only": 1,
+   "defined_reasoning_on_only": 19,
+   "effect": 0.006997296735288001,
+   "paired_prompts": 458,
+   "reasoning_off": 0.2086036598045332,
+   "reasoning_on": 0.20160636306924518,
+   "reportable": true,
+   "sources": {
+    "normalized_samples.jsonl": "601ec2502220c4b5c12f6d53630983b54eaf90d9fd16e2112a185b490c2effa6",
+    "paired_medium_samples.jsonl": "72923db9a6b35654cfecf7aabc0a16fd7343ea9963dadc7cc937bf40d90a8f78"
+   }
+  },
+  "gpt54": {
+   "by_domain": {
+    "countdown": {
+     "effect": -0.07476190476190477,
+     "paired_prompts": 40,
+     "reasoning_off": 0.14047619047619048,
+     "reasoning_on": 0.21523809523809523,
+     "reportable": true
+    },
+    "graph_coloring": {
+     "effect": 0.1257020757020757,
+     "paired_prompts": 39,
+     "reasoning_off": 0.2865689865689866,
+     "reasoning_on": 0.16086691086691088,
+     "reportable": true
+    },
+    "mathir": {
+     "effect": -0.06196213425129088,
+     "paired_prompts": 83,
+     "reasoning_off": 0.04948364888123924,
+     "reasoning_on": 0.11144578313253012,
+     "reportable": true
+    },
+    "pantry_plan": {
+     "effect": -0.08387978142076503,
+     "paired_prompts": 61,
+     "reasoning_off": 0.3324746291959407,
+     "reasoning_on": 0.4163544106167057,
+     "reportable": true
+    },
+    "python_factors": {
+     "effect": -0.01586378737541528,
+     "paired_prompts": 86,
+     "reasoning_off": 0.3245570321151716,
+     "reasoning_on": 0.34042081949058695,
+     "reportable": true
+    }
+   },
+   "by_level": {
+    "1": {
+     "effect": 0.009043617446978795,
+     "paired_prompts": 119,
+     "reasoning_off": 0.3465986394557823,
+     "reasoning_on": 0.3375550220088035,
+     "reportable": true
+    },
+    "2": {
+     "effect": -0.028006872852233678,
+     "paired_prompts": 97,
+     "reasoning_off": 0.13362788414334806,
+     "reasoning_on": 0.16163475699558175,
+     "reportable": true
+    },
+    "3": {
+     "effect": -0.08678955453149001,
+     "paired_prompts": 93,
+     "reasoning_off": 0.16008704557091655,
+     "reasoning_on": 0.24687660010240656,
+     "reportable": true
+    }
+   },
+   "defined_reasoning_off_only": 15,
+   "defined_reasoning_on_only": 151,
+   "effect": -0.03143011249807366,
+   "paired_prompts": 309,
+   "reasoning_off": 0.22360918477423333,
+   "reasoning_on": 0.255039297272307,
+   "reportable": true,
+   "sources": {
+    "normalized_samples.jsonl": "4d769f992af30e1b70166979d321b95b32ac99745fb7bdad5a1d34560c02ba5c",
+    "paired_medium_samples.jsonl": "a3e6f8671e89c7cb91674520dceab2d86deca5ee7ce5d800290faaddefbcf1ab"
+   }
+  },
+  "gpt56sol": {
+   "by_domain": {
+    "countdown": {
+     "effect": -0.09208683473389356,
+     "paired_prompts": 34,
+     "reasoning_off": 0.11673669467787115,
+     "reasoning_on": 0.20882352941176469,
+     "reportable": true
+    },
+    "graph_coloring": {
+     "effect": 0.049183673469387755,
+     "paired_prompts": 35,
+     "reasoning_off": 0.10020408163265306,
+     "reasoning_on": 0.0510204081632653,
+     "reportable": true
+    },
+    "mathir": {
+     "effect": -0.03880070546737214,
+     "paired_prompts": 81,
+     "reasoning_off": 0.06569664902998236,
+     "reasoning_on": 0.1044973544973545,
+     "reportable": true
+    },
+    "pantry_plan": {
+     "effect": -0.18590998043052837,
+     "paired_prompts": 73,
+     "reasoning_off": 0.29125896934116113,
+     "reasoning_on": 0.47716894977168955,
+     "reportable": true
+    },
+    "python_factors": {
+     "effect": -0.07575757575757575,
+     "paired_prompts": 22,
+     "reasoning_off": 0.06547619047619048,
+     "reasoning_on": 0.14123376623376624,
+     "reportable": false
+    }
+   },
+   "by_level": {
+    "1": {
+     "effect": -0.08444735692442114,
+     "paired_prompts": 109,
+     "reasoning_off": 0.22649628658802973,
+     "reasoning_on": 0.3109436435124509,
+     "reportable": true
+    },
+    "2": {
+     "effect": -0.053626373626373625,
+     "paired_prompts": 65,
+     "reasoning_off": 0.06289377289377289,
+     "reasoning_on": 0.11652014652014653,
+     "reportable": true
+    },
+    "3": {
+     "effect": -0.1,
+     "paired_prompts": 71,
+     "reasoning_off": 0.09470154258886654,
+     "reasoning_on": 0.19470154258886654,
+     "reportable": true
+    }
+   },
+   "defined_reasoning_off_only": 84,
+   "defined_reasoning_on_only": 127,
+   "effect": -0.08077745383867833,
+   "paired_prompts": 245,
+   "reasoning_off": 0.14489795918367346,
+   "reasoning_on": 0.2256754130223518,
+   "reportable": true,
+   "sources": {
+    "normalized_samples.jsonl": "1982c50f3167ff7fda4889257e1680568a0fa2c84117bf65b3bdb96bf6c5d50c",
+    "paired_medium_samples.jsonl": "03fc4fe89d03c0c45485eff50eacf26682835ada7ebeaf8a19fa9127e528d5b2"
+   }
+  },
+  "grok43": {
+   "by_domain": {
+    "countdown": {
+     "effect": 0.07918192918192919,
+     "paired_prompts": 39,
+     "reasoning_off": 0.43083028083028085,
+     "reasoning_on": 0.3516483516483517,
+     "reportable": true
+    },
+    "graph_coloring": {
+     "effect": 0.24211309523809524,
+     "paired_prompts": 96,
+     "reasoning_off": 0.35520833333333335,
+     "reasoning_on": 0.1130952380952381,
+     "reportable": true
+    },
+    "mathir": {
+     "effect": 0.06657509157509157,
+     "paired_prompts": 78,
+     "reasoning_off": 0.12838827838827838,
+     "reasoning_on": 0.06181318681318681,
+     "reportable": true
+    },
+    "pantry_plan": {
+     "effect": 0.3404761904761905,
+     "paired_prompts": 49,
+     "reasoning_off": 0.7957725947521865,
+     "reasoning_on": 0.4552964042759961,
+     "reportable": true
+    },
+    "python_factors": {
+     "effect": 0.28523274478330657,
+     "paired_prompts": 89,
+     "reasoning_off": 0.31252006420545747,
+     "reasoning_on": 0.027287319422150885,
+     "reportable": true
+    }
+   },
+   "by_level": {
+    "1": {
+     "effect": 0.2821861471861472,
+     "paired_prompts": 110,
+     "reasoning_off": 0.4927922077922078,
+     "reasoning_on": 0.21060606060606063,
+     "reportable": true
+    },
+    "2": {
+     "effect": 0.1598015873015873,
+     "paired_prompts": 120,
+     "reasoning_off": 0.29581349206349206,
+     "reasoning_on": 0.13601190476190478,
+     "reportable": true
+    },
+    "3": {
+     "effect": 0.19319165682802047,
+     "paired_prompts": 121,
+     "reasoning_off": 0.314207005116096,
+     "reasoning_on": 0.12101534828807557,
+     "reportable": true
+    }
+   },
+   "defined_reasoning_off_only": 0,
+   "defined_reasoning_on_only": 127,
+   "effect": 0.20966625966625965,
+   "paired_prompts": 351,
+   "reasoning_off": 0.36388549721883057,
+   "reasoning_on": 0.1542192375525709,
+   "reportable": true,
+   "sources": {
+    "normalized_samples.jsonl": "df7aec53ffdfa09086e61391cd999c383a2b80ce47e3aac46c4e44784fab7f0c",
+    "paired_medium_samples.jsonl": "3b8734a418b999edbe363bd17a4f898f32d7e8f0b1cebea65844cde2c56ab77b"
+   }
+  },
+  "kimi_k3": {
+   "by_domain": {
+    "countdown": {
+     "effect": 0.0698529411764706,
+     "paired_prompts": 68,
+     "reasoning_off": 0.3820028011204482,
+     "reasoning_on": 0.3121498599439776,
+     "reportable": true
+    },
+    "graph_coloring": {
+     "effect": 0.5908670931058991,
+     "paired_prompts": 67,
+     "reasoning_off": 0.680952380952381,
+     "reasoning_on": 0.09008528784648187,
+     "reportable": true
+    },
+    "mathir": {
+     "effect": 0.025676406926406933,
+     "paired_prompts": 88,
+     "reasoning_off": 0.10833333333333334,
+     "reasoning_on": 0.0826569264069264,
+     "reportable": true
+    },
+    "pantry_plan": {
+     "effect": 0.06212121212121212,
+     "paired_prompts": 66,
+     "reasoning_off": 0.6909090909090909,
+     "reasoning_on": 0.6287878787878788,
+     "reportable": true
+    },
+    "python_factors": {
+     "effect": -0.000994243851386705,
+     "paired_prompts": 91,
+     "reasoning_off": 0.38702250130821564,
+     "reasoning_on": 0.3880167451596023,
+     "reportable": true
+    }
+   },
+   "by_level": {
+    "1": {
+     "effect": 0.2528611444577831,
+     "paired_prompts": 119,
+     "reasoning_off": 0.5954981992797119,
+     "reasoning_on": 0.3426370548219288,
+     "reportable": true
+    },
+    "2": {
+     "effect": 0.057480158730158736,
+     "paired_prompts": 120,
+     "reasoning_off": 0.33496031746031746,
+     "reasoning_on": 0.27748015873015874,
+     "reportable": true
+    },
+    "3": {
+     "effect": 0.0965889902060115,
+     "paired_prompts": 141,
+     "reasoning_off": 0.3609422492401216,
+     "reasoning_on": 0.2643532590341101,
+     "reportable": true
+    }
+   },
+   "defined_reasoning_off_only": 4,
+   "defined_reasoning_on_only": 95,
+   "effect": 0.1331766917293233,
+   "paired_prompts": 380,
+   "reasoning_off": 0.42619047619047623,
+   "reasoning_on": 0.2930137844611529,
+   "reportable": true,
+   "sources": {
+    "normalized_samples.jsonl": "4116e8dd811c27d39ba2385d52fcb691786e61ef02850ada2d05a7980e49e67c",
+    "paired_medium_samples.jsonl": "f1d4a8bfc7721659942670aa7931d328ec8061146935f46d82536d39adee5e3a"
+   }
+  }
+ },
+ "estimand": "reasoning disabled minus the matched medium cohort, terminal PCMD, averaged over the prompts both arms define",
+ "excluded_deployments": {
+  "deepseek_v4_pro": {
+   "admitted": false,
+   "effect": 0.08719080309469326,
+   "grading": "strict in both arms; the frozen normalizer was not run on this cohort, so it is not on the same grading as the five",
+   "paired_prompts": 437,
+   "prompts_without_eight_draws": {
+    "pantry_plan/level1/row10": 7
+   },
+   "reasoning_off": 0.36937452326468345,
+   "reasoning_on": 0.2821837201699902,
+   "reportable": true,
+   "sources": {
+    "paired_medium_samples.jsonl": "2bb4f2577d6ff4f6c85e1ca7bb44d00fe395c2adb311c338b27e04f3c2ccd8e9",
+    "samples.jsonl": "37830a4d844bcb45d41a00984a53b7765a9074544c9e36b4e4cb93f1e3bf6e20"
+   },
+   "why_not_admitted": "one of 3,840 sample receipts was never recovered"
+  }
+ },
+ "grading": "frozen formatting normalizer in both arms, as in the reasoning-off tables",
+ "schema": "paper-hosted-reasoning-pmd-v2",
+ "source_root": "artifacts/hosted_reasoning_off_32_20260911_v2",
+ "support": "a prompt enters only with 2 verified responses in both arms; a cell is reportable from 30 such prompts"
+}

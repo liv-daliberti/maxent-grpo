@@ -1,0 +1,50 @@
+{
+  "finding": "The current main concentration figure and the fresh64 panel use separate generated response collections. The current main figure already uses independent32 resampling; only the historical appendix uses reconstructed overlapping streams.",
+  "source_chain": [
+    "paper/figures/concentration_story_resampled.json",
+    "paper/results/concentration_across_levels.json",
+    "paper/results/mode_diversity_resampled_terminal.json"
+  ],
+  "sha256": {
+    "paper/figures/concentration_story_resampled.json": "820983e1493b64c503788c8869724d754dccd9fc3cd203d68574ea987f48c544",
+    "paper/results/concentration_across_levels.json": "af0846bbaaf85d7536e6e074034aae454fa3a29466e521f9d0d12d0138db2e67",
+    "paper/results/mode_diversity_resampled_terminal.json": "febd9e72b4bc14fbc698c5d56a7b612cfe5d8a461c2cbea12ac51af44b3f6bd0",
+    "paper/results/mode_diversity_training.json": "0997008ca95a1a1473af527cba6b76ba321376769380ea32c4ed9f1063dea131",
+    "artifacts/modebench_fresh_concentration_20260912/fresh_panel/report.json": "c9d6f8d4b5a21cc1af4b6cd6f5162e3d5d960c9b0f19657fa0169ff2c84a2190"
+  },
+  "current_figure_source": {
+    "path": "paper/results/concentration_across_levels.json",
+    "sha256": "af0846bbaaf85d7536e6e074034aae454fa3a29466e521f9d0d12d0138db2e67"
+  },
+  "current_figure_estimator": {
+    "min_defined_prompts": 30,
+    "pairing": "one untrained checkpoint per cell; spread is across training seeds",
+    "quantity": "terminal PCMD minus untrained PCMD on the level's held-out split",
+    "support_rule": "a comparison is reportable when the untrained cell clears the 30-prompt support bar and the trained seeds pool to at least that many eligible prompts between them; per-seed counts are kept so a thin seed stays visible",
+    "trained_level": "level1",
+    "transfer_levels": [
+      "level2",
+      "level3",
+      "level4",
+      "level5"
+    ],
+    "transfer_note": "Every cell trains at Level 1. Level 1 is trained and evaluated together; Levels 2-5 read that same policy on constructions it never trained on, so they are transfer."
+  },
+  "current_resampling_definition": {
+    "aggregation": "pooled over a cell's four draws, unweighted mean over defined prompts, then over seeds",
+    "estimator": "PCMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)) over a prompt's verified responses",
+    "metric": "pairwise correct-mode diversity (PCMD)",
+    "min_defined_prompts": 30,
+    "sampling": "aligned eight-wide RNG blocks hashed from (domain, problem, draw), the policy registered for the frozen base-model grid",
+    "streams_per_prompt": "thirty-two disjoint, against eleven overlapping in the registered draws"
+  },
+  "current_resampling_receipt_roots": [
+    "var/artifacts/pmd_independent_resample_20260915/receipts/independent"
+  ],
+  "historical_training_archive": {
+    "path": "paper/audits/conditional_concentration_20260912/verified_samples_completed_cohort.jsonl.gz",
+    "sha256": "c54aaa1bc4ccc086af6a2f2f7b09eae3ea31c17094f249f412dea6ba5dba9179"
+  },
+  "fresh_panel_status": "complete",
+  "fresh_panel_contrasts": 36
+}

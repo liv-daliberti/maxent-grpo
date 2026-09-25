@@ -206,6 +206,26 @@ class ZeroMathArgs(PPOArgs):
     # tau=.2; zero is exactly inactive.
     ucpo_tau: float = 0.0
 
+    # Group-Aware Policy Optimization (Anschel et al., EMNLP 2025). When
+    # enabled, the group's frequency-aware reward replaces the binary task
+    # reward before centering. `gapo_support_index` is the frozen map from a
+    # prompt's reference onto its enumerated ModeBench support L; GAPO assumes
+    # a known valid set and this campaign can supply one, so the size is read
+    # rather than estimated. `gapo_reward_scale` selects the published [-1, 1]
+    # span or its affine image on the control's unit span; see gapo.py.
+    gapo_enabled: bool = False
+    gapo_support_index: str = ""
+    gapo_reward_scale: str = "unit"
+
+    # SetPO set-level diversity shaping (Li et al., 2026). A positive
+    # coefficient adds lambda times each row's leave-one-out marginal
+    # contribution to the kernelized set diversity of its rollout group. The
+    # kernel is cosine similarity between frozen sentence embeddings loaded
+    # from `setpo_embedder_path`; no gradient reaches the embedder.
+    setpo_coefficient: float = 0.0
+    setpo_embedder_path: str = ""
+    setpo_embed_batch_size: int = 64
+
     # Decoupled Clip and Dynamic sAmpling Policy Optimization (DAPO; Yu et
     # al., 2025). The direct baseline uses standard GRPO advantages, the
     # paper's asymmetric .20/.28 PPO clip, token-level loss aggregation,
@@ -230,6 +250,13 @@ class ZeroMathArgs(PPOArgs):
     # seed-specific pool contains the complete prompt-matched replay dose.
     # False preserves E98's original all-prompts hard gate exactly.
     rlep_sparse_fallback: bool = False
+    # E135: RLEP's update and eligibility rule, with the pool filled online
+    # from the learner's own verified fresh rollouts instead of harvested once
+    # from an RL-trained seed policy. Requires a positive replay count and no
+    # experience root; prompts with fewer than `rlep_replay_count` stored
+    # successes take the unchanged 16-row Dr.GRPO update, as the sparse
+    # offline arm does.
+    rlep_online_pool: bool = False
 
     # E88 adaptive semantic MaxEnt. The coefficient is moved so that the
     # realized ratio of semantic-advantage RMS to task-advantage RMS tracks
@@ -638,9 +665,18 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             raise ValueError("DAPO and UCPO are separate comparative baselines")
     rlep_root = str(getattr(args, "rlep_experience_root", "") or "")
     rlep_count = int(getattr(args, "rlep_replay_count", 0) or 0)
+    rlep_online = bool(getattr(args, "rlep_online_pool", False))
     if rlep_count < 0:
         raise ValueError("rlep_replay_count must be non-negative")
-    if bool(rlep_root) != bool(rlep_count):
+    if rlep_online:
+        if rlep_root:
+            raise ValueError(
+                "rlep_online_pool fills its pool from fresh rollouts and takes "
+                "no rlep_experience_root"
+            )
+        if not rlep_count:
+            raise ValueError("rlep_online_pool requires a positive rlep_replay_count")
+    elif bool(rlep_root) != bool(rlep_count):
         raise ValueError(
             "rlep_experience_root and rlep_replay_count must be enabled together"
         )
@@ -659,6 +695,62 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             raise ValueError("RLEP-Dr and UCPO are separate comparative baselines")
         if bool(getattr(args, "online_canonical_replay", False)):
             raise ValueError("RLEP-Dr cannot be combined with canonical replay")
+    gapo_enabled = bool(getattr(args, "gapo_enabled", False))
+    gapo_support_index = str(getattr(args, "gapo_support_index", "") or "")
+    gapo_reward_scale = str(getattr(args, "gapo_reward_scale", "unit") or "unit")
+    setpo_coefficient = float(getattr(args, "setpo_coefficient", 0.0) or 0.0)
+    setpo_embedder_path = str(getattr(args, "setpo_embedder_path", "") or "")
+    setpo_embed_batch_size = int(getattr(args, "setpo_embed_batch_size", 64) or 64)
+    if gapo_enabled:
+        if args.critic_type != "drgrpo":
+            raise ValueError("GAPO rides this campaign's Dr.GRPO backbone")
+        if not gapo_support_index:
+            raise ValueError(
+                "GAPO requires gapo_support_index: the enumerated support is "
+                "read from a frozen index, never estimated from the group"
+            )
+        if gapo_reward_scale not in ("unit", "paper"):
+            raise ValueError("gapo_reward_scale must be 'unit' or 'paper'")
+        for other, label in (
+            (ucpo_tau > 0.0, "UCPO"),
+            (dapo_enabled, "DAPO"),
+            (bool(rlep_count), "RLEP-Dr"),
+            (setpo_coefficient > 0.0, "SetPO"),
+        ):
+            if other:
+                raise ValueError(f"GAPO and {label} are separate comparative baselines")
+        if bool(getattr(args, "maxrl_task_objective", False)):
+            raise ValueError("GAPO replaces the task reward and excludes MaxRL")
+        if float(getattr(args, "outcome_collision_coef", 0.0) or 0.0) != 0.0:
+            raise ValueError(
+                "GAPO already penalizes within-group frequency; the outcome "
+                "collision bonus would double it"
+            )
+    elif gapo_support_index:
+        raise ValueError("gapo_support_index requires gapo_enabled")
+    if not math.isfinite(setpo_coefficient) or setpo_coefficient < 0.0:
+        raise ValueError("setpo_coefficient must be finite and non-negative")
+    if setpo_coefficient > 0.0:
+        if args.critic_type != "drgrpo":
+            raise ValueError("SetPO rides this campaign's Dr.GRPO backbone")
+        if not setpo_embedder_path:
+            raise ValueError(
+                "SetPO requires setpo_embedder_path: the similarity kernel is "
+                "a frozen local snapshot, not a network download"
+            )
+        if setpo_embed_batch_size <= 0:
+            raise ValueError("setpo_embed_batch_size must be positive")
+        for other, label in (
+            (ucpo_tau > 0.0, "UCPO"),
+            (dapo_enabled, "DAPO"),
+            (bool(rlep_count), "RLEP-Dr"),
+        ):
+            if other:
+                raise ValueError(
+                    f"SetPO and {label} are separate comparative baselines"
+                )
+    elif setpo_embedder_path:
+        raise ValueError("setpo_embedder_path requires a positive setpo_coefficient")
     if dapo_enabled:
         incompatible = {
             "finite xDr tau": math.isfinite(float(args.xdr_tau)),
@@ -1045,8 +1137,21 @@ def validate_zero_math_args(args: ZeroMathArgs) -> ZeroMathArgs:
             "non-uniform online_canonical_replay_key_weighting requires "
             "online_canonical_replay"
         )
-    if online_canonical_replay_capacity < 2:
-        raise ValueError("online_canonical_replay_capacity must be at least two")
+    # ``bank_balance`` is the only objective that cannot score a one-mode bank:
+    # its KL(U_g || softmax) term is undefined on a singleton group and
+    # ``canonical_replay_uniform_loss`` refuses one. The mass objectives this
+    # campaign trains under already score singleton groups -- every prompt that
+    # has discovered exactly one mode is replayed as one -- so a capacity of
+    # one is a legal configuration for them and is what the E130 mode-agnostic
+    # ablation requests. The floor therefore follows the objective rather than
+    # standing over all of them.
+    minimum_capacity = 2 if online_canonical_replay_objective == "bank_balance" else 1
+    if online_canonical_replay_capacity < minimum_capacity:
+        raise ValueError(
+            "online_canonical_replay_capacity must be at least "
+            f"{minimum_capacity} for objective "
+            f"{online_canonical_replay_objective}"
+        )
     if online_canonical_replay_bank_freeze_step < 0:
         raise ValueError(
             "online_canonical_replay_bank_freeze_step must be non-negative"

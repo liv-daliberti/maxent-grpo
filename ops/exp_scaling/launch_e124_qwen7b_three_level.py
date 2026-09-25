@@ -26,16 +26,55 @@ import time
 
 ROOT = Path(os.environ.get('OAT_ZERO_REPO_ROOT', Path(__file__).resolve().parents[2])).resolve()
 SOURCE = Path(__file__).resolve()
-ART = ROOT / 'var/artifacts/e124_qwen7b_three_level'
+# A revision of this sweep -- a different physical profile, say -- needs its own
+# artifact root and its own science namespace, so the frozen originals stay the
+# record and no completed or running cell is overwritten. Default to the original
+# campaign so ordinary invocations are unchanged.
+ART = Path(os.environ.get('E124_ART') or ROOT / 'var/artifacts/e124_qwen7b_three_level').resolve()
+OUTPUT_ROOT = Path(os.environ['E124_OUTPUT_ROOT']).resolve() if os.environ.get('E124_OUTPUT_ROOT') else None
+# Moving a cohort to different hardware should not quietly change what it
+# measures. Live src has since gained disjoint eval-draw seeding, which alters
+# mode coverage -- the very thing this sweep reports -- so a revision pins the
+# runtime its siblings already ran, rather than snapshotting today's tree.
+REUSE_SNAPSHOT = Path(os.environ['E124_REUSE_SNAPSHOT']).resolve() if os.environ.get('E124_REUSE_SNAPSHOT') else None
 PLAN = ART / 'plan.json'
 TX = ART / 'transaction.json'
-LEDGER = ROOT / 'var/artifacts/e124_qwen7b_three_level_jobs.json'
+LEDGER = ROOT / 'var/artifacts' / (ART.name + '_jobs.json')  # revision-scoped with ART
 PROTOCOL = ROOT / 'paper/preregistration/e124_qwen7b_three_level_20260909.md'
 PYTHON = ROOT / 'var/seed_paper_eval/paper310/bin/python'
 HEALTHY_OPS = ROOT / 'var/artifacts/source_snapshots/e76_tuned_scale_50d36295558a8958/ops'
 MODEL = ROOT / 'var/cache/huggingface/transformers/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28'
 PVL = 'node[004-008,020-026,101,103-104,403,805-808,901-902,906-909,911-914]'
-POOL = 'node205,node206,node207,node208'
+POOL = 'node302'
+# The systems benchmark is placed separately from the cells it qualifies.
+# benchmark_e124_qwen7b.require_gpu asserts "'A6000' in props.name and 45 GiB <=
+# total_memory <= 49 GiB", so the qualification can only ever be measured on an
+# a6000 -- the mltheory partition has none. Cells run on mltheory/a100 by choice;
+# the gate is therefore measured on the 48 GiB card it was written for and applied
+# to 80 GiB cards, which is conservative in the direction that matters: every
+# memory headroom the benchmark certifies is strictly larger in production. The
+# checkpoint and storage figures it produces are hardware-independent.
+# Partition 'all' is not usable here: the site couples partition to account, so a
+# job submitted with --partition=all under account mltheory is placed on partition
+# mltheory and then pends forever on BadConstraints, because mltheory has no a6000
+# (observed on job 31341287). lowprio is where this account can reach the a6000
+# pool, and is where the original benchmark ran. The cells stay on mltheory; only
+# this short qualification job goes back to lowprio, because it is the sole
+# hardware its GPU assertion accepts.
+BENCHMARK_POOL = 'node205,node206,node207,node208'
+BENCHMARK_PARTITION = 'lowprio'
+BENCHMARK_GRES = 'gpu:a6000:1'
+# A cell already training when the sweep moved keeps its original placement to the
+# end of its run, so the sweep is legitimately mixed for a while. Each cell must
+# still be internally consistent: wholly moved, or wholly on the placement it was
+# submitted under. A cell on mltheory holding an a6000, or on the old pool in the
+# new partition, is not a migration in progress -- it is a job that changed
+# underneath us, and stays a hard failure.
+LEGACY_POOL = 'node205,node206,node207,node208'
+PLACEMENTS = ({'Partition': 'mltheory', 'TresPerNode': 'gres/gpu:a100:1', 'pool': POOL},
+              {'Partition': 'lowprio', 'TresPerNode': 'gres/gpu:a6000:1', 'pool': LEGACY_POOL},
+              {'Partition': BENCHMARK_PARTITION, 'TresPerNode': 'gres/' + BENCHMARK_GRES,
+               'pool': BENCHMARK_POOL})
 USER_HELD_REASONS = frozenset({'JobHeldUser', 'job_requeued_in_held_state', 'job requeued in held state'})
 LIVE = {'RUNNING', 'CONFIGURING', 'COMPLETING', 'SUSPENDED', 'PENDING'}
 TERMINAL = {'COMPLETED', 'TIMEOUT', 'PREEMPTED', 'FAILED', 'CANCELLED', 'OUT_OF_MEMORY', 'NODE_FAIL', 'BOOT_FAIL', 'DEADLINE'}
@@ -115,6 +154,25 @@ def command(args, *, timeout=120):
     return result.stdout
 
 
+# Slurm's controller forgets a job id some minutes after it finishes, and both
+# squeue and scontrol then exit non-zero with "Invalid job id specified". That is
+# an answer, not a failure: the id is no longer queued. Treating it as a failure
+# is what stopped this controller -- it polled a job that had aged out, raised,
+# and after eight consecutive raises left every cell gated behind a dead watcher
+# while the rows it was supposed to reconcile stayed exactly as they were.
+PURGED_JOB = re.compile(r'Invalid job id specified|Invalid job id|invalid job id')
+
+
+def query(args, *, timeout=120):
+    """Run a scheduler query; return None when the job id has been purged."""
+    result = subprocess.run([str(x) for x in args], capture_output=True, text=True, timeout=timeout)
+    if result.returncode != 0:
+        require(PURGED_JOB.search(result.stderr or ''),
+                f'command failed ({result.returncode}): {args[0]}: {(result.stderr or "")[-1000:]}')
+        return None
+    return result.stdout
+
+
 def fields(record):
     return {k: v for k, v in re.findall(r'([A-Za-z][A-Za-z0-9_/]*)=([^ ]+)', record)}
 
@@ -170,7 +228,23 @@ def runtime_description():
             'sha256': identity, 'inventory': inventory}
 
 
+def reused_snapshot():
+    """Adopt an already-published snapshot, re-verifying every file it recorded."""
+    root = REUSE_SNAPSHOT
+    require(root.is_dir() and root.parent == ROOT / 'var/artifacts/source_snapshots', 'reused snapshot is not a published snapshot')
+    source = next((p for p in (ART, ROOT / 'var/artifacts/e124_qwen7b_three_level') if (p / 'plan.json').is_file()), None)
+    require(source is not None, 'no existing plan records the snapshot being reused')
+    recorded = read(source / 'plan.json')['snapshot']
+    require(Path(recorded['root']).resolve() == root, 'reused snapshot differs from the one that plan recorded')
+    for relative, pin in recorded['inventory'].items():
+        require(digest(root / relative) == pin['sha256'], 'reused runtime changed: ' + relative)
+    require(seal(recorded['inventory']) == recorded['sha256'], 'reused snapshot identity differs')
+    return recorded
+
+
 def publish_snapshot(snapshot):
+    if REUSE_SNAPSHOT:
+        return  # already published and re-verified by reused_snapshot()
     target = Path(snapshot['root'])
     require(not target.exists(), 'snapshot already exists; inspect it instead of overwriting')
     target.mkdir()
@@ -222,10 +296,13 @@ def job_command(plan, row, *, benchmark=False):
     require(all(',' not in str(k) and ',' not in str(v) and '\n' not in str(v) for k, v in env.items()), 'unsafe Slurm export value')
     comment = 'e124:' + plan['plan_sha256'][:16] + ':' + ('systems' if benchmark else row['cell_id'])
     script = ART / 'systems.slurm' if benchmark else Path(plan['snapshot']['root']) / 'ops/slurm/train_node302.slurm'
+    partition = BENCHMARK_PARTITION if benchmark else 'mltheory'
+    pool = BENCHMARK_POOL if benchmark else POOL
+    gres = BENCHMARK_GRES if benchmark else 'gpu:a100:1'
     return ['sbatch', '--parsable', '--hold', '--job-name=' + name,
             '--export=ALL,' + ','.join(k + '=' + v for k, v in env.items()),
-            '--partition=lowprio', '--account=mltheory', '--nodelist=' + POOL,
-            '--exclude=' + PVL, '--gres=gpu:a6000:1', '--mem=256G', '--cpus-per-task=8',
+            '--partition=' + partition, '--account=mltheory', '--nodelist=' + pool,
+            '--exclude=' + PVL, '--gres=' + gres, '--mem=256G', '--cpus-per-task=8',
             '--nodes=1', '--ntasks=1', '--time=3-00:00:00', '--nice=100', '--requeue',
             '--chdir=' + str(ROOT), '--comment=' + comment,
             '--output=' + str(ART / 'logs/%x-%j.out'), '--error=' + str(ART / 'logs/%x-%j.err'), str(script)]
@@ -263,8 +340,8 @@ def prepare():
     else:
         admission = recipes.dataset_admission()
         model = model_identity()
-    snapshot = runtime_description()
-    cells = recipes.build_cells(snapshot['root'], MODEL, gpu_class='a6000')
+    snapshot = reused_snapshot() if REUSE_SNAPSHOT else runtime_description()
+    cells = recipes.build_cells(snapshot['root'], MODEL, gpu_class='a6000', output_root=OUTPUT_ROOT)
     require(len(cells) == 30, 'exactly thirty cells required')
     for row in cells:
         row['cell_id'] = f"l{row['level']}-{row['domain']}-{row['arm']}-s70"
@@ -289,10 +366,25 @@ def prepare():
     require(benchmark_plan.is_file(), 'systems plan was not generated')
     control = Path(snapshot['root']) / 'control'
     (ART / 'logs').mkdir(exist_ok=True)
+    # The training entry point sources repo_env.sh; this one did not, and that is
+    # the whole reason the systems benchmark failed. repo_env.sh points
+    # TORCH_EXTENSIONS_DIR at the prebuilt shared extension cache and pins
+    # TORCH_CUDA_ARCH_LIST to match it. Without it torch fell back to a cold cache
+    # under the user's home, tried to JIT-build DeepSpeed's CPUAdam, and died on
+    # "Ninja is required to load C++ extensions" -- the build the shared cache
+    # exists to avoid. The qualification gate then never opened, so every cell
+    # stayed held.
     (ART / 'systems.slurm').write_text('#!/bin/bash\nset -euo pipefail\n' +
         'export OAT_ZERO_REPO_ROOT=' + shlex.quote(str(ROOT)) + '\n' +
         'export MAXENT_GRPO_ROOT=' + shlex.quote(str(ROOT)) + '\n' +
         'export CUDA_HOME=' + shlex.quote(str(ROOT / 'var/cuda124_toolkit')) + '\n' +
+        'source ' + shlex.quote(str(Path(snapshot['root']) / 'ops/repo_env.sh')) + '\n' +
+        # ops/train.sh puts the interpreter's own bin directory on PATH, which is
+        # where ninja lives. The benchmark never goes through train.sh, so its
+        # worker inherited a PATH without it: repo_env.sh pointed torch at the
+        # prebuilt extension cache, torch decided to rebuild anyway, and the build
+        # died for want of ninja. Training cells never hit this.
+        'export PATH=' + shlex.quote(str(PYTHON.parent)) + '":$PATH"\n' +
         'cd ' + shlex.quote(str(ROOT)) + '\nexec ' + shlex.join([str(PYTHON), str(control / 'benchmark_e124_qwen7b.py'), 'run-suite', '--plan', str(benchmark_plan)]) + '\n')
     (ART / 'controller.slurm').write_text('#!/bin/bash\nset -euo pipefail\nexport PATH=/usr/bin:/bin\n' +
         'export PYTHONDONTWRITEBYTECODE=1\nexport OAT_ZERO_REPO_ROOT=' + shlex.quote(str(ROOT)) + '\ncd ' + shlex.quote(str(ROOT)) + '\n' +
@@ -338,13 +430,14 @@ def audit_job(plan, row, item, *, held=None):
     require(f.get('UserId', '').endswith(f'({os.getuid()})'), 'job ownership changed')
     expected_name = next(x.split('=', 1)[1] for x in item['command'] if x.startswith('--job-name='))
     require(f.get('JobName') == expected_name, 'job name changed')
-    expected = {'Account': 'mltheory', 'Partition': 'lowprio', 'MinMemoryNode': '256G',
-                'NumCPUs': '8', 'CPUs/Task': '8', 'TresPerNode': 'gres/gpu:a6000:1',
+    placement = next((p for p in PLACEMENTS if f.get('Partition') == p['Partition']), PLACEMENTS[0])
+    expected = {'Account': 'mltheory', 'Partition': placement['Partition'], 'MinMemoryNode': '256G',
+                'NumCPUs': '8', 'CPUs/Task': '8', 'TresPerNode': placement['TresPerNode'],
                 'TimeLimit': '3-00:00:00', 'Nice': '100', 'Requeue': '1', 'Dependency': '(null)',
                 'Comment': next(x.split('=', 1)[1] for x in item['command'] if x.startswith('--comment='))}
     for key, value in expected.items():
         require(f.get(key) == value, f"owned job {item['job_id']} changed {key}: {f.get(key)}")
-    require(set(command(['scontrol', 'show', 'hostnames', f['ReqNodeList']]).split()) == set(POOL.split(',')), 'node pool changed')
+    require(set(command(['scontrol', 'show', 'hostnames', f['ReqNodeList']]).split()) == set(placement['pool'].split(',')), 'node pool changed')
     require(f.get('ExcNodeList') == PVL and f.get('WorkDir') == str(ROOT), 'placement or workdir changed')
     require(exports(submit_tokens(record)) == row['environment'], 'scientific/runtime exports changed')
     require(submit_tokens(record)[-1] == item['command'][-1], 'entry point changed')
@@ -427,7 +520,8 @@ def reject_untracked_jobs(tx):
 
 
 def scheduler_state(job_id):
-    lines = command(['squeue', '-h', '-j', str(job_id), '-o', '%i|%T|%r']).splitlines()
+    queued = query(['squeue', '-h', '-j', str(job_id), '-o', '%i|%T|%r'])
+    lines = queued.splitlines() if queued is not None else []
     matches = [x.split('|', 2) for x in lines if x.split('|', 1)[0] == str(job_id)]
     require(len(matches) <= 1, 'duplicate scheduler identity')
     if matches:
@@ -449,7 +543,10 @@ def other_writers(row, own_id):
         jid, state, reason = line.split('|', 2)
         if not jid.isdigit() or int(jid) == own_id or (state == 'PENDING' and reason in USER_HELD_REASONS):
             continue
-        tokens = submit_tokens(show(int(jid)))
+        record = query(['scontrol', 'show', 'job', '-o', str(int(jid))])
+        if record is None:
+            continue  # finished and was purged between the listing and this read
+        tokens = submit_tokens(record)
         if not any(x.startswith('--export=ALL,') for x in tokens):
             continue
         env = exports(tokens)
@@ -689,7 +786,7 @@ def start_controller(plan, tx):
     verify(plan, tx)
     require(len(tx['rows']) == 31 and all(r['status'] == 'held' for r in tx['rows'].values()), 'all systems/science jobs must be audited held before controller start')
     require('controller' not in tx, 'existing or ambiguous CPU controller submission; inspect it')
-    args = ['sbatch', '--parsable', '--hold', '--job-name=e124-controller', '--account=mltheory', '--partition=lowprio',
+    args = ['sbatch', '--parsable', '--hold', '--job-name=e124-controller', '--account=mltheory', '--partition=mltheory',
             '--nodelist=node916,node917', '--nodes=1', '--ntasks=1', '--gres=none', '--cpus-per-task=1', '--mem=2G', '--time=1-01:10:00', '--requeue',
             '--comment=e124-controller:' + plan['plan_sha256'][:16], '--chdir=' + str(ROOT),
             '--output=' + str(ART / 'logs/controller-%j.out'), '--error=' + str(ART / 'logs/controller-%j.err'), str(ART / 'controller.slurm')]
@@ -702,7 +799,7 @@ def start_controller(plan, tx):
     event(tx, 'controller_id_recorded')
     f = fields(show(jid))
     require(f.get('JobState') == 'PENDING' and f.get('Reason') == 'JobHeldUser' and f.get('Priority') == '0', 'controller is not held')
-    require(f.get('Account') == 'mltheory' and f.get('Partition') == 'lowprio', 'controller placement differs')
+    require(f.get('Account') == 'mltheory' and f.get('Partition') == 'mltheory', 'controller placement differs')
     require(set(command(['scontrol', 'show', 'hostnames', f['ReqNodeList']]).split()) == {'node916', 'node917'}, 'controller node pool differs')
     require('gres/gpu' not in f.get('ReqTRES', '') and f.get('MinMemoryNode') == '2G', 'CPU-only controller resources differ')
     require(f.get('TimeLimit') == '1-01:10:00' and f.get('UserId', '').endswith(f'({os.getuid()})'), 'controller ownership/time differs')

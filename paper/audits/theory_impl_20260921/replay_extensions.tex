@@ -1,0 +1,185 @@
+% Insert after the fixed-bank replay subsection and before the exemplar bridge.
+\subsection{When replay reverses concentration, and how fast}
+\label{app:theory-replay-finite-horizon}
+
+The restoring logit field $\rho(\bar w-p)$ has a shared foundation with
+inverse probability scaling: the ideal IPS field of
+\citet[Theorem~4.1]{sinha2026expected}, normalized to a fixed target $w$, is
+$\bar w-p$. The uniform-correct target and its forward conditional-KL
+formulation are also established by \citet{lochab2026ucpo}. Here the target is
+restricted to a discovered bank and evaluated from stored exemplars. The
+question below is how its restoring field competes with the fresh binary
+objective over a finite interval. Neither a uniform target nor its
+cross-entropy gradient is a new contribution of this analysis.
+
+Fix a bank $\mathcal B\subseteq\mathcal C$ of $k\ge2$ modes, with uniform
+categorical weights, and consider Equation~\eqref{eq:replay-mean-flow}.
+Write $c(P)$ for its fresh coefficient and define
+\begin{equation}
+ \begin{gathered}
+ M_{\mathcal B}=\sum_{b\in\mathcal B}p_b,\qquad
+ r_b=\frac{p_b}{M_{\mathcal B}},\qquad
+ C_{\mathcal B}=\sum_{b\in\mathcal B}r_b^2,\\
+ a_\rho(t)=\rho-c(P(t))(1-P(t)).
+ \end{gathered}
+ \label{eq:replay-finite-notation}
+\end{equation}
+Thus $1-C_{\mathcal B}$ is \pmd{} conditional on the bank. It equals the
+paper's success-conditional \pmd{} when $\mathcal B=\mathcal C$; otherwise
+it measures only allocation inside the bank.
+
+\begin{theorem}[Exact replay threshold for bank diversity]
+\label{thm:replay-finite-threshold}
+Under the categorical mean-flow assumptions and a fixed uniform bank,
+\begin{align}
+ \frac{d}{dt}\log\frac{p_i}{p_j}
+  &=-a_\rho M_{\mathcal B}(r_i-r_j),
+   &&i,j\in\mathcal B,\label{eq:replay-finite-ratio}\\
+ \dot r_b&=-a_\rho M_{\mathcal B}r_b(r_b-C_{\mathcal B}),
+   &&b\in\mathcal B,\label{eq:replay-finite-conditional}\\
+ \frac{d}{dt}(1-C_{\mathcal B})
+  &=2a_\rho M_{\mathcal B}
+    \left(\sum_{b\in\mathcal B}r_b^3-C_{\mathcal B}^2\right).
+ \label{eq:replay-finite-pcmd}
+\end{align}
+For a nonuniform $r$, bank-conditional diversity strictly increases when
+$\rho>c(P)(1-P)$, strictly decreases when $\rho<c(P)(1-P)$, and has zero
+instantaneous derivative at equality. These conclusions require no coverage
+of correct modes outside the bank.
+\end{theorem}
+
+\begin{proof}
+For $b\in\mathcal B$, the score identities give
+$\dot z_b=\rho/k-a_\rho p_b$. Subtracting two such equations gives
+Equation~\eqref{eq:replay-finite-ratio}. The distribution $r$ is the softmax
+of the logits restricted to $\mathcal B$, so
+$\dot r_b=r_b(\dot z_b-\sum_jr_j\dot z_j)$, proving
+Equation~\eqref{eq:replay-finite-conditional}. Differentiating
+$C_{\mathcal B}$ gives Equation~\eqref{eq:replay-finite-pcmd}.
+Its parenthesis is $\operatorname{Var}_{b\sim r}(r_b)$, which is strictly
+positive for a nonuniform distribution with positive coordinates.
+\end{proof}
+
+A positive dose therefore need not improve diversity immediately.
+The thresholds for Dr.GRPO and the specified MaxRL estimator are, respectively,
+\[
+ \rho>\frac{G-1}{G}(1-P),\qquad
+ \rho>\frac{(1-P)[1-(1-P)^{G-1}]}{P}.
+\]
+The asymptotic result for every $\rho>0$ and this finite-time condition are
+compatible: the fresh concentration pressure vanishes as $P\to1$.
+
+\begin{theorem}[Finite recovery from accumulated replay exposure]
+\label{thm:replay-finite-recovery}
+In the setting of Theorem~\ref{thm:replay-finite-threshold}, suppose
+$a_\rho(u)\ge0$ for $u\in[T,t]$, and define
+\[
+ S(T,t)=\int_T^t a_\rho(u)M_{\mathcal B}(u)\,du,
+ \qquad D(t)=\log\frac{\max_{b\in\mathcal B}r_b(t)}
+                            {\min_{b\in\mathcal B}r_b(t)}.
+\]
+Then
+\begin{equation}
+ e^{D(t)}-1\le(e^{D(T)}-1)e^{-S(T,t)/k},
+ \qquad
+ \min_b r_b(t)\ge\frac{1}{1+(k-1)e^{D(t)}}.
+ \label{eq:replay-finite-recovery}
+\end{equation}
+For $0<\delta<1/k$, put
+$D_\delta=\log[(1/\delta-1)/(k-1)]$. If $D(T)>D_\delta$, the condition
+\begin{equation}
+ S(T,t)\ge k\log\frac{e^{D(T)}-1}{e^{D_\delta}-1}
+ \label{eq:replay-finite-visibility-exposure}
+\end{equation}
+is sufficient for every $r_b(t)\ge\delta$. If $D(T)\le D_\delta$, this
+conclusion already holds and is preserved on the interval. In particular,
+when $a_\rho\ge a_0>0$ and $M_{\mathcal B}\ge M_0>0$ on the interval,
+its required duration is at most the right-hand side of
+Equation~\eqref{eq:replay-finite-visibility-exposure} divided by $a_0M_0$.
+At that endpoint every unconditional bank probability is at least
+$M_0\delta$.
+\end{theorem}
+
+\begin{proof}
+Bank-coordinate ordering is preserved by
+Equation~\eqref{eq:replay-finite-ratio}: a difference of two bank logits
+satisfies a scalar equation proportional to that difference, and ties persist.
+Writing $r_{\max}$ and $r_{\min}$ for the extremal coordinates,
+\[
+ \dot D=-a_\rho M_{\mathcal B}(r_{\max}-r_{\min}),
+ \qquad
+ r_{\max}-r_{\min}
+   =r_{\max}(1-e^{-D})\ge\frac{1-e^{-D}}{k}.
+\]
+Thus $\frac{d}{dt}(e^D-1)\le
+ -(a_\rho M_{\mathcal B}/k)(e^D-1)$; integration proves the first bound.
+Since $1\le r_{\min}+(k-1)r_{\max}$, the second follows. Substituting
+$D_\delta$ and solving the first bound for the exposure proves the remaining
+claims. When $D(T)=0$, uniformity is preserved directly.
+\end{proof}
+
+The bound specifies the interval on which restoration occurs. It does not
+assume that bank mass is monotone or that correctness stays above its value
+at $T$. Both enter through the displayed exposure; a bound on unconditional
+visibility additionally needs the stated bank-mass lower bound.
+
+\begin{proposition}[Discrete exact-gradient contraction]
+\label{prop:replay-discrete-contraction}
+Replace the continuous update by simultaneous exact mean-gradient steps,
+while retaining independent logits and a fixed uniform bank:
+\[
+ z_{n+1}=z_n+\eta_n\{c(P_n)\nabla_zP_n+
+                         \rho(\bar w-p_n)\},\qquad \eta_n\ge0.
+\]
+Define $D_n$ as above and
+$\gamma_n=\eta_n M_{\mathcal B,n}
+ [\rho-c(P_n)(1-P_n)]$.
+If $0\le\gamma_n\le2$, the order of all bank probabilities is preserved
+at this step and
+\begin{equation}
+ e^{D_{n+1}}-1\le
+ \left(1-\frac{1-e^{-\gamma_n}}{k}\right)(e^{D_n}-1).
+ \label{eq:replay-discrete-contraction}
+\end{equation}
+Consequently, if $0\le\gamma_n\le1$ for $n=0,\ldots,N-1$, then
+\[
+ e^{D_N}-1\le(e^{D_0}-1)
+  \exp\!\left(-\frac{1-e^{-1}}{k}
+                    \sum_{n=0}^{N-1}\gamma_n\right).
+\]
+\end{proposition}
+
+\begin{proof}
+For two bank logits with difference $d=z_i-z_j\ge0$,
+\[
+ d_{\rm next}=d-\gamma_n(r_i-r_j),\qquad
+ r_i-r_j=(r_i+r_j)\tanh(d/2)\le d/2.
+\]
+Hence $d_{\rm next}\ge0$ when $\gamma_n\le2$. The same extremal indices
+therefore give
+$D_{n+1}=D_n-\gamma_n(r_{\max}-r_{\min})$.
+For $x\in[0,1]$, convexity of $e^{-\gamma_nx}$ yields
+$1-e^{-\gamma_nx}\ge(1-e^{-\gamma_n})x$. Set
+$x=r_{\max}-r_{\min}$ and use
+$e^{D_n}x\ge(e^{D_n}-1)/k$ from the preceding proof. This gives
+Equation~\eqref{eq:replay-discrete-contraction}. Multiplication over steps,
+$1-y\le e^{-y}$, and
+$1-e^{-\gamma}\ge(1-e^{-1})\gamma$ for $0\le\gamma\le1$ prove the last
+bound.
+\end{proof}
+
+These discrete statements concern exact mean gradients, without clipping,
+sampling noise, optimizer state or alternating replay visits. They establish
+a finite-step result for the specified update, rather than a guarantee for
+AdamW. Uniform categorical weights are also essential to the stated target.
+For fixed nonuniform weights $w_b$, the exact conditional equation is instead
+\begin{equation}
+ \dot r_b=r_b\left\{
+   \rho\left(w_b-\sum_jr_jw_j\right)
+   -a_\rho M_{\mathcal B}(r_b-C_{\mathcal B})\right\}.
+ \label{eq:replay-finite-weighted}
+\end{equation}
+The inverse-length weights induced by the implemented mean-token loss belong
+to this weighted case. The uniform contraction theorem therefore describes
+an equal-length categorical specialization, and does not assert uniform key
+probabilities for neural exemplar replay.

@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "pdf": "paper/audits/fresh_concentration_integration_20260922/build/main.pdf",
+  "pdf_sha256": "707a1e6ad3dfa5048526abd72e3e6c6ccb716777792671a6e0981c98a3f85c8c",
+  "total_pages": 124,
+  "main_end_page": 9,
+  "main_visual_review_pages": [
+    6,
+    7,
+    8,
+    9
+  ],
+  "appendix_final_labels": {
+    "app:fresh-concentration": 42,
+    "fig:fresh-concentration": 43,
+    "tab:fresh-concentration-initial": 44,
+    "tab:fresh-concentration-replay": 44,
+    "app:conditional-concentration": 44
+  },
+  "findings": [
+    "Main protocol and6/30Dr.GRPO plus12/60replay claims are correctly scoped to the separate64response evaluation.",
+    "Main distinguishes lower PCMD afterDr.GRPO from replay mitigation and does not assert initialPantry diversity restoration.",
+    "Affected mainfigures and captions are visible without clipping or overlap; Conclusion and Limits fitpage9.",
+    "Freshforestplot and all36table rows are readable with correctPCMD direction, intervals, labels and units.",
+    "FinalFloatBarrier places bothfresh tables before historicalH.2heading; independently checked finalPDFpage44.",
+    "No newvisual or scientific blocking issue identified."
+  ],
+  "review_images": [
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/final_appendix44.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/final_main6.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/final_main7.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/final_main8.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/final_main9.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/page43.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/page44.png",
+    "paper/audits/fresh_concentration_integration_20260922/visual_review/page45.png"
+  ],
+  "baseline_limitations": "Existing broad provenance-contract and line-fill failures were recorded separately; this review does not assert those preexisting checks pass."
+}

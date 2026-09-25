@@ -1,0 +1,26 @@
+[
+  {
+    "file": "paper/main.tex",
+    "old": "Every reported number is computed from a versioned result file.\nApp.~\\ref{app:reproducibility} records protocols, hashes, validations,\nand regeneration commands, and links the public dataset and model archive;\nApp.~\\ref{app:data} records split identities.\nThe AI Use Statement above discloses generative-AI assistance.",
+    "new": "The public dataset, model weights, and analysis resources are linked in\nApp.~\\ref{app:reproducibility}. App.~\\ref{app:data} describes the dataset\nsplits and evaluation protocol. The AI Use Statement above discloses\ngenerative-AI assistance.",
+    "reason": "Keep availability statement; move version/hash/validation mechanics to code."
+  },
+  {
+    "file": "paper/main.tex",
+    "old": "Within each run, the estimates average diagnostic records with replay\nmeasurements and an available fresh-response length, using the most recent\nlength measurement if it is not in the same record. Run estimates then receive\nequal weight within each model--domain cell. Repeated step records are not\ndeduplicated, and records are not truncated to the 3,072-update horizon. Fresh-group token\ncounts are reconstructed from logged response lengths and a prompt-length\nestimate derived from replay rows. These are descriptive workload summaries,\nnot a cumulative compute audit. They exclude rollout generation, padding,\nattention-specific costs, activation recomputation, verification, bank\nmaintenance, optimizer work, communication, and evaluation. Hardware pools\nalso differ across cohorts. Neither these estimates nor the reference-KL\ncomparison establishes an end-to-end speedup or resolves the missing budget\ncontrol.",
+    "new": "Workload estimates are averaged within runs and then equally across seeds\nin each model--domain cell. Fresh-group token counts use response lengths\nand prompt-length estimates. These averages describe the selected likelihood\npasses, not cumulative computation through the matched training horizon.\nThey exclude rollout generation, padding, attention-specific costs,\nactivation recomputation, verification, bank maintenance, optimizer work,\ncommunication, and evaluation. They therefore do not establish an\nend-to-end speedup or an advantage at equal total compute.",
+    "reason": "Keep workload averaging/estimand/exclusions; move log-join/duplicate/truncation implementation to code."
+  },
+  {
+    "file": "paper/main.tex",
+    "old": "mean number of keys replayed per logged update",
+    "new": "mean number of keys replayed per measured update",
+    "reason": "Describe measurement population without log-storage terminology."
+  },
+  {
+    "file": "paper/main.tex",
+    "old": "the number of keys replayed per logged update",
+    "new": "the number of keys replayed per measured update",
+    "reason": "Describe measurement population without log-storage terminology."
+  }
+]

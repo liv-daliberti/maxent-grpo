@@ -158,6 +158,14 @@ def main() -> None:
             axis.fill_between(grid, band_lo, band_hi, color=colour, alpha=0.22,
                               linewidth=0, zorder=1)
             axis.plot(grid, band_hi, color=colour, linewidth=1.1, zorder=2)
+            # The probability of drawing *some* buffered key does not depend on
+            # how the mass is split, so it is flat in this coordinate. At x = 0
+            # the solid curve starts on it: a point mass returns one key and
+            # nothing else. The vertical gap at any x is therefore exactly what
+            # balancing buys, and it is bought at no cost to that probability.
+            axis.plot([0.0, 1.0 - 1.0 / K_BANK], [any_banked(mass)] * 2,
+                      color=colour, linewidth=0.9, linestyle=(0, (3, 2)),
+                      alpha=0.9, zorder=2)
             axis.scatter([p["x"] for p in inside], [p["y"] for p in inside],
                          s=6, color=colour, alpha=0.60, linewidths=0, zorder=3)
             entry["bins"].append({"mass": mass, "range": [lo, hi],
@@ -169,18 +177,25 @@ def main() -> None:
         record.append(entry)
 
     axes[0].set_ylabel(f"distinct verified\nmodes in {K_DRAWS} draws")
-    fig.supxlabel(r"within-prompt breadth $1-\sum_c q_c^2$",
-                  fontsize=style.FONT, color=style.INK, y=-0.09)
+    fig.supxlabel(
+        r"within-prompt breadth  PCMD $=1-\sum_c q_c^2$"
+        "\n"
+        r"left edge: one mode repeated   $\longrightarrow$   "
+        r"right edge: uniform over the buffer's $k$ modes",
+        fontsize=style.FONT, color=style.INK, y=-0.16)
 
     style.bottom_legend(
         fig,
         [Line2D([], [], color=c, linewidth=1.6) for c in colours]
-        + [Line2D([], [], color=style.INK, marker="o", linestyle="none",
+        + [Line2D([], [], color=style.INK, linewidth=0.9,
+                  linestyle=(0, (3, 2))),
+           Line2D([], [], color=style.INK, marker="o", linestyle="none",
                   markersize=3.0)],
-        [rf"closed form, $P\approx{m:.2f}$" for m in BANKED_MASS]
-        + ["one held-out prompt"],
-        y=-0.30,
-        ncol=4,
+        [rf"distinct modes, $P\approx{m:.2f}$" for m in BANKED_MASS]
+        + ["probability of any buffered mode (same $P$)",
+           "one held-out prompt"],
+        y=-0.36,
+        ncol=3,
     )
 
     style.save(fig, OUT)
@@ -195,7 +210,9 @@ def main() -> None:
         "schema": "paper-figure-derived-v1",
         "kind": "derived-with-measurement",
         "curves": "closed forms printed in App. A.3, evaluated over "
-                  "w(t) = (1 - t) e_1 + t U_k.",
+                  "w(t) = (1 - t) e_1 + t U_k. Dashed horizontals are "
+                  "1 - (1 - P)^K, the allocation-invariant probability "
+                  "of drawing some buffered key.",
         "measured": {
             "source": MEASURED.relative_to(ROOT).as_posix(),
             "source_sha256": hashlib.sha256(MEASURED.read_bytes()).hexdigest(),

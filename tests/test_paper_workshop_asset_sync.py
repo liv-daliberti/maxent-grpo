@@ -27,6 +27,8 @@ SCIENTIFIC_RECORDS = (
     "conditional_concentration_20260911.json",
     "e120_frequency_progress.json", "e120_primary_breadth.json",
     "e121_fixed_bank_survival.json", "modebench_level_comparison_snapshot.json",
+    "modebench_level3_comparison_snapshot.json",
+        "modebench_level_baseline_snapshot.json",
     f"training_curve_snapshot_{STAMP}.json", f"latest_results_{STAMP}.json",
     f"current_campaign_results_{STAMP}.json", f"level2_factorial_contrasts_{STAMP}.json",
     f"frontier_hosted_{STAMP}.json", f"frontier_comparison_{STAMP}.json",

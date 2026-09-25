@@ -3190,7 +3190,7 @@
   ],
   "builder": {
     "path": "ops/exp_scaling/build_paper_level2_factorial_contrasts.py",
-    "sha256": "180a8e3ad7c19750a019a62b1d80cfb7af3e8bf29f78d99e7e3a160433c375ce"
+    "sha256": "61d67ff36df9bea3d2379882fc06ca326f9c794b8cbf665caa0ccac50ae1bd7d"
   },
   "collection_finished_at_utc": "2026-09-12T15:37:38.751403+00:00",
   "collection_started_at_utc": "2026-09-12T15:32:12.793811+00:00",

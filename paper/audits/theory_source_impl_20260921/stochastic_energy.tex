@@ -1,0 +1,52 @@
+% Optional insertion after the complete-exemplar certificate.
+\paragraph{Allowing stochastic energy excursions.}
+Exact descent is sufficient but not necessary. The following is a direct
+application of Ville's inequality \citep[Lemma~1]{howard2020timeuniform}.
+
+\begin{corollary}[Retention from a conditional energy budget]
+\label{cor:replay-stochastic-energy-budget}
+Use the fixed complete exemplars, weights and potential $F$ of
+Lemma~\ref{lem:shared-exemplar-retention}. Let
+$D_t=F(\theta_t)+J_{\max}\ge0$ be adapted and integrable, with deterministic
+finite $D_0$. For $N\in\mathbb N\cup\{\infty\}$, suppose deterministic
+$d_t\ge0$ satisfy
+\[
+ \mathbb E[D_{t+1}\mid\mathcal F_t]\le D_t+d_t\quad(t<N),
+ \qquad B_N=\sum_{t<N}d_t<\infty.
+\]
+For every $0<\delta<1$, with probability at least $1-\delta$,
+\begin{equation}
+ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
+ \ge\exp\!\left[-\frac{L_j(D_0+B_N)}{\alpha_j\delta}\right]
+ \quad\text{for all }t\le N\text{ and all }j.
+ \label{eq:replay-stochastic-energy-budget}
+\end{equation}
+The sharper per-prompt certificate in
+Equation~\eqref{eq:complete-exemplar-key-certificate} also applies on this
+event. For $N=\infty$, every protected probability has an almost surely
+positive, potentially random, infimum over the iterations.
+\end{corollary}
+\begin{proof}
+$X_t=D_t+\sum_{s=t}^{N-1}d_s$ is a nonnegative supermartingale. Ville's
+inequality bounds its supremum by $(D_0+B_N)/\delta$ with probability at
+least $1-\delta$. Every replay summand is nonnegative and bounded by $D_t$,
+so exponentiation and event containment give the claim without a union
+factor over exemplars. If $D_0+B_N=0$, then $X_t=0$ almost surely.
+For $N=\infty$, Ville's inequality with thresholds tending to infinity gives
+$\sup_tX_t<\infty$ almost surely.
+\end{proof}
+
+For example, the one-step estimate underlying
+\citet[Lemma~2.1, Eq.~(2.13)]{wang2017sqn} supplies this drift for an
+$L$-smooth $F$, unbiased minibatch gradients with variance at most
+$\sigma^2/m_t$, and preconditioners measurable before the current gradient
+noise with $\underline\kappa I\preceq H_t\preceq\bar\kappa I$.
+Deterministic steps $\eta_t\le\underline\kappa/(L\bar\kappa^2)$ and
+batch sizes $m_t$ permit
+$d_t=L\eta_t^2\bar\kappa^2\sigma^2/(2m_t)$.
+An infinite horizon additionally needs the displayed finite budget;
+constant steps and persistent noise generally supply only a finite-horizon
+bound. The current-gradient AdamW moments, clipping, changing banks and
+cyclic replay schedule are not certified by these premises: their bias and
+energy effects require separate control. No such budget is established for
+the experimental runs.

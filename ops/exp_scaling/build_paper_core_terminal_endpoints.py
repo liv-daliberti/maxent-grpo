@@ -8,6 +8,9 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from paper_domain_typography import format_domain_names
 import statistics
 from typing import Any
 
@@ -21,6 +24,15 @@ ENDPOINT_FIELDS = {
     "mean8": "mean_at_k",
     "distinct8": "distinct_correct_modes_at_k",
 }
+#: PCMD is not a draw field -- it is read off the mode distribution by the
+#: resampling pipeline -- so the printed table joins it from the frozen curve
+#: archive rather than recomputing it here.
+PMD_CURVES = ROOT / "paper/results/mode_diversity_curves.json"
+#: A reported PCMD value carries the whole-cell bar of 30 defined prompts, not
+#: the paired bar of 20 that a difference uses: here each arm's number is read
+#: on its own, so nothing cancels.
+MIN_DEFINED_PROMPTS = 30
+PMD_METHODS = {"control": "drgrpo", "replay": "replay_drgrpo"}
 # This is an existing, source-specific scientific exclusion, not a choice
 # between retry outcomes. The amendment excludes the run from every efficacy
 # summary; later reuse of the comparator does not repair its source log.
@@ -289,19 +301,98 @@ def build() -> dict[str, Any]:
     }
 
 
+def pmd_terminal() -> dict[tuple[str, str, str, int], float]:
+    """Terminal PCMD per run, keyed by scale, method, domain and seed.
+
+    Only seeds whose terminal checkpoint defines PCMD on at least
+    ``MIN_DEFINED_PROMPTS`` prompts are returned; the rest are absent, which is
+    what lets a fully concentrated control print a dash instead of a zero it
+    did not measure.
+    """
+    out: dict[tuple[str, str, str, int], float] = {}
+    for curve in json.loads(PMD_CURVES.read_text())["curves"]:
+        if curve["level"] != "level1":
+            continue
+        point = max(curve["points"], key=lambda p: p["step"])
+        value, defined = point.get("pmd"), int(point.get("defined_prompts") or 0)
+        if value is None or defined < MIN_DEFINED_PROMPTS:
+            continue
+        out[(curve["scale"], curve["method"], curve["domain"],
+             int(curve["seed"]))] = float(value)
+    return out
+
+
+def pmd_cell(table, scale, method, domain, paired):
+    """Mean terminal PCMD over the paired seeds that clear the support bar."""
+    values = [table[(scale, PMD_METHODS[method], domain, int(seed))]
+              for seed in paired
+              if (scale, PMD_METHODS[method], domain, int(seed)) in table]
+    if not values:
+        return None, 0
+    return statistics.fmean(values), len(values)
+
+
 def _mean(records: dict[str, dict[str, float]], seeds: list[str], metric: str) -> float:
     return statistics.fmean(records[seed][metric] for seed in seeds)
 
 
-def _cell(value: float, *, better: bool) -> str:
+#: The shared light ramp, as in the retention matrix tables: low is red, the
+#: middle yellow, high green.
+RAMP = ((0.00, (0xF0, 0xA5, 0x8F)),
+        (0.50, (0xF8, 0xF0, 0xA6)),
+        (1.00, (0xA9, 0xD6, 0xA0)))
+
+
+def _ramp(position: float) -> str:
+    position = min(max(position, 0.0), 1.0)
+    for (low, left), (high, right) in zip(RAMP, RAMP[1:]):
+        if position <= high:
+            weight = 0.0 if high == low else (position - low) / (high - low)
+            return "".join(f"{round(a + (b - a) * weight):02X}"
+                           for a, b in zip(left, right))
+    return "".join(f"{v:02X}" for v in RAMP[-1][1])
+
+
+def _shade(value: float, extent: float) -> str:
+    """Colour a level against the largest level of the same metric.
+
+    These are levels, not differences, so the scale runs from zero rather than
+    from a midpoint: a \pmd{} of .001 is a collapsed policy, and it should read
+    as one. Both arms of a metric share the extent, which is the whole point of
+    the table -- the reader is comparing Dr.GRPO against Re:Dr, and a per-column
+    scale would give each arm its own meaning of green. The binary pale-green
+    mark this replaces fired on almost every Re:Dr cell, so it distinguished
+    nothing.
+    """
+    return rf"\cellcolor[HTML]{{{_ramp(value / extent if extent else 0.0)}}}"
+
+
+def _cell(value: float, *, extent: float) -> str:
     formatted = f"{value:.3f}".removeprefix("0")
-    return rf"\bettercell{{{formatted}}}" if better else formatted
+    return f"{_shade(value, extent)}{formatted}"
+
+
+def _pmd_cell(value, seeds: int, paired: int, *, extent: float) -> str:
+    """A PCMD cell, with its own seed count when it is short of the pairing.
+
+    No seed clearing the bar is a dash, not a zero: a control concentrated onto
+    one key has no measured diversity rather than a measured diversity of none,
+    and an uncoloured cell says that too.
+    """
+    if value is None:
+        return r"\textemdash{}"
+    formatted = f"{value:.3f}".removeprefix("0")
+    if seeds < paired:
+        # Thin space: at \scriptsize a bare superscript digit runs into the
+        # value, and ``.000$^{2}$`` reads as the number .0002.
+        formatted += rf"$^{{\,{seeds}}}$"
+    return f"{_shade(value, extent)}{formatted}"
 
 
 def render_tex(payload: dict[str, Any]) -> str:
     model_labels = {
         "Qwen2.5-0.5B": r"\qwenmark{}2.5-0.5B",
-        "Falcon3-1B": "Falcon3-1B",
+        "Falcon3-1B": r"\falconmark{}3-1B",
         "Qwen2.5-3B": r"\qwenmark{}2.5-3B",
     }
     domain_labels = {
@@ -311,6 +402,27 @@ def render_tex(payload: dict[str, Any]) -> str:
         "mathir": "MathIR",
         "pantry_plan": "PantryPlan",
     }
+    pmd = pmd_terminal()
+    # One extent per metric, over both arms and every row, so a shade means the
+    # same thing everywhere in the table and the two arms stay comparable.
+    pass_levels, pmd_levels = [], []
+    for model, model_record in payload["models"].items():
+        for domain in DOMAINS:
+            domain_record = model_record["domains"].get(domain)
+            methods = domain_record.get("methods", {}) if domain_record else {}
+            if not {"control", "replay"} <= set(methods):
+                continue
+            control, replay = methods["control"]["per_seed"], methods["replay"]["per_seed"]
+            shared = sorted(set(control) & set(replay), key=int)
+            if not shared:
+                continue
+            pass_levels += [_mean(control, shared, "pass8"), _mean(replay, shared, "pass8")]
+            for arm in ("control", "replay"):
+                value, _count = pmd_cell(pmd, SOURCES[model][0], arm, domain, shared)
+                if value is not None:
+                    pmd_levels.append(value)
+    pass_extent = max(pass_levels) if pass_levels else 1.0
+    pmd_extent = max(pmd_levels) if pmd_levels else 1.0
     lines: list[str] = []
     for model, model_record in payload["models"].items():
         first = True
@@ -324,31 +436,36 @@ def render_tex(payload: dict[str, Any]) -> str:
             paired = sorted(set(control) & set(replay), key=int)
             if not paired:
                 continue
-            control_values = [
-                _mean(control, paired, metric)
-                for metric in ("pass8", "mean8", "distinct8")
-            ]
-            replay_values = [
-                _mean(replay, paired, metric)
-                for metric in ("pass8", "mean8", "distinct8")
-            ]
+            # mean@8 and distinct@8 are dropped from the printed table: both
+            # move with correctness, which is the confound PCMD exists to
+            # remove, and both stay in the machine-readable record.
+            control_pass = _mean(control, paired, "pass8")
+            replay_pass = _mean(replay, paired, "pass8")
+            scale = SOURCES[model][0]
+            control_pmd, control_n = pmd_cell(pmd, scale, "control", domain, paired)
+            replay_pmd, replay_n = pmd_cell(pmd, scale, "replay", domain, paired)
             model_cell = model_labels[model] if first else ""
             first = False
             values = [
-                _cell(value, better=False) for value in control_values
-            ] + [
-                _cell(value, better=value > control_values[index])
-                for index, value in enumerate(replay_values)
+                _cell(control_pass, extent=pass_extent),
+                _pmd_cell(control_pmd, control_n, len(paired), extent=pmd_extent),
+                _cell(replay_pass, extent=pass_extent),
+                _pmd_cell(replay_pmd, replay_n, len(paired), extent=pmd_extent),
             ]
+            # The paired-seed column carried one bit: every block is five
+            # seeds at pass 8 except Falcon Countdown, which the caption
+            # already states. It is dropped, and a block short of five prints
+            # its count as a superscript beside the domain instead.
             pass_value = float(domain_record["training_pass"])
+            assert abs(pass_value - 8.0) < 1e-9, "a block is not read at pass 8"
+            short = "" if len(paired) == 5 else rf"$^{{\,{len(paired)}}}$"
             lines.append(
-                f"    {model_cell} & {domain_labels[domain]} & "
-                f"{len(paired)}@{pass_value:.1f} & "
+                f"    {model_cell} & {domain_labels[domain]}{short} & "
                 + " & ".join(values)
                 + r" \\"
             )
         lines.append(r"    \addlinespace[2pt]")
-    return "\n".join(lines[:-1]) + "\n    \\bottomrule\n"
+    return format_domain_names("\n".join(lines[:-1]) + "\n    \\bottomrule\n")
 
 
 def main() -> int:

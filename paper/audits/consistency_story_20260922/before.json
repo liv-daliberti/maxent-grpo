@@ -1,0 +1,32 @@
+{
+  "title": "Measuring and Mitigating Solution Mode Collapse in RLVR",
+  "main_figures": [
+    "figures/modecollapse_story.pdf",
+    "figures/modebench_examples.pdf",
+    "figures/mode_diversity_levels_appendix.pdf",
+    "figures/qwen_level_trends.pdf",
+    "figures/gpt56_all_levels32_sampling_budget.pdf",
+    "figures/replay_bank_balance.pdf",
+    "figures/verified_support_story.pdf",
+    "figures/concentration_story_resampled.pdf",
+    "figures/e118_all_scale_factorial_progress.pdf",
+    "figures/replay_key_weighting.pdf",
+    "figures/modebench_level_admission.pdf",
+    "figures/reference_kl_plane.pdf"
+  ],
+  "figure_hashes": {
+    "figures/modecollapse_story.pdf": "c5452c3b170e08201062d895e7f14067f4b0c8137fa9cf6725330bf5927c61d7",
+    "figures/modebench_examples.pdf": "9077d4805eed4910b484e55e28ca65c51b662a334d2b229f49b0fcd1c9cb1e06",
+    "figures/mode_diversity_levels_appendix.pdf": "3bd601a35ffceb0d4e7bf49349a1cda3658a0f2ff3a885acf0ad3fde5a6d55bd",
+    "figures/qwen_level_trends.pdf": "fa293dfe48a968220ab6eee77de322231002b1935c4c5065bb34219afb2d5a59",
+    "figures/gpt56_all_levels32_sampling_budget.pdf": "64eac0f05327dd0a2db352b0f5d362d5794e51ddd7b6a17869bfda178a49c972",
+    "figures/replay_bank_balance.pdf": "08951280dfdbb2cfc4f60c84de8f006b1c82ca93810f2b1ea6264ea095244424",
+    "figures/verified_support_story.pdf": "6b728175cea16d0186814a01253a6c3dc93aba23c1e2f19a3811d80325d930b2",
+    "figures/concentration_story_resampled.pdf": "40ad2a6cee7f6fd3130c5aa2006ded453a4d436c9972fe6791803ba63e1c794c",
+    "figures/e118_all_scale_factorial_progress.pdf": "f617f6856a73ce74496fd4d440ade7e0ff791b93fd9624e48e9e4300d384d8b2",
+    "figures/replay_key_weighting.pdf": "5883a5e9d61ae70e1be82c75a832729f4b5c530153b8713e9a52bb9dbbd13593",
+    "figures/modebench_level_admission.pdf": "68eed428893441e1f382c9955b38f2b38a76d3bb344b6beb9d335be994ef27c0",
+    "figures/reference_kl_plane.pdf": "89b48753f4eba2059e72eb70fc4fdd60cfa7a8a116c6891da8ef5ffba852c930"
+  },
+  "source_sha256": "cfb989e933841fc353b756492b1199a188f33a04738a90d0b9a6ab913e623226"
+}

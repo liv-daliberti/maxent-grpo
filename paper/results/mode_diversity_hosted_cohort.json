@@ -5,7 +5,7 @@
   },
   "comparison": {
     "path": "paper/results/frontier_comparison_20260911.json",
-    "sha256": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4"
+    "sha256": "8c45e607ef127bc8de0cbba205f7075340c3069c109b66feac4466382964b3c6"
   },
   "definition": {
     "aggregation": "unweighted mean over prompts with at least two verified draws",

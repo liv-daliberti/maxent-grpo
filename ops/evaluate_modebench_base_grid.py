@@ -30,6 +30,14 @@ SCHEMA = 'modebench-base-grid-independent-v1'
 REGISTRY_SCHEMA = 'modebench-base-grid-dataset-registry-v1'
 PURPOSE = 'frozen_base_model_benchmarking'
 EVAL_ROWS = 128
+# The frozen grid also scores the 384-row training split. These checkpoints are
+# off-the-shelf and trained on none of it, so those rows are simply more unseen
+# prompts, and scoring them raises how many prompts return the two verified
+# responses PCMD needs. A trained checkpoint did see them, so a receipt carries
+# its split and evaluation_prompts_loaded is false for train: the two can be
+# told apart and must never be pooled.
+TRAIN_ROWS = 384
+SPLIT_ROWS = {'eval': EVAL_ROWS, 'train': TRAIN_ROWS}
 INTERFACE = 'modebench_qwen_base_grid_independent_v1'
 LEVELS = ('level1', 'level2', 'level3', 'level4', 'level5')
 MODEL_LABELS = ('smol135', 'smol360', 'olmo1b', 'qwen15b', 'smol17b', '05b',
@@ -170,10 +178,11 @@ def validate_dataset_binding(binding: Any, *, domain: str, level: str,
     """
     require(isinstance(binding, dict), 'dataset_binding is required')
     require(binding.get('level') == level and binding.get('domain') == domain
-            and binding.get('split') == 'eval' and binding.get('status') == 'admitted',
-            'dataset binding level/domain must identify an admitted evaluation split')
-    require(type(binding.get('rows')) is int and binding['rows'] == EVAL_ROWS,
-            'registered benchmark dataset must contain exactly 128 rows')
+            and binding.get('split') in SPLIT_ROWS and binding.get('status') == 'admitted',
+            'dataset binding level/domain must identify an admitted split')
+    expected = SPLIT_ROWS[binding['split']]
+    require(type(binding.get('rows')) is int and binding['rows'] == expected,
+            f'registered benchmark dataset must contain exactly {expected} rows')
     for name in ('source_manifest_path', 'dataset_path', 'rows_jsonl'):
         require(isinstance(binding.get(name), str) and Path(binding[name]).is_absolute(),
                 'absolute dataset binding path required: ' + name)
@@ -207,9 +216,10 @@ def validate_dataset_binding(binding: Any, *, domain: str, level: str,
     require(path.is_file() and frozen.file_sha(path) == binding.get('rows_jsonl_sha256'),
             'registered frozen row file hash changed')
     rows, source = load_rows({'rows_jsonl': str(path), 'row_offset': 0, 'row_limit': 0})
-    require(len(rows) == EVAL_ROWS and source['rows_sha256'] == binding.get('rows_sha256'),
+    require(len(rows) == SPLIT_ROWS[binding['split']]
+            and source['rows_sha256'] == binding.get('rows_sha256'),
             'registered frozen rows differ from the 128-row dataset identity')
-    require(len({sha(row['problem']) for row in rows}) == EVAL_ROWS,
+    require(len({sha(row['problem']) for row in rows}) == SPLIT_ROWS[binding['split']],
             'registered evaluation prompts must be distinct')
     return rows
 
@@ -255,7 +265,7 @@ def validate_task(task: dict[str, Any], confirm_eval: bool) -> None:
     domain = task.get('domain')
     frozen_interface(domain, task.get('interface', INTERFACE))
     require(task.get('level') in LEVELS, f'level must be one of {LEVELS}')
-    require(task.get('split') == 'eval', 'base-grid benchmarking requires the eval split')
+    require(task.get('split') in SPLIT_ROWS, 'base-grid benchmarking requires a registered split')
     require(confirm_eval is True, 'held-out benchmarking requires --confirm-eval')
     require(isinstance(task.get('rows_jsonl'), str) and bool(task['rows_jsonl'])
             and not task.get('dataset'), 'registered frozen rows_jsonl is required')
@@ -307,7 +317,7 @@ def validate_seed_receipt(receipt: dict[str, Any], rows: list[dict] | None = Non
     require(identity.get('level') in LEVELS and receipt.get('level') == identity['level'],
             'receipt benchmark level mismatch')
     require(identity.get('purpose') == PURPOSE, 'receipt benchmark purpose mismatch')
-    require(identity.get('split') == 'eval' and receipt.get('split') == identity['split'],
+    require(identity.get('split') in SPLIT_ROWS and receipt.get('split') == identity['split'],
             'receipt split mismatch')
     model = identity.get('model', {})
     require(isinstance(model, dict) and model.get('label') in MODEL_LABELS
@@ -332,9 +342,10 @@ def validate_seed_receipt(receipt: dict[str, Any], rows: list[dict] | None = Non
     require(isinstance(boundary, dict)
             and boundary.get('evaluation_prompts_loaded') is (identity['split'] == 'eval')
             and boundary.get('treatment_training_started') is False
-            and (identity['split'] != 'eval' or (
-                boundary.get('confirmation_explicitly_authorized') is True
-                and source.get('row_offset') == 0 and source.get('row_limit') == 0)),
+            and boundary.get('confirmation_explicitly_authorized') is True
+            # Full coverage is required of either split: a cell is the whole
+            # split or it is not a cell. Only the held-out marker differs.
+            and source.get('row_offset') == 0 and source.get('row_limit') == 0,
             'receipt held-out evaluation boundary mismatch')
     require(source.get('kind') == 'jsonl', 'registered JSONL source identity required')
     reopened_rows, reopened_source = load_rows({
@@ -506,7 +517,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument('--model-label', required=True, choices=MODEL_LABELS)
     parser.add_argument('--domain', choices=DOMAINS)
     parser.add_argument('--level', default='level1', choices=LEVELS)
-    parser.add_argument('--split', default='eval', choices=('eval',))
+    parser.add_argument('--split', default='eval', choices=tuple(SPLIT_ROWS))
     source = parser.add_mutually_exclusive_group()
     source.add_argument('--rows-jsonl', type=Path)
     parser.add_argument('--dataset-binding', type=Path,

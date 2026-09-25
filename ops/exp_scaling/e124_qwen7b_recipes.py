@@ -109,7 +109,15 @@ def interface(level, domain):
         'OAT_ZERO_PROMPT_DATA': str(data / 'train'), 'OAT_ZERO_EVAL_DATA': str(data / 'eval'),
         'OAT_ZERO_PROMPT_TEMPLATE': ('qwen_pantry_support_mask' if pantry else 'qwen_boxed')
             if level == 1 else e119.PROMPTS[domain],
-        'OAT_ZERO_MODEBENCH_DOMAIN': domain,
+        # Level 1 is the native interface and runs no guided syntax, so naming a
+        # domain here is inert: guided_sampling_params returns its input unchanged
+        # whenever the profile is 'none', and nothing else reads the domain. It is
+        # not harmless, though -- validate_zero_math_args treats a named domain as
+        # a declaration that the Level-2 prompt/syntax contract applies, and Level 1
+        # deliberately does not satisfy it. Eight L1 cells were rejected at startup
+        # for exactly this. Only Graph Coloring survived, because its Level-2
+        # contract happens to be the Level-1 pair ('qwen_boxed', 'none').
+        'OAT_ZERO_MODEBENCH_DOMAIN': 'none' if level == 1 else domain,
         'OAT_ZERO_MODEBENCH_SYNTAX_PROFILE': 'none' if level == 1 else e119.SYNTAX[domain],
         'OAT_ZERO_TEST_SPLIT': 'multi_answer', 'OAT_ZERO_INPUT_KEY': 'problem',
         'OAT_ZERO_OUTPUT_KEY': 'answer', 'OAT_ZERO_EVAL_INPUT_KEY': 'problem',

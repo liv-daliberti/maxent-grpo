@@ -1,6 +1,6 @@
 {
   "schema": "paper-core-terminal-endpoints-v1",
-  "generated_at": "2026-09-04T20:50:34.562695+00:00",
+  "generated_at": "2026-09-19T21:15:03.270969+00:00",
   "selection_rule": "every seed with all four registered fixed-seed sampled-K draws at the exact pass-8 target; arms are retained independently; approved all-step source exclusions are honored, identical metric repeats are deduplicated, and unapproved conflicting retries abort",
   "expected_draws": 4,
   "domains": [

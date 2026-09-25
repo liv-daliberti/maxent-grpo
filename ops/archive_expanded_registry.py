@@ -67,7 +67,23 @@ ADDITIONAL_STUDIES = {
                   'attempts after verified admissions stall. Its comparator is E102, not E78.'),
     'e95': study('E95', 'Plain GRPO · initial cross-scale cohort', 55,
                  'Qwen2.5-0.5B and Falcon3-1B: five domains and five seeds each; Qwen2.5-3B: five domains at seed 70.', DIRECT,
-                 'Use the original E78/E79/E80-R1 Dr.GRPO references. Missing weights remain scientific records only and are not advertised as downloadable models.'),
+                 'Use the original E78/E79/E80-R1 Dr.GRPO references. Missing weights remain scientific records only and are not advertised as downloadable models. '
+                 'E95-R retrains the Qwen2.5-0.5B recipe as a separate study; those are new policies and do not restore or stand in for these records.'),
+    # A replication, not a recovery. The E95 weights were removed 2026-08-24 from a
+    # run root both retention scripts skip and had never been uploaded, so nothing
+    # was recoverable; E95-R retrains the recorded recipe instead. Its own ledger
+    # records is_recovery false, and the paper reports E95's numbers, not these.
+    'e95r': study('E95-R', 'Plain GRPO · Qwen2.5-0.5B replication', 25,
+                  'Qwen2.5-0.5B: five domains and five seeds, retrained from the recorded E95 recipe '
+                  'on the current source tree. Evaluation draws 32 disjoint mode-coverage streams per '
+                  'prompt, which the original cohort did not, so these cells carry the independent '
+                  'sampling the E95 policies can no longer be measured under.',
+                  'Replication family, reported separately from E95. These are new policies trained '
+                  'under the same recipe, not recovered checkpoints, and they are not substitutable '
+                  'for the E95 cells the manuscript reports. The 55 E95 scientific records remain '
+                  'weight-free and are counted separately from any downloadable model.',
+                  'Read against the same E78 Dr.GRPO references E95 used. Do not pool these seeds with '
+                  'E95 or treat them as its replacements: the recipe matches, the training run does not.'),
     'e114': study('E114', 'Plain GRPO · Qwen2.5-3B seed extension', 20,
                   'Qwen2.5-3B across five domains and seeds 71–74; together with E95 seed 70 this forms the five-seed plain-GRPO comparison.', DIRECT,
                   'Pair with E80-R1 Dr.GRPO by domain and seed. Keep the E114 source identity for extension exports.'),

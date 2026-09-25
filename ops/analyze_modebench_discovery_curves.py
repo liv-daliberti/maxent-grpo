@@ -12,6 +12,10 @@ import hashlib
 import json
 import math
 from pathlib import Path
+try:
+    from paper_domain_typography import format_domain_names
+except ModuleNotFoundError:
+    from ops.paper_domain_typography import format_domain_names
 import sys
 
 import numpy as np
@@ -28,8 +32,8 @@ LEVELS = (2, 3)
 ARMS = ('original', 'neutral')
 GRADINGS = ('strict', 'normalized_secondary')
 CONTRAST = 'neutral_minus_original'
-DOMAIN_LABELS = {'python_factors':'Python factors', 'mathir':'MathIR', 'pantry_plan':'Pantry'}
-METHOD_LABELS = {'initial':'Initial Qwen 0.5B', 'drgrpo':'DrGRPO', 'replay_drgrpo':'Re:Dr'}
+DOMAIN_LABELS = {'python_factors':'Python', 'mathir':'MathIR', 'pantry_plan':'PantryPlan'}
+METHOD_LABELS = {'initial':'Initial Qwen2.5-0.5B', 'drgrpo':'Dr.GRPO', 'replay_drgrpo':'Re:Dr'}
 
 
 def require(ok, message):
@@ -1016,43 +1020,32 @@ def interval_tex(value):
 
 
 def render_gain_table(report,family,grading):
-    label='strict verification' if grading=='strict' else 'frozen normalization sensitivity'
-    seed_note=(r'$s=1$ denotes one fixed initial checkpoint, not training-seed replication. Five-seed intervals resample seeds and paired prompts; two-seed Pantry intervals condition on the observed checkpoints and retain all paired prompt outcomes.'
-               if family=='local' else 'Each row represents a fixed hosted deployment; its intervals resample paired prompts and contain no variation across independently trained model seeds.')
-    lines=[r'\begin{table}[H]',r'\centering\scriptsize',r'\setlength{\tabcolsep}{3pt}',
-           r'\caption{Eight-to-64 discovery gains under '+label+r'. $G_P=P_{64}-P_8$, $G_D=D_{64}-D_8$, and $G_B=B_{64}-B_8$. '
-           r'Each O/N entry gives original/neutral; $\Delta G_D$ is neutral minus original with its pointwise 95\% interval. '
+    label='strict verification' if grading=='strict' else 'formatting normalization'
+    seed_note=(r'Qwen2.5-0.5B-Instruct checkpoint means use five training seeds in Python and MathIR and two in PantryPlan; $s=1$ denotes the single initial checkpoint. Five-seed intervals resample seeds and paired prompts; PantryPlan intervals condition on its two checkpoints. Formatting normalization leaves every Qwen estimate unchanged.'
+               if family=='local' else 'Each row reports sixteen problems for one deployment, domain, and level. Intervals resample paired problems, with no replication across model training seeds.')
+    lines=[r'\begin{table}[!htbp]',r'\centering\scriptsize',r'\setlength{\tabcolsep}{3pt}',
+           r'\caption{\textbf{Discovery gains from eight to 64 draws.} '+label.capitalize()+r'; O/N denotes original/neutral wording. '
            +seed_note+'}',
            r'\label{tab:discovery-gains-'+family+'-'+grading.replace('_','-')+'}',
            r'\resizebox{\linewidth}{!}{%',r'\begin{tabular}{llrrrr}',r'\toprule',
-           r'Model & Cell & $G_P$: O/N & $G_D$: O/N & $G_B$: O/N & $\Delta G_D$ [95\%] \\',r'\midrule']
+           r'Model & Domain/level & $G_P$: O/N & $G_D$: O/N & $G_B$: O/N & $\Delta G_D$ [95\%] \\',r'\midrule']
     for row in display_rows(report,family,grading):
         values=row['metrics'];pairs=[]
         for metric in ('pass','distinct','breadth'):
             name='gain8to64/rarefaction/'+metric
             pairs.append('$'+'/'.join(scalar(values[arm][name]['estimate']) for arm in ARMS)+'$')
-        lines.append(' & '.join([row['label']+(' ($s='+str(row['seed_count'])+'$)' if family=='local' else ''),DOMAIN_LABELS[row['domain']]+' L'+str(row['level']),
+        lines.append(' & '.join([('Initial' if row['method']=='initial' else row['label'])+(' ($s='+str(row['seed_count'])+'$)' if family=='local' else ''),DOMAIN_LABELS[row['domain']]+' L'+str(row['level']),
                                 *pairs,interval_tex(values[CONTRAST]['gain8to64/rarefaction/distinct'])])+r' \\')
     lines += [r'\bottomrule',r'\end{tabular}}',r'\end{table}']
     return '\n'.join(lines)
 
 
 def render_breadth_table(report,family):
-    """Both full-64 pair weightings in one table, with their shared support.
-
-    Pooled collision and promptwise PCMD answer the same question under two
-    weightings of the same pairs, and they were printed as two tables whose
-    rows, uniform reference and eligibility columns were identical; the second
-    table's caption had to say so and point back. One table with both estimates
-    side by side is the comparison the two weightings exist to support. The
-    per-budget eligibility counts that stood in a third table are retained in
-    the report, and the eligibility this table's contrast rests on is its own
-    $E$ column.
-    """
-    lines=[r'\begin{table}[H]',r'\centering\scriptsize',r'\setlength{\tabcolsep}{3pt}',
-           r'\caption{Full-64 strict breadth under both pair weightings. $C$ pools correct pairs within a fixed checkpoint or deployment, so a prompt enters in proportion to its $\binom{c}{2}$; promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over prompts with $c\ge2$, weighting each equally, which is the aggregation App.~\ref{app:metric-sampling} uses for every other \pmd{} in this paper. Trained local rows then average checkpoint values equally across seeds. $U$ is the certified-support uniform reference under the matching weighting, $E$ the eligible checkpoint--problem groups per wording, and $Q$ the correct-pair counts, both summed descriptively across checkpoints; these totals do not define the equal-seed mean. $\Delta\pmd$ is neutral minus original with its pointwise 95\% interval on the jointly eligible prompts; a cell with no jointly eligible prompt leaves it undefined. A seed with no eligible pair leaves its all-seed mean undefined, with every individual denominator, the per-budget joint eligibility counts and the separate pooled rates retained in the report.}',
+    """Render pooled collision and promptwise diversity on their own eligible sets."""
+    lines=[r'\begin{table}[!htbp]',r'\centering\scriptsize',r'\setlength{\tabcolsep}{3pt}',
+           r'\caption{\textbf{Pair weighting changes the summary of correct-solution diversity.} Strict 64-draw estimates for '+('Qwen2.5-0.5B-Instruct checkpoints' if family=='local' else 'hosted deployments')+r'. Collision $C$ weights prompts by their number of correct pairs; \pmd{} weights eligible prompts equally. Absolute estimates for each wording use their own eligible prompts, whereas $\Delta\pmd$ uses only jointly eligible prompts. Thus $\Delta\pmd$ need not equal the difference between the displayed absolute estimates, and $E_O/E_N$ are separate eligibility counts. '+(r'Means weight checkpoints equally and are undefined if any seed lacks eligible prompts.' if family=='local' else r'Each deployment is fixed; intervals resample paired problems.')+'}',
            r'\label{tab:discovery-breadth-'+family+'}',r'\resizebox{\linewidth}{!}{%',r'\begin{tabular}{llrrrrrrrrr}',r'\toprule',
-           r'Model & Cell & $C_O$ & $C_N$ & $\pmd_O$ & $\pmd_N$ & $U^{C}_O$ & $U^{\pmd}_O$ & $E_O/E_N$ & $Q_O/Q_N$ & $\Delta\pmd$ [95\%] \\',r'\midrule']
+           r'Model & Domain/level & $C_O$ & $C_N$ & $\pmd_O$ & $\pmd_N$ & $U^{C}_O$ & $U^{\pmd}_O$ & $E_O/E_N$ & $Q_O/Q_N$ & $\Delta\pmd$ [95\%] \\',r'\midrule']
     for row in display_rows(report,family,'strict'):
         metrics=row['metrics'];counts=row['counts'];vals=[]
         vals.extend('$'+scalar(metrics[a]['collision_own/observed']['estimate'])+'$' for a in ARMS)
@@ -1063,7 +1056,7 @@ def render_breadth_table(report,family):
                  str(counts['original']['correct_pairs'])+'/'+str(counts['neutral']['correct_pairs'])]
         vals.append(interval_tex(metrics[CONTRAST]['pcmd_joint/observed'])
                     if metrics[CONTRAST]['pcmd_joint/observed']['estimate'] is not None else '$--$')
-        lines.append(' & '.join([row['label'],DOMAIN_LABELS[row['domain']]+' L'+str(row['level']),*vals])+r' \\')
+        lines.append(' & '.join(['Initial' if row['method']=='initial' else row['label'],DOMAIN_LABELS[row['domain']]+' L'+str(row['level']),*vals])+r' \\')
     lines += [r'\bottomrule',r'\end{tabular}}',r'\end{table}']
     return '\n'.join(lines)
 
@@ -1074,55 +1067,75 @@ def gain_rows(block):
             if line.count('&') >= 5 and '\\\\' in line]
 
 
+def discovery_caption(family,conditional=False):
+    # State the finding, displayed quantities, and sampling population.
+    if conditional:
+        finding=(r'MathIR correct solutions remain concentrated after training.'
+                 if family=='local' else r'Neutral wording broadens GPT solutions in MathIR at fixed correct-draw budgets.')
+        setup=(r'Qwen2.5-0.5B-Instruct checkpoints; rows show Python, MathIR, and PantryPlan, and columns Levels~2 and~3. '
+               if family=='local' else r'Hosted deployments; rows show Python, MathIR, and PantryPlan, and columns Levels~2 and~3. ')
+        quantities=(r'Curves show $R_m$, the expected number of distinct verified modes in $m$ correct draws, on prompts with at least $m$ correct outputs under both wordings. '
+                    r'Eligibility varies with $m$, method, and grading; gaps mark undefined means. '
+                    r'Dotted lines give uniform lower references on prompts eligible under strict grading in both wordings, with the same prompt and checkpoint weighting as the strict curves. ')
+    else:
+        finding=(r'Additional draws reveal few new MathIR modes after training.'
+                 if family=='local' else r'Additional draws reveal solution modes beyond early success.')
+        setup=(r'Qwen2.5-0.5B-Instruct checkpoints; rows show Python, MathIR, and PantryPlan, with paired $P_k$ and $D_k$ columns for Levels~2 and~3. '
+               if family=='local' else r'Hosted deployments; rows show Python, MathIR, and PantryPlan, with paired $P_k$ and $D_k$ columns for Levels~2 and~3. ')
+        quantities=(r'Curves show pass probability $P_k$ and distinct verified modes $D_k$ against draw budget $k$, obtained by averaging over size-$k$ subsets within sixteen 64-draw problem pools per domain and level. ')
+    encodings=(r'Colours identify '+('methods' if family=='local' else 'deployments')+
+               r'; solid/dashed lines denote original/neutral wording. Lines use strict verification, crosses formatting normalization, and shading pointwise 95\% bootstrap intervals. ')
+    uncertainty=(r'Means weight checkpoints equally: five training seeds in Python and MathIR, two in PantryPlan, and one initial checkpoint. Five-seed intervals resample seeds and paired problems; PantryPlan and initial intervals condition on the observed checkpoints for each method.'
+                 if family=='local' else r'Intervals resample paired problems within each domain and level and condition on the deployment.')
+    return r'\caption{\textbf{'+finding+'} '+setup+quantities+encodings+uncertainty+'}'
+
+
 def render_appendix(report):
     families=report['scope']['included_panels']
-    text=[r'''\subsection{Protocol and estimands}
+    text=[r'''\subsection{Sampling design and estimands}
 \label{sec:discovery-curves}
-Large-budget \texttt{pass@k} evaluation can reveal differences hidden at small sampling budgets \citep{yue2025rlvrlimit}. We therefore freeze a second follow-up after observing the eight-draw prompt control: within every domain--level cell we take ranks 1--16 of its original outcome-independent SHA-256 selection. The six cells retain both prompt wordings, the same mathematical problems, and the same fixed initial and trained checkpoints. Every arm receives 64 fresh draws; none of the earlier eight-draw responses enters this analysis. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed replication. DrGRPO and Re:Dr retain five matched seeds in Python and MathIR and two in Pantry. Trained Level-3 evaluation is transfer from Level-2 training.
+Large-budget \texttt{pass@k} evaluation can reveal differences hidden at smaller budgets \citep{yue2025rlvrlimit}. We evaluate sixteen problems from each of Python, MathIR, and PantryPlan at Levels~2 and~3.
 
-For a complete 64-draw pool let $c$ be its number of correct outputs and $n_j$ its counts of distinct verified canonical keys. At $k\in\{1,2,4,8,16,32,64\}$, primary curves average all size-$k$ subsets without replacement from the complete pool:
+Problems are selected independently of model outputs from the prompt-hint ablation population. Each has original and neutral wordings, with 64 responses per wording from each checkpoint or deployment. Eight-draw estimates use subsets of these same response pools. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed replication. Dr.GRPO and Re:Dr use five matched seeds in Python and MathIR and two in PantryPlan. These checkpoints are trained at Level~2, so Level~3 measures transfer.
+
+For a 64-draw pool, let $c$ be the number of correct outputs and $n_j$ the count of verified canonical key $j$. At $k\in\{1,2,4,8,16,32,64\}$, we average over all size-$k$ subsets without replacement:
 \[
  P_k=1-\frac{\binom{64-c}{k}}{\binom{64}{k}},\qquad
  D_k=\sum_j\left[1-\frac{\binom{64-n_j}{k}}{\binom{64}{k}}\right],\qquad B_k=D_k-P_k.
 \]
-An infeasible numerator combination is zero. Every incorrect, empty, refused, or truncated response remains in the pool; only verifier-accepted responses contribute keys. These correlated curve points describe the retained pool, not complete unseen support. Ordered prefixes by preassigned draw index, rather than response arrival time, are a separately labeled sensitivity in the source report. $P_{64}-P_8$, $D_{64}-D_8$, and $B_{64}-B_8$ separate first-success gains from additional observed modes.
+Here $P_k$ is the probability of at least one correct response, $D_k$ is the expected number of distinct verified modes, and $B_k$ is the expected number of modes beyond the first success. Infeasible numerator combinations are zero. Incorrect, empty, refused, and truncated responses remain in the pool; only verifier-accepted responses contribute keys. The curve points are correlated because they share a response pool and describe finite-sample discovery. The gains $G_P=P_{64}-P_8$, $G_D=D_{64}-D_8$, and $G_B=B_{64}-B_8$ distinguish improvements in first-success probability from the discovery of additional modes; they do not estimate complete unseen support.
 
-Strict verification is primary. The unchanged frozen formatter is a sensitivity, preserving every strict success and canonical key. All Python texts undergo the same serial warmed-verifier recheck; original grades and any corrections are retained. Intervals use 20,000 whole-problem bootstrap replicates (seed 20260911), paired across wordings and stratified by domain and level. Five-seed intervals additionally resample whole matched training seeds with shared prompt indices; Pantry intervals condition on its two checkpoints. Intervals are pointwise and exploratory for 16 problems per cell. Zero-width intervals reflect zero observed resampled variation, not precise evidence of equivalence.
+We report strict-verifier results and a formatting-normalization sensitivity analysis that preserves every strict success and canonical key. Intervals use 20,000 whole-problem bootstrap replicates, paired across wordings and stratified by domain and level. Five-seed intervals also resample matched training seeds with shared problem indices; PantryPlan intervals condition on its two checkpoints. Each domain--level comparison contains sixteen problems, and intervals are unadjusted for multiple comparisons. Zero-width intervals indicate no observed resampled variation and do not establish equivalence.
 
-To compare breadth at matched observed correctness, rarefy $m$ correct draws alone:
+For breadth at a fixed number of correct draws, we average over subsets of $m$ correct responses:
 \[
  R_m=\sum_j\left[1-\frac{\binom{c-n_j}{m}}{\binom{c}{m}}\right].
 \]
-The primary paired conditional comparison keeps only prompts with $c\ge m$ under both wordings; eligibility changes with $m$. Every eligible denominator is retained, and an undefined registered seed is never silently omitted from an equal-seed mean. Two full-64 summaries follow, and they weight prompts differently. Pooled collision $C$ counts equal-key correct pairs across the prompts of one checkpoint before dividing, so a prompt enters in proportion to its $\binom{c}{2}$ and the prompts a model solves most often dominate. Promptwise \pmd{} averages $1-\sum_k\binom{n_k}{2}/\binom{c}{2}$ over the prompts with $c\ge2$, weighting each equally; that is the aggregation App.~\ref{app:metric-sampling} requires, and the one every other \pmd{} in this paper uses. Both then take equal-seed means.
+Paired comparisons require $c\ge m$ under both wordings. They therefore condition on observed success, without equating accuracy or estimating diversity for excluded problems.
 
-All support counts here are certified lower bounds $L\le M$, not exhaustive support sizes: Python uses its two externally certified witnesses, MathIR five certified modes, and Pantry its frozen certificate count. Accordingly $1/L$ is an upper reference for uniform collision over full support; $L[1-(1-1/L)^m]$ is a lower reference for uniform expected breadth, not a lower bound on model breadth. Observed distinct counts may exceed $L$. The source report also averages this uniform breadth over $J\sim\operatorname{Hypergeom}(64,c,k)$ to match unconditional correctness at each $k$.
+Eligibility varies with $m$, method, and grading. Trained-checkpoint means weight seeds equally and are undefined if any seed lacks eligible prompts. Conditional intervals retain only bootstrap replicates in which the corresponding mean is defined.
+
+The 64-draw summaries use two prompt weightings. Pooled collision $C$ divides the total number of equal-key correct pairs by the total number of correct pairs within each checkpoint or deployment; a prompt therefore receives weight proportional to $\binom{c}{2}$. Promptwise \pmd{} averages $1-\sum_j\binom{n_j}{2}/\binom{c}{2}$ equally over prompts with $c\ge2$. Each wording's absolute estimate uses its own eligible prompts, whereas the neutral-minus-original contrast $\Delta\pmd$ uses only jointly eligible prompts. Trained-checkpoint estimates then receive equal weight across seeds.
+
+Support references use certified lower bounds $L\le M$: two valid modes in Python, five in MathIR, and the problem-specific certificate count in PantryPlan. Thus $1/L$ is an upper reference for collision under a uniform distribution over full support, and $L[1-(1-1/L)^m]$ is a lower reference for uniform expected breadth. These references describe uniform sampling; they do not bound model breadth, and observed distinct counts may exceed $L$.
+
+In the tables, O/N denotes original/neutral wording, and $\Delta G_D$ is the neutral-minus-original discovery gain. $U$ denotes the uniform reference under the corresponding weighting. $E_O/E_N$ count separately eligible checkpoint--problem pairs with $c\ge2$; $Q_O/Q_N$ count correct response pairs. The counts sum across checkpoints, whereas the estimates weight checkpoints equally. Separate eligibility counts do not give the size of the jointly eligible population used for a contrast.
 ''']
     if report['experiment_status']!='complete':
-        omitted=', '.join(report['scope']['omitted_panels'])
-        text.append('This is a partial-panel report: the '+', '.join(families)+' panel is complete, while the separately registered '+omitted+' panel is omitted and the overall experiment remains incomplete.')
+        text.append('The results cover the '+', '.join(families)+' panel only; no results are available for the '+', '.join(report['scope']['omitted_panels'])+' panel.')
     for family in families:
-        # See the prompt-hint appendix for the same rule: where the frozen
-        # normalizer rescues nothing, the secondary table repeats the first digit
-        # for digit, and a reader hunts for a difference that is not there. The
-        # sensitivity is reported as the sentence it actually supports.
         rendered={g:render_gain_table(report,family,g) for g in GRADINGS}
         text.append(rendered['strict'])
-        if gain_rows(rendered['normalized_secondary'])==gain_rows(rendered['strict']):
-            text.append(r'The frozen formatting normalizer is a registered secondary '
-                        r'grading for these cells. It rescued no additional response for '
-                        r'any '+('hosted deployment' if family=='frontier' else 'local checkpoint')+
-                        r' here, so every strict and normalized figure in the table above is '
-                        r'identical and the secondary table is not repeated.'+'\n')
-        else:
+        if gain_rows(rendered['normalized_secondary'])!=gain_rows(rendered['strict']):
             text.append(rendered['normalized_secondary'])
-        text += [r'\clearpage',r'\begin{figure}[H]',r'\centering',
+        text += [r'\begin{figure}[!htbp]',r'\centering',
                  r'\includegraphics[width=\linewidth,height=0.72\textheight,keepaspectratio]{figures/modebench_discovery_curves_'+family+r'.pdf}',
-                 r'\caption{Fresh 64-draw discovery curves. Separate axes show $P_k$ and $D_k$ for each level and domain; pass probability always uses a 0--1 scale. Color identifies the checkpoint method or hosted model, solid/dashed lines original/neutral wording. Lines and shaded pointwise intervals use strict grading; crosses show the frozen-normalization sensitivity. Prefix estimates are separately retained in the report with pointwise intervals for every model and cell.}',
-                 r'\label{fig:discovery-curves-'+family+'}',r'\end{figure}',render_breadth_table(report,family),r'\clearpage',
-                 r'\begin{figure}[H]',r'\centering',r'\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{figures/modebench_discovery_correct_budget_'+family+r'.pdf}',
-                 r'\caption{Breadth after exactly $m$ correct draws, on prompts jointly eligible under both wordings. Color and solid/dashed wording styles match the discovery figure; dotted lines give method-specific uniform lower references using the same eligible prompts. Undefined means are gaps. Crosses show frozen normalization. Eligibility varies with $m$, so curves do not hold the eligible population fixed across the horizontal axis; the strict joint counts for every method, level and correct-draw budget, including groups with zero eligible prompts, are retained in the report rather than printed, and the $m=2$ counts the breadth contrast rests on are the $E$ column of Table~\ref{tab:discovery-breadth-'+family+r'}.}',
+                 discovery_caption(family),
+                 r'\label{fig:discovery-curves-'+family+'}',r'\end{figure}',render_breadth_table(report,family),
+                 r'\begin{figure}[!htbp]',r'\centering',r'\includegraphics[width=\linewidth,height=0.66\textheight,keepaspectratio]{figures/modebench_discovery_correct_budget_'+family+r'.pdf}',
+                 discovery_caption(family,conditional=True),
                  r'\label{fig:discovery-correct-budget-'+family+'}',r'\end{figure}']
-    return '\n\n'.join(text)+'\n'
+    return format_domain_names('\n\n'.join(text)+'\n')
 
 
 def plot_figure(report,figure_key,output):
@@ -1169,6 +1182,11 @@ def plot_figure(report,figure_key,output):
                 Line2D([0],[0],color='0.2',ls='None',marker='x',label='Normalized')]
     if conditional:handles.append(Line2D([0],[0],color='0.4',ls=':',label='Uniform lower reference'))
     fig.legend(handles=handles,loc='upper center',ncol=3,fontsize=9.5,frameon=False,bbox_to_anchor=(.52,1.005))
+    try:
+        from ops.paper_domain_figure_typography import apply_domain_typography
+    except ModuleNotFoundError:
+        from paper_domain_figure_typography import apply_domain_typography
+    apply_domain_typography(fig)
     fig.tight_layout(rect=(0,0,1,.86 if conditional else .9),h_pad=1.5,w_pad=.65)
     stem='modebench_discovery_correct_budget_'+family if conditional else 'modebench_discovery_curves_'+family
     outputs={}

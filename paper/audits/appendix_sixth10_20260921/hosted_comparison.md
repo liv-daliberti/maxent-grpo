@@ -1,0 +1,42 @@
+# Appendix O opening through Python retry: sixth ten-page pass
+
+Assigned baseline coverage: opening Appendix O, provider protocol, Figure 37, Python prompt sensitivity, and first-valid retry diagnostic (baseline PDF pages 76–78). The connected O.2 temperature extension is recorded below; O.3, provider-outcome, and longtable material remains outside this edit.
+
+## Changes
+
+- Opening comparison prose now defines the displayed cohorts and grading directly: the main figure uses normalized grades for every deployment and the complete revised Opus 5 Python condition; other cells and the original-condition appendix tables use original instructions. All responses, including failed verification and provider refusals, contribute to accuracy and mode counts. Differing prompts and provider configurations preclude a ranking under matched prompts and compute.
+- Removed admission/completion audit narration, prompt and sample digest narration, diagnostic development chronology, post-hoc language, and preserved-evidence rhetoric from the assigned span. Actual experimental differences and uncertainty limits remain.
+- Provider protocol specifies the same 128 tasks per domain and level, eight stateless responses, 15,360 responses per deployment, and 107,520 total responses. Requested medium effort and 8,192 native output tokens remain explicit; provider labels, token accounting, and unknown default sampling values do not establish matched compute.
+- Replaced DeepSeek interruption and recovery history with response/usage coverage: 13 nonterminal HTTP-200 responses and 192 attempts with unknown outcomes/usage lie outside the 15,360 terminal-response cohort. Known usage can understate total incurred usage and cost. The terminal cohort includes verification failures and truncations. Native DeepSeek refusal counts are zero, so the prose does not describe these empty or truncated outputs as refusals.
+- Figure 37 now leads with the supported result: Graph answers are usually correct but concentrated relative to uniform sampling. It explains both panels, seven deployment encodings, eight responses on 128 tasks per level, pointwise 95% whole-prompt intervals, correct-pair weighting, the reference band, and the dashed mean. The benchmark level labels do not establish common difficulty ordering.
+- Figure 37 embedded labels already contain only figure encodings. Its PDF, PNG, and JSON remain byte-identical.
+- Python subsection title becomes “Python prompt sensitivity” (same label). Prose states original and direct/no-system conditions, unchanged adaptive thinking, effort/output limits, operators, inputs, and grading, and the bundled wording/system-message and provider-state differences. It removes development/provenance chronology without identifying a causal repair mechanism.
+- Python table caption leads with few refusals under the direct/no-system configuration, explains all table populations and metrics, and states why original Levels 2/3 have undefined collision. Every table-body byte remains unchanged.
+- Kept 2,282 strict acceptances, 787 extra normalization acceptances, all three residual provider refusals, three normalized collision values and references, and every accuracy effect and 95% interval unchanged. Paired task resampling is distinguished from output draws that are not paired across conditions; separate requests do not establish independent provider randomness. Correct-pair weighting and differing eligible pair populations prevent interpreting raw collision differences as matched-accuracy prompt effects.
+- Retry diagnostic states its actual selection rule and variable effort: replacement of the three refusals by first valid normalized answers, 3,075 requests selecting 3,072 valid responses, no new solution modes, unchanged distinct@8, and the existing Level-3 collision change. Selected-set 100% accuracy is explicitly conditional on validity selection; the main display includes the original three refusals.
+
+## Validation
+
+- `validation.json` records hashes and numeric preservation.
+- Comparison generator AST differs only in `python_sensitivity_tex` and `export` (rendering); retry generator AST differs only in `render`. No measurement, plotting, verification, collection, bootstrap, or model function changed.
+- Re-rendered the assigned five TeX fragments using existing JSON records, with graph regeneration disabled. No model requests or bootstrap draws ran. No other generated output was installed.
+- The Python table tabular environment is byte-identical before and after.
+- Both numeric result JSONs and all three Graph assets have identical SHA-256 hashes before and after.
+- All 21 Graph cells have observed collision above their conditional uniform references. Minimum accuracy is 0.9404296875; collision ranges from 0.6902043269230769 to 0.9938616071428571. These values support the revised caption.
+- Retry source confirms normalization precedes first-valid selection and there are exactly three additional responses selecting 3,072 valid slots.
+- Verified all 30,720 original Anthropic request records: adaptive thinking, requested medium effort, and an 8,192-token output limit. Replaced seven repeated provider sentences with the shared settings and the Anthropic-specific setting.
+- Main TeX and manual TOC are owned by the parent agent; notified parent to synchronize the renamed Python subsection. Final compilation and page-layout review are performed by the parent on the combined source.
+
+## Connected O.2 extension after first combined build
+
+The first combined build placed O.2's opening at the bottom of target page 78. Parent authorized cleanup of the complete compact temperature fragment and emitter, with visual review of its spillover on pages 79–80. O.3 remains untouched, and the next user pass still starts at page 79.
+
+- Renamed the subsection “Requested-temperature sensitivity” (same `app:hosted-temperature` label); parent should synchronize its manual TOC entry.
+- Replaced fixed-subset/retained-evidence/process narration with the actual design: Grok and Kimi each receive two requested temperatures, eight separate requests on each of 120 shared tasks, 960 responses per condition, and 3,840 responses in total. Non-temperature settings and concurrent evaluation within a deployment remain explicit.
+- Preserved the requested-versus-effective temperature limitation. All four saved condition records have 960 null returned-temperature fields: provider acceptance does not expose internal sampling temperature. The DeepSeek thinking-interface exclusion and narrow 120-task scope remain.
+- Explained equal domain and level aggregation, pooling and weighting correct pairs within cells, potentially changing eligible task/pair populations, and lack of matched accuracy. The prompt bootstrap pairs tasks, not output draws; pointwise 95% intervals use 20,000 stratified resamples without multiplicity adjustment.
+- Preserved every Grok and Kimi effect, interval, accuracy/diversity value, and the 696/960 Kimi truncations versus zero. No provider-declared refusals occur; truncated or otherwise invalid answers are not recategorized as refusals. The Kimi accuracy/termination changes do not isolate correct-output concentration.
+- Kept undefined cell means and omitted bootstrap intervals explicit. Both grading rules define the Kimi collision contrast in only 11,815/20,000 Level-1 and 11,616/20,000 Level-2 resamples; Level 3 defines none. Conditional percentile summaries are not presented as ordinary 95% intervals. Undefined cells neither count as zero nor disappear from the macro denominator.
+- Recaptioned both tables with supported takeaways and complete populations, metric definitions, comparison direction, units, bootstrap interpretation, and dash/dagger meanings. Removed “Frozen” and authentication/source-record narration. Strict and normalized tabular environments remain byte-identical.
+- Preserved the finite-support reference limitation for Countdown and limits of cross-level and training/parameter-scale interpretation.
+- `temperature-validation.json` records renderer-only AST changes, exact table preservation, unchanged numeric JSON SHA-256, 3,840 response total, returned-temperature coverage, zero native refusals, exact bootstrap eligibility counts, and a clean process-language scan. Only the existing numeric record was rendered; no data/model/analysis/bootstrap code ran or changed.

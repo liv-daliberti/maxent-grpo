@@ -1,7 +1,7 @@
 {
   "builder": {
     "path": "ops/plot_paper_reorganized_results.py",
-    "sha256": "15442be342044859150273b678e5dc3d516cdf28ad974b38ac57c854f5b8ee80"
+    "sha256": "5d0e6c1b505b9bbee7e888a48d7039135dbef7c0f9cec3ede0dd3e3e41952fe2"
   },
   "contrast_direction": "replay minus the same base objective",
   "display_metrics": {
@@ -38,11 +38,11 @@
   "outputs": {
     "pdf": {
       "path": "paper/figures/replay_factorial_effects.pdf",
-      "sha256": "5b379e0e3f6c52a24f8d4e86d815f2f6c6c4c87b310012f20e92a0fed778ff37"
+      "sha256": "d94e02e1807574219d4b17d36a429d7fe390c3884fd613ace216880cd877c1cd"
     },
     "png": {
       "path": "paper/figures/replay_factorial_effects.png",
-      "sha256": "7412332164230b68f2a593d31cd96d8f91127e37ff2441edab8dacbfdd14ca57"
+      "sha256": "2ba79ae99d58e2cb47901afacc1cc9c0db808d59cbe5e13f8051be5389384d92"
     }
   },
   "paired_seed_counts": {
@@ -1746,7 +1746,7 @@
     "sha256": "8be05fb5b3b7032ddf5db42d4e874a393ccdc73bede4087c9ddb9a545452cfbb"
   },
   "source_sha256": {
-    "paper/figures/e118_all_scale_factorial_progress.json": "1bc1de6baf46ddcba9a8361310fe63da0f1f12c6115b9d7d11db45608a87e35f",
+    "paper/figures/e118_all_scale_factorial_progress.json": "8fb0bab264fb69aee5a3454e8a36cfd49b3cc632d33730373f89c6f0468e9dd1",
     "paper/figures/experiment1_retention_comparator_matrix.json": "114be77cc54e1992ea9365eff9bc8abc6f26f087fa51a2ac969c44d3684f95a4"
   },
   "sources": [
@@ -1756,7 +1756,7 @@
     },
     {
       "path": "paper/figures/e118_all_scale_factorial_progress.json",
-      "sha256": "1bc1de6baf46ddcba9a8361310fe63da0f1f12c6115b9d7d11db45608a87e35f"
+      "sha256": "8fb0bab264fb69aee5a3454e8a36cfd49b3cc632d33730373f89c6f0468e9dd1"
     }
   ],
   "terminal_step": 3072

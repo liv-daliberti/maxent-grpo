@@ -1,0 +1,22 @@
+--- paper/main.tex before eighth pass edits
++++ paper/main.tex after eighth pass edits
+@@ -354,7 +354,7 @@
+ 
+ Repeated sampling can increase solution coverage \citep{brown2024monkeys,yue2025rlvrlimit}, but our discovery curves flatten far below the available modes (Fig.~\ref{fig:gpt56-sampling-budget}). On one Level-3 \texttt{Graph} problem, GPT-5.6 Sol answers correctly in all 1,024 draws yet produces only one of six valid colorings. For \texttt{Python}, 512 draws recover one to four return vectors from hundreds available: under 2\% of the support, and under 1\% at Levels 2 and 3. All seven hosted deployments narrow from Level 1 to Level 3 despite near-perfect correctness (Fig.~\ref{fig:frontier-level-grid}).
+ 
+-Larger sampling budgets also leave trained local policies concentrated: quadrupling to $K=32$ changes diversity by thousandths, and MathIR at 64 draws remains as concentrated as at eight (Apps.~\ref{app:decoding-objection} and~\ref{app:sampling-budget-ablation}). Disabling reasoning reduces both correctness and diversity (Table~\ref{tab:hosted-level-averages}, App.~\ref{app:hosted-reasoning-control}). Mixing independent models recovers more modes than either alone (App.~\ref{app:cross-model-overlap}); raising temperature also adds modes, at an accuracy cost (Fig.~\ref{fig:gpt56-temperature-curve}).
++Larger sampling budgets also leave trained local policies concentrated: quadrupling to $K=32$ changes diversity by thousandths, and MathIR at 64 draws remains as concentrated as at eight (Apps.~\ref{app:decoding-objection} and~\ref{app:sampling-budget-ablation}). Disabling explicit reasoning lowers overall correctness and mode counts; conditional diversity changes vary by deployment (Table~\ref{tab:hosted-level-averages}, App.~\ref{app:hosted-reasoning-control}). Mixing independent models recovers more modes than either alone (App.~\ref{app:cross-model-overlap}); raising temperature also adds modes, at an accuracy cost (Fig.~\ref{fig:gpt56-temperature-curve}).
+ 
+ \section{Re:Max: Learn from New Samples and Remember Successes}
+ \label{sec:method}
+@@ -3537,9 +3537,7 @@
+ correct modes, so a reward-dependent advantage cannot distinguish their
+ identities.
+ 
+-\paragraph{Proof of Theorem~\ref{thm:objective-inertness}.}
+-
+-\begin{proof}
++\begin{proof}[Proof of Theorem~\ref{thm:objective-inertness}]
+ \enforcehalffinalproseline
+ The score identities used in Lemma~\ref{lem:grpo-mean} give
+ $\E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P$ and

@@ -2,12 +2,12 @@
   "family": "frontier",
   "outputs": {
     "pdf": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260919_merged/modebench_discovery_curves_frontier.pdf",
-      "sha256": "5293f3e6487d4796907a7b763d2293a169832ff6947c4220d48576559365412e"
+      "path": "/n/fs/similarity/maxent-grpo/paper/figures/modebench_discovery_curves_frontier.pdf",
+      "sha256": "4ea3c3f4a7a7ef00eb2002cce98e297e24c2aad8eee5299f2790a87db62ba919"
     },
     "png": {
-      "path": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260919_merged/modebench_discovery_curves_frontier.png",
-      "sha256": "456d34fdf3f0ab1a21c9d491beef16c203a5928370ea5e89f19d9fd2c8d0b852"
+      "path": "/n/fs/similarity/maxent-grpo/paper/figures/modebench_discovery_curves_frontier.png",
+      "sha256": "610412f8b1566eb8c809b4f52de4f564a3df66af0efe36a52a8abf59ab55d9fb"
     }
   },
   "plotted_records": [
@@ -109410,6 +109410,6 @@
       "seed_ranges": null
     }
   ],
-  "report_sha256": "708059b600e1ca528e2fbdbf5d8e1d1438ca99f2ce42a3a0742e7e724f17ceae",
+  "report_sha256": "52253cf29925a35408350e2c97f0c689c2aa7e9672bf1ddd63a63acd1df10483",
   "schema": "modebench-discovery-figure-v1"
 }

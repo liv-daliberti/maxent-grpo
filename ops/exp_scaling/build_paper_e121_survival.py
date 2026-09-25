@@ -202,10 +202,10 @@ def plot(result: dict) -> None:
                              ('Change in mean log probability (nat/token)',
                               'Change in sequence log probability (nat)')):
         all_values = []
-        for run, color in zip(result['runs'], colors):
+        for replicate, (run, color) in enumerate(zip(result['runs'], colors), start=1):
             x = np.sort([r[key] for r in run['identities']])
             ax.step(x, np.arange(1, len(x)+1)/len(x), where='post', color=color,
-                    linewidth=1.0, alpha=.85, label=f"Seed {run['seed']}")
+                    linewidth=1.0, alpha=.85, label=f"Seed {replicate}")
             all_values.extend(x)
         x = np.sort(all_values)
         ax.step(x, np.arange(1, len(x)+1)/len(x), where='post', color='#202735',
@@ -216,7 +216,7 @@ def plot(result: dict) -> None:
         ax.grid(axis='y', color='#E4E6E9', linewidth=.6)
         ax.set_ylim(0, 1.01)
         ax.set_xlim(min(x)-.025*np.ptp(x), max(x)+.025*np.ptp(x))
-    axes[0].set_ylabel('Fraction of frozen exemplars')
+    axes[0].set_ylabel('Fraction of exemplars')
     handles, labels = axes[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', ncol=6, frameon=False,
                fontsize=8, handlelength=1.5, columnspacing=1.0)

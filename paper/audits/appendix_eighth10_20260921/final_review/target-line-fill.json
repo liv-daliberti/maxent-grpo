@@ -1,0 +1,13 @@
+{
+  "checked": 57,
+  "flags": [
+    {
+      "page": 99,
+      "ending": "?",
+      "ratio": 0.00921052215460604,
+      "block_text": "At fixed P \u2208 (0, 1), the Dr.GRPO coefficient in Equation (34) is P (1\u2212P ) 2 /G+O(G \u22122 ) as G \u2192 \u221e. The coefficient of the quadratic learning-rate term therefore decays asymptotically as 1/G; it need not decrease at every increment in finite group size. This sampling effect is absent from the uniform mean flow. The result concerns one step from a uniform correct-mode distribution and gives neither monotone expected diversity from an arbitrary initial policy nor stochastic-optimizer convergence. Corollary P.17 (Finite-budget disappearance of competing modes). In the mean flow of The- orem P.4, let c ? be the unique initial correct leader and define X q c (0) \u03b1 = q c ? (0), \u0393 0 = . \u03b1 \u2212 q c (0) ?"
+    }
+  ],
+  "visual_resolution": "The single flag is the star on a displayed summation index, not a prose ending. Global preexisting findings outside this pass are not claimed resolved.",
+  "confirmed_target_prose_flags": 0
+}

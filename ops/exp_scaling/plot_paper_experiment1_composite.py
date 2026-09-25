@@ -37,6 +37,10 @@ MAXRL = ROOT / "paper/figures/e118_all_scale_factorial_progress.json"
 SEMANTIC = ROOT / "paper/figures/fixed_semantic_factorial_effects.json"
 TRAJECTORY = ROOT / "paper/figures/direct_baseline_learning_curves_static_strip.json"
 PMD_MATRIX = ROOT / "paper/results/mode_diversity_retention_matrix.json"
+#: E126 GAPO and E127 SetPO, with the E128 control they are differenced
+#: against. Unlike every other panel-B arm these do not inherit the E78
+#: control; see PANEL_B_CONTROL in ops/build_pmd_retention_matrix.py.
+DIVERSITY_COMPARATORS = ROOT / "paper/results/mode_diversity_comparators_diversity_05b.json"
 OUTPUT = ROOT / "paper/figures/experiment1_retention_comparator_matrix"
 
 MODELS = ("Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B")
@@ -61,6 +65,8 @@ METHODS = (
     "rlep_dr",
     "semantic_maxent",
     "grpo",
+    "gapo",
+    "setpo",
 )
 METHOD_LABELS = (
     "Before training",
@@ -71,6 +77,8 @@ METHOD_LABELS = (
     "RLEP-Dr",
     "Semantic-MaxEnt",
     "GRPO",
+    "GAPO",
+    "SetPO",
 )
 # Drawn in the plate.
 METRICS = ("pass8", "pmd")
@@ -229,7 +237,12 @@ def _build_record() -> dict[str, Any]:
     trajectory = _read(TRAJECTORY)
     if primary.get("schema") != "paper-cross-scale-endpoint-effects-v2":
         raise RuntimeError("cross-scale retention source schema drifted")
-    if direct.get("schema") != "paper-direct-comparator-endpoint-effects-v2":
+    # v3 carries the same cells and replaces the distinct@8-derived
+    # adjusted_breadth8 with PCMD, which Panel B now reports; the pass@8 half
+    # this record supplies is unchanged, and the PCMD half comes from
+    # PMD_MATRIX either way.
+    if direct.get("schema") not in ("paper-direct-comparator-endpoint-effects-v2",
+                                    "paper-direct-comparator-endpoint-effects-v3"):
         raise RuntimeError("direct-comparator source schema drifted")
     if maxrl.get("schema") not in ("e118-all-scale-terminal-progress-v6",
                                    "e118-all-scale-terminal-progress-v7"):
@@ -247,13 +260,19 @@ def _build_record() -> dict[str, Any]:
                 row for row in primary["rows"]
                 if row["model"] == model and row["domain"] == domain
             )
+            # The cross-scale source replaced ``adjusted_breadth8`` with ``pmd``
+            # when the campaign moved its breadth axis off distinct@8, which
+            # tracks accuracy too closely to carry a breadth claim. Read PCMD
+            # where the source now offers it and leave distinct@8 a gap; the
+            # direct-comparator branch below already tolerates both shapes.
             per_seed = {
                 seed: {
                     "pass8": float(values["pass8"]),
-                    "distinct8": (
-                        float(values["pass8"])
-                        + float(values["adjusted_breadth8"])
-                    ),
+                    **({"distinct8": float(values["pass8"])
+                        + float(values["adjusted_breadth8"])}
+                       if values.get("adjusted_breadth8") is not None else {}),
+                    **({"pmd": float(values["pmd"])}
+                       if values.get("pmd") is not None else {}),
                 }
                 for seed, values in source["per_seed_effects"].items()
             }
@@ -266,6 +285,12 @@ def _build_record() -> dict[str, Any]:
         primary_rows[model][AVERAGE_KEY] = _macro_average(primary_rows[model])
 
     qwen: dict[str, dict[str, Any]] = {method: {} for method in METHODS}
+    diversity_cells = _read(DIVERSITY_COMPARATORS)["cells"]
+    diversity_pass8: dict[str, dict[tuple[str, int], float]] = {}
+    for cell in diversity_cells:
+        diversity_pass8.setdefault(cell["method"], {})[
+            (cell["domain"], int(cell["seed"]))] = float(cell["pass8"])
+
     for domain in DOMAINS:
         primary_source = primary_rows["Qwen2.5-0.5B"][domain]
         qwen["replay_drgrpo"][domain] = primary_source
@@ -305,15 +330,37 @@ def _build_record() -> dict[str, Any]:
         )
         for method in ("grpo", "ucpo", "rlep_dr"):
             source_method = direct_source["methods"][method]
+            per_seed = {}
+            for seed, seed_record in source_method["per_seed"].items():
+                effect = seed_record["effect"]
+                entry = {"pass8": float(effect["pass8"])}
+                # Only the v2 record derives distinct@8; under v3 the breadth
+                # half of this row is PCMD, attached from PMD_MATRIX below.
+                if effect.get("adjusted_breadth8") is not None:
+                    entry["distinct8"] = (float(effect["pass8"])
+                                          + float(effect["adjusted_breadth8"]))
+                per_seed[seed] = entry
+            qwen[method][domain] = {
+                "n": len(per_seed),
+                "seeds": sorted(map(int, per_seed)),
+                "per_seed": per_seed,
+                "summaries": _summary(per_seed),
+            }
+
+        for method, source_key in (("gapo", "gapo"), ("setpo", "setpo")):
+            arm = diversity_pass8[source_key]
+            control = diversity_pass8["e128_control"]
             per_seed = {
-                seed: {
-                    "pass8": float(seed_record["effect"]["pass8"]),
-                    "distinct8": (
-                        float(seed_record["effect"]["pass8"])
-                        + float(seed_record["effect"]["adjusted_breadth8"])
-                    ),
+                str(seed): {
+                    "pass8": arm[(domain, seed)] - control[(domain, seed)],
+                    # distinct@8 is deliberately absent: these cohorts report
+                    # breadth through PCMD, which is attached below from the
+                    # retention matrix, and distinct@8 tracks accuracy too
+                    # closely to carry a breadth claim.
+                    "distinct8": None,
                 }
-                for seed, seed_record in source_method["per_seed"].items()
+                for seed in (43, 44, 45, 46, 47)
+                if (domain, seed) in arm and (domain, seed) in control
             }
             qwen[method][domain] = {
                 "n": len(per_seed),
@@ -371,7 +418,8 @@ def _build_record() -> dict[str, Any]:
     label_of = {"before_training": "Before training",
                 "replay_drgrpo": "Re:Dr", "replay_maxrl": "Re:Max",
                 "maxrl": "MaxRL", "grpo": "GRPO", "ucpo": "UCPO",
-                "rlep_dr": "RLEP", "semantic_maxent": "Fixed Semantic-MaxEnt"}
+                "rlep_dr": "RLEP", "semantic_maxent": "Fixed Semantic-MaxEnt",
+                "gapo": "GAPO", "setpo": "SetPO"}
     pmd = _read(PMD_MATRIX)
     if pmd.get("schema") != "paper-pmd-retention-matrix-v1":
         raise RuntimeError("PCMD retention-matrix source schema drifted")

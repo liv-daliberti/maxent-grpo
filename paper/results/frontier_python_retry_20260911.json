@@ -1,6 +1,6 @@
 {
   "schema": "paper-selected-python-retry-v1",
-  "builder_sha256": "567de58e268513d579f4a4867800f87fc98794587473baf34d607506301bc3f9",
+  "builder_sha256": "876786840c2ff4baacc963fd5583e0f25902bfa465597ebe5eef971f39278c18",
   "source_sha256": {
     "artifacts/frontier_modebench_opus5_python_first_valid_20260911/independent_audit.json": "1bd8d8fa903397cd33017938a03c1709387c17635d4f9df9033d07e7cfbe3403",
     "artifacts/frontier_modebench_claude_opus5_python_plain_20260911/summary.json": "5b2d40278d13c1890050fae886f156386463c6e1c7dbebb6d0a770ea7a346d2a",

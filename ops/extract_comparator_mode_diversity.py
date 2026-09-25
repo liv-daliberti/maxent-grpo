@@ -72,7 +72,17 @@ def identity(path: str) -> dict | None:
     experiment = re.search(r'_(e\d+[a-z]?\d*)_', stem)
     for token, domain in DOMAIN.items():
         if f'_{token}_' in stem:
+            # Two model families use this extractor now, so the scale travels
+            # with the cell: a comparator effect is only ever read against the
+            # Dr.GRPO control of its own model.
+            if 'falcon3_1b' in stem:
+                scale = 'falcon1b'
+            elif 'qwen25_0p5b' in stem or 'qwen25_05b' in stem:
+                scale = 'qwen05b'
+            else:
+                return None
             return {'method': method, 'domain': domain, 'seed': int(seed.group(1)),
+                    'scale': scale,
                     'experiment': experiment.group(1) if experiment else 'unknown',
                     'run': stem}
     return None
@@ -89,11 +99,9 @@ def inventory() -> list[dict]:
         job = re.search(r'/(debug_job\d+)/', absolute)
         if cell:
             cell = {**cell, 'job': job.group(1) if job else 'unknown'}
-        # Two naming eras for the same 0.5B model: the E97/E98 runs spell it
-        # ``qwen25_0p5b`` and the later E115/E116 ones ``qwen25_05b``.
-        if cell and cell['method'] != 'rlep' and not any(
-                token in absolute for token in ('qwen25_0p5b', 'qwen25_05b')):
-            return
+        # identity() already refuses a run whose model it cannot name, which
+        # covers the two 0.5B naming eras (``qwen25_0p5b`` for E97/E98,
+        # ``qwen25_05b`` for E115/E116) and the Falcon runs added below.
         if cell and Path(absolute).is_file():
             files[absolute] = {**cell, 'path': absolute}
 
@@ -115,7 +123,12 @@ def inventory() -> list[dict]:
         for run in sorted(data.glob(pattern)):
             for draws in sorted(run.glob('*/eval_mode_coverage_draws.jsonl')):
                 add(str(draws))
-    return sorted(files.values(), key=lambda row: (row['method'], row['domain'], row['seed']))
+    # Falcon3-1B carries the same two comparators, but nothing reads their PCMD
+    # from here: the comparator figure pools its own counts from the run dirs it
+    # already opens for pass@8. Enumerating them here would re-read ~150 draw
+    # files on shared storage for cells no consumer wants.
+    return sorted(files.values(),
+                  key=lambda row: (row['scale'], row['method'], row['domain'], row['seed']))
 
 
 def terminal_prompt_counts(path: str) -> tuple[int, dict[int, Counter]]:
@@ -129,9 +142,18 @@ def terminal_prompt_counts(path: str) -> tuple[int, dict[int, Counter]]:
             step = record.get('step')
             for index, prompt in enumerate(record.get('prompts') or []):
                 position = prompt.get('prompt_index', index)
-                for key in prompt.get('answer_keys') or []:
-                    if key is not None:
-                        steps[step][position][key] += 1
+                # answer_keys carries the canonical key of every sample, right
+                # or wrong. PCMD counts correct modes only, so the per-sample
+                # reward is what admits a key; without this filter a model that
+                # is wrong in many different ways reads as broad, and a prompt
+                # it never solves still defines the metric.
+                rewards = prompt.get('rewards') or []
+                for slot, key in enumerate(prompt.get('answer_keys') or []):
+                    if key is None:
+                        continue
+                    if slot >= len(rewards) or not float(rewards[slot]) > 0:
+                        continue
+                    steps[step][position][key] += 1
     if not steps:
         return -1, {}
     last = max(steps)
@@ -163,18 +185,22 @@ def main() -> None:
         # Cells written before the job field exists carry no ``job``; the run
         # name already separates the duplicates, so it is optional in the key.
         for cell in json.loads(args.output.read_text())['cells']:
-            cells[(cell['method'], cell['domain'], cell['seed'], cell['experiment'],
-                   cell['run'], cell.get('job'))] = cell
+            # Cells written before the scale field exists predate the second
+            # model family, so they are all the 0.5B cohort by construction.
+            cell.setdefault('scale', 'qwen05b')
+            cells[(cell['scale'], cell['method'], cell['domain'], cell['seed'],
+                   cell['experiment'], cell['run'], cell.get('job'))] = cell
     for position, row in enumerate(rows, start=1):
         step, prompts = terminal_prompt_counts(row['path'])
         per_prompt = {str(index): mode_diversity(counts)
                       for index, counts in sorted(prompts.items())}
         values = list(per_prompt.values())
         defined = [value for value in values if value is not None]
-        key = (row['method'], row['domain'], row['seed'], row['experiment'],
-               row['run'], row['job'])
+        key = (row['scale'], row['method'], row['domain'], row['seed'],
+               row['experiment'], row['run'], row['job'])
         assert args.merge or key not in cells, f'duplicate cell {key}'
         cells[key] = {
+            'scale': row['scale'],
             'method': row['method'], 'domain': row['domain'], 'seed': row['seed'],
             'experiment': row['experiment'], 'run': row['run'], 'job': row['job'],
             'terminal_step': step, 'prompts': len(values),
@@ -190,6 +216,29 @@ def main() -> None:
                           'method': row['method'], 'domain': row['domain'],
                           'seed': row['seed'], 'step': step,
                           'defined': len(defined)}), flush=True)
+    # A run evaluated in more than one job dir holds more than one pass over
+    # the same cell. These are not competing attempts at one measurement: the
+    # Falcon RLEP runs carry an untrained step-0 probe beside the trained
+    # endpoint, so the pass is chosen by provenance -- the greatest step the
+    # run reached -- and never by which PCMD reads better. Step 0 is not a
+    # terminal measurement of a trained cell under any circumstances.
+    passes = defaultdict(list)
+    for key, cell in cells.items():
+        passes[key[:-1]].append((key, cell))
+    superseded = []
+    for group in passes.values():
+        if len(group) < 2:
+            continue
+        best = max(step for _, cell in group for step in [cell['terminal_step']])
+        for key, cell in group:
+            if cell['terminal_step'] < best:
+                superseded.append({'run': cell['run'], 'job': cell['job'],
+                                   'terminal_step': cell['terminal_step'],
+                                   'superseded_by_step': best})
+                del cells[key]
+    for row in superseded:
+        print(json.dumps({'event': 'superseded', **row}), flush=True)
+
     payload = {
         'schema': 'paper-mode-diversity-comparators-v1',
         'definition': {
@@ -199,8 +248,10 @@ def main() -> None:
                            'unweighted mean over defined prompts',
             'min_defined_prompts': args.min_defined,
         },
+        'superseded_passes': superseded,
         'cells': sorted(cells.values(),
-                        key=lambda c: (c['method'], c['domain'], c['seed'], c['experiment'])),
+                        key=lambda c: (c['scale'], c['method'], c['domain'],
+                                       c['seed'], c['experiment'])),
     }
     args.output.write_text(json.dumps(payload, indent=1) + '\n')
     print(json.dumps({'event': 'built', 'output': str(args.output),

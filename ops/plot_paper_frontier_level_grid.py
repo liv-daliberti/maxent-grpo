@@ -111,7 +111,14 @@ def build(cells):
     # point, so they take the width back.
     figure.subplots_adjust(left=.072, right=.996, bottom=.20, top=.88,
                            wspace=.10)
-    ceiling = max(c["pmd"] for c in cells if c.get("reportable"))
+    # Everything drawn sets the ceiling, not just the reportable cells: the
+    # open marks below the support bar are plotted too, and a ceiling taken
+    # from the reportable subset would put any high provisional estimate
+    # outside the axis -- silently, and only for the arms the support bar
+    # happens to thin.
+    ceiling = max(c["pmd"] for c in cells
+                  if c.get("pmd") is not None
+                  and (c.get("reportable") or c.get("defined_prompts")))
     kept = {}
 
     for column, panel in enumerate(panels):

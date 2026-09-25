@@ -13095,7 +13095,7 @@
   "source_sha256": {
     "paper/preregistration/e112r1_two_scale_49pair_terminal_integrity_amendment_20260828.md": "763863a8f6ccb779b521d675d8983ccfe4521c299131434ce9a4828b93a9e25b",
     "paper/preregistration/e85_pantry_semantic_repair_20260809.md": "3885711639cd941f65c78505f2f1f532756bd0c2e4d015039b67aa5c801039eb",
-    "paper/results/core_terminal_endpoints.json": "549447008b5a261d7f718160652e5ea8098bd823851d01cf195d1f9614d02176",
+    "paper/results/core_terminal_endpoints.json": "89731243d76ac20f921c4823486b3001048affdc8ed18a5a5fda2bdc85a9657b",
     "var/artifacts/e78_verified_replay_only_05b_jobs.json": "4a6a70d07c5f1fc30334bea848776900c85425f771ebadc39e802fb2e2d83ce2",
     "var/artifacts/e79_falcon1b_aligned_verified_replay_jobs.json": "29ad5ea9c5bf8836ec9a37d44c2f6973455100c64b3e253a46f90d860a98306c",
     "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json": "8f7a89a8303468f1a962856d0636c7121f42a77f68cfcfb40e1601a16ee5a0a0",

@@ -164,7 +164,7 @@ def qwen3b_display_descriptions(record: dict) -> dict:
             ),
             "qwen3b_display": (
                 "complete five-seed MaxRL/replay and E80-R1 Dr.GRPO/replay tracks; "
-                "equal domain averages within each paired seed, with seed paths; "
+                "equal domain averages within each paired seed, drawn as marks without seed paths; "
                 "all domains and both metrics in appendix panels"
             ),
         }
@@ -440,6 +440,41 @@ def pmd_domain_averages() -> dict:
     return output
 
 
+def attach_pmd_cells(record: dict) -> None:
+    """Add per-seed PCMD to every domain cell, on its own seed list.
+
+    The appendix panels used to read distinct@8 as breadth, which moves with
+    correctness -- the confound PCMD exists to remove. PCMD is not simply a
+    third metric on the same rows, though: a seed whose policy succeeds on too
+    few prompts reports no PCMD at all, so the eligible seeds differ per arm
+    and per domain. They travel as ``method_seeds_pmd`` rather than reusing
+    ``method_seeds``, so an arm thinned by the support bar prints its own n
+    instead of inheriting the pass@8 pairing's.
+    """
+    rows: dict[tuple[str, str, str], dict[int, dict]] = {}
+    for row in json.loads(PMD_SOURCE.read_text(encoding="utf-8"))["seeds"]:
+        if row["level"] == "level1":
+            rows.setdefault((row["scale"], row["domain"], row["method"]), {})[row["seed"]] = row
+    for scale, cells in record["cells"].items():
+        for domain, cell in cells.items():
+            seeds_by_method = cell.setdefault("method_seeds_pmd", {})
+            for method in PMD_METHODS:
+                checkpoint = PMD_START.get(method, "after")
+                source = "drgrpo" if method.startswith("before_training") else method
+                entries = sorted(rows.get((scale, domain, source), {}).items())
+                pairs = [(seed, float(entry[checkpoint]["pmd"]))
+                         for seed, entry in entries
+                         if entry[checkpoint]["reportable"]
+                         and entry[checkpoint]["pmd"] is not None]
+                # An arm with no eligible seed gets no PCMD key at all, so the
+                # drawer skips its track instead of plotting an invented zero.
+                if not pairs:
+                    continue
+                if method in cell["methods"]:
+                    cell["methods"][method]["pmd"] = [value for _seed, value in pairs]
+                    seeds_by_method[method] = [seed for seed, _value in pairs]
+
+
 PAIR_TRACKS = (
     (
         "maxrl", "replay_maxrl", 0.18, "s",
@@ -452,34 +487,35 @@ PAIR_TRACKS = (
 )
 
 
-def pair_legend_handles(*, include_untrained: bool = False) -> list[Line2D]:
+def pair_legend_handles(*, include_untrained: bool = False,
+                        scale: float = 1.0) -> list[Line2D]:
     handles = []
     if include_untrained:
         handles.append(
             Line2D(
-                [0], [0], marker="D", linestyle="none", markersize=4.0,
+                [0], [0], marker="D", linestyle="none", markersize=4.0 * scale,
                 markerfacecolor="#6B7280", markeredgecolor="#6B7280",
                 label="Untrained",
             )
         )
     handles.extend([
         Line2D(
-            [0], [0], marker="s", linestyle="none", markersize=4.3,
+            [0], [0], marker="s", linestyle="none", markersize=4.3 * scale,
             markerfacecolor=style.WHITE, markeredgecolor=style.COMPARATOR,
             markeredgewidth=1.2, label="MaxRL",
         ),
         Line2D(
-            [0], [0], marker="s", linestyle="none", markersize=4.5,
+            [0], [0], marker="s", linestyle="none", markersize=4.5 * scale,
             markerfacecolor=style.ABLATION, markeredgecolor=style.ABLATION,
             label="Re:Max (ours)",
         ),
         Line2D(
-            [0], [0], marker="o", linestyle="none", markersize=4.5,
+            [0], [0], marker="o", linestyle="none", markersize=4.5 * scale,
             markerfacecolor=style.WHITE, markeredgecolor=style.CONTROL,
             markeredgewidth=1.2, label="Dr.GRPO",
         ),
         Line2D(
-            [0], [0], marker="o", linestyle="none", markersize=4.7,
+            [0], [0], marker="o", linestyle="none", markersize=4.7 * scale,
             markerfacecolor=style.ADAPTIVE, markeredgecolor=style.ADAPTIVE,
             label="Re:Dr (ours)",
         ),
@@ -541,11 +577,16 @@ def draw_pair_panel(
                 if samples:
                     values[method] = statistics.fmean(samples)
 
+        drawn_tracks = 0
         for start, finish, offset, marker, start_color, finish_color in tracks:
             if start not in values or finish not in values:
                 continue
+            drawn_tracks += 1
             if key == "average":
                 seeds = absolute_averages[scale][metric][start]["seeds"]
+            elif metric == "pmd":
+                # PCMD's eligible seeds are its own; see attach_pmd_cells.
+                seeds = cell["method_seeds_pmd"][start]
             else:
                 seeds = cell["method_seeds"][start]
             complete = len(seeds) == 5
@@ -594,6 +635,17 @@ def draw_pair_panel(
                 markersize=5.3, markerfacecolor=finish_color,
                 markeredgecolor=finish_color, markeredgewidth=1.0, zorder=4,
             )
+        # A row where neither pair could be drawn is a statement, not a hole in
+        # the plate: one side of every pair succeeds on too few prompts for
+        # PCMD to be defined. Saying so is the difference between a measurement
+        # that does not exist and one that came out at zero.
+        if not drawn_tracks:
+            axis.text(
+                0.5, middle, "below the support bar",
+                transform=axis.get_yaxis_transform(), fontsize=6.6,
+                color=style.MUTED, ha="center", va="center", style="italic",
+                zorder=6,
+            )
 
     axis.set_yticks(
         [positions[key] for key, _label in rows],
@@ -610,7 +662,7 @@ def draw_pair_panel(
             tick_labels[0].set_fontweight("bold")
     axis.set_xlabel(
         {"pass8": "pass@8", "distinct8": "distinct@8 (verified modes)",
-         "pmd": "PCMD (pairwise correct-mode diversity)"}[metric],
+         "pmd": "PCMD"}[metric],
         fontsize=8.2, labelpad=3,
     )
 
@@ -639,7 +691,6 @@ def draw_cross_domain_panel(
     title: str,
     xlim: tuple[float, float],
     descriptive_averages: dict | None = None,
-    from_base: bool = False,
 ) -> None:
     axis.set_facecolor(style.WHITE)
     axis.set_title(title, loc="left", fontsize=7.9, fontweight="bold", pad=4)
@@ -665,139 +716,57 @@ def draw_cross_domain_panel(
                 source = descriptive[start]
                 if source["definition"] not in (AVAILABLE_DOMAIN_DEFINITION, PMD_DEFINITION):
                     raise RuntimeError("unsupported descriptive domain aggregate")
-                # A pair is only as complete as its thinnest arm, so the count
-                # spans the untrained reference and both arms rather than the
-                # control alone.
-                counts = [
-                    count
-                    for method in (initial_method(start), start, finish)
-                    for count in descriptive[method]["domain_seed_counts"].values()
-                ]
-                count_label = (f"n={counts[0]}/domain" if min(counts) == max(counts)
-                               else f"n={min(counts)}–{max(counts)}/domain")
-                complete = min(counts) == max(counts) == 5
                 initial_mean, start_mean, finish_mean = (
                     descriptive[method]["mean"]
                     for method in (initial_method(start), start, finish)
                 )
-                # There is no common seed cohort here: draw only the domain-
-                # balanced descriptive means, with no seed paths or interval.
             else:
                 seeds = tuple(regular[start]["seeds"])
-                complete = len(seeds) == 5
-                count_label = f"n={len(seeds)}"
-                seed_jitter = [
-                    -0.042 + 0.084 * index / (len(seeds) - 1)
-                    if len(seeds) > 1 else 0.0
-                    for index in range(len(seeds))
-                ]
                 before, starts, finishes = (
                     cross_domain_seed_values(absolute_averages, scale, metric, method, seeds)
                     for method in (initial_method(start), start, finish)
                 )
-                for initial, control, replay, jitter in zip(before, starts, finishes, seed_jitter):
-                    seed_y = y + jitter
-                    axis.plot(
-                        [initial, control], [seed_y, seed_y], color="#9AA6B2",
-                        linewidth=0.55, alpha=0.34, zorder=2,
-                    )
-                    axis.plot(
-                        [control, replay], [seed_y, seed_y], color=start_color,
-                        linewidth=0.65, alpha=0.25, zorder=2,
-                    )
-                    axis.plot(
-                        [control, replay], [seed_y, seed_y], linestyle="none",
-                        marker=marker, markersize=1.9, markerfacecolor=style.WHITE,
-                        markeredgecolor=start_color, markeredgewidth=0.45,
-                        alpha=0.38, zorder=3,
-                    )
                 initial_mean, start_mean, finish_mean = (
                     statistics.fmean(values) for values in (before, starts, finishes)
                 )
-            line_style = "-" if complete else (0, (2.5, 1.8))
-            if not complete:
-                # At the wrapped width the right end of a row is where the
-                # trained markers sit, so the count goes to the empty left end.
-                axis.text(
-                    xlim[0] + 0.015 * (xlim[1] - xlim[0]), y + 0.055,
-                    count_label, fontsize=5.6, color=start_color,
-                    ha="left", va="bottom", zorder=7,
-                )
-            if from_base:
-                # Both arrows leave the same untrained point, so the row reads
-                # as one question -- what did training do, with and without
-                # memory -- instead of a single path through the control.
-                arrow_rows = (
-                    (start_mean, start_color, -0.055, 4.7, style.WHITE, start_color),
-                    (finish_mean, finish_color, 0.055, 5.0, finish_color, finish_color),
-                )
-                for value, colour, shift, size, face, edge in arrow_rows:
-                    axis.annotate(
-                        "", xy=(value, y + shift), xytext=(initial_mean, y + shift),
-                        arrowprops={
-                            "arrowstyle": "-|>", "color": colour,
-                            "linewidth": 1.45, "mutation_scale": 8.0,
-                            "linestyle": line_style,
-                            "shrinkA": 4.6, "shrinkB": 5.0,
-                        },
-                        zorder=4,
-                    )
-                    axis.plot(
-                        value, y + shift, marker=marker, linestyle="none",
-                        markersize=size, markerfacecolor=face, markeredgecolor=edge,
-                        markeredgewidth=1.35 if face is style.WHITE else 1.0,
-                        zorder=6,
-                    )
-                axis.plot(
-                    [initial_mean, initial_mean], [y - 0.055, y + 0.055],
-                    color="#6B7280", linewidth=0.9, zorder=5,
-                )
-                axis.plot(
-                    initial_mean, y, marker="D", linestyle="none", markersize=4.2,
-                    markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=6,
-                )
-            else:
-                axis.plot(
-                    [initial_mean, start_mean], [y, y], color="#6B7280",
-                    linewidth=1.15, linestyle=line_style,
-                    solid_capstyle="round", zorder=4,
-                )
-                axis.annotate(
-                    "", xy=(finish_mean, y), xytext=(start_mean, y),
-                    arrowprops={
-                        "arrowstyle": "-|>", "color": start_color,
-                        "linewidth": 1.55, "mutation_scale": 8.5,
-                        "linestyle": line_style,
-                        "shrinkA": 4.0, "shrinkB": 5.0,
-                    },
-                    zorder=4,
-                )
-                axis.plot(
-                    initial_mean, y, marker="D", linestyle="none", markersize=4.2,
-                    markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=5,
-                )
-                axis.plot(
-                    start_mean, y, marker=marker, linestyle="none", markersize=4.7,
-                    markerfacecolor=style.WHITE, markeredgecolor=start_color,
-                    markeredgewidth=1.35, zorder=5,
-                )
-                axis.plot(
-                    finish_mean, y, marker=marker, linestyle="none", markersize=5.0,
-                    markerfacecolor=finish_color, markeredgecolor=finish_color,
-                    markeredgewidth=1.0, zorder=6,
-                )
+            # Three marks per pair and nothing joining them. The seed traces,
+            # the untrained-to-control paths and the arrows that used to
+            # connect them were the part of the plate a reader had to work
+            # through before the marks could be read, and the question the
+            # panel asks -- where each arm ends up against the untrained
+            # model -- is answered by position alone. Seed counts per pair
+            # stay on the record and on the per-domain plate the caption
+            # points to. Draw order settles a coincidence: the untrained
+            # diamond goes down first and the replay mark last, so an arm
+            # that lands on the untrained value still shows on top of it.
+            axis.plot(
+                initial_mean, y, marker="D", linestyle="none", markersize=3.4,
+                markerfacecolor="#6B7280", markeredgecolor="#6B7280", zorder=4,
+            )
+            axis.plot(
+                start_mean, y, marker=marker, linestyle="none", markersize=3.9,
+                markerfacecolor=style.WHITE, markeredgecolor=start_color,
+                markeredgewidth=1.1, zorder=5,
+            )
+            axis.plot(
+                finish_mean, y, marker=marker, linestyle="none", markersize=4.1,
+                markerfacecolor=finish_color, markeredgecolor=finish_color,
+                markeredgewidth=0.8, zorder=6,
+            )
 
     axis.set_yticks(
-        positions, [model for _scale, model, _seeds in completed],
+        positions,
+        [model.replace("-", "-\n", 1) if "-" in model else model
+         for _scale, model, _seeds in completed],
     )
     axis.set_xlabel(
-        {"pass8": "probability", "distinct8": "verified modes (raw count)",
-         "pmd": "correct-mode diversity"}[metric],
+        {"pass8": "P(a success in 8)", "distinct8": "verified modes (raw count)",
+         "pmd": "P(two successes differ)"}[metric],
         fontsize=7.0, labelpad=2,
     )
     if metric == "pass8":
         # Five ticks crowd a panel this narrow; the ends and the midpoint are
-        # what the arrows are read against.
+        # what the marks are read against.
         axis.set_xticks([0.0, 0.5, 1.0])
     # The panels sit close together, so the two labels facing the gutter are
     # justified away from it instead of centred on their spines, which would
@@ -820,13 +789,31 @@ def distinct_axis_upper(record: dict, scales: tuple[str, ...]) -> float:
     return max(2.5, math.ceil(maximum * 1.04 * 10) / 10)
 
 
+def pmd_axis_upper(record: dict, scales: tuple[str, ...]) -> float:
+    """Window the PCMD column on the range it actually uses.
+
+    PCMD can reach 1, but nothing here approaches it: the drawn means top out
+    well under it, so a fixed zero-to-one axis would spend most of the column on
+    empty space and squeeze the separations the panels exist to show. The
+    window still starts at zero, so it is a zoom on the top end rather than a
+    crop of the bottom.
+    """
+    means = [
+        statistics.fmean(values["pmd"])
+        for scale in scales for cell in record["cells"][scale].values()
+        for values in cell["methods"].values() if values.get("pmd")
+    ]
+    return max(0.4, math.ceil(max(means) * 1.08 * 20) / 20) if means else 1.0
+
+
 def render_main_figure(record: dict, absolute_averages: dict) -> None:
     # Sized to be wrapped, not set full width: the panels sit close together
     # and the scale labels take the only left gutter, because panel B hides its
     # tick labels.
     style.apply_rcparams(font_size=7.4)
     figure, axes = plt.subplots(
-        1, 2, figsize=(3.62, 2.50), gridspec_kw={"wspace": 0.12},
+        1, 2, figsize=(3.62, 2.02),
+        gridspec_kw={"wspace": 0.085, "width_ratios": [1.0, 1.12]},
     )
     descriptive = record["descriptive_available_domain_average"]
     draw_cross_domain_panel(
@@ -853,13 +840,12 @@ def render_main_figure(record: dict, absolute_averages: dict) -> None:
         axes[1], absolute_averages={scale: {"pmd": {}} for scale in pmd_averages},
         descriptive_averages=pmd_averages,
         metric="pmd", title="B  PCMD", xlim=(0.0, pmd_upper),
-        from_base=True,
     )
     axes[1].tick_params(labelleft=False)
     figure.legend(
-        handles=pair_legend_handles(include_untrained=True), ncol=5,
+        handles=pair_legend_handles(include_untrained=True, scale=0.78), ncol=5,
         loc="upper center", bbox_to_anchor=(0.55, 1.01), frameon=False,
-        fontsize=5.8, columnspacing=0.42, handletextpad=0.22,
+        fontsize=5.6, columnspacing=0.38, handletextpad=0.18,
     )
     maxrl_note = (
         "3B MaxRL: all five seeds across all five domains; equal domain weights within seed."
@@ -879,7 +865,7 @@ def render_main_figure(record: dict, absolute_averages: dict) -> None:
         "panel_b_domain_averages": "B averages each scale's support-eligible domains --- "
                                    + pmd_note + ".",
     }
-    figure.subplots_adjust(top=0.825, bottom=0.152, left=0.235, right=0.995)
+    figure.subplots_adjust(top=0.783, bottom=0.188, left=0.145, right=0.995)
     for extension in ("pdf", "png"):
         figure.savefig(
             OUT.with_suffix("." + extension), dpi=220,
@@ -895,32 +881,38 @@ def render_appendix_figure(record: dict, absolute_averages: dict) -> None:
         gridspec_kw={"hspace": 0.43, "wspace": 0.17},
     )
     domain_rows = tuple(zip(DOMAINS, LABELS))
-    upper = distinct_axis_upper(record, tuple(scale for scale, _, _ in MODELS))
+    # PCMD is a proportion, so the breadth column carries the same fixed window
+    # at every scale instead of distinct@8's open, correctness-driven upper end.
+    pmd_upper = pmd_axis_upper(record, tuple(scale for scale, _, _ in MODELS))
     record["display_contract"]["appendix_axis_limits"] = {
-        "pass8": [-0.04, 1.04], "distinct8": [-0.08, upper],
+        "pass8": [-0.04, 1.04], "pmd": [-0.04 * pmd_upper, pmd_upper],
     }
     for row, (scale, label, _seeds) in enumerate(MODELS):
-        for col, metric in enumerate(("pass8", "distinct8")):
+        for col, metric in enumerate(("pass8", "pmd")):
             letter = chr(ord("A") + 2 * row + col)
-            metric_label = "pass@8" if metric == "pass8" else "distinct@8"
+            metric_label = "pass@8" if metric == "pass8" else "PCMD"
             draw_pair_panel(
                 axes[row, col], record=record, absolute_averages=absolute_averages,
                 scale=scale, metric=metric, title=f"{letter}  {label} · {metric_label}",
                 rows=domain_rows,
-                xlim=(-0.04, 1.04) if metric == "pass8" else (-0.08, upper),
+                xlim=(-0.04, 1.04) if metric == "pass8"
+                else (-0.04 * pmd_upper, pmd_upper),
                 show_untrained=True,
             )
         axes[row, 1].tick_params(labelleft=False)
     figure.legend(
-        handles=pair_legend_handles(include_untrained=True), ncol=5,
+        handles=pair_legend_handles(include_untrained=True, scale=0.78), ncol=5,
         loc="upper center", bbox_to_anchor=(0.55, 1.01), frameon=False,
-        fontsize=5.8, columnspacing=0.42, handletextpad=0.22,
+        fontsize=5.6, columnspacing=0.38, handletextpad=0.18,
     )
+    seed_legend = "Control-arm seeds: solid n=5; dashed n<5. Arm counts can differ."
+    record["display_contract"]["appendix_seed_legend"] = seed_legend
     figure.text(
-        0.99, 0.013, "Solid: n=5; dashed: available paired seeds (descriptive).",
+        0.99, 0.013, seed_legend,
         ha="right", fontsize=7.0, color=style.MUTED,
     )
     figure.subplots_adjust(top=0.94, bottom=0.07, left=0.17, right=0.99)
+    style.apply_domain_typography(figure)
     for extension in ("pdf", "png"):
         figure.savefig(
             APPENDIX_OUT.with_suffix("." + extension), dpi=220,
@@ -1214,6 +1206,10 @@ def main() -> int:
         "domain_backgrounds": (
             "exact Figure 2 domain-card tints; color is contextual, not data"
         ),
+        "main_figure_marks": (
+            "marks only: untrained diamond, open control, filled replay on one row; "
+            "no connectors, seed traces or arrows"
+        ),
         "solid_connector": "complete five-seed block",
         "dashed_connector": "partial or domain-specific paired seeds with exact counts and no interval",
         "numeric_annotations": (
@@ -1232,12 +1228,15 @@ def main() -> int:
             for domain in DOMAINS
         },
         "qwen3b_maxrl_uncertainty": (
-            "five paired seed paths; no interval in the absolute-mean figure"
+            "five paired seeds behind each mark; no seed paths or interval in the absolute-mean figure"
             if qwen3b_complete else "none; no pooled seed paths or cross-domain interval"
         ),
     }
     write_qwen3b_python_table(record)
     render_main_figure(record, absolute_averages)
+    # The appendix panels read PCMD, which is not in the endpoint records the
+    # rest of this builder assembles, so it is attached before they are drawn.
+    attach_pmd_cells(record)
     render_appendix_figure(record, absolute_averages)
     for path in (
         OUT.with_suffix(".json"), APPENDIX_OUT.with_suffix(".json"),

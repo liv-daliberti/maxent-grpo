@@ -45,6 +45,7 @@ from ..math_grader import (
     validated_modebench_outcome_key,
 )
 from ..online_canonical_bank import OnlineCanonicalBank
+from ..rlep import OnlineRLEPExperiencePool
 from ..replicated_group import validate_replicated_group_layout
 from ..resume_state import (
     discover_local_wandb_resume_run,
@@ -2585,6 +2586,19 @@ class ZeroMathRunMixin:
             raise ValueError(
                 "regular run cannot resume an online canonical bank checkpoint"
             )
+        saved_rlep_online_pool = resume_states.get("rlep_online_pool_state")
+        if bool(getattr(self.args, "rlep_online_pool", False)):
+            if not isinstance(saved_rlep_online_pool, dict):
+                raise ValueError(
+                    "RLEP online-pool run cannot resume without its pool state"
+                )
+            pool = OnlineRLEPExperiencePool(
+                minimum=int(getattr(self.args, "rlep_replay_count", 0) or 0)
+            )
+            pool.load_state_dict(saved_rlep_online_pool)
+            self._rlep_experience_pool = pool
+        elif saved_rlep_online_pool is not None:
+            raise ValueError("regular run cannot resume an RLEP online pool checkpoint")
         proposal_starvation_controller = getattr(
             self,
             "_proposal_starvation_controller",
@@ -3373,6 +3387,11 @@ class ZeroMathRunMixin:
             client_state["online_canonical_bank_state"] = (
                 online_canonical_bank.state_dict()
             )
+        rlep_online_pool = getattr(self, "_rlep_experience_pool", None)
+        if isinstance(rlep_online_pool, OnlineRLEPExperiencePool):
+            # The pool is run state: a resume that restarted it empty would
+            # silently turn the arm back into plain Dr.GRPO for a full pass.
+            client_state["rlep_online_pool_state"] = rlep_online_pool.state_dict()
         proposal_starvation_controller = getattr(
             self,
             "_proposal_starvation_controller",

@@ -1,0 +1,54 @@
+[
+  {
+    "page": 16,
+    "context": "      Part VIII. Records\n821   S    Source Integrity and Reproducibility . . . . . . . . . . . . . . . . . .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n822      S.1 Admissible sources and missing checkpoints . . . . . . . . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n         S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121"
+  },
+  {
+    "page": 16,
+    "context": "822      S.1 Admissible sources and missing checkpoints . . . . . . . . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n         S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n823      S.3 Conflicted scheduled checkpoints, admitted by provenance . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122\n         S.4 Data, models, and scientific records . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122"
+  },
+  {
+    "page": 16,
+    "context": "         S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n823      S.3 Conflicted scheduled checkpoints, admitted by provenance . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122\n         S.4 Data, models, and scientific records . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122\n824      S.5 Exact continuation and validation . . . . . . . . . . . . . . . . .      .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122"
+  },
+  {
+    "page": 21,
+    "context": "1095   admits from the modes anything has been observed to give on the same prompts. MathIR is the\n1096   domain where that gap is structural rather than a sampling limit, because its modes are derivations\n1097   of one answer and most of the certified ones are longer routes. Each higher level is a separate\n1098   construction with its own support distribution (App. B.4). The exact prompt each policy receives is"
+  },
+  {
+    "page": 21,
+    "context": "1118   response budgets differ accordingly (Table 6): a PantryPlan response is a short plan and a Countdown\n1119   response is a derivation, and neither is a long chain of deliberation. So a reader may fairly ask whether\n1120   what collapses is reasoning or only an answer set, since three of the five domains key outcomes.\n1121"
+  },
+  {
+    "page": 21,
+    "context": "1121\n       The question is decidable rather than terminological, because the two keyings are measured side by\n1122   side on the same training runs. Grouping the frozen-to-terminal change in conditional collision by\n1123   how the domain keys a mode, over RLVR-only arms, the route-keyed domains move +0.202 across"
+  },
+  {
+    "page": 21,
+    "context": "1125   over 106. Concentration appears under every keying, so it is not an artifact of the outcome-keyed\n1126   domains. It is larger where modes are answers, and we do not claim otherwise.\n1127\n       The domain that settles the narrow question is Countdown, where a mode is unambiguously a dif-"
+  },
+  {
+    "page": 21,
+    "context": "1127\n       The domain that settles the narrow question is Countdown, where a mode is unambiguously a dif-\n1128   ferent derivation of the same number and nothing about the answer distinguishes two of them. It\n1129   concentrates by +0.383 over 46 seed-blocks, more than Graph at +0.230 and close to the answer-"
+  },
+  {
+    "page": 21,
+    "context": "1129   concentrates by +0.383 over 46 seed-blocks, more than Graph at +0.230 and close to the answer-\n1130   keyed mean. Whatever the right name for the aggregate, the effect is present at full strength in\n1131   the domain that most cleanly instantiates a reasoning route, which an answer-set reading would\n1132   not predict. MathIR is the weak case at +0.042, for the reason its own entry gives: its certi-"
+  },
+  {
+    "page": 21,
+    "context": "1133   fied support is keyed to derivations of one answer and most of those routes are longer ones no\n       policy produces, so much of its support is unreachable rather than abandoned.\n\n"
+  },
+  {
+    "page": 62,
+    "context": "3331   grading use identical pools. The paired contrast \u2206D = D512 (512) \u2212 D512 (256) measures the gain\n3332   between random subsets of the complete pool, not chronological new modes. Brackets give pointwise\n3333   95% whole-problem bootstrap intervals.\n3334   normalization adds no verified local responses, so the two grading rules give identical local estimates."
+  },
+  {
+    "page": 78,
+    "context": "       three refused responses with the first verified-valid answer to an additional request. All three\n       replacements pass formatting-normalized verification on the first retry and reproduce a solution\n4197\n       mode already observed for that task. Selecting 3,072 valid responses therefore requires 3,075"
+  },
+  {
+    "page": 117,
+    "context": "6311   estimate derived from replay rows. These are descriptive workload summaries, not a cumula-\n6312   tive compute audit. They exclude rollout generation, padding, attention-specific costs, activation\n6313   recomputation, verification, bank maintenance, optimizer work, communication, and evaluation.\n6314   Hardware pools also differ across cohorts. Neither these estimates nor the reference-KL compar-"
+  }
+]

@@ -48,6 +48,11 @@ from typing import Any, Iterable
 
 import matplotlib as mpl
 
+try:
+    from ops.paper_domain_figure_typography import apply_domain_typography
+except ModuleNotFoundError:
+    from paper_domain_figure_typography import apply_domain_typography
+
 # --- canvas -----------------------------------------------------------------
 # The authoring width of the reference figure. Every figure uses it so that all
 # figures land on the page at one common scale factor (5.5/7.35 = .748).
@@ -364,6 +369,7 @@ def bottom_legend(
 def save(figure, path, *, png: bool = True, dpi: int = 240) -> None:
     """Write the figure with the reference's tight bounds."""
     path.parent.mkdir(parents=True, exist_ok=True)
+    apply_domain_typography(figure)
     figure.savefig(path.with_suffix(".pdf"), bbox_inches="tight", pad_inches=0.02)
     if png:
         figure.savefig(

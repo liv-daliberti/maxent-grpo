@@ -17,17 +17,15 @@
     \raisebox{-0.15em}{\includegraphics[width=1.05em,height=1.05em,keepaspectratio]{icons/claude.png}}\hspace{0.4em}Claude Opus 4.8 & 91.2 & 1.46 & .216 & 100.0 & 1.62 & .226 & 100.0 & 1.51 & .185 \\
     \bottomrule
   \end{tabular}}
-  \caption{\textbf{Hosted success and output diversity with reasoning disabled.}
-  Each level averages five domains equally: 32 prompts per domain and eight
-  responses per prompt. \texttt{pass@8} is the fraction with any verified
-  response; \# modes is mean \texttt{distinct@8}, including failures.
-  Both fall when the model simply succeeds less often, so \pmd{} carries the
-  success-conditional axis beside them: it is the mean probability that two
-  verified draws on the same prompt differ, over the prompts that return two
-  verified draws in this condition and in the matched medium condition of
-  Table~\ref{tab:hosted-reasoning-matched-levels}, which is the population
-  every \pmd{} reading in this appendix uses.
-  The frozen formatting normalizer applies throughout. Appendix~\ref{app:hosted-reasoning-control}
-  gives matched medium-reasoning results.}
+  \caption{\textbf{Verified solution diversity varies across deployments with explicit reasoning disabled.}
+  Each level contains 32 prompts per domain and eight responses per prompt,
+  with formatting-normalized grading. \texttt{pass@8} is the fraction with
+  any verified response; \# modes is mean \texttt{distinct@8}, including
+  zero-success prompts. These columns average five domains equally.
+  \pmd{} instead weights equally the prompts with at least two verified
+  responses in both this condition and the medium condition of
+  Table~\ref{tab:hosted-reasoning-matched-levels}. This selected population
+  can differ between deployments and levels; it does not match overall
+  accuracy. Entries are point estimates.}
   \label{tab:hosted-level-averages}
 \end{table}

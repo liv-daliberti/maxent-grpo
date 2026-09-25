@@ -204,6 +204,7 @@ def main() -> None:
         raise ValueError('unexpected curve payload schema')
     figure, table, steps = build_figure(payload, args.level)
     args.output.parent.mkdir(parents=True, exist_ok=True)
+    style.apply_domain_typography(figure)
     figure.savefig(args.output.with_suffix('.pdf'))
     plt.close(figure)
     record = {

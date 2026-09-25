@@ -1,0 +1,251 @@
+\subsection{Diversity at finite steps and sampling budgets}
+\label{app:finite-time-diversity}
+
+The softmax log-ratio identity of
+\citet[Theorem~3.1 and App.~A.1]{sinha2026expected} and the amplification
+analysis of \citet[Section~4.2]{lochab2026ucpo} identify the underlying
+frequency effect. We now connect it to the reported \pmd{} metric, extend
+expected-gradient collapse to finite steps, and quantify disappearance within
+a finite inference budget. The categorical geometry remains explicit;
+the discrete and sampled results replace (A3) with their stated updates.
+
+\begin{proposition}[Exact diversity drift and matched correctness]
+\enforcehalffinalproseline
+\label{prop:pcmd-drift}
+Under Assumption~\ref{ass:categorical-mean-flow}, consider
+$\dot z=c(P)\nabla_zP$ with $c(P)>0$. Write
+$D(q)=1-\sum_cq_c^2$, $S_2=\sum_cq_c^2$, and
+$V(q)=\sum_cq_c^3-S_2^2=\operatorname{Var}_{C\sim q}(q_C)$.
+For incorrect conditional probabilities $r_a=p_a/(1-P)$, set
+$T_2=\sum_ar_a^2$. In effective time $d\tau=c(P)P(1-P)dt$,
+\begin{equation}
+ \frac{dD}{d\tau}=-2V(q),
+ \qquad
+ \frac{dD}{d\log[P/(1-P)]}
+ =-\frac{2V(q)}{S_2+T_2}.
+ \label{eq:pcmd-drift}
+\end{equation}
+Thus diversity strictly decreases at every nonuniform interior $q$.
+Positive-coefficient mean flows from the same initial logits follow the same
+$D$-versus-$P$ curve, independently of their chosen outcome-binary advantage or
+group size.
+\end{proposition}
+
+\begin{proof}
+\enforcehalffinalproseline
+For the replicator flow~\eqref{eq:grpo-replicator}, the potential
+$U(q)=S_2/2$ has fitness $\partial U/\partial q_c=q_c$.
+The fitness-variance identity of
+\citet[Theorems~1--2]{harper2009informationgeometry} gives
+$dU/d\tau=V(q)$, hence $dD/d\tau=-2V(q)$.
+The variance vanishes exactly when the
+positive coordinates of $q$ are equal. Also,
+\[
+ \dot P=c(P)\|\nabla_zP\|_2^2
+       =c(P)P^2(1-P)^2(S_2+T_2),
+\]
+so $d\log[P/(1-P)]/d\tau=S_2+T_2>0$, proving the second identity.
+Finally, the full logit equation in effective time is
+$dz_c/d\tau=q_c$ and $dz_a/d\tau=-r_a$; it contains no $c$.
+The same initial logits therefore give the same full trajectory after the
+time change, and hence the same curve at matched correctness for every positive-coefficient outcome-binary estimator considered here.
+\end{proof}
+
+\begin{theorem}[Collapse under finite expected-gradient steps]
+\enforcehalffinalproseline
+\label{thm:finite-expected-steps}
+Retain the categorical model but replace (A3) by
+\begin{equation}
+ z_{k+1}=z_k+\eta_k c(P_k)\nabla_zP_k,
+ \qquad 0<\eta_k<\infty,\quad \sum_{k=0}^\infty\eta_k=\infty,
+ \label{eq:finite-expected-update}
+\end{equation}
+where $c$ is continuous and positive on $(0,1)$. Each step strictly decreases
+$D(q_k)$ unless $q_k$ is uniform. If $q_0$ has a unique largest coordinate
+$c^\star$, then $P_k\to1$ and $q_{c^\star,k}\to1$.
+No upper bound on the finite step sizes is required.
+\end{theorem}
+
+\begin{proof}
+\enforcehalffinalproseline
+Let $h_k=\eta_kc(P_k)P_k(1-P_k)>0$. The exact updates are
+$z_c^+=z_c+h_kq_c$ and $z_a^+=z_a-h_kr_a$, so
+\begin{equation}
+ q_c^+=\frac{q_c e^{h_kq_c}}{\sum_dq_d e^{h_kq_d}}.
+ \label{eq:finite-correct-tilt}
+\end{equation}
+For fixed $q$, put $u_c(s)=q_ce^{sq_c}/\sum_dq_de^{sq_d}$.
+Differentiation gives
+\[
+ \frac{d}{ds}\sum_cu_c(s)^2
+ =\sum_{c,d}u_c(s)u_d(s)
+       \big(u_c(s)-u_d(s)\big)(q_c-q_d)\ge0.
+\]
+The ordering of $u(s)$ is that of $q$, and the inequality is strict whenever
+$q$ is nonuniform. Integrating from $0$ to $h_k$ proves the diversity claim.
+Equation~\eqref{eq:finite-correct-tilt} also preserves the leader and makes
+its conditional probability nondecreasing.
+
+Every correct logit increases and every incorrect logit decreases, hence
+$P_k$ increases. Jensen's inequality gives
+\[
+ \log\frac{P_{k+1}}{1-P_{k+1}}-\log\frac{P_k}{1-P_k}
+ =\log\sum_cq_c e^{h_kq_c}-\log\sum_ar_a e^{-h_kr_a}
+ \ge h_k\sum_cq_c^2\ge h_k/m.
+\]
+If $P_k$ had an interior limit, continuity and positivity of $c$ would imply
+$\sum_kh_k=\infty$, contradicting bounded correctness odds. Thus $P_k\to1$.
+Moreover, $\sum_kh_k=\infty$ is necessary: otherwise every logit would have
+finite total variation and converge to a finite value, contradicting
+$P_k\to1$.
+Set $\alpha=q_{c^\star,0}$ and
+$\xi_{c,k}=q_{c,k}/q_{c^\star,k}$. For $c\ne c^\star$,
+\[
+ \xi_{c,k+1}=\xi_{c,k}
+  e^{-h_k(q_{c^\star,k}-q_{c,k})},
+ \qquad
+ q_{c^\star,k}-q_{c,k}
+ \ge\alpha(1-\xi_{c,0})>0.
+\]
+The divergent sum of $h_k$ forces every such ratio to zero, proving
+$q_{c^\star,k}\to1$.
+\end{proof}
+
+This theorem concerns the exact expected gradient. Finite step sizes can
+change the trajectory across estimators; the exact matched-correctness
+identity in Proposition~\ref{prop:pcmd-drift} remains a mean-flow statement.
+
+\citet[Proposition~A.1]{lochab2026ucpo} establish that finite multinomial
+counts can break a uniform policy's symmetry. The next result quantifies
+the effect of those counts on \pmd{} after the centered group update,
+including its learning-rate and group-size dependence.
+
+\begin{proposition}[Sampled updates break conditional symmetry]
+\enforcehalffinalproseline
+\label{prop:stochastic-pcmd}
+Retain the categorical model, replacing (A3) by one sampled update
+$z^+=z+\eta\widehat g_G$ from Equation~\eqref{eq:group-estimator}, with
+$\eta>0$. Suppose $0<P<1$ and $q_c=1/m$ for every correct mode. Then
+\begin{equation}
+ \E[D(q^+)]<1-1/m,
+ \qquad \E[q_c^+]=1/m.
+ \label{eq:stochastic-strict-decrease}
+\end{equation}
+As $\eta\to0$, for the fixed initial policy and estimator,
+\begin{equation}
+ \E[D(q^+)]
+ =1-\frac1m
+  -\eta^2\frac{m-1}{m^3}
+    \E\!\left[\frac{w(R)^2R(G-R)^2}{G^4}\right]
+  +O(\eta^3),
+ \label{eq:stochastic-pcmd-expansion}
+\end{equation}
+where the summand is zero on $R=0,G$. For Dr.GRPO, $w=1$ and
+\begin{equation}
+ \E\!\left[\frac{R(G-R)^2}{G^4}\right]
+ =\frac{G-1}{G^3}P(1-P)\big[1+(G-2)(1-P)\big].
+ \label{eq:stochastic-dr-coefficient}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+\enforcehalffinalproseline
+Let $N_c$ count occurrences of correct mode $c$. The centered advantages
+sum to zero, so the common softmax-score term cancels and
+$\widehat g_c=\kappa_RN_c$, where
+$\kappa_R=w(R)(G-R)/G^2$ on mixed groups and $\kappa_R=0$ otherwise.
+Conditional on $R$, the correct counts are
+$N\sim\operatorname{Multinomial}(R;1/m,\ldots,1/m)$, and
+\[
+ q_c^+=\frac{e^{\eta\kappa_RN_c}}{\sum_de^{\eta\kappa_RN_d}}.
+\]
+Diversity is at most $1-1/m$, with equality only at uniform $q^+$.
+The event $R=1$ has positive probability; on this event one correct logit
+increases and the others do not, so $q^+$ is nonuniform. This proves the
+strict inequality for every $\eta>0$. Permutation symmetry of the correct
+labels gives $\E[q_c^+]=1/m$.
+
+For a fixed vector $v$, Taylor expansion about uniform logits gives
+\[
+ \sum_c\operatorname{softmax}(\eta v)_c^2
+ =\frac1m+\frac{\eta^2}{m^2}\sum_c(v_c-\bar v)^2+O(\eta^3),
+ \qquad \bar v=\frac1m\sum_cv_c.
+\]
+Use $v_c=\kappa_RN_c$ and
+$\E[\sum_c(N_c-R/m)^2\mid R]=R(1-1/m)$.
+There are finitely many possible groups and all mixed-group weights are
+finite, so the Taylor remainder is uniform over those groups. Averaging
+proves Equation~\eqref{eq:stochastic-pcmd-expansion}.
+Finally,
+\[
+ \E[R(G-R)^2]
+ =G(G-1)(G-2)P(1-P)^2+G(G-1)P(1-P),
+\]
+by the binomial factorial moments, yielding
+Equation~\eqref{eq:stochastic-dr-coefficient}.
+\end{proof}
+
+At fixed $P\in(0,1)$, the Dr.GRPO coefficient in
+Equation~\eqref{eq:stochastic-dr-coefficient} is
+$P(1-P)^2/G+O(G^{-2})$. Thus larger groups reduce the leading expected
+one-step diversity loss from conditional symmetry at the same learning rate.
+This sampling effect is absent from the mean flow. The proposition does not
+assert monotone expected diversity from an arbitrary nonuniform policy or
+convergence of a stochastic optimizer.
+
+\begin{corollary}[Finite-budget disappearance of competing modes]
+\enforcehalffinalproseline
+\label{cor:finite-budget-invisibility}
+In the mean flow of Theorem~\ref{thm:grpo-collapse}, let $c^\star$ be the
+unique initial correct leader and define
+\[
+ \alpha=q_{c^\star}(0),
+ \qquad
+ \Gamma_0=\sum_{c\ne c^\star}
+             \frac{q_c(0)}{\alpha-q_c(0)}.
+\]
+At effective time $\tau$,
+\begin{equation}
+ 1-q_{c^\star}(\tau)\le\Gamma_0e^{-\alpha\tau},
+ \qquad D(q(\tau))\le2\Gamma_0e^{-\alpha\tau}.
+ \label{eq:finite-minority-bound}
+\end{equation}
+For $K\ge1$ independent full-policy draws at that checkpoint,
+\begin{equation}
+ \Pr(\text{any correct mode other than }c^\star\text{ is observed})
+ \le K\Gamma_0e^{-\alpha\tau}.
+ \label{eq:finite-inference-visibility}
+\end{equation}
+In particular, if
+$\tau\ge\max\{0,\alpha^{-1}\log(K\Gamma_0/\delta)\}$ for
+$0<\delta<1$, no competing correct mode is observed with probability at
+least $1-\delta$, although every mode retains positive probability.
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+For $c\ne c^\star$, write $\xi_c=q_c/q_{c^\star}<1$.
+The leader is nondecreasing, and Equation~\eqref{eq:grpo-replicator} gives
+\[
+ \frac{d}{d\tau}\log\frac{\xi_c}{1-\xi_c}
+ =-q_{c^\star}\le-\alpha.
+\]
+Hence
+$\xi_c(\tau)\le[q_c(0)/(\alpha-q_c(0))]e^{-\alpha\tau}$.
+Now $1-q_{c^\star}=\sum_{c\ne c^\star}\xi_c/(1+\sum_{c\ne c^\star}\xi_c)$
+and $D\le1-q_{c^\star}^2\le2(1-q_{c^\star})$, proving the first bounds.
+A single full-policy draw hits a competing correct mode with probability
+$P(1-q_{c^\star})\le1-q_{c^\star}$; a union bound over $K$ draws completes
+the proof.
+\end{proof}
+
+The bound gives a finite-budget interpretation of the rare-output pruning
+mechanism discussed by \citet[Section~4.2.5]{lochab2026ucpo}.
+It can also be indexed by correctness: Proposition~\ref{prop:pcmd-drift}
+and $S_2+T_2\le2$ imply
+$\tau\ge\tfrac12\log\{[P/(1-P)]/[P(0)/(1-P(0))]\}$.
+These are sufficient visibility bounds within the categorical model;
+they do not require literal support loss or identify an empirical collapse
+time for neural training.
+
+

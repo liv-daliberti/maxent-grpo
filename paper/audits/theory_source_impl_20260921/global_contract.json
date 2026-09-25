@@ -1,0 +1,4 @@
+{
+  "exit_code": 1,
+  "output": "Expanded GPT contract passed: 480 prompts, 19,200 authenticated responses, old/new cohort sensitivity.\nCurrent paper contract failed: main role label sec:results-maxrl missing or duplicated\n"
+}

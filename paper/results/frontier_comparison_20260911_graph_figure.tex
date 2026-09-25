@@ -1,12 +1,14 @@
 \begin{figure}[!htbp]
   \centering
   \includegraphics[width=\linewidth]{figures/frontier_comparison_20260911_graph.pdf}
-  \caption{\textbf{Verified correctness and concentration in hosted Graph outputs.}
-  Each deployment receives the same 128 prompts per level, with eight stateless
-  samples per prompt. Intervals resample whole prompts. The gray band spans
-  the models' uniform-correct-key references, conditional on their observed
-  correct draws. Graph was selected after the GPT-5.6 Sol run and before the
-  prospective comparison runs. Level labels do not guarantee increasing
-  difficulty for each model.}
+  \caption{\textbf{Hosted \texttt{Graph} answers are usually correct but concentrated relative to uniform sampling.}
+  Panel A shows strict per-response accuracy; panel B shows the fraction of
+  correct pairs sharing a solution mode, pooling pairs across prompts. Colors
+  and markers identify seven deployments, each with the same 128 prompts per
+  level and eight stateless responses per prompt. Error bars are pointwise
+  95\% intervals from resampling whole prompts. The gray band spans the
+  deployments' uniform-correct-mode references, weighted by
+  correct-pair counts; the dashed line is their mean. Level labels imply
+  neither equal nor monotone difficulty across deployments.}
   \label{fig:hosted-graph-comparison}
 \end{figure}

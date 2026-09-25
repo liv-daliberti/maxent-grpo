@@ -77,9 +77,9 @@ def recipes() -> list[dict]:
     return sorted(found, key=lambda r: (r['ledger'], r['domain'], r['seed']))
 
 
-def replication_env(recipe: dict) -> tuple[dict, Path, str]:
+def replication_env(recipe: dict, stamp_prefix: str = 'e95r') -> tuple[dict, Path, str]:
     env = dict(recipe['env'])
-    stamp = 'e95r_' + recipe['original_stamp'].removeprefix('e95_')
+    stamp = f'{stamp_prefix}_' + recipe['original_stamp'].removeprefix('e95_')
     model_tag = Path(env['OAT_ZERO_PRETRAIN']).parts[-3].replace('models--', '').replace('--', '_').lower()
     save = RUN_ROOT / f'xdr_{model_tag}_grpo_plain_control_{stamp}'
     env['SAVE_PATH'] = str(save)
@@ -111,14 +111,26 @@ def main() -> None:
                              'not something anyone is waiting on')
     parser.add_argument('--gpu', default=None, help='pin a GPU model, e.g. a100')
     parser.add_argument('--submit', action='store_true')
+    # A later wave must not write over an earlier one's ledger. The archive plan
+    # pins each ledger by hash and re-checks it before every upload and every
+    # deletion, so overwriting the file a published cohort was planned from
+    # aborts the archive pass rather than corrupting it quietly.
+    parser.add_argument('--out-ledger', type=Path, default=OUT_LEDGER)
+    parser.add_argument('--stamp-prefix', default='e95r',
+                        help='run-stamp and run-directory prefix; give a later wave its own')
+    parser.add_argument('--write-plan', action='store_true',
+                        help='write the ledger without submitting, so the plan can be reviewed first')
     args = parser.parse_args()
+    require(re.fullmatch(r'[a-z0-9]+', args.stamp_prefix), 'stamp prefix must be lowercase alphanumeric')
+    out_ledger = Path(args.out_ledger).resolve()
+    require(not out_ledger.exists(), f'ledger already exists, choose another: {out_ledger}')
 
     wanted = {'Qwen2.5-0.5B': 'Qwen25-05B', 'Falcon3-1B': 'Falcon3-1B', 'Qwen2.5-3B': 'Qwen25-3B'}
     plan = []
     for recipe in recipes():
         if args.family != 'all' and wanted[args.family] not in recipe['ledger']:
             continue
-        env, save, stamp = replication_env(recipe)
+        env, save, stamp = replication_env(recipe, args.stamp_prefix)
         require(not save.exists(), f'{stamp}: output directory already exists: {save}')
         plan.append({'stamp': stamp, 'save_path': str(save), 'domain': recipe['domain'],
                      'seed': recipe['seed'], 'replicates': recipe['original_stamp'],
@@ -131,7 +143,7 @@ def main() -> None:
         # Shape fields the shared campaign reader needs to report progress; they
         # mirror the E95 ledgers this replicates, so the cohort shows up in
         # campaign_stats.py like any other.
-        'experiment': 'E95-R', 'family': args.family if args.family != 'all' else None,
+        'experiment': args.stamp_prefix.upper().replace('E95R', 'E95-R'), 'family': args.family if args.family != 'all' else None,
         'variant': 'grpo_plain_control', 'arms': ['grpo_plain_control'],
         'target_steps': 3072, 'train_rows': 384, 'passes': 8,
         'checkpoint_interval_steps': 192, 'released': True,
@@ -156,11 +168,13 @@ def main() -> None:
         ledger['runs'] = [{**{k: v for k, v in row.items() if k != 'env'},
                            'run_dir': row['save_path'], 'arm': 'grpo_plain_control',
                            'run_stamp': row['stamp']} for row in plan]
-        OUT_LEDGER.parent.mkdir(parents=True, exist_ok=True)
-        OUT_LEDGER.write_text(json.dumps(ledger, indent=2, sort_keys=True) + '\n')
+    if args.submit or args.write_plan:
+        ledger['released'] = bool(args.submit)
+        out_ledger.parent.mkdir(parents=True, exist_ok=True)
+        out_ledger.write_text(json.dumps(ledger, indent=2, sort_keys=True) + '\n')
     print(json.dumps({'runs': len(plan), 'submitted': args.submit,
                       'held': args.submit and 'yes -- release with scontrol release',
-                      'ledger': str(OUT_LEDGER) if args.submit else None,
+                      'ledger': str(out_ledger) if (args.submit or args.write_plan) else None,
                       'example': plan[0]['command'][:4] if plan else None}, indent=2))
 
 

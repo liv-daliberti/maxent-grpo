@@ -116,3 +116,44 @@ def test_pool_audit_writes_a_content_bound_completion_receipt(tmp_path):
     assert payload["prompts"] == 2
     assert payload["minimum_trajectories_per_prompt"] == 4
     assert len(payload["sidecar_sha256"]) == 64
+
+
+def test_online_pool_becomes_eligible_only_from_past_verified_rows():
+    from oat_drgrpo.rlep import OnlineRLEPExperiencePool
+
+    pool = OnlineRLEPExperiencePool(minimum=2)
+    reference = {"id": 7}
+    assert not pool.can_sample(reference, count=2)
+    assert pool.diagnostics.prompts == 0
+    assert pool.diagnostics.minimum_trajectories_per_prompt == 0
+    # One success on the first visit: stored, still ineligible.
+    assert pool.observe(reference, ["a", "b", "c"], [1.0, 0.0, 0.0]) == 1
+    assert not pool.can_sample(reference, count=2)
+    # Frequency is preserved: three copies of one text are three rows.
+    assert pool.observe(reference, ["a", "a", "a"], [1.0, 1.0, 1.0]) == 3
+    assert pool.can_sample(reference, count=2)
+    assert pool.diagnostics.trajectories == 4
+    assert pool.diagnostics.eligible_prompts == 1
+    drawn = pool.sample(reference, count=2, experiment_seed=43, learner_step=5)
+    assert len(drawn) == 2 and set(drawn) <= {"a"}
+    again = pool.sample(reference, count=2, experiment_seed=43, learner_step=5)
+    assert drawn == again
+
+
+def test_online_pool_state_round_trips_and_guards_its_minimum():
+    from oat_drgrpo.rlep import OnlineRLEPExperiencePool
+
+    pool = OnlineRLEPExperiencePool(minimum=2)
+    pool.observe({"id": 1}, ["x", "y"], [1.0, 1.0])
+    pool.observe({"id": 2}, ["z"], [0.0])
+    restored = OnlineRLEPExperiencePool(minimum=2)
+    restored.load_state_dict(pool.state_dict())
+    assert restored.diagnostics == pool.diagnostics
+    assert restored.observed_groups == 2
+    assert restored.sample({"id": 1}, count=2, experiment_seed=1, learner_step=1) == pool.sample(
+        {"id": 1}, count=2, experiment_seed=1, learner_step=1
+    )
+    with pytest.raises(ValueError, match="minimum changed"):
+        OnlineRLEPExperiencePool(minimum=3).load_state_dict(pool.state_dict())
+    with pytest.raises(ValueError, match="not yet eligible"):
+        pool.sample({"id": 2}, count=2, experiment_seed=1, learner_step=1)

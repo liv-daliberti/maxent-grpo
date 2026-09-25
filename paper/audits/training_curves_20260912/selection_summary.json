@@ -1431,7 +1431,7 @@
   ],
   "registered_cells": 400,
   "schema": "training-curve-frozen-snapshot-v1",
-  "snapshot_sha256": "1f3df09991829bee0dfc0ea1e98bfede5964d6bd0f8162e1682ba415105706cb",
+  "snapshot_sha256": "ee46e8e8b6f0fe8d75eaf4573687f33939e2e9c7580055c36ed6e2bc22661573",
   "terminal_admitted_cells": 399,
   "terminal_matches_census": true
 }

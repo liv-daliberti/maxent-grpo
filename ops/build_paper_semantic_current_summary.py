@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Restore semantic factorial detail using the current strict endpoint admission."""
+"""Render fixed semantic-entropy effects with and without verified replay."""
 import argparse
 import json
 import math
 from pathlib import Path
+try:
+    from paper_domain_typography import format_domain_names
+except ModuleNotFoundError:
+    from ops.paper_domain_typography import format_domain_names
 import statistics
 import sys
 ROOT=Path(__file__).resolve().parents[1]
@@ -13,7 +17,7 @@ from build_paper_inference_followups import table
 from scipy.stats import t
 OUT=ROOT/'paper/results/semantic_current_summary_20260912'
 DOMAINS=['graph_coloring','countdown','python_factors','mathir','pantry_plan']
-LABELS=['Graph','Countdown','Python','MathIR','Pantry']
+LABELS=['Graph','Countdown','Python','MathIR','PantryPlan']
 LEDGERS={
  'Qwen2.5-0.5B':['e78_verified_replay_only_05b_jobs.json','e81_semantic_maxent_verified_replay_05b_jobs.json','e83_semantic_maxent_without_replay_05b_jobs.json','e85_pantry_semantic_repair_jobs.json'],
  'Falcon3-1B':['e79_falcon1b_aligned_verified_replay_jobs.json','e82_falcon_semantic_maxent_verified_replay_jobs.json','e86_falcon_semantic_maxent_without_replay_jobs.json','e85_pantry_semantic_repair_jobs.json'],
@@ -73,34 +77,34 @@ def build():
          'selection':'Current strict exact four-draw endpoint policy; common four-arm seed intersection. Falcon Countdown seed 59 excluded throughout, including semantic-only contrast. Qwen3B seed70 is descriptive and lacks semantic-only arm.'}
 
 def render(report):
- tex=r'''\clearpage
-\section{Fixed Semantic-Entropy Factorials}
+ tex=r'''\section{Fixed Semantic-MaxEnt Comparisons}
 \label{app:semantic-current-factorial}
-A fixed semantic-entropy bonus can be applied with or without verified replay.
-Pantry semantic arms use the registered E85 repairs: original E81/E82/E83
-Pantry runs received zero semantic advantage because of an outcome-key defect
-and remain excluded. The historical Falcon factorial display had not applied
-that repair; no value from its superseded Pantry column is reused here.
-The matched four-arm studies compare its effect on Dr.GRPO, its effect on
-Re:Dr, and the difference of these effects. This restores the full
-factorial detail beyond the main semantic-only comparator. We reconstruct
-exact terminal four-draw endpoints under the current source-admission policy:
-identical repeated metrics are deduplicated, unapproved conflicting retries
-abort, and the previously excluded Falcon Countdown replay seed 59 remains
-excluded. All three contrasts in that cell therefore use the common four
-seeds 55--58; other 0.5B/1B cells use five. No old five-seed Falcon Countdown
-interval is reused. Tables report paired seed means and pointwise Student-$t$
-95\% intervals, without pooling models or domains.
+A four-method factorial crosses replay with a fixed Semantic-MaxEnt bonus,
+comparing Dr.GRPO and Re:Dr with and without the bonus across five domains
+at Qwen2.5-0.5B and Falcon3-1B. All three contrasts within a model--domain
+combination use the same training seeds: five in nine combinations and four
+for Falcon Countdown.
+Table~\ref{tab:semantic-current} reports terminal paired means after eight
+training passes, with nominal pointwise 95\% Student-$t$ intervals using
+$n-1$ degrees of freedom. These intervals describe training-seed variability
+on the fixed evaluation prompts and are unadjusted across comparisons.
 
-The Qwen2.5-3B extension has only fixed seed 70 and no semantic-only arm.
-Its on-replay comparison is descriptive, has no interval and cannot identify
-a factorial interaction. These are fixed-coefficient experiments, not a
-sweep over entropy strengths. Their endpoints do not establish that semantic
-entropy reproduces the mechanism of a bank that revisits verified keys.
+At Qwen2.5-3B, one training seed compares Re:Dr with and without the bonus across
+all five domains. No uncertainty interval is available from a single seed.
+The absence of a semantic-only comparison also prevents estimating the
+interaction between replay and the bonus. These results characterize the
+evaluated coefficients rather than an optimal entropy strength. Extra-mode
+counts depend on correctness as well as diversity and do not measure
+success-conditional solution diversity.
 '''
- for model in LEDGERS:
+ # One table for the three scales. They carried identical captions and column
+ # sets, differing only in the model name, so splitting them restated the
+ # contrast definitions once per scale.
+ rows=[]
+ for index,model in enumerate(LEDGERS):
   cells=report['models'][model]
-  rows=[]
+  if index:rows.append(None)
+  first=True
   for cell,domain in zip(cells,LABELS):
    for contrast in ('without_replay','with_replay','interaction'):
     if contrast not in cell['contrasts']:continue
@@ -110,15 +114,11 @@ entropy reproduces the mechanism of a bank that revisits verified keys.
      x=m[key];value=f"${x['mean']:.3f}$"
      if x['ci95'] is not None:value+=f" $[{x['ci95'][0]:.3f}, {x['ci95'][1]:.3f}]$"
      values.append(value)
-    rows.append([domain,len(cell['seeds']),{'without_replay':'Without replay','with_replay':'On replay','interaction':'Interaction'}[contrast],*values])
-  tex+=table(model+r': fixed semantic-entropy effects. Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr; interaction subtracts the first effect from the second. Extra modes equal distinct@8 minus pass@8.',
-             'tab:semantic-current-'+model.replace('.','').replace('-','').lower(),['Domain',r'$n$','Contrast',r'$\Delta$ pass@8',r'$\Delta$ distinct@8',r'$\Delta$ extra modes'],rows,'lr l rrr')
- tex+=r'''\path{results/semantic_current_summary_20260912.json} retains per-seed
-endpoints, source hashes, exclusion evidence and all three metrics.
-\path{ops/build_paper_semantic_current_summary.py} reconstructs these contrasts
-with the same strict endpoint reader used by the current core comparison, including all documented exclusions.
-'''
- return tex
+    rows.append([model if first else '',domain,len(cell['seeds']),{'without_replay':'Without replay','with_replay':'On replay','interaction':'Interaction'}[contrast],*values])
+    first=False
+ tex+=table(r'\textbf{Fixed Semantic-MaxEnt increases verified-mode counts on Qwen2.5-0.5B PantryPlan with and without replay.} Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr; interaction subtracts the former effect from the latter. Extra modes equal \texttt{distinct@8} minus \texttt{pass@8}. Entries give paired means and nominal 95\% Student-$t$ intervals; the single-seed 3B effects have no intervals.',
+            'tab:semantic-current',['Model','Domain',r'$n$','Contrast',r'$\Delta$ pass@8',r'$\Delta$ distinct@8',r'$\Delta$ extra modes'],rows,'llr l rrr').replace(r'\setlength{\tabcolsep}{3pt}', r'\setlength{\tabcolsep}{2.4pt}')
+ return format_domain_names(tex)
 
 def main():
  p=argparse.ArgumentParser();p.add_argument('--check',action='store_true');args=p.parse_args()

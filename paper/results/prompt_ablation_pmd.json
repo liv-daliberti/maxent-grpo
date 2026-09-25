@@ -1,0 +1,299 @@
+{
+ "builder": {
+  "path": "ops/build_paper_prompt_ablation_pmd.py",
+  "sha256": "70b5f7b7b5558d45b2fa8b1f51403974963e09fa53417f9a49ef68cc3e9ce3c2"
+ },
+ "cells": {
+  "drgrpo/mathir/level2": {
+   "degenerate": true,
+   "domain": "mathir",
+   "effect": 0.0,
+   "level": 2,
+   "method": "drgrpo",
+   "neutral": 0.0,
+   "original": 0.0,
+   "paired_prompts": 77,
+   "reportable": true,
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "seeds_without_support": []
+  },
+  "drgrpo/mathir/level3": {
+   "degenerate": true,
+   "domain": "mathir",
+   "effect": 0.0,
+   "level": 3,
+   "method": "drgrpo",
+   "neutral": 0.0,
+   "original": 0.0,
+   "paired_prompts": 23,
+   "reportable": false,
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "seeds_without_support": []
+  },
+  "drgrpo/pantry/level2": {
+   "degenerate": false,
+   "domain": "pantry",
+   "effect": -0.5,
+   "level": 2,
+   "method": "drgrpo",
+   "neutral": 0.5,
+   "original": 1.0,
+   "paired_prompts": 2,
+   "reportable": false,
+   "seeds": [
+    46
+   ],
+   "seeds_without_support": [
+    {
+     "arms": {
+      "neutral": {
+       "draws": 256,
+       "verified": 9
+      },
+      "original": {
+       "draws": 256,
+       "verified": 7
+      }
+     },
+     "seed": 43
+    }
+   ]
+  },
+  "drgrpo/pantry/level3": {
+   "degenerate": false,
+   "domain": "pantry",
+   "effect": -0.4166666666666667,
+   "level": 3,
+   "method": "drgrpo",
+   "neutral": 0.5,
+   "original": 0.9166666666666667,
+   "paired_prompts": 2,
+   "reportable": false,
+   "seeds": [
+    46
+   ],
+   "seeds_without_support": [
+    {
+     "arms": {
+      "neutral": {
+       "draws": 256,
+       "verified": 7
+      },
+      "original": {
+       "draws": 256,
+       "verified": 5
+      }
+     },
+     "seed": 43
+    }
+   ]
+  },
+  "initial/mathir/level2": {
+   "degenerate": true,
+   "domain": "mathir",
+   "effect": 0.0,
+   "level": 2,
+   "method": "initial",
+   "neutral": 0.0,
+   "original": 0.0,
+   "paired_prompts": 2,
+   "reportable": false,
+   "seeds": [],
+   "seeds_without_support": []
+  },
+  "initial/pantry/level2": {
+   "degenerate": false,
+   "domain": "pantry",
+   "effect": 0.0,
+   "level": 2,
+   "method": "initial",
+   "neutral": 0.25,
+   "original": 0.25,
+   "paired_prompts": 4,
+   "reportable": false,
+   "seeds": [],
+   "seeds_without_support": []
+  },
+  "initial/pantry/level3": {
+   "degenerate": false,
+   "domain": "pantry",
+   "effect": -0.03741496598639455,
+   "level": 3,
+   "method": "initial",
+   "neutral": 0.6224489795918368,
+   "original": 0.6598639455782312,
+   "paired_prompts": 7,
+   "reportable": false,
+   "seeds": [],
+   "seeds_without_support": []
+  },
+  "replay_drgrpo/mathir/level2": {
+   "degenerate": true,
+   "domain": "mathir",
+   "effect": 0.0,
+   "level": 2,
+   "method": "replay_drgrpo",
+   "neutral": 0.0,
+   "original": 0.0,
+   "paired_prompts": 152,
+   "reportable": true,
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "seeds_without_support": []
+  },
+  "replay_drgrpo/mathir/level3": {
+   "degenerate": true,
+   "domain": "mathir",
+   "effect": 0.0,
+   "level": 3,
+   "method": "replay_drgrpo",
+   "neutral": 0.0,
+   "original": 0.0,
+   "paired_prompts": 35,
+   "reportable": true,
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "seeds_without_support": []
+  },
+  "replay_drgrpo/pantry/level2": {
+   "degenerate": false,
+   "domain": "pantry",
+   "effect": -0.06488095238095237,
+   "level": 2,
+   "method": "replay_drgrpo",
+   "neutral": 0.3751488095238095,
+   "original": 0.4400297619047619,
+   "paired_prompts": 16,
+   "reportable": false,
+   "seeds": [
+    43,
+    46
+   ],
+   "seeds_without_support": []
+  },
+  "replay_drgrpo/pantry/level3": {
+   "degenerate": false,
+   "domain": "pantry",
+   "effect": 0.028174603174603186,
+   "level": 3,
+   "method": "replay_drgrpo",
+   "neutral": 0.4369047619047619,
+   "original": 0.4087301587301588,
+   "paired_prompts": 12,
+   "reportable": false,
+   "seeds": [
+    43,
+    46
+   ],
+   "seeds_without_support": []
+  },
+  "replay_drgrpo/python_factors/level2": {
+   "degenerate": false,
+   "domain": "python_factors",
+   "effect": -0.05768398268398268,
+   "level": 2,
+   "method": "replay_drgrpo",
+   "neutral": 0.17337662337662338,
+   "original": 0.23106060606060605,
+   "paired_prompts": 66,
+   "reportable": true,
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "seeds_without_support": []
+  },
+  "replay_drgrpo/python_factors/level3": {
+   "degenerate": false,
+   "domain": "python_factors",
+   "effect": 0.06666666666666668,
+   "level": 3,
+   "method": "replay_drgrpo",
+   "neutral": 0.32314118629908106,
+   "original": 0.25647451963241436,
+   "paired_prompts": 57,
+   "reportable": true,
+   "seeds": [
+    43,
+    44,
+    45,
+    47
+   ],
+   "seeds_without_support": [
+    {
+     "arms": {
+      "neutral": {
+       "draws": 256,
+       "verified": 1
+      },
+      "original": {
+       "draws": 256,
+       "verified": 256
+      }
+     },
+     "seed": 46
+    }
+   ]
+  }
+ },
+ "coverage": {
+  "cells": 13,
+  "reportable": 5,
+  "reportable_and_informative": 2
+ },
+ "estimand": "neutral minus original wording, terminal PCMD, averaged over the prompts both arms define",
+ "schema": "paper-prompt-ablation-pmd-v1",
+ "sources": {
+  "qwen05b_E119_mathir_drgrpo_s43": "cf08d1ca8321d5e191a6c8808af5ab5258e1accc7d229a1221fce2e7856a0bcc",
+  "qwen05b_E119_mathir_drgrpo_s44": "c97d71378e1630c4f0adf1b88a60b30abf453df15c7f5d81d3bcc307b51ea4b5",
+  "qwen05b_E119_mathir_drgrpo_s45": "71872851900d97f940e9132ffcbafc40bd04703f0a6ffa9deda47bbff739809e",
+  "qwen05b_E119_mathir_drgrpo_s46": "3ca6913002a96dc18bf6dd37f8a6cd92d424920eee76cfe0b770faee91d052c4",
+  "qwen05b_E119_mathir_drgrpo_s47": "b46eb041055d7177810a748f3401da750ca11c1a7431ed58ae8a531004e2bf0e",
+  "qwen05b_E119_mathir_replay_drgrpo_s43": "756a1cdc812ab48a8d30c8344fd608d4a4ae279a0613048664df9ff8dfed5bd8",
+  "qwen05b_E119_mathir_replay_drgrpo_s44": "8a472fa07fe58ff7b54c701fa1caa33cc7aa42b9c65b109b7cd2c546ff8779b7",
+  "qwen05b_E119_mathir_replay_drgrpo_s45": "663903b9193cec9e50dbdd5d7be8ed701cb1eb603ba46464e9507df9dce52f41",
+  "qwen05b_E119_mathir_replay_drgrpo_s46": "f79699c3ee87f80a775d78f6bcd735949dc75f2a479d3afc868cf3b31f909cb6",
+  "qwen05b_E119_mathir_replay_drgrpo_s47": "4d958d378c7fba615d8b4d80f74d5e9dae1e0f608467d03c2d6e907ef2a29f5a",
+  "qwen05b_E119_pantry_drgrpo_s43": "ac490d1653f3c32871e7fdd188dff199c239fa55701f54f3827d52249c905fcf",
+  "qwen05b_E119_pantry_drgrpo_s46": "fb72cd6e79e580209a68a5d3a410b2d63176c8e6a54c4b4ac8ba3c297fccb4fb",
+  "qwen05b_E119_pantry_replay_drgrpo_s43": "c8e8d30b94655e7a27f2277564cabb4d9c0d9d353cf32d13f04bef6c49b4c94c",
+  "qwen05b_E119_pantry_replay_drgrpo_s46": "74cbdc0f64be4922f282697ef266e41aad59c2919dfd731d92e14a3739c766b8",
+  "qwen05b_E119_python_factors_drgrpo_s43": "28889dcfa1f57996ce07226c9d3e65b63554f23fb64d3ae3ffcc0beb1ad51e55",
+  "qwen05b_E119_python_factors_drgrpo_s44": "b31cb233bd8cf48babcf24b03dda56266968453fafeecae97a7ca70cce840fe4",
+  "qwen05b_E119_python_factors_drgrpo_s45": "3ad6add910951a8e4cf5f9192473a910668c32b5ae4964ce02c724233b223f4f",
+  "qwen05b_E119_python_factors_drgrpo_s46": "092a0a194f903445f469eb92e2b9aa70db27e7a86d6967dde140242a557f5efd",
+  "qwen05b_E119_python_factors_drgrpo_s47": "9d297e9a1e089dcf26f6d73a2424087ff22c95de72a01703af1e8533b6dd4106",
+  "qwen05b_E119_python_factors_replay_drgrpo_s43": "04b5333780323210362091c4a70d459c8f7f5aed6c7e93ab35d02d07a09aac94",
+  "qwen05b_E119_python_factors_replay_drgrpo_s44": "21f98ea9e8d334d871937b4ecb35ef404a36cba054e39ba091804ede0fe53af3",
+  "qwen05b_E119_python_factors_replay_drgrpo_s45": "c1ce7def659ae5f62f82b55793d9d85155a3a39489049ce7b462982f80832b87",
+  "qwen05b_E119_python_factors_replay_drgrpo_s46": "6817d07af8660f7187c745514cfc6e59ffbb68bc55dfde887bf4855d5ad8f2fa",
+  "qwen05b_E119_python_factors_replay_drgrpo_s47": "aca03d1be1be0b12bbf705afe8c06e344488146af7a52574fdc05b7824d33687",
+  "qwen05b_initial": "e303fffe0db364064fe1f27f3da2e4ccff14c1baad527bbc11e71973c8c17e7d"
+ },
+ "support": "a prompt enters with 2 verified responses in both arms; a cell is reportable from 30 such prompts"
+}

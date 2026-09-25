@@ -164,20 +164,152 @@ class RLEPExperiencePool:
         experiment_seed: int,
         learner_step: int,
     ) -> tuple[str, ...]:
-        if count <= 0:
-            raise ValueError("RLEP replay count must be positive")
+        return _sample_without_replacement(
+            self._responses.get(reference_key(reference)),
+            key=reference_key(reference),
+            count=count,
+            experiment_seed=experiment_seed,
+            learner_step=learner_step,
+        )
+
+
+def _sample_without_replacement(
+    available: Sequence[str] | None,
+    *,
+    key: str,
+    count: int,
+    experiment_seed: int,
+    learner_step: int,
+) -> tuple[str, ...]:
+    """Deterministic frequency-preserving draw shared by both pool kinds."""
+
+    if count <= 0:
+        raise ValueError("RLEP replay count must be positive")
+    if available is None:
+        raise KeyError("RLEP pool has no eligible trajectories for this prompt")
+    if len(available) < count:
+        raise ValueError("RLEP pool has fewer verified trajectories than requested")
+    identity = json.dumps(
+        [int(experiment_seed), int(learner_step), key],
+        separators=(",", ":"),
+    ).encode("utf-8")
+    seed = int.from_bytes(hashlib.sha256(identity).digest()[:8], "big")
+    return tuple(random.Random(seed).sample(list(available), count))
+
+
+class OnlineRLEPExperiencePool:
+    """RLEP's pool, filled from the learner's own verified rollouts as it trains.
+
+    The offline pool above is harvested once, before training, from a policy
+    that RL has already trained, so it inherits that policy's collapse. This
+    pool keeps RLEP's update, its eligibility rule (at least ``minimum``
+    verified trajectories on the prompt) and its frequency-preserving sampling,
+    and changes only where the trajectories come from: every validator-positive
+    fresh response is appended to its prompt's list as soon as the group that
+    produced it has been scored. A prompt therefore becomes replay-eligible on
+    the pass after it was first solved at least ``minimum`` times.
+
+    Nothing is deduplicated or balanced by canonical key. Eight copies of one
+    mode and eight distinct modes are stored, and drawn, alike.
+    """
+
+    schema = "online_rlep_experience_pool_v1"
+
+    def __init__(self, *, minimum: int = 2) -> None:
+        if int(minimum) < 1:
+            raise ValueError("RLEP online pool needs a positive eligibility minimum")
+        self._minimum = int(minimum)
+        self._responses: dict[str, list[str]] = {}
+        self._observed_groups = 0
+        self._observed_rows = 0
+
+    @property
+    def minimum(self) -> int:
+        return self._minimum
+
+    def observe(
+        self,
+        reference: Any,
+        responses: Sequence[str],
+        rewards: Sequence[float],
+    ) -> int:
+        """Append this group's verified responses; return how many were added."""
+
+        if len(responses) != len(rewards):
+            raise ValueError("RLEP online pool needs one reward per response")
         key = reference_key(reference)
-        available = self._responses.get(key)
-        if available is None:
-            raise KeyError("RLEP pool has no eligible trajectories for this prompt")
-        if len(available) < count:
-            raise ValueError("RLEP pool has fewer verified trajectories than requested")
-        identity = json.dumps(
-            [int(experiment_seed), int(learner_step), key],
-            separators=(",", ":"),
-        ).encode("utf-8")
-        seed = int.from_bytes(hashlib.sha256(identity).digest()[:8], "big")
-        return tuple(random.Random(seed).sample(list(available), count))
+        added = [
+            str(response)
+            for response, reward in zip(responses, rewards)
+            if float(reward) > 0.0
+        ]
+        if added:
+            self._responses.setdefault(key, []).extend(added)
+        self._observed_groups += 1
+        self._observed_rows += len(responses)
+        return len(added)
+
+    @property
+    def diagnostics(self) -> RLEPPoolDiagnostics:
+        sizes = [len(rows) for rows in self._responses.values()]
+        return RLEPPoolDiagnostics(
+            prompts=len(sizes),
+            trajectories=sum(sizes),
+            minimum_trajectories_per_prompt=min(sizes) if sizes else 0,
+            maximum_trajectories_per_prompt=max(sizes) if sizes else 0,
+            eligible_prompts=sum(size >= self._minimum for size in sizes),
+            ineligible_prompts=sum(size < self._minimum for size in sizes),
+        )
+
+    @property
+    def observed_groups(self) -> int:
+        return self._observed_groups
+
+    def can_sample(self, reference: Any, *, count: int) -> bool:
+        stored = len(self._responses.get(reference_key(reference), ()))
+        return stored >= max(int(count), self._minimum)
+
+    def sample(
+        self,
+        reference: Any,
+        *,
+        count: int,
+        experiment_seed: int,
+        learner_step: int,
+    ) -> tuple[str, ...]:
+        key = reference_key(reference)
+        if not self.can_sample(reference, count=count):
+            raise ValueError("RLEP online pool is not yet eligible for this prompt")
+        return _sample_without_replacement(
+            self._responses.get(key),
+            key=key,
+            count=count,
+            experiment_seed=experiment_seed,
+            learner_step=learner_step,
+        )
+
+    def state_dict(self) -> dict[str, Any]:
+        return {
+            "schema": self.schema,
+            "minimum": self._minimum,
+            "observed_groups": self._observed_groups,
+            "observed_rows": self._observed_rows,
+            "responses": {key: list(rows) for key, rows in self._responses.items()},
+        }
+
+    def load_state_dict(self, state: dict[str, Any]) -> None:
+        if not isinstance(state, dict) or state.get("schema") != self.schema:
+            raise ValueError("invalid RLEP online pool state")
+        if int(state["minimum"]) != self._minimum:
+            raise ValueError("RLEP online pool eligibility minimum changed on resume")
+        responses = state["responses"]
+        if not isinstance(responses, dict):
+            raise ValueError("RLEP online pool state has no response table")
+        self._responses = {
+            str(key): [str(value) for value in rows] for key, rows in responses.items()
+        }
+        self._observed_groups = int(state["observed_groups"])
+        self._observed_rows = int(state["observed_rows"])
 
 
 def rlep_mixed_advantages(

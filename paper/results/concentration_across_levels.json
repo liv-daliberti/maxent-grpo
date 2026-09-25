@@ -8,6 +8,8 @@
     44,
     48
    ],
+   "final_eligible_prompts_pooled": 173,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 76,
    "initial_eligible_prompts": 76,
    "initial_pmd": 0.3829754176232416,
@@ -50,6 +52,8 @@
     85,
     85
    ],
+   "final_eligible_prompts_pooled": 422,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 76,
    "initial_eligible_prompts": 76,
    "initial_pmd": 0.3829754176232416,
@@ -93,6 +97,8 @@
     89,
     91
    ],
+   "final_eligible_prompts_pooled": 347,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 76,
    "initial_eligible_prompts": 76,
    "initial_pmd": 0.3829754176232416,
@@ -135,6 +141,8 @@
     87,
     88
    ],
+   "final_eligible_prompts_pooled": 433,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 76,
    "initial_eligible_prompts": 76,
    "initial_pmd": 0.3829754176232416,
@@ -179,6 +187,8 @@
     78,
     78
    ],
+   "final_eligible_prompts_pooled": 307,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 29,
    "initial_eligible_prompts": 29,
    "initial_pmd": 0.39538737124944023,
@@ -223,6 +233,8 @@
     84,
     84
    ],
+   "final_eligible_prompts_pooled": 373,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 29,
    "initial_eligible_prompts": 29,
    "initial_pmd": 0.39538737124944023,
@@ -267,6 +279,8 @@
     86,
     92
    ],
+   "final_eligible_prompts_pooled": 433,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 29,
    "initial_eligible_prompts": 29,
    "initial_pmd": 0.39538737124944023,
@@ -311,6 +325,8 @@
     87,
     88
    ],
+   "final_eligible_prompts_pooled": 429,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 29,
    "initial_eligible_prompts": 29,
    "initial_pmd": 0.39538737124944023,
@@ -355,6 +371,8 @@
     80,
     80
    ],
+   "final_eligible_prompts_pooled": 395,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 52,
    "initial_eligible_prompts": 52,
    "initial_pmd": 0.1548435376649406,
@@ -398,6 +416,8 @@
     80,
     81
    ],
+   "final_eligible_prompts_pooled": 315,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 52,
    "initial_eligible_prompts": 52,
    "initial_pmd": 0.1548435376649406,
@@ -437,8 +457,11 @@
     68,
     80,
     81,
+    82,
     82
    ],
+   "final_eligible_prompts_pooled": 393,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 52,
    "initial_eligible_prompts": 52,
    "initial_pmd": 0.1548435376649406,
@@ -452,21 +475,23 @@
     70,
     71,
     72,
+    73,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.1601508992493615,
-     -0.11660428507043791
+     -0.15265393844776912,
+     -0.11659291644088023
     ],
-    "mean": -0.1383775921598997,
-    "n": 4,
+    "mean": -0.13462342744432468,
+    "n": 5,
     "values": [
      -0.1514681021248709,
      -0.14804779239241558,
      -0.13135400486115695,
-     -0.12264046926115535
+     -0.12264046926115535,
+     -0.11960676858202454
     ]
    },
    "trained_level": "level1",
@@ -481,6 +506,8 @@
     99,
     100
    ],
+   "final_eligible_prompts_pooled": 495,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 52,
    "initial_eligible_prompts": 52,
    "initial_pmd": 0.1548435376649406,
@@ -520,10 +547,13 @@
    "domain": "countdown",
    "final_eligible_prompts": [
     98,
+    98,
     100,
     100,
     102
    ],
+   "final_eligible_prompts_pooled": 498,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 52,
    "initial_eligible_prompts": 52,
    "initial_pmd": 0.1548435376649406,
@@ -537,17 +567,19 @@
     70,
     71,
     72,
+    73,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.043436414262428405,
-     0.021720903909044655
+     -0.04383869238649173,
+     0.010594445587395647
     ],
-    "mean": -0.010857755176691877,
-    "n": 4,
+    "mean": -0.016622123399548043,
+    "n": 5,
     "values": [
+     -0.0396795962909727,
      -0.037431170031739805,
      -0.01272124947897621,
      -0.005123272341057056,
@@ -566,6 +598,8 @@
     83,
     93
    ],
+   "final_eligible_prompts_pooled": 405,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 116,
    "initial_eligible_prompts": 116,
    "initial_pmd": 0.5482401620017036,
@@ -610,6 +644,8 @@
     125,
     126
    ],
+   "final_eligible_prompts_pooled": 616,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 116,
    "initial_eligible_prompts": 116,
    "initial_pmd": 0.5482401620017036,
@@ -654,6 +690,8 @@
     119,
     122
    ],
+   "final_eligible_prompts_pooled": 588,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 116,
    "initial_eligible_prompts": 116,
    "initial_pmd": 0.5482401620017036,
@@ -698,6 +736,8 @@
     126,
     126
    ],
+   "final_eligible_prompts_pooled": 625,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 116,
    "initial_eligible_prompts": 116,
    "initial_pmd": 0.5482401620017036,
@@ -742,6 +782,8 @@
     41,
     45
    ],
+   "final_eligible_prompts_pooled": 207,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.4928068862430151,
@@ -786,6 +828,8 @@
     83,
     100
    ],
+   "final_eligible_prompts_pooled": 369,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.4928068862430151,
@@ -830,6 +874,8 @@
     127,
     127
    ],
+   "final_eligible_prompts_pooled": 630,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.4928068862430151,
@@ -874,6 +920,8 @@
     124,
     126
    ],
+   "final_eligible_prompts_pooled": 616,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.4928068862430151,
@@ -918,6 +966,8 @@
     93,
     95
    ],
+   "final_eligible_prompts_pooled": 440,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 106,
    "initial_eligible_prompts": 106,
    "initial_pmd": 0.42044633195291453,
@@ -961,6 +1011,8 @@
     89,
     100
    ],
+   "final_eligible_prompts_pooled": 363,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 106,
    "initial_eligible_prompts": 106,
    "initial_pmd": 0.42044633195291453,
@@ -1003,6 +1055,8 @@
     108,
     113
    ],
+   "final_eligible_prompts_pooled": 533,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 106,
    "initial_eligible_prompts": 106,
    "initial_pmd": 0.42044633195291453,
@@ -1047,6 +1101,8 @@
     122,
     123
    ],
+   "final_eligible_prompts_pooled": 608,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 106,
    "initial_eligible_prompts": 106,
    "initial_pmd": 0.42044633195291453,
@@ -1088,8 +1144,11 @@
     121,
     123,
     124,
+    124,
     124
    ],
+   "final_eligible_prompts_pooled": 616,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 106,
    "initial_eligible_prompts": 106,
    "initial_pmd": 0.42044633195291453,
@@ -1103,21 +1162,23 @@
     70,
     71,
     72,
+    73,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     0.17084342221316742,
-     0.21059729351591663
+     0.1760775663288232,
+     0.21600258386667892
     ],
-    "mean": 0.19072035786454203,
-    "n": 4,
+    "mean": 0.19604007509775107,
+    "n": 5,
     "values": [
      0.17884096654862575,
      0.18435264800153656,
      0.19209451784899684,
-     0.20759329905900897
+     0.20759329905900897,
+     0.2173189440305872
     ]
    },
    "trained_level": "level1",
@@ -1133,6 +1194,8 @@
     13,
     23
    ],
+   "final_eligible_prompts_pooled": 80,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 70,
    "initial_eligible_prompts": 70,
    "initial_pmd": 0.276725613322252,
@@ -1140,7 +1203,7 @@
    "kind": "before_after",
    "level": "level1",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "falcon1b",
    "seeds": [
     55,
@@ -1180,6 +1243,8 @@
     66,
     84
    ],
+   "final_eligible_prompts_pooled": 376,
+   "final_seeds_clearing_bar": 6,
    "initial_defined_prompts": 70,
    "initial_eligible_prompts": 70,
    "initial_pmd": 0.276725613322252,
@@ -1226,6 +1291,8 @@
     110,
     115
    ],
+   "final_eligible_prompts_pooled": 540,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 70,
    "initial_eligible_prompts": 70,
    "initial_pmd": 0.276725613322252,
@@ -1270,6 +1337,8 @@
     116,
     118
    ],
+   "final_eligible_prompts_pooled": 575,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 70,
    "initial_eligible_prompts": 70,
    "initial_pmd": 0.276725613322252,
@@ -1314,6 +1383,8 @@
     74,
     77
    ],
+   "final_eligible_prompts_pooled": 340,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 81,
    "initial_eligible_prompts": 81,
    "initial_pmd": 0.19442678574085523,
@@ -1358,6 +1429,8 @@
     64,
     68
    ],
+   "final_eligible_prompts_pooled": 305,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 81,
    "initial_eligible_prompts": 81,
    "initial_pmd": 0.19442678574085523,
@@ -1402,6 +1475,8 @@
     112,
     112
    ],
+   "final_eligible_prompts_pooled": 537,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 81,
    "initial_eligible_prompts": 81,
    "initial_pmd": 0.19442678574085523,
@@ -1446,6 +1521,8 @@
     109,
     109
    ],
+   "final_eligible_prompts_pooled": 526,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 81,
    "initial_eligible_prompts": 81,
    "initial_pmd": 0.19442678574085523,
@@ -1490,6 +1567,8 @@
     40,
     42
    ],
+   "final_eligible_prompts_pooled": 190,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 33,
    "initial_eligible_prompts": 33,
    "initial_pmd": 0.06060606060606061,
@@ -1533,6 +1612,8 @@
     42,
     43
    ],
+   "final_eligible_prompts_pooled": 163,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 33,
    "initial_eligible_prompts": 33,
    "initial_pmd": 0.06060606060606061,
@@ -1575,6 +1656,8 @@
     39,
     40
    ],
+   "final_eligible_prompts_pooled": 185,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 33,
    "initial_eligible_prompts": 33,
    "initial_pmd": 0.06060606060606061,
@@ -1619,6 +1702,8 @@
     96,
     105
    ],
+   "final_eligible_prompts_pooled": 444,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 33,
    "initial_eligible_prompts": 33,
    "initial_pmd": 0.06060606060606061,
@@ -1663,6 +1748,8 @@
     69,
     73
    ],
+   "final_eligible_prompts_pooled": 333,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 33,
    "initial_eligible_prompts": 33,
    "initial_pmd": 0.06060606060606061,
@@ -1701,8 +1788,15 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    81,
+    81,
+    81,
+    81,
+    81,
     81
    ],
+   "final_eligible_prompts_pooled": 486,
+   "final_seeds_clearing_bar": 6,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9082865909109796,
@@ -1713,15 +1807,28 @@
    "provisional": false,
    "scale": "falcon1b",
    "seeds": [
-    55
+    55,
+    55,
+    56,
+    57,
+    58,
+    59
    ],
    "status": "measured",
    "summary": {
-    "ci95": null,
-    "mean": -0.9028355753793189,
-    "n": 1,
+    "ci95": [
+     -0.9103305157825342,
+     -0.8872506752433721
+    ],
+    "mean": -0.8987905955129531,
+    "n": 6,
     "values": [
-     -0.9028355753793189
+     -0.9059717760961649,
+     -0.9051752806760135,
+     -0.9028355753793189,
+     -0.9028355753793189,
+     -0.8990273316517203,
+     -0.8768980338951825
     ]
    },
    "trained_level": "level1",
@@ -1737,6 +1844,8 @@
     81,
     81
    ],
+   "final_eligible_prompts_pooled": 486,
+   "final_seeds_clearing_bar": 6,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9082865909109796,
@@ -1777,12 +1886,60 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    96,
+    98,
+    102,
+    102,
+    107
+   ],
+   "final_eligible_prompts_pooled": 505,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 128,
+   "initial_eligible_prompts": 128,
+   "initial_pmd": 0.9082865909109796,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level1",
+   "method": "replay_drgrpo",
+   "provisional": false,
+   "scale": "falcon1b",
+   "seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.5258482223358999,
+     -0.2416569603211195
+    ],
+    "mean": -0.3837525913285097,
+    "n": 5,
+    "values": [
+     -0.5598016154925877,
+     -0.4186638901949186,
+     -0.3579800898615956,
+     -0.3256479399258825,
+     -0.2566694211675641
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": false
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
     87,
     94,
     97,
     102,
     102
    ],
+   "final_eligible_prompts_pooled": 482,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9082865909109796,
@@ -1829,6 +1986,8 @@
     68,
     68
    ],
+   "final_eligible_prompts_pooled": 470,
+   "final_seeds_clearing_bar": 7,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9117374339536277,
@@ -1877,6 +2036,8 @@
     71,
     71
    ],
+   "final_eligible_prompts_pooled": 340,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9117374339536277,
@@ -1921,6 +2082,8 @@
     110,
     113
    ],
+   "final_eligible_prompts_pooled": 540,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9117374339536277,
@@ -1965,6 +2128,8 @@
     108,
     112
    ],
+   "final_eligible_prompts_pooled": 533,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9117374339536277,
@@ -2009,6 +2174,8 @@
     98,
     101
    ],
+   "final_eligible_prompts_pooled": 435,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 125,
    "initial_eligible_prompts": 125,
    "initial_pmd": 0.6655537330970175,
@@ -2052,6 +2219,8 @@
     90,
     96
    ],
+   "final_eligible_prompts_pooled": 345,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 125,
    "initial_eligible_prompts": 125,
    "initial_pmd": 0.6655537330970175,
@@ -2088,9 +2257,15 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    88,
+    88,
+    90,
     91,
-    91
+    91,
+    98
    ],
+   "final_eligible_prompts_pooled": 546,
+   "final_seeds_clearing_bar": 6,
    "initial_defined_prompts": 125,
    "initial_eligible_prompts": 125,
    "initial_pmd": 0.6655537330970175,
@@ -2101,20 +2276,28 @@
    "provisional": false,
    "scale": "qwen3b",
    "seeds": [
+    70,
+    70,
+    71,
     72,
+    73,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.8858674191269877,
-     0.00768555328881404
+     -0.5262344251004489,
+     -0.39762190963555144
     ],
-    "mean": -0.43909093291908685,
-    "n": 2,
+    "mean": -0.4619281673680002,
+    "n": 6,
     "values": [
+     -0.5217031548731773,
+     -0.5217031548731773,
+     -0.47684331598559926,
      -0.4742535715313882,
-     -0.4039282943067855
+     -0.4039282943067855,
+     -0.3731375126378734
     ]
    },
    "trained_level": "level1",
@@ -2129,6 +2312,8 @@
     109,
     111
    ],
+   "final_eligible_prompts_pooled": 545,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 125,
    "initial_eligible_prompts": 125,
    "initial_pmd": 0.6655537330970175,
@@ -2167,8 +2352,14 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    106,
+    106,
+    108,
+    109,
     110
    ],
+   "final_eligible_prompts_pooled": 539,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 125,
    "initial_eligible_prompts": 125,
    "initial_pmd": 0.6655537330970175,
@@ -2179,16 +2370,56 @@
    "provisional": false,
    "scale": "qwen3b",
    "seeds": [
-    73
+    70,
+    71,
+    72,
+    73,
+    74
    ],
    "status": "measured",
    "summary": {
-    "ci95": null,
-    "mean": -0.05998681934420502,
-    "n": 1,
+    "ci95": [
+     -0.20543379197112738,
+     -0.07533756554927458
+    ],
+    "mean": -0.14038567876020097,
+    "n": 5,
     "values": [
+     -0.20074767078663308,
+     -0.1625725176679772,
+     -0.15308306253312443,
+     -0.12553832346906502,
      -0.05998681934420502
     ]
+   },
+   "trained_level": "level1",
+   "transfer": false
+  },
+  {
+   "domain": "python_factors",
+   "final_eligible_prompts": [
+    2
+   ],
+   "final_eligible_prompts_pooled": 2,
+   "final_seeds_clearing_bar": 0,
+   "initial_defined_prompts": 0,
+   "initial_eligible_prompts": 0,
+   "initial_pmd": null,
+   "initial_reportable": false,
+   "kind": "before_after",
+   "level": "level1",
+   "method": "drgrpo",
+   "provisional": false,
+   "scale": "falcon1b",
+   "seeds": [
+    57
+   ],
+   "status": "initial_below_support",
+   "summary": {
+    "ci95": null,
+    "mean": null,
+    "n": 0,
+    "values": []
    },
    "trained_level": "level1",
    "transfer": false
@@ -2202,6 +2433,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 534,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -2231,12 +2464,51 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [
+    117,
+    124,
+    127,
+    128,
+    128
+   ],
+   "final_eligible_prompts_pooled": 624,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 0,
+   "initial_eligible_prompts": 0,
+   "initial_pmd": null,
+   "initial_reportable": false,
+   "kind": "before_after",
+   "level": "level1",
+   "method": "replay_drgrpo",
+   "provisional": false,
+   "scale": "falcon1b",
+   "seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+   ],
+   "status": "initial_below_support",
+   "summary": {
+    "ci95": null,
+    "mean": null,
+    "n": 0,
+    "values": []
+   },
+   "trained_level": "level1",
+   "transfer": false
+  },
+  {
+   "domain": "python_factors",
+   "final_eligible_prompts": [
     104,
     128,
     128,
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 616,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -2272,6 +2544,8 @@
     22,
     22
    ],
+   "final_eligible_prompts_pooled": 110,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 27,
    "initial_eligible_prompts": 27,
    "initial_pmd": 0.38420491457987155,
@@ -2316,6 +2590,8 @@
     22,
     22
    ],
+   "final_eligible_prompts_pooled": 110,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 27,
    "initial_eligible_prompts": 27,
    "initial_pmd": 0.38420491457987155,
@@ -2360,6 +2636,8 @@
     127,
     128
    ],
+   "final_eligible_prompts_pooled": 336,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 27,
    "initial_eligible_prompts": 27,
    "initial_pmd": 0.38420491457987155,
@@ -2404,6 +2682,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 436,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 27,
    "initial_eligible_prompts": 27,
    "initial_pmd": 0.38420491457987155,
@@ -2442,12 +2722,149 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [
+    22,
+    22,
+    38,
+    59,
+    73
+   ],
+   "final_eligible_prompts_pooled": 214,
+   "final_seeds_clearing_bar": 3,
+   "initial_defined_prompts": 73,
+   "initial_eligible_prompts": 73,
+   "initial_pmd": 0.16762054863359574,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level1",
+   "method": "drgrpo",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.182594914970169,
+     0.03812759785975442
+    ],
+    "mean": -0.07223365855520729,
+    "n": 5,
+    "values": [
+     -0.16762054863359574,
+     -0.16753124697258484,
+     -0.036709253964970656,
+     -0.0027280325063303024,
+     0.01342078930144508
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": false
+  },
+  {
+   "domain": "python_factors",
+   "final_eligible_prompts": [
+    9,
+    22,
+    22,
+    81
+   ],
+   "final_eligible_prompts_pooled": 134,
+   "final_seeds_clearing_bar": 1,
+   "initial_defined_prompts": 73,
+   "initial_eligible_prompts": 73,
+   "initial_pmd": 0.16762054863359574,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level1",
+   "method": "grpo",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.19124628755922302,
+     -0.12116729820489347
+    ],
+    "mean": -0.15620679288205824,
+    "n": 4,
+    "values": [
+     -0.16762054863359574,
+     -0.1673036727379199,
+     -0.166726845967566,
+     -0.12317610418915129
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": false
+  },
+  {
+   "domain": "python_factors",
+   "final_eligible_prompts": [
+    22,
+    25,
+    27,
+    81,
+    81
+   ],
+   "final_eligible_prompts_pooled": 236,
+   "final_seeds_clearing_bar": 2,
+   "initial_defined_prompts": 73,
+   "initial_eligible_prompts": 73,
+   "initial_pmd": 0.16762054863359574,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level1",
+   "method": "maxrl",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.17307869300668938,
+     -0.15446461922971827
+    ],
+    "mean": -0.16377165611820382,
+    "n": 5,
+    "values": [
+     -0.16733010916038626,
+     -0.16720914300873999,
+     -0.1669895847131467,
+     -0.166965733992148,
+     -0.15036370971659824
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": false
+  },
+  {
+   "domain": "python_factors",
+   "final_eligible_prompts": [
     81,
     81,
     81,
     81,
     102
    ],
+   "final_eligible_prompts_pooled": 426,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 73,
    "initial_eligible_prompts": 73,
    "initial_pmd": 0.16762054863359574,
@@ -2492,6 +2909,8 @@
     81,
     81
    ],
+   "final_eligible_prompts_pooled": 405,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 73,
    "initial_eligible_prompts": 73,
    "initial_pmd": 0.16762054863359574,
@@ -2530,6 +2949,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 14,
    "initial_eligible_prompts": 14,
    "initial_pmd": 0.2619047619047619,
@@ -2553,6 +2974,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 14,
    "initial_eligible_prompts": 14,
    "initial_pmd": 0.2619047619047619,
@@ -2580,6 +3003,8 @@
     3,
     4
    ],
+   "final_eligible_prompts_pooled": 10,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 14,
    "initial_eligible_prompts": 14,
    "initial_pmd": 0.2619047619047619,
@@ -2614,6 +3039,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 14,
    "initial_eligible_prompts": 14,
    "initial_pmd": 0.2619047619047619,
@@ -2637,6 +3064,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.26666666666666666,
@@ -2660,6 +3089,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.26666666666666666,
@@ -2688,6 +3119,8 @@
     3,
     3
    ],
+   "final_eligible_prompts_pooled": 10,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.26666666666666666,
@@ -2727,6 +3160,8 @@
     2,
     4
    ],
+   "final_eligible_prompts_pooled": 6,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.26666666666666666,
@@ -2763,6 +3198,8 @@
     2,
     2
    ],
+   "final_eligible_prompts_pooled": 6,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 22,
    "initial_eligible_prompts": 22,
    "initial_pmd": 0.1474491458362426,
@@ -2802,6 +3239,8 @@
     4,
     4
    ],
+   "final_eligible_prompts_pooled": 14,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 22,
    "initial_eligible_prompts": 22,
    "initial_pmd": 0.1474491458362426,
@@ -2844,6 +3283,8 @@
     6,
     6
    ],
+   "final_eligible_prompts_pooled": 26,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 22,
    "initial_eligible_prompts": 22,
    "initial_pmd": 0.1474491458362426,
@@ -2888,6 +3329,8 @@
     6,
     7
    ],
+   "final_eligible_prompts_pooled": 27,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 22,
    "initial_eligible_prompts": 22,
    "initial_pmd": 0.1474491458362426,
@@ -2932,6 +3375,8 @@
     16,
     22
    ],
+   "final_eligible_prompts_pooled": 78,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5690212321791269,
@@ -2939,7 +3384,7 @@
    "kind": "before_after",
    "level": "level2",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "falcon1b",
    "seeds": [
     55,
@@ -2976,6 +3421,8 @@
     90,
     93
    ],
+   "final_eligible_prompts_pooled": 426,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5690212321791269,
@@ -3020,6 +3467,8 @@
     69,
     70
    ],
+   "final_eligible_prompts_pooled": 328,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5690212321791269,
@@ -3064,6 +3513,8 @@
     90,
     94
    ],
+   "final_eligible_prompts_pooled": 442,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5690212321791269,
@@ -3106,6 +3557,8 @@
     9,
     10
    ],
+   "final_eligible_prompts_pooled": 21,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5455256635897368,
@@ -3145,6 +3598,8 @@
     9,
     13
    ],
+   "final_eligible_prompts_pooled": 29,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5455256635897368,
@@ -3187,6 +3642,8 @@
     102,
     102
    ],
+   "final_eligible_prompts_pooled": 497,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5455256635897368,
@@ -3231,6 +3688,8 @@
     95,
     98
    ],
+   "final_eligible_prompts_pooled": 453,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 75,
    "initial_eligible_prompts": 75,
    "initial_pmd": 0.5455256635897368,
@@ -3275,6 +3734,8 @@
     66,
     69
    ],
+   "final_eligible_prompts_pooled": 317,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.38096691507775665,
@@ -3319,6 +3780,8 @@
     83,
     86
    ],
+   "final_eligible_prompts_pooled": 388,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.38096691507775665,
@@ -3363,6 +3826,8 @@
     89,
     91
    ],
+   "final_eligible_prompts_pooled": 437,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.38096691507775665,
@@ -3407,6 +3872,8 @@
     98,
     100
    ],
+   "final_eligible_prompts_pooled": 488,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.38096691507775665,
@@ -3451,6 +3918,8 @@
     7,
     16
    ],
+   "final_eligible_prompts_pooled": 39,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 50,
    "initial_eligible_prompts": 50,
    "initial_pmd": 0.15584004884004884,
@@ -3458,7 +3927,7 @@
    "kind": "before_after",
    "level": "level2",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "falcon1b",
    "seeds": [
     55,
@@ -3495,6 +3964,8 @@
     79,
     99
    ],
+   "final_eligible_prompts_pooled": 359,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 50,
    "initial_eligible_prompts": 50,
    "initial_pmd": 0.15584004884004884,
@@ -3539,6 +4010,8 @@
     124,
     128
    ],
+   "final_eligible_prompts_pooled": 616,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 50,
    "initial_eligible_prompts": 50,
    "initial_pmd": 0.15584004884004884,
@@ -3583,6 +4056,8 @@
     127,
     127
    ],
+   "final_eligible_prompts_pooled": 632,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 50,
    "initial_eligible_prompts": 50,
    "initial_pmd": 0.15584004884004884,
@@ -3627,6 +4102,8 @@
     118,
     123
    ],
+   "final_eligible_prompts_pooled": 482,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11992690058479533,
@@ -3671,6 +4148,8 @@
     100,
     104
    ],
+   "final_eligible_prompts_pooled": 437,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11992690058479533,
@@ -3715,6 +4194,8 @@
     125,
     127
    ],
+   "final_eligible_prompts_pooled": 614,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11992690058479533,
@@ -3759,6 +4240,8 @@
     121,
     125
    ],
+   "final_eligible_prompts_pooled": 593,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11992690058479533,
@@ -3803,6 +4286,8 @@
     42,
     48
    ],
+   "final_eligible_prompts_pooled": 199,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 26,
    "initial_eligible_prompts": 26,
    "initial_pmd": 0.0,
@@ -3847,6 +4332,8 @@
     48,
     50
    ],
+   "final_eligible_prompts_pooled": 216,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 26,
    "initial_eligible_prompts": 26,
    "initial_pmd": 0.0,
@@ -3891,6 +4378,8 @@
     115,
     115
    ],
+   "final_eligible_prompts_pooled": 507,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 26,
    "initial_eligible_prompts": 26,
    "initial_pmd": 0.0,
@@ -3935,6 +4424,8 @@
     88,
     101
    ],
+   "final_eligible_prompts_pooled": 422,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 26,
    "initial_eligible_prompts": 26,
    "initial_pmd": 0.0,
@@ -3979,6 +4470,8 @@
     66,
     68
    ],
+   "final_eligible_prompts_pooled": 332,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.8983350053444972,
@@ -4023,6 +4516,8 @@
     66,
     66
    ],
+   "final_eligible_prompts_pooled": 330,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.8983350053444972,
@@ -4067,6 +4562,8 @@
     113,
     114
    ],
+   "final_eligible_prompts_pooled": 556,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.8983350053444972,
@@ -4111,6 +4608,8 @@
     111,
     112
    ],
+   "final_eligible_prompts_pooled": 526,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.8983350053444972,
@@ -4155,6 +4654,8 @@
     77,
     80
    ],
+   "final_eligible_prompts_pooled": 388,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9144028807002378,
@@ -4199,6 +4700,8 @@
     77,
     80
    ],
+   "final_eligible_prompts_pooled": 354,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9144028807002378,
@@ -4243,6 +4746,8 @@
     120,
     123
    ],
+   "final_eligible_prompts_pooled": 588,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9144028807002378,
@@ -4287,6 +4792,8 @@
     117,
     124
    ],
+   "final_eligible_prompts_pooled": 584,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9144028807002378,
@@ -4331,6 +4838,8 @@
     96,
     100
    ],
+   "final_eligible_prompts_pooled": 412,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6931518603631397,
@@ -4375,6 +4884,8 @@
     99,
     102
    ],
+   "final_eligible_prompts_pooled": 486,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6931518603631397,
@@ -4419,6 +4930,8 @@
     119,
     119
    ],
+   "final_eligible_prompts_pooled": 592,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6931518603631397,
@@ -4463,6 +4976,8 @@
     119,
     122
    ],
+   "final_eligible_prompts_pooled": 591,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6931518603631397,
@@ -4503,6 +5018,8 @@
    "final_eligible_prompts": [
     2
    ],
+   "final_eligible_prompts_pooled": 2,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.22222222222222224,
@@ -4536,6 +5053,8 @@
     124,
     124
    ],
+   "final_eligible_prompts_pooled": 511,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.22222222222222224,
@@ -4580,6 +5099,8 @@
     124,
     125
    ],
+   "final_eligible_prompts_pooled": 598,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.22222222222222224,
@@ -4624,6 +5145,8 @@
     124,
     124
    ],
+   "final_eligible_prompts_pooled": 586,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.22222222222222224,
@@ -4668,6 +5191,8 @@
     16,
     16
    ],
+   "final_eligible_prompts_pooled": 77,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 16,
    "initial_eligible_prompts": 16,
    "initial_pmd": 0.20735249227896285,
@@ -4712,6 +5237,8 @@
     16,
     16
    ],
+   "final_eligible_prompts_pooled": 78,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 16,
    "initial_eligible_prompts": 16,
    "initial_pmd": 0.20735249227896285,
@@ -4756,6 +5283,8 @@
     124,
     125
    ],
+   "final_eligible_prompts_pooled": 300,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 16,
    "initial_eligible_prompts": 16,
    "initial_pmd": 0.20735249227896285,
@@ -4800,6 +5329,8 @@
     126,
     126
    ],
+   "final_eligible_prompts_pooled": 410,
+   "final_seeds_clearing_bar": 3,
    "initial_defined_prompts": 16,
    "initial_eligible_prompts": 16,
    "initial_pmd": 0.20735249227896285,
@@ -4844,6 +5375,8 @@
     15,
     15
    ],
+   "final_eligible_prompts_pooled": 57,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 65,
    "initial_eligible_prompts": 65,
    "initial_pmd": 0.12730146834768596,
@@ -4851,7 +5384,7 @@
    "kind": "before_after",
    "level": "level2",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -4888,6 +5421,8 @@
     69,
     69
    ],
+   "final_eligible_prompts_pooled": 183,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 65,
    "initial_eligible_prompts": 65,
    "initial_pmd": 0.12730146834768596,
@@ -4895,7 +5430,7 @@
    "kind": "before_after",
    "level": "level2",
    "method": "maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -4932,6 +5467,8 @@
     69,
     95
    ],
+   "final_eligible_prompts_pooled": 369,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 65,
    "initial_eligible_prompts": 65,
    "initial_pmd": 0.12730146834768596,
@@ -4976,6 +5513,8 @@
     69,
     69
    ],
+   "final_eligible_prompts_pooled": 343,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 65,
    "initial_eligible_prompts": 65,
    "initial_pmd": 0.12730146834768596,
@@ -5019,6 +5558,8 @@
     10,
     12
    ],
+   "final_eligible_prompts_pooled": 40,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 24,
    "initial_eligible_prompts": 24,
    "initial_pmd": 0.357484767411238,
@@ -5061,6 +5602,8 @@
     19,
     20
    ],
+   "final_eligible_prompts_pooled": 93,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 24,
    "initial_eligible_prompts": 24,
    "initial_pmd": 0.357484767411238,
@@ -5104,6 +5647,8 @@
     20,
     23
    ],
+   "final_eligible_prompts_pooled": 83,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 24,
    "initial_eligible_prompts": 24,
    "initial_pmd": 0.357484767411238,
@@ -5146,6 +5691,8 @@
     21,
     22
    ],
+   "final_eligible_prompts_pooled": 103,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 24,
    "initial_eligible_prompts": 24,
    "initial_pmd": 0.357484767411238,
@@ -5190,6 +5737,8 @@
     12,
     13
    ],
+   "final_eligible_prompts_pooled": 44,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 17,
    "initial_eligible_prompts": 17,
    "initial_pmd": 0.46834733893557423,
@@ -5234,6 +5783,8 @@
     16,
     17
    ],
+   "final_eligible_prompts_pooled": 63,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 17,
    "initial_eligible_prompts": 17,
    "initial_pmd": 0.46834733893557423,
@@ -5278,6 +5829,8 @@
     19,
     19
    ],
+   "final_eligible_prompts_pooled": 90,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 17,
    "initial_eligible_prompts": 17,
    "initial_pmd": 0.46834733893557423,
@@ -5322,6 +5875,8 @@
     18,
     21
    ],
+   "final_eligible_prompts_pooled": 89,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 17,
    "initial_eligible_prompts": 17,
    "initial_pmd": 0.46834733893557423,
@@ -5366,6 +5921,8 @@
     24,
     26
    ],
+   "final_eligible_prompts_pooled": 119,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 37,
    "initial_eligible_prompts": 37,
    "initial_pmd": 0.22286550614659903,
@@ -5373,7 +5930,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -5410,6 +5967,8 @@
     24,
     24
    ],
+   "final_eligible_prompts_pooled": 116,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 37,
    "initial_eligible_prompts": 37,
    "initial_pmd": 0.22286550614659903,
@@ -5417,7 +5976,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -5454,6 +6013,8 @@
     31,
     31
    ],
+   "final_eligible_prompts_pooled": 152,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 37,
    "initial_eligible_prompts": 37,
    "initial_pmd": 0.22286550614659903,
@@ -5461,7 +6022,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "replay_drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -5498,6 +6059,8 @@
     29,
     31
    ],
+   "final_eligible_prompts_pooled": 144,
+   "final_seeds_clearing_bar": 1,
    "initial_defined_prompts": 37,
    "initial_eligible_prompts": 37,
    "initial_pmd": 0.22286550614659903,
@@ -5505,7 +6068,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "replay_maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -5542,6 +6105,8 @@
     63,
     77
    ],
+   "final_eligible_prompts_pooled": 296,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4536346158593171,
@@ -5586,6 +6151,8 @@
     120,
     120
    ],
+   "final_eligible_prompts_pooled": 581,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4536346158593171,
@@ -5630,6 +6197,8 @@
     114,
     115
    ],
+   "final_eligible_prompts_pooled": 562,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4536346158593171,
@@ -5674,6 +6243,8 @@
     117,
     121
    ],
+   "final_eligible_prompts_pooled": 585,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4536346158593171,
@@ -5718,6 +6289,8 @@
     28,
     30
    ],
+   "final_eligible_prompts_pooled": 128,
+   "final_seeds_clearing_bar": 1,
    "initial_defined_prompts": 107,
    "initial_eligible_prompts": 107,
    "initial_pmd": 0.41518585758694687,
@@ -5725,7 +6298,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -5762,6 +6335,8 @@
     58,
     70
    ],
+   "final_eligible_prompts_pooled": 263,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 107,
    "initial_eligible_prompts": 107,
    "initial_pmd": 0.41518585758694687,
@@ -5806,6 +6381,8 @@
     124,
     125
    ],
+   "final_eligible_prompts_pooled": 618,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 107,
    "initial_eligible_prompts": 107,
    "initial_pmd": 0.41518585758694687,
@@ -5850,6 +6427,8 @@
     123,
     126
    ],
+   "final_eligible_prompts_pooled": 598,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 107,
    "initial_eligible_prompts": 107,
    "initial_pmd": 0.41518585758694687,
@@ -5894,6 +6473,8 @@
     89,
     89
    ],
+   "final_eligible_prompts_pooled": 436,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4206033451639814,
@@ -5938,6 +6519,8 @@
     109,
     110
    ],
+   "final_eligible_prompts_pooled": 520,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4206033451639814,
@@ -5982,6 +6565,8 @@
     124,
     125
    ],
+   "final_eligible_prompts_pooled": 616,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4206033451639814,
@@ -6026,6 +6611,8 @@
     125,
     126
    ],
+   "final_eligible_prompts_pooled": 623,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 112,
    "initial_eligible_prompts": 112,
    "initial_pmd": 0.4206033451639814,
@@ -6070,6 +6657,8 @@
     13,
     22
    ],
+   "final_eligible_prompts_pooled": 58,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 48,
    "initial_eligible_prompts": 48,
    "initial_pmd": 0.22589540089540092,
@@ -6077,7 +6666,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "falcon1b",
    "seeds": [
     55,
@@ -6114,6 +6703,8 @@
     74,
     84
    ],
+   "final_eligible_prompts_pooled": 339,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 48,
    "initial_eligible_prompts": 48,
    "initial_pmd": 0.22589540089540092,
@@ -6158,6 +6749,8 @@
     105,
     106
    ],
+   "final_eligible_prompts_pooled": 498,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 48,
    "initial_eligible_prompts": 48,
    "initial_pmd": 0.22589540089540092,
@@ -6202,6 +6795,8 @@
     112,
     114
    ],
+   "final_eligible_prompts_pooled": 557,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 48,
    "initial_eligible_prompts": 48,
    "initial_pmd": 0.22589540089540092,
@@ -6246,6 +6841,8 @@
     47,
     49
    ],
+   "final_eligible_prompts_pooled": 226,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 72,
    "initial_eligible_prompts": 72,
    "initial_pmd": 0.2877397294063961,
@@ -6290,6 +6887,8 @@
     45,
     45
    ],
+   "final_eligible_prompts_pooled": 205,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 72,
    "initial_eligible_prompts": 72,
    "initial_pmd": 0.2877397294063961,
@@ -6334,6 +6933,8 @@
     92,
     95
    ],
+   "final_eligible_prompts_pooled": 403,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 72,
    "initial_eligible_prompts": 72,
    "initial_pmd": 0.2877397294063961,
@@ -6378,6 +6979,8 @@
     81,
     82
    ],
+   "final_eligible_prompts_pooled": 385,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 72,
    "initial_eligible_prompts": 72,
    "initial_pmd": 0.2877397294063961,
@@ -6422,6 +7025,8 @@
     28,
     36
    ],
+   "final_eligible_prompts_pooled": 136,
+   "final_seeds_clearing_bar": 1,
    "initial_defined_prompts": 28,
    "initial_eligible_prompts": 28,
    "initial_pmd": 0.05303030303030303,
@@ -6466,6 +7071,8 @@
     30,
     31
    ],
+   "final_eligible_prompts_pooled": 134,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 28,
    "initial_eligible_prompts": 28,
    "initial_pmd": 0.05303030303030303,
@@ -6510,6 +7117,8 @@
     76,
     92
    ],
+   "final_eligible_prompts_pooled": 361,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 28,
    "initial_eligible_prompts": 28,
    "initial_pmd": 0.05303030303030303,
@@ -6554,6 +7163,8 @@
     54,
     67
    ],
+   "final_eligible_prompts_pooled": 278,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 28,
    "initial_eligible_prompts": 28,
    "initial_pmd": 0.05303030303030303,
@@ -6594,8 +7205,12 @@
    "final_eligible_prompts": [
     38,
     38,
-    39
+    38,
+    39,
+    43
    ],
+   "final_eligible_prompts_pooled": 196,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9166750256669594,
@@ -6607,21 +7222,25 @@
    "scale": "falcon1b",
    "seeds": [
     55,
+    56,
+    57,
     58,
     59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.9358560120193166,
-     -0.8858797575390299
+     -0.9220278411588718,
+     -0.8908808650209445
     ],
-    "mean": -0.9108678847791732,
-    "n": 3,
+    "mean": -0.9064543530899082,
+    "n": 5,
     "values": [
      -0.9166750256669594,
      -0.9166750256669594,
-     -0.8992536030036012
+     -0.9116877591134789,
+     -0.8992536030036012,
+     -0.8879803519985423
     ]
    },
    "trained_level": "level1",
@@ -6636,6 +7255,8 @@
     38,
     38
    ],
+   "final_eligible_prompts_pooled": 190,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9166750256669594,
@@ -6674,9 +7295,14 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    58,
     60,
-    64
+    62,
+    64,
+    66
    ],
+   "final_eligible_prompts_pooled": 310,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9166750256669594,
@@ -6688,19 +7314,25 @@
    "scale": "falcon1b",
    "seeds": [
     55,
-    57
+    56,
+    57,
+    58,
+    59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -1.438116036126338,
-     0.5951647115691434
+     -0.4845135776645371,
+     -0.26910045851576575
     ],
-    "mean": -0.42147566227859734,
-    "n": 2,
+    "mean": -0.37680701809015144,
+    "n": 5,
     "values": [
      -0.5014882841775223,
-     -0.34146304037967234
+     -0.3927898046621955,
+     -0.3854304368130983,
+     -0.34146304037967234,
+     -0.26286352441826877
     ]
    },
    "trained_level": "level1",
@@ -6715,6 +7347,8 @@
     59,
     59
    ],
+   "final_eligible_prompts_pooled": 288,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9166750256669594,
@@ -6759,6 +7393,8 @@
     41,
     41
    ],
+   "final_eligible_prompts_pooled": 198,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9116091423722062,
@@ -6803,6 +7439,8 @@
     41,
     41
    ],
+   "final_eligible_prompts_pooled": 168,
+   "final_seeds_clearing_bar": 3,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9116091423722062,
@@ -6810,7 +7448,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -6847,6 +7485,8 @@
     64,
     65
    ],
+   "final_eligible_prompts_pooled": 308,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9116091423722062,
@@ -6891,6 +7531,8 @@
     64,
     65
    ],
+   "final_eligible_prompts_pooled": 312,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 71,
    "initial_eligible_prompts": 71,
    "initial_pmd": 0.9116091423722062,
@@ -6935,6 +7577,8 @@
     51,
     54
    ],
+   "final_eligible_prompts_pooled": 209,
+   "final_seeds_clearing_bar": 3,
    "initial_defined_prompts": 69,
    "initial_eligible_prompts": 69,
    "initial_pmd": 0.6394903181376259,
@@ -6942,7 +7586,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -6973,10 +7617,14 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    50,
+    51,
     51,
     51,
     53
    ],
+   "final_eligible_prompts_pooled": 256,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 69,
    "initial_eligible_prompts": 69,
    "initial_pmd": 0.6394903181376259,
@@ -6987,6 +7635,8 @@
    "provisional": false,
    "scale": "qwen3b",
    "seeds": [
+    70,
+    71,
     72,
     73,
     74
@@ -6994,12 +7644,14 @@
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.5694147910575595,
-     -0.33096452473459503
+     -0.5451443682061903,
+     -0.4141942093438506
     ],
-    "mean": -0.4501896578960773,
-    "n": 3,
+    "mean": -0.4796692887750204,
+    "n": 5,
     "values": [
+     -0.52489497009083,
+     -0.5228825000960402,
      -0.47873972182027724,
      -0.47704585262899407,
      -0.3947833992389604
@@ -7017,6 +7669,8 @@
     63,
     66
    ],
+   "final_eligible_prompts_pooled": 315,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 69,
    "initial_eligible_prompts": 69,
    "initial_pmd": 0.6394903181376259,
@@ -7056,8 +7710,13 @@
    "domain": "pantry_plan",
    "final_eligible_prompts": [
     61,
-    63
+    62,
+    63,
+    63,
+    64
    ],
+   "final_eligible_prompts_pooled": 313,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 69,
    "initial_eligible_prompts": 69,
    "initial_pmd": 0.6394903181376259,
@@ -7068,19 +7727,25 @@
    "provisional": false,
    "scale": "qwen3b",
    "seeds": [
+    70,
+    71,
+    72,
     73,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -1.2387982690150574,
-     0.9762344832913724
+     -0.2190434162406263,
+     -0.06250544382032391
     ],
-    "mean": -0.13128189286184253,
-    "n": 2,
+    "mean": -0.1407744300304751,
+    "n": 5,
     "values": [
      -0.21844672649581193,
+     -0.16344577782837721,
+     -0.14007313534120375,
+     -0.13778945125910946,
      -0.04411705922787312
     ]
    },
@@ -7090,6 +7755,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -7119,6 +7786,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 529,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -7154,6 +7823,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 619,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -7189,6 +7860,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 598,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -7224,6 +7897,8 @@
     17,
     17
    ],
+   "final_eligible_prompts_pooled": 85,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 19,
    "initial_eligible_prompts": 19,
    "initial_pmd": 0.2555888555888556,
@@ -7268,6 +7943,8 @@
     17,
     17
    ],
+   "final_eligible_prompts_pooled": 85,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 19,
    "initial_eligible_prompts": 19,
    "initial_pmd": 0.2555888555888556,
@@ -7312,6 +7989,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 314,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 19,
    "initial_eligible_prompts": 19,
    "initial_pmd": 0.2555888555888556,
@@ -7356,6 +8035,8 @@
     128,
     128
    ],
+   "final_eligible_prompts_pooled": 422,
+   "final_seeds_clearing_bar": 3,
    "initial_defined_prompts": 19,
    "initial_eligible_prompts": 19,
    "initial_pmd": 0.2555888555888556,
@@ -7400,6 +8081,8 @@
     17,
     19
    ],
+   "final_eligible_prompts_pooled": 70,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11880677945953404,
@@ -7407,7 +8090,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -7444,6 +8127,8 @@
     64,
     64
    ],
+   "final_eligible_prompts_pooled": 179,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11880677945953404,
@@ -7451,7 +8136,7 @@
    "kind": "before_after",
    "level": "level3",
    "method": "maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen3b",
    "seeds": [
     70,
@@ -7488,6 +8173,8 @@
     64,
     102
    ],
+   "final_eligible_prompts_pooled": 356,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11880677945953404,
@@ -7532,6 +8219,8 @@
     64,
     64
    ],
+   "final_eligible_prompts_pooled": 320,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 60,
    "initial_eligible_prompts": 60,
    "initial_pmd": 0.11880677945953404,
@@ -7570,6 +8259,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.0,
@@ -7593,6 +8284,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.0,
@@ -7618,6 +8311,8 @@
    "final_eligible_prompts": [
     3
    ],
+   "final_eligible_prompts_pooled": 3,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.0,
@@ -7645,6 +8340,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.0,
@@ -7668,6 +8365,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.5555555555555556,
@@ -7691,6 +8390,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.5555555555555556,
@@ -7714,6 +8415,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.5555555555555556,
@@ -7739,6 +8442,8 @@
    "final_eligible_prompts": [
     2
    ],
+   "final_eligible_prompts_pooled": 2,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 3,
    "initial_eligible_prompts": 3,
    "initial_pmd": 0.5555555555555556,
@@ -7772,6 +8477,8 @@
     5,
     6
    ],
+   "final_eligible_prompts_pooled": 22,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.10984126984126984,
@@ -7816,6 +8523,8 @@
     6,
     7
    ],
+   "final_eligible_prompts_pooled": 23,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.10984126984126984,
@@ -7860,6 +8569,8 @@
     5,
     6
    ],
+   "final_eligible_prompts_pooled": 22,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.10984126984126984,
@@ -7904,6 +8615,8 @@
     6,
     7
    ],
+   "final_eligible_prompts_pooled": 26,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 15,
    "initial_eligible_prompts": 15,
    "initial_pmd": 0.10984126984126984,
@@ -7948,6 +8661,8 @@
     56,
     67
    ],
+   "final_eligible_prompts_pooled": 274,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 98,
    "initial_eligible_prompts": 98,
    "initial_pmd": 0.5962619225444933,
@@ -7992,6 +8707,8 @@
     101,
     105
    ],
+   "final_eligible_prompts_pooled": 496,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 98,
    "initial_eligible_prompts": 98,
    "initial_pmd": 0.5962619225444933,
@@ -8036,6 +8753,8 @@
     98,
     98
    ],
+   "final_eligible_prompts_pooled": 476,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 98,
    "initial_eligible_prompts": 98,
    "initial_pmd": 0.5962619225444933,
@@ -8080,6 +8799,8 @@
     104,
     104
    ],
+   "final_eligible_prompts_pooled": 510,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 98,
    "initial_eligible_prompts": 98,
    "initial_pmd": 0.5962619225444933,
@@ -8124,6 +8845,8 @@
     30,
     31
    ],
+   "final_eligible_prompts_pooled": 131,
+   "final_seeds_clearing_bar": 2,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.40934179868056964,
@@ -8131,7 +8854,7 @@
    "kind": "before_after",
    "level": "level4",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -8168,6 +8891,8 @@
     58,
     60
    ],
+   "final_eligible_prompts_pooled": 240,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.40934179868056964,
@@ -8175,7 +8900,7 @@
    "kind": "before_after",
    "level": "level4",
    "method": "maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -8212,6 +8937,8 @@
     115,
     119
    ],
+   "final_eligible_prompts_pooled": 563,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.40934179868056964,
@@ -8256,6 +8983,8 @@
     110,
     112
    ],
+   "final_eligible_prompts_pooled": 534,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 95,
    "initial_eligible_prompts": 95,
    "initial_pmd": 0.40934179868056964,
@@ -8300,6 +9029,8 @@
     73,
     75
    ],
+   "final_eligible_prompts_pooled": 355,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 90,
    "initial_eligible_prompts": 90,
    "initial_pmd": 0.39929196764381575,
@@ -8344,6 +9075,8 @@
     91,
     93
    ],
+   "final_eligible_prompts_pooled": 436,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 90,
    "initial_eligible_prompts": 90,
    "initial_pmd": 0.39929196764381575,
@@ -8388,6 +9121,8 @@
     106,
     107
    ],
+   "final_eligible_prompts_pooled": 519,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 90,
    "initial_eligible_prompts": 90,
    "initial_pmd": 0.39929196764381575,
@@ -8432,6 +9167,8 @@
     107,
     108
    ],
+   "final_eligible_prompts_pooled": 531,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 90,
    "initial_eligible_prompts": 90,
    "initial_pmd": 0.39929196764381575,
@@ -8540,6 +9277,8 @@
     73,
     81
    ],
+   "final_eligible_prompts_pooled": 291,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 59,
    "initial_eligible_prompts": 59,
    "initial_pmd": 0.1526230831315577,
@@ -8547,7 +9286,7 @@
    "kind": "before_after",
    "level": "level4",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -8584,6 +9323,8 @@
     54,
     55
    ],
+   "final_eligible_prompts_pooled": 254,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 59,
    "initial_eligible_prompts": 59,
    "initial_pmd": 0.1526230831315577,
@@ -8628,6 +9369,8 @@
     73,
     77
    ],
+   "final_eligible_prompts_pooled": 342,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 59,
    "initial_eligible_prompts": 59,
    "initial_pmd": 0.1526230831315577,
@@ -8672,6 +9415,8 @@
     72,
     75
    ],
+   "final_eligible_prompts_pooled": 319,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 59,
    "initial_eligible_prompts": 59,
    "initial_pmd": 0.1526230831315577,
@@ -8716,6 +9461,8 @@
     22,
     23
    ],
+   "final_eligible_prompts_pooled": 105,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 23,
    "initial_eligible_prompts": 23,
    "initial_pmd": 0.0,
@@ -8760,6 +9507,8 @@
     21,
     21
    ],
+   "final_eligible_prompts_pooled": 96,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 23,
    "initial_eligible_prompts": 23,
    "initial_pmd": 0.0,
@@ -8804,6 +9553,8 @@
     59,
     64
    ],
+   "final_eligible_prompts_pooled": 242,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 23,
    "initial_eligible_prompts": 23,
    "initial_pmd": 0.0,
@@ -8848,6 +9599,8 @@
     35,
     44
    ],
+   "final_eligible_prompts_pooled": 170,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 23,
    "initial_eligible_prompts": 23,
    "initial_pmd": 0.0,
@@ -8891,8 +9644,14 @@
     78,
     78,
     78,
+    78,
+    78,
+    78,
+    80,
     80
    ],
+   "final_eligible_prompts_pooled": 784,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9067332775032801,
@@ -8906,24 +9665,32 @@
     55,
     55,
     56,
+    56,
+    57,
     57,
     58,
+    58,
+    59,
     59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.910778894805723,
-     -0.8850773762195855
+     -0.905327463302323,
+     -0.8876477765677607
     ],
-    "mean": -0.8979281355126543,
-    "n": 6,
+    "mean": -0.8964876199350419,
+    "n": 10,
     "values": [
      -0.905130713400716,
      -0.905130713400716,
      -0.905130713400716,
+     -0.905130713400716,
+     -0.9035539971062578,
      -0.9035539971062578,
      -0.8940936993395084,
+     -0.8940936993395084,
+     -0.8745289764280113,
      -0.8745289764280113
     ]
    },
@@ -8939,8 +9706,13 @@
     78,
     78,
     78,
+    78,
+    78,
+    78,
     78
    ],
+   "final_eligible_prompts_pooled": 780,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9067332775032801,
@@ -8956,24 +9728,30 @@
     56,
     56,
     57,
+    57,
     58,
+    58,
+    59,
     59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.9065246578012492,
-     -0.9035078312712451
+     -0.9058338642122922,
+     -0.9034660241276017
     ],
-    "mean": -0.9050162445362472,
-    "n": 7,
+    "mean": -0.9046499441699469,
+    "n": 10,
     "values": [
      -0.9067332775032801,
      -0.9067332775032801,
      -0.905130713400716,
      -0.905130713400716,
      -0.905130713400716,
+     -0.905130713400716,
      -0.904329431349434,
+     -0.904329431349434,
+     -0.9019255851955879,
      -0.9019255851955879
     ]
    },
@@ -8988,11 +9766,14 @@
     113,
     113,
     113,
+    113,
     114,
     114,
     119,
     119
    ],
+   "final_eligible_prompts_pooled": 1132,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9067332775032801,
@@ -9010,17 +9791,18 @@
     57,
     57,
     58,
+    58,
     59,
     59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.4584996081966793,
-     -0.3246227346989929
+     -0.457946675384662,
+     -0.3190634495447761
     ],
-    "mean": -0.3915611714478361,
-    "n": 9,
+    "mean": -0.38850506246471905,
+    "n": 10,
     "values": [
      -0.5339657802464286,
      -0.5339657802464286,
@@ -9028,6 +9810,7 @@
      -0.4229662114007494,
      -0.37431072442444646,
      -0.37431072442444646,
+     -0.36100008161666597,
      -0.36100008161666597,
      -0.25028251463530493,
      -0.25028251463530493
@@ -9040,11 +9823,18 @@
    "domain": "pantry_plan",
    "final_eligible_prompts": [
     97,
+    97,
+    100,
     100,
     106,
+    106,
+    108,
+    108,
     108,
     108
    ],
+   "final_eligible_prompts_pooled": 1038,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9067332775032801,
@@ -9056,24 +9846,34 @@
    "scale": "falcon1b",
    "seeds": [
     55,
+    55,
+    56,
     56,
     57,
+    57,
     58,
+    58,
+    59,
     59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.5923195033072066,
-     -0.4274375157692065
+     -0.5546627381418276,
+     -0.4650942809345855
     ],
     "mean": -0.5098785095382066,
-    "n": 5,
+    "n": 10,
     "values": [
      -0.6023221555908931,
+     -0.6023221555908931,
+     -0.5394571631735845,
      -0.5394571631735845,
      -0.502750155868477,
+     -0.502750155868477,
      -0.48042525753031273,
+     -0.48042525753031273,
+     -0.4244378155277657,
      -0.4244378155277657
     ]
    },
@@ -9089,8 +9889,13 @@
     71,
     71,
     71,
+    71,
+    71,
+    72,
     72
    ],
+   "final_eligible_prompts_pooled": 712,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9105818544165784,
@@ -9106,7 +9911,10 @@
     44,
     44,
     45,
+    45,
     46,
+    46,
+    47,
     47
    ],
    "status": "measured",
@@ -9116,8 +9924,11 @@
      -0.9105818544165784
     ],
     "mean": -0.9105818544165784,
-    "n": 7,
+    "n": 10,
     "values": [
+     -0.9105818544165784,
+     -0.9105818544165784,
+     -0.9105818544165784,
      -0.9105818544165784,
      -0.9105818544165784,
      -0.9105818544165784,
@@ -9135,10 +9946,17 @@
    "final_eligible_prompts": [
     66,
     66,
+    66,
+    66,
     71,
     71,
+    71,
+    71,
+    72,
     72
    ],
+   "final_eligible_prompts_pooled": 692,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9105818544165784,
@@ -9150,24 +9968,34 @@
    "scale": "qwen05b",
    "seeds": [
     43,
+    43,
+    44,
     44,
     45,
+    45,
     46,
+    46,
+    47,
     47
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.910918218052942,
-     -0.9098667029014269
+     -0.9106780665377905,
+     -0.9101068544165785
     ],
     "mean": -0.9103924604771845,
-    "n": 5,
+    "n": 10,
     "values": [
      -0.9105818544165784,
      -0.9105818544165784,
      -0.9105818544165784,
      -0.9105818544165784,
+     -0.9105818544165784,
+     -0.9105818544165784,
+     -0.9105818544165784,
+     -0.9105818544165784,
+     -0.9096348847196086,
      -0.9096348847196086
     ]
    },
@@ -9178,13 +10006,18 @@
    "domain": "pantry_plan",
    "final_eligible_prompts": [
     106,
+    106,
+    112,
     112,
     114,
     114,
     116,
+    116,
     118,
     118
    ],
+   "final_eligible_prompts_pooled": 1132,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9105818544165784,
@@ -9200,24 +10033,30 @@
     44,
     44,
     45,
+    45,
     46,
+    46,
+    47,
     47
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.44644694784516936,
-     -0.3376228244701963
+     -0.4485488163190887,
+     -0.35574783289714595
     ],
-    "mean": -0.39203488615768284,
-    "n": 7,
+    "mean": -0.40214832460811734,
+    "n": 10,
     "values": [
      -0.5230671504522251,
+     -0.5230671504522251,
+     -0.3930569123322274,
      -0.3930569123322274,
      -0.37131532724305316,
      -0.37131532724305316,
      -0.36218725282013997,
      -0.36218725282013997,
+     -0.36111498019294086,
      -0.36111498019294086
     ]
    },
@@ -9229,10 +10068,17 @@
    "final_eligible_prompts": [
     111,
     111,
+    111,
+    111,
+    113,
     113,
     115,
+    115,
+    121,
     121
    ],
+   "final_eligible_prompts_pooled": 1142,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 128,
    "initial_eligible_prompts": 128,
    "initial_pmd": 0.9105818544165784,
@@ -9244,24 +10090,34 @@
    "scale": "qwen05b",
    "seeds": [
     43,
+    43,
+    44,
     44,
     45,
+    45,
     46,
+    46,
+    47,
     47
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.46782724740389015,
-     -0.3085923091173456
+     -0.4314601901727413,
+     -0.34495936634849445
     ],
     "mean": -0.38820977826061787,
-    "n": 5,
+    "n": 10,
     "values": [
      -0.45878447511716547,
+     -0.45878447511716547,
+     -0.4415158141446951,
      -0.4415158141446951,
      -0.3951664941132521,
+     -0.3951664941132521,
      -0.32608128288055527,
+     -0.32608128288055527,
+     -0.3195008250474216,
      -0.3195008250474216
     ]
    },
@@ -9272,11 +10128,18 @@
    "domain": "pantry_plan",
    "final_eligible_prompts": [
     67,
+    67,
+    68,
     68,
     97,
+    97,
     100,
+    100,
+    102,
     102
    ],
+   "final_eligible_prompts_pooled": 868,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6262382353361255,
@@ -9288,24 +10151,34 @@
    "scale": "qwen3b",
    "seeds": [
     70,
+    70,
+    71,
     71,
     72,
+    72,
     73,
+    73,
+    74,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.6481045990692843,
-     -0.29728318644269647
+     -0.5679818412864108,
+     -0.37740594422556994
     ],
     "mean": -0.4726938927559904,
-    "n": 5,
+    "n": 10,
     "values": [
      -0.6150141140072859,
+     -0.6150141140072859,
+     -0.6032899431160117,
      -0.6032899431160117,
      -0.48567043695987117,
+     -0.48567043695987117,
      -0.3572165259149886,
+     -0.3572165259149886,
+     -0.3022784437817948,
      -0.3022784437817948
     ]
    },
@@ -9322,8 +10195,12 @@
     100,
     100,
     103,
+    103,
+    103,
     103
    ],
+   "final_eligible_prompts_pooled": 1006,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6262382353361255,
@@ -9339,24 +10216,28 @@
     71,
     71,
     72,
+    72,
     73,
     73,
+    74,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.47174543980670375,
-     -0.3931656220348289
+     -0.46192143933216306,
+     -0.3986187595249609
     ],
-    "mean": -0.43245553092076633,
-    "n": 8,
+    "mean": -0.430270099428562,
+    "n": 10,
     "values": [
      -0.48586665498934867,
      -0.48586665498934867,
      -0.4529507550474766,
+     -0.4529507550474766,
      -0.44906769720489725,
      -0.44906769720489725,
+     -0.39010599187201245,
      -0.39010599187201245,
      -0.3733593980290749,
      -0.3733593980290749
@@ -9369,11 +10250,18 @@
    "domain": "pantry_plan",
    "final_eligible_prompts": [
     117,
+    117,
+    118,
     118,
     119,
     119,
+    119,
+    119,
+    120,
     120
    ],
+   "final_eligible_prompts_pooled": 1186,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6262382353361255,
@@ -9385,24 +10273,34 @@
    "scale": "qwen3b",
    "seeds": [
     70,
+    70,
+    71,
     71,
     72,
+    72,
     73,
+    73,
+    74,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.1995446141560166,
-     -0.10823772158405753
+     -0.17869138292740636,
+     -0.12909095281266778
     ],
     "mean": -0.15389116787003707,
-    "n": 5,
+    "n": 10,
     "values": [
      -0.19382817857925366,
+     -0.19382817857925366,
+     -0.18008580067898688,
      -0.18008580067898688,
      -0.15382900362534851,
+     -0.15382900362534851,
      -0.1425998046179895,
+     -0.1425998046179895,
+     -0.09911305184860675,
      -0.09911305184860675
     ]
    },
@@ -9413,12 +10311,18 @@
    "domain": "pantry_plan",
    "final_eligible_prompts": [
     116,
+    116,
+    117,
     117,
     119,
     119,
     119,
+    119,
+    122,
     122
    ],
+   "final_eligible_prompts_pooled": 1186,
+   "final_seeds_clearing_bar": 10,
    "initial_defined_prompts": 124,
    "initial_eligible_prompts": 124,
    "initial_pmd": 0.6262382353361255,
@@ -9430,26 +10334,34 @@
    "scale": "qwen3b",
    "seeds": [
     70,
+    70,
     71,
     71,
     72,
+    72,
     73,
+    73,
+    74,
     74
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.21705743086594154,
-     -0.07636678569214268
+     -0.19621246088454855,
+     -0.09521274569917967
     ],
-    "mean": -0.1467121082790421,
-    "n": 6,
+    "mean": -0.1457126032918641,
+    "n": 10,
     "values": [
      -0.2043816322863417,
+     -0.2043816322863417,
      -0.17904629686221551,
+     -0.17904629686221551,
+     -0.1774522819624092,
      -0.1774522819624092,
      -0.15170963321493214,
      -0.15170963321493214,
+     -0.015973172133421976,
      -0.015973172133421976
     ]
    },
@@ -9459,6 +10371,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9482,6 +10396,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9509,6 +10425,8 @@
     4,
     7
    ],
+   "final_eligible_prompts_pooled": 13,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9536,6 +10454,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9559,6 +10479,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9582,6 +10504,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9607,6 +10531,8 @@
    "final_eligible_prompts": [
     54
    ],
+   "final_eligible_prompts_pooled": 54,
+   "final_seeds_clearing_bar": 1,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9634,6 +10560,8 @@
    "final_eligible_prompts": [
     37
    ],
+   "final_eligible_prompts_pooled": 37,
+   "final_seeds_clearing_bar": 1,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9659,6 +10587,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9682,6 +10612,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9705,6 +10637,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9728,6 +10662,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -9751,6 +10687,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.2333333333333333,
@@ -9774,6 +10712,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.2333333333333333,
@@ -9800,6 +10740,8 @@
     3,
     4
    ],
+   "final_eligible_prompts_pooled": 7,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.2333333333333333,
@@ -9832,6 +10774,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.2333333333333333,
@@ -9855,6 +10799,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 4,
    "initial_eligible_prompts": 4,
    "initial_pmd": 0.4166666666666667,
@@ -9878,6 +10824,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 4,
    "initial_eligible_prompts": 4,
    "initial_pmd": 0.4166666666666667,
@@ -9901,6 +10849,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 4,
    "initial_eligible_prompts": 4,
    "initial_pmd": 0.4166666666666667,
@@ -9924,6 +10874,8 @@
   {
    "domain": "countdown",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 4,
    "initial_eligible_prompts": 4,
    "initial_pmd": 0.4166666666666667,
@@ -9953,6 +10905,8 @@
     6,
     9
    ],
+   "final_eligible_prompts_pooled": 32,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 13,
    "initial_eligible_prompts": 13,
    "initial_pmd": 0.04871794871794872,
@@ -9997,6 +10951,8 @@
     8,
     8
    ],
+   "final_eligible_prompts_pooled": 34,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 13,
    "initial_eligible_prompts": 13,
    "initial_pmd": 0.04871794871794872,
@@ -10041,6 +10997,8 @@
     7,
     9
    ],
+   "final_eligible_prompts_pooled": 37,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 13,
    "initial_eligible_prompts": 13,
    "initial_pmd": 0.04871794871794872,
@@ -10085,6 +11043,8 @@
     7,
     9
    ],
+   "final_eligible_prompts_pooled": 34,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 13,
    "initial_eligible_prompts": 13,
    "initial_pmd": 0.04871794871794872,
@@ -10129,6 +11089,8 @@
     60,
     74
    ],
+   "final_eligible_prompts_pooled": 288,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 117,
    "initial_eligible_prompts": 117,
    "initial_pmd": 0.534742286615334,
@@ -10173,6 +11135,8 @@
     98,
     102
    ],
+   "final_eligible_prompts_pooled": 472,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 117,
    "initial_eligible_prompts": 117,
    "initial_pmd": 0.534742286615334,
@@ -10217,6 +11181,8 @@
     94,
     95
    ],
+   "final_eligible_prompts_pooled": 460,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 117,
    "initial_eligible_prompts": 117,
    "initial_pmd": 0.534742286615334,
@@ -10261,6 +11227,8 @@
     103,
     105
    ],
+   "final_eligible_prompts_pooled": 507,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 117,
    "initial_eligible_prompts": 117,
    "initial_pmd": 0.534742286615334,
@@ -10305,6 +11273,8 @@
     27,
     28
    ],
+   "final_eligible_prompts_pooled": 120,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.5169561890007104,
@@ -10312,7 +11282,7 @@
    "kind": "before_after",
    "level": "level5",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -10349,6 +11319,8 @@
     51,
     74
    ],
+   "final_eligible_prompts_pooled": 238,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.5169561890007104,
@@ -10356,7 +11328,7 @@
    "kind": "before_after",
    "level": "level5",
    "method": "maxrl",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
@@ -10393,6 +11365,8 @@
     120,
     121
    ],
+   "final_eligible_prompts_pooled": 588,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.5169561890007104,
@@ -10437,6 +11411,8 @@
     113,
     116
    ],
+   "final_eligible_prompts_pooled": 543,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 109,
    "initial_eligible_prompts": 109,
    "initial_pmd": 0.5169561890007104,
@@ -10481,6 +11457,8 @@
     71,
     71
    ],
+   "final_eligible_prompts_pooled": 345,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 99,
    "initial_eligible_prompts": 99,
    "initial_pmd": 0.32812943077691886,
@@ -10525,6 +11503,8 @@
     91,
     93
    ],
+   "final_eligible_prompts_pooled": 441,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 99,
    "initial_eligible_prompts": 99,
    "initial_pmd": 0.32812943077691886,
@@ -10569,6 +11549,8 @@
     96,
     96
    ],
+   "final_eligible_prompts_pooled": 474,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 99,
    "initial_eligible_prompts": 99,
    "initial_pmd": 0.32812943077691886,
@@ -10613,6 +11595,8 @@
     102,
     103
    ],
+   "final_eligible_prompts_pooled": 495,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 99,
    "initial_eligible_prompts": 99,
    "initial_pmd": 0.32812943077691886,
@@ -10657,6 +11641,8 @@
     9,
     14
    ],
+   "final_eligible_prompts_pooled": 37,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.0,
@@ -10695,12 +11681,60 @@
   {
    "domain": "mathir",
    "final_eligible_prompts": [
+    47,
+    48,
+    52,
+    54,
+    60
+   ],
+   "final_eligible_prompts_pooled": 261,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 6,
+   "initial_eligible_prompts": 6,
+   "initial_pmd": 0.0,
+   "initial_reportable": false,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "maxrl",
+   "provisional": true,
+   "scale": "falcon1b",
+   "seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "mean": 0.0,
+    "n": 5,
+    "values": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "mathir",
+   "final_eligible_prompts": [
     82,
     86,
     91,
     94,
     99
    ],
+   "final_eligible_prompts_pooled": 452,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 6,
    "initial_eligible_prompts": 6,
    "initial_pmd": 0.0,
@@ -10739,12 +11773,60 @@
   {
    "domain": "mathir",
    "final_eligible_prompts": [
+    60,
+    63,
+    65,
+    68,
+    72
+   ],
+   "final_eligible_prompts_pooled": 328,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 6,
+   "initial_eligible_prompts": 6,
+   "initial_pmd": 0.0,
+   "initial_reportable": false,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "replay_maxrl",
+   "provisional": true,
+   "scale": "falcon1b",
+   "seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     0.0,
+     0.0
+    ],
+    "mean": 0.0,
+    "n": 5,
+    "values": [
+     0.0,
+     0.0,
+     0.0,
+     0.0,
+     0.0
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "mathir",
+   "final_eligible_prompts": [
     31,
     37,
     58,
     62,
     69
    ],
+   "final_eligible_prompts_pooled": 257,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 54,
    "initial_eligible_prompts": 54,
    "initial_pmd": 0.17799710577488354,
@@ -10789,6 +11871,8 @@
     44,
     48
    ],
+   "final_eligible_prompts_pooled": 206,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 54,
    "initial_eligible_prompts": 54,
    "initial_pmd": 0.17799710577488354,
@@ -10833,6 +11917,8 @@
     56,
     62
    ],
+   "final_eligible_prompts_pooled": 270,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 54,
    "initial_eligible_prompts": 54,
    "initial_pmd": 0.17799710577488354,
@@ -10877,6 +11963,8 @@
     47,
     57
    ],
+   "final_eligible_prompts_pooled": 227,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 54,
    "initial_eligible_prompts": 54,
    "initial_pmd": 0.17799710577488354,
@@ -10921,6 +12009,8 @@
     23,
     24
    ],
+   "final_eligible_prompts_pooled": 97,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 10,
    "initial_eligible_prompts": 10,
    "initial_pmd": 0.0,
@@ -10965,6 +12055,8 @@
     23,
     26
    ],
+   "final_eligible_prompts_pooled": 98,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 10,
    "initial_eligible_prompts": 10,
    "initial_pmd": 0.0,
@@ -11009,6 +12101,8 @@
     53,
     57
    ],
+   "final_eligible_prompts_pooled": 227,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 10,
    "initial_eligible_prompts": 10,
    "initial_pmd": 0.0,
@@ -11053,6 +12147,8 @@
     40,
     41
    ],
+   "final_eligible_prompts_pooled": 178,
+   "final_seeds_clearing_bar": 4,
    "initial_defined_prompts": 10,
    "initial_eligible_prompts": 10,
    "initial_pmd": 0.0,
@@ -11094,8 +12190,11 @@
     25,
     25,
     25,
+    25,
     26
    ],
+   "final_eligible_prompts_pooled": 126,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 45,
    "initial_eligible_prompts": 45,
    "initial_pmd": 0.8968534261422921,
@@ -11103,9 +12202,10 @@
    "kind": "before_after",
    "level": "level5",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "falcon1b",
    "seeds": [
+    55,
     56,
     57,
     58,
@@ -11114,12 +12214,13 @@
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.9255562093443251,
-     -0.8018143112611856
+     -0.916004769975286,
+     -0.8246330169660394
     ],
-    "mean": -0.8636852603027554,
-    "n": 4,
+    "mean": -0.8703188934706627,
+    "n": 5,
     "values": [
+     -0.8968534261422921,
      -0.8918534261422921,
      -0.8843534261422922,
      -0.8718534261422921,
@@ -11132,9 +12233,60 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
-    38,
-    38
+    25,
+    25,
+    25,
+    25,
+    25
    ],
+   "final_eligible_prompts_pooled": 125,
+   "final_seeds_clearing_bar": 0,
+   "initial_defined_prompts": 45,
+   "initial_eligible_prompts": 45,
+   "initial_pmd": 0.8968534261422921,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "maxrl",
+   "provisional": false,
+   "scale": "falcon1b",
+   "seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.8985468465951343,
+     -0.8881600056894499
+    ],
+    "mean": -0.8933534261422921,
+    "n": 5,
+    "values": [
+     -0.8968534261422921,
+     -0.8968534261422921,
+     -0.8943534261422922,
+     -0.8918534261422921,
+     -0.8868534261422921
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    37,
+    38,
+    38,
+    39,
+    39
+   ],
+   "final_eligible_prompts_pooled": 191,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 45,
    "initial_eligible_prompts": 45,
    "initial_pmd": 0.8968534261422921,
@@ -11146,18 +12298,24 @@
    "scale": "falcon1b",
    "seeds": [
     55,
-    56
+    56,
+    57,
+    58,
+    59
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -1.4826785708522792,
-     0.8204544539780289
+     -0.4256042548125918,
+     -0.2574444167111254
     ],
-    "mean": -0.3311120584371251,
-    "n": 2,
+    "mean": -0.3415243357618586,
+    "n": 5,
     "values": [
      -0.4217437688428511,
+     -0.38020839845076093,
+     -0.33741456007805215,
+     -0.32777460340622966,
      -0.24048034803139917
     ]
    },
@@ -11167,9 +12325,60 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
+    36,
+    36,
+    36,
+    38,
+    41
+   ],
+   "final_eligible_prompts_pooled": 187,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 45,
+   "initial_eligible_prompts": 45,
+   "initial_pmd": 0.8968534261422921,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "replay_maxrl",
+   "provisional": false,
+   "scale": "falcon1b",
+   "seeds": [
+    55,
+    56,
+    57,
+    58,
+    59
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.4852891367331618,
+     -0.40207273153459283
+    ],
+    "mean": -0.4436809341338773,
+    "n": 5,
+    "values": [
+     -0.49037998727004595,
+     -0.4567652709846925,
+     -0.441292499353535,
+     -0.43060929234971584,
+     -0.3993576207113974
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    20,
+    23,
+    23,
     23,
     23
    ],
+   "final_eligible_prompts_pooled": 112,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 45,
    "initial_eligible_prompts": 45,
    "initial_pmd": 0.9132003160519615,
@@ -11177,11 +12386,14 @@
    "kind": "before_after",
    "level": "level5",
    "method": "drgrpo",
-   "provisional": true,
+   "provisional": false,
    "scale": "qwen05b",
    "seeds": [
     43,
-    44
+    44,
+    45,
+    46,
+    47
    ],
    "status": "measured",
    "summary": {
@@ -11190,8 +12402,11 @@
      -0.9132003160519615
     ],
     "mean": -0.9132003160519615,
-    "n": 2,
+    "n": 5,
     "values": [
+     -0.9132003160519615,
+     -0.9132003160519615,
+     -0.9132003160519615,
      -0.9132003160519615,
      -0.9132003160519615
     ]
@@ -11202,9 +12417,60 @@
   {
    "domain": "pantry_plan",
    "final_eligible_prompts": [
-    36,
-    37
+    19,
+    19,
+    20,
+    23,
+    23
    ],
+   "final_eligible_prompts_pooled": 104,
+   "final_seeds_clearing_bar": 0,
+   "initial_defined_prompts": 45,
+   "initial_eligible_prompts": 45,
+   "initial_pmd": 0.9132003160519615,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "maxrl",
+   "provisional": false,
+   "scale": "qwen05b",
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.914368737104593,
+     -0.9107161055256456
+    ],
+    "mean": -0.9125424213151193,
+    "n": 5,
+    "values": [
+     -0.9132003160519615,
+     -0.9132003160519615,
+     -0.9132003160519615,
+     -0.9132003160519615,
+     -0.909910842367751
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    31,
+    36,
+    37,
+    38,
+    39
+   ],
+   "final_eligible_prompts_pooled": 181,
+   "final_seeds_clearing_bar": 5,
    "initial_defined_prompts": 45,
    "initial_eligible_prompts": 45,
    "initial_pmd": 0.9132003160519615,
@@ -11216,19 +12482,255 @@
    "scale": "qwen05b",
    "seeds": [
     43,
-    44
+    44,
+    45,
+    46,
+    47
    ],
    "status": "measured",
    "summary": {
     "ci95": [
-     -0.3735704047071543,
-     -0.2658436978123083
+     -0.45346611952363036,
+     -0.2688495198805474
     ],
-    "mean": -0.3197070512597313,
-    "n": 2,
+    "mean": -0.3611578197020889,
+    "n": 5,
     "values": [
+     -0.4874601413278799,
+     -0.36902010427812715,
      -0.3239462574180363,
-     -0.31546784510142634
+     -0.31546784510142634,
+     -0.3098947503849747
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    35,
+    35,
+    35,
+    36,
+    39
+   ],
+   "final_eligible_prompts_pooled": 180,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 45,
+   "initial_eligible_prompts": 45,
+   "initial_pmd": 0.9132003160519615,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "replay_maxrl",
+   "provisional": false,
+   "scale": "qwen05b",
+   "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.41395006859946604,
+     -0.2778474477566223
+    ],
+    "mean": -0.34589875817804416,
+    "n": 5,
+    "values": [
+     -0.4138611115147132,
+     -0.3868361020661839,
+     -0.3363406030764978,
+     -0.3149149436447076,
+     -0.2775410305881183
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    19,
+    19,
+    29,
+    31,
+    31
+   ],
+   "final_eligible_prompts_pooled": 129,
+   "final_seeds_clearing_bar": 2,
+   "initial_defined_prompts": 42,
+   "initial_eligible_prompts": 42,
+   "initial_pmd": 0.6529589764473348,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "drgrpo",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.7168213854397377,
+     -0.23782839830998556
+    ],
+    "mean": -0.47732489187486166,
+    "n": 5,
+    "values": [
+     -0.6398010817104927,
+     -0.633108948150787,
+     -0.5776777713534346,
+     -0.283948489776917,
+     -0.2520881683826771
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    30,
+    31,
+    31,
+    31,
+    32
+   ],
+   "final_eligible_prompts_pooled": 155,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 42,
+   "initial_eligible_prompts": 42,
+   "initial_pmd": 0.6529589764473348,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "maxrl",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.6260481321864093,
+     -0.36462911527934483
+    ],
+    "mean": -0.49533862373287707,
+    "n": 5,
+    "values": [
+     -0.583090941256719,
+     -0.551718948698462,
+     -0.5310216009867739,
+     -0.4949341137324199,
+     -0.31592751399001046
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    39,
+    39,
+    40,
+    40,
+    40
+   ],
+   "final_eligible_prompts_pooled": 198,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 42,
+   "initial_eligible_prompts": 42,
+   "initial_pmd": 0.6529589764473348,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "replay_drgrpo",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.19999914154900433,
+     -0.11009950008191988
+    ],
+    "mean": -0.1550493208154621,
+    "n": 5,
+    "values": [
+     -0.2002134222025609,
+     -0.17835983146221146,
+     -0.1565203896052038,
+     -0.13037870103764193,
+     -0.10977425976969246
+    ]
+   },
+   "trained_level": "level1",
+   "transfer": true
+  },
+  {
+   "domain": "pantry_plan",
+   "final_eligible_prompts": [
+    34,
+    37,
+    37,
+    39,
+    40
+   ],
+   "final_eligible_prompts_pooled": 187,
+   "final_seeds_clearing_bar": 5,
+   "initial_defined_prompts": 42,
+   "initial_eligible_prompts": 42,
+   "initial_pmd": 0.6529589764473348,
+   "initial_reportable": true,
+   "kind": "before_after",
+   "level": "level5",
+   "method": "replay_maxrl",
+   "provisional": false,
+   "scale": "qwen3b",
+   "seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+   ],
+   "status": "measured",
+   "summary": {
+    "ci95": [
+     -0.22594949768840217,
+     -0.07096062540001014
+    ],
+    "mean": -0.14845506154420615,
+    "n": 5,
+    "values": [
+     -0.1934424147200544,
+     -0.1779290996318365,
+     -0.17769795199028088,
+     -0.15343993236822218,
+     -0.03976590901063681
     ]
    },
    "trained_level": "level1",
@@ -11237,6 +12739,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11260,6 +12764,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11285,6 +12791,8 @@
    "final_eligible_prompts": [
     4
    ],
+   "final_eligible_prompts_pooled": 4,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11310,6 +12818,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11333,6 +12843,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11356,6 +12868,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11381,6 +12895,8 @@
    "final_eligible_prompts": [
     23
    ],
+   "final_eligible_prompts_pooled": 23,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11409,6 +12925,8 @@
     4,
     14
    ],
+   "final_eligible_prompts_pooled": 18,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11435,6 +12953,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11458,6 +12978,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11481,6 +13003,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11504,6 +13028,8 @@
   {
    "domain": "python_factors",
    "final_eligible_prompts": [],
+   "final_eligible_prompts_pooled": 0,
+   "final_seeds_clearing_bar": 0,
    "initial_defined_prompts": 0,
    "initial_eligible_prompts": 0,
    "initial_pmd": null,
@@ -11529,7 +13055,7 @@
   "path": "ops/resample/build_concentration_across_levels.py"
  },
  "coverage": {
-  "blocks": 289,
+  "blocks": 305,
   "domains": [
    "countdown",
    "graph_coloring",
@@ -11544,7 +13070,7 @@
    "level4",
    "level5"
   ],
-  "measured": 237,
+  "measured": 251,
   "scales": [
    "falcon1b",
    "qwen05b",
@@ -11552,8 +13078,10 @@
   ]
  },
  "definition": {
+  "min_defined_prompts": 30,
   "pairing": "one untrained checkpoint per cell; spread is across training seeds",
   "quantity": "terminal PCMD minus untrained PCMD on the level's held-out split",
+  "support_rule": "a comparison is reportable when the untrained cell clears the 30-prompt support bar and the trained seeds pool to at least that many eligible prompts between them; per-seed counts are kept so a thin seed stays visible",
   "trained_level": "level1",
   "transfer_levels": [
    "level2",
@@ -11565,8 +13093,9 @@
  },
  "schema": "paper-concentration-across-levels-v1",
  "source": {
-  "path": "/tmp/claude-363432/-n-fs-similarity-maxent-grpo/9c6292f3-a3c6-40f9-a9ac-f9bc896a9993/scratchpad/rs5.json",
-  "schema": "paper-mode-diversity-resampled-terminal-v1"
+  "path": "paper/results/mode_diversity_resampled_terminal.json",
+  "schema": "paper-mode-diversity-resampled-terminal-v1",
+  "sha256": "febd9e72b4bc14fbc698c5d56a7b612cfe5d8a461c2cbea12ac51af44b3f6bd0"
  },
  "status": "analyzed"
 }

@@ -1,0 +1,10 @@
+{
+  "caption": {
+    "old": "\\caption{\\textbf{Reference KL trades correctness for diversity.} Four-domain means (excluding Python) at Qwen2.5-0.5B across KL coefficients $\\beta$. Green marks replay's correctness advantage at matched diversity (App.~\\ref{app:theory-kl-measured}).}",
+    "new": "\\caption{\\textbf{Reference KL trades correctness for diversity.} Means over Graph, MathIR, and Pantry at Qwen2.5-0.5B across KL coefficients $\\beta$. Rules mark initial means; shading marks either side of the interpolated KL curve, without uncertainty estimates (App.~\\ref{app:theory-kl-measured}).}"
+  },
+  "paragraph": {
+    "old": "A KL penalty anchors the policy to its initial distribution; replay rehearses modes discovered during training. Beyond $\\beta=.01$ in our sweep, increasing the KL coefficient preserves more diversity at lower correctness (Fig.~\\ref{fig:reference-kl-plane}). On the four-domain aggregate, matching replay's diversity with KL costs correctness. The analysis in App.~\\ref{app:theory-kl-measured} distinguishes the reference's initial diversity from the modes the bank discovers.",
+    "new": "A KL penalty anchors the policy to its initial distribution; replay rehearses modes discovered during training. Beyond $\\beta=.01$, the three-domain mean gains diversity while losing correctness (Fig.~\\ref{fig:reference-kl-plane}). At $\\beta=.04$, KL reaches $.432$ \\pmd{} against Re:Dr's $.427$, with \\texttt{pass@8} of $.614$ against $.846$. App.~\\ref{app:theory-kl-measured} gives the domain-level comparisons and distinguishes the reference's initial diversity from the modes the bank discovers."
+  }
+}

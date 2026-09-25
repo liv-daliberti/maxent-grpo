@@ -493,16 +493,16 @@
       "terminal_seeds": 5
     },
     {
-      "distinct8_after": 1.6767578125,
+      "distinct8_after": 1.57578125,
       "distinct8_before": 2.162109375,
       "domain": "pantry_plan",
-      "effective_modes_after": 1.5713642530629424,
+      "effective_modes_after": 1.4645610166462564,
       "effective_modes_before": 2.193388238288655,
       "level": "level1",
       "method": "replay_drgrpo",
-      "pass8_after": 0.7529296875,
+      "pass8_after": 0.75078125,
       "pass8_before": 0.890625,
-      "pmd_after": 0.3636103162899531,
+      "pmd_after": 0.31720154460349426,
       "pmd_after_paired": 0.3636103162899531,
       "pmd_before": 0.5440843611068924,
       "pmd_delta": -0.1804740448169393,
@@ -513,11 +513,11 @@
       "reportable": true,
       "reportable_seeds": 4,
       "scale": "falcon1b",
-      "seeds": 4,
+      "seeds": 5,
       "seeds_improving": 0,
-      "terminal_only_seeds": 0,
+      "terminal_only_seeds": 1,
       "terminal_reportable": true,
-      "terminal_seeds": 4
+      "terminal_seeds": 5
     },
     {
       "distinct8_after": 1.0078125,
@@ -612,11 +612,11 @@
       "reportable": false,
       "reportable_seeds": 0,
       "scale": "falcon1b",
-      "seeds": 1,
+      "seeds": 5,
       "seeds_improving": 0,
-      "terminal_only_seeds": 0,
+      "terminal_only_seeds": 4,
       "terminal_reportable": true,
-      "terminal_seeds": 1
+      "terminal_seeds": 4
     },
     {
       "distinct8_after": 1.10703125,
@@ -639,6 +639,30 @@
       "seeds": 5,
       "seeds_improving": 0,
       "terminal_only_seeds": 0,
+      "terminal_reportable": true,
+      "terminal_seeds": 5
+    },
+    {
+      "distinct8_after": 1.1140625,
+      "distinct8_before": null,
+      "domain": "python_factors",
+      "effective_modes_after": 1.0883093496750524,
+      "effective_modes_before": null,
+      "level": "level1",
+      "method": "replay_maxrl",
+      "pass8_after": 0.9609375,
+      "pass8_before": null,
+      "pmd_after": 0.08114361022573208,
+      "pmd_after_paired": null,
+      "pmd_before": null,
+      "pmd_delta": null,
+      "pmd_delta_seed_range": null,
+      "reportable": false,
+      "reportable_seeds": 0,
+      "scale": "falcon1b",
+      "seeds": 5,
+      "seeds_improving": 0,
+      "terminal_only_seeds": 5,
       "terminal_reportable": true,
       "terminal_seeds": 5
     },
@@ -2421,19 +2445,19 @@
   ],
   "builder": {
     "path": "ops/build_mode_diversity_training.py",
-    "sha256": "8882c5d6218f38ca5e017816ee6953beb39178410a3b632e2ae7b5850be59525"
+    "sha256": "affb35a237fbabc430015dc4f318ad106a6f9bbd26a68eeec07606da6199c53d"
   },
   "coverage": {
-    "arms": 94,
-    "cells": 463,
+    "arms": 95,
+    "cells": 473,
     "reportable_arms": 47,
-    "terminal_reportable_arms": 83
+    "terminal_reportable_arms": 84
   },
   "definition": {
     "aggregation": "pooled over a cell's four draws, unweighted mean over defined prompts, then over seeds",
     "equals": "one minus the registered conditional-concentration collision U-statistic",
-    "estimator": "PMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)) over a prompt's verified responses",
-    "metric": "pairwise modal diversity (PMD)",
+    "estimator": "PCMD = 1 - sum_m n_m (n_m - 1) / (K (K - 1)) over a prompt's verified responses",
+    "metric": "pairwise correct-mode diversity (PCMD)",
     "min_defined_prompts": 30
   },
   "schema": "paper-mode-diversity-training-v1",
@@ -4188,6 +4212,26 @@
     },
     {
       "after": {
+        "defined_prompts": 95,
+        "distinct8": 1.171875,
+        "pass8": 0.7421875,
+        "pmd": 0.1315664578576586,
+        "prompts": 128,
+        "reportable": true,
+        "support": 0.7421875
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "pantry_plan",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "replay_drgrpo",
+      "scale": "falcon1b",
+      "seed": 55,
+      "terminal_only": true
+    },
+    {
+      "after": {
         "defined_prompts": 105,
         "distinct8": 2.0234375,
         "pass8": 0.8046875,
@@ -4564,6 +4608,26 @@
         "reportable": true,
         "support": 1.0
       },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 55,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
       "before": {
         "defined_prompts": 0,
         "distinct8": 0.0,
@@ -4581,6 +4645,66 @@
       "scale": "falcon1b",
       "seed": 56,
       "terminal_only": false
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 57,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 58,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 22,
+        "distinct8": 0.171875,
+        "pass8": 0.171875,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": false,
+        "support": 0.171875
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "maxrl",
+      "scale": "falcon1b",
+      "seed": 59,
+      "terminal_only": true
     },
     {
       "after": {
@@ -4721,6 +4845,106 @@
       "scale": "falcon1b",
       "seed": 59,
       "terminal_only": false
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 55,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 103,
+        "distinct8": 1.5703125,
+        "pass8": 0.8046875,
+        "pmd": 0.4057180511286604,
+        "prompts": 128,
+        "reportable": true,
+        "support": 0.8046875
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 56,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 57,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 58,
+      "terminal_only": true
+    },
+    {
+      "after": {
+        "defined_prompts": 128,
+        "distinct8": 1.0,
+        "pass8": 1.0,
+        "pmd": 0.0,
+        "prompts": 128,
+        "reportable": true,
+        "support": 1.0
+      },
+      "before": null,
+      "delta_pmd": null,
+      "domain": "python_factors",
+      "in_terminal_paired_cohort": true,
+      "level": "level1",
+      "method": "replay_maxrl",
+      "scale": "falcon1b",
+      "seed": 59,
+      "terminal_only": true
     },
     {
       "after": {

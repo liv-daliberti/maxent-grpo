@@ -27,10 +27,10 @@ DROP_SUFFIXES = {'.aux', '.out', '.log', '.fls', '.fdb_latexmk', '.blg', '.synct
 
 README = '''# ICLR submission — Overleaf project
 
-There's More Than One Way: Mode Collapse in RLVR & ModeBench
+Measuring and Mitigating Solution Mode Collapse in RLVR
 
-This is the full ICLR manuscript (107 pages including the appendix), not the
-four-page MATH-AI workshop version, which is packaged separately by
+This is the full ICLR manuscript, including the appendix. The MATH-AI workshop
+version is packaged separately by
 `ops/package_mathai2026_overleaf.py`.
 
 ## Upload and compile
@@ -55,7 +55,8 @@ compile even before BibTeX has run.
 
 ## Where to edit
 
-- `main.tex`: the entire manuscript, including the appendix.
+- `main.tex`: the manuscript through the bibliography.
+- `appendix.tex`: the supplement, pulled in by `main.tex`.
 - `example_paper.bib`: bibliography entries.
 - `figures/`: figure PDFs, each alongside the JSON provenance record it was
   generated with. LaTeX reads only the PDFs.
@@ -89,7 +90,7 @@ def sha256(path):
 
 def run(args, cwd=None):
     return subprocess.run(args, cwd=cwd, check=True,
-                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors="replace")
 
 
 def discover_inputs(workdir):
@@ -103,7 +104,7 @@ def discover_inputs(workdir):
     subprocess.run(['pdflatex', '-recorder', '-interaction=nonstopmode',
                     f'-output-directory={workdir}', 'main.tex'],
                    cwd=PAPER, check=True, stdout=subprocess.PIPE,
-                   stderr=subprocess.STDOUT, text=True)
+                   stderr=subprocess.STDOUT, text=True, errors="replace")
     fls = (workdir / 'main.fls').read_text()
     found = set()
     for line in fls.splitlines():
@@ -177,8 +178,8 @@ def main():
                          ['pdflatex', '-interaction=nonstopmode', 'main']):
                 subprocess.run(step, cwd=check, check=(step[0] != 'bibtex'),
                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                               text=True)
-            log = (check / 'main.log').read_text()
+                               text=True, errors="replace")
+            log = (check / 'main.log').read_text(errors='replace')
             bad = [l for l in log.splitlines()
                    if 'not found' in l or l.startswith('! ')]
             if bad:

@@ -1,0 +1,27 @@
+--- ops/build_paper_gpt56_all_levels32_discovery.py (before)
++++ ops/build_paper_gpt56_all_levels32_discovery.py (after)
+@@ -8,6 +8,15 @@
+ import json
+ import math
+ from pathlib import Path
++
++try:
++    from ops.paper_domain_typography import format_domain_names
++except ModuleNotFoundError:
++    from paper_domain_typography import format_domain_names
++
++_DOMAIN_LANGUAGE_EXCEPTIONS = (
++    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
++)
+ 
+ try:
+     from . import plot_paper_gpt56_all_levels32_sampling as validation
+@@ -199,7 +208,7 @@
+         'and decoding settings do not ensure this. Small or zero gains at the',
+         'largest budgets do not rule out rare unseen modes.', '',
+     ]
+-    return '\n'.join(lines)
++    return format_domain_names('\n'.join(lines), exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def write(record, output_dir=OUTPUT_DIR):

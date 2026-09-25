@@ -157,8 +157,27 @@ def build_cohort(comparison: Path = COMPARISON,
             'macro_pmd': statistics.fmean(r['pmd'] for r in reportable) if reportable else None,
             'reportable_cells': len(reportable), 'cells_total': len(rows),
         })
+    # A macro over each deployment's own reportable cells is not comparable
+    # across deployments, and the cohort is ranked on it. Five deployments
+    # report all fifteen cells; GPT-5.6 Sol and Claude Opus 5 lose Python at
+    # Levels 2 and 3 to provider refusals, so their macro was an average over an
+    # easier thirteen. The comparable figure fixes the cell set to the ones
+    # every deployment reports, and both travel so a reader can see the gap.
+    common = set.intersection(*(
+        {(c['level'], c['domain']) for c in m['cells'] if c['reportable']}
+        for m in models)) if models else set()
+    for model in models:
+        shared = [c['pmd'] for c in model['cells']
+                  if (c['level'], c['domain']) in common]
+        model['macro_pmd_common_cells'] = (statistics.fmean(shared)
+                                           if shared else None)
     return {
         'schema': 'paper-mode-diversity-hosted-cohort-v1',
+        'common_cells': sorted([list(c) for c in common]),
+        'common_cell_note': ('macro_pmd averages each deployment over its own '
+                             'reportable cells and is not comparable between '
+                             'deployments; macro_pmd_common_cells fixes the set '
+                             'to the cells every deployment reports'),
         'comparison': {'path': str(comparison.relative_to(ROOT)), 'sha256': file_sha(comparison)},
         'builder': {'path': 'ops/build_mode_diversity_hosted.py',
                     'sha256': file_sha(Path(__file__).resolve())},
