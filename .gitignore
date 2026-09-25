@@ -50,3 +50,9 @@ tmp*/_remote_module_non_scriptable.py
 
 # patch/merge backups; 21 of these were swept into a commit once
 *.orig
+
+# Oversized artifacts kept on disk only (GitHub 100 MB limit)
+artifacts/modebench_prompt_ablation_20260911/local/download_cache/
+artifacts/modebench_inference_followups_20260911/offline/per_prompt.jsonl
+artifacts/frontier_temperature_20260911/kimi_k3_t1p5/normalized_samples.jsonl
+artifacts/frontier_temperature_20260911/kimi_k3_t1p5/audited_primary_samples.jsonl
