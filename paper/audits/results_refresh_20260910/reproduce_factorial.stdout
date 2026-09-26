@@ -1,0 +1,36 @@
+{
+  "json": "paper/audits/results_refresh_20260910/reproduced/level2_factorial_contrasts_20260910.json",
+  "table": "paper/audits/results_refresh_20260910/reproduced/level2_factorial_contrasts_20260910_table_body.tex",
+  "complete_five_seed_blocks": 4,
+  "paired_seeds": {
+    "graph_coloring": [
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "countdown": [
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "python_factors": [
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "mathir": [
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "pantry_plan": []
+  }
+}

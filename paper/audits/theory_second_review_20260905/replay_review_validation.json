@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-09-05T21:10:06.286262+00:00",
+  "scope": "independent replay proof review; no shared manuscript or scheduler edits",
+  "status": "pass with scope refinements and proved extensions",
+  "artifacts": [
+    {
+      "path": "paper/audits/theory_second_review_20260905/replay_review.md",
+      "sha256": "0c2a8385a9a64b5a08521f8683437ed2f3bb35e9769955b68a23085c3fc15e50",
+      "bytes": 22812
+    },
+    {
+      "path": "paper/audits/theory_second_review_20260905/shared_parameter_retention.tex",
+      "sha256": "b5b53e0a7bfac6289e0ee4abed918ab25bce9a69862dad9af54b6c67c76ec261",
+      "bytes": 2718
+    }
+  ],
+  "checks": [
+    "Re-derived all replay barrier and stationarity inequalities",
+    "Re-derived global Hessian/GD constants and MaxRL coefficient",
+    "Checked mean-token scoring, replay normalization, bank scheduling and complete-event caveat against current code",
+    "Derived shared-parameter joint-energy exemplar floor and finite iid evaluation visibility",
+    "Matched TeX environments and display delimiters"
+  ],
+  "independent_fragment_review": {
+    "reviewer": "/root/e118_health",
+    "status": "PASS",
+    "findings": [
+      "Each weighted NLL is nonnegative; bounded J makes D finite and nonnegative",
+      "Complete-exemplar event inclusion implies key floor under shared parameters/prompts",
+      "Visibility expectation and union bound require iid draws at same checkpoint, not independent key indicators",
+      "EOS/horizon and matching temperature/truncation requirements cover sampling-law issue",
+      "No stochastic, clipped or alternating descent claim"
+    ],
+    "blockers": []
+  }
+}

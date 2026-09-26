@@ -1,0 +1,17 @@
+{
+  "section_3_1_unchanged": true,
+  "appendix_pages": [
+    95,
+    117
+  ],
+  "new_formal_results": 11,
+  "formal_blocks_with_proofs": 58,
+  "unresolved_references_or_citations": false,
+  "overfull_hboxes": false,
+  "appendix_line_fill_violations": 0,
+  "remaining_document_line_fill_violations": 25,
+  "global_contract": "Fails on pre-existing main role label sec:results-maxrl missing or duplicated",
+  "main_tex_sha256": "f135dafeff9e887450a535de2a836a885b0806175fd3af11b68a26c275f763a0",
+  "main_pdf_sha256": "3597682d53f2909edb1bd2eeefc2d0a556b3fa6b3f86f900e2c8d1e5f8820ec5",
+  "new_neural_training_experiments": false
+}

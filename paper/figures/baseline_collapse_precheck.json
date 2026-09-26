@@ -1,0 +1,2352 @@
+{
+  "schema": "paper-baseline-collapse-precheck-figure-v1",
+  "generated_at": "2026-09-21T22:46:48.289059+00:00",
+  "figure_key": "baseline-collapse-precheck",
+  "comparison": "unmodified Dr.GRPO and unmodified GRPO, pass 0 against pass 8, on five ModeBench domains at three model scales",
+  "layout": "three physical model rows by five static-domain columns",
+  "encoding": "each bar stacks pass@8 under (distinct@8 - pass@8); colour names the metric, arms are positional; whisker is the seed range of distinct@8",
+  "metric": "verified modes per prompt at K=8",
+  "arms": [
+    "Dr.GRPO",
+    "GRPO"
+  ],
+  "breadth_floor": 0.05,
+  "breadth_floor_note": "extra-modes retention is reported only where pass-0 extra modes exceed this floor; below it the denominator is at the four-draw measurement resolution",
+  "selection_rule": "every registered domain/seed with all four fixed-seed sampled-K draws at both step 0 and the exact pass-8 target; arms are read independently and pass 0 is measured per arm",
+  "source": {
+    "path": "paper/results/baseline_collapse_precheck.json",
+    "sha256": "6c851f9e09c9d914e6dc39d470b93c9113ad6075e5c71f16180e06a20f95b861",
+    "schema": "paper-baseline-collapse-precheck-v1"
+  },
+  "ledgers": {
+    "e78_verified_replay_only_05b_jobs.json": {
+      "path": "var/artifacts/e78_verified_replay_only_05b_jobs.json",
+      "sha256": "4a6a70d07c5f1fc30334bea848776900c85425f771ebadc39e802fb2e2d83ce2",
+      "arm": "drgrpo",
+      "scale": "qwen05b",
+      "arm_field": "control"
+    },
+    "e79_falcon1b_aligned_verified_replay_jobs.json": {
+      "path": "var/artifacts/e79_falcon1b_aligned_verified_replay_jobs.json",
+      "sha256": "29ad5ea9c5bf8836ec9a37d44c2f6973455100c64b3e253a46f90d860a98306c",
+      "arm": "drgrpo",
+      "scale": "falcon1b",
+      "arm_field": "control"
+    },
+    "e80r1_qwen3b_aligned_verified_replay_jobs.json": {
+      "path": "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json",
+      "sha256": "8f7a89a8303468f1a962856d0636c7121f42a77f68cfcfb40e1601a16ee5a0a0",
+      "arm": "drgrpo",
+      "scale": "qwen3b",
+      "arm_field": "control"
+    },
+    "e95_plain_grpo_Qwen25-05B_jobs.json": {
+      "path": "var/artifacts/e95_plain_grpo_Qwen25-05B_jobs.json",
+      "sha256": "22c5db5918c51a69cbec163f15a1f12f8bc9dec51b6010327ccd581ba269695e",
+      "arm": "grpo",
+      "scale": "qwen05b",
+      "arm_field": "grpo_plain_control"
+    },
+    "e95_plain_grpo_Falcon3-1B_jobs.json": {
+      "path": "var/artifacts/e95_plain_grpo_Falcon3-1B_jobs.json",
+      "sha256": "f1c4341ab2d4da54213780dc9a772c3e24858aef9e1fe58a8c567b2fb6cbd94b",
+      "arm": "grpo",
+      "scale": "falcon1b",
+      "arm_field": "grpo_plain_control"
+    },
+    "e95_plain_grpo_Qwen25-3B_jobs.json": {
+      "path": "var/artifacts/e95_plain_grpo_Qwen25-3B_jobs.json",
+      "sha256": "e29238bb6deff378d11bb8d35c91eccf5e172cfcfe98c172ee739d1f79c55ffa",
+      "arm": "grpo",
+      "scale": "qwen3b",
+      "arm_field": "grpo_plain_control"
+    },
+    "e114_plain_grpo_qwen3b_extension_jobs.json": {
+      "path": "var/artifacts/e114_plain_grpo_qwen3b_extension_jobs.json",
+      "sha256": "d2fef0aa1e3d4447ab530adfed442b0c1c5fe43e303ed1f1154d1b5cc4d21dbf",
+      "arm": "grpo",
+      "scale": "qwen3b",
+      "arm_field": "grpo_plain_control"
+    }
+  },
+  "pass0_arm_agreement": {
+    "qwen05b": {
+      "graph_coloring": {
+        "comparable": true,
+        "shared_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "countdown": {
+        "comparable": true,
+        "shared_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "python_factors": {
+        "comparable": true,
+        "shared_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "mathir": {
+        "comparable": true,
+        "shared_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "pantry_plan": {
+        "comparable": true,
+        "shared_seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "identical": true,
+        "mismatches": []
+      }
+    },
+    "falcon1b": {
+      "graph_coloring": {
+        "comparable": true,
+        "shared_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "countdown": {
+        "comparable": true,
+        "shared_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "python_factors": {
+        "comparable": true,
+        "shared_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "mathir": {
+        "comparable": true,
+        "shared_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "pantry_plan": {
+        "comparable": true,
+        "shared_seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "identical": true,
+        "mismatches": []
+      }
+    },
+    "qwen3b": {
+      "graph_coloring": {
+        "comparable": true,
+        "shared_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "countdown": {
+        "comparable": true,
+        "shared_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "python_factors": {
+        "comparable": true,
+        "shared_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "identical": true,
+        "mismatches": []
+      },
+      "mathir": {
+        "comparable": true,
+        "shared_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "identical": false,
+        "mismatches": [
+          {
+            "seed": 71,
+            "metric": "pass8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 71,
+            "metric": "distinct8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 72,
+            "metric": "pass8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 72,
+            "metric": "distinct8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 73,
+            "metric": "pass8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 73,
+            "metric": "distinct8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 74,
+            "metric": "pass8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          },
+          {
+            "seed": 74,
+            "metric": "distinct8",
+            "drgrpo": 0.154296875,
+            "grpo": 0.162109375
+          }
+        ]
+      },
+      "pantry_plan": {
+        "comparable": true,
+        "shared_seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "identical": false,
+        "mismatches": [
+          {
+            "seed": 71,
+            "metric": "pass8",
+            "drgrpo": 0.83203125,
+            "grpo": 0.828125
+          },
+          {
+            "seed": 71,
+            "metric": "distinct8",
+            "drgrpo": 1.453125,
+            "grpo": 1.412109375
+          },
+          {
+            "seed": 72,
+            "metric": "pass8",
+            "drgrpo": 0.83203125,
+            "grpo": 0.828125
+          },
+          {
+            "seed": 72,
+            "metric": "distinct8",
+            "drgrpo": 1.453125,
+            "grpo": 1.412109375
+          },
+          {
+            "seed": 73,
+            "metric": "pass8",
+            "drgrpo": 0.83203125,
+            "grpo": 0.828125
+          },
+          {
+            "seed": 73,
+            "metric": "distinct8",
+            "drgrpo": 1.453125,
+            "grpo": 1.412109375
+          },
+          {
+            "seed": 74,
+            "metric": "pass8",
+            "drgrpo": 0.83203125,
+            "grpo": 0.828125
+          },
+          {
+            "seed": 74,
+            "metric": "distinct8",
+            "drgrpo": 1.453125,
+            "grpo": 1.412109375
+          }
+        ]
+      }
+    }
+  },
+  "macro_by_scale": {
+    "drgrpo": {
+      "qwen05b": {
+        "complete": true,
+        "domains_present": [
+          "graph_coloring",
+          "countdown",
+          "python_factors",
+          "mathir",
+          "pantry_plan"
+        ],
+        "pass0": {
+          "pass8": 0.33484375,
+          "distinct8": 0.663671875,
+          "extra_modes": 0.328828125
+        },
+        "pass8": {
+          "pass8": 0.401875,
+          "distinct8": 0.40374999999999994,
+          "extra_modes": 0.0018750000000000004
+        },
+        "change": {
+          "pass8": 0.06703124999999999,
+          "distinct8": -0.2599218750000001,
+          "extra_modes": -0.326953125
+        },
+        "extra_modes_retained_fraction": 0.005702066999287242
+      },
+      "falcon1b": {
+        "complete": true,
+        "domains_present": [
+          "graph_coloring",
+          "countdown",
+          "python_factors",
+          "mathir",
+          "pantry_plan"
+        ],
+        "pass0": {
+          "pass8": 0.39140625,
+          "distinct8": 0.7234375,
+          "extra_modes": 0.33203125
+        },
+        "pass8": {
+          "pass8": 0.342421875,
+          "distinct8": 0.43671875,
+          "extra_modes": 0.094296875
+        },
+        "change": {
+          "pass8": -0.048984375000000024,
+          "distinct8": -0.28671874999999997,
+          "extra_modes": -0.237734375
+        },
+        "extra_modes_retained_fraction": 0.28400000000000003
+      },
+      "qwen3b": {
+        "complete": true,
+        "domains_present": [
+          "graph_coloring",
+          "countdown",
+          "python_factors",
+          "mathir",
+          "pantry_plan"
+        ],
+        "pass0": {
+          "pass8": 0.35562499999999997,
+          "distinct8": 0.56078125,
+          "extra_modes": 0.20515625
+        },
+        "pass8": {
+          "pass8": 0.45515625000000004,
+          "distinct8": 0.575234375,
+          "extra_modes": 0.120078125
+        },
+        "change": {
+          "pass8": 0.09953125000000007,
+          "distinct8": 0.014453124999999956,
+          "extra_modes": -0.08507812500000002
+        },
+        "extra_modes_retained_fraction": 0.5853008377760852
+      }
+    },
+    "grpo": {
+      "qwen05b": {
+        "complete": true,
+        "domains_present": [
+          "graph_coloring",
+          "countdown",
+          "python_factors",
+          "mathir",
+          "pantry_plan"
+        ],
+        "pass0": {
+          "pass8": 0.33484375,
+          "distinct8": 0.663671875,
+          "extra_modes": 0.328828125
+        },
+        "pass8": {
+          "pass8": 0.435390625,
+          "distinct8": 0.44125,
+          "extra_modes": 0.005859375
+        },
+        "change": {
+          "pass8": 0.10054687499999998,
+          "distinct8": -0.22242187500000005,
+          "extra_modes": -0.32296875
+        },
+        "extra_modes_retained_fraction": 0.017818959372772628
+      },
+      "falcon1b": {
+        "complete": true,
+        "domains_present": [
+          "graph_coloring",
+          "countdown",
+          "python_factors",
+          "mathir",
+          "pantry_plan"
+        ],
+        "pass0": {
+          "pass8": 0.39140625,
+          "distinct8": 0.7234375,
+          "extra_modes": 0.33203125
+        },
+        "pass8": {
+          "pass8": 0.45375,
+          "distinct8": 0.588671875,
+          "extra_modes": 0.134921875
+        },
+        "change": {
+          "pass8": 0.062343749999999976,
+          "distinct8": -0.134765625,
+          "extra_modes": -0.197109375
+        },
+        "extra_modes_retained_fraction": 0.4063529411764706
+      },
+      "qwen3b": {
+        "complete": true,
+        "domains_present": [
+          "graph_coloring",
+          "countdown",
+          "python_factors",
+          "mathir",
+          "pantry_plan"
+        ],
+        "pass0": {
+          "pass8": 0.35625,
+          "distinct8": 0.55546875,
+          "extra_modes": 0.19921875
+        },
+        "pass8": {
+          "pass8": 0.489609375,
+          "distinct8": 0.5904687500000001,
+          "extra_modes": 0.100859375
+        },
+        "change": {
+          "pass8": 0.133359375,
+          "distinct8": 0.03500000000000014,
+          "extra_modes": -0.098359375
+        },
+        "extra_modes_retained_fraction": 0.5062745098039215
+      }
+    }
+  },
+  "panels": {
+    "qwen05b/graph_coloring": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.455859375,
+          "distinct8": 0.561328125,
+          "extra_modes": 0.10546875
+        },
+        "pass8": {
+          "pass8": 0.3234375,
+          "distinct8": 0.325,
+          "extra_modes": 0.0015625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.132421875,
+            "n": 5,
+            "range": [
+              -0.185546875,
+              -0.115234375
+            ],
+            "student_t_95": [
+              -0.1696141536297484,
+              -0.09522959637025158
+            ]
+          },
+          "distinct8": {
+            "mean": -0.236328125,
+            "n": 5,
+            "range": [
+              -0.353515625,
+              -0.203125
+            ],
+            "student_t_95": [
+              -0.3178137683961197,
+              -0.1548424816038803
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.10390625,
+            "n": 5,
+            "range": [
+              -0.16796875,
+              -0.087890625
+            ],
+            "student_t_95": [
+              -0.1483727536379335,
+              -0.05943974636206652
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.014814814814814815,
+        "retained_fraction_reportable": true
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.455859375,
+          "distinct8": 0.561328125,
+          "extra_modes": 0.10546875
+        },
+        "pass8": {
+          "pass8": 0.3609375,
+          "distinct8": 0.371875,
+          "extra_modes": 0.0109375
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.094921875,
+            "n": 5,
+            "range": [
+              -0.216796875,
+              0.025390625
+            ],
+            "student_t_95": [
+              -0.20241812217759686,
+              0.012574372177596854
+            ]
+          },
+          "distinct8": {
+            "mean": -0.189453125,
+            "n": 5,
+            "range": [
+              -0.392578125,
+              -0.0078125
+            ],
+            "student_t_95": [
+              -0.35954068042927817,
+              -0.01936556957072183
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.09453125,
+            "n": 5,
+            "range": [
+              -0.17578125,
+              -0.033203125
+            ],
+            "student_t_95": [
+              -0.15813243593857573,
+              -0.03093006406142426
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.1037037037037037,
+        "retained_fraction_reportable": true
+      }
+    },
+    "qwen05b/countdown": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.097265625,
+          "distinct8": 0.108203125,
+          "extra_modes": 0.0109375
+        },
+        "pass8": {
+          "pass8": 0.48046875,
+          "distinct8": 0.48671875,
+          "extra_modes": 0.00625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.383203125,
+            "n": 5,
+            "range": [
+              0.205078125,
+              0.537109375
+            ],
+            "student_t_95": [
+              0.21949012293186543,
+              0.5469161270681345
+            ]
+          },
+          "distinct8": {
+            "mean": 0.378515625,
+            "n": 5,
+            "range": [
+              0.1953125,
+              0.529296875
+            ],
+            "student_t_95": [
+              0.21831597206793157,
+              0.5387152779320685
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.0046875,
+            "n": 5,
+            "range": [
+              -0.015625,
+              0.017578125
+            ],
+            "student_t_95": [
+              -0.02064548587117969,
+              0.011270485871179688
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.097265625,
+          "distinct8": 0.108203125,
+          "extra_modes": 0.0109375
+        },
+        "pass8": {
+          "pass8": 0.6390625,
+          "distinct8": 0.655859375,
+          "extra_modes": 0.016796875
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.541796875,
+            "n": 5,
+            "range": [
+              0.498046875,
+              0.576171875
+            ],
+            "student_t_95": [
+              0.4995969126531114,
+              0.5839968373468885
+            ]
+          },
+          "distinct8": {
+            "mean": 0.54765625,
+            "n": 5,
+            "range": [
+              0.498046875,
+              0.62109375
+            ],
+            "student_t_95": [
+              0.48786818804023613,
+              0.6074443119597638
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.005859375,
+            "n": 5,
+            "range": [
+              -0.0078125,
+              0.044921875
+            ],
+            "student_t_95": [
+              -0.021684750164371505,
+              0.033403500164371505
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "qwen05b/python_factors": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.0,
+          "distinct8": 0.0,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.171875,
+          "distinct8": 0.171875,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.171875,
+            "n": 5,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "student_t_95": [
+              0.171875,
+              0.171875
+            ]
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "n": 5,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "student_t_95": [
+              0.171875,
+              0.171875
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.0,
+          "distinct8": 0.0,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.171875,
+          "distinct8": 0.171875,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.171875,
+            "n": 5,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "student_t_95": [
+              0.171875,
+              0.171875
+            ]
+          },
+          "distinct8": {
+            "mean": 0.171875,
+            "n": 5,
+            "range": [
+              0.171875,
+              0.171875
+            ],
+            "student_t_95": [
+              0.171875,
+              0.171875
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "qwen05b/mathir": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.21953125,
+          "distinct8": 0.22265625,
+          "extra_modes": 0.003125
+        },
+        "pass8": {
+          "pass8": 0.51171875,
+          "distinct8": 0.51328125,
+          "extra_modes": 0.0015625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.2921875,
+            "n": 5,
+            "range": [
+              0.216796875,
+              0.361328125
+            ],
+            "student_t_95": [
+              0.2164707632693136,
+              0.3679042367306864
+            ]
+          },
+          "distinct8": {
+            "mean": 0.290625,
+            "n": 5,
+            "range": [
+              0.216796875,
+              0.361328125
+            ],
+            "student_t_95": [
+              0.21305132009775,
+              0.3681986799022501
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.0015625,
+            "n": 5,
+            "range": [
+              -0.0078125,
+              0.0
+            ],
+            "student_t_95": [
+              -0.0059006954768715605,
+              0.00277569547687156
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.21953125,
+          "distinct8": 0.22265625,
+          "extra_modes": 0.003125
+        },
+        "pass8": {
+          "pass8": 0.459765625,
+          "distinct8": 0.461328125,
+          "extra_modes": 0.0015625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.240234375,
+            "n": 5,
+            "range": [
+              0.0390625,
+              0.4921875
+            ],
+            "student_t_95": [
+              0.02031551456975797,
+              0.460153235430242
+            ]
+          },
+          "distinct8": {
+            "mean": 0.238671875,
+            "n": 5,
+            "range": [
+              0.03125,
+              0.4921875
+            ],
+            "student_t_95": [
+              0.01863003238722899,
+              0.458713717612771
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.0015625,
+            "n": 5,
+            "range": [
+              -0.0078125,
+              0.0078125
+            ],
+            "student_t_95": [
+              -0.009678520575652888,
+              0.006553520575652888
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "qwen05b/pantry_plan": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.9015625,
+          "distinct8": 2.426171875,
+          "extra_modes": 1.524609375
+        },
+        "pass8": {
+          "pass8": 0.521875,
+          "distinct8": 0.521875,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.3796875,
+            "n": 5,
+            "range": [
+              -0.41796875,
+              -0.369140625
+            ],
+            "student_t_95": [
+              -0.4062865999698799,
+              -0.3530884000301201
+            ]
+          },
+          "distinct8": {
+            "mean": -1.904296875,
+            "n": 5,
+            "range": [
+              -1.935546875,
+              -1.888671875
+            ],
+            "student_t_95": [
+              -1.9280581502154943,
+              -1.8805355997845057
+            ]
+          },
+          "extra_modes": {
+            "mean": -1.524609375,
+            "n": 5,
+            "range": [
+              -1.53515625,
+              -1.517578125
+            ],
+            "student_t_95": [
+              -1.5365640359881334,
+              -1.5126547140118667
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.0,
+        "retained_fraction_reportable": true
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "pass0": {
+          "pass8": 0.9015625,
+          "distinct8": 2.426171875,
+          "extra_modes": 1.524609375
+        },
+        "pass8": {
+          "pass8": 0.5453125,
+          "distinct8": 0.5453125,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.35625,
+            "n": 5,
+            "range": [
+              -0.369140625,
+              -0.34765625
+            ],
+            "student_t_95": [
+              -0.37086125231882977,
+              -0.34163874768117025
+            ]
+          },
+          "distinct8": {
+            "mean": -1.880859375,
+            "n": 5,
+            "range": [
+              -1.904296875,
+              -1.865234375
+            ],
+            "student_t_95": [
+              -1.9074252883069631,
+              -1.8542934616930369
+            ]
+          },
+          "extra_modes": {
+            "mean": -1.524609375,
+            "n": 5,
+            "range": [
+              -1.53515625,
+              -1.517578125
+            ],
+            "student_t_95": [
+              -1.5365640359881334,
+              -1.5126547140118667
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.0,
+        "retained_fraction_reportable": true
+      }
+    },
+    "falcon1b/graph_coloring": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.693359375,
+          "distinct8": 1.0703125,
+          "extra_modes": 0.376953125
+        },
+        "pass8": {
+          "pass8": 0.655859375,
+          "distinct8": 1.033984375,
+          "extra_modes": 0.378125
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.0375,
+            "n": 5,
+            "range": [
+              -0.138671875,
+              0.05078125
+            ],
+            "student_t_95": [
+              -0.12105954606356253,
+              0.046059546063562544
+            ]
+          },
+          "distinct8": {
+            "mean": -0.036328125,
+            "n": 5,
+            "range": [
+              -0.2890625,
+              0.23828125
+            ],
+            "student_t_95": [
+              -0.28018044282461296,
+              0.20752419282461299
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.001171875,
+            "n": 5,
+            "range": [
+              -0.150390625,
+              0.1875
+            ],
+            "student_t_95": [
+              -0.16720062568722643,
+              0.1695443756872264
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 1.0031088082901554,
+        "retained_fraction_reportable": true
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.693359375,
+          "distinct8": 1.0703125,
+          "extra_modes": 0.376953125
+        },
+        "pass8": {
+          "pass8": 0.769140625,
+          "distinct8": 1.384765625,
+          "extra_modes": 0.615625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.07578125,
+            "n": 5,
+            "range": [
+              0.041015625,
+              0.111328125
+            ],
+            "student_t_95": [
+              0.04480033749289343,
+              0.10676216250710656
+            ]
+          },
+          "distinct8": {
+            "mean": 0.314453125,
+            "n": 5,
+            "range": [
+              0.255859375,
+              0.423828125
+            ],
+            "student_t_95": [
+              0.23499557818799616,
+              0.39391067181200384
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.238671875,
+            "n": 5,
+            "range": [
+              0.1875,
+              0.345703125
+            ],
+            "student_t_95": [
+              0.16207093233780284,
+              0.31527281766219717
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 1.6331606217616579,
+        "retained_fraction_reportable": true
+      }
+    },
+    "falcon1b/countdown": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.224609375,
+          "distinct8": 0.23046875,
+          "extra_modes": 0.005859375
+        },
+        "pass8": {
+          "pass8": 0.327734375,
+          "distinct8": 0.41953125,
+          "extra_modes": 0.091796875
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.103125,
+            "n": 5,
+            "range": [
+              0.06640625,
+              0.142578125
+            ],
+            "student_t_95": [
+              0.06734310453843755,
+              0.13890689546156243
+            ]
+          },
+          "distinct8": {
+            "mean": 0.1890625,
+            "n": 5,
+            "range": [
+              0.125,
+              0.28125
+            ],
+            "student_t_95": [
+              0.10873263677358949,
+              0.26939236322641047
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0859375,
+            "n": 5,
+            "range": [
+              0.04296875,
+              0.138671875
+            ],
+            "student_t_95": [
+              0.03976449568339991,
+              0.1321105043166001
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.224609375,
+          "distinct8": 0.23046875,
+          "extra_modes": 0.005859375
+        },
+        "pass8": {
+          "pass8": 0.549609375,
+          "distinct8": 0.558203125,
+          "extra_modes": 0.00859375
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.325,
+            "n": 5,
+            "range": [
+              0.078125,
+              0.404296875
+            ],
+            "student_t_95": [
+              0.15306736021079795,
+              0.4969326397892021
+            ]
+          },
+          "distinct8": {
+            "mean": 0.327734375,
+            "n": 5,
+            "range": [
+              0.107421875,
+              0.3984375
+            ],
+            "student_t_95": [
+              0.17418929462847207,
+              0.48127945537152794
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.002734375,
+            "n": 5,
+            "range": [
+              -0.005859375,
+              0.029296875
+            ],
+            "student_t_95": [
+              -0.01617538068100837,
+              0.021644130681008372
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "falcon1b/python_factors": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.0,
+          "distinct8": 0.0,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.000390625,
+          "distinct8": 0.000390625,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.000390625,
+            "n": 5,
+            "range": [
+              0.0,
+              0.001953125
+            ],
+            "student_t_95": [
+              -0.00069392386921789,
+              0.0014751738692178901
+            ]
+          },
+          "distinct8": {
+            "mean": 0.000390625,
+            "n": 5,
+            "range": [
+              0.0,
+              0.001953125
+            ],
+            "student_t_95": [
+              -0.00069392386921789,
+              0.0014751738692178901
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.0,
+          "distinct8": 0.0,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.04375,
+          "distinct8": 0.04375,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.04375,
+            "n": 5,
+            "range": [
+              0.0,
+              0.171875
+            ],
+            "student_t_95": [
+              -0.04740373556818625,
+              0.13490373556818624
+            ]
+          },
+          "distinct8": {
+            "mean": 0.04375,
+            "n": 5,
+            "range": [
+              0.0,
+              0.171875
+            ],
+            "student_t_95": [
+              -0.04740373556818625,
+              0.13490373556818624
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "falcon1b/mathir": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.1484375,
+          "distinct8": 0.154296875,
+          "extra_modes": 0.005859375
+        },
+        "pass8": {
+          "pass8": 0.0953125,
+          "distinct8": 0.096875,
+          "extra_modes": 0.0015625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.053125,
+            "n": 5,
+            "range": [
+              -0.078125,
+              0.0078125
+            ],
+            "student_t_95": [
+              -0.10034960046916798,
+              -0.005900399530832018
+            ]
+          },
+          "distinct8": {
+            "mean": -0.057421875,
+            "n": 5,
+            "range": [
+              -0.083984375,
+              0.001953125
+            ],
+            "student_t_95": [
+              -0.10323042561561868,
+              -0.01161332438438132
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.004296875,
+            "n": 5,
+            "range": [
+              -0.005859375,
+              0.001953125
+            ],
+            "student_t_95": [
+              -0.008635070476871561,
+              4.1320476871559673e-05
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.1484375,
+          "distinct8": 0.154296875,
+          "extra_modes": 0.005859375
+        },
+        "pass8": {
+          "pass8": 0.26171875,
+          "distinct8": 0.271484375,
+          "extra_modes": 0.009765625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.11328125,
+            "n": 5,
+            "range": [
+              -0.048828125,
+              0.22265625
+            ],
+            "student_t_95": [
+              -0.03263995385875712,
+              0.2592024538587571
+            ]
+          },
+          "distinct8": {
+            "mean": 0.1171875,
+            "n": 5,
+            "range": [
+              -0.0546875,
+              0.23046875
+            ],
+            "student_t_95": [
+              -0.033170249782487365,
+              0.2675452497824874
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.00390625,
+            "n": 5,
+            "range": [
+              -0.005859375,
+              0.0078125
+            ],
+            "student_t_95": [
+              -0.0035684872436618584,
+              0.011380987243661858
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "falcon1b/pantry_plan": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.890625,
+          "distinct8": 2.162109375,
+          "extra_modes": 1.271484375
+        },
+        "pass8": {
+          "pass8": 0.6328125,
+          "distinct8": 0.6328125,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.2578125,
+            "n": 5,
+            "range": [
+              -0.2578125,
+              -0.2578125
+            ],
+            "student_t_95": [
+              -0.2578125,
+              -0.2578125
+            ]
+          },
+          "distinct8": {
+            "mean": -1.529296875,
+            "n": 5,
+            "range": [
+              -1.529296875,
+              -1.529296875
+            ],
+            "student_t_95": [
+              -1.529296875,
+              -1.529296875
+            ]
+          },
+          "extra_modes": {
+            "mean": -1.271484375,
+            "n": 5,
+            "range": [
+              -1.271484375,
+              -1.271484375
+            ],
+            "student_t_95": [
+              -1.271484375,
+              -1.271484375
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.0,
+        "retained_fraction_reportable": true
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          55,
+          56,
+          57,
+          58,
+          59
+        ],
+        "pass0": {
+          "pass8": 0.890625,
+          "distinct8": 2.162109375,
+          "extra_modes": 1.271484375
+        },
+        "pass8": {
+          "pass8": 0.64453125,
+          "distinct8": 0.68515625,
+          "extra_modes": 0.040625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.24609375,
+            "n": 5,
+            "range": [
+              -0.2578125,
+              -0.19921875
+            ],
+            "student_t_95": [
+              -0.2786302160765367,
+              -0.2135572839234633
+            ]
+          },
+          "distinct8": {
+            "mean": -1.476953125,
+            "n": 5,
+            "range": [
+              -1.529296875,
+              -1.267578125
+            ],
+            "student_t_95": [
+              -1.6222826734751974,
+              -1.3316235765248028
+            ]
+          },
+          "extra_modes": {
+            "mean": -1.230859375,
+            "n": 5,
+            "range": [
+              -1.271484375,
+              -1.068359375
+            ],
+            "student_t_95": [
+              -1.3436524573986606,
+              -1.1180662926013396
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.03195084485407066,
+        "retained_fraction_reportable": true
+      }
+    },
+    "qwen3b/graph_coloring": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.607421875,
+          "distinct8": 1.01171875,
+          "extra_modes": 0.404296875
+        },
+        "pass8": {
+          "pass8": 0.68203125,
+          "distinct8": 1.06015625,
+          "extra_modes": 0.378125
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.074609375,
+            "n": 5,
+            "range": [
+              0.041015625,
+              0.130859375
+            ],
+            "student_t_95": [
+              0.02829647143773445,
+              0.12092227856226556
+            ]
+          },
+          "distinct8": {
+            "mean": 0.0484375,
+            "n": 5,
+            "range": [
+              -0.029296875,
+              0.18359375
+            ],
+            "student_t_95": [
+              -0.059764935492949874,
+              0.15663993549294988
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.026171875,
+            "n": 5,
+            "range": [
+              -0.087890625,
+              0.052734375
+            ],
+            "student_t_95": [
+              -0.09581984362689334,
+              0.04347609362689335
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.9352657004830918,
+        "retained_fraction_reportable": true
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.607421875,
+          "distinct8": 1.01171875,
+          "extra_modes": 0.404296875
+        },
+        "pass8": {
+          "pass8": 0.7046875,
+          "distinct8": 1.067578125,
+          "extra_modes": 0.362890625
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.097265625,
+            "n": 5,
+            "range": [
+              0.05859375,
+              0.1328125
+            ],
+            "student_t_95": [
+              0.06453092882764239,
+              0.1300003211723576
+            ]
+          },
+          "distinct8": {
+            "mean": 0.055859375,
+            "n": 5,
+            "range": [
+              -0.056640625,
+              0.208984375
+            ],
+            "student_t_95": [
+              -0.06401394275556402,
+              0.17573269275556402
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.04140625,
+            "n": 5,
+            "range": [
+              -0.115234375,
+              0.076171875
+            ],
+            "student_t_95": [
+              -0.13017046296762286,
+              0.04735796296762285
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.8975845410628019,
+        "retained_fraction_reportable": true
+      }
+    },
+    "qwen3b/countdown": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.18359375,
+          "distinct8": 0.19140625,
+          "extra_modes": 0.0078125
+        },
+        "pass8": {
+          "pass8": 0.609375,
+          "distinct8": 0.628125,
+          "extra_modes": 0.01875
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.42578125,
+            "n": 5,
+            "range": [
+              0.41796875,
+              0.44140625
+            ],
+            "student_t_95": [
+              0.4142778721007174,
+              0.4372846278992826
+            ]
+          },
+          "distinct8": {
+            "mean": 0.43671875,
+            "n": 5,
+            "range": [
+              0.41015625,
+              0.474609375
+            ],
+            "student_t_95": [
+              0.4054449789347178,
+              0.46799252106528216
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0109375,
+            "n": 5,
+            "range": [
+              -0.0078125,
+              0.033203125
+            ],
+            "student_t_95": [
+              -0.011979610430872072,
+              0.03385461043087207
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.18359375,
+          "distinct8": 0.19140625,
+          "extra_modes": 0.0078125
+        },
+        "pass8": {
+          "pass8": 0.611328125,
+          "distinct8": 0.622265625,
+          "extra_modes": 0.0109375
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.427734375,
+            "n": 5,
+            "range": [
+              0.419921875,
+              0.435546875
+            ],
+            "student_t_95": [
+              0.4195103760117338,
+              0.4359583739882662
+            ]
+          },
+          "distinct8": {
+            "mean": 0.430859375,
+            "n": 5,
+            "range": [
+              0.4140625,
+              0.453125
+            ],
+            "student_t_95": [
+              0.4120275337652422,
+              0.4496912162347578
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.003125,
+            "n": 5,
+            "range": [
+              -0.0078125,
+              0.0234375
+            ],
+            "student_t_95": [
+              -0.011586536627722202,
+              0.0178365366277222
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "qwen3b/python_factors": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.0,
+          "distinct8": 0.0,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.06875,
+          "distinct8": 0.06875,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.06875,
+            "n": 5,
+            "range": [
+              0.0,
+              0.171875
+            ],
+            "student_t_95": [
+              -0.04814001855063789,
+              0.1856400185506379
+            ]
+          },
+          "distinct8": {
+            "mean": 0.06875,
+            "n": 5,
+            "range": [
+              0.0,
+              0.171875
+            ],
+            "student_t_95": [
+              -0.04814001855063789,
+              0.1856400185506379
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.0,
+          "distinct8": 0.0,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.1953125,
+          "distinct8": 0.1953125,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.1953125,
+            "n": 5,
+            "range": [
+              0.0,
+              0.6328125
+            ],
+            "student_t_95": [
+              -0.126562894641306,
+              0.517187894641306
+            ]
+          },
+          "distinct8": {
+            "mean": 0.1953125,
+            "n": 5,
+            "range": [
+              0.0,
+              0.6328125
+            ],
+            "student_t_95": [
+              -0.126562894641306,
+              0.517187894641306
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "qwen3b/mathir": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.155859375,
+          "distinct8": 0.155859375,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.277734375,
+          "distinct8": 0.278515625,
+          "extra_modes": 0.00078125
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.121875,
+            "n": 5,
+            "range": [
+              0.099609375,
+              0.142578125
+            ],
+            "student_t_95": [
+              0.0966957083380002,
+              0.1470542916619998
+            ]
+          },
+          "distinct8": {
+            "mean": 0.12265625,
+            "n": 5,
+            "range": [
+              0.099609375,
+              0.142578125
+            ],
+            "student_t_95": [
+              0.09862425240068658,
+              0.14668824759931343
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.00078125,
+            "n": 5,
+            "range": [
+              0.0,
+              0.00390625
+            ],
+            "student_t_95": [
+              -0.00138784773843578,
+              0.0029503477384357803
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.162109375,
+          "distinct8": 0.162109375,
+          "extra_modes": 0.0
+        },
+        "pass8": {
+          "pass8": 0.298046875,
+          "distinct8": 0.298046875,
+          "extra_modes": 0.0
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": 0.1359375,
+            "n": 5,
+            "range": [
+              0.107421875,
+              0.1640625
+            ],
+            "student_t_95": [
+              0.10825493451748455,
+              0.16362006548251543
+            ]
+          },
+          "distinct8": {
+            "mean": 0.1359375,
+            "n": 5,
+            "range": [
+              0.107421875,
+              0.1640625
+            ],
+            "student_t_95": [
+              0.10825493451748455,
+              0.16362006548251543
+            ]
+          },
+          "extra_modes": {
+            "mean": 0.0,
+            "n": 5,
+            "range": [
+              0.0,
+              0.0
+            ],
+            "student_t_95": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": null,
+        "retained_fraction_reportable": false
+      }
+    },
+    "qwen3b/pantry_plan": {
+      "drgrpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.83125,
+          "distinct8": 1.444921875,
+          "extra_modes": 0.613671875
+        },
+        "pass8": {
+          "pass8": 0.637890625,
+          "distinct8": 0.840625,
+          "extra_modes": 0.202734375
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.193359375,
+            "n": 5,
+            "range": [
+              -0.27734375,
+              -0.115234375
+            ],
+            "student_t_95": [
+              -0.2938485488142059,
+              -0.0928702011857941
+            ]
+          },
+          "distinct8": {
+            "mean": -0.604296875,
+            "n": 5,
+            "range": [
+              -0.8984375,
+              -0.171875
+            ],
+            "student_t_95": [
+              -1.0056810707254242,
+              -0.20291267927457562
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.4109375,
+            "n": 5,
+            "range": [
+              -0.62109375,
+              -0.056640625
+            ],
+            "student_t_95": [
+              -0.718166477601887,
+              -0.10370852239811307
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.3303628262253342,
+        "retained_fraction_reportable": true
+      },
+      "grpo": {
+        "status": "available",
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "pass0": {
+          "pass8": 0.828125,
+          "distinct8": 1.412109375,
+          "extra_modes": 0.583984375
+        },
+        "pass8": {
+          "pass8": 0.638671875,
+          "distinct8": 0.769140625,
+          "extra_modes": 0.13046875
+        },
+        "paired_change": {
+          "pass8": {
+            "mean": -0.189453125,
+            "n": 5,
+            "range": [
+              -0.2734375,
+              -0.134765625
+            ],
+            "student_t_95": [
+              -0.25366171558782497,
+              -0.12524453441217503
+            ]
+          },
+          "distinct8": {
+            "mean": -0.64296875,
+            "n": 5,
+            "range": [
+              -0.857421875,
+              -0.48046875
+            ],
+            "student_t_95": [
+              -0.8211486100466427,
+              -0.4647888899533572
+            ]
+          },
+          "extra_modes": {
+            "mean": -0.453515625,
+            "n": 5,
+            "range": [
+              -0.583984375,
+              -0.345703125
+            ],
+            "student_t_95": [
+              -0.5704056435506378,
+              -0.33662560644936207
+            ]
+          }
+        },
+        "extra_modes_retained_fraction": 0.2234113712374582,
+        "retained_fraction_reportable": true
+      }
+    }
+  }
+}

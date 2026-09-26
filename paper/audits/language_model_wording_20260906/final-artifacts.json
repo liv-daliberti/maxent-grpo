@@ -1,0 +1,12 @@
+{
+  "files": {
+    "main.tex": "68f968d3068aded348add7bb4a19820b1a079de0ee74ce1a023b2f5eff8aaa05",
+    "main.pdf": "7da58beb99a93041cd183608d07b0980d88ac64e32d3e9df5c507ca12c773e78",
+    "snapshot.json": "503fdbd37cfce8a360d9d5a953c9bbe8f618a0c065077e62e9c34c1831be5b02",
+    "mathai2026-source.zip": "1bc527ffca710666bbfa710ced537cd0046656d9dfa5f54c9729b7292be80ad7"
+  },
+  "main_pages": 4,
+  "figure_1_page": 1,
+  "main_figures": 6,
+  "archive_sources_match": true
+}

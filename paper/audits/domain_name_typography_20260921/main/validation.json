@@ -1,0 +1,14 @@
+{
+  "wrappers_added": 345,
+  "idempotent": true,
+  "domain_word_sequence_unchanged": true,
+  "labels_unchanged": true,
+  "ordinary_language_exceptions": [
+    "executable Python code",
+    "isolated Python \\texttt{-I} process",
+    "are invalid Python",
+    "LaTeX-escaped Python"
+  ],
+  "before_sha256": "34529ce3514ec6af3bff58a75033bdb60c7d4db62819811ae3f964231ec0f2e4",
+  "after_sha256": "efc55d84525eeb3979e7cd01c9a473aa8f70f2fa6404b2bba5b40f7732d1447e"
+}

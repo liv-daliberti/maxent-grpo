@@ -1,0 +1,166 @@
+{
+  "status": "passed",
+  "anchor": "paper/results/frontier_comparison_20260911.json",
+  "anchor_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e",
+  "dependency_order": [
+    "paper/results/frontier_comparison_20260911.json",
+    "paper/results/mode_diversity_hosted_cohort_20260917.json",
+    "paper/results/hosted_reasoning_off_20260912.json",
+    "paper/figures/hosted_verified_breadth.json",
+    "paper/results/mode_diversity_frontier_points.json",
+    "paper/results/mode_diversity_hosted_cohort.json",
+    "paper/results/hosted_level_averages_20260911.json",
+    "paper/figures/frontier_level_grid.json"
+  ],
+  "changed_files": [
+    {
+      "path": "paper/results/mode_diversity_hosted_cohort_20260917.json",
+      "updates": [
+        {
+          "json_pointer": "/comparison/sha256",
+          "dependency": "paper/results/frontier_comparison_20260911.json",
+          "old_sha256": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4",
+          "new_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e"
+        }
+      ],
+      "after_sha256": "c06aacd1a685479a8f6f151ac254a026af2c67a8c6eef1df8cec42117c8e602f",
+      "only_digest_fields_changed": true
+    },
+    {
+      "path": "paper/results/hosted_reasoning_off_20260912.json",
+      "updates": [
+        {
+          "json_pointer": "/icon_catalog/sha256",
+          "dependency": "paper/results/frontier_comparison_20260911.json",
+          "old_sha256": "5571694f63d5a18fa1e52e19f014042996ccb5321b225b36e253495bc7522c59",
+          "new_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e"
+        }
+      ],
+      "after_sha256": "4cd50558fec8a5783a982f403bf15f027e5a4edeff1575d5de58e04f0c15dd9a",
+      "only_digest_fields_changed": true
+    },
+    {
+      "path": "paper/figures/hosted_verified_breadth.json",
+      "updates": [
+        {
+          "json_pointer": "/source/sha256",
+          "dependency": "paper/results/frontier_comparison_20260911.json",
+          "old_sha256": "04d6e6becb184e6f21de812bf7f0e0b1c19e3c527dcdc0d38d23b5851a9979bb",
+          "new_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e"
+        }
+      ],
+      "after_sha256": "b3091d3e1e3395b1b2e91c1566ceb700198929c089a374d265272a72a1fbabc0",
+      "only_digest_fields_changed": true
+    },
+    {
+      "path": "paper/results/mode_diversity_frontier_points.json",
+      "updates": [
+        {
+          "json_pointer": "/source/sha256",
+          "dependency": "paper/results/frontier_comparison_20260911.json",
+          "old_sha256": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4",
+          "new_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e"
+        }
+      ],
+      "after_sha256": "52a57add886efef39e6edb30caef39517cd70ca9f8fccc77cb1dca7bf5e1c94d",
+      "only_digest_fields_changed": true
+    },
+    {
+      "path": "paper/results/mode_diversity_hosted_cohort.json",
+      "updates": [
+        {
+          "json_pointer": "/comparison/sha256",
+          "dependency": "paper/results/frontier_comparison_20260911.json",
+          "old_sha256": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4",
+          "new_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e"
+        }
+      ],
+      "after_sha256": "c9e6146092a7a7a2f13bec0a59a13c236bbfa84064c90fdcda566ebdab7d1711",
+      "only_digest_fields_changed": true
+    },
+    {
+      "path": "paper/results/hosted_level_averages_20260911.json",
+      "updates": [
+        {
+          "json_pointer": "/source/sha256",
+          "dependency": "paper/results/frontier_comparison_20260911.json",
+          "old_sha256": "5571694f63d5a18fa1e52e19f014042996ccb5321b225b36e253495bc7522c59",
+          "new_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e"
+        },
+        {
+          "json_pointer": "/concentration/record/sha256",
+          "dependency": "paper/results/mode_diversity_hosted_cohort_20260917.json",
+          "old_sha256": "c678f5f0677d1e7a2ceb7f2efe3b0642bdc55aabaec6ca77f55ed78841c9bb8f",
+          "new_sha256": "c06aacd1a685479a8f6f151ac254a026af2c67a8c6eef1df8cec42117c8e602f"
+        }
+      ],
+      "after_sha256": "83fba13bf1ecb6e676b7fb8fc7d2e184d60fe1d05b65fae6db718588f60bd5ad",
+      "only_digest_fields_changed": true
+    },
+    {
+      "path": "paper/figures/frontier_level_grid.json",
+      "updates": [
+        {
+          "json_pointer": "/source/sha256",
+          "dependency": "paper/results/mode_diversity_frontier_points.json",
+          "old_sha256": "9f95a54f16209faee9664499888d329ec2d9ff611704055fc1872438a33b10bf",
+          "new_sha256": "52a57add886efef39e6edb30caef39517cd70ca9f8fccc77cb1dca7bf5e1c94d"
+        }
+      ],
+      "after_sha256": "dd28af3e543d7981aae759b426e0941f1fbb469807fdea6aa40af732d6091a23",
+      "only_digest_fields_changed": true
+    }
+  ],
+  "final_bindings": [
+    {
+      "path": "paper/results/mode_diversity_hosted_cohort_20260917.json",
+      "json_pointer": "/comparison/sha256",
+      "dependency": "paper/results/frontier_comparison_20260911.json",
+      "current": true
+    },
+    {
+      "path": "paper/results/hosted_reasoning_off_20260912.json",
+      "json_pointer": "/icon_catalog/sha256",
+      "dependency": "paper/results/frontier_comparison_20260911.json",
+      "current": true
+    },
+    {
+      "path": "paper/figures/hosted_verified_breadth.json",
+      "json_pointer": "/source/sha256",
+      "dependency": "paper/results/frontier_comparison_20260911.json",
+      "current": true
+    },
+    {
+      "path": "paper/results/mode_diversity_frontier_points.json",
+      "json_pointer": "/source/sha256",
+      "dependency": "paper/results/frontier_comparison_20260911.json",
+      "current": true
+    },
+    {
+      "path": "paper/results/mode_diversity_hosted_cohort.json",
+      "json_pointer": "/comparison/sha256",
+      "dependency": "paper/results/frontier_comparison_20260911.json",
+      "current": true
+    },
+    {
+      "path": "paper/results/hosted_level_averages_20260911.json",
+      "json_pointer": "/source/sha256",
+      "dependency": "paper/results/frontier_comparison_20260911.json",
+      "current": true
+    },
+    {
+      "path": "paper/results/hosted_level_averages_20260911.json",
+      "json_pointer": "/concentration/record/sha256",
+      "dependency": "paper/results/mode_diversity_hosted_cohort_20260917.json",
+      "current": true
+    },
+    {
+      "path": "paper/figures/frontier_level_grid.json",
+      "json_pointer": "/source/sha256",
+      "dependency": "paper/results/mode_diversity_frontier_points.json",
+      "current": true
+    }
+  ],
+  "measurements_unchanged": true,
+  "all_figure_pdfs_unchanged": true
+}

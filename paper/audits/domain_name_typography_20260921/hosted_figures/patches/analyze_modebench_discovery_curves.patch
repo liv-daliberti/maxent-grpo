@@ -1,0 +1,14 @@
+--- ops/analyze_modebench_discovery_curves.py (before)
++++ ops/analyze_modebench_discovery_curves.py (after)
+@@ -1178,6 +1178,11 @@
+                 Line2D([0],[0],color='0.2',ls='None',marker='x',label='Normalized')]
+     if conditional:handles.append(Line2D([0],[0],color='0.4',ls=':',label='Uniform lower reference'))
+     fig.legend(handles=handles,loc='upper center',ncol=3,fontsize=9.5,frameon=False,bbox_to_anchor=(.52,1.005))
++    try:
++        from ops.paper_domain_figure_typography import apply_domain_typography
++    except ModuleNotFoundError:
++        from paper_domain_figure_typography import apply_domain_typography
++    apply_domain_typography(fig)
+     fig.tight_layout(rect=(0,0,1,.86 if conditional else .9),h_pad=1.5,w_pad=.65)
+     stem='modebench_discovery_correct_budget_'+family if conditional else 'modebench_discovery_curves_'+family
+     outputs={}

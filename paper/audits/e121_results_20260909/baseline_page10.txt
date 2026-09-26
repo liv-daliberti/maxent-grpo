@@ -1,0 +1,76 @@
+      Under review as a conference paper at ICLR 2027
+
+
+
+
+486                              Level 1           Level 2                       B Mean across five domains
+487                                                                              Interim; Pantry: initial checkpoint only
+488                    A Frozen-model success                                                  pass@8                            distinct@8
+      Graph coloring                       0.289                              Dr.GRPO
+489
+         Countdown           0.039
+490                                                                   ReplayDr.GRPO
+      Python factors                                         0.172
+491                                                                            MaxRL
+             MathIR              0.078
+492
+         PantryPlan              0.016                                    ReplayMaxRL
+493
+                       0     .25        .5       .75         1                          0         .5             1          0          1         2
+494                          frozen base-model pass@8                                         probability                       verified modes
+495
+496   Figure 6: Replay across difficulty levels with Qwen2.5-0.5B-Instruct. Open/filled markers are
+497
+      Level 1/2. (A) Frozen-model success. (B) Interim means: average seeds within each domain, then
+      the five domains equally. Both levels and all methods use matched checkpoints; Pantry contributes
+498
+      one seed at step 0 (Appendix J.1). All other domains contribute five matched seeds.
+499
+500   Limits and next steps. M ODE B ENCH provides a controlled setting for studying diverse solu-
+501   tions. Understanding how this diversity relates to broader mathematical reasoning and later prob-
+502   lem solving remains an open direction. Replay can retain only modes it discovers and stores.
+503   Individual-mode survival and size-dependent update geometry remain unmeasured (Appendices H
+504   and A.3); the optimizer and admission results are conditional. Theory studies idealized mean
+505   flows. We have not shown that broader support causes the accuracy gains. The MaxRL facto-
+506
+      rial has eleven complete paired blocks; Falcon Countdown’s Dr.GRPO replay comparison has
+      four admissible seeds, and three domains have complete Level-2 factorials. Richer mathemati-
+507
+      cal tasks should test which alternatives survive training, when a different approach succeeds after
+508
+      another fails, and whether preserving those options improves problem solving.
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+
+
+
+                                                                     10

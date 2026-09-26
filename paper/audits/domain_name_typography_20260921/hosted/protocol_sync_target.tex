@@ -1,0 +1,33 @@
+\paragraph{Evaluation population.}
+The deployments are GPT-5.6 Sol, Claude Opus 5, GPT-5.4, Grok 4.3, Kimi K3, Claude Opus 4.8, DeepSeek V4 Pro. The original-instruction cohort contains
+107,520 responses: 15,360 per deployment, with the same 128 held-out
+prompts in each of five domains and three levels, and eight stateless responses
+per prompt. Requests use no model-side tools or conversation history, and
+the evaluation includes no task training or replay intervention.
+
+\paragraph{Provider configurations.}
+All deployments request medium reasoning effort and an 8,192-token native
+output limit. Claude Opus 5 and Claude Opus 4.8 use Anthropic Messages with
+adaptive thinking; the other deployments use hosted API routes.
+
+The requested reasoning setting and output limit do not match compute across
+providers: effort labels and token accounting have provider-specific meanings.
+Temperature and nucleus sampling use provider defaults, whose exact values
+are unknown when the provider does not return them.
+
+Strict grading checks the original executable answer; formatting-normalized
+grading applies the same typography corrections across deployments before
+the executable checks. The accuracy row of the main display uses normalized
+grades and the revised Opus 5 \texttt{Python} instruction at all three levels;
+its other accuracy cells use the original instructions. The diversity row
+uses strict grades and original instructions for every deployment.
+The tables below report original-instruction results under both grading rules.
+Prompt preferences and the Level-1 \texttt{PantryPlan} interface difference limit
+comparisons across levels. \texttt{Countdown} has no certified finite-total-support
+uniform reference. This inference-only comparison does not identify a training
+cause, a model-size effect, or a difficulty effect. Collision intervals are
+pointwise estimates for individual cells, not intervals for paired deployment differences.
+
+The 15,360 scored DeepSeek V4 Pro responses include verification failures
+and truncations. Usage totals omit requests without reported usage and
+therefore give a lower bound on the cost of all attempted requests.

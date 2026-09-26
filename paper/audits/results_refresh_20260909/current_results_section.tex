@@ -1,0 +1,137 @@
+\subsection{Terminal effects across the current factorials and weighting ablation}
+\label{app:current-campaign-results}
+
+Tables~\ref{tab:current-e118}--\ref{tab:current-e120} collect every registered
+model--domain contrast in the September 9 endpoint snapshot, including
+comparisons whose full five-seed block is still accumulating. Each row uses
+the exact terminal seed intersection for that contrast. We report correctness
+$P=\texttt{pass@8}$, raw support $D=\texttt{distinct@8}$, and extra correct
+modes $B=D-P$. The last quantity counts sampled alternatives beyond the first
+correct outcome; it remains coupled to correctness. A dash denotes no observed
+terminal pair. Partial means are descriptive, with their observed $n/5$ and
+no interval. Completed-block intervals are nominal 95\% estimates, without
+multiple-comparison or repeated-look adjustment.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{ReplayMaxRL effects across model scales at pass 8.}
+  All effects are ReplayMaxRL minus MaxRL on the displayed paired seeds.
+  Brackets give paired Student-$t$ intervals for $\Delta B$ in complete blocks.
+  The machine-readable report also retains both arm means, all per-seed
+  effects, and intervals for $P$ and $D$.}
+  \label{tab:current-e118}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lllcrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Objective} & $n/5$ &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+    \midrule
+    \input{results/current_campaign_results_20260909_e118_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+At Qwen2.5-0.5B, ReplayMaxRL adds $1.221$, $.990$, and $.751$ extra
+correct modes on Graph, Countdown, and PantryPlan, respectively. Each
+five-seed interval excludes zero. At Falcon3-1B, the corresponding breadth
+effect is smaller and Graph's mean is negative with an interval spanning
+zero. Thus the positive aggregate correctness and raw-support effects do
+not imply a breadth gain in every domain. The completed Qwen2.5-3B Python
+block and the partial scale extensions remain separate comparisons.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Replay effects on the harder Level-2 tasks at pass 8.}
+  MaxRL and Dr.GRPO identify the fresh objective; each effect is its replay
+  variant minus the corresponding objective without replay. Each row uses
+  its own pairwise intersection, which can exceed the four-method
+  intersection. Brackets give paired Student-$t$ intervals for $\Delta B$
+  only when all five registered pairs are available.}
+  \label{tab:current-e119}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lllcrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Objective} & $n/5$ &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+    \midrule
+    \input{results/current_campaign_results_20260909_e119_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+Graph provides the clearest completed Level-2 evidence: replay increases
+both correctness and extra modes under both fresh objectives. Python and
+MathIR have positive mean correctness and raw-support effects, but their
+intervals include zero. MathIR's extra-mode effects are close to zero,
+illustrating the distinction between recovering correctness and producing
+multiple correct outcomes.
+
+The four-arm analysis also separates the estimator effect from its
+interaction with replay (Table~\ref{tab:level2-factorial-contrasts}). On
+Graph, MaxRL without replay raises $P$ by $+.233$ relative to Dr.GRPO
+($[+.140,+.325]$). Replay remains beneficial under both estimators, but its
+marginal gain is smaller under MaxRL: the interaction is $-.256$ on $P$
+($[-.329,-.183]$), $-.351$ on $D$ ($[-.446,-.255]$), and $-.095$ on $B$
+($[-.186,-.003]$). This supports an additional replay benefit after stronger
+fresh optimization, without a superadditive interaction.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Fresh-objective effects and replay interactions on Level 2.}
+  All three contrasts within a domain use the same four-arm seed
+  intersection. The interaction is
+  $(\mathrm{ReplayMaxRL}-\mathrm{MaxRL})-
+  (\mathrm{ReplayDr.GRPO}-\mathrm{Dr.GRPO})$.
+  Each entry gives its mean and, only for a complete five-seed block, a
+  paired unadjusted 95\% Student-$t$ interval.}
+  \label{tab:level2-factorial-contrasts}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lclrrr@{}}
+    \toprule
+    \textbf{Domain} & $n$ & \textbf{Contrast} &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ \\
+    \midrule
+    \input{results/level2_factorial_contrasts_20260909_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Uniform versus fresh-frequency replay at pass 8.}
+  Effects are uniform minus frequency weighting. Brackets give the paired
+  percentile bootstrap interval for $\Delta B$ over all $5^5$ ordered
+  resamples in complete blocks. Every observed treatment endpoint in this
+  snapshot passes the persisted replay-weight telemetry audit. Partial
+  blocks remain descriptive; Qwen2.5-3B PantryPlan has no terminal pair.}
+  \label{tab:current-e120}
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \resizebox{\linewidth}{!}{%
+  \begin{tabular}{@{}lllcrrr@{}}
+    \toprule
+    \textbf{Model} & \textbf{Domain} & \textbf{Weighting} & $n/5$ &
+    $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+    \midrule
+    \input{results/current_campaign_results_20260909_e120_table_body.tex}
+  \end{tabular}}
+\end{table}
+
+The complete Graph, Countdown, and PantryPlan blocks at Qwen2.5-0.5B
+favor uniform weighting on breadth, as does Falcon3-1B Graph. The
+Qwen2.5-3B Graph extension also favors uniform weighting in its two observed
+pairs ($\Delta B=+.138$), whereas Falcon3-1B PantryPlan favors frequency
+weighting in its three observed pairs ($\Delta B=-.540$). Neither partial
+block receives an interval. These differences argue against a universal
+weighting advantage. The registered Qwen2.5-0.5B five-domain mean remains
+$\Delta B=+.318$ with interval $[+.272,+.358]$; its correctness interval
+$[-.119,+.139]$ establishes neither a gain nor equivalence.
+
+The deterministic generator
+\path{ops/exp_scaling/build_paper_current_campaign_results.py} consumes the
+dated census and writes these tables, a readable report, and CSV/JSON
+containing full-precision paired arm means, effects, seed sets, and
+uncertainty. The original September 4 weighting analysis is preserved.

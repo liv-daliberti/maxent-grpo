@@ -1,0 +1,36 @@
+--- ops/build_paper_hosted_reasoning_off.py (before)
++++ ops/build_paper_hosted_reasoning_off.py (after)
+@@ -14,6 +14,15 @@
+ import json
+ from pathlib import Path
+ from typing import Any
++
++try:
++    from ops.paper_domain_typography import format_domain_names
++except ModuleNotFoundError:
++    from paper_domain_typography import format_domain_names
++
++_DOMAIN_LANGUAGE_EXCEPTIONS = (
++    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
++)
+ 
+ try:
+     from ops.summarize_hosted_reasoning_off import (
+@@ -381,7 +390,7 @@
+         '  can differ between deployments and levels; it does not match overall',
+         '  accuracy. Entries are point estimates.}',
+         r"  \label{tab:hosted-level-averages}", r"\end{table}"]
+-    return "\n".join(lines) + "\n"
++    return format_domain_names("\n".join(lines) + "\n", exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def render_appendix(record: dict[str, Any]) -> str:
+@@ -517,7 +526,7 @@
+         'can confound the requested-control contrast. These observations describe',
+         'output distributions under the tested configurations, not a causal effect',
+         'of training or an isolated effect of internal deliberation.']
+-    return "\n".join(lines) + "\n"
++    return format_domain_names("\n".join(lines) + "\n", exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def main(argv: list[str] | None = None) -> int:

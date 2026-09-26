@@ -1,0 +1,13 @@
+{
+  "main_content_pages": 4,
+  "figure_1_page": 1,
+  "main_figures": 6,
+  "workshop_footer_verified": true,
+  "archive_sources_match": true,
+  "files": {
+    "main.tex": "b708aceac8fe15b77eed511927c59cd9451d6e207bdf1ea5049b76625a4c7960",
+    "main.pdf": "bce52f2821207524d72d1babff2ce095e91b744c1477259ab45e4f51f395b0f1",
+    "snapshot.json": "64b81e762346d575c80e1f6e9bee406b385038da15285dca7b9730e9179f3008",
+    "mathai2026-source.zip": "6b760d2702eee687f8b7b029bee062482f4def79f679eb9ed38ed340c5a753a2"
+  }
+}

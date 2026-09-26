@@ -1,0 +1,45 @@
+{
+  "after_initial_result_blocks": 135,
+  "amendment_path": "paper/audits/conditional_concentration_20260911/amendment_2_current_census.md",
+  "amendment_sha256": "cfb9c95d6786caa068ba1621f0aa2720902079e29dbb8f1f3ebe3824b6130d41",
+  "completed_snapshot": {
+    "byte_length": 35966847,
+    "original_path": "paper/results/training_curve_snapshot_20260911.json",
+    "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_completed_cohort.json",
+    "sha256": "479d6bb83ae60d1f3ee9653fe2016701663b7b869fd197a0b111a7ed1e389e72"
+  },
+  "created_at_utc": "2026-09-11T20:25:39.921795+00:00",
+  "expected_primary_level1_pairs": {
+    "drgrpo": 74,
+    "maxrl": 75
+  },
+  "implementation_binding_policy": "Completed collection receipt will hash the exact extension and loader source bytes and all new source prefixes before subsequent effects are calculated.",
+  "new_source_certificate": {
+    "hash_binding": "The completed collection receipt binds the written source certificate before subsequent effect calculation.",
+    "path": "paper/audits/conditional_concentration_20260911/stream_source_audit_completed_cohort.json"
+  },
+  "original_cache": {
+    "path": "paper/audits/conditional_concentration_20260911/verified_samples.jsonl.gz",
+    "sha256": "c73f3e2cbc72e5fdb52ff1d6c70b458f66fa8e241d75804fccdb46caf642797c"
+  },
+  "original_collection_receipt": {
+    "path": "paper/audits/conditional_concentration_20260911/collection_receipt.json",
+    "sha256": "c22d5a3a6772ef98db56660e48cdbbabae128e47d43afc26701e30dfbb938ec5"
+  },
+  "original_snapshot": {
+    "byte_length": 35385643,
+    "original_path": "paper/audits/results_completion_20260911/before/paper/results/training_curve_snapshot_20260911.json",
+    "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_initial.json",
+    "sha256": "6b9e4d90d337152cc30b904bd41ffe660939d80f2f3611984368c788b25d33f1"
+  },
+  "phase": "after_initial_135_block_effects_before_newly_admitted_source_ingestion_or_extended_effects",
+  "preserved_initial_results": {
+    "byte_length": 36417387,
+    "original_path": "paper/results/conditional_concentration_20260911.json",
+    "path": "paper/results/conditional_concentration_20260911_initial.json",
+    "sha256": "50397987fa4960fe3003e377cbaecc245dd976b3d04c4411e87e01fa03ea2c32"
+  },
+  "reason": "Parallel completion census refresh; all newly admitted cells included by frozen source availability, not effect values.",
+  "retrospective": true,
+  "status": "frozen_after_initial_results_before_new_source_effects"
+}

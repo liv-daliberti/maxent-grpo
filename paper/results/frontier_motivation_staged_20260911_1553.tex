@@ -1,0 +1,42 @@
+% STAGED ONLY: this file has not been included in either manuscript or built.
+% Uses the existing, unmodified paper/icons/openai.png and icons/claude.png.
+% The standalone workshop must receive those assets through normal source sync.
+% Intended placement: Introduction, as the motivating inference-only test.
+% The workshop placement replaces the paragraph beginning
+% "The loss also appears across our datasets." Remove its later duplicated
+% hosted-result paragraph when activating this introductory table.
+% Only completed, audited deployments are represented here.
+
+\noindent\textbf{A motivating hosted-model test.}
+A held-out test shows why verified alternatives should be measured alongside
+accuracy: both hosted deployments answer correctly on every draw, yet repeated
+samples yield almost one distinct coloring per prompt
+(Table~\ref{tab:frontier-motivation}).
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{High correctness with concentrated verified outputs.}
+  Inference-only Level-3 Graph evaluation: 128 held-out prompts and eight
+  stateless samples per prompt and deployment. All 1,024 responses per model
+  verify. Distinct modes is the mean count per eight draws; same-mode pairs
+  are within-prompt pairs of correct answers sharing a coloring. The uniform
+  correct-coloring reference is $19.0\%$ same-mode pairs.}
+  \label{tab:frontier-motivation}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Deployment & Accuracy (\%) & Distinct modes & Same-mode pairs (\%) \\
+    \midrule
+    \raisebox{-.15ex}{\includegraphics[height=1.4ex]{icons/openai.png}}\,
+      GPT-5.6 Sol & 100.0 & 1.16 & 95.1 \\
+    \raisebox{-.15ex}{\includegraphics[height=1.4ex]{icons/claude.png}}\,
+      Claude Opus 5 & 100.0 & 1.02 & 99.4 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+These are sampled output distributions under the evaluated provider settings,
+not a before/after training comparison. Level 3 is an exploratory test
+extension. All domains, prompt limitations, and native provider refusals are
+reported in Appendix~\ref{app:hosted-comparison}.

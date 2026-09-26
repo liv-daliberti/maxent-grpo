@@ -1,0 +1,5 @@
+{
+  "observer_tool_parent": 2444589,
+  "action": "Detected calibration-owner make main.pdf PID3027521, parent3027459, at paper/audits/level3_neutral_repair_20260911/parent_rebuild_settled.log. Stopping only own later duplicate3051344; leave calibration-owner build intact. Hosted480 data, figure, manuscript numbers and workshop bundle are complete. This observer will await that parent build and authenticate outputs.",
+  "authoritative_log": "paper/audits/level3_neutral_repair_20260911/parent_rebuild_settled.log"
+}

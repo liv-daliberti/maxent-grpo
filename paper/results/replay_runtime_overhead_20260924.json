@@ -1,0 +1,582 @@
+{
+ "baseline": "e128_control",
+ "closes": "App. compute accounting states that its table does not measure replay/control runtime differences; this payload supplies that measurement",
+ "cohorts": {
+  "e128_control": {
+   "cells": {
+    "countdown|43": {
+     "learner_seconds": 10927.387966156006,
+     "nodes": "node203,node204",
+     "wall_seconds": 16026
+    },
+    "countdown|44": {
+     "learner_seconds": 10665.987228631973,
+     "nodes": "node203,node204",
+     "wall_seconds": 15726
+    },
+    "countdown|45": {
+     "learner_seconds": 10833.135615348816,
+     "nodes": "node203,node204",
+     "wall_seconds": 15727
+    },
+    "countdown|46": {
+     "learner_seconds": 10674.311714887619,
+     "nodes": "node203,node204",
+     "wall_seconds": 15726
+    },
+    "countdown|47": {
+     "learner_seconds": 10725.988443374634,
+     "nodes": "node203,node204",
+     "wall_seconds": 15726
+    },
+    "graph_coloring|43": {
+     "learner_seconds": 10940.687215805054,
+     "nodes": "node203,node204",
+     "wall_seconds": 15906
+    },
+    "graph_coloring|44": {
+     "learner_seconds": 10790.57830953598,
+     "nodes": "node203,node204",
+     "wall_seconds": 15726
+    },
+    "graph_coloring|45": {
+     "learner_seconds": 10797.867546796799,
+     "nodes": "node203,node204",
+     "wall_seconds": 15726
+    },
+    "graph_coloring|46": {
+     "learner_seconds": 10787.43592953682,
+     "nodes": "node203,node204",
+     "wall_seconds": 15667
+    },
+    "graph_coloring|47": {
+     "learner_seconds": 10938.413770914078,
+     "nodes": "node203,node204",
+     "wall_seconds": 15726
+    },
+    "mathir|43": {
+     "learner_seconds": 11234.936777591705,
+     "nodes": "node203,node204",
+     "wall_seconds": 18427
+    },
+    "mathir|44": {
+     "learner_seconds": 11215.594545841217,
+     "nodes": "node203,node204",
+     "wall_seconds": 18367
+    },
+    "mathir|45": {
+     "learner_seconds": 11448.30577158928,
+     "nodes": "node203,node204",
+     "wall_seconds": 18666
+    },
+    "mathir|46": {
+     "learner_seconds": 11426.202875852585,
+     "nodes": "node203,node204",
+     "wall_seconds": 18607
+    },
+    "mathir|47": {
+     "learner_seconds": 11434.276792287827,
+     "nodes": "node203,node204",
+     "wall_seconds": 18489
+    },
+    "pantry_plan|43": {
+     "learner_seconds": 6347.099864721298,
+     "nodes": "node203,node204",
+     "wall_seconds": 21308
+    },
+    "pantry_plan|44": {
+     "learner_seconds": 6105.107298374176,
+     "nodes": "node203,node204",
+     "wall_seconds": 21248
+    },
+    "pantry_plan|45": {
+     "learner_seconds": 6189.249669790268,
+     "nodes": "node203,node204",
+     "wall_seconds": 21248
+    },
+    "pantry_plan|46": {
+     "learner_seconds": 6457.891288995743,
+     "nodes": "node203,node204",
+     "wall_seconds": 21308
+    },
+    "pantry_plan|47": {
+     "learner_seconds": 6160.394576787949,
+     "nodes": "node203,node204",
+     "wall_seconds": 21128
+    },
+    "python_factors|43": {
+     "learner_seconds": 11244.561735868454,
+     "nodes": "node203,node204",
+     "wall_seconds": 16627
+    },
+    "python_factors|44": {
+     "learner_seconds": 11197.209901094437,
+     "nodes": "node203,node204",
+     "wall_seconds": 17647
+    },
+    "python_factors|45": {
+     "learner_seconds": 11233.793827533722,
+     "nodes": "node203,node204",
+     "wall_seconds": 16567
+    },
+    "python_factors|46": {
+     "learner_seconds": 11110.926696300507,
+     "nodes": "node203,node204",
+     "wall_seconds": 16507
+    },
+    "python_factors|47": {
+     "learner_seconds": 11417.645403623581,
+     "nodes": "node203,node204",
+     "wall_seconds": 16807
+    }
+   },
+   "label": "control, eight passes",
+   "learner_mean_seconds": 10092.199630689622,
+   "learner_paired_cells": 25,
+   "learner_ratio": 1.0,
+   "path": "var/artifacts/e128_matched_control_05b_jobs.json",
+   "role": "baseline",
+   "sha256": "4d588857cc282880db7fd9995df1389163fb16161691d7d5404c0b3d2d895378",
+   "wall_mean_seconds": 17625.32,
+   "wall_paired_cells": 25,
+   "wall_ratio": 1.0
+  },
+  "e130_capacity_one": {
+   "cells": {
+    "countdown|43": {
+     "learner_seconds": 10134.93453335762,
+     "nodes": "node203,node204",
+     "wall_seconds": 15006
+    },
+    "countdown|44": {
+     "learner_seconds": 10284.196484327316,
+     "nodes": "node203,node204",
+     "wall_seconds": 15425
+    },
+    "countdown|45": {
+     "learner_seconds": 10206.771142482758,
+     "nodes": "node203,node204",
+     "wall_seconds": 15127
+    },
+    "countdown|46": {
+     "learner_seconds": 10485.079481601715,
+     "nodes": "node203,node204",
+     "wall_seconds": 15484
+    },
+    "countdown|47": {
+     "learner_seconds": 10602.17178440094,
+     "nodes": "node203,node204",
+     "wall_seconds": 15365
+    },
+    "graph_coloring|43": {
+     "learner_seconds": 10636.499849796295,
+     "nodes": "node203,node204",
+     "wall_seconds": 15367
+    },
+    "graph_coloring|44": {
+     "learner_seconds": 10369.921401977539,
+     "nodes": "node203,node204",
+     "wall_seconds": 15305
+    },
+    "graph_coloring|45": {
+     "learner_seconds": 10930.122987031937,
+     "nodes": "node203,node204",
+     "wall_seconds": 15727
+    },
+    "graph_coloring|46": {
+     "learner_seconds": 10252.618825674057,
+     "nodes": "node203,node204",
+     "wall_seconds": 15067
+    },
+    "graph_coloring|47": {
+     "learner_seconds": 10877.358258008957,
+     "nodes": "node203,node204",
+     "wall_seconds": 15728
+    },
+    "mathir|43": {
+     "learner_seconds": 11111.10326743126,
+     "nodes": "node203,node204",
+     "wall_seconds": 18187
+    },
+    "mathir|44": {
+     "learner_seconds": 10869.9935567379,
+     "nodes": "node203,node204",
+     "wall_seconds": 18125
+    },
+    "mathir|45": {
+     "learner_seconds": 11015.976120233536,
+     "nodes": "node203,node204",
+     "wall_seconds": 18006
+    },
+    "mathir|46": {
+     "learner_seconds": 11310.114317655563,
+     "nodes": "node203,node204",
+     "wall_seconds": 18426
+    },
+    "mathir|47": {
+     "learner_seconds": 10908.93664932251,
+     "nodes": "node203,node204",
+     "wall_seconds": 18126
+    },
+    "pantry_plan|43": {
+     "learner_seconds": 5770.934344530106,
+     "nodes": "node203,node204",
+     "wall_seconds": 20707
+    },
+    "pantry_plan|44": {
+     "learner_seconds": 5793.36473941803,
+     "nodes": "node203,node204",
+     "wall_seconds": 20469
+    },
+    "pantry_plan|45": {
+     "learner_seconds": 5782.295707702637,
+     "nodes": "node203,node204",
+     "wall_seconds": 20888
+    },
+    "pantry_plan|46": {
+     "learner_seconds": 5790.446553468704,
+     "nodes": "node203,node204",
+     "wall_seconds": 20770
+    },
+    "pantry_plan|47": {
+     "learner_seconds": 5769.496865034103,
+     "nodes": "node203,node204",
+     "wall_seconds": 20588
+    },
+    "python_factors|43": {
+     "learner_seconds": 10617.397197961807,
+     "nodes": "node203,node204",
+     "wall_seconds": 15846
+    },
+    "python_factors|44": {
+     "learner_seconds": 10353.744262695312,
+     "nodes": "node203,node204",
+     "wall_seconds": 15545
+    },
+    "python_factors|45": {
+     "learner_seconds": 10551.928139448166,
+     "nodes": "node203,node204",
+     "wall_seconds": 16745
+    },
+    "python_factors|46": {
+     "learner_seconds": 10601.061071395874,
+     "nodes": "node203,node204",
+     "wall_seconds": 16687
+    },
+    "python_factors|47": {
+     "learner_seconds": 10479.14420056343,
+     "nodes": "node203,node204",
+     "wall_seconds": 15367
+    }
+   },
+   "label": "capacity-one replay, eight passes",
+   "learner_mean_seconds": 9660.224469690324,
+   "learner_paired_cells": 25,
+   "learner_ratio": 0.9545962956469313,
+   "path": "var/artifacts/e130_mode_agnostic_replay_05b_jobs.json",
+   "role": "what replay costs",
+   "sha256": "48be6b8768188c69bfc5c770e07d0f2ec5104149ef2f00cba471d827e7c09aa1",
+   "wall_mean_seconds": 17123.32,
+   "wall_paired_cells": 25,
+   "wall_ratio": 0.9715320716792699
+  },
+  "e131_extended": {
+   "cells": {
+    "countdown|43": {
+     "learner_seconds": 15471.939905166626,
+     "nodes": "node203,node204",
+     "wall_seconds": 22508
+    },
+    "countdown|44": {
+     "learner_seconds": 15552.477276563644,
+     "nodes": "node203,node204",
+     "wall_seconds": 22749
+    },
+    "countdown|45": {
+     "learner_seconds": 15715.884922981262,
+     "nodes": "node203,node204",
+     "wall_seconds": 23109
+    },
+    "countdown|46": {
+     "learner_seconds": 15852.789993047714,
+     "nodes": "node203,node204",
+     "wall_seconds": 23348
+    },
+    "countdown|47": {
+     "learner_seconds": 15783.589676141739,
+     "nodes": "node203,node204",
+     "wall_seconds": 22990
+    },
+    "graph_coloring|43": {
+     "learner_seconds": 15919.67938375473,
+     "nodes": "node203,node204",
+     "wall_seconds": 23289
+    },
+    "graph_coloring|44": {
+     "learner_seconds": 16185.433698892593,
+     "nodes": "node203,node204",
+     "wall_seconds": 23604
+    },
+    "graph_coloring|45": {
+     "learner_seconds": 15798.620036840439,
+     "nodes": "node203,node204",
+     "wall_seconds": 22688
+    },
+    "graph_coloring|46": {
+     "learner_seconds": 15993.196066856384,
+     "nodes": "node203,node204",
+     "wall_seconds": 23228
+    },
+    "graph_coloring|47": {
+     "learner_seconds": 16021.343653440475,
+     "nodes": "node203,node204",
+     "wall_seconds": 22928
+    },
+    "mathir|43": {
+     "learner_seconds": 16104.52381014824,
+     "nodes": "node203,node204",
+     "wall_seconds": 26956
+    },
+    "mathir|44": {
+     "learner_seconds": 16841.289498806,
+     "nodes": "node203,node204",
+     "wall_seconds": 27856
+    },
+    "mathir|45": {
+     "learner_seconds": 16158.36300611496,
+     "nodes": "node203,node204",
+     "wall_seconds": 26411
+    },
+    "mathir|46": {
+     "learner_seconds": 16334.110976457596,
+     "nodes": "node203,node204",
+     "wall_seconds": 26897
+    },
+    "mathir|47": {
+     "learner_seconds": 16013.470241069794,
+     "nodes": "node203,node204",
+     "wall_seconds": 26177
+    },
+    "pantry_plan|43": {
+     "learner_seconds": 9496.403421878815,
+     "nodes": "node203,node204",
+     "wall_seconds": 31276
+    },
+    "pantry_plan|44": {
+     "learner_seconds": 9000.63997387886,
+     "nodes": "node203,node204",
+     "wall_seconds": 30975
+    },
+    "pantry_plan|45": {
+     "learner_seconds": 9199.735661268234,
+     "nodes": "node203,node204",
+     "wall_seconds": 31216
+    },
+    "pantry_plan|46": {
+     "learner_seconds": 9671.58986902237,
+     "nodes": "node203,node204",
+     "wall_seconds": 31394
+    },
+    "pantry_plan|47": {
+     "learner_seconds": 9182.45041680336,
+     "nodes": "node203,node204",
+     "wall_seconds": 31216
+    },
+    "python_factors|43": {
+     "learner_seconds": 15641.675951004028,
+     "nodes": "node203,node204",
+     "wall_seconds": 23413
+    },
+    "python_factors|44": {
+     "learner_seconds": 15793.727862119675,
+     "nodes": "node203,node204",
+     "wall_seconds": 23232
+    },
+    "python_factors|45": {
+     "learner_seconds": 15330.31518316269,
+     "nodes": "node203,node204",
+     "wall_seconds": 23052
+    },
+    "python_factors|46": {
+     "learner_seconds": 15512.267380475998,
+     "nodes": "node203,node204",
+     "wall_seconds": 23651
+    },
+    "python_factors|47": {
+     "learner_seconds": 15856.874497413635,
+     "nodes": "node203,node204",
+     "wall_seconds": 23529
+    }
+   },
+   "label": "control, twelve passes",
+   "learner_mean_seconds": 14577.295694532395,
+   "learner_paired_cells": 25,
+   "learner_ratio": 1.4487804998469513,
+   "path": "var/artifacts/e131_extended_horizon_control_05b_jobs.json",
+   "role": "what the control was given",
+   "sha256": "498d0b7138f5833b3f2d44c24d91dd587d2fbe55bebfd787d36be41e5c6094eb",
+   "wall_mean_seconds": 25507.68,
+   "wall_paired_cells": 25,
+   "wall_ratio": 1.4466201874951077
+  },
+  "e132_redr": {
+   "cells": {
+    "countdown|43": {
+     "learner_seconds": 11134.711780071259,
+     "nodes": "node203,node204",
+     "wall_seconds": 15847
+    },
+    "countdown|44": {
+     "learner_seconds": 11000.245903730392,
+     "nodes": "node203,node204",
+     "wall_seconds": 15907
+    },
+    "countdown|45": {
+     "learner_seconds": 10919.363870620728,
+     "nodes": "node203,node204",
+     "wall_seconds": 15606
+    },
+    "countdown|46": {
+     "learner_seconds": 10679.06521487236,
+     "nodes": "node203,node204",
+     "wall_seconds": 15606
+    },
+    "countdown|47": {
+     "learner_seconds": 11080.484661102295,
+     "nodes": "node203,node204",
+     "wall_seconds": 15967
+    },
+    "graph_coloring|43": {
+     "learner_seconds": 11389.374240875244,
+     "nodes": "node203,node204",
+     "wall_seconds": 16326
+    },
+    "graph_coloring|44": {
+     "learner_seconds": 11377.383522510529,
+     "nodes": "node203,node204",
+     "wall_seconds": 16326
+    },
+    "graph_coloring|45": {
+     "learner_seconds": 11280.421793937683,
+     "nodes": "node203,node204",
+     "wall_seconds": 16026
+    },
+    "graph_coloring|46": {
+     "learner_seconds": 11840.3017411232,
+     "nodes": "node203,node204",
+     "wall_seconds": 16686
+    },
+    "graph_coloring|47": {
+     "learner_seconds": 11335.62994503975,
+     "nodes": "node203,node204",
+     "wall_seconds": 16326
+    },
+    "mathir|43": {
+     "learner_seconds": 10967.16922211647,
+     "nodes": "node203,node204",
+     "wall_seconds": 18246
+    },
+    "mathir|44": {
+     "learner_seconds": 10990.981414318085,
+     "nodes": "node203,node204",
+     "wall_seconds": 18246
+    },
+    "mathir|45": {
+     "learner_seconds": 10909.105893850327,
+     "nodes": "node203,node204",
+     "wall_seconds": 18187
+    },
+    "mathir|46": {
+     "learner_seconds": 11247.215431451797,
+     "nodes": "node203,node204",
+     "wall_seconds": 18727
+    },
+    "mathir|47": {
+     "learner_seconds": 11658.978575706482,
+     "nodes": "node203,node204",
+     "wall_seconds": 18667
+    },
+    "pantry_plan|43": {
+     "learner_seconds": 6959.445615530014,
+     "nodes": "node203,node204",
+     "wall_seconds": 21848
+    },
+    "pantry_plan|44": {
+     "learner_seconds": 6874.316350698471,
+     "nodes": "node203,node204",
+     "wall_seconds": 21608
+    },
+    "pantry_plan|45": {
+     "learner_seconds": 6915.775398731232,
+     "nodes": "node203,node204",
+     "wall_seconds": 21850
+    },
+    "pantry_plan|46": {
+     "learner_seconds": 6995.719626665115,
+     "nodes": "node203,node204",
+     "wall_seconds": 22289
+    },
+    "pantry_plan|47": {
+     "learner_seconds": 6823.255056858063,
+     "nodes": "node203,node204",
+     "wall_seconds": 21809
+    },
+    "python_factors|43": {
+     "learner_seconds": 11064.360273361206,
+     "nodes": "node203,node204",
+     "wall_seconds": 16926
+    },
+    "python_factors|44": {
+     "learner_seconds": 10582.20093011856,
+     "nodes": "node203,node204",
+     "wall_seconds": 17045
+    },
+    "python_factors|45": {
+     "learner_seconds": 10612.123509168625,
+     "nodes": "node203,node204",
+     "wall_seconds": 16992
+    },
+    "python_factors|46": {
+     "learner_seconds": 10628.790798187256,
+     "nodes": "node203,node204",
+     "wall_seconds": 15666
+    },
+    "python_factors|47": {
+     "learner_seconds": 10988.32332277298,
+     "nodes": "node203,node204",
+     "wall_seconds": 17106
+    }
+   },
+   "label": "Re:Dr replay, eight passes",
+   "learner_mean_seconds": 10250.189763736726,
+   "learner_paired_cells": 25,
+   "learner_ratio": 1.0240898208916966,
+   "path": "var/artifacts/e132_matched_redr_05b_jobs.json",
+   "role": "what replay costs",
+   "sha256": "fc8573fad06025ecc43e6ff0da4f5b482196a00001489f38b03d88e8e083fc4c",
+   "wall_mean_seconds": 17833.4,
+   "wall_paired_cells": 25,
+   "wall_ratio": 1.0114571368171608
+  }
+ },
+ "generated_at": "2026-09-24T17:59:58.921191+00:00",
+ "headroom": {
+  "learner": {
+   "control_was_given": 0.44878049984695134,
+   "multiple_of_replay_margin": 18.629466024865234,
+   "replay_overhead": 0.024089820891696645
+  },
+  "wall": {
+   "control_was_given": 0.4466201874951077,
+   "multiple_of_replay_margin": 38.9818324265928,
+   "replay_overhead": 0.011457136817160762
+  }
+ },
+ "measures": {
+  "learner": "median per-update train/learn_batch_time, from each cell's train_metrics.jsonl; primary, reproducible from disk",
+  "wall": "whole-job COMPLETED elapsed from the scheduler; includes evaluation, checkpointing and I/O, sensitive to node sharing"
+ },
+ "placement": "cs partition, allcs account, A5000, node203/node204 for every cohort compared here",
+ "schema": "paper-replay-runtime-overhead-v1",
+ "wall_clock_available": true
+}

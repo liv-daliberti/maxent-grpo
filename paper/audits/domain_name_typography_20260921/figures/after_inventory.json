@@ -1,0 +1,1603 @@
+{
+  "figures": 40,
+  "domain_mentions": 166,
+  "remaining_nonmono": 0,
+  "records": [
+    {
+      "figure": "figures/baseline_collapse_precheck.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "525.2 x 304.466 pts",
+      "after_size": "525.2 x 304.466 pts",
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/concentration_levels.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "PantryPlan",
+          "text": "PantryPlan",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "284.4 x 475.2 pts",
+      "after_size": "284.4 x 475.2 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/concentration_story_all_scales.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "PantryPlan",
+          "text": "PantryPlan",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "284.4 x 432 pts",
+      "after_size": "284.4 x 432 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs",
+        "style_source"
+      ]
+    },
+    {
+      "figure": "figures/concentration_story_resampled.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "PantryPlan",
+          "text": "PantryPlan",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "226.8 x 164.52 pts",
+      "after_size": "226.8 x 164.52 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/decoding_objection.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "453.452 x 194.03 pts",
+      "after_size": "451.577 x 194.03 pts",
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/direct_baseline_learning_curves_pass8.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "509.688 x 349.258 pts",
+      "after_size": "509.798 x 349.258 pts",
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/e118_all_scale_factorial_progress.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "266.846 x 143.147 pts",
+      "after_size": "266.846 x 143.147 pts"
+    },
+    {
+      "figure": "figures/e118_scale_extensions_appendix.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 15,
+      "domains_after": 15,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "487.433 x 521.967 pts",
+      "after_size": "485.433 x 521.967 pts",
+      "changed_metadata_topkeys": []
+    },
+    {
+      "figure": "figures/e121_fixed_bank_survival.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "505.447 x 209.389 pts",
+      "after_size": "505.447 x 209.389 pts"
+    },
+    {
+      "figure": "figures/factorial_training_curves_pass8.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "529.2 x 414 pts",
+      "after_size": "529.2 x 414 pts",
+      "changed_metadata_topkeys": [
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/factorial_training_curves_pmd.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "529.2 x 434.16 pts",
+      "after_size": "529.2 x 434.16 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/frontier_comparison_20260911_graph.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "507.494 x 195.409 pts",
+      "after_size": "507.494 x 195.409 pts"
+    },
+    {
+      "figure": "figures/frontier_level_grid.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "569.884 x 173.247 pts",
+      "after_size": "567.134 x 172.903 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/gpt56_all_levels32_sampling_budget.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "460.8 x 136.8 pts",
+      "after_size": "460.8 x 136.8 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/gpt56_temperature_curve.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "475.2 x 223.2 pts",
+      "after_size": "475.2 x 223.2 pts"
+    },
+    {
+      "figure": "figures/hosted_verified_breadth.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 6,
+      "domains_after": 6,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "460.8 x 230.4 pts",
+      "after_size": "460.8 x 230.4 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "source",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/level2_factorial_training_curves.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "529.2 x 306 pts",
+      "after_size": "529.2 x 306 pts",
+      "changed_metadata_topkeys": [
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/level2_training_curves_pmd.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "529.2 x 182.16 pts",
+      "after_size": "529.2 x 182.16 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_families_appendix.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "460.8 x 151.2 pts",
+      "after_size": "460.8 x 151.2 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_level_construction.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "460.8 x 601.92 pts",
+      "after_size": "460.8 x 601.92 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_levels_appendix.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "460.8 x 151.2 pts",
+      "after_size": "460.8 x 151.2 pts",
+      "changed_metadata_topkeys": [
+        "renderer",
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_correct_budget_frontier.pdf",
+      "labels": [
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true,
+          "xml_encoding": "adjacent rotated glyphs"
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 3,
+      "domains_after": 3,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "525.046 x 461.858 pts",
+      "after_size": "525.288 x 460.653 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_correct_budget_local.pdf",
+      "labels": [
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true,
+          "xml_encoding": "adjacent rotated glyphs"
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 3,
+      "domains_after": 3,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "522.092 x 461.858 pts",
+      "after_size": "519.455 x 460.653 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_curves_frontier.pdf",
+      "labels": [
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true,
+          "xml_encoding": "adjacent rotated glyphs"
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 3,
+      "domains_after": 3,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "525.082 x 469.094 pts",
+      "after_size": "523.649 x 467.889 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_curves_local.pdf",
+      "labels": [
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true,
+          "xml_encoding": "adjacent rotated glyphs"
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 3,
+      "domains_after": 3,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "525.085 x 469.094 pts",
+      "after_size": "523.649 x 467.889 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modebench_examples.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "PantryPlan",
+          "text": "PantryPlan",
+          "font": "CLPBHC+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "1207.26 x 275.76 pts",
+      "after_size": "1207.26 x 275.76 pts"
+    },
+    {
+      "figure": "figures/modebench_level_admission.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "189.894 x 137.229 pts",
+      "after_size": "189.894 x 137.229 pts"
+    },
+    {
+      "figure": "figures/modebench_prompt_ablation_local.pdf",
+      "labels": [
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 18,
+      "domains_after": 18,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "567.946 x 440.147 pts",
+      "after_size": "568.676 x 440.147 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/modecollapse_story.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "950.4 x 340.154 pts",
+      "after_size": "950.4 x 340.154 pts"
+    },
+    {
+      "figure": "figures/pantry_adaptation_recovery_20260912.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "526.887 x 189.426 pts",
+      "after_size": "526.887 x 189.426 pts"
+    },
+    {
+      "figure": "figures/qwen_level_trends.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "245.52 x 140.4 pts",
+      "after_size": "245.52 x 140.4 pts"
+    },
+    {
+      "figure": "figures/reference_kl_knee.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "260.296 x 191.828 pts",
+      "after_size": "260.202 x 192.187 pts"
+    },
+    {
+      "figure": "figures/reference_kl_plane.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": false,
+      "numeric_removed": [],
+      "numeric_added": [
+        "3"
+      ],
+      "before_size": "260.722 x 188.179 pts",
+      "after_size": "260.675 x 187.804 pts"
+    },
+    {
+      "figure": "figures/replay_bank_balance.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "198.955 x 95.8922 pts",
+      "after_size": "198.955 x 95.8922 pts"
+    },
+    {
+      "figure": "figures/replay_bank_decomposition.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "455.604 x 205.499 pts",
+      "after_size": "455.604 x 205.53 pts",
+      "changed_metadata_topkeys": [
+        "outputs"
+      ]
+    },
+    {
+      "figure": "figures/replay_factorial_effects.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 10,
+      "domains_after": 10,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "482.4 x 223.2 pts",
+      "after_size": "482.4 x 223.2 pts",
+      "changed_metadata_topkeys": [
+        "outputs",
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/replay_key_weighting.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "482.4 x 129.6 pts",
+      "after_size": "482.4 x 129.6 pts",
+      "changed_metadata_topkeys": [
+        "outputs",
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/replay_level2_effects.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "482.4 x 129.6 pts",
+      "after_size": "482.4 x 129.6 pts",
+      "changed_metadata_topkeys": [
+        "outputs",
+        "builder"
+      ]
+    },
+    {
+      "figure": "figures/verified_support_story.pdf",
+      "labels": [],
+      "nonmono": 0,
+      "domains_before": 0,
+      "domains_after": 0,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "530.541 x 145.368 pts",
+      "after_size": "530.541 x 145.368 pts"
+    },
+    {
+      "figure": "figures/withdrawal_pmd_agreement.pdf",
+      "labels": [
+        {
+          "domain": "Graph",
+          "text": "Graph",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Countdown",
+          "text": "Countdown",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Python",
+          "text": "Python",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "MathIR",
+          "text": "MathIR",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        },
+        {
+          "domain": "Pantry",
+          "text": "Pantry",
+          "font": "FJGZKM+DejaVuSansMono",
+          "mono": true
+        }
+      ],
+      "nonmono": 0,
+      "domains_before": 5,
+      "domains_after": 5,
+      "numbers_unchanged": true,
+      "numeric_removed": [],
+      "numeric_added": [],
+      "before_size": "328.104 x 208.8 pts",
+      "after_size": "328.104 x 208.8 pts"
+    }
+  ]
+}

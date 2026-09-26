@@ -1,0 +1,476 @@
+--- before/paper/mathai2026/main.tex
++++ paper/mathai2026/main.tex
+@@ -159,13 +159,11 @@
+ 
+ \noindent\textbf{Replay improves both Dr.GRPO and MaxRL.}
+ \label{sec:results-maxrl}
+-Adding replay improves average correctness and verified support under either
+-objective at Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}).
+-Qwen2.5-3B also benefits in its completed Dr.GRPO comparison.
+-MaxRL comparisons use five paired seeds per domain.
+-At Qwen2.5-0.5B, replay raises MaxRL's \texttt{pass@8} by $.31$ and
+-\texttt{distinct@8} by $.99$ on average across domains
+-(paired estimates and intervals: Appendix~\ref{app:results-maxrl}).
++Adding replay improves average correctness and verified support under both
++objectives at Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}).
++On Qwen2.5-3B Graph, ReplayMaxRL adds $.163$ extra modes over MaxRL
++(five seeds; 95\% interval $[.021,.305]$). Its correctness and raw-support
++intervals include zero (Appendix~\ref{app:maxrl-scale-extensions}).
+ 
+ \begin{figure}[!htbp]
+ \centering
+@@ -173,7 +171,7 @@
+ \caption{\textbf{Replay across difficulty levels with Qwen2.5-0.5B-Instruct.}
+ Open/filled markers: Level 1/2. (A) Frozen-model success.
+ (B) Interim means weight the five domains equally after averaging seeds.
+-Checkpoints match across levels and methods; Pantry has one seed at step 0
++Levels and methods match checkpoints; Pantry uses two seeds at steps 672 and 0
+ (Appendix~\ref{app:level2-interim}).}
+ \label{fig:level2-admission}
+ \end{figure}
+--- before/paper/mathai2026/appendix.tex
++++ paper/mathai2026/appendix.tex
+@@ -44,7 +44,7 @@
+     Sparse RLEP-Dr & Replays verified successes in observed frequency, without
+       canonical balancing & success memory without key balancing & 47/75 \\
+     MaxRL & Optimizes best@\(k\) jointly across sampling budgets, without replay
+-      & sampling-aware fresh search without persistent memory & 11/15 blocks \\
++      & sampling-aware fresh search without persistent memory & 12/15 blocks \\
+     Fixed semantic entropy & Adds detached surprisal over verified canonical
+       outcomes to Dr.GRPO & explicit within-rollout diversity incentive &
+       10/15 blocks \\
+@@ -354,8 +354,8 @@
+ within-objective replay contrasts identify memory; their difference is the
+ replay-by-objective interaction on the common admissible seed intersection.
+ The MaxRL pair is registered for five seeds in all five Level-1 domains and
+-three scales. Eleven MaxRL--ReplayMaxRL blocks are complete at five seeds; the
+-full four-arm intersection contains ten complete blocks and one Falcon
++three scales. Twelve MaxRL--ReplayMaxRL blocks are complete at five seeds; the
++full four-arm intersection contains eleven complete blocks and one Falcon
+ Countdown block with \(n=4\). All use shared final pass-8 evaluations; smaller
+ intersections are descriptive and report exact \(n\) without intervals.
+ 
+@@ -380,10 +380,10 @@
+ The three experiments build one argument: replay retains verified support
+ across scale, remains useful after stronger fresh-rollout optimization, and
+ survives the first controlled increase in task difficulty. The main figures
+-incorporate validated results through the September 9 analysis update.
++incorporate validated results through the September 10 analysis update.
+ Figures~\ref{fig:cross-scale-terminal-effects} and~\ref{fig:maxrl-factorial}
+ use terminal seed intersections; Figure~\ref{fig:level2-admission}B uses
+-matched interim checkpoints, including an initial-only Pantry reference
++matched interim checkpoints, including Pantry seeds at steps 672 and 0
+ (Appendix~\ref{app:level2-interim}).
+ 
+ \subsection{Experiment 1: canonical replay retains verified support across scale}
+@@ -468,9 +468,11 @@
+ versus \(.739\) on \texttt{pass@8} and \(1.243\) versus \(1.214\) on raw
+ \texttt{distinct@8}. Thus sampling-aware fresh updates help without memory,
+ while adding replay improves both fresh objectives. This is a complete five-seed result for Graph;
+-Python and MathIR are also complete, with positive co-primary replay means
+-whose intervals include zero (Table~\ref{tab:latest-completed-effects}). Countdown
+-and PantryPlan remain incomplete.
++Countdown, Python, and MathIR are also complete. Countdown adds $+.017$
++extra modes under ReplayMaxRL, while its correctness interval includes zero.
++Python and MathIR have positive co-primary replay means whose intervals
++include zero (Table~\ref{tab:latest-completed-effects}). PantryPlan remains
++incomplete.
+ 
+ 
+ 
+@@ -2632,8 +2634,8 @@
+ confidence intervals. The Falcon
+ Dr.GRPO replay macro-average uses those same four seeds across all five
+ domains, yielding $+.441699$ on \texttt{pass@8} and $+.773926$ on
+-\texttt{distinct@8}. The eleven complete MaxRL--ReplayMaxRL blocks retain all
+-five seeds; the full four-arm factorial has ten complete blocks and one
++\texttt{distinct@8}. The twelve complete MaxRL--ReplayMaxRL blocks retain all
++five seeds; the full four-arm factorial has eleven complete blocks and one
+ four-seed block. Interactions require the common admissible intersection. The separately
+ reported historical E112-R1 comparison follows its exploratory amendment,
+ including a Student-$t$ interval with three degrees of freedom for its
+@@ -4019,8 +4021,17 @@
+ positive raw-support effect. The mean correctness gain is \(+.277\), but its
+ interval \([-.037,+.590]\) includes zero. This supports a domain-specific
+ breadth benefit at the larger model, without establishing a correctness gain
+-or a model-size trend. The other four Qwen2.5-3B MaxRL blocks remain incomplete;
+-no Qwen2.5-3B MaxRL cross-domain average is reported.
++or a model-size trend.
++
++\textbf{The newly completed Qwen2.5-3B Graph block adds extra correct modes.}
++ReplayMaxRL raises \texttt{distinct@8}$-$\texttt{pass@8} by $+.163$
++(unadjusted paired 95\% interval $[+.021,+.305]$), with a positive difference
++in all five seeds. Its mean \texttt{pass@8} effect is $+.023$
++($[-.048,+.095]$), and its raw \texttt{distinct@8} effect is $+.186$
++($[-.022,+.395]$). Thus the extra-mode contrast is positive while the
++co-primary endpoint intervals remain inconclusive. Countdown, MathIR, and
++PantryPlan are still incomplete; no Qwen2.5-3B MaxRL cross-domain average is
++reported.
+ 
+ \begin{table}[H]
+   \centering
+@@ -4057,7 +4068,7 @@
+ \subsection{Interim matched-level comparison}
+ \label{app:level2-interim}
+ 
+-Figure~\ref{fig:level2-admission}B uses the September 9 frozen evaluation
++Figure~\ref{fig:level2-admission}B uses the September 10 frozen evaluation
+ snapshot for Qwen2.5-0.5B-Instruct. For each domain and seed, we select the
+ latest nonnegative training step with complete, valid evaluations for all
+ eight combinations of level and method. Each evaluation contains all four
+@@ -4067,10 +4078,10 @@
+ draws, then the selected seeds within a domain, then the five domain means
+ with equal weights.
+ 
+-There are 21 matched domain--seed cells. Graph, Countdown, Python, and MathIR
+-use all five seeds, 43--47; PantryPlan uses only seed 45 at step 0 in both
+-levels and all four methods. Graph, Countdown, Python, and MathIR use
+-step 3,072 for all five seeds. These means describe the matched checkpoints
++There are 22 matched domain--seed cells. Graph, Countdown, Python, and MathIR
++use all five seeds, 43--47, at step 3,072. PantryPlan uses seed 43 at step 672
++(1.75 passes) and seed 45 at step 0, each matched across both levels and all
++four methods. These means describe the matched checkpoints
+ available in the snapshot. The four complete eight-pass factorials
+ are reported separately in the text and Table~\ref{tab:latest-completed-effects}.
+ 
+@@ -4079,7 +4090,7 @@
+ \path{ops/exp_scaling/freeze_paper_modebench_levels.py} collects the snapshot;
+ \path{ops/exp_scaling/plot_paper_modebench_levels.py} regenerates the figure;
+ its adjacent JSON records every selected checkpoint, domain mean, and final
+-average. The initial Pantry values are observed evaluations; missing runs
++average. Both Pantry checkpoints are observed evaluations; missing runs
+ are never assigned a numerical value or replaced by admission measurements.
+ 
+ \subsection{Comparison registry}
+@@ -4090,7 +4101,7 @@
+   \caption{\textbf{Current coverage and evidence boundaries for the three
+   experiments.} A complete block contains all five registered paired
+   terminal seeds. Partial or source-excluded intersections are not counted as complete blocks.
+-  Counts use the September 9 audit; the original E120 primary estimates
++  Counts use the September 10 audit; the original E120 primary estimates
+   retain their disclosed September 4 frozen input.}
+   \label{tab:experiment-map}
+   \scriptsize
+@@ -4105,13 +4116,13 @@
+       14/15 blocks; one $n=4$ & retain Falcon Countdown as descriptive after source exclusion \\
+     Exp. 2 & Does memory add value beyond MaxRL? &
+       Level 1; 3 scales $\times$ 5 domains; MaxRL/ReplayMaxRL &
+-      11/15 blocks & four Qwen-3B blocks; full factorial has ten complete blocks and one $n=4$ \\
++      12/15 blocks & three Qwen-3B blocks; full factorial has eleven complete blocks and one $n=4$ \\
+     Exp. 3 & Does the factorial transfer to a harder matched level? &
+       Level 2; Qwen-0.5B; 5 domains $\times$ 4 methods &
+       4/5 blocks; all except PantryPlan & finish PantryPlan \\
+     Ablation & Does fresh-frequency replay differ from uniform key replay? &
+       Level 1; 9 model--domain blocks; 45 cells &
+-      6/9 blocks; 35/45 cells & finish Falcon PantryPlan and both Qwen-3B blocks \\
++      7/9 blocks; 41/45 cells & finish both Qwen-3B blocks \\
+     \bottomrule
+   \end{tabularx}
+ \end{table}
+@@ -4124,22 +4135,22 @@
+ the paper only at a registered checkpoint shared by the paired methods. Seed
+ prefixes are labeled with exact $n$ and are never promoted to five-seed
+ estimates. GRPO, UCPO, sparse RLEP-Dr, and fixed Semantic MaxEnt remain direct
+-comparators rather than components of the primary factorial. The eleven complete
++comparators rather than components of the primary factorial. The twelve complete
+ MaxRL--ReplayMaxRL blocks remain valid at five seeds each. Requiring all four
+-arms leaves ten complete five-seed blocks and one four-seed Falcon Countdown
++arms leaves eleven complete five-seed blocks and one four-seed Falcon Countdown
+ block. Cross-objective interactions require the common admissible seed
+ intersection; they are not differences of aggregates with different seed sets.
+ 
+ 
+-\subsection{Dated endpoint update: September 9, 2026}
++\subsection{Dated endpoint update: September 10, 2026}
+ \label{app:latest-results-update}
+ 
+ Table~\ref{tab:latest-results-update} records an audit of the registered
+-E118, E119, and E120 ledgers, collected from 17:34:45 to 17:43:25 UTC.
++E118, E119, and E120 ledgers, collected from 16:49:41 to 16:53:47 UTC.
+ Completion receipts and admitted endpoints are counted separately: an endpoint
+ requires the exact step-3,072 evaluation, all four fixed-seed sampled draws,
+ and no conflicting retry values. The accompanying
+-\texttt{latest\_results\_20260909.json} records the collection interval,
++\texttt{latest\_results\_20260910.json} records the collection interval,
+ frozen ledger copies, admitted seed sets, every paired endpoint effect, and
+ mechanism eligibility. Partial intersections receive exact seed counts and
+ no five-seed interval.
+@@ -4149,7 +4160,7 @@
+   \caption{\textbf{Latest audited terminal coverage.}
+   Complete blocks require five paired MaxRL/ReplayMaxRL seeds for E118,
+   five four-method seeds for E119, and five frequency-replay seeds with
+-  their registered uniform comparator for E120. All six complete E120 blocks
++  their registered uniform comparator for E120. All seven complete E120 blocks
+   pass the audit of persisted frequency-weighting training telemetry.}
+   \label{tab:latest-results-update}
+   \small
+@@ -4159,14 +4170,14 @@
+     \textbf{Campaign} & \textbf{Receipts} & \textbf{Endpoints}
+       & \textbf{Complete blocks} \\
+     \midrule
+-    \input{results/latest_results_20260909_table_body.tex}
++    \input{results/latest_results_20260910_table_body.tex}
+   \end{tabular}
+ \end{table}
+ 
+-E118 contains 61 matched MaxRL/ReplayMaxRL pairs. Its eleven complete
+-blocks are unchanged; Qwen2.5-3B Graph has four pairs (seeds 70--73),
+-MathIR has one (seed 74), and PantryPlan has one (seed 72). Countdown
+-has no paired terminal intersection. These partial blocks remain descriptive,
++E118 contains 66 matched MaxRL/ReplayMaxRL pairs and twelve complete
++blocks. Qwen2.5-3B Graph now joins Python at five pairs (seeds 70--74).
++Countdown has two pairs (70 and 74), MathIR has three (70, 71, and 74),
++and PantryPlan has one (72). These partial blocks remain descriptive,
+ and the incomplete Qwen2.5-3B MaxRL grid is not averaged across domains in
+ Figure~\ref{fig:maxrl-factorial}. Table~\ref{tab:current-e118} reports all
+ available paired means.
+@@ -4176,19 +4187,26 @@
+ reports the three blocks completed since the September 6 census. Their
+ \texttt{pass@8} and raw \texttt{distinct@8} replay means are positive, but all
+ corresponding unadjusted 95\% intervals include zero. Countdown's ReplayMaxRL
+-extra-mode effect is $+.017$ ($[+.001,+.032]$). PantryPlan has three
+-individually completed runs and no paired terminal intersection.
++extra-mode effect is $+.017$ ($[+.001,+.032]$). PantryPlan has five
++individually completed runs and its first ReplayDr.GRPO--Dr.GRPO pair
++(seed 46): $+.156$ on \texttt{pass@8}, $+.232$ on raw
++\texttt{distinct@8}, and $+.076$ extra modes. This single-seed comparison
++is descriptive and receives no interval; no PantryPlan MaxRL pair or
++four-arm terminal intersection is available.
+ Figure~\ref{fig:level2-admission} uses the refreshed matched-checkpoint
+ snapshot described above; Tables~\ref{tab:current-e119}
+ and~\ref{tab:level2-factorial-contrasts} give all terminal effects.
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{Completed Level-2 Countdown, Python, and MathIR replay effects.}
+-  Each contrast uses all five registered seeds, 43--47, at pass 8.
+-  ReplayMaxRL is compared with MaxRL; ReplayDr.GRPO with Dr.GRPO.
+-  Entries give the paired mean and unadjusted 95\% Student-$t$ interval.
+-  Extra modes are \texttt{distinct@8}$-$\texttt{pass@8}; their effect remains
++  \caption{\textbf{Additional complete blocks since the September 6 census.}
++  Each contrast uses all five registered paired seeds at pass 8.
++  ReplayMaxRL is compared with MaxRL; ReplayDr.GRPO with Dr.GRPO;
++  uniform replay with fresh-frequency replay. Entries give paired means and
++  nominal 95\% intervals: Student-$t$ for the factorials and exhaustive
++  paired percentile bootstrap for the weighting ablation. These intervals
++  are not adjusted for repeated looks or multiple comparisons.
++  Extra modes are \texttt{distinct@8}$-$\texttt{pass@8} and remain
+   coupled to correctness.}
+   \label{tab:latest-completed-effects}
+   \scriptsize
+@@ -4200,15 +4218,16 @@
+       \(\Delta\texttt{pass@8}\) & \(\Delta\texttt{distinct@8}\) &
+       \textbf{$\Delta$ extra modes} \\
+     \midrule
+-    \input{results/latest_results_20260909_effects_table_body.tex}
++    \input{results/latest_results_20260910_effects_table_body.tex}
+   \end{tabular}}
+ \end{table}
+ 
+-E120 has 35 admitted treatment endpoints and six complete blocks.
+-Qwen2.5-3B Graph adds two pairs (seeds 70 and 71); Falcon3-1B PantryPlan
+-retains three (57--59), and Qwen2.5-3B PantryPlan has none. All observed
+-pairs pass the persisted weighting-telemetry audit. The Falcon3-1B Graph
+-result in Appendix~\ref{app:e120-falcon-graph-update} is unchanged.
++E120 has 41 admitted treatment endpoints and seven complete blocks.
++Falcon3-1B PantryPlan now has all five pairs (seeds 55--59).
++Qwen2.5-3B Graph has four pairs (70--73), and PantryPlan has two (73 and 74).
++All observed pairs pass the persisted weighting-telemetry audit. The
++Falcon3-1B Graph result in Appendix~\ref{app:e120-falcon-graph-update} is
++unchanged.
+ The original 25-cell Qwen2.5-0.5B weighting analysis retains its September 4
+ frozen input, and all 25 treatment endpoints were revalidated without
+ numerical changes. Table~\ref{tab:current-e120} includes the partial extensions.
+@@ -4218,7 +4237,7 @@
+ \label{app:current-campaign-results}
+ 
+ Tables~\ref{tab:current-e118}--\ref{tab:current-e120} collect every registered
+-model--domain contrast in the September 9 endpoint snapshot, including
++model--domain contrast in the September 10 endpoint snapshot, including
+ comparisons whose full five-seed block is still accumulating. Each row uses
+ the exact terminal seed intersection for that contrast. We report correctness
+ $P=\texttt{pass@8}$, raw support $D=\texttt{distinct@8}$, and extra correct
+@@ -4244,7 +4263,7 @@
+     \textbf{Model} & \textbf{Domain} & \textbf{Replay arm} & $n/5$ &
+     $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+     \midrule
+-    \input{results/current_campaign_results_20260909_e118_table_body.tex}
++    \input{results/current_campaign_results_20260910_e118_table_body.tex}
+   \end{tabular}}
+ \end{table}
+ 
+@@ -4253,8 +4272,10 @@
+ five-seed interval excludes zero. At Falcon3-1B, the corresponding breadth
+ effect is smaller and Graph's mean is negative with an interval spanning
+ zero. Thus the positive aggregate correctness and raw-support effects do
+-not imply a breadth gain in every domain. The completed Qwen2.5-3B Python
+-block and the partial scale extensions remain separate comparisons.
++not imply a breadth gain in every domain. The completed Qwen2.5-3B Graph
++and Python blocks both have positive extra-mode intervals, while their
++correctness intervals include zero. The partial scale extensions remain
++separate comparisons.
+ 
+ \begin{table}[H]
+   \centering
+@@ -4273,7 +4294,7 @@
+     \textbf{Model} & \textbf{Domain} & \textbf{Objective} & $n/5$ &
+     $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+     \midrule
+-    \input{results/current_campaign_results_20260909_e119_table_body.tex}
++    \input{results/current_campaign_results_20260910_e119_table_body.tex}
+   \end{tabular}}
+ \end{table}
+ 
+@@ -4314,7 +4335,7 @@
+     \textbf{Domain} & $n$ & \textbf{Contrast} &
+     $\Delta P$ & $\Delta D$ & $\Delta B$ \\
+     \midrule
+-    \input{results/level2_factorial_contrasts_20260909_table_body.tex}
++    \input{results/level2_factorial_contrasts_20260910_table_body.tex}
+   \end{tabular}}
+ \end{table}
+ 
+@@ -4324,8 +4345,8 @@
+   Effects are uniform minus frequency weighting. Brackets give the paired
+   percentile bootstrap interval for $\Delta B$ over all $5^5$ ordered
+   resamples in complete blocks. Every observed treatment endpoint in this
+-  snapshot passes the persisted replay-weight telemetry audit. Partial
+-  blocks remain descriptive; Qwen2.5-3B PantryPlan has no pairs.}
++  snapshot passes the persisted replay-weight telemetry audit. Qwen2.5-3B
++  Graph and PantryPlan remain descriptive partial blocks.}
+   \label{tab:current-e120}
+   \scriptsize
+   \setlength{\tabcolsep}{3pt}
+@@ -4335,17 +4356,21 @@
+     \textbf{Model} & \textbf{Domain} & \textbf{Weighting} & $n/5$ &
+     $\Delta P$ & $\Delta D$ & $\Delta B$ [95\% interval] \\
+     \midrule
+-    \input{results/current_campaign_results_20260909_e120_table_body.tex}
++    \input{results/current_campaign_results_20260910_e120_table_body.tex}
+   \end{tabular}}
+ \end{table}
+ 
+ The complete Graph, Countdown, and PantryPlan blocks at Qwen2.5-0.5B
+-favor uniform weighting on breadth, as does Falcon3-1B Graph. The
+-Qwen2.5-3B Graph extension also favors uniform weighting in its two observed
+-pairs ($\Delta B=+.138$), whereas Falcon3-1B PantryPlan favors frequency
+-weighting in its three observed pairs ($\Delta B=-.540$). Neither partial
+-block receives an interval. These differences argue against a universal
+-weighting advantage. The registered Qwen2.5-0.5B five-domain mean remains
++favor uniform weighting on breadth, as does Falcon3-1B Graph. The completed
++Falcon3-1B PantryPlan block is inconclusive: uniform minus frequency replay
++is $\Delta B=-.146$ (paired bootstrap 95\% interval $[-.564,+.414]$),
++$\Delta P=-.021$ ($[-.063,+.026]$), and $\Delta D=-.167$
++($[-.627,+.440]$). The earlier three-seed breadth mean of $-.540$ therefore
++does not establish a frequency-weighting advantage at the full five seeds.
++Qwen2.5-3B Graph and PantryPlan have descriptive extra-mode effects of
++$+.070$ at $n=4$ and $+.206$ at $n=2$, respectively, without intervals.
++The added results do not establish a uniform-weighting advantage across
++all model--domain blocks. The registered Qwen2.5-0.5B five-domain mean remains
+ $\Delta B=+.318$ with interval $[+.272,+.358]$; its correctness interval
+ $[-.119,+.139]$ establishes neither a gain nor equivalence.
+ 
+@@ -4468,10 +4493,10 @@
+ sampling, larger groups, regularization, and decoding sweeps remain open. The
+ uniform-versus-frequency ablation has five of nine complete blocks, all at
+ Qwen2.5-0.5B, in the frozen September 4, 15:40:26 UTC E120 snapshot. The across-scale
+-MaxRL pair has 11/15 complete blocks; requiring all four arms leaves ten
++MaxRL pair has 12/15 complete blocks; requiring all four arms leaves eleven
+ complete blocks and one four-seed block. Core replay evidence contains 14
+ complete blocks and one four-seed block. Level-2 transfer has complete five-seed blocks on Graph, Countdown, Python, and
+-MathIR; Countdown and PantryPlan remain incomplete. Sign tests are nominal exploratory summaries assuming
++MathIR; PantryPlan remains incomplete. Sign tests are nominal exploratory summaries assuming
+ independent block signs; individual intervals quantify estimation uncertainty.
+ 
+ \subsection{AI Use Statement}
+--- before/paper/mathai2026/README.md
++++ paper/mathai2026/README.md
+@@ -42,34 +42,36 @@
+ and findings matter.
+ 
+ Three-scale evidence concerns ReplayDr.GRPO versus Dr.GRPO. ReplayMaxRL's
+-eleven complete MaxRL--ReplayMaxRL pair blocks cover all five domains at
+-Qwen2.5-0.5B and Falcon3-1B, plus Qwen2.5-3B Python. The four-arm
+-intersections contain ten complete blocks and one four-seed Falcon Countdown
++twelve complete MaxRL--ReplayMaxRL pair blocks cover all five domains at
++Qwen2.5-0.5B and Falcon3-1B, plus Qwen2.5-3B Graph and Python. The four-arm
++intersections contain eleven complete blocks and one four-seed Falcon Countdown
+ block. Graph, Countdown, Python, and MathIR now have complete five-seed
+ Level-2 factorials. Countdown gains extra modes under ReplayMaxRL, while its
+ correctness interval includes zero; Python/MathIR correctness effects remain
+ inconclusive. Cross-domain factorial averages are post-hoc
+ descriptive summaries. The paper keeps these boundaries explicit.
+ 
+-## September 9 results refresh
+-
+-Both manuscripts now report 126/150 admitted E118 endpoints, 83/100 E119
+-endpoints, and 35/45 E120-R1 endpoints. They provide every planned model/domain
+-comparison with exact paired seed counts: 11 complete E118 pair blocks, four
+-complete Level-2 factorials, and six complete E120 blocks. The completed
+-Level-2 domains are Graph, Countdown, Python, and MathIR; PantryPlan remains
+-incomplete. Figure 6 uses step-3072 matched checkpoints for the four completed
+-domains and its explicitly labeled step-0 PantryPlan row.
+-
+-The new appendix tables report pass@8, distinct@8, and extra correct modes
+-(B8 = distinct@8 − pass@8). Complete five-seed blocks carry the registered or
+-documented paired uncertainty; partial blocks retain their observed seed
+-counts and have no five-seed intervals. E120 uses uniform-minus-frequency
+-contrasts and preserves its frozen Qwen-0.5B primary analysis. The new
+-Qwen-3B Graph comparison has two completed, telemetry-validated pairs;
+-Falcon PantryPlan remains a three-pair contrast favoring frequency weighting.
+-The standalone result digest, CSV, JSON, and forest plot accompany the source
+-bundle. Earlier dated sections below record historical revisions.
++## September 10 results refresh
++
++Both manuscripts report 137/150 admitted E118 endpoints, 85/100 E119
++endpoints, and 41/45 E120-R1 endpoints. The appendix gives every planned
++model/domain comparison with exact paired seed counts: 12 complete E118 pair
++blocks, four complete Level-2 factorials, and seven complete E120 blocks.
++Figure 6 uses 22 matched domain–seed cells: five terminal seeds each for
++Graph, Countdown, Python, and MathIR; PantryPlan seed 43 at step 672 and
++seed 45 at step 0, matched across both levels and all four methods.
++
++The newly completed Qwen2.5-3B Graph MaxRL comparison adds .163 extra
++correct modes (unadjusted 95% paired interval [.021, .305]); its correctness
++and raw-support intervals include zero. Level-2 PantryPlan has its first
++ReplayDr.GRPO pair (seed 46), reported descriptively without an interval.
++The completed Falcon PantryPlan weighting comparison is inconclusive:
++uniform minus frequency replay gives −.146 extra modes, with a paired
++bootstrap interval [−.564, +.414]. Partial blocks retain their observed
++seed counts without five-seed intervals, and the frozen Qwen-0.5B primary
++weighting analysis is preserved. The dated result digest, CSV, JSON, and
++forest plot accompany the source bundle. Earlier dated sections below record
++historical revisions.
+ 
+ ## Build
+ 
+@@ -119,7 +121,7 @@
+ four-draw evaluations and the existing August 28 amendment excludes it from
+ efficacy reporting. No retry value was selected. Primary results therefore use
+ 74 admissible pairs: 14 complete five-seed blocks and one descriptive four-seed
+-block. All eleven complete MaxRL replay comparisons retain their registered seed sets.
++block. All twelve complete MaxRL replay comparisons retain their registered seed sets.
+ 
+ The Falcon Dr.GRPO cross-domain track uses the same four admissible seeds in
+ every domain and has no five-seed interval. Supplementary trajectories use
+--- before/paper/mathai2026/Makefile
++++ paper/mathai2026/Makefile
+@@ -9,12 +9,12 @@
+ 	results/e121_fixed_bank_survival_table_body.tex \
+ 	results/e121_fixed_bank_survival_sequence_table_body.tex \
+ 	results/e121_fixed_bank_survival_bootstrap_table_body.tex \
+-	results/latest_results_20260909_table_body.tex \
+-	results/latest_results_20260909_effects_table_body.tex \
+-	results/current_campaign_results_20260909_e118_table_body.tex \
+-	results/current_campaign_results_20260909_e119_table_body.tex \
+-	results/current_campaign_results_20260909_e120_table_body.tex \
+-	results/level2_factorial_contrasts_20260909_table_body.tex
++	results/latest_results_20260910_table_body.tex \
++	results/latest_results_20260910_effects_table_body.tex \
++	results/current_campaign_results_20260910_e118_table_body.tex \
++	results/current_campaign_results_20260910_e119_table_body.tex \
++	results/current_campaign_results_20260910_e120_table_body.tex \
++	results/level2_factorial_contrasts_20260910_table_body.tex
+ SOURCES = main.tex preamble.tex appendix.tex example_paper.bib $(REQUIRED_TABLES) \
+ 	$(wildcard *.sty figures/*.pdf figures/*.json results/*.tex results/*.json) \
+ 	snapshot.json check_submission.py build_submission.py package_source.py Makefile

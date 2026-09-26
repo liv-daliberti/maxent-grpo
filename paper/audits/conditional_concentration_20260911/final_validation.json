@@ -1,0 +1,38 @@
+{
+  "status": "pass",
+  "tests": {
+    "passed": 85,
+    "suite": [
+      "test_paper_collision_statistics.py",
+      "test_paper_collision_sample_sources.py",
+      "test_paper_grpo_collision_sources.py",
+      "test_paper_collision_cohort_extension.py"
+    ]
+  },
+  "builds": {
+    "iclr": {
+      "main_pages": 9,
+      "total_pages": 74,
+      "contract": "pass",
+      "line_fill": "pass"
+    },
+    "workshop": {
+      "content_pages": 4,
+      "main_figures": 7,
+      "supplementary_figures": 12,
+      "submission_contract": "pass"
+    }
+  },
+  "files": {
+    "paper/main.tex": "05c1146a68ef0ba72e71497125437e39cf29598f01daaa3d12ff76339c1d5b06",
+    "paper/main.pdf": "6b2dd83705ebe7ebb6b738fe6d68a3c03a3881615929819432640a11e8039f2e",
+    "paper/mathai2026/main.tex": "b5f42961d8a9a73b087b8ee0c1ce684336267e4264c952af0baa7e251596336b",
+    "paper/mathai2026/appendix.tex": "f377f29e5a91bfd5539e61ac35da01d49c2cbbcee2047a8a07eb793869220ffc",
+    "paper/mathai2026/main.pdf": "1cc4f8ab9f96dc0a7c5f64aad4fbf63953a04c029c1046feff5cdbfabe0cf74a",
+    "paper/mathai2026/build_receipt.json": "41107246a07120c0c81b032d3280499eb3f235ebca6ff8c7f3dcd498b632d58b",
+    "paper/results/conditional_concentration_20260911.json": "5c9f69d6961ba7f6938a9a535bf7414c352fe645f668a241bbcdae6637e262d4",
+    "paper/results/conditional_concentration_20260911_appendix.tex": "3f4c10fc722734f410cb650e4fea669c6a5a7496bd461e9cc5ba9916b3bf8b96",
+    "paper/results/conditional_concentration_20260911_tables.tex": "f4107370e57c34975d058843d6fd66200417ec8291389cad462bf109dab6f159",
+    "paper/plans/narrative_reorganization_20260911.md": "f78bfcd7f5fdc3b9aabe197a8f42f1372f0b337958014bb165cd397f65223637"
+  }
+}

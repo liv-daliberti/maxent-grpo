@@ -1,0 +1,431 @@
+{
+  "schema": "paper-e106-group-centered-mechanism-diagnostic-v1",
+  "generated_at": "2026-09-04T15:38:07.752143+00:00",
+  "pointmaze": "excluded",
+  "outcome_metrics_used": false,
+  "input": "/n/fs/similarity/maxent-grpo/var/artifacts/e106_python_lambda_normalization_combined_gate.json",
+  "input_sha256": "540b110337eb599ff92127e67894bd73363fbc758cf55621a47b9fe608c503e7",
+  "plotter": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_e106_group_centered_mechanism_diagnostic.py",
+  "plotter_sha256": "a08eab6411aaac1a9210633baba7bf02674d883873e58e1f517fe61b4a21f4c7",
+  "scale_order": [
+    "qwen05b",
+    "falcon1b",
+    "qwen3b"
+  ],
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "metric_order": [
+    "semantic_eligible_fraction_max",
+    "support_at_least_two_prompt_fraction_max",
+    "semantic_rms_max",
+    "semantic_effective_mean_abs_max",
+    "replay_gradient_l2_max"
+  ],
+  "mean_tolerance": 1e-08,
+  "cells": [
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "graph_coloring",
+      "source": "e104_non_python",
+      "job_id": 30637786,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.875,
+        "support_at_least_two_prompt_fraction_max": 0.5833333134651184,
+        "semantic_rms_max": 0.014930015429854393,
+        "semantic_effective_mean_abs_max": 2.3852447794681098e-18,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "countdown",
+      "source": "e104_non_python",
+      "job_id": 30637785,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.375,
+        "support_at_least_two_prompt_fraction_max": 0.2857142984867096,
+        "semantic_rms_max": 0.006736560724675655,
+        "semantic_effective_mean_abs_max": 6.505213034913027e-19,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "python_factors",
+      "source": "e106_python",
+      "job_id": 30640329,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.0625,
+        "support_at_least_two_prompt_fraction_max": 0.0,
+        "semantic_rms_max": 0.0,
+        "semantic_effective_mean_abs_max": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": true
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "mathir",
+      "source": "e104_non_python",
+      "job_id": 30637787,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.1875,
+        "support_at_least_two_prompt_fraction_max": 0.2857142984867096,
+        "semantic_rms_max": 0.0019187817815691233,
+        "semantic_effective_mean_abs_max": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen05b",
+      "model": "Qwen 0.5B",
+      "domain": "pantry_plan",
+      "source": "e104_non_python",
+      "job_id": 30637788,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 1.0,
+        "support_at_least_two_prompt_fraction_max": 1.0,
+        "semantic_rms_max": 0.01115433219820261,
+        "semantic_effective_mean_abs_max": 1.0408340855860843e-17,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "graph_coloring",
+      "source": "e104_non_python",
+      "job_id": 30637790,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.6875,
+        "support_at_least_two_prompt_fraction_max": 1.0,
+        "semantic_rms_max": 0.010480782948434353,
+        "semantic_effective_mean_abs_max": 2.8189256484623115e-18,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "countdown",
+      "source": "e104_non_python",
+      "job_id": 30637791,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.25,
+        "support_at_least_two_prompt_fraction_max": 0.3333333432674408,
+        "semantic_rms_max": 0.0019187817815691233,
+        "semantic_effective_mean_abs_max": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "python_factors",
+      "source": "e110_python",
+      "job_id": 30647379,
+      "target_steps": 192,
+      "completion_receipt_step": 193,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.0625,
+        "support_at_least_two_prompt_fraction_max": 0.0,
+        "semantic_rms_max": 0.0,
+        "semantic_effective_mean_abs_max": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": true
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "mathir",
+      "source": "e104_non_python",
+      "job_id": 30637793,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.4375,
+        "support_at_least_two_prompt_fraction_max": 0.20000000298023224,
+        "semantic_rms_max": 0.006736560724675655,
+        "semantic_effective_mean_abs_max": 6.505213034913027e-19,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "falcon1b",
+      "model": "Falcon 1B",
+      "domain": "pantry_plan",
+      "source": "e104_non_python",
+      "job_id": 30637794,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.6875,
+        "support_at_least_two_prompt_fraction_max": 1.0,
+        "semantic_rms_max": 0.007244339678436518,
+        "semantic_effective_mean_abs_max": 5.637851296924623e-18,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "graph_coloring",
+      "source": "e104_non_python",
+      "job_id": 30637795,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.875,
+        "support_at_least_two_prompt_fraction_max": 1.0,
+        "semantic_rms_max": 0.012047280557453632,
+        "semantic_effective_mean_abs_max": 3.7947076036992655e-18,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "countdown",
+      "source": "e104_non_python",
+      "job_id": 30637796,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.9375,
+        "support_at_least_two_prompt_fraction_max": 0.4000000059604645,
+        "semantic_rms_max": 0.009551841765642166,
+        "semantic_effective_mean_abs_max": 6.5052130349130266e-18,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "python_factors",
+      "source": "e106_python",
+      "job_id": 30640331,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "PREEMPTED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.5625,
+        "support_at_least_two_prompt_fraction_max": 0.5,
+        "semantic_rms_max": 0.00935328472405672,
+        "semantic_effective_mean_abs_max": 8.673617379884035e-19,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "mathir",
+      "source": "e104_non_python",
+      "job_id": 30637798,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 0.6875,
+        "support_at_least_two_prompt_fraction_max": 0.0,
+        "semantic_rms_max": 0.0,
+        "semantic_effective_mean_abs_max": 0.0,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": true
+    },
+    {
+      "scale": "qwen3b",
+      "model": "Qwen 3B",
+      "domain": "pantry_plan",
+      "source": "e104_non_python",
+      "job_id": 30637799,
+      "target_steps": 64,
+      "completion_receipt_step": 65,
+      "scheduler_state": "COMPLETED",
+      "metrics": {
+        "semantic_eligible_fraction_max": 1.0,
+        "support_at_least_two_prompt_fraction_max": 1.0,
+        "semantic_rms_max": 0.013250001706182957,
+        "semantic_effective_mean_abs_max": 4.7704895589362195e-18,
+        "replay_gradient_l2_max": 0.10000000149011612
+      },
+      "invariants": {
+        "v6_group_centered_active": true,
+        "legacy_estimator_inactive": true,
+        "rms_controller_inactive": true,
+        "centered_mean_within_tolerance": true,
+        "replay_actuated": true
+      },
+      "zero_semantic_pressure": false
+    }
+  ],
+  "zero_semantic_pressure_cells": [
+    {
+      "scale": "qwen05b",
+      "domain": "python_factors",
+      "job_id": 30640329
+    },
+    {
+      "scale": "falcon1b",
+      "domain": "python_factors",
+      "job_id": 30647379
+    },
+    {
+      "scale": "qwen3b",
+      "domain": "mathir",
+      "job_id": 30637798
+    }
+  ],
+  "invariant_counts": {
+    "v6_group_centered_active": 15,
+    "legacy_estimator_inactive": 15,
+    "rms_controller_inactive": 15,
+    "centered_mean_within_tolerance": 15,
+    "replay_actuated": 15
+  }
+}

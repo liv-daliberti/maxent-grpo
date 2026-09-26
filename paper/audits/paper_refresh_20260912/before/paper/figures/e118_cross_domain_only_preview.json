@@ -1,0 +1,251 @@
+{
+  "absolute_cross_domain_average": {
+    "falcon1b": {
+      "distinct8": {
+        "before_training": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.7234375,
+          "per_seed": {
+            "55": 0.7234375,
+            "56": 0.7234375,
+            "57": 0.7234375,
+            "58": 0.7234375,
+            "59": 0.7234375
+          }
+        },
+        "drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.43671875,
+          "per_seed": {
+            "55": 0.43203125,
+            "56": 0.36796875,
+            "57": 0.474609375,
+            "58": 0.46640625,
+            "59": 0.442578125
+          }
+        },
+        "maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.934375,
+          "per_seed": {
+            "55": 1.009765625,
+            "56": 0.94375,
+            "57": 0.9390625,
+            "58": 0.929296875,
+            "59": 0.85
+          }
+        },
+        "replay_drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 1.199375,
+          "per_seed": {
+            "55": 1.1671875,
+            "56": 1.274609375,
+            "57": 1.24921875,
+            "58": 1.145703125,
+            "59": 1.16015625
+          }
+        },
+        "replay_maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 1.161953125,
+          "per_seed": {
+            "55": 1.087109375,
+            "56": 1.208203125,
+            "57": 1.112890625,
+            "58": 1.18828125,
+            "59": 1.21328125
+          }
+        }
+      },
+      "pass8": {
+        "before_training": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.39140625,
+          "per_seed": {
+            "55": 0.39140625,
+            "56": 0.39140625,
+            "57": 0.39140625,
+            "58": 0.39140625,
+            "59": 0.39140625
+          }
+        },
+        "drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.342421875,
+          "per_seed": {
+            "55": 0.34609375,
+            "56": 0.309765625,
+            "57": 0.351953125,
+            "58": 0.35546875,
+            "59": 0.348828125
+          }
+        },
+        "maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.6995312499999999,
+          "per_seed": {
+            "55": 0.746484375,
+            "56": 0.72734375,
+            "57": 0.711328125,
+            "58": 0.709765625,
+            "59": 0.602734375
+          }
+        },
+        "replay_drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.78203125,
+          "per_seed": {
+            "55": 0.76171875,
+            "56": 0.7921875,
+            "57": 0.78203125,
+            "58": 0.794140625,
+            "59": 0.780078125
+          }
+        },
+        "replay_maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.832265625,
+          "per_seed": {
+            "55": 0.825390625,
+            "56": 0.79375,
+            "57": 0.840234375,
+            "58": 0.849609375,
+            "59": 0.85234375
+          }
+        }
+      }
+    },
+    "qwen05b": {
+      "distinct8": {
+        "before_training": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.663671875,
+          "per_seed": {
+            "43": 0.690234375,
+            "44": 0.65234375,
+            "45": 0.64921875,
+            "46": 0.66328125,
+            "47": 0.66328125
+          }
+        },
+        "drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.40374999999999994,
+          "per_seed": {
+            "43": 0.451171875,
+            "44": 0.391796875,
+            "45": 0.403515625,
+            "46": 0.35546875,
+            "47": 0.416796875
+          }
+        },
+        "maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.48968750000000005,
+          "per_seed": {
+            "43": 0.551953125,
+            "44": 0.496875,
+            "45": 0.5109375,
+            "46": 0.539453125,
+            "47": 0.34921875
+          }
+        },
+        "replay_drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 1.4026562500000002,
+          "per_seed": {
+            "43": 1.488671875,
+            "44": 1.519921875,
+            "45": 1.308203125,
+            "46": 1.369140625,
+            "47": 1.32734375
+          }
+        },
+        "replay_maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 1.4807812500000002,
+          "per_seed": {
+            "43": 1.692578125,
+            "44": 1.633203125,
+            "45": 1.42734375,
+            "46": 1.362109375,
+            "47": 1.288671875
+          }
+        }
+      },
+      "pass8": {
+        "before_training": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.33484375,
+          "per_seed": {
+            "43": 0.346484375,
+            "44": 0.326171875,
+            "45": 0.3265625,
+            "46": 0.3375,
+            "47": 0.3375
+          }
+        },
+        "drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.401875,
+          "per_seed": {
+            "43": 0.449609375,
+            "44": 0.38671875,
+            "45": 0.403515625,
+            "46": 0.354296875,
+            "47": 0.415234375
+          }
+        },
+        "maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.45335937499999995,
+          "per_seed": {
+            "43": 0.491796875,
+            "44": 0.458984375,
+            "45": 0.477734375,
+            "46": 0.496875,
+            "47": 0.34140625
+          }
+        },
+        "replay_drgrpo": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.73875,
+          "per_seed": {
+            "43": 0.846484375,
+            "44": 0.837890625,
+            "45": 0.66875,
+            "46": 0.67890625,
+            "47": 0.66171875
+          }
+        },
+        "replay_maxrl": {
+          "definition": "equal domain average within paired seed",
+          "mean": 0.7602343749999999,
+          "per_seed": {
+            "43": 0.84453125,
+            "44": 0.815234375,
+            "45": 0.826171875,
+            "46": 0.666015625,
+            "47": 0.64921875
+          }
+        }
+      }
+    }
+  },
+  "estimand": "equal-domain average computed within seed",
+  "manuscript_replacement": false,
+  "metrics": [
+    "pass8",
+    "distinct8"
+  ],
+  "numeric_annotations": "none",
+  "scales": [
+    "qwen05b",
+    "falcon1b"
+  ],
+  "schema": "e118-cross-domain-only-preview-v1",
+  "seed_paths": "five paired cross-domain averages per scale",
+  "source": "paper/figures/e118_all_scale_factorial_progress.json",
+  "source_sha256": "5fd9d65fa6b573b8e2c72d70c62d7202a1a23eff057c6a3a444e7a9c64ddf8d2"
+}

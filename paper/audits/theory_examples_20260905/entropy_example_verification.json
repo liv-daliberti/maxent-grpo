@@ -1,0 +1,63 @@
+{
+  "status": "PASS",
+  "natural_gradient": {
+    "0": {
+      "Pdot": 0.1875,
+      "qdot": [
+        -2.775557561562892e-17,
+        -1.387778780781446e-17,
+        -6.93889390390723e-18
+      ],
+      "pdot": [
+        0.11249999999999999,
+        0.056249999999999994,
+        0.018750000000000003,
+        -0.1875
+      ]
+    },
+    "0.1": {
+      "Pdot": 0.23750000000000002,
+      "qdot": [
+        -0.053333333333333385,
+        0.006666666666666628,
+        0.04666666666666665
+      ],
+      "pdot": [
+        0.11583333333333334,
+        0.07458333333333333,
+        0.04708333333333333,
+        -0.2375
+      ]
+    }
+  },
+  "third_mode_floor": 0.05,
+  "exact_entropy": {
+    "optimum": [
+      0.4878555511603684,
+      0.4878555511603684,
+      0.024288897679263205
+    ],
+    "Pstar": 0.9757111023207368,
+    "incorrect_percent": 2.4288897679263206
+  },
+  "entropy_comparison": {
+    "H": 0.8979457248567798,
+    "KL_q_u": 0.20066656381133008,
+    "KL_u_q": 0.2405155516938809,
+    "R": 2.032275020921936,
+    "R_at_P_09": 1.444488356019817,
+    "loss_drop": 0.5877866649021191
+  },
+  "gradient_availability": {
+    "mixed_probability": 0.1485422289051245,
+    "rare_key_absence": 0.9841194418156399,
+    "replay_coordinate": 0.03323333333333333
+  },
+  "formal_blocks_and_citations_unchanged": true,
+  "subsection_hashes": {
+    "natural_gradient_section": "f086225f5bcbff777a8415dbb2e023dbd05af4f87fcfc75727dda64e156604b6",
+    "entropy_section": "b090b636c60ecf7fdbc92bd08231024cf8bc3302168286df0ea4e91dccef0bc4",
+    "entropy_comparison_section": "930f89bcd2e5f11c6bac73b5d97e61902874737028bb170794928590257ad1dc",
+    "gradient_availability_section": "83a1f28799aa1555fff25b068ab5364f47ea1b1ad06cfcabc329468156c29d14"
+  }
+}

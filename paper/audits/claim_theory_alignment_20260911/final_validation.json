@@ -1,0 +1,139 @@
+{
+  "status": "passed",
+  "title": "Mode Collapse in RLVR & ModeBench",
+  "manuscript_edits": [
+    {
+      "path": "paper/main.tex",
+      "before_sha256": "e1598f8900b8c84f24c6c98644929701e742471fc0acb2e027d4a42658770f1d",
+      "after_sha256": "c0f4cbd0914edc46b71746ca6053ec6556e1357f7d6809c54c2687b68f9f17c4"
+    },
+    {
+      "path": "paper/mathai2026/main.tex",
+      "before_sha256": "5c1ae33b37c7fc36e680b018a2596e9138e572a323a62d9a6f8d91e9b6f55836",
+      "after_sha256": "ec0af0085388f0d00117ee6afb676262cdd84675c3fb8c28c30c8207acda2c28"
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "before_sha256": "4735c4b57c1a7b42100eb19a9a8b211d302321a9a248ea54af0bccd71c6a02ca",
+      "after_sha256": "e5e873c69197e2ebbc88be6f436ad90580e25cb52a271fb4961b06a995f9b6a5"
+    },
+    {
+      "path": "paper/README.md",
+      "before_sha256": "3c42a796b2f676c6ea11fe92bd52689bd17370d27838a504218e0e0ce1b5d1d4",
+      "after_sha256": "67cb27f887d715a8e426f42cd3717c326934308bc0f46235ca72b2951ad09bc7"
+    },
+    {
+      "path": "paper/mathai2026/README.md",
+      "before_sha256": "f96867900359ae112c80d02dea59131f0e9a5b6597499aedfb422cf1ea668e9d",
+      "after_sha256": "15d6c24a0533d3a28efc4fbe3105e7d02101f76c8987b27d9511702668e173f6"
+    },
+    {
+      "path": "ops/check_paper_current_contract.py",
+      "before_sha256": "aab59d63201a4d9d2e15a94afb929ec2d212727654a56e27fe4a35b72e10ddd8",
+      "after_sha256": "f72f0f8a2ffe384ff8375bc16935b6a7c9d04d9d46e18e7fd29a94cf38988c1d"
+    }
+  ],
+  "iclr_main_length": {
+    "main_pages": 8,
+    "max_pages": 9,
+    "references_page": 9,
+    "pdf_pages": 62,
+    "figure_pages": {
+      "fig:story": 1,
+      "fig:modebench-examples": 2,
+      "fig:verified-support-story": 3,
+      "fig:cross-scale-terminal-effects": 5,
+      "fig:maxrl-factorial": 6,
+      "fig:level2-admission": 7,
+      "fig:hosted-verified-breadth": 7,
+      "fig:gpt56-temperature-curve": 8
+    },
+    "section_pages": {
+      "sec:introduction": 1,
+      "sec:related": 8,
+      "sec:collapse": 2,
+      "sec:modebench": 2,
+      "sec:method": 3,
+      "sec:experiments": 4,
+      "sec:results": 5,
+      "sec:conclusion": 8
+    }
+  },
+  "workshop_main_pages": 4,
+  "workshop_main_figures": 7,
+  "workshop_supplementary_figures": 11,
+  "workshop_source_bundle_verified": true,
+  "workshop_synced_assets": 98,
+  "changed_copied_assets": 0,
+  "mathematical_validation": {
+    "status": "passed",
+    "arithmetic": "exact rational Fraction; no numerical tolerance",
+    "counts": {
+      "enumerated_distributions": 912,
+      "strict_bound_checks": 513,
+      "majorization_checks": 15376,
+      "strict_majorization_checks": 4914,
+      "correctness_monotonicity_checks": 684
+    },
+    "enumeration_scope": {
+      "valid_keys": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "q_grid_denominator": 4,
+      "uniform_q_added_for_every_size": true,
+      "P": [
+        "0",
+        "1/4",
+        "1/2",
+        "1"
+      ],
+      "K": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "countable_example": {
+      "q_c": "2^-c, c=1,2,...",
+      "P": "3/5",
+      "K": 8,
+      "N": 10,
+      "verified_prefix": 30,
+      "certified_tail_upper_bound": "3/640"
+    },
+    "source_sha256": {
+      "paper/main.tex": "c0f4cbd0914edc46b71746ca6053ec6556e1357f7d6809c54c2687b68f9f17c4",
+      "paper/mathai2026/appendix.tex": "e5e873c69197e2ebbc88be6f436ad90580e25cb52a271fb4961b06a995f9b6a5"
+    },
+    "shared_metric_lemma_sha256": "64a4a380b5072ae3beaebc15139b9ca1438e34ec14e3d1a71b01436a0d3a41f7",
+    "shared_theory_sha256": "92ee96a410a4836491f8d1e44847200a88391328be8c802e49b55ff5ff7b57c9",
+    "shared_theory_lines": 703,
+    "root_workshop_metric_lemma_identical": true,
+    "root_workshop_theory_identical": true
+  },
+  "checks": [
+    "current frozen-evidence contract",
+    "frozen domain prompt check",
+    "ICLR main-page limit and all 8 main figures",
+    "ICLR line-fill check: 265 prose blocks",
+    "workshop anonymous official-style and 4-page submission check",
+    "workshop source/PDF receipt and independently extracted ZIP validation",
+    "no unresolved LaTeX references or overfull boxes in either final build",
+    "independent exact-rational metric validation and identical shared theory"
+  ],
+  "artifacts": {
+    "paper/main.pdf": "8b4cb9f7e76b604c8b0e195c38eac9d17fc2297e4d27a5eb49a60be6664b3480",
+    "paper/mathai2026/main.pdf": "e7a7481c29f474182e67264d141822eeb0e691dbddb51d04d2593ddfed48d37f",
+    "paper/mathai2026/mathai2026-source.zip": "459a645b75a4a9887c2708dcd4460a2f60281f212bcd6a2e51bef41ebd60aadc",
+    "paper/mathai2026/build_receipt.json": "741cd7aa7194ef63fa9e2e45cad07b1ccc32a18cd12e55390c70ad6538328b88"
+  },
+  "limits": [
+    "Categorical and joint-energy theorems do not certify the implemented stochastic neural optimizer.",
+    "Training comparisons and hosted findings retain their recorded cohort and protocol scope.",
+    "No new training or hosted evaluations were run."
+  ]
+}

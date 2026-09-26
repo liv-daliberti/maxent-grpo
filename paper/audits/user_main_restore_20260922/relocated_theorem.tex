@@ -1,0 +1,25 @@
+For one isolated prompt, let a finite categorical policy have $m\ge2$ correct modes and $n\ge1$ incorrect categories, with $p=\operatorname{softmax}(z)$, correctness $P=\sum_c p_c$, and conditional mode probabilities $q_c=p_c/P$. Each category has an independent logit. Draw responses $Z_1,\ldots,Z_G$ independently with $G\ge2$, with binary rewards $R_i$ and $R=\sum_iR_i$. Assume finite initial logits, common response-length normalization, and on-policy Euclidean expected-gradient flow without KL, entropy, momentum, or preconditioning (Assumption~\ref{ass:categorical-mean-flow}).
+
+\begin{theorem}[Conditional inertness of outcome-binary objectives]
+\label{thm:objective-inertness}
+Under Assumption~\ref{ass:categorical-mean-flow}, let $a(\cdot,\cdot)$ be any
+detached advantage measurable with respect to the group's binary reward
+vector, applied as
+$\widehat g_a=G^{-1}\sum_{i}a(R_i,R)\nabla_z\log p_{Z_i}$ at the on-policy
+point. Then
+\begin{equation}
+  \E[\widehat g_a]=c_a(P)\,\nabla_zP,
+  \qquad
+  c_a(P)=\frac1G\left(
+  \frac{\E[R\,a(1,R)]}{P}-\frac{\E[(G-R)\,a(0,R)]}{1-P}\right).
+  \label{eq:objective-inertness}
+\end{equation}
+If $c_a>0$ on $(0,1)$, then under the time change
+$d\tau=c_a(P)P(1-P)\,dt$ the conditional distribution $q$ obeys
+Equation~\eqref{eq:grpo-replicator} exactly, for every such $a$. Dr.GRPO,
+reward-standardized GRPO, a leave-one-out baseline, the centered binary MaxRL
+estimator, and any reweighting shaped by a pass@$k$ target are points in this
+class. The choice among them rescales optimization time along the correctness
+axis and leaves both the trajectory in $q$ and the identity of the surviving
+mode exactly where they were.
+\end{theorem}

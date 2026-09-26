@@ -1,0 +1,161 @@
+\section{Inference-Only Concentration in a Hosted Model}
+\label{app:hosted-concentration}
+
+GPT-5.6 Sol's verified responses concentrate on a small subset of solution
+modes under the \mb{} interface. This inference-only evaluation measures the
+output distribution of one deployment and is separate from the paper's matched
+training interventions.
+
+\paragraph{Evaluation setup.}
+The deployment is \texttt{gpt-5.6-sol}, with model snapshot
+\texttt{gpt-5.6-sol-2026-07-09}. Each of five domains contributes 128 held-out
+prompts at each of three levels. Eight stateless requests per prompt yield
+15,360 responses. Requests use medium reasoning, an 8,192-token output limit,
+no tools and no conversation state. Temperature is $1.0$ and top-$p$ is $.98$,
+the service defaults. The hosted natural-language interface does not enforce
+the local training evaluation's token-level grammar constraints.
+
+Level 1 uses the native evaluation splits; Levels 2 and 3 use the matched
+constructions described in App.~\ref{app:data-levels}. Level 3 extends the
+evaluation beyond the two levels used in training. All cells contain
+multi-answer problems. The Level-2/Level-3 support histograms match those of a separate
+Level-1 reference population, which differs from the evaluated Level-1 split
+in \texttt{Graph}, \texttt{Countdown} and \texttt{Python}. Prompts differ across levels and are not
+paired by row index. The levels are calibrated against small-model references,
+so difficulty need not increase with level for this hosted model.
+
+Stateless requests do not guarantee that the provider samples a prompt's eight
+responses independently, and the model's hidden reasoning is not exposed.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Correct responses frequently share a solution mode at all three levels.}
+  GPT-5.6 Sol with medium reasoning, under strict grading. Each level averages
+  five domains equally, with 128 prompts and eight responses per prompt in
+  each domain. M and P are \texttt{mean@8} and \texttt{pass@8} (\%); D is
+  mean \texttt{distinct@8}. C is correct-pair collision (\%), weighted by
+  correct pairs within each domain. Brackets are pointwise 95\% intervals
+  from whole-prompt resampling.}
+  \label{tab:hosted-levels}
+  \small
+  \begin{tabular}{@{}rrrrl@{}}
+    \toprule
+    Level & M & P & D & C (95\% interval) \\
+    \midrule
+    \input{results/frontier_hosted_20260911_macro_rows.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Metrics and uncertainty.}
+\texttt{mean@8} is per-response correctness, and \texttt{pass@8} is the fraction
+of prompts with at least one verified response. Raw \texttt{distinct@8}
+counts verified keys across eight draws, including zero for unsolved prompts.
+For prompt $x$, let $c_x$ be its number of correct draws and $n_{xc}$ its count
+for correct key $c$. The within-cell correct-pair collision estimate is
+\[
+  \widehat C=
+  \frac{\sum_x\sum_c\binom{n_{xc}}{2}}
+       {\sum_x\binom{c_x}{2}}.
+\]
+It measures concentration among successful draws, weighting prompts by their
+number of correct pairs. Level summaries average the five
+domain estimates equally. When the certified correct-key count $m_x$ is
+available, a uniform-correct-key reference replaces the numerator by
+$\sum_x\binom{c_x}{2}/m_x$. This reference differs from a uniform-action
+baseline; it is descriptive and does not prescribe how a model should sample. \texttt{Countdown}'s
+verifier accepts modes beyond its enumerated binary-expression library,
+including unary negation, so its total support is unknown and this reference
+is omitted. Intervals use 2,000 whole-prompt bootstrap replicates, resampling within
+each domain and level and keeping all eight draws
+together. They are pointwise percentile intervals for the evaluated prompt
+population; generations are not resampled separately.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Under strict grading, collision exceeds the uniform reference in every cell that has one.}
+  GPT-5.6 Sol with medium reasoning and strict executable grading. Each cell
+  contains 128 prompts and 1,024 responses. M and P are \texttt{mean@8} and
+  \texttt{pass@8} (\%); D is mean \texttt{distinct@8}, including unsolved
+  prompts. C is correct-pair collision (\%), weighted by correct pairs, with
+  pointwise 95\% whole-prompt bootstrap intervals. U is the uniform-correct-key
+  collision reference (\%); a dash marks an entry whose total mode support is still unknown.}
+  \label{tab:hosted-strict}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}rlrrrrr@{}}
+    \toprule
+    Level & Domain & M & P & D & C (95\% interval) & U \\
+    \midrule
+    \input{results/frontier_hosted_20260911_strict_rows.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Formatting sensitivity.}
+Strict grading applies the executable validators directly. Normalized grading
+first applies a fixed set of typography rules to the same responses and then
+runs the same validators; it does not repair calculations or program logic.
+The rules convert a leading LaTeX lambda to Python \texttt{lambda}, unescape
+percent signs and underscores, remove LaTeX spacing commands, simplify sized
+parentheses and translate balanced LaTeX fractions into parenthesized division.
+Numeric/parenthesis adjacency becomes explicit multiplication only when the
+containing group has no division sign. Normalization leaves \texttt{Graph}, \texttt{MathIR}
+and Level-1 \texttt{PantryPlan} unchanged. Strict successes retain their original keys.
+Normalization verifies 2,580 additional responses. Because these responses
+change both the eligible correct pairs and their weights, collision can move in
+either direction. The comparison measures sensitivity to these formatting
+conventions on the evaluated responses.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Formatting normalization improves correctness while substantial collision remains.}
+  The same 128 prompts and 1,024 responses per cell as
+  Table~\ref{tab:hosted-strict}, with typography normalization before executable
+  verification. M, P, D, C and U use the same definitions; C weights correct
+  pairs and includes pointwise 95\% whole-prompt bootstrap intervals.
+  Additional verified responses would change both which pairs are eligible and how they are weighted.}
+  \label{tab:hosted-normalized}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}rlrrrrr@{}}
+    \toprule
+    Level & Domain & M & P & D & C (95\% interval) & U \\
+    \midrule
+    \input{results/frontier_hosted_20260911_normalized_rows.tex}
+  \end{tabular}
+\end{table}
+
+\paragraph{Concentration across levels.}
+The strict five-domain collision average is $74.0\%$, $82.3\%$ and $84.5\%$
+at Levels 1--3; the normalized comparison gives $74.1\%$, $81.2\%$ and
+$83.6\%$. This aggregate pattern is not monotonic within every domain.
+\texttt{Graph} collision is $89.7\%$, $83.3\%$, then $95.1\%$; normalized \texttt{PantryPlan}
+collision is $46.9\%$, $64.0\%$, then $53.0\%$. Normalized overall correctness
+also rebounds from $83.2\%$ at Level 2 to $85.7\%$ at Level 3. Thus a higher
+level label does not imply a measured increase in difficulty for this model,
+and raw distinct-mode counts also change with correctness and support.
+
+Level-3 \texttt{Graph} shows that concentration is not a byproduct of failed
+responses: all 1,024 outputs verify, yet eight draws produce only $1.16$
+distinct keys on average, and 3,407 of 3,584 correct pairs share a key
+($95.1\%$). The uniform-correct-key reference is $19.0\%$, so collision exceeds
+it by $76.1$ percentage points (95\% interval $[73.5,78.3]$).
+Tables~\ref{tab:hosted-strict} and~\ref{tab:hosted-normalized} give the
+corresponding estimates for every domain and level.
+
+\paragraph{Interface and interpretation.}
+Level-2/Level-3 \texttt{MathIR} instructions prescribe moving the right-side variable
+term left, removing the constant and then dividing. \texttt{Python} instructions
+suggest a nested small-divisor conditional chain, and \texttt{PantryPlan} instructions
+prefer particular ingredient families. These preferences can concentrate the
+very keys being measured. In addition, Level-1 \texttt{PantryPlan} requests only a
+support mask, whose quantities the environment supplies by projection, whereas
+Levels 2--3 ask the model for the quantities. The \texttt{MathIR} verifier checks
+that each symbolic action is followed, so it can reject a numerically valid
+shortcut that skips a required step. Neither these failures nor the cross-level
+differences isolate numerical reasoning ability. Canonical keys describe
+executed outputs, not hidden reasoning strategies. Observed keys give a lower
+bound on accessible support: eight draws cannot show that an unseen mode has
+zero probability.
+The results describe concentration under the specified prompts and deployment
+configuration; they identify neither a training cause nor a causal difficulty
+or model-size effect.

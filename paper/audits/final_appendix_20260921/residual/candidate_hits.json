@@ -1,0 +1,537 @@
+[
+  {
+    "page": 15,
+    "line": "764   B    Benchmark and Evaluation Protocol . . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   21",
+    "context": "763   Part II. Benchmark and method\n764   B    Benchmark and Evaluation Protocol . . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   21\n         B.2 Dataset splits and validation . . . . . . . . . . . . . . . . . . .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   22\n765      B.3 Python execution contract . . . . . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   22"
+  },
+  {
+    "page": 15,
+    "line": "B.5 Frozen base models across all five levels . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   23",
+    "context": "766      B.4 Matched level constructions . . . . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   23\n         B.5 Frozen base models across all five levels . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   23\n767      B.1 What a mode is, by domain, and whether the effect depends on it       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   21\n768      B.6 Other model families at matched scale . . . . . . . . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   24"
+  },
+  {
+    "page": 15,
+    "line": "O.5 The revised Python wording on a second deployment . . . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   88",
+    "context": "804      O.4 Native provider outcomes and undefined concentration . . . . .        .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   82\n         O.5 The revised Python wording on a second deployment . . . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   88\n805      O.6 Matched reasoning-control comparison . . . . . . . . . . . . .        .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   89\n806   Part VI. Idealized analysis"
+  },
+  {
+    "page": 16,
+    "line": "821   S    Source Integrity and Reproducibility . . . . . . . . . . . . . . . . . .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121",
+    "context": "      Part VIII. Records\n821   S    Source Integrity and Reproducibility . . . . . . . . . . . . . . . . . .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n822      S.1 Admissible sources and missing checkpoints . . . . . . . . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n         S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121"
+  },
+  {
+    "page": 16,
+    "line": "S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121",
+    "context": "822      S.1 Admissible sources and missing checkpoints . . . . . . . . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n         S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n823      S.3 Conflicted scheduled checkpoints, admitted by provenance . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122\n         S.4 Data, models, and scientific records . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122"
+  },
+  {
+    "page": 16,
+    "line": "823      S.3 Conflicted scheduled checkpoints, admitted by provenance . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122",
+    "context": "         S.2 Conflicted initial checkpoints, admitted by provenance . . . . . .       .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   121\n823      S.3 Conflicted scheduled checkpoints, admitted by provenance . . . .         .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122\n         S.4 Data, models, and scientific records . . . . . . . . . . . . . . . .     .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122\n824      S.5 Exact continuation and validation . . . . . . . . . . . . . . . . .      .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   .   122"
+  },
+  {
+    "page": 18,
+    "line": "961   Each PCMD estimate averages this prompt-level estimator. Where a protocol draws more than one",
+    "context": "960\n961   Each PCMD estimate averages this prompt-level estimator. Where a protocol draws more than one\n962\n      group per prompt, those draws are pooled before scoring \u2014 q is a property of the policy and prompt"
+  },
+  {
+    "page": 20,
+    "line": "1030   standard errors. Estimates based on fewer than five prompts are omitted. Of the 375 frozen-model",
+    "context": "1029   prompts. Filled markers indicate at least 30 such prompts; hollow markers indicate 5\u201329 and include\n1030   standard errors. Estimates based on fewer than five prompts are omitted. Of the 375 frozen-model\n1031   measurements, 225 meet the 30-prompt threshold. The gaps concentrate where success is rarest: 62 of\n1032   the 150 are Countdown. An absent estimate indicates insufficient verified responses, not zero diversity."
+  },
+  {
+    "page": 21,
+    "line": "1122   side on the same training runs. Grouping the frozen-to-terminal change in conditional collision by",
+    "context": "       The question is decidable rather than terminological, because the two keyings are measured side by\n1122   side on the same training runs. Grouping the frozen-to-terminal change in conditional collision by\n1123   how the domain keys a mode, over RLVR-only arms, the route-keyed domains move +0.202 across\n1124   98 seed-blocks, the behaviour-keyed domain +0.201 over 15, and the answer-keyed domains +0.404"
+  },
+  {
+    "page": 22,
+    "line": "1138   where a reasoning trace has room to exist. That is the sense in which these are reasoning modes: they",
+    "context": "1137   to 1.18. The quantity this paper counts therefore responds to whether the model reasons, at a budget\n1138   where a reasoning trace has room to exist. That is the sense in which these are reasoning modes: they\n1139   are what the deliberation arrives at, and there are fewer of them when it is removed. Their identity\n1140   remains the verifier\u2019s equivalence class, which is a route in two domains and an outcome in three."
+  },
+  {
+    "page": 22,
+    "line": "1174   expression with empty __builtins__, and executes the frozen inputs under a 0.25-second real-",
+    "context": "1173   only restricted source and trusted task JSON. The worker repeats the AST checks, compiles the\n1174   expression with empty __builtins__, and executes the frozen inputs under a 0.25-second real-\n1175   time alarm; the parent enforces a separate one-second response deadline. A valid response contains\n1176   the integer vector and key. Timeouts, empty or malformed responses, broken pipes, non-integer"
+  },
+  {
+    "page": 22,
+    "line": "1181   Behavioral identity. For each of the J frozen inputs nj , the returned dj must be an integer but",
+    "context": "1180\n1181   Behavioral identity. For each of the J frozen inputs nj , the returned dj must be an integer but\n1182\n       not a Boolean, satisfy 1 < dj < nj , and divide nj exactly. All checks must pass. The key is the"
+  },
+  {
+    "page": 23,
+    "line": "For frozen Qwen2.5-0.5B on the development split, each Level-2 domain has pass@8 in [.10, .90]",
+    "context": "1215\n       For frozen Qwen2.5-0.5B on the development split, each Level-2 domain has pass@8 in [.10, .90]\n       and strictly below its Level-1 construction reference under identical decoding.\n1216"
+  },
+  {
+    "page": 23,
+    "line": "Scale-calibrated Level 3. Level 3 uses frozen Qwen2.5-3B against the same fixed Qwen2.5-0.5B",
+    "context": "1217\n       Scale-calibrated Level 3. Level 3 uses frozen Qwen2.5-3B against the same fixed Qwen2.5-0.5B\n1218\n       Level-1 reference. Construction parameters are fitted on development problems and evaluated on"
+  },
+  {
+    "page": 23,
+    "line": "1239   Fig. 3 reports the frozen Qwen2.5-Instruct scales across all five levels and five domains; Fig. 17",
+    "context": "1238\n1239   Fig. 3 reports the frozen Qwen2.5-Instruct scales across all five levels and five domains; Fig. 17\n1240   adds the other three families, for 375 model\u2013domain\u2013level measurements in all. Every model\n1241   uses the same 128 held-out prompts within a domain and level, with four independent groups of"
+  },
+  {
+    "page": 24,
+    "line": "1295   checkpoints; missing endpoints are not replaced by earlier checkpoints. Each comparison specifies its",
+    "context": "1294   condition on the fixed prompts and evaluation requests. Terminal comparisons use only terminal\n1295   checkpoints; missing endpoints are not replaced by earlier checkpoints. Each comparison specifies its\n       seed intersection and averaging rule; the replay-weighting comparison uses a paired-seed bootstrap.\n"
+  },
+  {
+    "page": 25,
+    "line": "Figure 15: High accuracy can coexist with low solution diversity. Each row shows one frozen",
+    "context": "1341\n       Figure 15: High accuracy can coexist with low solution diversity. Each row shows one frozen\n       checkpoint across five domains, with pass@8 on the horizontal axis and PCMD on the vertical axis.\n1342"
+  },
+  {
+    "page": 26,
+    "line": "Figure 17: Parameter count does not determine solution diversity across model families. Frozen",
+    "context": "1378\n       Figure 17: Parameter count does not determine solution diversity across model families. Frozen\n       SmolLM2, Qwen2.5, Falcon3, and OLMo-2 checkpoints are plotted by pass@8 and PCMD across\n1379"
+  },
+  {
+    "page": 26,
+    "line": "marker shape indicates level. Black marks show the 7 hosted deployments. Frozen checkpoints",
+    "context": "1380\n       marker shape indicates level. Black marks show the 7 hosted deployments. Frozen checkpoints\n1381   use four groups of eight responses to 128 held-out prompts per cell; hosted deployments use eight\n1382   responses per prompt. Filled marks, hollow marks with standard-error bars, and ticks follow the"
+  },
+  {
+    "page": 26,
+    "line": "1389   markers. Each checkpoint in the frozen-model comparison uses its tokenizer\u2019s native chat template",
+    "context": "1388   chat format. Falcon3 uses the same system and user text with its own <|system|>/<|user|>\n1389   markers. Each checkpoint in the frozen-model comparison uses its tokenizer\u2019s native chat template\n1390   (App. B.5). The examples are the first prompts of the Level-1 evaluation splits; Levels 2\u20135 use\n1391   separate problems with the same interface (App. B.4). A two-space continuation indent indicates"
+  },
+  {
+    "page": 27,
+    "line": "1432   Table 7: Base-model revisions. Both arms of each paired training comparison use the same",
+    "context": "1431\n1432   Table 7: Base-model revisions. Both arms of each paired training comparison use the same\n1433   initialization from the model revisions below.\n1434                      Base model                Revision"
+  },
+  {
+    "page": 27,
+    "line": "1433   initialization from the model revisions below.",
+    "context": "1432   Table 7: Base-model revisions. Both arms of each paired training comparison use the same\n1433   initialization from the model revisions below.\n1434                      Base model                Revision\n1435                      Qwen2.5-0.5B-Instruct     7ae557604adf67be50417f59c2c2f167def9a775"
+  },
+  {
+    "page": 27,
+    "line": "1434                      Base model                Revision",
+    "context": "1433   initialization from the model revisions below.\n1434                      Base model                Revision\n1435                      Qwen2.5-0.5B-Instruct     7ae557604adf67be50417f59c2c2f167def9a775\n1436                      Falcon3-1B-Instruct       28ba2251970a01dd1edc7ba7dad2eb71216ccfdf"
+  },
+  {
+    "page": 29,
+    "line": "Create one feasible high fiber snack from this frozen pantry.",
+    "context": "1532    <|im_start|>user\n        Create one feasible high fiber snack from this frozen pantry.\n1533    Nutrition values are per 100 g. Quantities are exact integer grams.\n1534"
+  },
+  {
+    "page": 30,
+    "line": "Ensure: Updated (\u03b80 , B0 , \u03c3 0 )",
+    "context": "1576\n       Ensure: Updated (\u03b80 , B0 , \u03c3 0 )\n1577\n        1: Draw the on-policy group G = {yi \u223c \u03c0\u03b8 (\u00b7 | x)}G     i=1"
+  },
+  {
+    "page": 30,
+    "line": "added. For each new key, the lexicographically smallest normalized response-token tuple is re-",
+    "context": "1599\n       added. For each new key, the lexicographically smallest normalized response-token tuple is re-\n       tained; new keys are admitted in sorted-key order. Admission is therefore invariant to rollout-\n1600"
+  },
+  {
+    "page": 30,
+    "line": "tained; new keys are admitted in sorted-key order. Admission is therefore invariant to rollout-",
+    "context": "       added. For each new key, the lexicographically smallest normalized response-token tuple is re-\n       tained; new keys are admitted in sorted-key order. Admission is therefore invariant to rollout-\n1600\n       row order. A bank stores one exemplar per key, up to M = 16, with no eviction or replace-"
+  },
+  {
+    "page": 30,
+    "line": "right-padded teacher-forcing batch, with prompt and padding positions masked. Each key con-",
+    "context": "       sired support, and entropy. The selected bank\u2019s original prompt and response tokens form a\n       right-padded teacher-forcing batch, with prompt and padding positions masked. Each key con-\n1606\n       tributes its exemplar\u2019s mean response-token log probability. These scores are averaged uniformly"
+  },
+  {
+    "page": 32,
+    "line": "Define Nx = a nx (a), S\u2212i = a m\u2212i (a) \u2264 G \u2212 1, and let Ki be the union of historical and",
+    "context": "                    P responses with  P key a, and let m\u2212i (a) count successful peers with that key.\n       Define Nx = a nx (a), S\u2212i = a m\u2212i (a) \u2264 G \u2212 1, and let Ki be the union of historical and\n1676   peer-observed keys. Unit pseudocounts and one reserved unseen bucket give, for a \u2208 Ki ,\n1677"
+  },
+  {
+    "page": 32,
+    "line": "1685   and unsuccessful responses affect neither the predictor nor its history. Counts accumulate through-",
+    "context": "1684   table. Counts include only responses with positive task reward and a valid canonical key; invalid\n1685   and unsuccessful responses affect neither the predictor nor its history. Counts accumulate through-\n1686   out training, with no window, decay, eviction, or reset. Each eligible response is scored against\n1687   the preceding groups\u2019 counts and its own successful leave-one-out peers. The current group\u2019s"
+  },
+  {
+    "page": 32,
+    "line": "1688   counts are added after all its responses have been scored, so a response never contributes to its",
+    "context": "1687   the preceding groups\u2019 counts and its own successful leave-one-out peers. The current group\u2019s\n1688   counts are added after all its responses have been scored, so a response never contributes to its\n1689   own predictor. The added detached advantage on an eligible successful row is\n1690                    min{\u2212 log p\u0302i (ai ), \u03ba} \u2212 Ep\u0302i [min{\u2212 log p\u0302i (a), \u03ba}]"
+  },
+  {
+    "page": 32,
+    "line": "1689   own predictor. The added detached advantage on an eligible successful row is",
+    "context": "1688   counts are added after all its responses have been scored, so a response never contributes to its\n1689   own predictor. The added detached advantage on an eligible successful row is\n1690                    min{\u2212 log p\u0302i (ai ), \u03ba} \u2212 Ep\u0302i [min{\u2212 log p\u0302i (a), \u03ba}]\n1691         Asem"
+  },
+  {
+    "page": 32,
+    "line": "1695   no gradient for an absent stored exemplar. If neither history nor successful peers provide a key, the",
+    "context": "       an underrepresented verified outcome when that outcome appears in a fresh rollout, but supplies\n1695   no gradient for an absent stored exemplar. If neither history nor successful peers provide a key, the\n1696   unseen bucket has probability one and the bonus is zero. App. F.4 reports the empirical comparison.\n1697"
+  },
+  {
+    "page": 36,
+    "line": "1943   Level-2 Graph endpoint detail. For frozen Qwen2.5-0.5B on the development split, Graph",
+    "context": "1942\n1943   Level-2 Graph endpoint detail. For frozen Qwen2.5-0.5B on the development split, Graph\n       pass@8 falls from .438 at Level 1 to .148 at Level 2. After eight training passes at Level 2,\n"
+  },
+  {
+    "page": 40,
+    "line": "2151   advantage, with coefficient \u03bb = 1. It uses frozen all-MiniLM-L6-v2 sentence embeddings with",
+    "context": "2150   modes. SetPO adds each rollout\u2019s leave-one-out marginal contribution to kernelized set diversity to its\n2151   advantage, with coefficient \u03bb = 1. It uses frozen all-MiniLM-L6-v2 sentence embeddings with\n2152   mean pooling and cosine similarity clamped to [0, 1]. The embedding forward pass adds computation.\n2153"
+  },
+  {
+    "page": 41,
+    "line": "2170   bank target: uniform weights over retained keys versus weights proportional to verifier-positive",
+    "context": "2169   The weighting ablation uses the same bank construction and update rule, changing only the within-\n2170   bank target: uniform weights over retained keys versus weights proportional to verifier-positive\n2171   fresh-rollout counts. Policy-dependent bank contents can subsequently differ. Positive contrasts\n2172   below favor uniform weighting. The two primary outcomes are B8 = distinct@8 \u2212 pass@8,"
+  },
+  {
+    "page": 43,
+    "line": "2312   not independent replications; missing conditions remain unavailable.",
+    "context": "2311   identifiers and serves only as an overlap diagnostic. These comparisons share outputs and are\n2312   not independent replications; missing conditions remain unavailable.\n2313\n2314   Concentration before and after training. At Level 1, all twelve Graph/PantryPlan"
+  },
+  {
+    "page": 47,
+    "line": "2533   begin with at most .011 extra modes per prompt. A retained-diversity percentage is therefore",
+    "context": "2532   Graph and PantryPlan contain substantial initial diversity at every scale; the other three domains\n2533   begin with at most .011 extra modes per prompt. A retained-diversity percentage is therefore\n2534\n       reported only when the initial extra-mode count exceeds .05. Raw distinct@8 ends below"
+  },
+  {
+    "page": 51,
+    "line": "added, and uniform replay continues through step 3,072. Every exemplar in the fixed bank is",
+    "context": "       ship and fresh counts are fixed before step 384\u2019s fresh rollout group. No further modes are\n       added, and uniform replay continues through step 3,072. Every exemplar in the fixed bank is\n2714\n       tracked by prompt and canonical mode. At each replay visit, its mean token log probability s"
+  },
+  {
+    "page": 51,
+    "line": "bootstrap replicates (random seed 121): prompts are resampled within each original seed, fol-",
+    "context": "2744\n       bootstrap replicates (random seed 121): prompts are resampled within each original seed, fol-\n2745   lowed by five seeds with replacement. Repeated seeds reuse their within-replicate prompt sam-\n2746   ple. Percentile intervals use linearly interpolated empirical quantiles."
+  },
+  {
+    "page": 51,
+    "line": "2745   lowed by five seeds with replacement. Repeated seeds reuse their within-replicate prompt sam-",
+    "context": "       bootstrap replicates (random seed 121): prompts are resampled within each original seed, fol-\n2745   lowed by five seeds with replacement. Repeated seeds reuse their within-replicate prompt sam-\n2746   ple. Percentile intervals use linearly interpolated empirical quantiles.\n2747"
+  },
+  {
+    "page": 56,
+    "line": "2984   replication. DrGRPO and Re:Dr use five matched seeds in Python and MathIR and two in Pantry.",
+    "context": "2983   draw evaluation are excluded. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed\n2984   replication. DrGRPO and Re:Dr use five matched seeds in Python and MathIR and two in Pantry.\n2985   Trained checkpoints use Level-2 training, so Level-3 evaluation measures transfer.\n2986   For a 64-draw pool, let c be the number of correct outputs and nj the count of verified canonical"
+  },
+  {
+    "page": 56,
+    "line": "2998   and canonical key. Intervals use 20,000 whole-problem bootstrap replicates (seed 20260911), paired",
+    "context": "2997   Strict verification is primary. A formatting-normalization sensitivity preserves every strict success\n2998   and canonical key. Intervals use 20,000 whole-problem bootstrap replicates (seed 20260911), paired\n2999   across wordings and stratified by domain and level. Five-seed intervals also resample matched\n3000"
+  },
+  {
+    "page": 56,
+    "line": "3012   vals use bootstrap replicates in which the corresponding mean is defined.",
+    "context": "3011   weight seeds equally and are undefined if any seed lacks eligible prompts. Conditional inter-\n3012   vals use bootstrap replicates in which the corresponding mean is defined.\n3013\n3014"
+  },
+  {
+    "page": 57,
+    "line": "3031   resample paired problems, with no replication across model training seeds.",
+    "context": "3030   wording. Each row is a fixed hosted deployment evaluated on sixteen problems per cell. Intervals\n3031   resample paired problems, with no replication across model training seeds.\n3032    Model         Cell                   GP : O/N      GD : O/N      GB : O/N                 \u2206GD [95%]\n3033"
+  },
+  {
+    "page": 57,
+    "line": "3050   cell. Intervals resample paired problems, with no replication across model training seeds.",
+    "context": "3049   original/neutral wording. Each row is a fixed hosted deployment evaluated on sixteen problems per\n3050   cell. Intervals resample paired problems, with no replication across model training seeds.\n3051\n        Model         Cell                   GP : O/N      GD : O/N      GB : O/N                 \u2206GD [95%]"
+  },
+  {
+    "page": 58,
+    "line": "paired problems in each cell and are pointwise, with no replication across hosted model training seeds.",
+    "context": "       Level 3. Grok\u2019s corresponding intervals include zero at both levels. The intervals resample the sixteen\n       paired problems in each cell and are pointwise, with no replication across hosted model training seeds.\n3119\n       The breadth contrasts describe jointly eligible problems and do not equate the wordings\u2019 accuracy."
+  },
+  {
+    "page": 60,
+    "line": "D512 (512) \u2212 D512 (256). Pointwise 95% intervals use 20,000 whole-problem bootstrap replicates",
+    "context": "3234\n       D512 (512) \u2212 D512 (256). Pointwise 95% intervals use 20,000 whole-problem bootstrap replicates\n       within domain and level (seed 20260911); the same resampled problems form both sides of each\n3235"
+  },
+  {
+    "page": 64,
+    "line": "3433   95% percentile intervals use 20,000 paired problem-bootstrap replicates (seed 20260911). Each",
+    "context": "3432   to the definition of a solution mode. Model weights remain fixed during inference. Pointwise\n3433   95% percentile intervals use 20,000 paired problem-bootstrap replicates (seed 20260911). Each\n3434   resampled problem carries all its perturbations, model conditions, and training seeds together; hosted\n3435   comparisons resample within each domain\u2013level cell. These intervals condition on the observed"
+  },
+  {
+    "page": 64,
+    "line": "3443   181 feasible revised tasks. Verified feasibility witnesses are withheld from the model. The five feasible",
+    "context": "       specifications independently of generated answers; exhaustive search of the original quantity grid finds\n3443   181 feasible revised tasks. Verified feasibility witnesses are withheld from the model. The five feasible\n3444   additional dietary restrictions are reported separately because only five problem clusters qualify.\n3445"
+  },
+  {
+    "page": 64,
+    "line": "Each portfolio contains eight plans. We test these plans unchanged against the revised require-",
+    "context": "3446\n       Each portfolio contains eight plans. We test these plans unchanged against the revised require-\n       ments, then allow at most eight sequential recovery calls if none survives, stopping at the first\n3447"
+  },
+  {
+    "page": 64,
+    "line": "shows the revised task, initial portfolio, previous recovery outputs and deterministic verifier feed-",
+    "context": "3448\n       shows the revised task, initial portfolio, previous recovery outputs and deterministic verifier feed-\n3449   back. Cumulative success includes portfolios that needed no recovery. We average perturba-\n3450   tions within each source problem, then weight problems equally."
+  },
+  {
+    "page": 65,
+    "line": "complete output history, including failures. These strategies match initial response counts;",
+    "context": "3456\n       complete output history, including failures. These strategies match initial response counts;\n3457   their context lengths and total token costs differ.\n3458"
+  },
+  {
+    "page": 65,
+    "line": "portfolio once per revised task. All entries average perturbations within problems, then problems",
+    "context": "3482\n       portfolio once per revised task. All entries average perturbations within problems, then problems\n       equally; dietary estimates use only five problems.\n3483"
+  },
+  {
+    "page": 66,
+    "line": "3547   with the revised Opus 5 interface. For each of the 21 model pairs, a mixed portfolio draws",
+    "context": "3546   inal Opus 5 Python interface. These conditions differ from the normalized hosted comparison\n3547   with the revised Opus 5 interface. For each of the 21 model pairs, a mixed portfolio draws\n3548   four responses without replacement from each model\u2019s eight-response pool. We compute its\n                                                          \u00012"
+  },
+  {
+    "page": 69,
+    "line": "3679   Survival means that at least one retained solution mode remains valid. Graph, Countdown and",
+    "context": "3678   What counts as surviving. Each portfolio contains the verified draws among eight responses.\n3679   Survival means that at least one retained solution mode remains valid. Graph, Countdown and\n3680   Python determine this directly from the outcome key, including verified keys outside the enumeration.\n3681   Countdown contributes 2 such keys, observed 50 times among the cohort\u2019s 846,398 verified draws: the"
+  },
+  {
+    "page": 69,
+    "line": "3697   least one. Kept is the mean retained fraction of certified modes across binding options. Pairs counts",
+    "context": "3696   single withdrawals. Binding counts options that retain at least one certified mode and remove at\n3697   least one. Kept is the mean retained fraction of certified modes across binding options. Pairs counts\n3698\n       binding pairs of withdrawals, and Kept2 gives the corresponding retained fraction."
+  },
+  {
+    "page": 69,
+    "line": "binding pairs of withdrawals, and Kept2 gives the corresponding retained fraction.",
+    "context": "3698\n       binding pairs of withdrawals, and Kept2 gives the corresponding retained fraction.\n                               Domain      Level Prompts Support Options Binding Kept           Pairs Kept2\n3699"
+  },
+  {
+    "page": 69,
+    "line": "certificate. Brackets are pointwise 95% intervals from 20,000 paired bootstrap replicates (seed",
+    "context": "3712\n       certificate. Brackets are pointwise 95% intervals from 20,000 paired bootstrap replicates (seed\n3713   20260917). Each resampled cluster is a prompt within one level and scale, with all its groups and\n3714   training seeds kept together; copies at different scales are separate clusters. Intervals condition on the"
+  },
+  {
+    "page": 71,
+    "line": "3798   20,000 paired prompt-bootstrap replicates (seed 20260917), keeping all groups and five seeds of a",
+    "context": "3797   it need not equal the difference of the displayed means. Brackets are pointwise 95% intervals from\n3798   20,000 paired prompt-bootstrap replicates (seed 20260917), keeping all groups and five seeds of a\n3799   prompt together. The selected setting stays fixed in the bootstrap; intervals condition on that selection\n3800   and the observed seeds."
+  },
+  {
+    "page": 71,
+    "line": "3824   up to eight calls, with the revised task, initial portfolio and previous failed attempts in context.",
+    "context": "3823   same recovery procedure: if no initial mode survives, generate one response per call at T = 1,\n3824   up to eight calls, with the revised task, initial portfolio and previous failed attempts in context.\n3825   Stop at the first verified response whose mode survives the withdrawal.\n3826"
+  },
+  {
+    "page": 71,
+    "line": "Survival uses the mode predicates defined above. In MathIR, a retained or newly generated state",
+    "context": "3826\n       Survival uses the mode predicates defined above. In MathIR, a retained or newly generated state\n3827\n       path can count as surviving even if realizing it under the reduced menu requires a different action"
+  },
+  {
+    "page": 71,
+    "line": "3830   measure retained mode feasibility, not necessarily reuse of the original response text unchanged.",
+    "context": "3829   by the environment (App. C.5); survival is evaluated on the resulting support key. These outcomes\n3830   measure retained mode feasibility, not necessarily reuse of the original response text unchanged.\n3831\n       With ordinary or temperature-tuned initial portfolios, replay resolves more withdrawals and uses fewer"
+  },
+  {
+    "page": 72,
+    "line": "3854   prompt-bootstrap replicates (seed 20260917). Each prompt\u2019s withdrawals and both training seeds",
+    "context": "       points; Calls is additional responses. Brackets are pointwise 95% intervals from 20,000 paired\n3854   prompt-bootstrap replicates (seed 20260917). Each prompt\u2019s withdrawals and both training seeds\n3855   move together; intervals condition on those two seeds.\n3856         Domain      Strategy                              \u2206 saved                     \u2206 by 8                   \u2206 calls"
+  },
+  {
+    "page": 73,
+    "line": "3936   ence is omitted. Intervals use 2,000 whole-prompt bootstrap replicates, seed 20260911, resampling",
+    "context": "3935   binary-expression library, including unary negation, so its total support is unknown and this refer-\n3936   ence is omitted. Intervals use 2,000 whole-prompt bootstrap replicates, seed 20260911, resampling\n3937   within each domain and level and keeping all eight draws together. They are pointwise percentile\n3938   intervals for the empirical prompt population; generations are not resampled separately."
+  },
+  {
+    "page": 74,
+    "line": "3967   their original keys. Normalization verifies 2,580 additional outputs; the added correct responses",
+    "context": "3966   Normalization leaves Graph, MathIR and Level-1 PantryPlan unchanged. Strict successes retain\n3967   their original keys. Normalization verifies 2,580 additional outputs; the added correct responses\n3968   change both the eligible correct pairs and their weights, so collision can increase or decrease. This\n3969   comparison measures sensitivity to these formatting conventions on the evaluated responses."
+  },
+  {
+    "page": 75,
+    "line": "4024   ting normalization and revised Opus 5 Python wording, so the two rows have different grad-",
+    "context": "4023   ing strict, original-wording cell estimates in its diversity row. Its accuracy row uses format-\n4024   ting normalization and revised Opus 5 Python wording, so the two rows have different grad-\n4025   ing and, for that deployment and domain, different prompt conditions.\n4026   For GPT-5.6 Sol, strict MathIR PCMD is .000 at Levels 2 and 3: none of the 110 and 125 eli-"
+  },
+  {
+    "page": 76,
+    "line": "ments. Its accuracy row uses a common formatting normalizer and the revised Opus 5 Python instruc-",
+    "context": "       Figure 39 compares accuracy and success-conditional solution-mode diversity across hosted deploy-\n       ments. Its accuracy row uses a common formatting normalizer and the revised Opus 5 Python instruc-\n4097\n       tions at each level; hollow marks show that deployment\u2019s original Python condition. Other accuracy"
+  },
+  {
+    "page": 77,
+    "line": "4111   conversation history, and the evaluation includes no task training or replay intervention.",
+    "context": "4110   and three levels, and eight stateless responses per prompt. Requests use no model-side tools or\n4111   conversation history, and the evaluation includes no task training or replay intervention.\n4112\n4113   Provider configurations. All deployments request medium reasoning effort and an 8,192-token"
+  },
+  {
+    "page": 77,
+    "line": "4121   main display uses normalized grades and the revised Opus 5 Python instruction at all three levels; its",
+    "context": "       typography corrections across deployments before the executable checks. The accuracy row of the\n4121   main display uses normalized grades and the revised Opus 5 Python instruction at all three levels; its\n4122   other accuracy cells use the original instructions. The diversity row uses strict grades and original\n4123   instructions for every deployment. The tables below report original-instruction results under both"
+  },
+  {
+    "page": 78,
+    "line": "4164   revised instruction asks for a one-line boxed Python lambda returning any proper divisor for",
+    "context": "4163   output limit, allowed operators, public inputs, and graders are the same in both conditions. The\n4164   revised instruction asks for a one-line boxed Python lambda returning any proper divisor for\n4165   each listed input, without a preferred divisor. Task wording and system-message presence both\n4166"
+  },
+  {
+    "page": 78,
+    "line": "4181   The revised condition has no API failures or token-limit truncations. Strict grading accepts",
+    "context": "4180                                          3       3 76.2 1.38 82.7 99.7 1.41 84.1\n4181   The revised condition has no API failures or token-limit truncations. Strict grading accepts\n4182   2,282 responses; formatting normalization accepts 787 additional responses by converting es-\n4183   caped percent signs (\\%) to Python modulo (%). Every non-refused answer therefore passes"
+  },
+  {
+    "page": 78,
+    "line": "4189   (20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are 40.0 [34.7, 45.5], 99.7 [99.3, 100.0],",
+    "context": "4188   Accuracy differences use a paired bootstrap of whole eight-response task groups across conditions\n4189   (20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are 40.0 [34.7, 45.5], 99.7 [99.3, 100.0],\n4190   and 99.7 [99.2, 100.0] percentage points (pointwise 95% intervals). Tasks are paired; output draws\n4191   are not paired across conditions. Collision weights tasks by their numbers of correct pairs, which"
+  },
+  {
+    "page": 78,
+    "line": "4195   First-valid retry selection. A retry condition replaces each of the revised-wording cohort\u2019s",
+    "context": "4194\n4195   First-valid retry selection. A retry condition replaces each of the revised-wording cohort\u2019s\n4196\n       three refused responses with the first verified-valid answer to an additional request. All three"
+  },
+  {
+    "page": 78,
+    "line": "replacements pass formatting-normalized verification on the first retry and reproduce a solution",
+    "context": "       three refused responses with the first verified-valid answer to an additional request. All three\n       replacements pass formatting-normalized verification on the first retry and reproduce a solution\n4197\n       mode already observed for that task. Selecting 3,072 valid responses therefore requires 3,075"
+  },
+  {
+    "page": 79,
+    "line": "\u2020 marks a defined contrast with an omitted interval because at least one bootstrap replicate",
+    "context": "4232\n       \u2020 marks a defined contrast with an omitted interval because at least one bootstrap replicate\n4233   has an undefined cell. For Kimi collision, only 11,815 and 11,616 of 20,000 replicates de-\n4234   fine the contrast at Levels 1 and 2. Percentiles over those subsets would condition on boot-"
+  },
+  {
+    "page": 79,
+    "line": "4233   has an undefined cell. For Kimi collision, only 11,815 and 11,616 of 20,000 replicates de-",
+    "context": "       \u2020 marks a defined contrast with an omitted interval because at least one bootstrap replicate\n4233   has an undefined cell. For Kimi collision, only 11,815 and 11,616 of 20,000 replicates de-\n4234   fine the contrast at Levels 1 and 2. Percentiles over those subsets would condition on boot-\n4235   strap estimability. The five-domain average requires all five cell estimates; an undefined cell"
+  },
+  {
+    "page": 86,
+    "line": "4632   prompts without a verified response. \u2021 marks the three Claude Opus 5 cells using revised Python",
+    "context": "4631   equally: pass@8 is empirical prompt success; # modes is mean distinct@8, including zero for\n4632   prompts without a verified response. \u2021 marks the three Claude Opus 5 cells using revised Python\n4633   wording without a system message (App. O.1). PCMD instead uses strict grading and the original\n4634"
+  },
+  {
+    "page": 86,
+    "line": "4641   pass@8/distinct@8 columns of Table 53 use normalized grading, with revised Python",
+    "context": "4640   Comparison with common prompts. The accuracy panels of Fig. 39 and the\n4641   pass@8/distinct@8 columns of Table 53 use normalized grading, with revised Python\n4642\n       wording for Claude Opus 5. The lower figure panels and the table\u2019s PCMD columns instead"
+  },
+  {
+    "page": 87,
+    "line": "4665   Opus 5 Python marks use revised wording without a system message; hollow marks show original",
+    "context": "4664   128 prompts and eight responses per prompt. Top: formatting-normalized response accuracy. Solid\n4665   Opus 5 Python marks use revised wording without a system message; hollow marks show original\n4666\n       wording. Bottom: promptwise PCMD under strict grading and original wording for every deployment,"
+  },
+  {
+    "page": 87,
+    "line": "compared with 1.43/1.44/1.36 over five domains using revised Python wording and 1.36/1.17/1.08",
+    "context": "       across deployments. Claude Opus 5 averages 1.42/1.45/1.35 verified modes at Levels 1\u20133,\n       compared with 1.43/1.44/1.36 over five domains using revised Python wording and 1.36/1.17/1.08\n4672\n       using original Python wording. It has the lowest mean distinct@8 at each level in all"
+  },
+  {
+    "page": 87,
+    "line": "three comparisons. The revised condition increases its verified Python mode count, which",
+    "context": "4673\n       three comparisons. The revised condition increases its verified Python mode count, which\n4674   also depends on response success; these means do not compare diversity at matched accuracy.\n4675   The ordering of the other deployments depends on whether Python is included."
+  },
+  {
+    "page": 87,
+    "line": "4681   of other wordings or the revised no-system condition on untested deployments.",
+    "context": "4680   promptwise PCMD. They describe that neutral-wording comparison and do not bound the effect\n4681   of other wordings or the revised no-system condition on untested deployments.\n4682\n4683                                      Level 1                        Level 2                        Level 3"
+  },
+  {
+    "page": 88,
+    "line": "O.5    T HE REVISED P YTHON WORDING ON A SECOND DEPLOYMENT",
+    "context": "4698\n       O.5    T HE REVISED P YTHON WORDING ON A SECOND DEPLOYMENT\n4699\n4700   The original and revised Python conditions of App. O.1 are evaluated on GPT-5.6 Sol through"
+  },
+  {
+    "page": 88,
+    "line": "4700   The original and revised Python conditions of App. O.1 are evaluated on GPT-5.6 Sol through",
+    "context": "4699\n4700   The original and revised Python conditions of App. O.1 are evaluated on GPT-5.6 Sol through\n4701   api.openai.com. Each condition uses the same 384 problems, with 128 prompts per level and\n4702   eight responses per prompt, medium reasoning effort and an 8,192-token output cap. The original"
+  },
+  {
+    "page": 88,
+    "line": "4703   condition uses the benchmark request; the revised condition asks for a direct expression without a",
+    "context": "4702   eight responses per prompt, medium reasoning effort and an 8,192-token output cap. The original\n4703   condition uses the benchmark request; the revised condition asks for a direct expression without a\n4704   system message. Public task inputs, allowed operators and the verifier are unchanged, but wording and\n4705   system-message presence change together. All responses report gpt-5.6-sol; build equality with"
+  },
+  {
+    "page": 88,
+    "line": "Verified success and mode counts decrease under the revised condition. There are no provider-",
+    "context": "4707\n       Verified success and mode counts decrease under the revised condition. There are no provider-\n4708\n       declared refusals among the 6,144 responses in this comparison. The Azure GPT-5.6 Sol cohort"
+  },
+  {
+    "page": 88,
+    "line": "4710   few verified draws. Under normalized grading, the revised condition lowers accuracy and mean",
+    "context": "       also contains no provider-declared refusals; its missing strict Python diversity entries reflect too\n4710   few verified draws. Under normalized grading, the revised condition lowers accuracy and mean\n4711   distinct@8 at each level (Table 55). Revised-minus-original differences use all 128 prompts per\n4712   level, pairing problems across conditions and resampling whole eight-response groups: 20,000 repli-"
+  },
+  {
+    "page": 88,
+    "line": "4711   distinct@8 at each level (Table 55). Revised-minus-original differences use all 128 prompts per",
+    "context": "4710   few verified draws. Under normalized grading, the revised condition lowers accuracy and mean\n4711   distinct@8 at each level (Table 55). Revised-minus-original differences use all 128 prompts per\n4712   level, pairing problems across conditions and resampling whole eight-response groups: 20,000 repli-\n4713   cates give pointwise 95% percentile intervals. Accuracy differences are fractions of responses; mode-"
+  },
+  {
+    "page": 88,
+    "line": "4716   \u2212.656 [\u2212.766, \u2212.547] respectively. The revised normalized cells have 28, 26, 25 prompts with at least",
+    "context": "4715   \u2212.370 [\u2212.418, \u2212.320] at Levels 1\u20133; distinct@8 \u2212.945 [\u22121.078, \u2212.820], \u2212.703 [\u2212.812, \u2212.594],\n4716   \u2212.656 [\u2212.766, \u2212.547] respectively. The revised normalized cells have 28, 26, 25 prompts with at least\n4717   two verified responses, all below the 30-prompt reporting threshold. Their success-conditional diver-\n4718"
+  },
+  {
+    "page": 88,
+    "line": "in 862 original-condition and 2,089 revised-condition responses (28% and 68%). The formatting",
+    "context": "       Formatting failures accompany the lower scores. The literal LATEX marker \\text{ appears\n       in 862 original-condition and 2,089 revised-condition responses (28% and 68%). The formatting\n4721\n       normalizer does not remove this wrapper; none of these responses verifies. Among responses"
+  },
+  {
+    "page": 88,
+    "line": "4726   Prompt-interface sensitivity differs across deployments. The revised condition increases",
+    "context": "4725\n4726   Prompt-interface sensitivity differs across deployments. The revised condition increases\n4727   normalized success and verified mode counts for Opus 5 (App. O.1) but decreases both for\n4728   this GPT-5.6 Sol deployment. This comparison does not isolate task wording from the sys-"
+  },
+  {
+    "page": 88,
+    "line": "4732   Table 55: The revised Python condition lowers normalized success and verified mode counts on",
+    "context": "4731   fixed across all seven deployments by excluding Python.\n4732   Table 55: The revised Python condition lowers normalized success and verified mode counts on\n4733   GPT-5.6 Sol. Both conditions use the same 128 problems per level and eight responses per prompt\n4734   through api.openai.com, with medium reasoning effort and an 8,192-token output cap. R counts"
+  },
+  {
+    "page": 88,
+    "line": "4746                      Revised, no system 1     0 18.7 0.27          \u2014 20.9 0.41          \u2014",
+    "context": "4745\n4746                      Revised, no system 1     0 18.7 0.27          \u2014 20.9 0.41          \u2014\n4747\n                                             2     0 13.4 0.26          \u2014 16.7 0.45          \u2014"
+  },
+  {
+    "page": 93,
+    "line": "4973   Euclidean logits. The conditional dynamics follow the frequency-dependent replicator system with",
+    "context": "4972   This infinitesimal expected-update model has no sampling noise and uses independently optimized\n4973   Euclidean logits. The conditional dynamics follow the frequency-dependent replicator system with\n4974   fitness fc (q) = qc (Hofbauer & Sigmund, 1998; Harper, 2009). Related analyses of collapse among\n4975   equally rewarded outcomes include Sinha et al. (2026); Lochab et al. (2026)."
+  },
+  {
+    "page": 93,
+    "line": "5004   On the correct simplex, changing from t to \u03c4 gives the replicator flow",
+    "context": "5003\n5004   On the correct simplex, changing from t to \u03c4 gives the replicator flow\n5005                                             !\n5006                        dqc            X              d     qc"
+  },
+  {
+    "page": 94,
+    "line": "5038   d\u03c4 = ca (P )P (1 \u2212 P ) dt gives the replicator dynamics in Equation (18).",
+    "context": "5037\n5038   d\u03c4 = ca (P )P (1 \u2212 P ) dt gives the replicator dynamics in Equation (18).\n5039\n       For a fixed reward-dependent advantage, the binomial identities R G                       G\u22121"
+  },
+  {
+    "page": 94,
+    "line": "5074   finite times, P \u2192 1, and the effective time \u03c4 \u2192 \u221e. The conditional replicator equation (18) then",
+    "context": "5073   These are the coefficient properties used in the proof of Theorem P.4: the logit flow exists for all\n5074   finite times, P \u2192 1, and the effective time \u03c4 \u2192 \u221e. The conditional replicator equation (18) then\n5075   eliminates all coordinates strictly below the initial maximum. It contains neither the advantage\n       coefficients nor the rollout group size, so the surviving mode depends only on q(0)."
+  },
+  {
+    "page": 95,
+    "line": "5083   the same conditional replicator equation. Increasing G can change the speed of the mean flow but",
+    "context": "5082   mean flow through ca (P ). When this coefficient is positive, the time change in Theorem 3.1 gives\n5083   the same conditional replicator equation. Increasing G can change the speed of the mean flow but\n5084   cannot change the surviving mode under the conditions of Corollary P.6. Group size also changes the\n5085   probability of a mixed-reward group in Lemma P.18, which is small near both P = 0 and P = 1,"
+  },
+  {
+    "page": 98,
+    "line": "5249   Proof. For the replicator flow (18), the potential U (q) = S2 /2 has fitness \u2202U/\u2202qc = qc . The fitness-",
+    "context": "5248\n5249   Proof. For the replicator flow (18), the potential U (q) = S2 /2 has fitness \u2202U/\u2202qc = qc . The fitness-\n5250   variance identity of Harper (2009, Theorems 1\u20132) gives dU/d\u03c4 = V (q), hence dD/d\u03c4 = \u22122V (q).\n5251   The variance vanishes exactly when the positive coordinates of q are equal. Also,"
+  },
+  {
+    "page": 103,
+    "line": "5535   independent-logit limit is P \u2192 1, q \u2192 w. The preceding stationarity proof applies with 1/m replaced",
+    "context": "5534   convergence statements assume cG \u2265 0. If B = C, then Rw = H(w) \u2212 log P + KL(wkq), and the\n5535   independent-logit limit is P \u2192 1, q \u2192 w. The preceding stationarity proof applies with 1/m replaced\n5536   by wc : summing the correct-coordinate equations forces P = 1, then each equation forces pc = wc .\n5537   A partial bank has a stronger limitation in this same ideal flow. For any fixed nonempty B \u2286 C and"
+  },
+  {
+    "page": 107,
+    "line": "5751   of a prespecified key in N independent draws give a one-sided (1 \u2212 \u03b1) binomial upper bound",
+    "context": "       Conversely, not observing a mode does not establish extinction. At a fixed checkpoint, zero sightings\n5751   of a prespecified key in N independent draws give a one-sided (1 \u2212 \u03b1) binomial upper bound\n5752\n       1 \u2212 \u03b11/N and lower bound zero (Clopper & Pearson, 1934). For N = 32 and \u03b1 = .05, the up-"
+  },
+  {
+    "page": 109,
+    "line": "5846   Proposition P.32 (The retained conditional is the reference\u2019s). Under Assumption P.1 with",
+    "context": "       does not establish one, as for the exact Dr.GRPO gradient steps in Corollary P.33.\n5846   Proposition P.32 (The retained conditional is the reference\u2019s). Under Assumption P.1 with\n5847   (A40 ), using the Dr.GRPO or centered MaxRL coefficient, the flow (55) has exactly one\n5848   stationary policy of full support,"
+  },
+  {
+    "page": 115,
+    "line": "6189   establish the cause of cross-scale differences or the training history of a hosted model.",
+    "context": "6188   geometry. The empirical scale comparisons change pretrained models and schedules; they do not\n6189   establish the cause of cross-scale differences or the training history of a hosted model.\n6190\n       With uniformly bounded detached advantages, the expected sampled-logit update vanishes as the"
+  },
+  {
+    "page": 115,
+    "line": "Assumption P.1, condition on the training history, draw Z1 , . . . , ZG independently from p, and let",
+    "context": "6194\n       Assumption P.1, condition on the training history, draw Z1 , . . . , ZG independently from p, and let\n6195   ai be any detached, possibly group-dependent advantages with |ai | \u2264 B. To interpret the bound\n6196   uniformly as pb \u2192 0, assume a finite B independent of that limit. At the on-policy point define"
+  },
+  {
+    "page": 117,
+    "line": "the number of prompts, retained keys, and token lengths rather than directly on parameter count.",
+    "context": "6283\n       the number of prompts, retained keys, and token lengths rather than directly on parameter count.\n       The estimated mean bank footprint is at most 444 kB across these families, while the reference\n6284"
+  },
+  {
+    "page": 117,
+    "line": "6312   tive compute audit. They exclude rollout generation, padding, attention-specific costs, activation",
+    "context": "6311   estimate derived from replay rows. These are descriptive workload summaries, not a cumula-\n6312   tive compute audit. They exclude rollout generation, padding, attention-specific costs, activation\n6313   recomputation, verification, bank maintenance, optimizer work, communication, and evaluation.\n6314   Hardware pools also differ across cohorts. Neither these estimates nor the reference-KL compar-"
+  }
+]

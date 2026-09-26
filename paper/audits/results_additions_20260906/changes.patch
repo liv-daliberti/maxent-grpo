@@ -1,0 +1,559 @@
+--- before/paper/main.tex
++++ paper/main.tex
+@@ -661,13 +661,14 @@
+ is broad, while the size and meaning of the support benefit depend on whether a
+ key denotes a route, a functional behavior, or a valid configuration.
+ 
+-\textbf{Balancing memory by key also matters.} A matched replay-weighting
+-ablation changes uniform key weights to fresh-frequency weights while keeping
+-the bank construction and update code fixed. Uniform replay yields more
+-\texttt{distinct@8} on Graph, Countdown, and PantryPlan in the five complete
+-Qwen2.5-0.5B blocks; Python and MathIR remain inconclusive
+-(Appendix~\ref{app:frequency-replay-progress}). This tests the key-balancing
+-choice more directly than comparators that also change how memory is collected.
++\textbf{Balancing memory by key also matters.} A matched ablation changes
++uniform replay weights to fresh-frequency weights. Uniform replay adds
++$+.318$ extra correct modes, measured by \texttt{distinct@8}$-$\texttt{pass@8}
++and averaged across five Qwen2.5-0.5B domains (paired bootstrap 95\% interval
++$[+.272,+.358]$). Graph, Countdown, and PantryPlan drive this advantage;
++Python and MathIR remain inconclusive. The mean correctness effect is also
++inconclusive (Appendix~\ref{app:frequency-replay-progress}). This tests
++key balancing while retaining the same bank construction and update code.
+ 
+ \begin{figure}[!b]
+   \centering
+@@ -3082,48 +3083,134 @@
+   \label{fig:direct-baseline-curves}
+ \end{figure}
+ 
+-\subsection{Fresh-frequency versus uniform replay: E120-R1 progress}
++\subsection{Uniform versus fresh-frequency replay: registered breadth analysis}
+ \label{app:frequency-replay-progress}
+ 
+-E120-R1 changes only the within-bank target weights: the treatment samples
+-keys in proportion to their fresh discovery frequency, while the matched
+-ReplayDr.GRPO comparator weights retained keys uniformly. The paper fixes this
+-comparison to the snapshot generated on September 4, 2026 at 15:40:26 UTC
+-(11:40:26 EDT). In that snapshot, 25/45 treatment cells have exact step-3,072 endpoints: all five
+-Qwen2.5-0.5B domain blocks are complete, while the four registered Falcon3-1B
+-and Qwen2.5-3B blocks remain in progress. Table~\ref{tab:e120-frequency-progress}
+-reports the five terminal Qwen2.5-0.5B contrasts.
++E120-R1 changes the within-bank target weights: fresh-frequency replay
++weights retained keys in proportion to their validator-positive fresh-rollout
++counts, while matched ReplayDr.GRPO weights retained keys uniformly. Both
++arms use the same bank construction and update code; their subsequent
++policy-dependent bank contents can differ. We retain the snapshot generated
++on September 4, 2026 at 15:40:26 UTC (11:40:26 EDT): 25/45 treatment cells
++have exact step-3,072 endpoints, comprising all five Qwen2.5-0.5B domains
++on seeds 43--47. The larger-model extensions are outside this frozen analysis.
++
++\paragraph{Registered estimands and paired uncertainty.}
++Write $P=\texttt{pass@8}$, $D=\texttt{distinct@8}$, and $B=D-P$.
++For each successful eight-sample set, $B$ counts verified modes beyond its
++first correct mode; failed sets contribute zero. It is an unconditional
++extra-mode count, not diversity conditioned on equal correctness.
++The preregistered primary contrast is $\Delta B=B_{\rm uniform}-B_{\rm frequency}$;
++$\Delta P=P_{\rm uniform}-P_{\rm frequency}$ is the co-primary correctness
++endpoint. Positive effects favor uniform weighting. The registration also
++specifies all five seed values and the full five-domain mean
++(\path{paper/preregistration/e120_frequency_weighted_replay_ablation_20260902.md}).
++We compute each contrast within its matched seed. For the five-domain
++summary, we first average the five domain effects within each seed and then
++average the five resulting seed means, giving each domain equal weight.
++
++Table~\ref{tab:e120-primary-breadth} reports paired percentile bootstrap
++95\% intervals over training seeds. We enumerate all $5^5=3{,}125$ ordered
++resamples of the five paired seed records, including repetitions, and use
++linearly interpolated 2.5th and 97.5th percentiles. For the domain average,
++a resampled seed carries its entire five-domain vector, preserving the
++observed pairing across domains. Endpoints and the five-domain average were
++preregistered; the seed-resampling unit, exact enumeration, and percentile
++convention are implementation choices documented in this analysis. These
++nominal intervals use only five seeds, are not adjusted across domains or
++endpoints, and do not resample evaluation prompts or domains. They quantify
++seed variability within the fixed benchmark rather than uncertainty over a
++population of reasoning tasks.
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{E120-R1 terminal Qwen2.5-0.5B blocks.} Each effect is
+-  fresh-frequency replay minus matched uniform key replay on the displayed
+-  five registered seeds. \(\Delta P\) is the \texttt{pass@8} difference and
+-  \(\Delta D\) the raw \texttt{distinct@8} difference. Means are descriptive;
+-  the adjacent machine-readable artifact retains paired, unadjusted 95\%
+-  Student-\(t\) estimation intervals.}
++  \caption{\textbf{Uniform replay retains more extra correct modes.}
++  Every row uses five paired Qwen2.5-0.5B seeds at pass 8. Effects are
++  uniform minus fresh-frequency replay; $\Delta B$ is the registered
++  extra-mode contrast and $\Delta P$ its co-primary correctness contrast.
++  Intervals are paired seed-bootstrap percentile intervals. The final row
++  averages domains within seed before estimating uncertainty.}
++  \label{tab:e120-primary-breadth}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}lrrrr@{}}
++    \toprule
++    \textbf{Domain} & $\Delta B$ & \textbf{95\% interval}
++      & $\Delta P$ & \textbf{95\% interval} \\
++    \midrule
++    \input{results/e120_primary_breadth_table_body.tex}
++  \end{tabular}
++\end{table}
++
++Uniform replay increases extra modes by $+.596$ on Graph, $+.639$ on
++Countdown, and $+.298$ on PantryPlan; all three bootstrap intervals exclude
++zero and all five seeds have positive breadth effects in each domain.
++MathIR ($+.019$) and Python ($+.037$) remain inconclusive. The registered
++five-domain mean is $+.318$ extra modes per prompt, with interval
++$[+.272,+.358]$; all five within-seed domain averages are positive.
++The corresponding mean correctness difference is $+.010$
++($[-.119,+.139]$). That wide interval establishes neither a correctness gain
++nor noninferiority or equivalence. Table~\ref{tab:e120-primary-seeds} exposes
++the variation: Python correctness effects range from $-.781$ to $+.828$,
++whereas its extra-mode effects are small in four seeds. Thus uniform weighting
++has a breadth advantage concentrated in Graph, Countdown, and PantryPlan;
++these results do not establish universal accuracy safety or downstream utility.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{All registered paired seed effects for the weighting ablation.}
++  Each entry is $\Delta B/\Delta P$, uniform minus fresh-frequency replay.
++  The final row averages the five domains within the indicated seed.
++  Three-decimal rounding is for display; the accompanying JSON retains
++  every full-precision effect and bootstrap interval, including the registered
++  five-domain average.}
++  \label{tab:e120-primary-seeds}
++  \scriptsize
++  \setlength{\tabcolsep}{3pt}
++  \begin{tabular}{@{}lrrrrr@{}}
++    \toprule
++    \textbf{Domain} & \textbf{Seed 43} & \textbf{Seed 44}
++      & \textbf{Seed 45} & \textbf{Seed 46} & \textbf{Seed 47} \\
++    \midrule
++    \input{results/e120_primary_breadth_seeds_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\paragraph{Supporting raw endpoints.}
++For continuity with the frozen result artifact,
++Table~\ref{tab:e120-frequency-progress} retains the original
++\emph{frequency-minus-uniform} sign for raw $P$ and $D$; its sign is opposite
++to the primary tables above. These raw endpoints and their existing
++Student-$t$ intervals are supporting descriptions, not substitutes for the
++registered breadth estimand and bootstrap analysis.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Supporting raw endpoints in the original contrast direction.}
++  Effects are fresh-frequency minus uniform replay on the displayed five
++  seeds. $\Delta P$ is the raw \texttt{pass@8} difference and $\Delta D$ the
++  raw \texttt{distinct@8} difference. The frozen machine-readable artifact
++  also retains paired, unadjusted 95\% Student-$t$ intervals for all five
++  terminal domain blocks.}
+   \label{tab:e120-frequency-progress}
+   \small
+   \begin{tabular}{@{}lrrrr@{}}
+     \toprule
+-    \textbf{Domain} & \(n\) & \textbf{Seeds} & \(\Delta P\) & \(\Delta D\) \\
++    \textbf{Domain} & $n$ & \textbf{Seeds} & $\Delta P$ & $\Delta D$ \\
+     \midrule
+     \input{results/e120_frequency_progress_table_body.tex}
+   \end{tabular}
+ \end{table}
+ 
+-Fresh-frequency replay reduces raw \texttt{distinct@8} relative to uniform key
+-replay on Graph by \(-.663\) (\([-.808,-.517]\)), Countdown by \(-.661\)
+-(\([-.838,-.483]\)), and PantryPlan by \(-.341\)
+-(\([-.564,-.117]\)). MathIR is near zero, \(-.014\)
+-(\([-.160,+.132]\)), while Python is heterogeneous across seeds, \(+.040\)
+-(\([-.926,+1.006]\)). Correctness differences are smaller outside Python;
+-Graph is \(-.066\) (\([-.075,-.057]\)), and the Countdown, MathIR, and
+-PantryPlan intervals cross zero. Thus uniform weighting has a clear raw-support
+-advantage in three of five complete blocks, but not universally. This supports
+-uniform replay as an equal-retention design choice rather than as the optimizer
+-of every downstream utility. Falcon3-1B and Qwen2.5-3B have no terminal E120-R1
+-cells in this frozen snapshot.
++On this original scale, fresh-frequency replay reduces raw
++\texttt{distinct@8} on Graph by $-.6625$ ($[-.808,-.517]$), Countdown by
++$-.661$ ($[-.838,-.483]$), and PantryPlan by $-.341$ ($[-.564,-.117]$).
++MathIR is near zero, $-.014$ ($[-.160,+.132]$), while Python is heterogeneous,
++$+.040$ ($[-.926,+1.006]$). The registered primary analysis above separates
++the extra-mode component of these raw differences. It supports key balancing
++for retained sampled breadth in the stated domains, without identifying the
++survival history of any individual banked mode. Falcon3-1B and Qwen2.5-3B
++have no terminal E120-R1 cells in this frozen snapshot.
+ 
+ \subsection{When fresh Dr.GRPO gradients vanish}
+ \label{app:degenerate-groups}
+@@ -4055,7 +4142,6 @@
+     \textbf{Method} & \(n\) & \textbf{pass@8} & \textbf{distinct@8} \\
+     \midrule
+     \input{results/e118_qwen3b_python_terminal_table_body.tex}
+-    \bottomrule
+   \end{tabular}
+ \end{table}
+ 
+@@ -4080,8 +4166,8 @@
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{The three experiments and the evidence boundary at the
+-  September 4 freeze.} A complete block contains all five registered paired
++  \caption{\textbf{Current coverage and evidence boundaries for the three
++  experiments.} A complete block contains all five registered paired
+   terminal seeds. Partial or source-excluded intersections are not counted as complete blocks.
+   E120 uses its September 4, 15:40:26 UTC snapshot.}
+   \label{tab:experiment-map}
+@@ -4209,6 +4295,13 @@
+ terminal progress is stored beside Figure~\ref{fig:level2-admission}; E120-R1 is
+ regenerated by \path{ops/exp_scaling/build_paper_e120_frequency_progress.py}
+ into \path{paper/results/e120_frequency_progress.json} and its table body.
++The registered E120 breadth and correctness contrasts are reproduced from
++that frozen snapshot by
++\path{ops/exp_scaling/build_paper_e120_primary_breadth.py}. Its
++\path{paper/results/e120_primary_breadth.json} records source hashes, all
++paired seed values, exact bootstrap conventions, and the within-seed
++five-domain summary; the two adjacent table bodies reproduce
++Tables~\ref{tab:e120-primary-breadth} and~\ref{tab:e120-primary-seeds}.
+ Dataset manifests under \path{var/data/} bind every train/evaluation identity
+ and level.
+ 
+--- before/paper/mathai2026/main.tex
++++ paper/mathai2026/main.tex
+@@ -139,8 +139,8 @@
+ \texttt{pass@8} rises from $.48$ to $.67$ and \texttt{distinct@8} from $.49$
+ to $1.64$. The gain includes more computation routes alongside greater success.
+ These held-out prompts never enter the bank: replay improves candidates for new problems.
+-A matched weighting ablation favors uniform over fresh-frequency replay on
+-Graph, Countdown, and PantryPlan; Python and MathIR remain inconclusive
++Uniform versus frequency-weighted replay adds $.318$ extra modes on average
++(95\% interval $[.272,.358]$); correctness remains inconclusive
+ (Appendix~\ref{app:frequency-replay-progress}).
+ 
+ \clearpage
+--- before/paper/mathai2026/appendix.tex
++++ paper/mathai2026/appendix.tex
+@@ -2737,48 +2737,134 @@
+   \label{fig:direct-baseline-curves}
+ \end{figure}
+ 
+-\subsection{Fresh-frequency versus uniform replay: E120-R1 progress}
++\subsection{Uniform versus fresh-frequency replay: registered breadth analysis}
+ \label{app:frequency-replay-progress}
+ 
+-E120-R1 changes only the within-bank target weights: the treatment samples
+-keys in proportion to their fresh discovery frequency, while the matched
+-ReplayDr.GRPO comparator weights retained keys uniformly. The paper fixes this
+-comparison to the snapshot generated on September 4, 2026 at 15:40:26 UTC
+-(11:40:26 EDT). In that snapshot, 25/45 treatment cells have exact step-3,072 endpoints: all five
+-Qwen2.5-0.5B domain blocks are complete, while the four registered Falcon3-1B
+-and Qwen2.5-3B blocks remain in progress. Table~\ref{tab:e120-frequency-progress}
+-reports the five terminal Qwen2.5-0.5B contrasts.
++E120-R1 changes the within-bank target weights: fresh-frequency replay
++weights retained keys in proportion to their validator-positive fresh-rollout
++counts, while matched ReplayDr.GRPO weights retained keys uniformly. Both
++arms use the same bank construction and update code; their subsequent
++policy-dependent bank contents can differ. We retain the snapshot generated
++on September 4, 2026 at 15:40:26 UTC (11:40:26 EDT): 25/45 treatment cells
++have exact step-3,072 endpoints, comprising all five Qwen2.5-0.5B domains
++on seeds 43--47. The larger-model extensions are outside this frozen analysis.
++
++\paragraph{Registered estimands and paired uncertainty.}
++Write $P=\texttt{pass@8}$, $D=\texttt{distinct@8}$, and $B=D-P$.
++For each successful eight-sample set, $B$ counts verified modes beyond its
++first correct mode; failed sets contribute zero. It is an unconditional
++extra-mode count, not diversity conditioned on equal correctness.
++The preregistered primary contrast is $\Delta B=B_{\rm uniform}-B_{\rm frequency}$;
++$\Delta P=P_{\rm uniform}-P_{\rm frequency}$ is the co-primary correctness
++endpoint. Positive effects favor uniform weighting. The registration also
++specifies all five seed values and the full five-domain mean
++(\path{paper/preregistration/e120_frequency_weighted_replay_ablation_20260902.md}).
++We compute each contrast within its matched seed. For the five-domain
++summary, we first average the five domain effects within each seed and then
++average the five resulting seed means, giving each domain equal weight.
++
++Table~\ref{tab:e120-primary-breadth} reports paired percentile bootstrap
++95\% intervals over training seeds. We enumerate all $5^5=3{,}125$ ordered
++resamples of the five paired seed records, including repetitions, and use
++linearly interpolated 2.5th and 97.5th percentiles. For the domain average,
++a resampled seed carries its entire five-domain vector, preserving the
++observed pairing across domains. Endpoints and the five-domain average were
++preregistered; the seed-resampling unit, exact enumeration, and percentile
++convention are implementation choices documented in this analysis. These
++nominal intervals use only five seeds, are not adjusted across domains or
++endpoints, and do not resample evaluation prompts or domains. They quantify
++seed variability within the fixed benchmark rather than uncertainty over a
++population of reasoning tasks.
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{E120-R1 terminal Qwen2.5-0.5B blocks.} Each effect is
+-  fresh-frequency replay minus matched uniform key replay on the displayed
+-  five registered seeds. \(\Delta P\) is the \texttt{pass@8} difference and
+-  \(\Delta D\) the raw \texttt{distinct@8} difference. Means are descriptive;
+-  the adjacent machine-readable artifact retains paired, unadjusted 95\%
+-  Student-\(t\) estimation intervals.}
++  \caption{\textbf{Uniform replay retains more extra correct modes.}
++  Every row uses five paired Qwen2.5-0.5B seeds at pass 8. Effects are
++  uniform minus fresh-frequency replay; $\Delta B$ is the registered
++  extra-mode contrast and $\Delta P$ its co-primary correctness contrast.
++  Intervals are paired seed-bootstrap percentile intervals. The final row
++  averages domains within seed before estimating uncertainty.}
++  \label{tab:e120-primary-breadth}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}lrrrr@{}}
++    \toprule
++    \textbf{Domain} & $\Delta B$ & \textbf{95\% interval}
++      & $\Delta P$ & \textbf{95\% interval} \\
++    \midrule
++    \input{results/e120_primary_breadth_table_body.tex}
++  \end{tabular}
++\end{table}
++
++Uniform replay increases extra modes by $+.596$ on Graph, $+.639$ on
++Countdown, and $+.298$ on PantryPlan; all three bootstrap intervals exclude
++zero and all five seeds have positive breadth effects in each domain.
++MathIR ($+.019$) and Python ($+.037$) remain inconclusive. The registered
++five-domain mean is $+.318$ extra modes per prompt, with interval
++$[+.272,+.358]$; all five within-seed domain averages are positive.
++The corresponding mean correctness difference is $+.010$
++($[-.119,+.139]$). That wide interval establishes neither a correctness gain
++nor noninferiority or equivalence. Table~\ref{tab:e120-primary-seeds} exposes
++the variation: Python correctness effects range from $-.781$ to $+.828$,
++whereas its extra-mode effects are small in four seeds. Thus uniform weighting
++has a breadth advantage concentrated in Graph, Countdown, and PantryPlan;
++these results do not establish universal accuracy safety or downstream utility.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{All registered paired seed effects for the weighting ablation.}
++  Each entry is $\Delta B/\Delta P$, uniform minus fresh-frequency replay.
++  The final row averages the five domains within the indicated seed.
++  Three-decimal rounding is for display; the accompanying JSON retains
++  every full-precision effect and bootstrap interval, including the registered
++  five-domain average.}
++  \label{tab:e120-primary-seeds}
++  \scriptsize
++  \setlength{\tabcolsep}{3pt}
++  \begin{tabular}{@{}lrrrrr@{}}
++    \toprule
++    \textbf{Domain} & \textbf{Seed 43} & \textbf{Seed 44}
++      & \textbf{Seed 45} & \textbf{Seed 46} & \textbf{Seed 47} \\
++    \midrule
++    \input{results/e120_primary_breadth_seeds_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\paragraph{Supporting raw endpoints.}
++For continuity with the frozen result artifact,
++Table~\ref{tab:e120-frequency-progress} retains the original
++\emph{frequency-minus-uniform} sign for raw $P$ and $D$; its sign is opposite
++to the primary tables above. These raw endpoints and their existing
++Student-$t$ intervals are supporting descriptions, not substitutes for the
++registered breadth estimand and bootstrap analysis.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Supporting raw endpoints in the original contrast direction.}
++  Effects are fresh-frequency minus uniform replay on the displayed five
++  seeds. $\Delta P$ is the raw \texttt{pass@8} difference and $\Delta D$ the
++  raw \texttt{distinct@8} difference. The frozen machine-readable artifact
++  also retains paired, unadjusted 95\% Student-$t$ intervals for all five
++  terminal domain blocks.}
+   \label{tab:e120-frequency-progress}
+   \small
+   \begin{tabular}{@{}lrrrr@{}}
+     \toprule
+-    \textbf{Domain} & \(n\) & \textbf{Seeds} & \(\Delta P\) & \(\Delta D\) \\
++    \textbf{Domain} & $n$ & \textbf{Seeds} & $\Delta P$ & $\Delta D$ \\
+     \midrule
+     \input{results/e120_frequency_progress_table_body.tex}
+   \end{tabular}
+ \end{table}
+ 
+-Fresh-frequency replay reduces raw \texttt{distinct@8} relative to uniform key
+-replay on Graph by \(-.663\) (\([-.808,-.517]\)), Countdown by \(-.661\)
+-(\([-.838,-.483]\)), and PantryPlan by \(-.341\)
+-(\([-.564,-.117]\)). MathIR is near zero, \(-.014\)
+-(\([-.160,+.132]\)), while Python is heterogeneous across seeds, \(+.040\)
+-(\([-.926,+1.006]\)). Correctness differences are smaller outside Python;
+-Graph is \(-.066\) (\([-.075,-.057]\)), and the Countdown, MathIR, and
+-PantryPlan intervals cross zero. Thus uniform weighting has a clear raw-support
+-advantage in three of five complete blocks, but not universally. This supports
+-uniform replay as an equal-retention design choice rather than as the optimizer
+-of every downstream utility. Falcon3-1B and Qwen2.5-3B have no terminal E120-R1
+-cells in this frozen snapshot.
++On this original scale, fresh-frequency replay reduces raw
++\texttt{distinct@8} on Graph by $-.6625$ ($[-.808,-.517]$), Countdown by
++$-.661$ ($[-.838,-.483]$), and PantryPlan by $-.341$ ($[-.564,-.117]$).
++MathIR is near zero, $-.014$ ($[-.160,+.132]$), while Python is heterogeneous,
++$+.040$ ($[-.926,+1.006]$). The registered primary analysis above separates
++the extra-mode component of these raw differences. It supports key balancing
++for retained sampled breadth in the stated domains, without identifying the
++survival history of any individual banked mode. Falcon3-1B and Qwen2.5-3B
++have no terminal E120-R1 cells in this frozen snapshot.
+ 
+ \subsection{When fresh Dr.GRPO gradients vanish}
+ \label{app:degenerate-groups}
+@@ -3733,7 +3819,6 @@
+     \textbf{Method} & \(n\) & \textbf{pass@8} & \textbf{distinct@8} \\
+     \midrule
+     \input{results/e118_qwen3b_python_terminal_table_body.tex}
+-    \bottomrule
+   \end{tabular}
+ \end{table}
+ 
+@@ -3758,8 +3843,8 @@
+ 
+ \begin{table}[H]
+   \centering
+-  \caption{\textbf{The three experiments and the evidence boundary at the
+-  September 4 freeze.} A complete block contains all five registered paired
++  \caption{\textbf{Current coverage and evidence boundaries for the three
++  experiments.} A complete block contains all five registered paired
+   terminal seeds. Partial or source-excluded intersections are not counted as complete blocks.
+   E120 uses its September 4, 15:40:26 UTC snapshot.}
+   \label{tab:experiment-map}
+@@ -3887,6 +3972,13 @@
+ terminal progress is stored beside Figure~\ref{fig:level2-admission}; E120-R1 is
+ regenerated by \path{ops/exp_scaling/build_paper_e120_frequency_progress.py}
+ into \path{paper/results/e120_frequency_progress.json} and its table body.
++The registered E120 breadth and correctness contrasts are reproduced from
++that frozen snapshot by
++\path{ops/exp_scaling/build_paper_e120_primary_breadth.py}. Its
++\path{paper/results/e120_primary_breadth.json} records source hashes, all
++paired seed values, exact bootstrap conventions, and the within-seed
++five-domain summary; the two adjacent table bodies reproduce
++Tables~\ref{tab:e120-primary-breadth} and~\ref{tab:e120-primary-seeds}.
+ Dataset manifests under \path{var/data/} bind every train/evaluation identity
+ and level.
+ 
+--- before/paper/Makefile
++++ paper/Makefile
+@@ -29,11 +29,11 @@
+ 	figures/verified_support_discovery_two_scale_effects.json \
+ 	figures/replay_mechanism_telemetry_qwen05b.json
+ 
+-.PHONY: all clean figures prompts terminal-results
++.PHONY: all clean figures prompts terminal-results primary-breadth
+ 
+ all: $(PAPER).pdf
+ 
+-$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) figures/xmode_adaptive_cross_scale_distinct_at_k.json results/e118_qwen05b_factorial.json results/e118_qwen3b_python_terminal_table_body.tex results/xmode_adaptive_cross_scale_endpoints_table_body.tex results/core_terminal_endpoints.json results/core_terminal_endpoints_table_body.tex results/absolute_support_references.json results/absolute_support_references_table_body.tex results/baseline_collapse_precheck.json results/baseline_collapse_precheck_table_body.tex results/e95_falcon_plain_grpo_reportable.json results/e78_terminal_05b_table_body.tex results/maxent_factorial_05b_table_body.tex results/maxent_factorial_05b_uncertainty_table_body.tex results/e87_qwen3b_fixed_semantic_seed70.json results/e87_qwen3b_fixed_semantic_seed70_table_body.tex results/paper_program_status.json results/paper_program_status_table_body.tex results/e113r4_dapo_progress.json results/e78_python_collapse_diagnostics.json results/e120_frequency_progress.json results/e120_frequency_progress_table_body.tex ../var/artifacts/e102_full_open_bank_maxent_replay_05b_audit_latest.json ../ops/check_paper_line_fill.py
++$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) figures/xmode_adaptive_cross_scale_distinct_at_k.json results/e118_qwen05b_factorial.json results/e118_qwen3b_python_terminal_table_body.tex results/xmode_adaptive_cross_scale_endpoints_table_body.tex results/core_terminal_endpoints.json results/core_terminal_endpoints_table_body.tex results/absolute_support_references.json results/absolute_support_references_table_body.tex results/baseline_collapse_precheck.json results/baseline_collapse_precheck_table_body.tex results/e95_falcon_plain_grpo_reportable.json results/e78_terminal_05b_table_body.tex results/maxent_factorial_05b_table_body.tex results/maxent_factorial_05b_uncertainty_table_body.tex results/e87_qwen3b_fixed_semantic_seed70.json results/e87_qwen3b_fixed_semantic_seed70_table_body.tex results/paper_program_status.json results/paper_program_status_table_body.tex results/e113r4_dapo_progress.json results/e78_python_collapse_diagnostics.json results/e120_frequency_progress.json results/e120_frequency_progress_table_body.tex results/e120_primary_breadth.json results/e120_primary_breadth_table_body.tex results/e120_primary_breadth_seeds_table_body.tex ../ops/exp_scaling/build_paper_e120_primary_breadth.py ../ops/check_paper_current_contract.py ../var/artifacts/e102_full_open_bank_maxent_replay_05b_audit_latest.json ../ops/check_paper_line_fill.py
+ 	python ../ops/check_paper_current_contract.py
+ 	$(DATA_PYTHON) ../ops/check_paper_domain_prompts.py
+ 	$(LATEX) $(PAPER)
+@@ -42,6 +42,9 @@
+ 	$(LATEX) $(PAPER)
+ 	python ../ops/check_paper_current_contract.py
+ 	python ../ops/check_paper_line_fill.py --pdf $(PAPER).pdf
++
++primary-breadth:
++	python ../ops/exp_scaling/build_paper_e120_primary_breadth.py
+ 
+ figures:
+ 	python ../ops/plot_paper_modebench_examples.py
+--- before/ops/check_paper_current_contract.py
++++ ops/check_paper_current_contract.py
+@@ -4,6 +4,7 @@
+ 
+ import json
+ import re
++import runpy
+ import subprocess
+ from pathlib import Path
+ 
+@@ -216,8 +217,8 @@
+     require(not re.search(r"(?<![A-Za-z])E\d{2,}(?:-R\d+)*(?!\d)", main_body),
+             "reader-facing main body contains an internal cohort code")
+     for token in (
+-        "14/15 blocks", "10/15 blocks", "1/5 blocks; Graph complete",
+-        "five Qwen-3B blocks; full factorial has nine complete blocks",
++        "14/15 blocks", "11/15 blocks", "10/15 blocks", "1/5 blocks; Graph complete",
++        "four Qwen-3B blocks; full factorial has ten complete blocks",
+         "finish the other four domains",
+         "5/9 blocks; 25/45 cells",
+         "larger-model blocks absent from the frozen E120 snapshot",
+@@ -356,7 +357,7 @@
+         == "Qwen2.5-0.5B and Falcon3-1B cross-domain averages only"
+         and display.get("appendix_figure")
+         == "Qwen2.5-0.5B and Falcon3-1B per-domain panels"
+-        and "machine-readable progress only"
++        and "complete Python five-seed block reported in appendix table"
+         in display.get("qwen3b_display", ""),
+         "Figure 5 summary/detail split drifted",
+     )
+@@ -381,8 +382,8 @@
+                 f"Falcon E118 {domain} is not a complete five-seed block")
+     qwen3 = e118.get("cells", {}).get("qwen3b", {})
+     require(set(qwen3) == DOMAINS, "Qwen3B E118 domain grid is incomplete")
+-    require(len(qwen3["python_factors"].get("matched_seeds", [])) == 2,
+-            "Qwen3B progress record lost the exact two-seed Python prefix")
++    require(qwen3["python_factors"].get("matched_seeds", []) == [70, 71, 72, 73, 74],
++            "Qwen3B progress record lost the complete five-seed Python block")
+     require(all(not qwen3[domain].get("matched_seeds")
+                 for domain in DOMAINS - {"python_factors"}),
+             "Qwen3B appendix contains an unsupported terminal domain")
+@@ -416,6 +417,42 @@
+         for method in ("maxrl", "replay_maxrl"):
+             require(set(means[method]["per_seed"]) == {"55", "56", "57", "58", "59"},
+                     f"valid Falcon {method} seed was lost")
++
++    # The newly completed Python block is eligible on its own five paired
++    # seeds; it must not turn the incomplete Qwen3B scale into an aggregate.
++    all_cells = [cell for cells in e118["cells"].values() for cell in cells.values()]
++    pair_blocks = sum(len(cell.get("replay_maxrl_minus_maxrl", {}).get("per_seed", {})) == 5
++                      for cell in all_cells)
++    four_arm_blocks = sum(
++        len(set.intersection(*(set(cell.get("method_seeds", {}).get(arm, []))
++                               for arm in ("drgrpo", "replay_drgrpo", "maxrl", "replay_maxrl")))) == 5
++        for cell in all_cells)
++    require(pair_blocks == 11 and four_arm_blocks == 10,
++            "E118 pair/four-arm complete-block counts drifted")
++    python3b = e118["cells"]["qwen3b"]["python_factors"]
++    require(python3b["matched_seeds"] == [70, 71, 72, 73, 74],
++            "Qwen3B Python does not retain all five registered seeds")
++    require(r"\label{tab:qwen3b-python-factorial}" in appendix
++            and r"\input{results/e118_qwen3b_python_terminal_table_body.tex}" in appendix,
++            "completed Qwen3B Python table is missing")
++
++    # Reproduce the frozen E120 analysis and table bodies without refreshing
++    # a campaign or silently accepting a stale generated analysis.
++    analysis_path = ROOT / "ops/exp_scaling/build_paper_e120_primary_breadth.py"
++    analysis = runpy.run_path(str(analysis_path))
++    expected_primary = analysis["build"]()
++    primary_path = ROOT / "paper/results/e120_primary_breadth.json"
++    require(json.loads(primary_path.read_text()) == expected_primary,
++            "E120 primary estimates/provenance differ from the frozen source")
++    rendered = analysis["render_tables"](expected_primary["rows"])
++    for name, expected in zip(("e120_primary_breadth_table_body.tex",
++                               "e120_primary_breadth_seeds_table_body.tex"), rendered):
++        require((ROOT / "paper/results" / name).read_text() == expected,
++                f"E120 generated table is stale: {name}")
++        require(f"\\input{{results/{name}}}" in appendix and f"results/{name}" in makefile,
++                f"E120 table is not connected to manuscript/build: {name}")
++    for label in ("tab:e120-primary-breadth", "tab:e120-primary-seeds"):
++        require(f"\\label{{{label}}}" in appendix, f"missing E120 primary table: {label}")
+ 
+     levels = json.loads(LEVELS.read_text(encoding="utf-8"))
+     rows = levels.get("admission_rows", [])
+--- before/ops/exp_scaling/plot_paper_e118_all_scale_progress.py
++++ ops/exp_scaling/plot_paper_e118_all_scale_progress.py
+@@ -548,7 +548,7 @@
+         lines.append(f"{label} & 5 & {statistics.fmean(values['pass8']):.3f} & "
+                      f"{statistics.fmean(values['distinct8']):.3f} " + r"\\")
+     path = ROOT / "paper/results/e118_qwen3b_python_terminal_table_body.tex"
+-    path.write_text("\n".join(lines) + "\n")
++    path.write_text("\n".join(lines) + "\n    \\bottomrule\n")
+ 
+ 
+ def main() -> int:
+--- before/paper/results/e118_qwen3b_python_terminal_table_body.tex
++++ paper/results/e118_qwen3b_python_terminal_table_body.tex
+@@ -2,3 +2,4 @@
+ ReplayDr.GRPO & 5 & 0.659 & 0.852 \\
+ MaxRL & 5 & 0.356 & 0.356 \\
+ ReplayMaxRL & 5 & 0.633 & 0.748 \\
++    \bottomrule

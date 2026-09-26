@@ -1,0 +1,21 @@
+{
+  "pdf": "/tmp/paper-final-appendix-20260921/build/main.pdf",
+  "pdf_sha256": "18ced48f7bc6632e6c92b2b1143284a00d4884863e60bf86edbb16e149f716c8",
+  "pages_reviewed": [
+    118,
+    119,
+    112
+  ],
+  "raster_max_dimension": 1600,
+  "concrete_findings": [],
+  "passed": true,
+  "review": [
+    "R118\u2013119: no clipping, overflow, collisions, malformed inline equations, unresolved references, or orphan paragraph headings.",
+    "R118\u2013119: scientific wording retains the corrected DMPO Boltzmann/MSE target, UCPO sequence-likelihood weights, conditional-metric eligibility distinction, and uncertainty statements.",
+    "R118\u2013119: accumulated-count wording and shorter reuse conclusion preserve the reviewed scientific meaning.",
+    "R118\u2013119: the target-distribution paragraph continues across the page break after several complete introductory lines; readable and no isolated heading.",
+    "112: KL figure panels, legend, figure caption, table caption, column headings, entries, and superscript sample counts fit without overlap/clipping.",
+    "112: caption distinguishes conditional diversity from pass@8 and describes point estimates without uncertainty bands; surrounding text retains the categorical-versus-measured limitation."
+  ],
+  "source_edits": false
+}

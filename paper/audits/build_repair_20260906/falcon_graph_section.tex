@@ -1,0 +1,59 @@
+
+\paragraph{Newly completed Falcon3-1B Graph ablation (September 6).}
+\label{app:e120-falcon-graph-update}
+The registered Falcon Graph block now has all five paired seeds, 55--59,
+at step 3,072. Each endpoint has a completion receipt and all four required
+sampled evaluation draws. The replay audit passes for all 16,253 persisted
+applied-update telemetry rows across the frequency arm's original and recovery
+attempts. Table~\ref{tab:e120-falcon-graph} adds this completed block separately
+from the September 4 Qwen2.5-0.5B snapshot above, using the same paired
+percentile bootstrap convention.
+
+Uniform weighting adds $+.233$ extra modes per prompt
+(95\% interval $[+.182,+.320]$), with a positive effect in every seed.
+Its \texttt{pass@8} effect is $+.0453$ ($[-.0004,+.0910]$); the interval
+includes zero and establishes neither a correctness gain nor noninferiority.
+The supporting mean sampled-correctness metric, \texttt{mean@8}, decreases
+by $-.0152$ ($[-.0214,-.0090]$). Thus the breadth benefit coexists with
+lower per-sample correctness; greater sampled support does not imply a
+uniform accuracy improvement. This is one registered model--domain block,
+with nominal, unadjusted intervals and an unfinished larger-model grid.
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{Completed Falcon3-1B Graph replay-weight ablation.}
+  All five paired seeds at pass 8; positive effects favor uniform replay.
+  Extra modes $B=D-P$ and correctness $P$ are the registered co-primary
+  endpoints. Raw distinct modes $D$ and mean sampled correctness are
+  supporting metrics. Intervals resample paired training seeds.}
+  \label{tab:e120-falcon-graph}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lrrrr@{}}
+    \toprule
+    \textbf{Endpoint} & \textbf{Uniform} & \textbf{Frequency}
+      & \textbf{Effect} & \textbf{95\% interval} \\
+    \midrule
+    \input{results/e120_falcon_graph_20260906_table_body.tex}
+  \end{tabular}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{\textbf{All paired seeds in the Falcon Graph extension.}
+  U/F denote uniform/fresh-frequency replay; effects are U minus F.
+  Full-precision endpoints, all supporting metrics, evaluation origins,
+  completion receipts, and telemetry checks accompany the result in
+  \texttt{e120\_falcon\_graph\_20260906.json}.}
+  \label{tab:e120-falcon-graph-seeds}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}rrrrrrr@{}}
+    \toprule
+    \textbf{Seed} & $P_{\rm U}$ & $P_{\rm F}$ & $B_{\rm U}$
+      & $B_{\rm F}$ & $\Delta P$ & $\Delta B$ \\
+    \midrule
+    \input{results/e120_falcon_graph_20260906_seeds_table_body.tex}
+  \end{tabular}
+\end{table}
+

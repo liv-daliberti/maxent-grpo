@@ -1,0 +1,33 @@
+{
+  "gspo2025": {
+    "primaryClass": "cs.LG"
+  },
+  "divpo2025": {
+    "primaryClass": "cs.LG"
+  },
+  "bellemare2016pseudocount": {
+    "primaryClass": "cs.AI"
+  },
+  "zhan2023pmd": {
+    "primaryClass": "cs.LG"
+  },
+  "zhu2025flowrl": {
+    "author": "Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Jiang, Che and Sun, Youbang and Hua, Ermo and Zuo, Yuxin and Lv, Xingtai and Zhang, Qizheng and Chen, Lin and Shao, Fanghao and Xue, Bo and Song, Yunchong and Yang, Zhenjie and Cui, Ganqu and Ding, Ning and Gao, Jianfeng and Liu, Xiaodong and Zhou, Bowen and Mei, Hongyuan and Lin, Zhouhan"
+  },
+  "tajwar2026maxrl": {
+    "url": "https://arxiv.org/abs/2602.02710v3",
+    "note": "Version 3"
+  },
+  "maa_invitational": {
+    "title": "MAA Invitational Competitions",
+    "year": "n.d.",
+    "note": "American Invitational Mathematics Examination (AIME) section. Accessed September 5, 2026"
+  },
+  "maa_amc": {
+    "year": "n.d.",
+    "note": "Accessed September 5, 2026"
+  },
+  "hu2024amortizing": {
+    "url": "https://arxiv.org/abs/2310.04363v2"
+  }
+}

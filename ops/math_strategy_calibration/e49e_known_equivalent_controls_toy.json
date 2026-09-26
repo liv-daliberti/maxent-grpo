@@ -1,0 +1,30 @@
+{
+  "controls": [
+    {
+      "candidate_menu_sha256": "9c23ac31e8d55c29469bd2ded34b2e3cd27ed481d5b3dae2d23e71d60454cc54",
+      "control_id": "duplicate_direct_sum",
+      "left_strategy_id": "S1",
+      "reason": "Both routes directly sum the same five terms and divide by five; the second only renames the same operations.",
+      "right_strategy_id": "S3",
+      "row_id": "train:0024:train/prealgebra/300.json"
+    },
+    {
+      "candidate_menu_sha256": "345d126ba15f428a8259a0f67d15122a292566318f123fd2af5db5ff1563f4de",
+      "control_id": "duplicate_base_conversion",
+      "left_strategy_id": "S1",
+      "reason": "Both routes expand the same two positional numerals in base ten and add them.",
+      "right_strategy_id": "S2",
+      "row_id": "train:0027:train/number_theory/816.json"
+    },
+    {
+      "candidate_menu_sha256": "b81ce15be58df77f5c5b046b6c644a51cfb257b8cfcfba80a0376fdb05e33fdf",
+      "control_id": "duplicate_cross_product_plane",
+      "left_strategy_id": "S1",
+      "reason": "Both routes form the same two vectors, take their cross product, and substitute a point into the plane equation.",
+      "right_strategy_id": "S2",
+      "row_id": "eval:0044:6d905488e3e784c856e5"
+    }
+  ],
+  "schema": "e49e_known_equivalent_controls_v1",
+  "stage": "toy"
+}

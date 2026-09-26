@@ -1,0 +1,734 @@
+{
+  "campaigns": {
+    "e118": {
+      "admitted_terminal_endpoints": 116,
+      "block_definition": "five MaxRL/ReplayMaxRL seed pairs",
+      "blocks": [
+        {
+          "complete_five_seed_block": true,
+          "domain": "countdown",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ],
+            "replay_maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "graph_coloring",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ],
+            "replay_maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "mathir",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ],
+            "replay_maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "pantry_plan",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ],
+            "replay_maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "python_factors",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ],
+            "replay_maxrl": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "countdown",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "graph_coloring",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "mathir",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "pantry_plan",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "python_factors",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "countdown",
+          "model_key": "qwen3b",
+          "paired_seeds": [],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              70
+            ],
+            "replay_maxrl": []
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "graph_coloring",
+          "model_key": "qwen3b",
+          "paired_seeds": [
+            73
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              72,
+              73
+            ],
+            "replay_maxrl": [
+              73
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "mathir",
+          "model_key": "qwen3b",
+          "paired_seeds": [
+            74
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              74
+            ],
+            "replay_maxrl": [
+              74
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "pantry_plan",
+          "model_key": "qwen3b",
+          "paired_seeds": [],
+          "terminal_seeds_by_arm": {
+            "maxrl": [],
+            "replay_maxrl": []
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "python_factors",
+          "model_key": "qwen3b",
+          "paired_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "terminal_seeds_by_arm": {
+            "maxrl": [
+              70,
+              71,
+              72,
+              73,
+              74
+            ],
+            "replay_maxrl": [
+              70,
+              71,
+              72,
+              73,
+              74
+            ]
+          }
+        }
+      ],
+      "complete_five_seed_blocks": 11,
+      "completion_receipts": 116,
+      "endpoint_status_counts": {
+        "admitted": 116,
+        "incomplete": 34
+      },
+      "ledger": "var/artifacts/e118_all_scales_maxrl_verified_replay_jobs.json",
+      "ledger_sha256": "edd12d95c219835dcab17ed6814c45ee9eb8d0c6872a823ce9a85f6445f92ac2",
+      "matched_maxrl_pairs": 57,
+      "registered_blocks": 15,
+      "registered_cells": 150
+    },
+    "e119": {
+      "admitted_terminal_endpoints": 52,
+      "block_definition": "five matched seeds across all four methods",
+      "blocks": [
+        {
+          "complete_five_seed_block": false,
+          "domain": "countdown",
+          "model_key": "qwen05b",
+          "paired_seeds": [],
+          "terminal_seeds_by_arm": {
+            "drgrpo": [
+              44
+            ],
+            "maxrl": [],
+            "replay_drgrpo": [
+              43,
+              44
+            ],
+            "replay_maxrl": []
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "graph_coloring",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "drgrpo": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_drgrpo": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "mathir",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44
+          ],
+          "terminal_seeds_by_arm": {
+            "drgrpo": [
+              43,
+              44,
+              45,
+              46
+            ],
+            "maxrl": [
+              43,
+              44,
+              46
+            ],
+            "replay_drgrpo": [
+              43,
+              44,
+              47
+            ],
+            "replay_maxrl": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "pantry_plan",
+          "model_key": "qwen05b",
+          "paired_seeds": [],
+          "terminal_seeds_by_arm": {
+            "drgrpo": [],
+            "maxrl": [],
+            "replay_drgrpo": [],
+            "replay_maxrl": []
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "python_factors",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            45,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "drgrpo": [
+              44,
+              45,
+              46,
+              47
+            ],
+            "maxrl": [
+              43,
+              45,
+              47
+            ],
+            "replay_drgrpo": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ],
+            "replay_maxrl": [
+              45,
+              47
+            ]
+          }
+        }
+      ],
+      "complete_five_seed_blocks": 1,
+      "completion_receipts": 52,
+      "endpoint_status_counts": {
+        "admitted": 52,
+        "incomplete": 48
+      },
+      "ledger": "var/artifacts/e119_level2_qwen05b_factorial_jobs.json",
+      "ledger_sha256": "341f77f6f41ab5954718d3216d6260ee87d2486cd38d91fbab5dd38c4efb760e",
+      "registered_blocks": 5,
+      "registered_cells": 100
+    },
+    "e120": {
+      "admitted_terminal_endpoints": 33,
+      "block_definition": "five frequency-replay seeds paired to the registered completed uniform comparator",
+      "blocks": [
+        {
+          "complete_five_seed_block": true,
+          "domain": "graph_coloring",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              55,
+              56,
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "pantry_plan",
+          "model_key": "falcon1b",
+          "paired_seeds": [
+            57,
+            58,
+            59
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              57,
+              58,
+              59
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "countdown",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "graph_coloring",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "mathir",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "pantry_plan",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": true,
+          "domain": "python_factors",
+          "model_key": "qwen05b",
+          "paired_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "terminal_seeds_by_arm": {
+            "frequency": [
+              43,
+              44,
+              45,
+              46,
+              47
+            ]
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "graph_coloring",
+          "model_key": "qwen3b",
+          "paired_seeds": [],
+          "terminal_seeds_by_arm": {
+            "frequency": []
+          }
+        },
+        {
+          "complete_five_seed_block": false,
+          "domain": "pantry_plan",
+          "model_key": "qwen3b",
+          "paired_seeds": [],
+          "terminal_seeds_by_arm": {
+            "frequency": []
+          }
+        }
+      ],
+      "complete_five_seed_blocks": 6,
+      "completion_receipts": 33,
+      "endpoint_status_counts": {
+        "admitted": 33,
+        "incomplete": 12
+      },
+      "ledger": "var/artifacts/e120r1_frequency_weighted_replay_jobs.json",
+      "ledger_sha256": "5302ba26da3f67d0b57e9eef1e8f528c6a56aef5faeb543a3adbfe32e721d8e7",
+      "registered_blocks": 9,
+      "registered_cells": 45
+    }
+  },
+  "collection_finished_at_utc": "2026-09-06T17:09:35.415156+00:00",
+  "collection_started_at_utc": "2026-09-06T16:56:42.334096+00:00",
+  "preserved_e120_snapshot": {
+    "all_25_treatment_endpoints_revalidated_unchanged": true,
+    "path": "paper/results/e120_frequency_progress.json",
+    "sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab",
+    "terminal_cells": 25
+  },
+  "preserved_level2_interim_snapshot": {
+    "collected_at_utc": "2026-09-06T15:55:43.317313+00:00",
+    "path": "paper/results/modebench_level_comparison_snapshot.json",
+    "sha256": "3439418b62456f1c7ff424d450886016a491ce9085f185cb465d851cc6fd8ad4"
+  },
+  "schema": "paper-latest-terminal-status-v1",
+  "scope": "Additive dated operational endpoint census. Existing frozen E120 primary and Figure 6 interim evidence is unchanged; incomplete blocks remain descriptive and receive no interval. Completion receipts are counted separately from admitted fixed-seed sampled step3072 four-draw endpoints.",
+  "source_audit": {
+    "path": "paper/audits/submission_repair_20260906/results/latest_endpoints.json",
+    "sha256": "f9b342f52c123a6230969b371e9f2f6947e4ff4e9b2e1875713ddce319549c26"
+  }
+}

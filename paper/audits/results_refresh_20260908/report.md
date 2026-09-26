@@ -1,0 +1,21 @@
+# Results and experiment recovery — September 8, 2026
+
+Updated the full paper, four-page workshop main text and supplement, Figures 5 and 6, appendix factorial figure, result tables, evidence documentation, 15-slide presentation, and workshop source/Overleaf ZIPs.
+
+| Campaign | Admitted terminal endpoints | Complete paired blocks |
+|---|---:|---:|
+| E118 MaxRL / ReplayMaxRL | 124/150 | 11/15 |
+| E119 Level-2 factorial | 76/100 | 3/5 |
+| E120 replay weights | 33/45 | 6/9 |
+
+E118 contains 59 matched terminal pairs. E119 now completes Graph, Python and MathIR; the new Python/MathIR pass@8 and distinct@8 paired intervals include zero. The Level-1/Level-2 figure uses a new 200-cell inventory with complete four-draw matched checkpoints, including the sole common Pantry initial checkpoint; it remains descriptive and interim. The original September 4 E120 primary input is unchanged. The presentation now reports 74 admissible core replay pairs and excludes the conflicting Falcon Countdown seed. Partial blocks receive no five-seed interval. The MaxRL figure's axis now includes its largest displayed seed value.
+
+Validation: the full paper passes the current evidence contract, prompt checks, LaTeX compilation and all 297 natural-prose line-fill checks. The workshop passes its four-main-page limit, all 13 figure placements, anonymous submission format, official style hashes, source bindings and compilation receipt; no unresolved references or overfull boxes remain. Both PDFs have 61 total pages including references and supplement. The 15-slide PPTX passes ZIP and shape-bound checks and was visually reviewed. The final targeted regression command passes 29 tests; independent agents also ran the relevant continuation and coverage suites. New figure pages and the new effects table were visually inspected.
+
+Reproduction and provenance are recorded in `manuscript/report.md`, `latest_endpoints.json`, `manifest.json`, and `figure6/`. The maintained builders now support a dated census and a fresh matched-level snapshot. The terminal-results target now collects the current level snapshot and writes E120 updates to dated outputs, preserving the pinned September 4 primary input. Run the census with ISO date `--date 2026-09-08` on Python 3.10. Pre-refresh files are preserved in the audit's backup folders, including the original dirty working-tree content.
+
+Operational recovery: all six failed lineages cited by the user already had completed accepted successors; the campaign dashboard now resolves those successors. Eight actual E118 timeouts and two actual E119 timeouts received validated-checkpoint continuations, retaining the frozen scientific exports and run directories. Their 72-hour scheduler allocations form one node302 lane. E120's ten Qwen3B holds were stale capacity holds, and its two Falcon Pantry jobs excluded available owner nodes. The ten Qwen3B jobs are now released in two automatic node302 lanes; the two Falcon jobs were moved to node105. No training budget, seed, objective, model or data changed.
+
+Recovery plans, exact old/new job IDs, checkpoint checks, held-job audits, and post-release states are in `var/artifacts/campaign_recovery_20260908/` and `var/artifacts/e120_owner_restart_20260908/`. The initial recovered state is E118124 complete/3 running/23 pending, E11976/6/18, E12033/4/8, with zero failed current allocations. Qwen3B startup requires loading large optimizer checkpoints from shared storage; fresh-attempt telemetry is verified separately from historical maximum steps. Estimated remaining E120 work is on the order of days at the current two Qwen3B lanes, with evaluation/checkpoint overhead and scheduling uncertainty.
+
+Final startup verification at 2026-09-08 15:58:42 UTC: all four E120 starters have fresh optimizer progress. Node302 jobs 31033705/31033706 advanced from checkpoints 960/768 to steps 964/788; node105 jobs 31124261/31124262 reached steps 72/69. Eight E120 successors are pending automatic dependencies and zero user holds remain. The E118 head 31124264 independently advanced from checkpoint 1920 to step 1928. The E120 estimate is approximately 2–4 days, conditional on continued capacity and no further failures. Exact telemetry and scheduler records are preserved in `var/artifacts/e120_owner_restart_20260908/startup_progress.json`.

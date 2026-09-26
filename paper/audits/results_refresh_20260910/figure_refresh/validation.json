@@ -1,0 +1,587 @@
+{
+  "admission_reference_unchanged": true,
+  "comparison_collection_intervals": {
+    "level1": {
+      "end": "2026-09-10T16:55:39.756256+00:00",
+      "start": "2026-09-10T16:52:52.813446+00:00"
+    },
+    "level2": {
+      "end": "2026-09-10T16:55:40.593731+00:00",
+      "start": "2026-09-10T16:52:52.813446+00:00"
+    }
+  },
+  "comparison_snapshot": {
+    "path": "paper/audits/results_refresh_20260910/figure6/modebench_level_comparison_snapshot.json",
+    "sha256": "11f3b57cf0b3ee0933694f115c3c70d5e2d1e0c92aafe4e5abab14c3c71c79a0"
+  },
+  "figure5_displayed_completed_tracks_unchanged": true,
+  "figure5_new_matched_seeds": {
+    "falcon1b": {
+      "countdown": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "graph_coloring": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "mathir": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "pantry_plan": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "python_factors": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    "qwen05b": {
+      "countdown": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "graph_coloring": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "mathir": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "pantry_plan": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "python_factors": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    "qwen3b": {
+      "countdown": [
+        70,
+        74
+      ],
+      "graph_coloring": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "mathir": [
+        70,
+        71,
+        74
+      ],
+      "pantry_plan": [
+        72
+      ],
+      "python_factors": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    }
+  },
+  "figure5_old_matched_seeds": {
+    "falcon1b": {
+      "countdown": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "graph_coloring": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "mathir": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "pantry_plan": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "python_factors": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ]
+    },
+    "qwen05b": {
+      "countdown": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "graph_coloring": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "mathir": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "pantry_plan": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "python_factors": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ]
+    },
+    "qwen3b": {
+      "countdown": [],
+      "graph_coloring": [
+        70,
+        71,
+        72,
+        73
+      ],
+      "mathir": [
+        74
+      ],
+      "pantry_plan": [
+        72
+      ],
+      "python_factors": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ]
+    }
+  },
+  "figure6_current_coverage": {
+    "countdown": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "graph_coloring": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "mathir": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "pantry_plan": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [
+        45
+      ],
+      "n": 2,
+      "seeds": [
+        43,
+        45
+      ],
+      "step_range": [
+        0,
+        672
+      ],
+      "steps_by_seed": {
+        "43": 672,
+        "45": 0
+      },
+      "training_pass_range": [
+        0.0,
+        1.75
+      ]
+    },
+    "python_factors": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    }
+  },
+  "figure6_current_means": {
+    "level1": {
+      "drgrpo": {
+        "distinct8": 0.5944921875,
+        "pass8": 0.44085937499999994
+      },
+      "maxrl": {
+        "distinct8": 0.6795312499999999,
+        "pass8": 0.49046874999999995
+      },
+      "replay_drgrpo": {
+        "distinct8": 1.5289453124999999,
+        "pass8": 0.7621875
+      },
+      "replay_maxrl": {
+        "distinct8": 1.5815234375,
+        "pass8": 0.7780078125000001
+      }
+    },
+    "level2": {
+      "drgrpo": {
+        "distinct8": 0.3880078125,
+        "pass8": 0.37703125000000004
+      },
+      "maxrl": {
+        "distinct8": 0.5156640625000001,
+        "pass8": 0.48121093750000005
+      },
+      "replay_drgrpo": {
+        "distinct8": 0.8062109375000001,
+        "pass8": 0.6211328125
+      },
+      "replay_maxrl": {
+        "distinct8": 0.754609375,
+        "pass8": 0.602734375
+      }
+    }
+  },
+  "figure6_eligible_domain_seed_cells": 22,
+  "figure6_initial_only_domains": [],
+  "figure6_previous_coverage": {
+    "countdown": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "graph_coloring": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "mathir": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "pantry_plan": {
+      "initial_checkpoint_only": true,
+      "initial_checkpoint_seeds": [
+        45
+      ],
+      "n": 1,
+      "seeds": [
+        45
+      ],
+      "step_range": [
+        0,
+        0
+      ],
+      "steps_by_seed": {
+        "45": 0
+      },
+      "training_pass_range": [
+        0.0,
+        0.0
+      ]
+    },
+    "python_factors": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    }
+  },
+  "figure6_previous_means": {
+    "level1": {
+      "drgrpo": {
+        "distinct8": 0.7833593750000001,
+        "pass8": 0.47796874999999994
+      },
+      "maxrl": {
+        "distinct8": 0.869375,
+        "pass8": 0.527578125
+      },
+      "replay_drgrpo": {
+        "distinct8": 1.5787499999999999,
+        "pass8": 0.773515625
+      },
+      "replay_maxrl": {
+        "distinct8": 1.6735156249999998,
+        "pass8": 0.796171875
+      }
+    },
+    "level2": {
+      "drgrpo": {
+        "distinct8": 0.401875,
+        "pass8": 0.38484375000000004
+      },
+      "maxrl": {
+        "distinct8": 0.5201562500000001,
+        "pass8": 0.48531250000000004
+      },
+      "replay_drgrpo": {
+        "distinct8": 0.793125,
+        "pass8": 0.61546875
+      },
+      "replay_maxrl": {
+        "distinct8": 0.7424999999999999,
+        "pass8": 0.596484375
+      }
+    }
+  },
+  "level2_terminal_endpoints_equal_census": 85,
+  "outputs_sha256": {
+    "paper/figures/e118_all_scale_factorial_progress.json": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418",
+    "paper/figures/e118_all_scale_factorial_progress.pdf": "e583f0d95be3dba8b72dd5cafd15013a0b304049c2cdbc25d85a42c9659945fb",
+    "paper/figures/e118_all_scale_factorial_progress.png": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+    "paper/figures/e118_scale_extensions_appendix.json": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418",
+    "paper/figures/e118_scale_extensions_appendix.pdf": "d44bf9aea89ef774e8ef3976629b0a47a94d2a02ba10eb328f5ca179a5423bd6",
+    "paper/figures/e118_scale_extensions_appendix.png": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+    "paper/figures/modebench_level_admission.json": "21af1b6a793145cdfd8180f0d8050d110b2ded910755a6358965df215ab6d6f0",
+    "paper/figures/modebench_level_admission.pdf": "1c3b82c357d158e0cb276a0ed7689d26f4ee59abd9f7055fd6adb69115f9b61a",
+    "paper/figures/modebench_level_admission.png": "3780b23d09132308787b10ac53bcb8daf1eb8497c95fcd4a2b64f59183b11167",
+    "paper/results/modebench_level_comparison_snapshot.json": "11f3b57cf0b3ee0933694f115c3c70d5e2d1e0c92aafe4e5abab14c3c71c79a0"
+  },
+  "prior_png_equal": {
+    "e118_all_scale_factorial_progress": true,
+    "e118_scale_extensions_appendix": true,
+    "modebench_level_admission": false
+  },
+  "schema": "paper-figure-refresh-validation-v1",
+  "source_census": {
+    "path": "paper/audits/results_refresh_20260910/latest_endpoints.json",
+    "sha256": "a27e6762a3f05d6f3fa6b5f6659cf400d4a929a67db892c69f2f6c96c424a8e3"
+  },
+  "unchanged_qwen3b_python_table": true,
+  "validated_at_utc": "2026-09-10T16:58:33.770889+00:00"
+}

@@ -1,0 +1,27 @@
+{
+  "opening_and_first_two_captions_unchanged": true,
+  "six_tabular_environments_unchanged": true,
+  "all_labels_unchanged": true,
+  "report_data_unchanged_except_figure_hashes": true,
+  "macros_unchanged": true,
+  "figure_dimensions_unchanged": true,
+  "figure_png_changed_rectangle": [
+    64,
+    160,
+    92,
+    431
+  ],
+  "figure_visually_reviewed": true,
+  "bootstrap_recomputed": false,
+  "model_calls": 0,
+  "final_sha256": {
+    "ops/build_paper_portfolio_withdrawals.py": "b02d6eefafeac72d23dcdfbd42bbb4163fb5374808c226f91d0eb208923ecb47",
+    "paper/results/portfolio_withdrawals_20260917.tex": "c1e151fd28fcca46dde440640f8d9075da0eaf6f7a652deb8b38a8f9881adcef",
+    "paper/results/portfolio_withdrawals_20260917.json": "cedbca794ebeb8c68ca84d36ac04b6e246e7816ead67e6e9f485d543dd9040f6",
+    "paper/results/portfolio_withdrawal_macros.tex": "015b5a5f360e60fdfdfe5980f2d680a4a282660a3bcc523ec1dd38a7310bea05",
+    "paper/figures/withdrawal_pmd_agreement.pdf": "000bcd7c1a2cecd6fdc5e7090939bc18b3ed8f414a0edd7a5fbb9c599e68e909",
+    "paper/figures/withdrawal_pmd_agreement.png": "5e25444e72942d762f692cd82848e65e971ac395bf9c6f6354630b2c418612fa"
+  },
+  "emitter_check_passed": true,
+  "four_revised_tables_have_explicit_paragraph_boundaries": true
+}

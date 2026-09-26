@@ -1,0 +1,18 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -9,11 +9,10 @@
+ A language model can become more accurate on mathematical problems while
+ losing alternative correct solutions. To measure this loss, we introduce \mb{},
+ a benchmark of five executable domains that distinguishes different correct
+-outputs for the same problem. We then show that ReplayMaxRL, which combines
+-sampling-aware reinforcement learning with a memory of previously verified
+-outputs, improves held-out correctness while preserving a broader repertoire.
+-We find gains from replay with both Dr.GRPO and MaxRL, across three and two
+-model scales, respectively, and on a harder graph-coloring task. These results
++outputs for the same problem. We then add replay of previously verified outputs to Dr.GRPO and MaxRL,
++yielding ReplayDr.GRPO and ReplayMaxRL. Both variants improve held-out
++correctness while preserving a broader repertoire, across three and two model
++scales, respectively, and on a harder graph-coloring task. These results
+ distinguish discovering a successful behavior from keeping it available.
+ \end{abstract}
+ 

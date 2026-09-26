@@ -1,0 +1,164 @@
+\subsection{Categorical reduction and the GRPO mean update}
+\label{app:theory-grpo-mean}
+
+Fix one prompt. Let the finite response categories be
+$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, where the $m\ge2$
+categories in $\mathcal C$ are correct execution modes and the $n\ge1$
+categories in $\mathcal N$ are incorrect. Let
+$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+$q_c=p_c/P$. Thus $q$ is exactly the conditional correct-mode distribution
+$p_\theta^+(\cdot\mid x)$ of Section~\ref{sec:collapse}, and $P$ is the correct
+mass $P_\theta^+(x)$.
+
+\paragraph{Running example: three correct alternatives.}
+\label{ex:theory-running}
+Take three correct modes and one incorrect category, with
+\[
+ p=(0.30,0.15,0.05,0.50),\qquad P=0.50,\qquad q=(0.60,0.30,0.10).
+\]
+Half of all draws succeed, but among successful draws the three modes appear
+in a $6{:}3{:}1$ ratio. Increasing $P$ and balancing $q$ are therefore
+separate goals. We reuse this hypothetical distribution below to distinguish
+the effects of the fresh objective, optimizer geometry, and replay.
+
+Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
+can be written, at the on-policy point where the PPO ratio equals one, as
+\begin{equation}
+  \widehat g_G
+  =\frac1G\sum_{i=1}^G
+   w(M)\left(R_i-\frac{M}{G}\right)\nabla_z\log p_{A_i}.
+  \label{eq:group-estimator}
+\end{equation}
+For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
+binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
+on mixed groups. We absorb the same fixed response-length normalizer in both
+variants; response-dependent row normalization is outside this reduction.
+In either case $0<w(\ell)<\infty$ for $\ell\in\{1,\ldots,G-1\}$.
+We define the entire update as zero on all-equal groups, without evaluating an
+undefined reciprocal standard deviation; likewise, $w(M)M(G-M)$ below is
+defined as zero when $M=0$ or $M=G$. We take explicit reference KL to be zero, as
+in the experiments.
+
+\begin{lemma}[A group baseline does not remove frequency amplification]
+\label{lem:grpo-mean}
+For $0<P<1$, the expected group update is
+\begin{equation}
+  \E[\widehat g_G]
+  =c_G(P)\nabla_z P,
+  \qquad
+  c_G(P)=
+  \frac{\E\!\big[w(M)M(G-M)\big]}{G^2P(1-P)}>0.
+  \label{eq:expected-group-gradient}
+\end{equation}
+For Dr.GRPO, $c_G(P)=(G-1)/G$. Hence reward centering and binary reward
+standardization change the speed, but not the expected direction, of the
+binary-reward policy gradient.
+\end{lemma}
+
+\begin{proof}
+Condition on the complete binary reward vector, whose sum is $M$. The score
+identities give
+\[
+  \E[\nabla_z\log p_{A_i}\mid R_i=1]=\nabla_z\log P,
+  \qquad
+  \E[\nabla_z\log p_{A_i}\mid R_i=0]
+  =\nabla_z\log(1-P).
+\]
+There are $M$ correct rows with centered reward $(G-M)/G$ and $G-M$
+incorrect rows with centered reward $-M/G$. Therefore the conditional
+expectation of the unaveraged sum in~\eqref{eq:group-estimator} is
+\[
+  w(M)\frac{M(G-M)}{G}
+  \left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+  =w(M)\frac{M(G-M)}{GP(1-P)}\nabla_zP.
+\]
+The outer factor $1/G$ and expectation over
+$M\sim\operatorname{Binomial}(G,P)$ yield~\eqref{eq:expected-group-gradient}.
+For $w\equiv1$,
+$\E[M(G-M)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
+\end{proof}
+
+The binomial identity also gives the denominator-free expression
+\[
+ c_G(P)=\frac{G-1}{G}\sum_{j=0}^{G-2}\binom{G-2}{j}
+ w(j+1)P^j(1-P)^{G-2-j}.
+\]
+The binomial weights sum to one, so $c_G$ lies between
+$(G-1)\min_j w(j+1)/G$ and $(G-1)\max_j w(j+1)/G$.
+This establishes the smooth, positive extension to $P=0,1$ used in the
+subsequent flow and convergence arguments.
+
+The next lemma specializes the practical-estimator analysis of
+\citet[Section~4.3 and Appendix~D, Theorem~5]{tajwar2026maxrl}
+to our categorical notation; we include the derivation for completeness.
+
+\begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+\label{lem:maxrl-mean}
+Let MaxRL assign
+$A_i^{\mathrm{MaxRL}}=GR_i/M-1$ when $M>0$ and zero when $M=0$, as in
+Section~\ref{sec:maxrl-method}. At the on-policy point, its expected update is
+\begin{equation}
+  \E[\widehat g_G^{\mathrm{MaxRL}}]
+  =c_G^{\mathrm{MaxRL}}(P)\nabla_zP,
+  \qquad
+  c_G^{\mathrm{MaxRL}}(P)
+  =\frac{1-(1-P)^{G-1}}{P}>0,
+  \label{eq:maxrl-expected-gradient}
+\end{equation}
+with continuous endpoint values
+$c_G^{\mathrm{MaxRL}}(0)=G-1$ and
+$c_G^{\mathrm{MaxRL}}(1)=1$.
+\end{lemma}
+
+\begin{proof}
+Condition on $M=m>0$. Each successful row has advantage $(G-m)/m$ and each
+failed row has advantage $-1$. Using the same conditional score identities as
+above, the expected unaveraged sum is
+\[
+  (G-m)\!\left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+  =\frac{G-m}{P(1-P)}\nabla_zP.
+\]
+After the outer factor $1/G$ and averaging over
+$M\sim\operatorname{Binomial}(G,P)$,
+\[
+ \E[(G-M)\1\{M>0\}]
+ =G(1-P)-G\Pr(M=0)
+ =G\big[(1-P)-(1-P)^G\big].
+\]
+Substitution gives Equation~\eqref{eq:maxrl-expected-gradient}. Its endpoint
+values follow by continuity (or the finite geometric-series identity), which
+also gives the stated continuous extension at both boundaries.
+\end{proof}
+
+The same finite-series identity gives the potential used below:
+\begin{equation}
+ \Psi_{\mathrm{MaxRL}}(P)
+ :=\int_0^P c_G^{\mathrm{MaxRL}}(s)\,ds
+ =\sum_{k=1}^{G-1}\frac{1-(1-P)^k}{k}.
+ \label{eq:maxrl-potential-finite-sum}
+\end{equation}
+In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
+For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
+mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
+$G-1$, not $G$: the implemented centered estimator drops the entire update
+on all-failure groups. Subtracting an unconditional score baseline even on
+those groups instead gives the order-$G$ estimator. This distinction concerns
+the exact finite-group expectation at the on-policy point; it does not assert
+unbiasedness of subsequent clipped or adaptive-optimizer updates.
+
+\paragraph{What the group normalization changes.}
+For the running example with $G=4$,
+$\nabla_zP=(0.15,0.075,0.025,-0.25)$. The two lemmas give
+\[
+ \begin{aligned}
+ \mathbb E[\widehat g_4^{\rm Dr.GRPO}]&=0.75\,\nabla_zP,\\
+ \mathbb E[\widehat g_4^{\rm MaxRL}]&=1.75\,\nabla_zP.
+ \end{aligned}
+\]
+These are expectations over all possible groups, not updates from one
+particular sample. MaxRL moves faster along the same direction at this
+state, while the most common correct mode receives six times the logit
+increment of the rarest. The next section asks what repeated unequal
+increments do to the relative probabilities of equally rewarded modes.
+

@@ -1,0 +1,3235 @@
+{
+  "summary": {
+    "archive": "paper/iclr2027_overleaf.zip",
+    "archive_sha256": "c94fea7c588ac5ad8dae26a75511c2f758e497f39e1daed50eb80818896b5e3a",
+    "figures": 40,
+    "figures_with_domain_labels": 29,
+    "figures_with_nonmono_domains": 29,
+    "domain_label_objects": 166,
+    "domain_mentions": 166,
+    "nonmono_domain_labels": 166,
+    "nonmono_domain_mentions": 166,
+    "all_live_match_archive": false
+  },
+  "figures": [
+    {
+      "figure": "figures/baseline_collapse_precheck.pdf",
+      "archive_sha256": "db25cf357bd21f15029d8ba23f912d87f10e9bc1262257c068a4f3d38daca14e",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "31",
+            "left": "119",
+            "width": "35",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "31",
+            "left": "252",
+            "width": "65",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "31",
+            "left": "413",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "31",
+            "left": "561",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "31",
+            "left": "710",
+            "width": "37",
+            "height": "13"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/baseline_collapse_precheck.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/sync_paper_workshop_assets.py",
+        "ops/exp_scaling/plot_paper_e118_all_scale_progress.py",
+        "ops/exp_scaling/plot_paper_baseline_collapse_precheck.py",
+        "ops/exp_scaling/build_paper_baseline_collapse_precheck.py",
+        "ops/exp_scaling/render_paper_retained_figures.py",
+        "ops/exp_scaling/build_paper_absolute_support_references.py",
+        "ops/exp_scaling/load_paper_grpo_collision_sources.py"
+      ]
+    },
+    {
+      "figure": "figures/concentration_levels.pdf",
+      "archive_sha256": "afe53511b00324f2eb75dd4d1062a5f8bc23b4351205cd96b73f210f3412883d",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "104",
+            "left": "20",
+            "width": "0",
+            "height": "22"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "243",
+            "left": "20",
+            "width": "0",
+            "height": "22"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "353",
+            "left": "20",
+            "width": "0",
+            "height": "22"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "476",
+            "left": "20",
+            "width": "0",
+            "height": "22"
+          }
+        },
+        {
+          "text": "PantryPlan",
+          "domain_mentions": [
+            "PantryPlan"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "611",
+            "left": "20",
+            "width": "0",
+            "height": "22"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/concentration_levels.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "ops/plot_paper_concentration_levels.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_concentration_levels.py"
+      ]
+    },
+    {
+      "figure": "figures/concentration_story_all_scales.pdf",
+      "archive_sha256": "78c3dc46a52c18c469975a4f1e8598a464014ba05d65ec649f3c16da3afff9e2",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "91",
+            "left": "21",
+            "width": "0",
+            "height": "21"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "215",
+            "left": "21",
+            "width": "0",
+            "height": "21"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "310",
+            "left": "21",
+            "width": "0",
+            "height": "21"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "418",
+            "left": "21",
+            "width": "0",
+            "height": "21"
+          }
+        },
+        {
+          "text": "PantryPlan",
+          "domain_mentions": [
+            "PantryPlan"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "538",
+            "left": "21",
+            "width": "0",
+            "height": "21"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/concentration_story_all_scales.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "ops/plot_paper_concentration_story.py"
+        },
+        {
+          "key": "/style_source/path",
+          "path": "ops/paper_style.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py"
+      ]
+    },
+    {
+      "figure": "figures/concentration_story_resampled.pdf",
+      "archive_sha256": "b6c71776e422c6206817bb0012ef76130c0657775e9256a801c0c6d4af493956",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "44",
+            "left": "51",
+            "width": "32",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "73",
+            "left": "24",
+            "width": "60",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "103",
+            "left": "47",
+            "width": "36",
+            "height": "20"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "132",
+            "left": "46",
+            "width": "37",
+            "height": "20"
+          }
+        },
+        {
+          "text": "PantryPlan",
+          "domain_mentions": [
+            "PantryPlan"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "162",
+            "left": "27",
+            "width": "56",
+            "height": "20"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/concentration_story_resampled.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "ops/plot_paper_concentration_levels.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py"
+      ]
+    },
+    {
+      "figure": "figures/decoding_objection.pdf",
+      "archive_sha256": "90fca50c34831885498f8cc7fd927aaf3cc1f2045b5a1168a41d6ee3fb2545c1",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "29",
+            "left": "31",
+            "width": "34",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "64",
+            "left": "2",
+            "width": "63",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "98",
+            "left": "27",
+            "width": "38",
+            "height": "13"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "132",
+            "left": "26",
+            "width": "39",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "166",
+            "left": "30",
+            "width": "36",
+            "height": "13"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/decoding_objection.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/build_paper_decoding_objection.py",
+        "ops/submit_recovery_five_domain.py",
+        "ops/analyze_portfolio_withdrawal_controls.py",
+        "ops/build_paper_decoding_objection_e125.py",
+        "ops/plot_paper_decoding_objection.py"
+      ]
+    },
+    {
+      "figure": "figures/direct_baseline_learning_curves_pass8.pdf",
+      "archive_sha256": "e1e448a7b3e054d8c10f6dc04309fbef43bda8c2eeb91acac8945d8a429816d0",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "50",
+            "left": "92",
+            "width": "40",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "50",
+            "left": "222",
+            "width": "73",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "50",
+            "left": "383",
+            "width": "45",
+            "height": "15"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "50",
+            "left": "530",
+            "width": "45",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "50",
+            "left": "679",
+            "width": "41",
+            "height": "15"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/direct_baseline_learning_curves_pass8.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/exp_scaling/render_paper_retained_figures.py",
+        "ops/exp_scaling/plot_paper_aligned_domain_strips.py"
+      ]
+    },
+    {
+      "figure": "figures/e118_all_scale_factorial_progress.pdf",
+      "archive_sha256": "f617f6856a73ce74496fd4d440ade7e0ff791b93fd9624e48e9e4300d384d8b2",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": "paper/figures/e118_all_scale_factorial_progress.json",
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/e118_scale_extensions_appendix.pdf",
+      "archive_sha256": "cd0f6dae062db85edb4426ab9810942e30c9f819e66bdbe65380869378f74c87",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "63",
+            "left": "33",
+            "width": "36",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "99",
+            "left": "2",
+            "width": "67",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "135",
+            "left": "28",
+            "width": "41",
+            "height": "14"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "170",
+            "left": "28",
+            "width": "41",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "206",
+            "left": "31",
+            "width": "38",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "316",
+            "left": "33",
+            "width": "36",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "351",
+            "left": "2",
+            "width": "67",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "387",
+            "left": "28",
+            "width": "41",
+            "height": "14"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "423",
+            "left": "28",
+            "width": "41",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "458",
+            "left": "31",
+            "width": "38",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "568",
+            "left": "33",
+            "width": "36",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "604",
+            "left": "2",
+            "width": "67",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "639",
+            "left": "28",
+            "width": "41",
+            "height": "14"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "675",
+            "left": "28",
+            "width": "41",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "710",
+            "left": "31",
+            "width": "38",
+            "height": "14"
+          }
+        }
+      ],
+      "domain_mentions": 15,
+      "nonmono_domain_labels": 15,
+      "nonmono_domain_mentions": 15,
+      "sidecar": "paper/figures/e118_scale_extensions_appendix.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/exp_scaling/plot_paper_e118_all_scale_progress.py"
+      ]
+    },
+    {
+      "figure": "figures/e121_fixed_bank_survival.pdf",
+      "archive_sha256": "fa34d00c6bc89375c7cd11cf8a37bf4a1145f591889b23a97aebb7a4d36a4a15",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": null,
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/factorial_training_curves_pass8.pdf",
+      "archive_sha256": "c22ff33faf58fdcad565ace0458c93483d16057a52a06a8e7592e6b568c478e2",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "58",
+            "left": "115",
+            "width": "49",
+            "height": "29"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "58",
+            "left": "242",
+            "width": "91",
+            "height": "29"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "58",
+            "left": "407",
+            "width": "57",
+            "height": "29"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "58",
+            "left": "554",
+            "width": "57",
+            "height": "29"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "58",
+            "left": "705",
+            "width": "53",
+            "height": "29"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/factorial_training_curves_pass8.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/exp_scaling/plot_paper_training_curves.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py"
+      ]
+    },
+    {
+      "figure": "figures/factorial_training_curves_pmd.pdf",
+      "archive_sha256": "c223961d74c5b34ff8de295f619309c2f423578623e4a85d2185f62bbf301c04",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "106",
+            "width": "35",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "243",
+            "width": "65",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "407",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "558",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "711",
+            "width": "37",
+            "height": "13"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/factorial_training_curves_pmd.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_paper_mode_diversity_curves.py"
+        },
+        {
+          "key": "/renderer/style_path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/exp_scaling/plot_paper_mode_diversity_curves.py"
+      ]
+    },
+    {
+      "figure": "figures/frontier_comparison_20260911_graph.pdf",
+      "archive_sha256": "17a901be2bc91a84c079fe0839861d28d75b11010630e462193273148b9fa69f",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": "paper/figures/frontier_comparison_20260911_graph.json",
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/frontier_level_grid.pdf",
+      "archive_sha256": "ab8e42a2a3285122ad6026b62eb9024617ce6d33e09e50b1af8236f5f2f9b5fe",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "249",
+            "width": "39",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "356",
+            "width": "72",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "494",
+            "width": "44",
+            "height": "15"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "618",
+            "width": "45",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "744",
+            "width": "41",
+            "height": "15"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/frontier_level_grid.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/plot_paper_frontier_level_grid.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_frontier_level_grid.py"
+      ]
+    },
+    {
+      "figure": "figures/gpt56_all_levels32_sampling_budget.pdf",
+      "archive_sha256": "5b344cfa5dca53c0c45e20c754d04f9342455fa22ab408d5c72083b3eec40a97",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "-5",
+            "left": "89",
+            "width": "39",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "-5",
+            "left": "202",
+            "width": "72",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "-5",
+            "left": "346",
+            "width": "44",
+            "height": "24"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "-5",
+            "left": "476",
+            "width": "45",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "-5",
+            "left": "608",
+            "width": "41",
+            "height": "24"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/gpt56_all_levels32_sampling_budget.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "ops/plot_paper_gpt56_all_levels32_sampling.py"
+        },
+        {
+          "key": "/analysis_provenance/analyzer/path",
+          "path": "ops/analyze_gpt56_all_levels32_discovery.py"
+        },
+        {
+          "key": "/analysis_provenance/shared_analyzer_core/path",
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/final_analysis_code/ops/analyze_gpt56_all_domain_discovery.py"
+        },
+        {
+          "key": "/analysis_provenance/shared_analyzer_driver/path",
+          "path": "ops/analyze_gpt56_all_levels_discovery.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_gpt56_all_levels32_sampling.py"
+      ]
+    },
+    {
+      "figure": "figures/gpt56_temperature_curve.pdf",
+      "archive_sha256": "5e8c5cbd1e26ab662c243f461caaba633962c7afb2ebf17c65b18bfb0a7023be",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": "paper/figures/gpt56_temperature_curve.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "ops/plot_paper_gpt56_temperature_curve.py"
+        }
+      ]
+    },
+    {
+      "figure": "figures/hosted_verified_breadth.pdf",
+      "archive_sha256": "d9bc7e1face14d397bffdd8c6581ec0385a39ee910d4b9f9eae4d7bb7940ce6a",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "32",
+            "left": "163",
+            "width": "41",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "32",
+            "left": "256",
+            "width": "76",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "32",
+            "left": "380",
+            "width": "48",
+            "height": "24"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "32",
+            "left": "490",
+            "width": "48",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "32",
+            "left": "602",
+            "width": "45",
+            "height": "24"
+          }
+        },
+        {
+          "text": "Opus 5 Python, original prompt",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "0",
+            "left": "486",
+            "width": "188",
+            "height": "23"
+          }
+        }
+      ],
+      "domain_mentions": 6,
+      "nonmono_domain_labels": 6,
+      "nonmono_domain_mentions": 6,
+      "sidecar": "paper/figures/hosted_verified_breadth.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "ops/plot_paper_hosted_breadth.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/sync_paper_workshop_assets.py",
+        "ops/plot_paper_hosted_breadth.py",
+        "ops/build_frontier_paper_comparison.py"
+      ]
+    },
+    {
+      "figure": "figures/level2_factorial_training_curves.pdf",
+      "archive_sha256": "68098e10f0f589dd08107df98f5525ce71536e5d4ea0568625aa2228756374dc",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "57",
+            "left": "115",
+            "width": "49",
+            "height": "29"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "57",
+            "left": "242",
+            "width": "91",
+            "height": "29"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "57",
+            "left": "407",
+            "width": "57",
+            "height": "29"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "57",
+            "left": "554",
+            "width": "57",
+            "height": "29"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "57",
+            "left": "705",
+            "width": "53",
+            "height": "29"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/level2_factorial_training_curves.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/exp_scaling/plot_paper_training_curves.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/exp_scaling/plot_paper_training_curves.py"
+      ]
+    },
+    {
+      "figure": "figures/level2_training_curves_pmd.pdf",
+      "archive_sha256": "61a0c4b761a4f4f5f275479eda60c744933e09d842fb5fdff55c57ddfa0f8c79",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "106",
+            "width": "35",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "243",
+            "width": "65",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "407",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "558",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "4",
+            "left": "711",
+            "width": "37",
+            "height": "13"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/level2_training_curves_pmd.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/plot_paper_mode_diversity_curves.py"
+        },
+        {
+          "key": "/renderer/style_path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_families_appendix.pdf",
+      "archive_sha256": "82bf161a8c32ae0f27edbda6e02dce92048d6eca29ff56eb839bb32215c7be6f",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "84",
+            "width": "39",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "199",
+            "width": "72",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "345",
+            "width": "44",
+            "height": "15"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "477",
+            "width": "45",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "611",
+            "width": "41",
+            "height": "15"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/mode_diversity_families_appendix.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py"
+        },
+        {
+          "key": "/renderer/style_path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/plot_paper_mode_diversity_levels.py"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_level_construction.pdf",
+      "archive_sha256": "3bb79d9d83c1c646d7ddbb4a45670ff78338b1ac2aff3ef8189a27144ff8415f",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "21",
+            "left": "102",
+            "width": "37",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "21",
+            "left": "214",
+            "width": "68",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "21",
+            "left": "355",
+            "width": "42",
+            "height": "14"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "21",
+            "left": "483",
+            "width": "42",
+            "height": "14"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "21",
+            "left": "612",
+            "width": "38",
+            "height": "14"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/mode_diversity_level_construction.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py"
+        },
+        {
+          "key": "/renderer/style_path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_mode_diversity_levels.py"
+      ]
+    },
+    {
+      "figure": "figures/mode_diversity_levels_appendix.pdf",
+      "archive_sha256": "1105061fe76e50bfbdf2c7dd23a2c29e77e4c11fbdc9dad42de77a298162072c",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "84",
+            "width": "39",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "199",
+            "width": "72",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "345",
+            "width": "44",
+            "height": "15"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "477",
+            "width": "45",
+            "height": "15"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "9",
+            "left": "611",
+            "width": "41",
+            "height": "15"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/mode_diversity_levels_appendix.json",
+      "sidecar_script_references": [
+        {
+          "key": "/renderer/path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/plot_paper_mode_diversity_levels.py"
+        },
+        {
+          "key": "/renderer/style_path",
+          "path": "/n/fs/similarity/maxent-grpo/ops/paper_style.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_mode_diversity_levels.py"
+      ]
+    },
+    {
+      "figure": "figures/modebench_discovery_correct_budget_frontier.pdf",
+      "archive_sha256": "e12357ea0e107e70de6fed3f58006e0afe91404d04951866007513a22874f41c",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Python factors",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "235",
+            "left": "31",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "394",
+            "left": "31",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "580",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 3,
+      "nonmono_domain_labels": 3,
+      "nonmono_domain_mentions": 3,
+      "sidecar": "paper/figures/modebench_discovery_correct_budget_frontier.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": []
+    },
+    {
+      "figure": "figures/modebench_discovery_correct_budget_local.pdf",
+      "archive_sha256": "a3a64d7851447651c2e37cb059e0d1256c732702fd812adc284446afa1da5d29",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Python factors",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "235",
+            "left": "31",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "394",
+            "left": "31",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "580",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 3,
+      "nonmono_domain_labels": 3,
+      "nonmono_domain_mentions": 3,
+      "sidecar": "paper/figures/modebench_discovery_correct_budget_local.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": []
+    },
+    {
+      "figure": "figures/modebench_discovery_curves_frontier.pdf",
+      "archive_sha256": "5293f3e6487d4796907a7b763d2293a169832ff6947c4220d48576559365412e",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Python factors",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "214",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "386",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "584",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 3,
+      "nonmono_domain_labels": 3,
+      "nonmono_domain_mentions": 3,
+      "sidecar": "paper/figures/modebench_discovery_curves_frontier.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": []
+    },
+    {
+      "figure": "figures/modebench_discovery_curves_local.pdf",
+      "archive_sha256": "3f1feeb244988722f91453c0e9d40facb597214d5e689ca5effe073e44b50204",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Python factors",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "214",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "386",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "584",
+            "left": "22",
+            "width": "0",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 3,
+      "nonmono_domain_labels": 3,
+      "nonmono_domain_mentions": 3,
+      "sidecar": "paper/figures/modebench_discovery_curves_local.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": []
+    },
+    {
+      "figure": "figures/modebench_examples.pdf",
+      "archive_sha256": "bf695de86c3af94121bb418748a4640e7e5dd82f5995c7b7317fc5c5487eef0f",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "35",
+            "left": "77",
+            "width": "66",
+            "height": "23"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "35",
+            "left": "531",
+            "width": "123",
+            "height": "23"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "35",
+            "left": "839",
+            "width": "77",
+            "height": "23"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "35",
+            "left": "1172",
+            "width": "78",
+            "height": "23"
+          }
+        },
+        {
+          "text": "PantryPlan",
+          "domain_mentions": [
+            "PantryPlan"
+          ],
+          "font_family": "EVICAO+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "35",
+            "left": "1533",
+            "width": "120",
+            "height": "23"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": null,
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/plot_paper_modebench_level_construction.py",
+        "ops/plot_paper_gpt56_all_levels_sampling.py",
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_modebench_base_levels_appendix.py",
+        "ops/check_paper_figure1_contract.py",
+        "ops/plot_paper_gpt56_all_levels32_sampling.py",
+        "ops/plot_paper_modebench_examples.py",
+        "ops/plot_paper_mode_diversity_levels.py"
+      ]
+    },
+    {
+      "figure": "figures/modebench_level_admission.pdf",
+      "archive_sha256": "68eed428893441e1f382c9955b38f2b38a76d3bb344b6beb9d335be994ef27c0",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": "paper/figures/modebench_level_admission.json",
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/modebench_prompt_ablation_local.pdf",
+      "archive_sha256": "a36fcbb6f1716705c22f376bbdb6205a1070a7628a07798ea59a7b8f526ca648",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Re:Dr \u00b7 Python factors L3 (s=5)",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "561",
+            "left": "71",
+            "width": "164",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Re:Dr \u00b7 Python factors L2 (s=5)",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "532",
+            "left": "71",
+            "width": "164",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Re:Dr \u00b7 Pantry L3 (s=2)",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "503",
+            "left": "114",
+            "width": "121",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Re:Dr \u00b7 Pantry L2 (s=2)",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "474",
+            "left": "114",
+            "width": "121",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Re:Dr \u00b7 MathIR L3 (s=5)",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "444",
+            "left": "111",
+            "width": "124",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Re:Dr \u00b7 MathIR L2 (s=5)",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "415",
+            "left": "111",
+            "width": "124",
+            "height": "20"
+          }
+        },
+        {
+          "text": "DrGRPO \u00b7 Python factors L3 (s=5)",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "386",
+            "left": "58",
+            "width": "177",
+            "height": "20"
+          }
+        },
+        {
+          "text": "DrGRPO \u00b7 Python factors L2 (s=5)",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "357",
+            "left": "58",
+            "width": "177",
+            "height": "20"
+          }
+        },
+        {
+          "text": "DrGRPO \u00b7 Pantry L3 (s=2)",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "327",
+            "left": "100",
+            "width": "134",
+            "height": "20"
+          }
+        },
+        {
+          "text": "DrGRPO \u00b7 Pantry L2 (s=2)",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "298",
+            "left": "100",
+            "width": "134",
+            "height": "20"
+          }
+        },
+        {
+          "text": "DrGRPO \u00b7 MathIR L3 (s=5)",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "269",
+            "left": "97",
+            "width": "137",
+            "height": "20"
+          }
+        },
+        {
+          "text": "DrGRPO \u00b7 MathIR L2 (s=5)",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "240",
+            "left": "97",
+            "width": "137",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Initial Qwen 0.5B \u00b7 Pantry L3 (s=1)",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "210",
+            "left": "53",
+            "width": "182",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Initial Qwen 0.5B \u00b7 MathIR L3 (s=1)",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "181",
+            "left": "50",
+            "width": "185",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Initial Qwen 0.5B \u00b7 Python factors L3 (s=1)",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "152",
+            "left": "11",
+            "width": "224",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Initial Qwen 0.5B \u00b7 Pantry L2 (s=1)",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "123",
+            "left": "53",
+            "width": "182",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Initial Qwen 0.5B \u00b7 MathIR L2 (s=1)",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "93",
+            "left": "50",
+            "width": "185",
+            "height": "20"
+          }
+        },
+        {
+          "text": "Initial Qwen 0.5B \u00b7 Python factors L2 (s=1)",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "64",
+            "left": "11",
+            "width": "224",
+            "height": "20"
+          }
+        }
+      ],
+      "domain_mentions": 18,
+      "nonmono_domain_labels": 18,
+      "nonmono_domain_mentions": 18,
+      "sidecar": "paper/figures/modebench_prompt_ablation_local.json",
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/submit_modebench_prompt_ablation_local_subset.py",
+        "ops/prepare_modebench_sampling_budget_local.py",
+        "ops/evaluate_modebench_sampling_budget_local.py",
+        "ops/launch_modebench_prompt_ablation_local.py",
+        "ops/submit_modebench_prompt_ablation_local_ready_v2.py",
+        "ops/test_modebench_sampling_budget_local.py",
+        "ops/submit_modebench_prompt_ablation_local_subset_cap4.py",
+        "ops/test_modebench_prompt_ablation_local.py",
+        "ops/submit_modebench_prompt_ablation_local_ready.py",
+        "ops/test_modebench_prompt_ablation_local_v2.py"
+      ]
+    },
+    {
+      "figure": "figures/modecollapse_story.pdf",
+      "archive_sha256": "c5452c3b170e08201062d895e7f14067f4b0c8137fa9cf6725330bf5927c61d7",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": null,
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/pantry_adaptation_recovery_20260912.pdf",
+      "archive_sha256": "3d328babb254963b5d018357466d7422a903f9da4caa1a8c6ed3dd80ad6e6840",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": null,
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/qwen_level_trends.pdf",
+      "archive_sha256": "59052a1d7252456ca9d68f367526234cb807d91eec0c1c8176cd88c450a2afe1",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": "paper/figures/qwen_level_trends.json",
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/reference_kl_knee.pdf",
+      "archive_sha256": "0f7044f824e211e1310a10184b196d4b9799984f7d5088eea561cada95895898",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "0",
+            "left": "105",
+            "width": "35",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "0",
+            "left": "275",
+            "width": "65",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "87",
+            "left": "102",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "87",
+            "left": "287",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "174",
+            "left": "104",
+            "width": "37",
+            "height": "13"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": null,
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/build_reference_kl_comparison.py",
+        "ops/plot_paper_reference_kl_knee.py",
+        "ops/exp_scaling/cohorts.py",
+        "ops/exp_scaling/launch_e129y_reference_kl_knee_05b.py"
+      ]
+    },
+    {
+      "figure": "figures/reference_kl_plane.pdf",
+      "archive_sha256": "8920f77dc09e43758218d407421486746ca0a23a3f803401cbd4e0e54f1987f6",
+      "live_matches_archive": false,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": null,
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/replay_bank_balance.pdf",
+      "archive_sha256": "08951280dfdbb2cfc4f60c84de8f006b1c82ca93810f2b1ea6264ea095244424",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": "paper/figures/replay_bank_balance.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/plot_paper_replay_bank_balance.py"
+        }
+      ]
+    },
+    {
+      "figure": "figures/replay_bank_decomposition.pdf",
+      "archive_sha256": "00b9af84626423a96c5b655165c72aff67650a32e37dd3c481849f98897c48d0",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "84",
+            "width": "26",
+            "height": "10"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "200",
+            "width": "48",
+            "height": "10"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "337",
+            "width": "29",
+            "height": "10"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "464",
+            "width": "29",
+            "height": "10"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "1",
+            "left": "593",
+            "width": "27",
+            "height": "10"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/replay_bank_decomposition.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/plot_paper_replay_bank_decomposition.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_replay_bank_decomposition.py"
+      ]
+    },
+    {
+      "figure": "figures/replay_factorial_effects.pdf",
+      "archive_sha256": "5b379e0e3f6c52a24f8d4e86d815f2f6c6c4c87b310012f20e92a0fed778ff37",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "53",
+            "left": "60",
+            "width": "45",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "68",
+            "left": "22",
+            "width": "83",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "84",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "99",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "115",
+            "left": "58",
+            "width": "47",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "180",
+            "left": "60",
+            "width": "45",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "196",
+            "left": "22",
+            "width": "83",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "212",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "227",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "243",
+            "left": "58",
+            "width": "47",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 10,
+      "nonmono_domain_labels": 10,
+      "nonmono_domain_mentions": 10,
+      "sidecar": "paper/figures/replay_factorial_effects.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/plot_paper_reorganized_results.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_reorganized_results.py"
+      ]
+    },
+    {
+      "figure": "figures/replay_key_weighting.pdf",
+      "archive_sha256": "667121974ab40f678f94da1b02acbe92e51dbe520a72350ebbd8d722a9db961d",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "28",
+            "left": "60",
+            "width": "45",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "46",
+            "left": "22",
+            "width": "83",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "64",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "82",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "100",
+            "left": "58",
+            "width": "47",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/replay_key_weighting.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/plot_paper_reorganized_results.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/train_real_domains_pilot_20260921_v2.py",
+        "ops/train_real_domains_pilot_20260921.py",
+        "ops/plot_paper_reorganized_results.py",
+        "ops/exp_scaling/audit_e120_frequency_smoke.py"
+      ]
+    },
+    {
+      "figure": "figures/replay_level2_effects.pdf",
+      "archive_sha256": "cd2bf8c70e91a63033e646a65c8970903f358305c79764dbac9db156d617242e",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "28",
+            "left": "60",
+            "width": "45",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "46",
+            "left": "22",
+            "width": "83",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "64",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "82",
+            "left": "54",
+            "width": "51",
+            "height": "28"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "100",
+            "left": "58",
+            "width": "47",
+            "height": "28"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": "paper/figures/replay_level2_effects.json",
+      "sidecar_script_references": [
+        {
+          "key": "/builder/path",
+          "path": "ops/plot_paper_reorganized_results.py"
+        }
+      ],
+      "ops_name_matches": [
+        "ops/check_paper_current_contract.py",
+        "ops/plot_paper_reorganized_results.py"
+      ]
+    },
+    {
+      "figure": "figures/verified_support_story.pdf",
+      "archive_sha256": "6b728175cea16d0186814a01253a6c3dc93aba23c1e2f19a3811d80325d930b2",
+      "live_matches_archive": true,
+      "domain_labels": [],
+      "domain_mentions": 0,
+      "nonmono_domain_labels": 0,
+      "nonmono_domain_mentions": 0,
+      "sidecar": null,
+      "sidecar_script_references": []
+    },
+    {
+      "figure": "figures/withdrawal_pmd_agreement.pdf",
+      "archive_sha256": "000bcd7c1a2cecd6fdc5e7090939bc18b3ed8f414a0edd7a5fbb9c599e68e909",
+      "live_matches_archive": true,
+      "domain_labels": [
+        {
+          "text": "Graph",
+          "domain_mentions": [
+            "Graph"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "213",
+            "left": "253",
+            "width": "35",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Countdown",
+          "domain_mentions": [
+            "Countdown"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "231",
+            "left": "253",
+            "width": "65",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Python",
+          "domain_mentions": [
+            "Python"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "213",
+            "left": "354",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "MathIR",
+          "domain_mentions": [
+            "MathIR"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "231",
+            "left": "354",
+            "width": "40",
+            "height": "13"
+          }
+        },
+        {
+          "text": "Pantry",
+          "domain_mentions": [
+            "Pantry"
+          ],
+          "font_family": "BMQQDV+DejaVuSans",
+          "monospace": false,
+          "page": 1,
+          "box": {
+            "top": "213",
+            "left": "431",
+            "width": "37",
+            "height": "13"
+          }
+        }
+      ],
+      "domain_mentions": 5,
+      "nonmono_domain_labels": 5,
+      "nonmono_domain_mentions": 5,
+      "sidecar": null,
+      "sidecar_script_references": [],
+      "ops_name_matches": [
+        "ops/build_paper_portfolio_withdrawals.py"
+      ]
+    }
+  ]
+}

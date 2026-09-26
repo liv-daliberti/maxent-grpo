@@ -1,0 +1,6 @@
+{
+  "pid": 3122285,
+  "command": "var/seed_paper_eval/paper310/bin/python -u -B ops/exp_scaling/confirm_level3_neutral_fixed_20260912.py prepare ",
+  "reason": "Cache the deterministic all-even catalog during construction; repeated reconstruction for excluded cases caused excessive CPU cost. No numerical law, seeds, weights or outputs selected by model performance change. No GPU sampling or registration occurred.",
+  "created_at": "2026-09-12T01:27:47.132453+00:00"
+}

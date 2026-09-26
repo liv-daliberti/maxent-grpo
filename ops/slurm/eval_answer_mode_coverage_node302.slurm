@@ -46,7 +46,7 @@ exec "$PYTHON_BIN" "$ROOT_DIR/ops/eval_exact_answer_mode_coverage.py" \
   --output-root "$OUTPUT_ROOT" \
   --run-data-root "${OAT_ZERO_RUN_DATA_ROOT:-${ROOT_DIR}/var/data}" \
   --seeds "${OAT_ZERO_SEEDS:-43,44,45}" \
-  --variants "${OAT_ZERO_COVERAGE_VARIANTS:-grpo,answer_maxent}" \
+  --variants "${OAT_ZERO_COVERAGE_VARIANTS:-grpo,xdr_tau0p05}" \
   --sample-count "${OAT_ZERO_COVERAGE_SAMPLE_COUNT:-32}" \
   --temperature "${OAT_ZERO_COVERAGE_TEMPERATURE:-1.0}" \
   --top-p "${OAT_ZERO_COVERAGE_TOP_P:-1.0}" \

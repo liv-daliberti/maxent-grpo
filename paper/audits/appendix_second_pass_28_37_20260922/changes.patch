@@ -1,0 +1,331 @@
+--- before/main.tex
++++ after/main.tex
+@@ -442,7 +442,9 @@
+ \label{sec:experiments}
+ \label{sec:shared-protocol}
+ 
+-We compare Dr.GRPO \citep{liu2025understanding} and MaxRL \citep{tajwar2026maxrl}, each with and without replay, on all five \mb{} domains. Level 1 uses Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B with five seeds, eight training epochs, and $G=16$ fresh rollouts per prompt. Replay contributes a likelihood gradient on at most $M=16$ stored exemplars within the same optimizer step (Table~\ref{tab:run-contract}). Optimizer updates and fresh-rollout counts are matched; total FLOPs and wall-clock time are not. The zero-derivative control retains replay computation but does not redirect that work to extra task-gradient updates, fresh rollouts, or longer training. These comparisons test the replay mechanism, not superiority at equal total compute (App.~\ref{app:compute-matching}). We repeat the comparison at Levels 2 and 3 with Qwen2.5-0.5B. At Level 1 and 0.5B, we also test frequency-weighted replay, UCPO \citep{lochab2026ucpo}, RLEP \citep{zhang2025rlep}, GAPO \citep{anschel2025groupaware}, SetPO \citep{li2026setpo}, and fixed Semantic-MaxEnt.
++We compare Dr.GRPO \citep{liu2025understanding} and MaxRL \citep{tajwar2026maxrl}, each with and without replay, on all five \mb{} domains. Level 1 uses Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B with five seeds, eight training epochs, and $G=16$ fresh rollouts per prompt. Replay adds a likelihood gradient on at most $M=16$ stored exemplars in the same optimizer step (Table~\ref{tab:run-contract}). Optimizer updates and fresh rollouts are matched, but total FLOPs and wall-clock time are not. The zero-derivative control retains replay computation without reallocating it to task gradients, rollouts, or longer training. These comparisons test replay without establishing superiority at equal compute (App.~\ref{app:compute-matching}). We repeat the comparison at Levels 2 and 3 with Qwen2.5-0.5B. At Level 1 and 0.5B, we also test frequency-weighted replay, UCPO \citep{lochab2026ucpo}, RLEP \citep{zhang2025rlep}, GAPO \citep{anschel2025groupaware}, SetPO \citep{li2026setpo}, and fixed Semantic-MaxEnt.
++
++A separate evaluation draws 64 fresh responses per prompt from initial and trained checkpoints on the same 128 Level-1 \texttt{Graph}/\texttt{PantryPlan} prompts at each scale. Paired \pmd{} differences use jointly eligible prompts (App.~\ref{app:fresh-concentration}).
+ 
+ Our separate inference-only studies evaluate GPT-5.6 Sol, GPT-5.4, Grok 4.3, Kimi K3, and Claude Opus 4.8 on Levels 1--3, with eight responses per prompt and a fixed formatting normalizer (App.~\ref{app:hosted-reasoning-control}). Open-weight evaluations span the available scales of SmolLM2, Qwen2.5, Falcon3, and OLMo-2 across Levels 1--5 (App.~\ref{sec:families-appendix}). These studies apply no training or replay.
+ 
+@@ -468,7 +470,7 @@
+ \label{sec:results-collapse}
+ 
+ \textbf{RLVR replaces diverse correct attempts with the same repeated answers.}
+-We compare each policy's solution-mode distribution before and after training using \pmd{}. We evaluate whether training under Dr.GRPO, GRPO, and MaxRL results in fewer modes across five domains and three model scales. Fig.~\ref{fig:concentration-story} shows Qwen2.5-3B; Fig.~\ref{fig:concentration-all-scales} gives the other scales. The starkest case is \texttt{Python}, where Qwen2.5-3B goes from solving 73 of 128 held-out prompts in multiple ways to as few as 22 after Dr.GRPO post-training. At Qwen2.5-3B, \pmd{} falls in 14 of the 15 objective--domain comparisons.
++We measure before/after \pmd{} changes under Dr.GRPO, GRPO, and MaxRL across five domains and three model scales. Fig.~\ref{fig:concentration-story} shows Qwen2.5-3B; Fig.~\ref{fig:concentration-all-scales} gives the other scales. The starkest case is \texttt{Python}, where Qwen2.5-3B goes from solving 73 of 128 held-out prompts in multiple ways to as few as 22 after Dr.GRPO post-training. At Qwen2.5-3B, \pmd{} falls in 14 of the 15 objective--domain comparisons. The 64-response evaluation finds lower \pmd{} after Dr.GRPO in all six domain--scale comparisons and 30 seed pairs; all six nominal 95\% intervals lie below zero (App.~\ref{app:fresh-concentration}).
+ 
+ \begin{table}[!b]
+   \centering
+@@ -510,7 +512,7 @@
+ \label{sec:results-retention}
+ 
+ \textbf{The combined method improves accuracy and reasoning diversity across objectives and scales.}
+-We add the same verified-mode replay mechanism to Dr.GRPO and MaxRL and compare each against its matched no-replay control across five \mb{} domains and three model scales. Replay improves the averages on both axes at each scale (Fig.~\ref{fig:maxrl-factorial}). At Qwen2.5-0.5B, Re:Dr improves \texttt{pass@8} by $.337$ and \pmd{} by $.294$ over Dr.GRPO; Re:Max improves them by $.358$ and $.320$ over the same control (Table~\ref{tab:direct-comparator-matrix}).
++Across five domains, replay improves average accuracy and diversity over its matched Dr.GRPO and MaxRL controls at each scale (Fig.~\ref{fig:maxrl-factorial}). At Qwen2.5-0.5B, Re:Dr improves \texttt{pass@8} by $.337$ and \pmd{} by $.294$ over Dr.GRPO; Re:Max improves them by $.358$ and $.320$ over the same control (Table~\ref{tab:direct-comparator-matrix}). In the 64-response evaluation, replay raises \pmd{} in all twelve matched comparisons and 60 seed pairs. Both variants remain below initial \texttt{PantryPlan} diversity at every scale (App.~\ref{app:fresh-concentration}).
+ 
+ \begin{figure}[!htbp]
+ \centering
+@@ -564,7 +566,7 @@
+ \end{figure}
+ 
+ \textbf{Reference KL and replay preserve different sources of diversity.}
+-A KL penalty anchors the policy to its initial distribution; replay rehearses modes discovered during training. From $\beta=.01$ to $.2$, the three-domain mean gains diversity while losing correctness (Fig.~\ref{fig:reference-kl-plane}). At matched breadth across all \MDklMatchedDomains{} domains---$\beta=\MDklMatchedBeta{}$, where the anchor's mean \pmd{} of $\MDklMatchedKLpmd{}$ meets Re:Max's $\MDklMatchedRemaxPmd{}$---Re:Max is $\MDklMatchedGain{}$ higher on \texttt{pass@8}, $\MDklMatchedRemaxPass{}$ against $\MDklMatchedKLpass{}$, and Re:Dr holds $\MDklMatchedRedrPmd{}$ \pmd{} at $\MDklMatchedRedrPass{}$. The anchor exceeds both replay arms on both axes in \MDklFreeNames{} alone. App.~\ref{app:theory-kl-measured} gives the domain-level comparisons and distinguishes the reference's initial diversity from the modes the bank discovers.
++A reference-KL penalty anchors the initial policy; replay rehearses discovered modes. Across the three plotted domains, increasing $\beta$ from $.01$ to $.2$ trades correctness for diversity (Fig.~\ref{fig:reference-kl-plane}). Across all \MDklMatchedDomains{} domains at $\beta=\MDklMatchedBeta{}$, KL and Re:Max have mean \pmd{} $\MDklMatchedKLpmd{}$ and $\MDklMatchedRemaxPmd{}$, but Re:Max raises \texttt{pass@8} by $\MDklMatchedGain{}$ ($\MDklMatchedRemaxPass{}$ versus $\MDklMatchedKLpass{}$). Re:Dr reaches $\MDklMatchedRedrPmd{}$ \pmd{} at $\MDklMatchedRedrPass{}$ \texttt{pass@8}. Only in \MDklFreeNames{} does KL exceed both replay arms on both axes (App.~\ref{app:theory-kl-measured}).
+ 
+ \section{Related Work}
+ \label{sec:related}
+@@ -637,17 +639,17 @@
+ % Floats: forced [H] here could not fit the page its section starts on, so
+ % it began the next one and left the first part empty -- and it blocked the
+ % cross-scale table behind it.
+-\begin{table}[!tbp]
++\begin{table}[!bp]
+   \centering
+   \caption{\textbf{Terminal correctness and solution diversity with and without replay.}
+   Dr.GRPO and Re:Dr after eight training passes. Correctness uses five paired
+   seeds except Falcon \texttt{Countdown} ($n=4$). Each diversity column averages its
+   own eligible seeds, requiring at least 30 prompts with two correct responses
+   per seed; superscripts give counts below five. Dashes indicate no eligible
+-  estimate. These arm-specific means can use different seeds and need not
+-  subtract to the paired effects in Table~\ref{tab:cross-scale-terminal-effects},
+-  which uses a 20-prompt threshold per arm. Shading increases from red to green
+-  on a shared scale for both arms of each metric.}
++  estimate. Arm-specific means need not subtract to the paired effects in
++  Table~\ref{tab:cross-scale-terminal-effects}, which uses a 20-prompt threshold
++  per arm. Red-to-green shading uses the same scale for both arms within
++  each metric.}
+ 
+ \label{tab:core-terminal-endpoints}
+   \scriptsize
+@@ -728,7 +730,8 @@
+ \apxsub{\ref{app:frequency-replay-progress}}{Uniform versus fresh-frequency replay}{\pageref{app:frequency-replay-progress}}
+ \apxsec{\ref{app:semantic-current-factorial}}{Fixed Semantic-Entropy Factorials}{\pageref{app:semantic-current-factorial}}
+ \apxsec{\ref{app:ablations}}{Collapse and Replay Mechanism Checks}{\pageref{app:ablations}}
+-\apxsub{\ref{app:conditional-concentration}}{Conditional concentration of correct outputs}{\pageref{app:conditional-concentration}}
++\apxsub{\ref{app:fresh-concentration}}{Fresh evaluation of correct-mode concentration}{\pageref{app:fresh-concentration}}
++\apxsub{\ref{app:conditional-concentration}}{Conditional concentration and historical sampling analyses}{\pageref{app:conditional-concentration}}
+ \apxsub{\ref{app:pre-rl-regression}}{Diversity before and after RLVR-only training}{\pageref{app:pre-rl-regression}}
+ \apxsub{\ref{app:degenerate-groups}}{Fresh-gradient degeneracy and observed output collapse}{\pageref{app:degenerate-groups}}
+ \apxsub{\ref{app:control-learning-audit}}{Control behavior at fixed learning rates}{\pageref{app:control-learning-audit}}
+@@ -1035,7 +1038,7 @@
+ insufficient verified responses, not zero diversity.
+ For paired training comparisons, each arm must define \pmd{} on at least 20
+ evaluation prompts; comparisons failing either threshold are omitted. The
+-eligible prompt subsets can differ between arms.
++eligible prompt subsets can differ between arms. The fresh evaluation in App.~\ref{app:fresh-concentration} instead compares both conditions on their jointly eligible prompts; these paired contrasts need not equal differences between separately eligible arm means.
+ 
+ \pmd{} is one minus the conditional-collision U-statistic of
+ App.~\ref{app:conditional-concentration}, computed from the canonical keys
+@@ -1571,8 +1574,8 @@
+ user text with its own \texttt{<|system|>}/\texttt{<|user|>} markers. Each
+ checkpoint in the frozen-model comparison uses its tokenizer's native chat
+ template (App.~\ref{app:base-levels-all-scales}). The examples are the first
+-prompts of the Level-1 evaluation splits; Levels 2--5 use separate problems
+-with the same interface (App.~\ref{app:data-levels}). A two-space continuation
++prompts of the Level-1 evaluation splits. App.~\ref{app:data-levels}
++specifies the separate problems and prompting differences at Levels 2--5. A two-space continuation
+ indent indicates display wrapping: joining it to the preceding line with a
+ single space recovers the prompt text. In the \texttt{PantryPlan} example, a break
+ without that indent is a newline in the prompt.
+@@ -1796,9 +1799,9 @@
+ At each update, a deterministic round-robin schedule selects one nonempty
+ bank; singleton banks are eligible. Selection is
+ independent of reward, evaluation, desired support, and entropy. The selected
+-bank's original prompt and response tokens form a right-padded
+-teacher-forcing batch, with prompt and padding positions masked. Each key
+-contributes its exemplar's mean response-token log probability. These scores
++bank is scored by teacher forcing on its original prompts and exemplars.
++Each key contributes its exemplar's mean response-token log probability,
++excluding prompt and padding tokens. These scores
+ are averaged uniformly across the selected bank and multiplied by
+ $\lambda_{\mathrm{replay}}(G-1)/G^2$, as in
+ Algorithm~\ref{alg:verified-replay-update}. The factor $(G-1)/G^2$ equals the
+@@ -1847,12 +1850,11 @@
+ \MIRneffafter{} effective verified modes per prompt. These results limit the
+ evidence for replay on derivation-based identities.
+ 
+-\texttt{MathIR} is included in every five-domain mean. In all \MIRshiftcells{} cells
+-with complete five-domain results, its smaller gain reduces the aggregate
+-by \MIRshiftmin{}--\MIRshiftmax{} \pmd{} relative to the corresponding
+-four-domain mean. At Qwen2.5-0.5B, the Re:Dr gain is \MIRfive{} over all five
+-domains and \MIRfour{} over the four domains with alternative-answer modes.
+-App.~\ref{app:hosted-mode-diversity} also reports the four-domain comparison.
++Across the \MIRshiftcells{} five-domain comparisons, including \texttt{MathIR}
++reduces the mean gain by \MIRshiftmin{}--\MIRshiftmax{} \pmd{} relative to
++the corresponding four-domain mean. At Qwen2.5-0.5B, the Re:Dr gain is \MIRfive{} over all five
++domains and \MIRfour{} over the remaining four domains.
++App.~\ref{app:hosted-mode-diversity} reports results for the same four-domain subset.
+ 
+ For open-ended derivations without an executable identity, a learned judge
+ could supply a novelty criterion. Such a criterion requires separate
+@@ -1883,16 +1885,13 @@
+ Mean-token normalization also does not guarantee concise or high-quality
+ explanations.
+ 
+-A quality criterion can restrict bank admission in addition to correctness
+-and canonical validity. Examples include a token budget, a process-reward
+-threshold, or a trace-quality classifier; a quality score could also guide
+-exemplar selection within a key or eviction at capacity. These changes
+-alter the replay target and are not part of the uniform-replay comparison.
+-Quality and diversity can conflict when alternative modes require longer
+-solutions. \texttt{MathIR} alternatives include trajectories through additional
+-states, and \texttt{Python}'s rarer return vectors require longer lambdas than its
+-modal vector. A brevity filter can therefore remove valid alternatives;
+-diversity is measured after applying the filter.
++Additional quality criteria, such as a token budget or trace-quality score,
++would change admission, exemplar selection, or eviction and hence the replay
++target. They are not used in these comparisons. A brevity filter can remove
++valid alternatives: \texttt{MathIR} includes longer state trajectories, and
++\texttt{Python}'s rarer return vectors require longer lambdas than its modal
++vector. Any such filter would need evaluation of both solution quality and
++diversity among the retained modes.
+ 
+ \section{Fixed Semantic MaxEnt Comparator}
+ \label{app:semantic-maxent}
+@@ -1915,14 +1914,12 @@
+ Unsuccessful and invalid peers contribute no count.
+ 
+ \paragraph{Prompt-specific success counts.}
+-Each exact prompt-token sequence has an independent count table. Counts
+-include only responses with positive task reward and a valid canonical
+-key; invalid and unsuccessful responses affect neither the predictor nor
+-its history. Counts accumulate throughout training, with no window, decay,
+-eviction, or reset. Each eligible response is scored against the preceding groups'
+-counts and its own successful leave-one-out peers. The current group's
+-counts are added after all its responses have been scored, so a response
+-never contributes to its own predictor.
++Counts are maintained separately for each exact prompt-token sequence and
++accumulate throughout training without decay or reset. Only responses with
++positive reward and a valid key contribute. Each response is scored using
++preceding groups and its successful leave-one-out peers; the current group
++is added afterward. A response therefore never contributes to its own
++predictor.
+ The added detached advantage on an eligible successful row is
+ \begin{equation}
+   A^{\rm sem}_{i,t}=\eta\,
+@@ -1980,16 +1977,16 @@
+ \begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\linewidth]{figures/replay_factorial_effects.pdf}
+-\caption{\textbf{Replay improves correctness across all three model scales.}
+-Terminal paired effects of Re:Dr minus Dr.GRPO (circles) and Re:Max minus
+-MaxRL (squares), in percentage points of \texttt{pass@8} and changes in
+-\pmd{}. Open marks have fewer than five seeds. Correctness uses four seeds
+-only for Falcon \texttt{Countdown} Dr.GRPO. For Re:Dr diversity, $n=4$ for Falcon
+-\texttt{Countdown}, $n=1$ for Falcon \texttt{MathIR}, and $n=2$ for Qwen2.5-3B \texttt{Python}; Falcon
+-\texttt{Python} has no eligible pair. Other comparisons use five seeds. Diversity
+-requires at least 20 defining prompts per arm. Bars are nominal paired 95\%
+-Student-$t$ intervals for five-seed correctness comparisons and diversity
+-comparisons with at least two seeds.}
++\caption{\textbf{Replay raises mean correctness at all three model scales.}
++Terminal Re:Dr minus Dr.GRPO (circles) and Re:Max minus MaxRL (squares).
++The axes show percentage-point changes in \texttt{pass@8} and changes in
++\pmd{}. Filled marks use five paired seeds; open marks use fewer. For
++Re:Dr, correctness uses four seeds in Falcon \texttt{Countdown}; diversity
++uses four in Falcon \texttt{Countdown}, one in Falcon \texttt{MathIR}, and two
++in Qwen2.5-3B \texttt{Python}. Blank cells have no eligible comparison.
++Diversity requires at least 20 defining prompts per arm. Bars are nominal
++paired 95\% Student-$t$ intervals, requiring five seeds for correctness
++and at least two for diversity.}
+   \label{fig:replay-factorial-effects}
+ \end{figure}
+ 
+@@ -2021,8 +2018,9 @@
+   Diversity effects require at least 20 defining prompts per arm. Each Avg
+   weights domains equally within seed on a fixed domain set: all five for
+   correctness, and those supported by every seed for diversity. The latter
+-  excludes \texttt{Python} at both larger scales and additionally \texttt{Countdown} and \texttt{MathIR}
+-  at Falcon3-1B. Eligible prompt subsets can differ between arms.}
++  uses \texttt{Graph} and \texttt{PantryPlan} for Falcon3-1B, all domains except
++  \texttt{Python} for Qwen2.5-3B, and all five at 0.5B. The prompt subsets
++  defining diversity can differ between arms.}
+ 
+ \label{tab:cross-scale-terminal-effects}
+   \scriptsize
+@@ -2044,8 +2042,8 @@
+ 
+ Tables~\ref{tab:core-terminal-endpoints} and~\ref{tab:cross-scale-terminal-effects}
+ show absolute arm means and paired replay effects, respectively. Dr.GRPO
+-replay increases mean \texttt{pass@8} and \distk{} in all 14 complete
+-five-seed blocks; \distk{} increases in all 74 terminal seed pairs.
++replay increases mean \texttt{pass@8} and \distk{} in all 14 five-seed
++comparisons; \distk{} increases in all 74 terminal seed pairs.
+ Because \distk{} depends on correctness as well as diversity, \pmd{} provides
+ a separate conditional measure.
+ 
+@@ -2060,10 +2058,9 @@
+ previously discovered routes survived training.
+ 
+ Fig.~\ref{fig:maxrl-factorial-scale-extensions} gives the absolute results
+-by domain. MaxRL/Re:Max correctness comparisons use five paired seeds.
+-Dr.GRPO/Re:Dr also uses five except Falcon \texttt{Countdown}, which uses four. Diversity has separate
+-support requirements and seed populations. A factorial interaction requires
+-the common four-arm seed intersection.
++by domain. Pairwise effects use seeds shared by the two arms; factorial
++interactions use seeds shared by all four methods. Diversity additionally
++requires enough verified responses to define the conditional estimator.
+ 
+ % Not [H]: this plate is a full text-block tall, so forcing it here left the
+ % rest of the preceding page blank whenever it did not fit. Letting it float
+@@ -2073,17 +2070,15 @@
+   \includegraphics[width=.98\linewidth]
+     {figures/e118_scale_extensions_appendix.pdf}
+   \caption{\textbf{Replay gains vary by domain and model scale.}
+-Terminal \texttt{pass@8} and \pmd{} for the three model scales. Open/filled
+-marks denote the fresh objective/its replay variant; circles denote Dr.GRPO,
+-squares MaxRL, and gray diamonds the untrained checkpoint. Correctness uses
++Terminal \texttt{pass@8} and \pmd{} at three scales. Open/filled marks denote
++fresh/replay methods; circles denote Dr.GRPO, squares MaxRL, and gray diamonds
++the untrained checkpoint. Correctness uses
+ five paired seeds except Falcon \texttt{Countdown} Dr.GRPO ($n=4$). Diversity averages
+ each arm's eligible seeds separately, requiring at least 30 defining prompts
+ per seed. Line style follows the control's seed count: solid for five,
+-dashed for fewer. Replay counts can differ; Falcon \texttt{Countdown} uses five
+-Dr.GRPO and four Re:Dr diversity seeds. Missing tracks or diamonds indicate
+-insufficient support. No uncertainty intervals are shown.
+-Table~\ref{tab:cross-scale-terminal-effects} gives paired diversity effects
+-at a 20-prompt threshold.}
++dashed for fewer. Seed counts can differ between arms; estimates below the
++support threshold are not plotted. Table~\ref{tab:cross-scale-terminal-effects}
++gives paired diversity effects at a 20-prompt threshold. No error bars are shown.}
+   \label{fig:maxrl-factorial-scale-extensions}
+ \end{figure}
+ 
+@@ -2128,11 +2123,9 @@
+ 
+ At Qwen2.5-3B, MaxRL/Re:Max arm means are $.547/.701$ for correctness and
+ $.744/1.107$ for \distk{}. The paired raw-count effect is $+.363$
+-($[+.285,+.441]$). The four-arm factorial has 14 complete five-seed blocks
+-and four seeds for Falcon \texttt{Countdown}. Cross-domain \pmd{} averages in
++($[+.285,+.441]$). Cross-domain \pmd{} averages in
+ Table~\ref{tab:cross-scale-terminal-effects} use a fixed set of domains
+-supported by every seed; per-domain effects appear in
+-Fig.~\ref{fig:replay-factorial-effects}.
++supported by every seed.
+ 
+ \subsection{Terminal comparison on the harder level}
+ \label{app:level2-interim}
+@@ -2162,9 +2155,8 @@
+ and have no intervals. At Level 2, only \texttt{PantryPlan} has sufficient untrained
+ diversity support, so an initial three-domain diversity mean is undefined.
+ 
+-Within Level 2, all five domains have five terminal seeds for each of the
+-four methods (100 endpoints). The paired diversity contrasts in
+-Fig.~\ref{fig:replay-level2-effects} use their own eligible seed sets.
++At Level 2, each method uses five terminal seeds per domain. Paired diversity
++contrasts apply the support threshold in Fig.~\ref{fig:replay-level2-effects}.
+ \texttt{Graph} improves under both objectives: Re:Max adds $+.212$
+ ($[+.170,+.255]$, five seeds) and Re:Dr adds $+.314$ ($[+.170,+.458]$,
+ three seeds) to \pmd{}. \texttt{Python}'s mean diversity effects are positive
+@@ -2172,11 +2164,7 @@
+ \texttt{PantryPlan} correctness improves by $+.305$ under Re:Dr and $+.237$ under
+ Re:Max, both using five seeds.
+ 
+-Diversity has less support than correctness. Re:Dr uses three paired seeds
+-for \texttt{Graph} and \texttt{PantryPlan}, four for \texttt{MathIR}, none for \texttt{Countdown}, and five for
+-\texttt{Python}. Re:Max uses one for \texttt{Countdown}, four for \texttt{PantryPlan}, and five for the
+-other domains. An absent comparison indicates insufficient support, not a
+-zero effect. Each Level-2 \texttt{MathIR} prompt admits one shortest derivation and
++Each Level-2 \texttt{MathIR} prompt admits one shortest derivation and
+ four longer alternatives; concentration on the shortest route gives near-zero
+ diversity without exhausting the domain's valid modes. Levels use distinct
+ held-out problems and can differ in support distributions and prompt guidance
+@@ -2201,10 +2189,9 @@
+   $(\mathrm{Re:Max}-\mathrm{MaxRL})-(\mathrm{Re:Dr}-\mathrm{Dr.GRPO})$.
+   Here $P_8=\texttt{pass@8}$, $D_8=\texttt{distinct@8}$, and $B_8=D_8-P_8$.
+   Entries give paired means and nominal 95\% Student-$t$ intervals.
+-  Both count metrics remain coupled to correctness. Four-arm \pmd{}
+-  comparisons have five eligible seeds in \texttt{Python}, four in \texttt{MathIR}, three in
+-  \texttt{Graph}, two in \texttt{PantryPlan}, and none in \texttt{Countdown}, so they do not share this
+-  table's five-seed population.}
++  Both count metrics depend on correctness. The conditional-diversity effects
++  in Fig.~\ref{fig:replay-level2-effects} use separate support thresholds and
++  seed populations.}
+ 
+ \label{tab:level2-factorial-contrasts}
+   \scriptsize
+@@ -2252,9 +2239,8 @@
+   \caption{\textbf{Replay improves terminal accuracy across scales.}
+ \texttt{pass@8} over eight training passes for the four primary methods.
+ Rows show Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B; columns show domains.
+-Each objective pair uses five terminal training seeds except Falcon \texttt{Countdown}
+-Dr.GRPO/Re:Dr ($n=4$). Lines show seed means and bands their ranges;
+-ringed points use fewer seeds and gaps indicate unavailable estimates.}
++Panel labels give terminal sample sizes. Lines show seed means and bands
++show ranges, not confidence intervals. Rings indicate smaller seed samples.}
+   \label{fig:factorial-training-accuracy}
+ \end{figure}
+ 
+@@ -2448,6 +2434,8 @@
+ \newpage
+ \section{Collapse and Replay Mechanism Checks}
+ \label{app:ablations}
++
++\input{results/fresh_concentration_20260912_appendix.tex}
+ 
+ \input{results/conditional_concentration_20260912_appendix.tex}
+ 

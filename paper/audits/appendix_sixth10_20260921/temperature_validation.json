@@ -1,0 +1,52 @@
+{
+  "only_renderer_changed": [
+    "render"
+  ],
+  "both_tabular_environments_byte_identical": true,
+  "unchanged_numeric_record_sha256": "59baf575de04c60e5537b56c69c7dad7c98e1e11e22be8afdb1761de0ec43c87",
+  "fragment_exactly_matches_renderer": true,
+  "bootstrap_replicates": 20000,
+  "draw_pairing": false,
+  "kimi_collision_defined_replicates": {
+    "normalized_secondary": {
+      "1": 11815,
+      "2": 11616,
+      "3": 0
+    },
+    "strict": {
+      "1": 11815,
+      "2": 11616,
+      "3": 0
+    }
+  },
+  "returned_temperatures": {
+    "FW-Kimi-K3": {
+      "t1p0": {
+        "null": 960
+      },
+      "t1p5": {
+        "null": 960
+      }
+    },
+    "grok-4.3": {
+      "t1p0": {
+        "null": 960
+      },
+      "t1p5": {
+        "null": 960
+      }
+    }
+  },
+  "total_responses": 3840,
+  "native_refusals": 0,
+  "process_language_scan": {
+    "frozen": false,
+    "post.hoc": false,
+    "source.bound": false,
+    "audit": false,
+    "authenticat": false,
+    "remain in": false,
+    "retained": false,
+    "independent draws": false
+  }
+}

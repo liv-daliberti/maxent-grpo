@@ -7,10 +7,12 @@ from oat_drgrpo.templates import (
     TEMPLATE_FACTORY,
     apply_no_template,
     apply_qwen_boxed_template,
+    apply_qwen_graph_digits_template,
     apply_qwen_math_template,
     apply_r1_template,
     build_response_token_prefix_mask,
     collate_eval_prompt_items,
+    validate_qwen_graph_digits_materialization,
 )
 
 
@@ -25,6 +27,44 @@ def test_prompt_templates_expose_expected_prompt_shapes():
     assert "<think>" in apply_r1_template(question)
     assert apply_r1_template(question).endswith("\nAssistant: <think>")
     assert TEMPLATE_FACTORY["r1"](question) == apply_r1_template(question)
+
+
+def test_graph_digit_template_requests_only_the_canonical_action_vector():
+    question = (
+        "Color the graph. Fill the missing node colors in order inside \\boxed{}."
+    )
+
+    prompt = apply_qwen_graph_digits_template(question)
+
+    assert "one bare digit string" in prompt
+    assert "Return only the requested bare sequence of digits" in prompt
+    assert "\\boxed{}" not in prompt
+    assert prompt.endswith("<|im_start|>assistant\n")
+
+
+def test_graph_digit_template_fails_closed_on_an_unrecognized_task():
+    with pytest.raises(ValueError, match="graph prompt"):
+        apply_qwen_graph_digits_template("What is 2+2?")
+
+    with pytest.raises(ValueError, match="ending"):
+        apply_qwen_graph_digits_template(
+            "Use the answer inside \\boxed{}. Then explain."
+        )
+
+
+def test_graph_digit_materialization_rejects_stale_or_truncated_cache_rows():
+    question = (
+        "Color the graph. Fill the missing node colors in order inside \\boxed{}."
+    )
+    canonical = apply_qwen_graph_digits_template(question)
+    validate_qwen_graph_digits_materialization([question], [canonical])
+
+    with pytest.raises(RuntimeError, match="stale or foreign"):
+        validate_qwen_graph_digits_materialization(
+            [question], [apply_qwen_boxed_template(question)]
+        )
+    with pytest.raises(RuntimeError, match="row count"):
+        validate_qwen_graph_digits_materialization([question], [])
 
 
 def test_collate_eval_prompt_items_formats_prompts_and_preserves_answers():

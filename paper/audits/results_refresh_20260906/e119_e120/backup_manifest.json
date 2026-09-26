@@ -1,0 +1,37 @@
+[
+  {
+    "path": "ops/exp_scaling/plot_paper_modebench_levels.py",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/ops/exp_scaling/plot_paper_modebench_levels.py",
+    "sha256": "875b783d2179f5d58b0b10884596652d18d670561400ccf271964fd034dcb559"
+  },
+  {
+    "path": "ops/exp_scaling/build_paper_e120_frequency_progress.py",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/ops/exp_scaling/build_paper_e120_frequency_progress.py",
+    "sha256": "faee7fb8fdf6d54b95be2692efbd2b7a5dde53c73e468db83212d4f6a51403d2"
+  },
+  {
+    "path": "paper/results/e120_frequency_progress.json",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/paper/results/e120_frequency_progress.json",
+    "sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab"
+  },
+  {
+    "path": "paper/results/e120_frequency_progress_table_body.tex",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/paper/results/e120_frequency_progress_table_body.tex",
+    "sha256": "d353706bda93667ceeac8749cee16ced53a4f182e3d7e425c57749acc93679bd"
+  },
+  {
+    "path": "paper/figures/modebench_level_admission.pdf",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/paper/figures/modebench_level_admission.pdf",
+    "sha256": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7"
+  },
+  {
+    "path": "paper/figures/modebench_level_admission.png",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/paper/figures/modebench_level_admission.png",
+    "sha256": "ac75f348e664cf3047a90aafcca19653e8a3fbbe70c9806b7a86ad83324f0a8e"
+  },
+  {
+    "path": "paper/figures/modebench_level_admission.json",
+    "backup": "paper/audits/results_refresh_20260906/e119_e120/before/paper/figures/modebench_level_admission.json",
+    "sha256": "33316b0553134d08c9952253e258b5ad74d96846381f19d049e707b43ff8e611"
+  }
+]

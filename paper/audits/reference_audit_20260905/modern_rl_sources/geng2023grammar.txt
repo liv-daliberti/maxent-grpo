@@ -1,0 +1,136 @@
+Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning - ACL Anthology ACL Anthology About Announcements Communication channels Related work Copyright Credits Volunteer Development Feedback Using Author directory Citing papers Links in the Anthology Data access All FAQs Details Anthology identifiers Names ORCID iDs DOIs Verified authors Contributions Submissions Corrections Maintain author pages Attachments GitHub Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning Saibo Geng , Martin Josifoski , Maxime Peyrard , Robert West Correct Metadata for Use this form to create a GitHub issue with structured data describing the correction. You will need a GitHub account.
+Once you create that issue, the correction will be reviewed by a staff member. ⚠️ Mobile Users: Submitting this form to create a new issue will only work with github.com, not the GitHub Mobile app. Important : The Anthology treat PDFs as authoritative. Please use this form only to correct data
+that is out of line with the PDF. See our corrections
+guidelines if you need to change the PDF. Title Adjust the title. Retain tags such as
+<fixed-case>. Authors Adjust author names and order to match the
+PDF. Add Author Abstract Correct abstract if needed. Retain XML formatting tags such as <tex-math>. You may use <b>...</b> for bold , <i>...</i> for italic , <u>...</u> for underline , <sc>...</sc> for small-caps , <tt>...<tt> for typewriter text , <url>...</url> for URLs, <a href=...> for hyperlinks, and <par/> for paragraph breaks. Verification against PDF Ensure that the new title/authors match the snapshot below. (If there
+is no snapshot or it is too small, consult the PDF .) Authors concatenated from the text boxes above: ALL author names match the snapshot above—including
+middle initials, hyphens, and accents. Create GitHub issue for staff review Abstract Despite their impressive performance, large language models (LMs) still struggle with reliably generating complex output structures when not finetuned to follow the required output format exactly. To address this issue, grammar-constrained decoding (GCD) can be used to control the generation of LMs, guaranteeing that the output follows a given structure. Most existing GCD methods are, however, limited to specific tasks, such as parsing or code generation. In this work, we demonstrate that formal grammars can describe the output space for a much wider range of tasks and argue that GCD can serve as a unified framework for structured NLP tasks in general. For increased flexibility, we introduce input-dependent grammars, which allow the grammar to depend on the input and thus enable the generation of different output structures for different inputs. We then empirically demonstrate the power and flexibility of GCD-enhanced LMs on (1) information extraction, (2) entity disambiguation, and (3) constituency parsing. Our results indicate that grammar-constrained LMs substantially outperform unconstrained LMs or even beat task-specific finetuned models. Grammar constraints thus hold great promise for harnessing off-the-shelf LMs for a wide range of structured NLP tasks, especially where training data is scarce or finetuning is expensive. Code and data: https://github.com/epfl-dlab/GCD . Anthology ID: 2023.emnlp-main.674 Volume: Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing Month: December Year: 2023 Address: Singapore Editors: Houda Bouamor , Juan Pino , Kalika Bali Venue: EMNLP SIG: Publisher: Association for Computational Linguistics Note: Pages: 10932–10952 Language: URL: https://aclanthology.org/2023.emnlp-main.674/ DOI: 10.18653/v1/2023.emnlp-main.674 Bibkey: geng-etal-2023-grammar Cite (ACL): Saibo Geng, Martin Josifoski, Maxime Peyrard, and Robert West. 2023. Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning . In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 10932–10952, Singapore. Association for Computational Linguistics. Cite (Informal): Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning (Geng et al., EMNLP 2023) Copy Citation: BibTeX Markdown MODS XML Endnote More
+options… PDF: https://aclanthology.org/2023.emnlp-main.674.pdf Video: https://aclanthology.org/2023.emnlp-main.674.mp4 PDF Cite Search Video Fix data Export citation BibTeX MODS XML Endnote Preformatted @inproceedings{geng-etal-2023-grammar,
+    title = "Grammar-Constrained Decoding for Structured {NLP} Tasks without Finetuning",
+    author = "Geng, Saibo  and
+      Josifoski, Martin  and
+      Peyrard, Maxime  and
+      West, Robert",
+    editor = "Bouamor, Houda  and
+      Pino, Juan  and
+      Bali, Kalika",
+    booktitle = "Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing",
+    month = dec,
+    year = "2023",
+    address = "Singapore",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2023.emnlp-main.674/",
+    doi = "10.18653/v1/2023.emnlp-main.674",
+    pages = "10932--10952",
+    abstract = "Despite their impressive performance, large language models (LMs) still struggle with reliably generating complex output structures when not finetuned to follow the required output format exactly. To address this issue, grammar-constrained decoding (GCD) can be used to control the generation of LMs, guaranteeing that the output follows a given structure. Most existing GCD methods are, however, limited to specific tasks, such as parsing or code generation. In this work, we demonstrate that formal grammars can describe the output space for a much wider range of tasks and argue that GCD can serve as a unified framework for structured NLP tasks in general. For increased flexibility, we introduce input-dependent grammars, which allow the grammar to depend on the input and thus enable the generation of different output structures for different inputs. We then empirically demonstrate the power and flexibility of GCD-enhanced LMs on (1) information extraction, (2) entity disambiguation, and (3) constituency parsing. Our results indicate that grammar-constrained LMs substantially outperform unconstrained LMs or even beat task-specific finetuned models. Grammar constraints thus hold great promise for harnessing off-the-shelf LMs for a wide range of structured NLP tasks, especially where training data is scarce or finetuning is expensive. Code and data: \url{https://github.com/epfl-dlab/GCD}."
+} Download as
+File Copy to Clipboard <?xml version="1.0" encoding="UTF-8"?>
+<modsCollection xmlns="http://www.loc.gov/mods/v3">
+<mods ID="geng-etal-2023-grammar">
+    <titleInfo>
+        <title>Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning</title>
+    </titleInfo>
+    <name type="personal">
+        <namePart type="given">Saibo</namePart>
+        <namePart type="family">Geng</namePart>
+        <role>
+            <roleTerm authority="marcrelator" type="text">author</roleTerm>
+        </role>
+    </name>
+    <name type="personal">
+        <namePart type="given">Martin</namePart>
+        <namePart type="family">Josifoski</namePart>
+        <role>
+            <roleTerm authority="marcrelator" type="text">author</roleTerm>
+        </role>
+    </name>
+    <name type="personal">
+        <namePart type="given">Maxime</namePart>
+        <namePart type="family">Peyrard</namePart>
+        <role>
+            <roleTerm authority="marcrelator" type="text">author</roleTerm>
+        </role>
+    </name>
+    <name type="personal">
+        <namePart type="given">Robert</namePart>
+        <namePart type="family">West</namePart>
+        <role>
+            <roleTerm authority="marcrelator" type="text">author</roleTerm>
+        </role>
+    </name>
+    <originInfo>
+        <dateIssued>2023-12</dateIssued>
+    </originInfo>
+    <typeOfResource>text</typeOfResource>
+    <relatedItem type="host">
+        <titleInfo>
+            <title>Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing</title>
+        </titleInfo>
+        <name type="personal">
+            <namePart type="given">Houda</namePart>
+            <namePart type="family">Bouamor</namePart>
+            <role>
+                <roleTerm authority="marcrelator" type="text">editor</roleTerm>
+            </role>
+        </name>
+        <name type="personal">
+            <namePart type="given">Juan</namePart>
+            <namePart type="family">Pino</namePart>
+            <role>
+                <roleTerm authority="marcrelator" type="text">editor</roleTerm>
+            </role>
+        </name>
+        <name type="personal">
+            <namePart type="given">Kalika</namePart>
+            <namePart type="family">Bali</namePart>
+            <role>
+                <roleTerm authority="marcrelator" type="text">editor</roleTerm>
+            </role>
+        </name>
+        <originInfo>
+            <publisher>Association for Computational Linguistics</publisher>
+            <place>
+                <placeTerm type="text">Singapore</placeTerm>
+            </place>
+        </originInfo>
+        <genre authority="marcgt">conference publication</genre>
+    </relatedItem>
+    <abstract>Despite their impressive performance, large language models (LMs) still struggle with reliably generating complex output structures when not finetuned to follow the required output format exactly. To address this issue, grammar-constrained decoding (GCD) can be used to control the generation of LMs, guaranteeing that the output follows a given structure. Most existing GCD methods are, however, limited to specific tasks, such as parsing or code generation. In this work, we demonstrate that formal grammars can describe the output space for a much wider range of tasks and argue that GCD can serve as a unified framework for structured NLP tasks in general. For increased flexibility, we introduce input-dependent grammars, which allow the grammar to depend on the input and thus enable the generation of different output structures for different inputs. We then empirically demonstrate the power and flexibility of GCD-enhanced LMs on (1) information extraction, (2) entity disambiguation, and (3) constituency parsing. Our results indicate that grammar-constrained LMs substantially outperform unconstrained LMs or even beat task-specific finetuned models. Grammar constraints thus hold great promise for harnessing off-the-shelf LMs for a wide range of structured NLP tasks, especially where training data is scarce or finetuning is expensive. Code and data: https://github.com/epfl-dlab/GCD.</abstract>
+    <identifier type="citekey">geng-etal-2023-grammar</identifier>
+    <identifier type="doi">10.18653/v1/2023.emnlp-main.674</identifier>
+    <location>
+        <url>https://aclanthology.org/2023.emnlp-main.674/</url>
+    </location>
+    <part>
+        <date>2023-12</date>
+        <extent unit="page">
+            <start>10932</start>
+            <end>10952</end>
+        </extent>
+    </part>
+</mods>
+</modsCollection> Download as
+File Copy to Clipboard %0 Conference Proceedings
+%T Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning
+%A Geng, Saibo
+%A Josifoski, Martin
+%A Peyrard, Maxime
+%A West, Robert
+%Y Bouamor, Houda
+%Y Pino, Juan
+%Y Bali, Kalika
+%S Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing
+%D 2023
+%8 December
+%I Association for Computational Linguistics
+%C Singapore
+%F geng-etal-2023-grammar
+%X Despite their impressive performance, large language models (LMs) still struggle with reliably generating complex output structures when not finetuned to follow the required output format exactly. To address this issue, grammar-constrained decoding (GCD) can be used to control the generation of LMs, guaranteeing that the output follows a given structure. Most existing GCD methods are, however, limited to specific tasks, such as parsing or code generation. In this work, we demonstrate that formal grammars can describe the output space for a much wider range of tasks and argue that GCD can serve as a unified framework for structured NLP tasks in general. For increased flexibility, we introduce input-dependent grammars, which allow the grammar to depend on the input and thus enable the generation of different output structures for different inputs. We then empirically demonstrate the power and flexibility of GCD-enhanced LMs on (1) information extraction, (2) entity disambiguation, and (3) constituency parsing. Our results indicate that grammar-constrained LMs substantially outperform unconstrained LMs or even beat task-specific finetuned models. Grammar constraints thus hold great promise for harnessing off-the-shelf LMs for a wide range of structured NLP tasks, especially where training data is scarce or finetuning is expensive. Code and data: https://github.com/epfl-dlab/GCD.
+%R 10.18653/v1/2023.emnlp-main.674
+%U https://aclanthology.org/2023.emnlp-main.674/
+%U https://doi.org/10.18653/v1/2023.emnlp-main.674
+%P 10932-10952 Download as
+File Copy to Clipboard Markdown (Informal) [Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning](https://aclanthology.org/2023.emnlp-main.674/) (Geng et al., EMNLP 2023) Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning (Geng et al., EMNLP 2023) ACL Saibo Geng, Martin Josifoski, Maxime Peyrard, and Robert West. 2023. Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning . In Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing , pages 10932–10952, Singapore. Association for Computational Linguistics. Copy Markdown to
+Clipboard Copy ACL to
+Clipboard ACL materials are Copyright © 1963–2026 ACL; other materials are copyrighted by their respective copyright holders. Materials prior to 2016 here are licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 International License . Permission is granted to make copies for the purposes of teaching and research. Materials published in or after 2016 are licensed on a Creative Commons Attribution 4.0 International License . The ACL Anthology is managed and built by the ACL Anthology team of volunteers. Site last built on 04 September 2026 at 22:02 UTC with commit 87b7785 .

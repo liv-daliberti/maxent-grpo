@@ -1,0 +1,373 @@
+{
+  "schema": "paper-sustained-auc-effects-qwen05b-v1",
+  "generated_at": "2026-09-20T23:50:48.622371+00:00",
+  "status": "balanced five-seed full-trajectory effect forest",
+  "model": "Qwen2.5-0.5B-Instruct",
+  "comparison": "Re:Dr minus matched Dr.GRPO",
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "paired_seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "metrics": {
+    "normalized_auc_pass8": "paired effect in pass@8 trajectory AUC normalized by eight passes",
+    "normalized_auc_distinct8": "paired effect in distinct@8 trajectory AUC normalized by eight passes",
+    "normalized_auc_adjusted_breadth8": "per-seed normalized_auc_distinct8 minus normalized_auc_pass8"
+  },
+  "auc_definition": "trapezoidal AUC over all registered half-pass checkpoints, divided by the eight-pass horizon",
+  "uncertainty": "two-sided 95% Student-t interval over the five paired training-seed effects (df=4)",
+  "selection_rule": "all 17 registered half-pass checkpoints from step 0 through 3072, all four sampled-evaluation draws, and all five paired seeds",
+  "cells": [
+    {
+      "domain": "graph_coloring",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "evidence": "balanced_five_seed_full_trajectory",
+      "effects": {
+        "normalized_auc_pass8": {
+          "mean": 0.54241943359375,
+          "student_t_95": [
+            0.48797954766466056,
+            0.5968593195228394
+          ],
+          "range": [
+            0.480224609375,
+            0.58197021484375
+          ],
+          "per_seed": {
+            "43": 0.51513671875,
+            "44": 0.58197021484375,
+            "45": 0.480224609375,
+            "46": 0.57891845703125,
+            "47": 0.55584716796875
+          }
+        },
+        "normalized_auc_distinct8": {
+          "mean": 1.727978515625,
+          "student_t_95": [
+            1.6283939598098653,
+            1.8275630714401347
+          ],
+          "range": [
+            1.61175537109375,
+            1.80047607421875
+          ],
+          "per_seed": {
+            "43": 1.68194580078125,
+            "44": 1.80047607421875,
+            "45": 1.61175537109375,
+            "46": 1.75262451171875,
+            "47": 1.7930908203125
+          }
+        },
+        "normalized_auc_adjusted_breadth8": {
+          "mean": 1.18555908203125,
+          "student_t_95": [
+            1.1329972982301226,
+            1.2381208658323775
+          ],
+          "range": [
+            1.13153076171875,
+            1.23724365234375
+          ],
+          "per_seed": {
+            "43": 1.16680908203125,
+            "44": 1.218505859375,
+            "45": 1.13153076171875,
+            "46": 1.1737060546875,
+            "47": 1.23724365234375
+          }
+        }
+      }
+    },
+    {
+      "domain": "countdown",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "evidence": "balanced_five_seed_full_trajectory",
+      "effects": {
+        "normalized_auc_pass8": {
+          "mean": 0.1845458984375,
+          "student_t_95": [
+            0.08969791281173989,
+            0.2793938840632601
+          ],
+          "range": [
+            0.083984375,
+            0.263671875
+          ],
+          "per_seed": {
+            "43": 0.083984375,
+            "44": 0.2310791015625,
+            "45": 0.2193603515625,
+            "46": 0.263671875,
+            "47": 0.1246337890625
+          }
+        },
+        "normalized_auc_distinct8": {
+          "mean": 0.76484375,
+          "student_t_95": [
+            0.6285393546240716,
+            0.9011481453759285
+          ],
+          "range": [
+            0.58935546875,
+            0.8856201171875
+          ],
+          "per_seed": {
+            "43": 0.58935546875,
+            "44": 0.81634521484375,
+            "45": 0.7574462890625,
+            "46": 0.77545166015625,
+            "47": 0.8856201171875
+          }
+        },
+        "normalized_auc_adjusted_breadth8": {
+          "mean": 0.5802978515625,
+          "student_t_95": [
+            0.4489458807683875,
+            0.7116498223566126
+          ],
+          "range": [
+            0.50537109375,
+            0.760986328125
+          ],
+          "per_seed": {
+            "43": 0.50537109375,
+            "44": 0.58526611328125,
+            "45": 0.5380859375,
+            "46": 0.51177978515625,
+            "47": 0.760986328125
+          }
+        }
+      }
+    },
+    {
+      "domain": "python_factors",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "evidence": "balanced_five_seed_full_trajectory",
+      "effects": {
+        "normalized_auc_pass8": {
+          "mean": 0.32393798828125,
+          "student_t_95": [
+            -0.15149880286198286,
+            0.7993747794244828
+          ],
+          "range": [
+            0.0269775390625,
+            0.75146484375
+          ],
+          "per_seed": {
+            "43": 0.75146484375,
+            "44": 0.73480224609375,
+            "45": 0.0457763671875,
+            "46": 0.0606689453125,
+            "47": 0.0269775390625
+          }
+        },
+        "normalized_auc_distinct8": {
+          "mean": 0.353173828125,
+          "student_t_95": [
+            -0.1046520234657235,
+            0.8109996797157235
+          ],
+          "range": [
+            0.026611328125,
+            0.75146484375
+          ],
+          "per_seed": {
+            "43": 0.75146484375,
+            "44": 0.75091552734375,
+            "45": 0.0472412109375,
+            "46": 0.18963623046875,
+            "47": 0.026611328125
+          }
+        },
+        "normalized_auc_adjusted_breadth8": {
+          "mean": 0.02923583984375,
+          "student_t_95": [
+            -0.040509894430014765,
+            0.09898157411751476
+          ],
+          "range": [
+            -0.0003662109375,
+            0.12896728515625
+          ],
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.01611328125,
+            "45": 0.00146484375,
+            "46": 0.12896728515625,
+            "47": -0.0003662109375
+          }
+        }
+      }
+    },
+    {
+      "domain": "mathir",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "evidence": "balanced_five_seed_full_trajectory",
+      "effects": {
+        "normalized_auc_pass8": {
+          "mean": 0.19471435546875,
+          "student_t_95": [
+            0.14423312400405647,
+            0.2451955869334435
+          ],
+          "range": [
+            0.14642333984375,
+            0.2442626953125
+          ],
+          "per_seed": {
+            "43": 0.2115478515625,
+            "44": 0.159423828125,
+            "45": 0.2119140625,
+            "46": 0.2442626953125,
+            "47": 0.14642333984375
+          }
+        },
+        "normalized_auc_distinct8": {
+          "mean": 0.20477294921875,
+          "student_t_95": [
+            0.14261241834664568,
+            0.2669334800908543
+          ],
+          "range": [
+            0.14703369140625,
+            0.265869140625
+          ],
+          "per_seed": {
+            "43": 0.22894287109375,
+            "44": 0.159423828125,
+            "45": 0.22259521484375,
+            "46": 0.265869140625,
+            "47": 0.14703369140625
+          }
+        },
+        "normalized_auc_adjusted_breadth8": {
+          "mean": 0.01005859375,
+          "student_t_95": [
+            -0.0020118905709995156,
+            0.022129078070999515
+          ],
+          "range": [
+            0.0,
+            0.0216064453125
+          ],
+          "per_seed": {
+            "43": 0.01739501953125,
+            "44": 0.0,
+            "45": 0.01068115234375,
+            "46": 0.0216064453125,
+            "47": 0.0006103515625
+          }
+        }
+      }
+    },
+    {
+      "domain": "pantry_plan",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "evidence": "balanced_five_seed_full_trajectory",
+      "effects": {
+        "normalized_auc_pass8": {
+          "mean": 0.19080810546875,
+          "student_t_95": [
+            0.16838162715053995,
+            0.21323458378696003
+          ],
+          "range": [
+            0.16400146484375,
+            0.2056884765625
+          ],
+          "per_seed": {
+            "43": 0.201904296875,
+            "44": 0.16400146484375,
+            "45": 0.18023681640625,
+            "46": 0.2056884765625,
+            "47": 0.20220947265625
+          }
+        },
+        "normalized_auc_distinct8": {
+          "mean": 1.03243408203125,
+          "student_t_95": [
+            0.8887180723897418,
+            1.1761500916727583
+          ],
+          "range": [
+            0.890625,
+            1.1651611328125
+          ],
+          "per_seed": {
+            "43": 1.0594482421875,
+            "44": 0.93695068359375,
+            "45": 0.890625,
+            "46": 1.1099853515625,
+            "47": 1.1651611328125
+          }
+        },
+        "normalized_auc_adjusted_breadth8": {
+          "mean": 0.8416259765625,
+          "student_t_95": [
+            0.71616137429142,
+            0.9670905788335801
+          ],
+          "range": [
+            0.71038818359375,
+            0.96295166015625
+          ],
+          "per_seed": {
+            "43": 0.8575439453125,
+            "44": 0.77294921875,
+            "45": 0.71038818359375,
+            "46": 0.904296875,
+            "47": 0.96295166015625
+          }
+        }
+      }
+    }
+  ],
+  "source_json": "paper/results/e78_terminal_05b.json",
+  "source_sha256": "32ae0b596c05260c9b54e554a17e04b903d977700cfa9f0293a2fe3c23226259"
+}

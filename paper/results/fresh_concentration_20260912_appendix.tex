@@ -1,0 +1,87 @@
+\subsection{Concentration with 64 responses per prompt}
+\label{app:fresh-concentration}
+
+We evaluate initial and terminal checkpoints on the 128 held-out Level-1
+\texttt{Graph} and \texttt{PantryPlan} prompts, drawing 64 responses per
+prompt from new sampling streams. This evaluation is separate from the
+32-response comparison in Fig.~\ref{fig:concentration-story}. It covers
+Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B, with five training seeds for
+Dr.GRPO, Re:Dr, MaxRL, and Re:Max. For each model, the five initial
+evaluations use independent sampling from the same weights. Each initial
+evaluation is paired with one training seed and shared across the four methods.
+
+\paragraph{Matched comparisons.}
+We estimate \pmd{} from correct-output pairs and average promptwise
+differences over prompts with at least two correct responses in both
+conditions, then average the five seed effects equally. Thus positive
+changes indicate more diverse correct modes. Matching prompts within each
+comparison differs from subtracting means over separately eligible prompts.
+The eligible population ranges from 37 to 127 of the 128 prompts across
+comparisons and seeds. Effects from different comparisons therefore cannot
+be subtracted to reconstruct a trajectory on a common prompt population. Tables~\ref{tab:fresh-concentration-initial}
+and~\ref{tab:fresh-concentration-replay} give all 36 contrasts and their
+eligible-prompt ranges. Intervals are nominal 95\% paired Student-$t$
+intervals with four degrees of freedom. They describe variation over the
+five training-seed and initial-sampling pairs, conditional on the fixed
+prompts and initial weights. They are unadjusted for multiple comparisons
+and do not quantify uncertainty over unseen tasks.
+
+\begin{figure}[t]
+ \centering
+ \includegraphics[width=\linewidth]{figures/fresh_concentration_pcmd_20260912.pdf}
+ \caption{\textbf{Replay increases correct-mode diversity at a 64-response budget.}
+ Left: Dr.GRPO reduces \pmd{} in all six model--domain comparisons;
+ MaxRL's change is inconclusive for Falcon3-1B and Qwen2.5-3B \texttt{Graph}.
+ Right: replay increases \pmd{} in all twelve comparisons with matched
+ trained controls. Points show means over five paired seeds; bars give
+ nominal 95\% Student-$t$ intervals. Each contrast uses its own jointly
+ eligible Level-1 prompts. Horizontal scales differ between panels.}
+ \label{fig:fresh-concentration}
+\end{figure}
+
+\paragraph{Concentration and mitigation.}
+Dr.GRPO reduces \pmd{} in all six model--domain comparisons and all
+30 seed effects. Replay increases \pmd{} relative to its matched trained
+control under both objectives in all twelve comparisons and all 60 seed
+effects. All eighteen nominal intervals exclude zero
+(Fig.~\ref{fig:fresh-concentration}). These directions also hold when
+pooling correct pairs, using each policy's own eligible prompts, or
+restricting to the intersection of eligible prompts across seeds.
+The intersection can be small: for Qwen2.5-0.5B \texttt{Graph}, only five
+prompts are jointly eligible across all seeds in comparisons involving Dr.GRPO.
+
+MaxRL alone does not consistently reduce diversity: its Falcon3-1B and
+Qwen2.5-3B \texttt{Graph} intervals include zero. An improvement over a
+trained control also need not restore initial diversity. Both replay
+variants remain below initial \pmd{} in \texttt{PantryPlan} at every
+scale, whereas their \texttt{Graph} comparisons exceed the initial value.
+These results describe diversity within each comparison's eligible prompt
+population; they do not establish recovery of the same individual modes.
+
+\paragraph{Correctness, coverage, and sampling budget.}
+All 24 trained-versus-initial comparisons increase per-response
+correctness averaged over all evaluation prompts, in every seed. Nevertheless, every
+\texttt{PantryPlan} method--scale comparison has lower \texttt{pass@64}
+than initialization in every seed. Averaging over all evaluation prompts,
+replay improves mean
+\texttt{pass@8}, \texttt{distinct@8}, \texttt{pass@64}, and
+\texttt{distinct@64} relative to its trained control in all twelve
+comparisons; per-response correctness improves in seven of twelve.
+On jointly eligible prompts, however, replay lowers mean correctness in
+eleven of twelve comparisons. The concentration effects therefore do not
+hold correctness fixed.
+
+The eight-response metrics average over subsets of eight responses from
+each 64-response pool (rarefaction). For Qwen2.5-3B \texttt{Graph}, Dr.GRPO increases per-response correctness by
+14.49 percentage points and \texttt{distinct@8} by 0.112 modes per prompt,
+while reducing \pmd{} by 11.20 points and \texttt{distinct@64} by
+0.220 modes. The change in verified-mode count reverses sign between
+eight and 64 responses in every seed. A gain at one sampling budget thus
+need not persist at a larger budget. These evaluations measure the
+distribution of correct responses and the modes observed in finite samples;
+they do not establish exact mode extinction, recovery of the full support,
+or a causal effect of diversity on accuracy.
+
+\input{results/fresh_concentration_20260912_initial_table.tex}
+\input{results/fresh_concentration_20260912_replay_table.tex}
+\FloatBarrier

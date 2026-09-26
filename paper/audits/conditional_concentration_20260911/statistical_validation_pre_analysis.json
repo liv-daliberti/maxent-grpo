@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "command": "python -m pytest -q tests/test_paper_collision_statistics.py",
+  "tests_passed": 26,
+  "data": "synthetic only; empirical outcome files not read",
+  "sha256_after_validation": {
+    "tests/test_paper_collision_statistics.py": "b27f0ad230799df9653baf8e3ee7126df94d8f310a437e38c0d7e9390db789a6",
+    "ops/exp_scaling/analyze_paper_conditional_concentration.py": "a3681442292ff79ae0c9602d0e7e527602faeeb6c82ecc212333433751e09763"
+  },
+  "scope": "statistics API and independent mathematical counterexamples; adapters are reviewed separately"
+}

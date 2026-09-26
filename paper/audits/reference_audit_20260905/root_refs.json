@@ -1,0 +1,129 @@
+[
+  {
+    "key": "williams1991entropy",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://researchwith.montclair.edu/en/publications/function-optimization-using-connectionist-reinforcement-learning-/",
+      "https://doi.org/10.1080/09540099108946587"
+    ],
+    "evidence": "Author institution record confirms title, both authors, 1991, Connection Science 3(3):241\u2013268.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": [
+      "Add verified DOI for traceability."
+    ]
+  },
+  {
+    "key": "mnih2016a3c",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://proceedings.mlr.press/v48/mniha16.html"
+    ],
+    "evidence": "Official ICML proceedings confirms all eight authors, title, 2016; PMLR48:1928\u20131937. Existing metadata is accurate.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": [
+      "Add proceedings pages and point URL to official published version."
+    ]
+  },
+  {
+    "key": "peters2007rwr",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://is.mpg.de/am/publications/peters_picml_2007",
+      "https://pure.mpg.de/rest/items/item_1790444_3/component/file_3075658/content"
+    ],
+    "evidence": "Author institution record and paper confirm Peters/Schaal, title, ICML2007:745\u2013750, DOI10.1145/1273496.1273590.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": [
+      "Add verified DOI and institutional source URL."
+    ]
+  },
+  {
+    "key": "peng2019awr",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/1910.00177"
+    ],
+    "evidence": "arXiv record v3 confirms title, four authors, 2019 and identifier; metadata accurate.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": []
+  },
+  {
+    "key": "howard1972risk",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://pubsonline.informs.org/doi/10.1287/mnsc.18.7.356"
+    ],
+    "evidence": "Publisher explicitly recommends Howard and Matheson (1972), Management Science18(7):356\u2013369. Existing page range is correct; do not add an R prefix.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": [
+      "Add verified DOI."
+    ]
+  },
+  {
+    "key": "mihatsch2002risk",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://link.springer.com/article/10.1023/A:1017940631555"
+    ],
+    "evidence": "Publisher confirms title, two authors, Machine Learning49:267\u2013290, November2002. Existing metadata matches displayed record.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": [
+      "Add verified DOI."
+    ]
+  },
+  {
+    "key": "dong2023raft",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2304.06767"
+    ],
+    "evidence": "arXiv v4 confirms title and all10authors, 2023, and publication in TMLR; metadata accurate.",
+    "metadata_issues": [],
+    "usage_assessment": "Unused in both active manuscripts; no claim-fit judgment applies.",
+    "recommended_changes": []
+  },
+  {
+    "key": "lehman2011novelty",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://www.cs.swarthmore.edu/~meeden/DevelopmentalRobotics/lehman_ecj11.pdf",
+      "https://doi.org/10.1162/EVCO_a_00025"
+    ],
+    "evidence": "Original paper hosted by a university confirms title, both authors, Evolutionary Computation19(2):189\u2013223(2011). Section4.1, PDFpage13, defines novelty by nearest-neighbor behavioral distance and an archive of novel individuals.",
+    "metadata_issues": [],
+    "usage_assessment": "Both related-work occurrences incorrectly group this source under one elite per behavior descriptor. Novelty search uses a novelty archive, not MAP-Elites one-best-per-cell rule. Separate the attribution.",
+    "recommended_changes": [
+      "Attribute behavioral novelty search to Lehman/Stanley; attribute one elite per descriptor cell specifically to MAP-Elites.",
+      "Add verified DOI."
+    ]
+  },
+  {
+    "key": "mouret2015illuminating",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/1504.04909",
+      "https://arxiv.org/html/1504.04909v1"
+    ],
+    "evidence": "arXiv record confirms both authors, title, 2015. Section3/Figure2 retains the highest-performing solution in each descriptor cell and samples an occupied cell to produce offspring. Section4 explicitly distinguishes novelty search.",
+    "metadata_issues": [],
+    "usage_assessment": "All three uses support persistent behavior archives. The two related-work sentences should specify MAP-Elites and descriptor cells, rather than assert the rule for all quality-diversity search. The introductory reference is appropriate as a method designed to retain diverse solutions, without implying a neural-policy retention guarantee.",
+    "recommended_changes": [
+      "Use MAP-Elites by name and descriptor cell in the related-work comparison."
+    ]
+  }
+]

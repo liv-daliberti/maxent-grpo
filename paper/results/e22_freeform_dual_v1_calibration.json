@@ -1,0 +1,26 @@
+{
+  "base_alpha": 0.000075,
+  "calibration": {
+    "countdown": {
+      "fixed_target_entropy": 1.0776875459899504,
+      "per_seed_warmup_mean_entropy": {
+        "43": 1.086642856709659,
+        "44": 1.0672132885083556,
+        "45": 1.0792064927518368
+      },
+      "source_prefix": "cde22_freeform_conditional_dual_05b_v1"
+    },
+    "graph_coloring": {
+      "fixed_target_entropy": 1.2981748407085736,
+      "per_seed_warmup_mean_entropy": {
+        "43": 1.279134500771761,
+        "44": 1.3003549296408892,
+        "45": 1.3150350917130709
+      },
+      "source_prefix": "gce22_freeform_conditional_dual_05b_v1"
+    }
+  },
+  "method": "For each domain and seed, average train/maxent_dual_observed_entropy over trainer/global_step 1 through 64 inclusive; use the arithmetic mean of the three seed means as the prospective v2 fixed target.",
+  "schema": "e22_freeform_dual_v1_warmup_calibration_v1",
+  "warmup_steps": 64
+}

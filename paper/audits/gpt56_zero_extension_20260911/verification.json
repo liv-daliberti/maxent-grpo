@@ -1,0 +1,38 @@
+{
+  "status": "pass",
+  "temperatures": [
+    0,
+    0.5,
+    1,
+    1.5,
+    2
+  ],
+  "reasoning_effort": "none",
+  "new_responses": 960,
+  "total_responses": 4800,
+  "focused_tests": 80,
+  "main_pages": 9,
+  "main_and_workshop_builds": "pass",
+  "pdf_text_checks": {
+    "paper/main.pdf": {
+      "updated_five_temperature_caption": true,
+      "historical_marker_caption_removed": true
+    },
+    "paper/mathai2026/main.pdf": {
+      "updated_five_temperature_caption": true,
+      "historical_marker_caption_removed": true
+    }
+  },
+  "artifacts": {
+    "paper/main.pdf": "f067936d4585157767738c0b3baada64fcc3b33286510ef604b893e61b343e24",
+    "paper/main-body.pdf": "c4e44307aaa61fc851da4646545fd8fd3e151dfef1e7b647991d1462d2286e61",
+    "paper/main-with-figures.pdf": "f067936d4585157767738c0b3baada64fcc3b33286510ef604b893e61b343e24",
+    "paper/mathai2026/main.pdf": "c5167789c267365a7991d2b137752c62f3774cc9a677f76d7997f5ca78487bd0",
+    "paper/mathai2026/mathai2026-source.zip": "fbfac8dafcd7352883ad1e7a0c717db722aba8ac3ef56405cf60300280815980",
+    "paper/figures/gpt56_temperature_curve.pdf": "e289b8e9259eb842513d954bd13797a0a43f6078a6bfc187dfd0d8ca356dbf9e",
+    "paper/figures/gpt56_temperature_curve.png": "67ffb02bb0b1d536c71863fda9ba118503bb1de2181806e629b06db94f6b8755",
+    "paper/figures/gpt56_temperature_curve.json": "d4c5ac5f94dccc0f6ae2823a73272106011d30a3cfba581ce7789b4b7585d579",
+    "paper/results/gpt56_temperature_curve_20260911_appendix.tex": "532707e70e5d94a533b4e78b8d515e9dfcb87195b38fd38e574547409e0a5789"
+  },
+  "unsupported_requested_controls": "Live deployment rejects2.5(max2) and nondefault temperatures with medium reasoning."
+}

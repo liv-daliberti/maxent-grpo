@@ -1,0 +1,223 @@
+--- categorical/original.tex
++++ categorical/replacement.tex
+@@ -1,34 +1,30 @@
+ \section{Mode Collapse and Verified Replay}
+ \label{app:theory}
+ 
+-We separate the per-prompt mean gradient from the geometry and noise of its
+-updates. Outcome-binary score estimators share a correctness-gradient
+-direction for differentiable neural policies, while their covariance can
+-differ. The categorical specialization yields finite-step concentration and
+-sampled symmetry breaking; fixed-bank replay has an explicit restoration
+-threshold and recovery bound. Complete-response and local-update arguments
+-state conditions for neural retention. We apply established replicator,
+-policy-gradient, information-theoretic, and coverage results where their
+-assumptions match: the sharpened replay certificate follows by KL data
+-processing, and exact Dr.GRPO with reference KL inherits a published
+-convergence guarantee. Our derivations address the group estimators, their
+-sampling noise, and the competition with the verified bank. These results
+-do not certify the implemented AdamW/PPO trajectories.
+-Table~\ref{tab:notation} lists the symbols used here.
++For a fixed prompt, the binary-reward score estimators defined below have
++mean updates along the correctness gradient, while their sampling
++covariances can differ. With independently optimized categorical logits,
++these updates amplify differences among equally rewarded modes, and sampling
++can break an initially exact symmetry. Fixed-bank replay supplies
++probability floors, restoration thresholds, and recovery bounds under the
++stated update assumptions. Neural retention requires additional conditions
++on complete-response likelihoods and local updates. These results do not
++certify the implemented AdamW/PPO trajectories.
++Table~\ref{tab:notation} defines the notation.
+ 
+ \subsection{Categorical abstraction and mean updates}
+ \label{app:theory-grpo-mean}
+ 
+-The categorical results use the following model. The neural score identities,
+-finite-step updates, and sampled-update results below state separately which
+-assumptions they replace; none identifies a neural mode with an independently
+-optimized logit.
++The categorical model assigns one independent logit to each outcome
++category. Its Euclidean mean flow and the subsequent finite-step, sampled,
++and neural updates have different assumptions; a neural solution mode need
++not have an independently optimized logit.
+ 
+ \begin{assumption}[Categorical mean-flow model]
+ \label{ass:categorical-mean-flow}
+ Fix one isolated prompt and a finite category set
+ $\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$ with $m\ge2$ correct
+-execution modes and $n\ge1$ incorrect categories, and set
++solution modes and $n\ge1$ incorrect categories, and set
+ $p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+ $q_c=p_c/P$, so that $P$ measures correctness while $q$ describes how that
+ correct probability is allocated among the individual correct modes.
+@@ -36,10 +32,9 @@
+ \item[(A1)] \emph{Independent logits.} The policy carries one independently
+   optimized logit for every category in $\mathcal A$, including one separate
+   logit for each canonical correct mode.
+-\item[(A2)] \emph{Common length normalization.} Every response shares a single
+-  length scale, which is absorbed into the positive coefficient of the group
+-  estimator, rather than a scale that varies from one response to the next
+-  within the same rollout group.
++\item[(A2)] \emph{Common length normalization.} Every response uses the same
++  fixed length-normalization factor, absorbed into the positive coefficient
++  of the group estimator.
+ \item[(A3)] \emph{Euclidean mean flow.} Updates are the infinitesimal expected
+   updates in these logits, taken without optimizer preconditioning and without
+   momentum carried between steps.
+@@ -50,17 +45,18 @@
+ \end{enumerate}
+ \end{assumption}
+ 
+-We write ``under Assumption~\ref{ass:categorical-mean-flow}'' for (A1)--(A5)
+-together. Each limitation of the analysis can be traced to a specific item:
+-AdamW and PPO violate (A3), variable-length GRPO violates (A2), and entropy
+-regularization violates (A4).
+-
+-A language model induces probabilities over canonical outcomes, but this
+-identification of probabilities does not identify its update geometry.
+-Aggregating several response strings into a mode does not generally commute
+-with gradient flow in response logits. One independent logit per canonical
+-outcome is therefore an explicit abstraction, not a reduction proved for the
+-neural policy or its validator equivalence classes.
++Assumption~\ref{ass:categorical-mean-flow} includes all five conditions.
++AdamW's preconditioning and momentum violate (A3); finite, repeated PPO
++updates are outside its infinitesimal on-policy limit. Response-specific
++length normalization violates (A2), while reference KL and entropy
++regularization violate (A4).
++
++A language model induces probabilities over canonical outcomes, but those
++probabilities alone do not determine its update geometry. Aggregating several
++response strings into a mode does not generally commute with gradient flow
++in response logits. The independent-category model therefore requires an
++additional assumption beyond a neural policy and its validator equivalence
++classes.
+ 
+ Draw a group $Z_1,\ldots,Z_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+ write $R_i=\1[Z_i\in\mathcal C]$, and let $R=\sum_iR_i$. At the on-policy
+@@ -71,16 +67,17 @@
+    w(R)\left(R_i-\frac{R}{G}\right)\nabla_z\log p_{Z_i}.
+   \label{eq:group-estimator}
+ \end{equation}
+-For the Dr.GRPO abstraction, $w(R)=1$ after absorbing the shared positive
+-length scale. Reward-standardized GRPO with equal or common response-length
++For the Dr.GRPO abstraction \citep{liu2025understanding}, $w(R)=1$ after
++absorbing the fixed positive length-normalization factor. Reward-standardized
++GRPO \citep{shao2024deepseekmath} with fixed common response-length
+ normalization takes $w(R)$ to be the reciprocal group reward standard
+ deviation on mixed groups (with a fixed numerical stabilizer if used).
+ Standard variable-length GRPO also weights each response by its own inverse
+-length \citep{shao2024deepseekmath,liu2025understanding}; that factor cannot
+-generally be absorbed into $w(R)$ and is outside the equivalence proved here.
++length; that response-specific factor cannot generally be absorbed into
++$w(R)$ and is outside this equivalence.
+ In either included case, $0<w(\ell)<\infty$ for
+-$\ell\in\{1,\ldots,G-1\}$. We define the entire update as zero on all-equal
+-groups without evaluating an undefined reciprocal standard deviation;
++$\ell\in\{1,\ldots,G-1\}$. The entire update is zero on all-equal
++groups, without evaluating an undefined reciprocal standard deviation;
+ likewise, $w(R)R(G-R)$ below is defined as zero when $R=0$ or $R=G$. All
+ advantages and normalization weights are detached in the score estimator.
+ 
+@@ -132,13 +129,11 @@
+ \]
+ The binomial weights sum to one, so $c_G$ lies between
+ $(G-1)\min_j w(j+1)/G$ and $(G-1)\max_j w(j+1)/G$.
+-This establishes the smooth, positive extension to $P=0,1$ used in the
+-subsequent flow and convergence arguments.
+-
+-The next lemma specializes the practical-estimator analysis of
+-\citet[Section~4.3 and App.~D, Theorem~5]{tajwar2026maxrl}
+-to our categorical notation. We invoke that result directly and retain the
+-normalization that identifies the implemented estimator.
++Thus $c_G$ extends smoothly and positively to $P=0,1$.
++
++The practical MaxRL estimator has the same mean-gradient direction
++\citep[Section~4.3 and App.~D, Theorem~5]{tajwar2026maxrl}. Its all-failure
++convention determines the finite-group coefficient.
+ 
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \enforcehalffinalproseline
+@@ -164,15 +159,15 @@
+ 
+ \begin{proof}
+ \enforcehalffinalproseline
+-Apply \citet[Theorem~5]{tajwar2026maxrl} with $N=G$ and pass rate $P$.
+-Its dropped-baseline estimator is exactly $\widehat g_G^{\mathrm{MaxRL}}$,
+-so its expected coefficient is $\sum_{j=0}^{G-2}(1-P)^j$.
+-The finite geometric sum gives Equation~\eqref{eq:maxrl-expected-gradient}
+-and its endpoint values. This application uses on-policy independent draws
+-and the score identity, without making an optimizer convergence claim.
++With $N=G$ and pass rate $P$, the estimator in
++\citet[Theorem~5]{tajwar2026maxrl} equals
++$\widehat g_G^{\mathrm{MaxRL}}$. Its expected coefficient is
++$\sum_{j=0}^{G-2}(1-P)^j$, whose geometric sum gives
++Equation~\eqref{eq:maxrl-expected-gradient} and its endpoint values.
++The identity requires on-policy independent draws and the score identity.
+ \end{proof}
+ 
+-The same finite-series identity gives the potential used below:
++Integrating this coefficient gives the potential
+ \begin{equation}
+  \Psi_{\mathrm{MaxRL}}(P)
+  :=\int_0^P c_G^{\mathrm{MaxRL}}(s)\,ds
+@@ -182,11 +177,11 @@
+ In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
+ For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
+ mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
+-$G-1$, not $G$: the implemented centered estimator drops the entire update
+-on all-failure groups. Subtracting an unconditional score baseline even on
+-those groups instead gives the order-$G$ estimator. This distinction concerns
+-the exact finite-group expectation at the on-policy point; it does not assert
+-unbiasedness of subsequent clipped or adaptive-optimizer updates.
++$G-1$ because the implemented centered estimator sets the entire update
++to zero on all-failure groups. Subtracting an unconditional score baseline
++even on those groups instead gives the order-$G$ estimator. These are exact
++finite-group expectations at the on-policy point; subsequent clipping and
++adaptive optimization can alter the expected update.
+ 
+ 
+ \subsection{Winner-take-all collapse in the categorical mean flow}
+@@ -195,16 +190,15 @@
+ Consider $\dot z=c_G(P)\nabla_zP$, with any of the smooth positive
+ coefficients established above: Dr.GRPO, common-length reward-standardized
+ GRPO, or the specified centered binary MaxRL estimator. This infinitesimal
+-expected-update model removes
+-sampling noise and retains independently trained Euclidean logits. The
+-conditional dynamics reduce to the standard frequency-dependent replicator
+-system with fitness $f_c(q)=q_c$
+-\citep{hofbauer1998evolutionary,harper2009informationgeometry}. The result is
+-a specialization to the group estimators, not a new general theorem about
+-replicator dynamics. Related correctness-indifferent collapse analyses include
++expected-update model has
++no sampling noise and uses independently optimized Euclidean logits. The
++conditional dynamics follow the frequency-dependent replicator system
++with fitness $f_c(q)=q_c$
++\citep{hofbauer1998evolutionary,harper2009informationgeometry}.
++Related analyses of collapse among equally rewarded outcomes include
+ \citet{sinha2026expected,lochab2026ucpo}.
+ 
+-\begin{theorem}[Standard replicator specialization for binary-reward RL]
++\begin{theorem}[Winner-take-all collapse in the categorical mean flow]
+ \enforcehalffinalproseline
+ \label{thm:grpo-collapse}
+ Under Assumption~\ref{ass:categorical-mean-flow}, if the conditional correct-mode
+@@ -216,15 +210,15 @@
+   \qquad
+   q_c(t)\longrightarrow0\quad(c\ne c^\star).
+ \]
+-Thus these categorical mean flows converge to a single correct execution
++Thus these categorical mean flows converge to a single correct solution
+ mode for generic initial conditions, even though every mode in $\mathcal C$
+ has exactly the same reward.
+ \end{theorem}
+ 
+ \begin{remark}
+-Theorem~\ref{thm:grpo-collapse} is asymptotic and internal to (A1)--(A3): it
+-claims neither finite-time support loss nor convergence of the stochastic
+-neural optimizers used in our experiments.
++Theorem~\ref{thm:grpo-collapse} is asymptotic and requires (A1)--(A5).
++Finite-time support loss and convergence of the stochastic neural optimizers
++used in the experiments are outside its scope.
+ \end{remark}
+ 
+ \begin{proof}

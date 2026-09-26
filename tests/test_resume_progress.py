@@ -171,3 +171,129 @@ def test_discover_local_wandb_resume_run_resolves_merged_checkpoint_symlinks(
 
     assert run_id == "hi2sv2vb"
     assert run_name == "qwen-seed43_0412T16:03:41"
+
+
+def _resume_runtime_class():
+    """Execute the real resume methods without importing the GPU runtime."""
+    import ast
+    import logging
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    source = Path(__file__).resolve().parents[1] / "src/oat_drgrpo/learner/run.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    mixin = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "ZeroMathRunMixin"
+    )
+    methods = [
+        node for node in mixin.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name in {"_infer_resume_step", "_restore_prompt_progress", "run"}
+    ]
+    isolated = ast.Module(
+        body=[
+            ast.ImportFrom(
+                module="__future__", names=[ast.alias(name="annotations")], level=0
+            ),
+            ast.ClassDef(
+                name="Learner", bases=[], keywords=[], body=methods, decorator_list=[]
+            ),
+        ],
+        type_ignores=[],
+    )
+    ast.fix_missing_locations(isolated)
+    namespace = {
+        "Path": Path,
+        "logging": logging,
+        "resolve_resume_progress_state": resolve_resume_progress_state,
+        "time": SimpleNamespace(time=lambda: 0),
+    }
+    exec(compile(isolated, str(source), "exec"), namespace)
+    return namespace["Learner"]
+
+
+def test_resume_load_restores_counters_before_actor_sync():
+    from types import SimpleNamespace
+    import pytest
+
+    class Synced(Exception):
+        pass
+
+    learner = _resume_runtime_class()()
+    # The E118 Qwen-3B Python checkpoint contains 16 queries per prompt batch.
+    state = {
+        "steps": 1920, "global_step": 1920, "policy_sgd_step": 1920.0,
+        "prompt_batches_consumed_total": 1920, "prompt_epoch": 4,
+        "query_step": 30720, "prompt_consumed": 30720,
+    }
+    learner.args = SimpleNamespace(
+        resume_dir="/checkpoint", resume_tag="step_01920",
+        num_prompt_epoch=8, rollout_batch_size=1,
+    )
+    learner.actors = []
+    learner.model = SimpleNamespace(model=object())
+    learner.update_interval = 1
+    learner.prompts_dataloader = range(384)
+    events = []
+
+    def load_checkpoint(*args):
+        events.append("load")
+        return "/checkpoint/step_01920", state
+
+    learner.strategy = SimpleNamespace(load_ckpt=load_checkpoint)
+    learner._init = lambda *args: None
+    learner._init_local_actor_weight_sync = lambda: None
+    learner._restore_training_progress_state = lambda states: events.append("restore")
+    learner._init_wandb = lambda states: events.append("wandb")
+
+    def sync_params():
+        events.append("sync")
+        assert learner.steps == 1920
+        assert learner.global_step == 1920
+        assert learner.query_step == 30720
+        assert learner._prompt_batches_consumed_total == 1920
+        raise Synced()
+
+    learner.sync_params_to_actors = sync_params
+    with pytest.raises(Synced):
+        learner.run()
+    assert events == ["load", "restore", "wandb", "sync"]
+    assert learner._restore_prompt_progress(state, 1920) == (1921, 5, 0)
+
+
+def test_resume_step_uses_selected_tag_without_client_state():
+    from types import SimpleNamespace
+
+    learner = _resume_runtime_class()()
+    learner.args = SimpleNamespace(resume_tag="step_02304")
+    assert learner._infer_resume_step({}) == 2304
+    assert learner._infer_resume_step(None) == 2304
+
+
+def test_resume_step_reads_deepspeed_latest_file_or_symlink(tmp_path):
+    from types import SimpleNamespace
+
+    learner = _resume_runtime_class()()
+    learner.args = SimpleNamespace(resume_tag=None, resume_dir=str(tmp_path))
+    latest = tmp_path / "latest"
+    latest.write_text("step_00192\n", encoding="utf-8")
+    assert learner._infer_resume_step({}) == 192
+    latest.unlink()
+    (tmp_path / "step_00384").mkdir()
+    latest.symlink_to("step_00384")
+    assert learner._infer_resume_step({}) == 384
+
+
+def test_resume_step_rejects_ambiguous_or_corrupt_state():
+    from types import SimpleNamespace
+    import pytest
+
+    learner = _resume_runtime_class()()
+    learner.args = SimpleNamespace(resume_tag="step_01920")
+    for raw_step in [-1, True, "corrupt", 1920.5, 1919, None]:
+        with pytest.raises(RuntimeError):
+            learner._infer_resume_step({"steps": raw_step})
+    learner.args = SimpleNamespace(resume_tag="unknown")
+    with pytest.raises(RuntimeError):
+        learner._infer_resume_step({})

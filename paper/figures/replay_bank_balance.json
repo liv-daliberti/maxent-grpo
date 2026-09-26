@@ -1,0 +1,40 @@
+{
+ "schema": "paper-figure-schematic-v1",
+ "kind": "schematic",
+ "data": "illustrative; no measured source. Probabilities are chosen for legibility and are not estimates.",
+ "unfilled_area": "the panel wash outside the mode regions is unverified (incorrect) probability mass; labelled on the first panel.",
+ "builder": {
+  "path": "ops/plot_paper_replay_bank_balance.py"
+ },
+ "states": {
+  "Base": {
+   "A": 0.22,
+   "B": 0.19,
+   "C": 0.16,
+   "D": 0.13
+  },
+  "RLVR-only": {
+   "A": 0.95,
+   "B": 0.05,
+   "C": 0.04,
+   "D": 0.03
+  },
+  "+ Replay": {
+   "A": 0.68,
+   "B": 0.61,
+   "C": 0.56,
+   "D": 0.51
+  }
+ },
+ "floor": 0.22,
+ "totals": {
+  "Base": 0.7,
+  "RLVR-only": 1.07,
+  "+ Replay": 2.36
+ },
+ "totals_note": "total area rises Base -> RLVR-only -> + Replay: accuracy improves in both, while only replay keeps the modes apart.",
+ "outputs": {
+  "pdf": "replay_bank_balance.pdf",
+  "png": "replay_bank_balance.png"
+ }
+}

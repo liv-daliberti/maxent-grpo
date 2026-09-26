@@ -1,0 +1,3392 @@
+{
+  "schema": "paper-terminal-accuracy-breadth-frontier-v5",
+  "generated_at": "2026-09-18T18:22:34.796514+00:00",
+  "status": "current direct-method pass-8 endpoints with exact n; retired semantic treatments and endpoint-incomplete DAPO are excluded",
+  "x_metric": "pass@8",
+  "y_metric": "PCMD",
+  "methods": [
+    "matched Dr.GRPO",
+    "GRPO",
+    "Re:Dr (ours)",
+    "UCPO",
+    "RLEP-Dr"
+  ],
+  "method_keys": [
+    "drgrpo",
+    "grpo",
+    "replay_grpo",
+    "ucpo",
+    "rlep_dr"
+  ],
+  "model_rows": [
+    "Qwen2.5-0.5B",
+    "Falcon3-1B",
+    "Qwen2.5-3B"
+  ],
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "model_encoding": "row 1 Qwen2.5-0.5B; row 2 Falcon3-1B; row 3 Qwen2.5-3B; unsupported method-cells are blank",
+  "evidence_encoding": "color and shape jointly identify methods; open markers are exact terminal seeds; filled markers of the same method-specific shape are descriptive means over the exact available n; non-five-seed blocks carry an explicit n label",
+  "blank_rule": "methods without the figure's stated pass-8 evidence remain blank",
+  "cells": [
+    {
+      "model": "Qwen2.5-0.5B",
+      "domain": "graph_coloring",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.3515625,
+              "distinct8": 0.359375,
+              "pmd": 0.005017921146953406
+            },
+            "44": {
+              "pass8": 0.3125,
+              "distinct8": 0.3125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.3125,
+              "distinct8": 0.3125,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.3234375,
+            "distinct8": 0.325,
+            "pmd": 0.0010035842293906812
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.98046875,
+              "distinct8": 2.435546875,
+              "pmd": 0.5507843128146885
+            },
+            "44": {
+              "pass8": 0.966796875,
+              "distinct8": 2.419921875,
+              "pmd": 0.5483307087093323
+            },
+            "45": {
+              "pass8": 0.97265625,
+              "distinct8": 2.466796875,
+              "pmd": 0.5800857790790263
+            },
+            "46": {
+              "pass8": 0.955078125,
+              "distinct8": 2.306640625,
+              "pmd": 0.5417779797113752
+            },
+            "47": {
+              "pass8": 0.970703125,
+              "distinct8": 2.55859375,
+              "pmd": 0.577758261278154
+            }
+          },
+          "summary": {
+            "pass8": 0.969140625,
+            "distinct8": 2.4375,
+            "pmd": 0.5597474083185153
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.4609375,
+              "distinct8": 0.515625,
+              "pmd": 0.04387643521049754
+            },
+            "45": {
+              "pass8": 0.3515625,
+              "distinct8": 0.3515625,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.3515625,
+              "distinct8": 0.3515625,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.3609375,
+            "distinct8": 0.371875,
+            "pmd": 0.008775287042099508
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.3125,
+              "distinct8": 0.3125,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.328125,
+              "distinct8": 0.3359375,
+              "pmd": 0.005376344086021506
+            },
+            "46": {
+              "pass8": 0.328125,
+              "distinct8": 0.328125,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.3125,
+              "distinct8": 0.3125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.3203125,
+            "distinct8": 0.321875,
+            "pmd": 0.001075268817204301
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.5,
+              "distinct8": 0.59375,
+              "pmd": 0.0575581768644493
+            },
+            "44": {
+              "pass8": 0.484375,
+              "distinct8": 0.5546875,
+              "pmd": 0.05299967982069959
+            },
+            "45": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.45703125,
+              "distinct8": 0.533203125,
+              "pmd": 0.06393051065650415
+            },
+            "47": {
+              "pass8": 0.34765625,
+              "distinct8": 0.35546875,
+              "pmd": 0.005017921146953406
+            }
+          },
+          "summary": {
+            "pass8": 0.421875,
+            "distinct8": 0.471484375,
+            "pmd": 0.03590125769772129
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "domain": "countdown",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.6171875,
+              "distinct8": 0.6171875,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.41015625,
+              "distinct8": 0.435546875,
+              "pmd": 0.031801582471089475
+            },
+            "45": {
+              "pass8": 0.4375,
+              "distinct8": 0.4375,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.328125,
+              "distinct8": 0.333984375,
+              "pmd": 0.004176267281105991
+            },
+            "47": {
+              "pass8": 0.609375,
+              "distinct8": 0.609375,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.48046875,
+            "distinct8": 0.48671875,
+            "pmd": 0.007195569950439093
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.65625,
+              "distinct8": 1.55859375,
+              "pmd": 0.46758464701636143
+            },
+            "44": {
+              "pass8": 0.65625,
+              "distinct8": 1.546875,
+              "pmd": 0.48027824601091385
+            },
+            "45": {
+              "pass8": 0.6796875,
+              "distinct8": 1.73828125,
+              "pmd": 0.513687541397392
+            },
+            "46": {
+              "pass8": 0.6640625,
+              "distinct8": 1.63671875,
+              "pmd": 0.47490886663888615
+            },
+            "47": {
+              "pass8": 0.703125,
+              "distinct8": 1.703125,
+              "pmd": 0.5009830315913544
+            }
+          },
+          "summary": {
+            "pass8": 0.671875,
+            "distinct8": 1.63671875,
+            "pmd": 0.4874884665309816
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.578125,
+              "distinct8": 0.5859375,
+              "pmd": 0.0030514385353095034
+            },
+            "44": {
+              "pass8": 0.65625,
+              "distinct8": 0.65625,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.65625,
+              "distinct8": 0.708984375,
+              "pmd": 0.02385470317159122
+            },
+            "46": {
+              "pass8": 0.65625,
+              "distinct8": 0.6640625,
+              "pmd": 0.004200268817204301
+            },
+            "47": {
+              "pass8": 0.6484375,
+              "distinct8": 0.6640625,
+              "pmd": 0.008936282765470482
+            }
+          },
+          "summary": {
+            "pass8": 0.6390625,
+            "distinct8": 0.655859375,
+            "pmd": 0.008008538657915102
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.625,
+              "distinct8": 0.67578125,
+              "pmd": 0.030455767350928642
+            },
+            "44": {
+              "pass8": 0.599609375,
+              "distinct8": 0.66796875,
+              "pmd": 0.03288646837033934
+            },
+            "45": {
+              "pass8": 0.6015625,
+              "distinct8": 0.67578125,
+              "pmd": 0.03413280268118978
+            },
+            "46": {
+              "pass8": 0.5859375,
+              "distinct8": 0.6484375,
+              "pmd": 0.024086021505376348
+            },
+            "47": {
+              "pass8": 0.65625,
+              "distinct8": 0.6875,
+              "pmd": 0.010752688172043012
+            }
+          },
+          "summary": {
+            "pass8": 0.613671875,
+            "distinct8": 0.67109375,
+            "pmd": 0.026462749615975424
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.58984375,
+              "distinct8": 0.58984375,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.4140625,
+              "distinct8": 0.4296875,
+              "pmd": 0.016889835666463786
+            },
+            "45": {
+              "pass8": 0.6484375,
+              "distinct8": 0.65625,
+              "pmd": 0.004227436060029592
+            },
+            "46": {
+              "pass8": 0.6328125,
+              "distinct8": 0.783203125,
+              "pmd": 0.07454320039445488
+            },
+            "47": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.58359375,
+            "distinct8": 0.618359375,
+            "pmd": 0.01913209442418965
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "domain": "python_factors",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "44": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "45": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "46": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "47": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.171875,
+            "distinct8": 0.171875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 1.0,
+              "distinct8": 1.0,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.998046875,
+              "distinct8": 0.998046875,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.21875,
+              "distinct8": 0.21875,
+              "pmd": null
+            },
+            "46": {
+              "pass8": 0.2265625,
+              "distinct8": 0.443359375,
+              "pmd": null
+            },
+            "47": {
+              "pass8": 0.1953125,
+              "distinct8": 0.1953125,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.527734375,
+            "distinct8": 0.57109375,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "44": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "45": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "46": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "47": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.171875,
+            "distinct8": 0.171875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "44": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "45": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "46": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "47": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.171875,
+            "distinct8": 0.171875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "44": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "45": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "46": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "47": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.171875,
+            "distinct8": 0.171875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "domain": "mathir",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.576171875,
+              "distinct8": 0.576171875,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.5078125,
+              "distinct8": 0.5078125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.556640625,
+              "distinct8": 0.556640625,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.474609375,
+              "distinct8": 0.474609375,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.443359375,
+              "distinct8": 0.451171875,
+              "pmd": 0.004194394031054648
+            }
+          },
+          "summary": {
+            "pass8": 0.51171875,
+            "distinct8": 0.51328125,
+            "pmd": 0.0008388788062109297
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.791015625,
+              "distinct8": 0.8203125,
+              "pmd": 0.016808994053373744
+            },
+            "44": {
+              "pass8": 0.83203125,
+              "distinct8": 0.85546875,
+              "pmd": 0.015689381563048502
+            },
+            "45": {
+              "pass8": 0.798828125,
+              "distinct8": 0.84375,
+              "pmd": 0.026614401822293327
+            },
+            "46": {
+              "pass8": 0.849609375,
+              "distinct8": 0.908203125,
+              "pmd": 0.02653342162786328
+            },
+            "47": {
+              "pass8": 0.7109375,
+              "distinct8": 0.71484375,
+              "pmd": 0.0033300033300033296
+            }
+          },
+          "summary": {
+            "pass8": 0.796484375,
+            "distinct8": 0.828515625,
+            "pmd": 0.017795240479316438
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.70703125,
+              "distinct8": 0.70703125,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.333984375,
+              "distinct8": 0.341796875,
+              "pmd": 0.010830832708177043
+            },
+            "45": {
+              "pass8": 0.443359375,
+              "distinct8": 0.443359375,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.548828125,
+              "distinct8": 0.548828125,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.265625,
+              "distinct8": 0.265625,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.459765625,
+            "distinct8": 0.461328125,
+            "pmd": 0.0021661665416354086
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.556640625,
+              "distinct8": 0.556640625,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.611328125,
+              "distinct8": 0.611328125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.69140625,
+              "distinct8": 0.69140625,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.453125,
+              "distinct8": 0.453125,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.400390625,
+              "distinct8": 0.400390625,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.542578125,
+            "distinct8": 0.542578125,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.6015625,
+              "distinct8": 0.6015625,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.705078125,
+              "distinct8": 0.705078125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.630859375,
+              "distinct8": 0.630859375,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.60546875,
+              "distinct8": 0.60546875,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.646484375,
+              "distinct8": 0.646484375,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.637890625,
+            "distinct8": 0.637890625,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "domain": "pantry_plan",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.484375,
+              "distinct8": 0.484375,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.521875,
+            "distinct8": 0.521875,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.8046875,
+              "distinct8": 1.62890625,
+              "pmd": 0.33180809317376875
+            },
+            "44": {
+              "pass8": 0.736328125,
+              "distinct8": 1.779296875,
+              "pmd": 0.39212198945662347
+            },
+            "45": {
+              "pass8": 0.673828125,
+              "distinct8": 1.2734375,
+              "pmd": 0.26995345964209544
+            },
+            "46": {
+              "pass8": 0.69921875,
+              "distinct8": 1.55078125,
+              "pmd": 0.37718078009988226
+            },
+            "47": {
+              "pass8": 0.728515625,
+              "distinct8": 1.46484375,
+              "pmd": 0.29779694526420686
+            }
+          },
+          "summary": {
+            "pass8": 0.728515625,
+            "distinct8": 1.539453125,
+            "pmd": 0.3337722535273154
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.5546875,
+              "distinct8": 0.5546875,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.5546875,
+              "distinct8": 0.5546875,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.5546875,
+              "distinct8": 0.5546875,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.5453125,
+            "distinct8": 0.5453125,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.6484375,
+              "distinct8": 0.6484375,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.575,
+            "distinct8": 0.575,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "per_seed": {
+            "43": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "44": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "45": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            },
+            "46": {
+              "pass8": 0.484375,
+              "distinct8": 0.484375,
+              "pmd": 0.0
+            },
+            "47": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.521875,
+            "distinct8": 0.521875,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Falcon3-1B",
+      "domain": "graph_coloring",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.66015625,
+              "distinct8": 0.9375,
+              "pmd": 0.12923062848493888
+            },
+            "56": {
+              "pass8": 0.5546875,
+              "distinct8": 0.78125,
+              "pmd": 0.11104413852926666
+            },
+            "57": {
+              "pass8": 0.744140625,
+              "distinct8": 1.30859375,
+              "pmd": 0.33004348876407363
+            },
+            "58": {
+              "pass8": 0.65625,
+              "distinct8": 1.109375,
+              "pmd": 0.24328969035588527
+            },
+            "59": {
+              "pass8": 0.6640625,
+              "distinct8": 1.033203125,
+              "pmd": 0.20756853791304722
+            }
+          },
+          "summary": {
+            "pass8": 0.655859375,
+            "distinct8": 1.033984375,
+            "pmd": 0.20423529680944236
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.802734375,
+              "distinct8": 1.638671875,
+              "pmd": 0.39158135526365095
+            },
+            "56": {
+              "pass8": 0.783203125,
+              "distinct8": 1.740234375,
+              "pmd": 0.4603165207791943
+            },
+            "57": {
+              "pass8": 0.837890625,
+              "distinct8": 1.814453125,
+              "pmd": 0.45541019321812776
+            },
+            "58": {
+              "pass8": 0.830078125,
+              "distinct8": 1.6875,
+              "pmd": 0.39608618443967797
+            },
+            "59": {
+              "pass8": 0.7890625,
+              "distinct8": 1.703125,
+              "pmd": 0.4390369947765868
+            }
+          },
+          "summary": {
+            "pass8": 0.80859375,
+            "distinct8": 1.716796875,
+            "pmd": 0.4284862496954475
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.771484375,
+              "distinct8": 1.494140625,
+              "pmd": 0.39989283215397187
+            },
+            "56": {
+              "pass8": 0.8046875,
+              "distinct8": 1.369140625,
+              "pmd": 0.2574540431401806
+            },
+            "57": {
+              "pass8": 0.765625,
+              "distinct8": 1.359375,
+              "pmd": 0.28622366488003703
+            },
+            "58": {
+              "pass8": 0.76953125,
+              "distinct8": 1.375,
+              "pmd": 0.30535278307580677
+            },
+            "59": {
+              "pass8": 0.734375,
+              "distinct8": 1.326171875,
+              "pmd": 0.3524622624418228
+            }
+          },
+          "summary": {
+            "pass8": 0.769140625,
+            "distinct8": 1.384765625,
+            "pmd": 0.3202771171383638
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.767578125,
+              "distinct8": 1.333984375,
+              "pmd": 0.3162297434784931
+            },
+            "56": {
+              "pass8": 0.72265625,
+              "distinct8": 1.16015625,
+              "pmd": 0.260752535077093
+            },
+            "57": {
+              "pass8": 0.783203125,
+              "distinct8": 1.490234375,
+              "pmd": 0.3506870141109159
+            },
+            "58": {
+              "pass8": 0.724609375,
+              "distinct8": 1.095703125,
+              "pmd": 0.21231421890532817
+            },
+            "59": {
+              "pass8": 0.798828125,
+              "distinct8": 1.625,
+              "pmd": 0.4273473238181017
+            }
+          },
+          "summary": {
+            "pass8": 0.759375,
+            "distinct8": 1.341015625,
+            "pmd": 0.31346616707798636
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.6875,
+              "distinct8": 1.076171875,
+              "pmd": 0.21402245212337792
+            },
+            "56": {
+              "pass8": 0.7109375,
+              "distinct8": 1.076171875,
+              "pmd": 0.18712599839121707
+            },
+            "57": {
+              "pass8": 0.77734375,
+              "distinct8": 1.373046875,
+              "pmd": 0.31333040874342893
+            },
+            "58": {
+              "pass8": 0.7265625,
+              "distinct8": 1.20703125,
+              "pmd": 0.2729423697839841
+            },
+            "59": {
+              "pass8": 0.642578125,
+              "distinct8": 1.01953125,
+              "pmd": 0.24011428178748812
+            }
+          },
+          "summary": {
+            "pass8": 0.708984375,
+            "distinct8": 1.150390625,
+            "pmd": 0.24550710216589922
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Falcon3-1B",
+      "domain": "countdown",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.3671875,
+              "distinct8": 0.51171875,
+              "pmd": 0.15571137683576408
+            },
+            "56": {
+              "pass8": 0.291015625,
+              "distinct8": 0.35546875,
+              "pmd": 0.08499830475636928
+            },
+            "57": {
+              "pass8": 0.310546875,
+              "distinct8": 0.359375,
+              "pmd": 0.06227217741935485
+            },
+            "58": {
+              "pass8": 0.33203125,
+              "distinct8": 0.43359375,
+              "pmd": 0.10432146727157979
+            },
+            "59": {
+              "pass8": 0.337890625,
+              "distinct8": 0.4375,
+              "pmd": 0.11081732261167745
+            }
+          },
+          "summary": {
+            "pass8": 0.327734375,
+            "distinct8": 0.41953125,
+            "pmd": 0.10362412977894908
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 4,
+          "seeds": [
+            55,
+            56,
+            57,
+            58
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.587890625,
+              "distinct8": 0.80859375,
+              "pmd": 0.1372666266615893
+            },
+            "56": {
+              "pass8": 0.65234375,
+              "distinct8": 0.869140625,
+              "pmd": 0.13892722845835262
+            },
+            "57": {
+              "pass8": 0.61328125,
+              "distinct8": 0.80078125,
+              "pmd": 0.12786920536729393
+            },
+            "58": {
+              "pass8": 0.67578125,
+              "distinct8": 0.875,
+              "pmd": 0.13241076422652268
+            }
+          },
+          "summary": {
+            "pass8": 0.63232421875,
+            "distinct8": 0.83837890625,
+            "pmd": 0.13411845617843965
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.62890625,
+              "distinct8": 0.62890625,
+              "pmd": 0.0
+            },
+            "56": {
+              "pass8": 0.607421875,
+              "distinct8": 0.615234375,
+              "pmd": 0.0030651340996168583
+            },
+            "57": {
+              "pass8": 0.59765625,
+              "distinct8": 0.59765625,
+              "pmd": 0.0
+            },
+            "58": {
+              "pass8": 0.302734375,
+              "distinct8": 0.337890625,
+              "pmd": 0.03452620967741936
+            },
+            "59": {
+              "pass8": 0.611328125,
+              "distinct8": 0.611328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.549609375,
+            "distinct8": 0.558203125,
+            "pmd": 0.0075182687554072435
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.28125,
+              "distinct8": 0.28125,
+              "pmd": 0.0
+            },
+            "56": {
+              "pass8": 0.353515625,
+              "distinct8": 0.408203125,
+              "pmd": 0.054180163182617605
+            },
+            "57": {
+              "pass8": 0.296875,
+              "distinct8": 0.302734375,
+              "pmd": 0.005942275042444822
+            },
+            "58": {
+              "pass8": 0.326171875,
+              "distinct8": 0.359375,
+              "pmd": 0.038177096929910136
+            },
+            "59": {
+              "pass8": 0.56640625,
+              "distinct8": 0.591796875,
+              "pmd": 0.020214920863803342
+            }
+          },
+          "summary": {
+            "pass8": 0.36484375,
+            "distinct8": 0.388671875,
+            "pmd": 0.02370289120375518
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.40625,
+              "distinct8": 0.49609375,
+              "pmd": 0.06793491387222368
+            },
+            "56": {
+              "pass8": 0.66796875,
+              "distinct8": 0.72265625,
+              "pmd": 0.03342666023648769
+            },
+            "57": {
+              "pass8": 0.376953125,
+              "distinct8": 0.490234375,
+              "pmd": 0.09687415288696125
+            },
+            "58": {
+              "pass8": 0.41015625,
+              "distinct8": 0.5390625,
+              "pmd": 0.10618199061595289
+            },
+            "59": {
+              "pass8": 0.40234375,
+              "distinct8": 0.509765625,
+              "pmd": 0.08596474702682858
+            }
+          },
+          "summary": {
+            "pass8": 0.452734375,
+            "distinct8": 0.5515625,
+            "pmd": 0.07807649292769081
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Falcon3-1B",
+      "domain": "python_factors",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "56": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.001953125,
+              "distinct8": 0.001953125,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.000390625,
+            "distinct8": 0.000390625,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.90234375,
+              "distinct8": 1.439453125,
+              "pmd": 0.2615778133371656
+            },
+            "56": {
+              "pass8": 0.994140625,
+              "distinct8": 0.994140625,
+              "pmd": 0.0
+            },
+            "57": {
+              "pass8": 1.0,
+              "distinct8": 1.0859375,
+              "pmd": 0.03202642762203443
+            },
+            "58": {
+              "pass8": 1.0,
+              "distinct8": 1.015625,
+              "pmd": 0.005065903927996319
+            },
+            "59": {
+              "pass8": 1.0,
+              "distinct8": 1.0,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.979296875,
+            "distinct8": 1.10703125,
+            "pmd": 0.05973402897743927
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "56": {
+              "pass8": 0.0078125,
+              "distinct8": 0.0078125,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.0390625,
+              "distinct8": 0.0390625,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.04375,
+            "distinct8": 0.04375,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "56": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.0,
+            "distinct8": 0.0,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 2,
+          "seeds": [
+            55,
+            57
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.171875,
+            "distinct8": 0.171875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Falcon3-1B",
+      "domain": "mathir",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.0703125,
+              "distinct8": 0.078125,
+              "pmd": null
+            },
+            "56": {
+              "pass8": 0.0703125,
+              "distinct8": 0.0703125,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.0703125,
+              "distinct8": 0.0703125,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.15625,
+              "distinct8": 0.15625,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.109375,
+              "distinct8": 0.109375,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.0953125,
+            "distinct8": 0.096875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.7734375,
+              "distinct8": 0.77734375,
+              "pmd": 0.003739316239316239
+            },
+            "56": {
+              "pass8": 0.7265625,
+              "distinct8": 0.74609375,
+              "pmd": 0.026381104275841116
+            },
+            "57": {
+              "pass8": 0.724609375,
+              "distinct8": 0.751953125,
+              "pmd": 0.021249311970961453
+            },
+            "58": {
+              "pass8": 0.75390625,
+              "distinct8": 0.771484375,
+              "pmd": 0.022123210123210123
+            },
+            "59": {
+              "pass8": 0.69921875,
+              "distinct8": 0.734375,
+              "pmd": 0.03423624769056559
+            }
+          },
+          "summary": {
+            "pass8": 0.735546875,
+            "distinct8": 0.75625,
+            "pmd": 0.0215458380599789
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.37109375,
+              "distinct8": 0.384765625,
+              "pmd": 0.021164021164021163
+            },
+            "56": {
+              "pass8": 0.29296875,
+              "distinct8": 0.306640625,
+              "pmd": 0.025810139383546583
+            },
+            "57": {
+              "pass8": 0.18359375,
+              "distinct8": 0.197265625,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.099609375,
+              "distinct8": 0.099609375,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.361328125,
+              "distinct8": 0.369140625,
+              "pmd": 0.010989010989010988
+            }
+          },
+          "summary": {
+            "pass8": 0.26171875,
+            "distinct8": 0.271484375,
+            "pmd": 0.01932105717885958
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            59
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.0703125,
+              "distinct8": 0.0703125,
+              "pmd": null
+            },
+            "56": {
+              "pass8": 0.1015625,
+              "distinct8": 0.1015625,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.078125,
+              "distinct8": 0.078125,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.0703125,
+              "distinct8": 0.0703125,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.09375,
+              "distinct8": 0.1015625,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.0828125,
+            "distinct8": 0.084375,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.0703125,
+              "distinct8": 0.0703125,
+              "pmd": null
+            },
+            "56": {
+              "pass8": 0.140625,
+              "distinct8": 0.15234375,
+              "pmd": null
+            },
+            "57": {
+              "pass8": 0.126953125,
+              "distinct8": 0.134765625,
+              "pmd": null
+            },
+            "58": {
+              "pass8": 0.1953125,
+              "distinct8": 0.1953125,
+              "pmd": null
+            },
+            "59": {
+              "pass8": 0.1484375,
+              "distinct8": 0.1484375,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.136328125,
+            "distinct8": 0.140234375,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Falcon3-1B",
+      "domain": "pantry_plan",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "56": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "57": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "58": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "59": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.6328125,
+            "distinct8": 0.6328125,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.7421875,
+              "distinct8": 1.171875,
+              "pmd": 0.1315664578576586
+            },
+            "56": {
+              "pass8": 0.8046875,
+              "distinct8": 2.0234375,
+              "pmd": 0.46340683992212106
+            },
+            "57": {
+              "pass8": 0.734375,
+              "distinct8": 1.79296875,
+              "pmd": 0.4286044252731393
+            },
+            "58": {
+              "pass8": 0.7109375,
+              "distinct8": 1.37890625,
+              "pmd": 0.31396115019646
+            },
+            "59": {
+              "pass8": 0.76171875,
+              "distinct8": 1.51171875,
+              "pmd": 0.2484688497680921
+            }
+          },
+          "summary": {
+            "pass8": 0.75078125,
+            "distinct8": 1.57578125,
+            "pmd": 0.31720154460349426
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "56": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "57": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "58": {
+              "pass8": 0.69140625,
+              "distinct8": 0.89453125,
+              "pmd": 0.06621392190152801
+            },
+            "59": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.64453125,
+            "distinct8": 0.68515625,
+            "pmd": 0.013242784380305603
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "ucpo": {
+          "label": "UCPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.6640625,
+              "distinct8": 0.796875,
+              "pmd": 0.04516129032258065
+            },
+            "56": {
+              "pass8": 0.6875,
+              "distinct8": 0.8125,
+              "pmd": 0.04090744101633394
+            },
+            "57": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "58": {
+              "pass8": 0.7421875,
+              "distinct8": 1.1796875,
+              "pmd": 0.133276740237691
+            },
+            "59": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.671875,
+            "distinct8": 0.8109375,
+            "pmd": 0.04386909431532112
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "rlep_dr": {
+          "label": "RLEP-Dr",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ],
+          "per_seed": {
+            "55": {
+              "pass8": 0.640625,
+              "distinct8": 0.6953125,
+              "pmd": 0.019276160503540522
+            },
+            "56": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "57": {
+              "pass8": 0.640625,
+              "distinct8": 0.640625,
+              "pmd": 0.0
+            },
+            "58": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            },
+            "59": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.6359375,
+            "distinct8": 0.646875,
+            "pmd": 0.0038552321007081043
+          },
+          "pmd_seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      },
+      "blank_methods": {}
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "domain": "graph_coloring",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.650390625,
+              "distinct8": 0.982421875,
+              "pmd": 0.2183324961776618
+            },
+            "71": {
+              "pass8": 0.73828125,
+              "distinct8": 1.1953125,
+              "pmd": 0.25283934027546273
+            },
+            "72": {
+              "pass8": 0.697265625,
+              "distinct8": 1.091796875,
+              "pmd": 0.21509037999739405
+            },
+            "73": {
+              "pass8": 0.6484375,
+              "distinct8": 1.0390625,
+              "pmd": 0.23528569770191118
+            },
+            "74": {
+              "pass8": 0.67578125,
+              "distinct8": 0.9921875,
+              "pmd": 0.19737056238743908
+            }
+          },
+          "summary": {
+            "pass8": 0.68203125,
+            "distinct8": 1.06015625,
+            "pmd": 0.22378369530797376
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.83203125,
+              "distinct8": 1.654296875,
+              "pmd": 0.40347832132072586
+            },
+            "71": {
+              "pass8": 0.828125,
+              "distinct8": 1.654296875,
+              "pmd": 0.41022134261717
+            },
+            "72": {
+              "pass8": 0.830078125,
+              "distinct8": 1.576171875,
+              "pmd": 0.38253609864619126
+            },
+            "73": {
+              "pass8": 0.83984375,
+              "distinct8": 1.619140625,
+              "pmd": 0.40151995766693
+            },
+            "74": {
+              "pass8": 0.8515625,
+              "distinct8": 1.681640625,
+              "pmd": 0.3994628686520336
+            }
+          },
+          "summary": {
+            "pass8": 0.836328125,
+            "distinct8": 1.637109375,
+            "pmd": 0.39944371778061016
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.705078125,
+              "distinct8": 1.03515625,
+              "pmd": 0.1949234159387036
+            },
+            "71": {
+              "pass8": 0.740234375,
+              "distinct8": 1.220703125,
+              "pmd": 0.25597243535849296
+            },
+            "72": {
+              "pass8": 0.708984375,
+              "distinct8": 1.0703125,
+              "pmd": 0.20627518300129513
+            },
+            "73": {
+              "pass8": 0.666015625,
+              "distinct8": 0.955078125,
+              "pmd": 0.17005295662181208
+            },
+            "74": {
+              "pass8": 0.703125,
+              "distinct8": 1.056640625,
+              "pmd": 0.2031733840590818
+            }
+          },
+          "summary": {
+            "pass8": 0.7046875,
+            "distinct8": 1.067578125,
+            "pmd": 0.20607947499587712
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      },
+      "blank_methods": {
+        "ucpo": "no terminal UCPO pass-8 endpoint",
+        "rlep_dr": "no terminal RLEP-Dr pass-8 endpoint"
+      }
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "domain": "countdown",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.6015625,
+              "distinct8": 0.6015625,
+              "pmd": 0.0
+            },
+            "71": {
+              "pass8": 0.603515625,
+              "distinct8": 0.634765625,
+              "pmd": 0.018958720880179507
+            },
+            "72": {
+              "pass8": 0.609375,
+              "distinct8": 0.609375,
+              "pmd": 0.0
+            },
+            "73": {
+              "pass8": 0.607421875,
+              "distinct8": 0.62890625,
+              "pmd": 0.01849240962144188
+            },
+            "74": {
+              "pass8": 0.625,
+              "distinct8": 0.666015625,
+              "pmd": 0.02365879416282642
+            }
+          },
+          "summary": {
+            "pass8": 0.609375,
+            "distinct8": 0.628125,
+            "pmd": 0.01222198493288956
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.74609375,
+              "distinct8": 0.9765625,
+              "pmd": 0.11962825525797231
+            },
+            "71": {
+              "pass8": 0.765625,
+              "distinct8": 0.986328125,
+              "pmd": 0.10846217507769502
+            },
+            "72": {
+              "pass8": 0.75,
+              "distinct8": 0.904296875,
+              "pmd": 0.07923276406442145
+            },
+            "73": {
+              "pass8": 0.7265625,
+              "distinct8": 0.91796875,
+              "pmd": 0.10379525285650273
+            },
+            "74": {
+              "pass8": 0.7421875,
+              "distinct8": 1.025390625,
+              "pmd": 0.15091429565915462
+            }
+          },
+          "summary": {
+            "pass8": 0.74609375,
+            "distinct8": 0.962109375,
+            "pmd": 0.11240654858314922
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.615234375,
+              "distinct8": 0.623046875,
+              "pmd": 0.005614536545528788
+            },
+            "71": {
+              "pass8": 0.60546875,
+              "distinct8": 0.60546875,
+              "pmd": 0.0
+            },
+            "72": {
+              "pass8": 0.603515625,
+              "distinct8": 0.611328125,
+              "pmd": 0.005397200202395008
+            },
+            "73": {
+              "pass8": 0.619140625,
+              "distinct8": 0.626953125,
+              "pmd": 0.0039812168231931405
+            },
+            "74": {
+              "pass8": 0.61328125,
+              "distinct8": 0.64453125,
+              "pmd": 0.025496720397700387
+            }
+          },
+          "summary": {
+            "pass8": 0.611328125,
+            "distinct8": 0.622265625,
+            "pmd": 0.008097934793763464
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      },
+      "blank_methods": {
+        "ucpo": "no terminal UCPO pass-8 endpoint",
+        "rlep_dr": "no terminal RLEP-Dr pass-8 endpoint"
+      }
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "domain": "python_factors",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "71": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "72": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "73": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "74": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            }
+          },
+          "summary": {
+            "pass8": 0.06875,
+            "distinct8": 0.06875,
+            "pmd": null
+          },
+          "pmd_seeds": []
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.76171875,
+              "distinct8": 1.38671875,
+              "pmd": 0.28158309228521694
+            },
+            "71": {
+              "pass8": 0.6328125,
+              "distinct8": 0.7421875,
+              "pmd": 0.06635802469135803
+            },
+            "72": {
+              "pass8": 0.6328125,
+              "distinct8": 0.701171875,
+              "pmd": 0.042239147749900445
+            },
+            "73": {
+              "pass8": 0.6328125,
+              "distinct8": 0.712890625,
+              "pmd": 0.04856133014735166
+            },
+            "74": {
+              "pass8": 0.6328125,
+              "distinct8": 0.71875,
+              "pmd": 0.04980585424133811
+            }
+          },
+          "summary": {
+            "pass8": 0.65859375,
+            "distinct8": 0.85234375,
+            "pmd": 0.09770948982303304
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "71": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "72": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875,
+              "pmd": null
+            },
+            "73": {
+              "pass8": 0.0,
+              "distinct8": 0.0,
+              "pmd": null
+            },
+            "74": {
+              "pass8": 0.6328125,
+              "distinct8": 0.6328125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.1953125,
+            "distinct8": 0.1953125,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            74
+          ]
+        }
+      },
+      "blank_methods": {
+        "ucpo": "no terminal UCPO pass-8 endpoint",
+        "rlep_dr": "no terminal RLEP-Dr pass-8 endpoint"
+      }
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "domain": "mathir",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.30078125,
+              "distinct8": 0.30078125,
+              "pmd": 0.0
+            },
+            "71": {
+              "pass8": 0.296875,
+              "distinct8": 0.296875,
+              "pmd": 0.0
+            },
+            "72": {
+              "pass8": 0.25390625,
+              "distinct8": 0.25390625,
+              "pmd": 0.0
+            },
+            "73": {
+              "pass8": 0.28125,
+              "distinct8": 0.28125,
+              "pmd": 0.0
+            },
+            "74": {
+              "pass8": 0.255859375,
+              "distinct8": 0.259765625,
+              "pmd": 0.007456140350877192
+            }
+          },
+          "summary": {
+            "pass8": 0.277734375,
+            "distinct8": 0.278515625,
+            "pmd": 0.0014912280701754384
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.76171875,
+              "distinct8": 0.798828125,
+              "pmd": 0.020763035698848735
+            },
+            "71": {
+              "pass8": 0.703125,
+              "distinct8": 0.740234375,
+              "pmd": 0.026271861935562343
+            },
+            "72": {
+              "pass8": 0.66796875,
+              "distinct8": 0.66796875,
+              "pmd": 0.0
+            },
+            "73": {
+              "pass8": 0.560546875,
+              "distinct8": 0.576171875,
+              "pmd": 0.011736517218973359
+            },
+            "74": {
+              "pass8": 0.73828125,
+              "distinct8": 0.748046875,
+              "pmd": 0.011748726655348048
+            }
+          },
+          "summary": {
+            "pass8": 0.686328125,
+            "distinct8": 0.70625,
+            "pmd": 0.014104028301746497
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.26953125,
+              "distinct8": 0.26953125,
+              "pmd": 0.0
+            },
+            "71": {
+              "pass8": 0.310546875,
+              "distinct8": 0.310546875,
+              "pmd": 0.0
+            },
+            "72": {
+              "pass8": 0.326171875,
+              "distinct8": 0.326171875,
+              "pmd": 0.0
+            },
+            "73": {
+              "pass8": 0.30078125,
+              "distinct8": 0.30078125,
+              "pmd": 0.0
+            },
+            "74": {
+              "pass8": 0.283203125,
+              "distinct8": 0.283203125,
+              "pmd": 0.0
+            }
+          },
+          "summary": {
+            "pass8": 0.298046875,
+            "distinct8": 0.298046875,
+            "pmd": 0.0
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      },
+      "blank_methods": {
+        "ucpo": "no terminal UCPO pass-8 endpoint",
+        "rlep_dr": "no terminal RLEP-Dr pass-8 endpoint"
+      }
+    },
+    {
+      "model": "Qwen2.5-3B",
+      "domain": "pantry_plan",
+      "pass": 8.0,
+      "methods": {
+        "drgrpo": {
+          "label": "matched Dr.GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.6484375,
+              "distinct8": 0.734375,
+              "pmd": 0.060629615235134084
+            },
+            "71": {
+              "pass8": 0.5546875,
+              "distinct8": 0.5546875,
+              "pmd": 0.0
+            },
+            "72": {
+              "pass8": 0.5546875,
+              "distinct8": 0.5546875,
+              "pmd": 0.0
+            },
+            "73": {
+              "pass8": 0.716796875,
+              "distinct8": 1.28125,
+              "pmd": 0.27916724869096105
+            },
+            "74": {
+              "pass8": 0.71484375,
+              "distinct8": 1.078125,
+              "pmd": 0.18361316170881636
+            }
+          },
+          "summary": {
+            "pass8": 0.637890625,
+            "distinct8": 0.840625,
+            "pmd": 0.1046820051269823
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "replay_grpo": {
+          "label": "Re:Dr (ours)",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.7421875,
+              "distinct8": 1.435546875,
+              "pmd": 0.2987793413712996
+            },
+            "71": {
+              "pass8": 0.732421875,
+              "distinct8": 1.349609375,
+              "pmd": 0.288433610426833
+            },
+            "72": {
+              "pass8": 0.75390625,
+              "distinct8": 1.5390625,
+              "pmd": 0.3601484323977979
+            },
+            "73": {
+              "pass8": 0.75390625,
+              "distinct8": 1.677734375,
+              "pmd": 0.4386822492893325
+            },
+            "74": {
+              "pass8": 0.73828125,
+              "distinct8": 1.568359375,
+              "pmd": 0.3710072219967125
+            }
+          },
+          "summary": {
+            "pass8": 0.744140625,
+            "distinct8": 1.5140625,
+            "pmd": 0.3514101710963951
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "grpo": {
+          "label": "GRPO",
+          "evidence": "all_available_terminal_seeds",
+          "n": 5,
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ],
+          "per_seed": {
+            "70": {
+              "pass8": 0.6328125,
+              "distinct8": 0.7265625,
+              "pmd": 0.05861708482676225
+            },
+            "71": {
+              "pass8": 0.5546875,
+              "distinct8": 0.5546875,
+              "pmd": 0.0
+            },
+            "72": {
+              "pass8": 0.693359375,
+              "distinct8": 0.931640625,
+              "pmd": 0.13162589114167259
+            },
+            "73": {
+              "pass8": 0.65625,
+              "distinct8": 0.859375,
+              "pmd": 0.1317444316436252
+            },
+            "74": {
+              "pass8": 0.65625,
+              "distinct8": 0.7734375,
+              "pmd": 0.06917242703533026
+            }
+          },
+          "summary": {
+            "pass8": 0.638671875,
+            "distinct8": 0.769140625,
+            "pmd": 0.07823196692947806
+          },
+          "pmd_seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      },
+      "blank_methods": {
+        "ucpo": "no terminal UCPO pass-8 endpoint",
+        "rlep_dr": "no terminal RLEP-Dr pass-8 endpoint"
+      }
+    }
+  ],
+  "source": "/n/fs/similarity/maxent-grpo/paper/results/core_terminal_endpoints.json",
+  "source_sha256": "549447008b5a261d7f718160652e5ea8098bd823851d01cf195d1f9614d02176",
+  "plain_grpo_source": "/n/fs/similarity/maxent-grpo/paper/results/e95_falcon_plain_grpo_reportable.json",
+  "plain_grpo_source_sha256": "837534de3e7923858a61d51c4a7b435009a1aeb6b0d9d99c5570362b80620c65",
+  "direct_comparator_source": "/n/fs/similarity/maxent-grpo/paper/figures/direct_comparator_endpoint_effects.json",
+  "direct_comparator_source_sha256": "5189f0c69bf57c317290f35dcc3c9c26bd9e6db97c6d955bd1e9467f31a93041",
+  "excluded": {
+    "dapo": "no standardized pass@8 or distinct@8 endpoint",
+    "retired_semantic_maxent": "retired-estimator treatments are preserved in the historical appendix"
+  }
+}

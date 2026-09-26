@@ -1,0 +1,146 @@
+{
+  "date": "2026-09-09",
+  "status": "passed",
+  "artifacts": {
+    "paper/main.tex": {
+      "sha256": "a0708f58a77c4af60849a299e21c3afba3a05175b606646757da4ce79fdebb53",
+      "bytes": 229784
+    },
+    "paper/main.pdf": {
+      "sha256": "1febceb71ef93b11ca0a506702eaa41696bb93e5ad229fb92f24d684f873b298",
+      "bytes": 1116663
+    },
+    "paper/mathai2026/main.tex": {
+      "sha256": "532502e0f224667c6dc6a89d660619a339e5410d6c2d43070a97c5ac0a180ce0",
+      "bytes": 10993
+    },
+    "paper/mathai2026/appendix.tex": {
+      "sha256": "8e45859cfbd3d09a0337d76095d503bd0bf6d26e26cc0c1de4ea6ebd71bdd184",
+      "bytes": 215157
+    },
+    "paper/mathai2026/main.pdf": {
+      "sha256": "fdf310e61ac6fd987d4d0f004ac8dfd4b0fb71339ac7daa077930d676dd8877b",
+      "bytes": 1190967
+    },
+    "paper/mathai2026/mathai2026-source.zip": {
+      "sha256": "254763fde6ade7468a5f09352f6928010157aa6666982b7f0dabe5a494a14dda",
+      "bytes": 2070263
+    },
+    "paper/mathai2026/mathai2026-overleaf.zip": {
+      "sha256": "865fe43b367b748a4a4dcae2d0be3e3f6d264466588069e58b8a07a34634f2fb",
+      "bytes": 2073863
+    },
+    "paper/results/e121_fixed_bank_survival.json": {
+      "sha256": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
+      "bytes": 4944772
+    },
+    "paper/figures/e121_fixed_bank_survival.pdf": {
+      "sha256": "f09e296026e22c742b261cda0fad019e4b6e42b81bf5190ec34b1be0a32183b2",
+      "bytes": 72127
+    }
+  },
+  "labels": {
+    "paper": {
+      "sec:conclusion": {
+        "number": "8",
+        "page": 9
+      },
+      "app:fixed-bank-survival": {
+        "number": "H.2",
+        "page": 56
+      },
+      "tab:e121-fixed-bank": {
+        "number": "11",
+        "page": 56
+      },
+      "tab:e121-fixed-bank-sequence": {
+        "number": "12",
+        "page": 57
+      },
+      "fig:e121-fixed-bank-survival": {
+        "number": "13",
+        "page": 57
+      },
+      "tab:e121-fixed-bank-bootstrap": {
+        "number": "13",
+        "page": 57
+      }
+    },
+    "paper/mathai2026": {
+      "sec:conclusion": {
+        "number": "5",
+        "page": 4
+      },
+      "main:lastpage": {
+        "number": "5",
+        "page": 4
+      },
+      "app:fixed-bank-survival": {
+        "number": "L.2",
+        "page": 54
+      },
+      "tab:e121-fixed-bank": {
+        "number": "11",
+        "page": 55
+      },
+      "tab:e121-fixed-bank-sequence": {
+        "number": "12",
+        "page": 55
+      },
+      "fig:e121-fixed-bank-survival": {
+        "number": "13",
+        "page": 56
+      },
+      "tab:e121-fixed-bank-bootstrap": {
+        "number": "13",
+        "page": 56
+      }
+    }
+  },
+  "builds": {
+    "iclr": {
+      "command": "make -C paper",
+      "exit_code": 0,
+      "content_pages": 10,
+      "total_pages": 63,
+      "line_fill_blocks": 307,
+      "log": "iclr_build.log",
+      "conclusion_heading_page": 9,
+      "baseline_content_pages": 10,
+      "baseline_total_pages": 61,
+      "page_budget_preserved": true
+    },
+    "workshop": {
+      "command": "make -C paper/mathai2026 bundle",
+      "exit_code": 0,
+      "content_pages": 4,
+      "main_figures": 6,
+      "supplementary_figures": 8,
+      "source_archive_files": 65,
+      "overleaf_archive_files": 66,
+      "log": "workshop_build.log",
+      "total_pages": 63,
+      "page_budget_preserved": true
+    }
+  },
+  "visual_review": {
+    "reviewer": "root",
+    "status": "passed",
+    "iclr_pages": [
+      56,
+      57
+    ],
+    "workshop_pages": [
+      55,
+      56
+    ],
+    "checks": [
+      "all table columns and values visible",
+      "ECDF legends and axes readable",
+      "no clipping",
+      "PDF text contains 3,406 identities, 29,041 observations, 2.61 percent and confidence endpoints",
+      "obsolete planned-study claim absent from both PDFs"
+    ]
+  },
+  "baseline_pagination": "baseline_pagination.json"
+}

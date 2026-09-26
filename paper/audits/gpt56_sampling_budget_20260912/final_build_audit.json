@@ -1,0 +1,159 @@
+{
+  "active_manuscript": "paper/main.pdf",
+  "at_utc": "2026-09-12T22:30:58.032878+00:00",
+  "budget_by_domain": {
+    "countdown": 128,
+    "graph_coloring": 128,
+    "mathir": 64,
+    "pantry_plan": 256,
+    "python_factors": 64
+  },
+  "build_command": "make -o prompt-ablation -o discovery-curves -o inference-followups",
+  "files": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "65f7056ecd73d63289cffe7129d0daa6f44855fc6cd7c92dbf8ade651736f6d6"
+    },
+    {
+      "path": "paper/main.pdf",
+      "sha256": "e18be071b8933de1fcfcd18483e08b9f60f14a5fb8c0772686270a127be34081"
+    },
+    {
+      "path": "paper/main.aux",
+      "sha256": "99134ef9e0f932a8ff246443ee446df78533b1b8c4e4f2e800d04c47114fc89d"
+    },
+    {
+      "path": "paper/main.log",
+      "sha256": "51aba407d1794b227ef00b98245ca3e96efc327fc700d9bd0d3105cd7d7d97f8"
+    },
+    {
+      "path": "paper/Makefile",
+      "sha256": "5dc9595c57467c33dfca801b31353889c13a89d5bae4b1963337257c7ceb4731"
+    },
+    {
+      "path": "ops/check_paper_current_contract.py",
+      "sha256": "fbbad64f2dd66cc50a5f9479e846b5f2ae7160b2683fe7187ae2cbc2eedaaf3f"
+    },
+    {
+      "path": "ops/check_paper_main_length.py",
+      "sha256": "ba4ea8626db183fc815a89e8ffe5a3f731970b3729431b93b413220a72a093a1"
+    },
+    {
+      "path": "tests/test_paper_current_editorial_contract.py",
+      "sha256": "407e166128ce1847156db92eb68264d5750343d6fdc1bf804d0e63b116222a2d"
+    },
+    {
+      "path": "tests/test_paper_main_length.py",
+      "sha256": "c86414ce977ef91347fcec11045ad1137198f98a6be92b2120678f092a7eb15d"
+    },
+    {
+      "path": "artifacts/modebench_discovery_five_domains_sol_20260912/analysis/analysis.json",
+      "sha256": "4af29a6ca79428290a1bf0ea3d058a97fc57c65cb7201c378145e52eb15236a0"
+    },
+    {
+      "path": "artifacts/modebench_discovery_five_domains_sol_20260912/final_analysis_code/manifest.json",
+      "sha256": "2380423bc727b5c6338ae0e71e62c71638a19a2e8f354310b076610c42741c44"
+    },
+    {
+      "path": "artifacts/modebench_discovery_five_domains_sol_20260912/collection_completion_audit_graph128_pantry256.json",
+      "sha256": "d54960c6ff1a3b22ad6938f27743fb5b1f41dbf48e400812ad0d09039692898e"
+    },
+    {
+      "path": "paper/figures/gpt56_all_domain_sampling_budget.pdf",
+      "sha256": "a5f4abee9f33a8e5e03598f4cd0162e3890114145134f55cc0023c534cb8fcf5"
+    },
+    {
+      "path": "paper/figures/gpt56_all_domain_sampling_budget.png",
+      "sha256": "14755b0491f7ebe28afa0a02a2e77897a6100282cf44014c946d039016de1d63"
+    },
+    {
+      "path": "paper/figures/gpt56_all_domain_sampling_budget.json",
+      "sha256": "ba86175f0699959a18953dd0ed0a7ff65de7af502cd5fee6017ad3bc828af73b"
+    },
+    {
+      "path": "paper/results/gpt56_all_domain_sampling_20260912.json",
+      "sha256": "f97e35772a54ceb17868545e2f1f3e7eede7a64e04ec5cf19a57ce4c31fda7c5"
+    },
+    {
+      "path": "paper/results/gpt56_all_domain_sampling_20260912.tex",
+      "sha256": "957296e20c8fc04a502c52d50960fc9550a6de01a3825eed076393e8ee2f76bf"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/final_main_build.log",
+      "sha256": "1d371334af532914cd8394a7774d1e9eb757620743625aa41e6832aa4837db92"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/analytical_tests.log",
+      "sha256": "17351d1642284ac645fc1e0af6766d966a9ad13003c33837bd48ae2e847727d6"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/editorial_tests.log",
+      "sha256": "6190eaf4dc191a2d3f5281b0d291e6ce5793679b556ac81c5327402d7580918d"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/publication_tests.log",
+      "sha256": "3cf6c49a7e99b6e1aa60b3eb2b295b5fe359d70adfecbee8d9e048ad10945828"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/domain_prompts_check.log",
+      "sha256": "a80a015fd0b5b2d3d4af172d9c64d59865001de4de2f6c5a11edb385a1f885e1"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/prompt_ablation_check.log",
+      "sha256": "6716044be476d37dec239aec84d1cf8a3e5220e9de941d009d1e90c965e7ce92"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/discovery_curves_check.log",
+      "sha256": "4a05f037edfd78bcaa96ea267008dc9260cba04eb231e986dca89672f667fb59"
+    },
+    {
+      "path": "paper/audits/gpt56_sampling_budget_20260912/inference_followups_check.log",
+      "sha256": "a7feaa877f104004cb3aa431cf95945515cff9d73fbd59b470f9189852343bac"
+    }
+  ],
+  "focused_test_counts": {
+    "analytical_tests.log": 39,
+    "editorial_tests.log": 65,
+    "publication_tests.log": 4
+  },
+  "focused_tests_passed": 108,
+  "full_paper_contract": "passed before and after compilation; original 18-block proof chain preserved",
+  "interpretation": "Formatting-normalized display; exact Graph support and certified lower bounds elsewhere. Python/MathIR flatten or nearly flatten, while Graph/Countdown/Pantry retain late discovery. No claim of asymptotic saturation.",
+  "labels": {
+    "app:gpt56-five-domain-discovery": {
+      "number": "N.3",
+      "page": 97
+    },
+    "fig:gpt56-sampling-budget": {
+      "number": "8",
+      "page": 8
+    },
+    "fig:gpt56-temperature-curve": {
+      "number": "24",
+      "page": 61
+    },
+    "sec:main-end": {
+      "number": "7",
+      "page": 9
+    },
+    "sec:references": {
+      "number": "7",
+      "page": 10
+    },
+    "tab:gpt56-five-domain-discovery": {
+      "number": "76",
+      "page": 97
+    }
+  },
+  "layout_change": "Sampling figure added to requested main section; temperature figure moved to its existing appendix; hosted table follows its explanatory paragraph. Nine-page cap retained.",
+  "main_pages": 9,
+  "model": "gpt-5.6-sol",
+  "natural_prose_blocks_passed": 389,
+  "prompts": 160,
+  "references_page": 10,
+  "responses": 20480,
+  "separate_order_only_gates": "Prompt-ablation, discovery-curves, and inference-followups checks completed separately; their logs are retained here.",
+  "served_snapshot_header": "gpt-5.6-sol-2026-07-09",
+  "status": "complete",
+  "total_pdf_pages": 100
+}

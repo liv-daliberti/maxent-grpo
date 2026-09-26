@@ -1,0 +1,286 @@
+\section{Mode Collapse and Verified Replay}
+\label{app:theory}
+
+We separate the per-prompt mean gradient from the geometry and noise of its
+updates. Outcome-binary score estimators share a correctness-gradient
+direction for differentiable neural policies, while their covariance can
+differ. The categorical specialization yields finite-step concentration and
+sampled symmetry breaking; fixed-bank replay has an explicit restoration
+threshold and recovery bound. Complete-response and local-update arguments
+state conditions for neural retention. We apply established replicator,
+policy-gradient, information-theoretic, and coverage results where their
+assumptions match: the sharpened replay certificate follows by KL data
+processing, and exact Dr.GRPO with reference KL inherits a published
+convergence guarantee. Our derivations address the group estimators, their
+sampling noise, and the competition with the verified bank. These results
+do not certify the implemented AdamW/PPO trajectories.
+Table~\ref{tab:notation} lists the symbols used here.
+
+\subsection{Categorical abstraction and mean updates}
+\label{app:theory-grpo-mean}
+
+The categorical results use the following model. The neural score identities,
+finite-step updates, and sampled-update results below state separately which
+assumptions they replace; none identifies a neural mode with an independently
+optimized logit.
+
+\begin{assumption}[Categorical mean-flow model]
+\label{ass:categorical-mean-flow}
+Fix one isolated prompt and a finite category set
+$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$ with $m\ge2$ correct
+execution modes and $n\ge1$ incorrect categories, and set
+$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+$q_c=p_c/P$, so that $P$ measures correctness while $q$ describes how that
+correct probability is allocated among the individual correct modes.
+\begin{enumerate}
+\item[(A1)] \emph{Independent logits.} The policy carries one independently
+  optimized logit for every category in $\mathcal A$, including one separate
+  logit for each canonical correct mode.
+\item[(A2)] \emph{Common length normalization.} Every response shares a single
+  length scale, which is absorbed into the positive coefficient of the group
+  estimator, rather than a scale that varies from one response to the next
+  within the same rollout group.
+\item[(A3)] \emph{Euclidean mean flow.} Updates are the infinitesimal expected
+  updates in these logits, taken without optimizer preconditioning and without
+  momentum carried between steps.
+\item[(A4)] \emph{No competing regularizer.} Explicit reference KL is zero and
+  no entropy term is present.
+\item[(A5)] \emph{Nondegenerate start.} Logits are finite initially,
+  $0<P(0)<1$, and the group size is $G\ge2$.
+\end{enumerate}
+\end{assumption}
+
+We write ``under Assumption~\ref{ass:categorical-mean-flow}'' for (A1)--(A5)
+together. Each limitation of the analysis can be traced to a specific item:
+AdamW and PPO violate (A3), variable-length GRPO violates (A2), and entropy
+regularization violates (A4).
+
+A language model induces probabilities over canonical outcomes, but this
+identification of probabilities does not identify its update geometry.
+Aggregating several response strings into a mode does not generally commute
+with gradient flow in response logits. One independent logit per canonical
+outcome is therefore an explicit abstraction, not a reduction proved for the
+neural policy or its validator equivalence classes.
+
+Draw a group $Z_1,\ldots,Z_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+write $R_i=\1[Z_i\in\mathcal C]$, and let $R=\sum_iR_i$. At the on-policy
+point where the PPO ratio equals one, consider the common-length estimator
+\begin{equation}
+  \widehat g_G
+  =\frac1G\sum_{i=1}^G
+   w(R)\left(R_i-\frac{R}{G}\right)\nabla_z\log p_{Z_i}.
+  \label{eq:group-estimator}
+\end{equation}
+For the Dr.GRPO abstraction, $w(R)=1$ after absorbing the shared positive
+length scale. Reward-standardized GRPO with equal or common response-length
+normalization takes $w(R)$ to be the reciprocal group reward standard
+deviation on mixed groups (with a fixed numerical stabilizer if used).
+Standard variable-length GRPO also weights each response by its own inverse
+length \citep{shao2024deepseekmath,liu2025understanding}; that factor cannot
+generally be absorbed into $w(R)$ and is outside the equivalence proved here.
+In either included case, $0<w(\ell)<\infty$ for
+$\ell\in\{1,\ldots,G-1\}$. We define the entire update as zero on all-equal
+groups without evaluating an undefined reciprocal standard deviation;
+likewise, $w(R)R(G-R)$ below is defined as zero when $R=0$ or $R=G$. All
+advantages and normalization weights are detached in the score estimator.
+
+\begin{lemma}[A group baseline does not remove frequency amplification]
+\enforcehalffinalproseline
+\label{lem:grpo-mean}
+For $0<P<1$, the expected update in Equation~\eqref{eq:group-estimator} is
+\begin{equation}
+  \E[\widehat g_G]
+  =c_G(P)\nabla_z P,
+  \qquad
+  c_G(P)=
+  \frac{\E\!\big[w(R)R(G-R)\big]}{G^2P(1-P)}>0.
+  \label{eq:expected-group-gradient}
+\end{equation}
+For the Dr.GRPO abstraction, $c_G(P)=(G-1)/G$. Group centering and reward
+standardization rescale the expected gradient without changing its direction
+under these assumptions.
+\end{lemma}
+
+\begin{proof}
+\enforcehalffinalproseline
+Condition on the complete binary reward vector, whose sum is $R$. The score
+identities give
+\[
+  \E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P,
+  \qquad
+  \E[\nabla_z\log p_{Z_i}\mid R_i=0]
+  =\nabla_z\log(1-P).
+\]
+There are $R$ correct rows with centered reward $(G-R)/G$ and $G-R$
+incorrect rows with centered reward $-R/G$. Therefore the conditional
+expectation of the unaveraged sum in~\eqref{eq:group-estimator} is
+\[
+  w(R)\frac{R(G-R)}{G}
+  \left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+  =w(R)\frac{R(G-R)}{GP(1-P)}\nabla_zP.
+\]
+The outer factor $1/G$ and expectation over
+$R\sim\operatorname{Binomial}(G,P)$ yield~\eqref{eq:expected-group-gradient}.
+For $w\equiv1$,
+$\E[R(G-R)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
+\end{proof}
+
+The binomial identity also gives the denominator-free expression
+\[
+ c_G(P)=\frac{G-1}{G}\sum_{j=0}^{G-2}\binom{G-2}{j}
+ w(j+1)P^j(1-P)^{G-2-j}.
+\]
+The binomial weights sum to one, so $c_G$ lies between
+$(G-1)\min_j w(j+1)/G$ and $(G-1)\max_j w(j+1)/G$.
+This establishes the smooth, positive extension to $P=0,1$ used in the
+subsequent flow and convergence arguments.
+
+The next lemma specializes the practical-estimator analysis of
+\citet[Section~4.3 and App.~D, Theorem~5]{tajwar2026maxrl}
+to our categorical notation. We invoke that result directly and retain the
+normalization that identifies the implemented estimator.
+
+\begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+\enforcehalffinalproseline
+\label{lem:maxrl-mean}
+Under Assumption~\ref{ass:categorical-mean-flow}, let MaxRL assign
+$A_i^{\mathrm{MaxRL}}=GR_i/R-1$ when $R>0$ and zero when $R=0$, as in
+Section~\ref{sec:method}. For
+$\widehat g_G^{\mathrm{MaxRL}}=G^{-1}\sum_i
+ A_i^{\mathrm{MaxRL}}\nabla_z\log p_{Z_i}$ at the on-policy point, the
+expected update is
+\begin{equation}
+  \E[\widehat g_G^{\mathrm{MaxRL}}]
+  =c_G^{\mathrm{MaxRL}}(P)\nabla_zP,
+  \qquad
+  c_G^{\mathrm{MaxRL}}(P)
+  =\frac{1-(1-P)^{G-1}}{P}>0,
+  \label{eq:maxrl-expected-gradient}
+\end{equation}
+with continuous endpoint values
+$c_G^{\mathrm{MaxRL}}(0)=G-1$ and
+$c_G^{\mathrm{MaxRL}}(1)=1$.
+\end{lemma}
+
+\begin{proof}
+\enforcehalffinalproseline
+Apply \citet[Theorem~5]{tajwar2026maxrl} with $N=G$ and pass rate $P$.
+Its dropped-baseline estimator is exactly $\widehat g_G^{\mathrm{MaxRL}}$,
+so its expected coefficient is $\sum_{j=0}^{G-2}(1-P)^j$.
+The finite geometric sum gives Equation~\eqref{eq:maxrl-expected-gradient}
+and its endpoint values. This application uses on-policy independent draws
+and the score identity, without making an optimizer convergence claim.
+\end{proof}
+
+The same finite-series identity gives the potential used below:
+\begin{equation}
+ \Psi_{\mathrm{MaxRL}}(P)
+ :=\int_0^P c_G^{\mathrm{MaxRL}}(s)\,ds
+ =\sum_{k=1}^{G-1}\frac{1-(1-P)^k}{k}.
+ \label{eq:maxrl-potential-finite-sum}
+\end{equation}
+In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
+For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
+mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
+$G-1$, not $G$: the implemented centered estimator drops the entire update
+on all-failure groups. Subtracting an unconditional score baseline even on
+those groups instead gives the order-$G$ estimator. This distinction concerns
+the exact finite-group expectation at the on-policy point; it does not assert
+unbiasedness of subsequent clipped or adaptive-optimizer updates.
+
+
+\subsection{Winner-take-all collapse in the categorical mean flow}
+\label{app:theory-collapse}
+
+Consider $\dot z=c_G(P)\nabla_zP$, with any of the smooth positive
+coefficients established above: Dr.GRPO, common-length reward-standardized
+GRPO, or the specified centered binary MaxRL estimator. This infinitesimal
+expected-update model removes
+sampling noise and retains independently trained Euclidean logits. The
+conditional dynamics reduce to the standard frequency-dependent replicator
+system with fitness $f_c(q)=q_c$
+\citep{hofbauer1998evolutionary,harper2009informationgeometry}. The result is
+a specialization to the group estimators, not a new general theorem about
+replicator dynamics. Related correctness-indifferent collapse analyses include
+\citet{sinha2026expected,lochab2026ucpo}.
+
+\begin{theorem}[Standard replicator specialization for binary-reward RL]
+\enforcehalffinalproseline
+\label{thm:grpo-collapse}
+Under Assumption~\ref{ass:categorical-mean-flow}, if the conditional correct-mode
+distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+\[
+  P(t)\longrightarrow1,
+  \qquad
+  q_{c^\star}(t)\longrightarrow1,
+  \qquad
+  q_c(t)\longrightarrow0\quad(c\ne c^\star).
+\]
+Thus these categorical mean flows converge to a single correct execution
+mode for generic initial conditions, even though every mode in $\mathcal C$
+has exactly the same reward.
+\end{theorem}
+
+\begin{remark}
+Theorem~\ref{thm:grpo-collapse} is asymptotic and internal to (A1)--(A3): it
+claims neither finite-time support loss nor convergence of the stochastic
+neural optimizers used in our experiments.
+\end{remark}
+
+\begin{proof}
+\enforcehalffinalproseline
+The coefficient $c_G$ is smooth and bounded on $[0,1]$, and the softmax
+reward gradient is bounded. Thus the logit flow exists for all finite times
+and cannot develop infinite logits at finite time.
+For a correct mode $c$ and incorrect category $a$,
+\[
+  \dot z_c=c_G(P)p_c(1-P),
+  \qquad
+  \dot z_a=-c_G(P)p_aP.
+\]
+Also $\dot P=c_G(P)\lVert\nabla_zP\rVert_2^2>0$. If $P$ converged to an
+interior value, continuity and positivity of $c_G$, together with
+\[
+ \lVert\nabla_zP\rVert_2^2
+ \ge P^2(1-P)^2\left(\frac1m+\frac1n\right),
+\]
+would keep $\dot P$ bounded away from zero, a contradiction. Hence $P\to1$.
+
+Define the effective optimization time
+\[
+  \tau(t)=\int_0^t c_G(P(s))P(s)(1-P(s))\,ds.
+\]
+If $\tau(\infty)<\infty$, every correct and incorrect logit would have finite
+total variation, because the absolute velocity of each is at most $\dot\tau$.
+All logits would then converge to finite values, contradicting $P\to1$.
+Therefore $\tau(t)\to\infty$, leaving infinite effective time for the
+correct-simplex dynamics below.
+
+On the correct simplex, changing from $t$ to $\tau$ gives the replicator flow
+\begin{equation}
+  \frac{dq_c}{d\tau}
+  =q_c\left(q_c-\sum_{d\in\mathcal C}q_d^2\right),
+  \qquad
+  \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
+  \label{eq:grpo-replicator}
+\end{equation}
+The initially unique maximum remains the unique maximum. For $c\ne c^\star$,
+set $\xi_c=q_c/q_{c^\star}$, so $\xi_c(0)<1$ and $\xi_c$ is nonincreasing.
+Since $q_{c^\star}\ge1/m$,
+\[
+ \frac{d\log\xi_c}{d\tau}
+ =-q_{c^\star}(1-\xi_c)
+ \le-\frac{1-\xi_c(0)}{m}.
+\]
+Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
+Every competing mode vanishes relative to $c^\star$; normalization then
+yields $q_{c^\star}\to1$, establishing the claimed single-mode limit.
+\end{proof}
+
+If several modes tie for the largest initial probability, symmetry preserves
+the tie; the same ratio argument eliminates strictly smaller coordinates and
+leaves the tied maxima uniform. An exactly uniform correct distribution is
+therefore a special initial condition. The theorem concerns limiting
+concentration: finite softmax logits already give positive probabilities at
+every finite time, so finite-time positivity alone is not a retention result.
+

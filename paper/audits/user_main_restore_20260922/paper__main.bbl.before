@@ -1,0 +1,410 @@
+\begin{thebibliography}{49}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Abdulhai et~al.(2026)Abdulhai, White, Wan, Qureshi, Leibo,
+  Kleiman-Weiner, and Jaques]{abdulhai2026distort}
+Marwa Abdulhai, Isadora White, Yanming Wan, Ibrahim Qureshi, Joel Leibo, Max
+  Kleiman-Weiner, and Natasha Jaques.
+\newblock How {LLM}s distort our written language, 2026.
+\newblock URL \url{https://arxiv.org/abs/2603.18161}.
+
+\bibitem[Agarwal et~al.(2021)Agarwal, Kakade, Lee, and
+  Mahajan]{agarwal2021policygradient}
+Alekh Agarwal, Sham~M. Kakade, Jason~D. Lee, and Gaurav Mahajan.
+\newblock On the theory of policy gradient methods: Optimality, approximation,
+  and distribution shift.
+\newblock \emph{Journal of Machine Learning Research}, 22\penalty0
+  (98):\penalty0 1--76, 2021.
+\newblock URL \url{https://jmlr.org/papers/v22/19-736.html}.
+
+\bibitem[Anceaume et~al.(2015)Anceaume, Busnel, Schulte-Geers, and
+  Sericola]{anceaume2015coupon}
+Emmanuelle Anceaume, Yann Busnel, Ernst Schulte-Geers, and Bruno Sericola.
+\newblock Optimization results for a generalized coupon collector problem,
+  2015.
+\newblock URL \url{https://arxiv.org/abs/1504.03878v1}.
+
+\bibitem[Anderson et~al.(2024)Anderson, Shah, and
+  Kreminski]{anderson2024homogenization}
+Barrett~R. Anderson, Jash~Hemant Shah, and Max Kreminski.
+\newblock Homogenization effects of large language models on human creative
+  ideation.
+\newblock In \emph{Proceedings of the 16th Conference on Creativity \&
+  Cognition}, pp.\  413--425. Association for Computing Machinery, 2024.
+\newblock \doi{10.1145/3635636.3656204}.
+
+\bibitem[Anschel et~al.(2025)Anschel, Shoshan, Botach, Hakimi, Gendler,
+  Ben~Baruch, Bhonker, Kviatkovsky, Aggarwal, and
+  Medioni]{anschel2025groupaware}
+Oron Anschel, Alon Shoshan, Adam Botach, Shunit~Haviv Hakimi, Asaf Gendler,
+  Emanuel Ben~Baruch, Nadav Bhonker, Igor Kviatkovsky, Manoj Aggarwal, and
+  Gerard Medioni.
+\newblock Group-aware reinforcement learning for output diversity in large
+  language models.
+\newblock In \emph{Proceedings of the 2025 Conference on Empirical Methods in
+  Natural Language Processing ({EMNLP})}, pp.\  32394--32415, Suzhou, China,
+  2025. Association for Computational Linguistics.
+\newblock \doi{10.18653/v1/2025.emnlp-main.1649}.
+
+\bibitem[Brown et~al.(2024)Brown, Juravsky, Ehrlich, Clark, Le, R\'{e}, and
+  Mirhoseini]{brown2024monkeys}
+Bradley Brown, Jordan Juravsky, Ryan Ehrlich, Ronald Clark, Quoc~V. Le,
+  Christopher R\'{e}, and Azalia Mirhoseini.
+\newblock Large language monkeys: Scaling inference compute with repeated
+  sampling, 2024.
+\newblock URL \url{https://arxiv.org/abs/2407.21787}.
+
+\bibitem[Chen et~al.(2025)Chen, Qin, Wu, Ling, Ye, Zhao, and
+  Shi]{chen2025passktraining}
+Zhipeng Chen, Xiaobo Qin, Youbin Wu, Yue Ling, Qinghao Ye, Wayne~Xin Zhao, and
+  Guang Shi.
+\newblock {Pass@k} training for adaptively balancing exploration and
+  exploitation of large reasoning models, 2025.
+\newblock URL \url{https://arxiv.org/abs/2508.10751}.
+
+\bibitem[Clopper \& Pearson(1934)Clopper and Pearson]{clopper1934binomial}
+C.~J. Clopper and E.~S. Pearson.
+\newblock The use of confidence or fiducial limits illustrated in the case of
+  the binomial.
+\newblock \emph{Biometrika}, 26\penalty0 (4):\penalty0 404--413, 1934.
+\newblock \doi{10.1093/biomet/26.4.404}.
+\newblock URL
+  \url{https://academic.oup.com/biomet/article-abstract/26/4/404/291538}.
+
+\bibitem[Cobbe et~al.(2021)Cobbe, Kosaraju, Bavarian, Chen, Jun, Kaiser,
+  Plappert, Tworek, Hilton, Nakano, Hesse, and Schulman]{cobbe2021training}
+Karl Cobbe, Vineet Kosaraju, Mohammad Bavarian, Mark Chen, Heewoo Jun, Lukasz
+  Kaiser, Matthias Plappert, Jerry Tworek, Jacob Hilton, Reiichiro Nakano,
+  Christopher Hesse, and John Schulman.
+\newblock Training verifiers to solve math word problems.
+\newblock \emph{arXiv preprint arXiv:2110.14168}, 2021.
+
+\bibitem[Cui et~al.(2025)Cui, Zhang, Chen, Yuan, Wang, Zuo, Li, Fan, Chen,
+  Chen, Liu, Peng, Bai, Ouyang, Cheng, Zhou, and Ding]{cui2025entropy}
+Ganqu Cui, Yuchen Zhang, Jiacheng Chen, Lifan Yuan, Zhi Wang, Yuxin Zuo,
+  Haozhan Li, Yuchen Fan, Huayu Chen, Weize Chen, Zhiyuan Liu, Hao Peng, Lei
+  Bai, Wanli Ouyang, Yu~Cheng, Bowen Zhou, and Ning Ding.
+\newblock The entropy mechanism of reinforcement learning for reasoning
+  language models.
+\newblock arXiv preprint arXiv:2505.22617, 2025.
+\newblock URL \url{https://arxiv.org/abs/2505.22617v1}.
+
+\bibitem[Dang et~al.(2025)Dang, Baek, Kolter, and
+  Raghunathan]{dang2025diversity}
+Xingyu Dang, Christina Baek, J.~Zico Kolter, and Aditi Raghunathan.
+\newblock Assessing diversity collapse in reasoning.
+\newblock In \emph{{ICLR} Workshop on Scaling Self-Improving Foundation Models
+  without Human Supervision}, 2025.
+\newblock URL \url{https://openreview.net/forum?id=AMiKsHLjQh}.
+
+\bibitem[Dong et~al.(2023)Dong, Xiong, Goyal, Zhang, Chow, Pan, Diao, Zhang,
+  Shum, and Zhang]{dong2023raft}
+Hanze Dong, Wei Xiong, Deepanshu Goyal, Yihan Zhang, Winnie Chow, Rui Pan,
+  Shizhe Diao, Jipeng Zhang, Kashun Shum, and Tong Zhang.
+\newblock {RAFT}: Reward r{A}nked {F}ine{T}uning for generative foundation
+  model alignment.
+\newblock \emph{Transactions on Machine Learning Research}, 2023.
+\newblock URL \url{https://arxiv.org/abs/2304.06767}.
+
+\bibitem[Doshi \& Hauser(2024)Doshi and Hauser]{doshi2024generative}
+Anil~R. Doshi and Oliver~P. Hauser.
+\newblock Generative ai enhances individual creativity but reduces the
+  collective diversity of novel content.
+\newblock \emph{Science Advances}, 10\penalty0 (28):\penalty0 eadn5290, 2024.
+\newblock \doi{10.1126/sciadv.adn5290}.
+
+\bibitem[Ecoffet et~al.(2021)Ecoffet, Huizinga, Lehman, Stanley, and
+  Clune]{ecoffet2021return}
+Adrien Ecoffet, Joost Huizinga, Joel Lehman, Kenneth~O. Stanley, and Jeff
+  Clune.
+\newblock First return, then explore.
+\newblock \emph{Nature}, 590:\penalty0 580--586, 2021.
+\newblock \doi{10.1038/s41586-020-03157-9}.
+
+\bibitem[Farquhar et~al.(2024)Farquhar, Kossen, Kuhn, and
+  Gal]{farquhar2024detecting}
+Sebastian Farquhar, Jannik Kossen, Lorenz Kuhn, and Yarin Gal.
+\newblock Detecting hallucinations in large language models using semantic
+  entropy.
+\newblock \emph{Nature}, 630\penalty0 (8017):\penalty0 625--630, 2024.
+\newblock \doi{10.1038/s41586-024-07421-0}.
+
+\bibitem[Geist et~al.(2019)Geist, Scherrer, and Pietquin]{geist2019regmdp}
+Matthieu Geist, Bruno Scherrer, and Olivier Pietquin.
+\newblock A theory of regularized {M}arkov decision processes.
+\newblock In \emph{Proceedings of the 36th International Conference on Machine
+  Learning ({ICML})}, volume~97 of \emph{Proceedings of Machine Learning
+  Research}, pp.\  2160--2169. {PMLR}, 2019.
+\newblock URL \url{https://proceedings.mlr.press/v97/geist19a.html}.
+
+\bibitem[Guo et~al.(2025)Guo, Yang, Zhang, Song, Wang, Zhu, Xu, Zhang, Ma, Bi,
+  et~al.]{guo2025deepseekr1}
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Peiyi Wang, Qihao Zhu,
+  Runxin Xu, Ruoyu Zhang, Shirong Ma, Xiao Bi, et~al.
+\newblock {DeepSeek-R1} incentivizes reasoning in {LLM}s through reinforcement
+  learning.
+\newblock \emph{Nature}, 645\penalty0 (8081):\penalty0 633--638, 2025.
+\newblock \doi{10.1038/s41586-025-09422-z}.
+
+\bibitem[Harper(2009)]{harper2009informationgeometry}
+Marc Harper.
+\newblock Information geometry and evolutionary game theory.
+\newblock \emph{arXiv preprint arXiv:0911.1383}, 2009.
+\newblock URL \url{https://arxiv.org/abs/0911.1383v1}.
+
+\bibitem[He et~al.(2026)He, Sun, Cheng, Li, Ji, Lu, Huang, and Hu]{avspo2026}
+Xixiang He, Qiyao Sun, Ao~Cheng, Xingming Li, Xuanyu Ji, Hailun Lu, Runke
+  Huang, and Qingyong Hu.
+\newblock Advantage collapse in group relative policy optimization: Diagnosis
+  and mitigation, 2026.
+\newblock URL \url{https://arxiv.org/abs/2605.21125v2}.
+
+\bibitem[Hofbauer \& Sigmund(1998)Hofbauer and
+  Sigmund]{hofbauer1998evolutionary}
+Josef Hofbauer and Karl Sigmund.
+\newblock \emph{Evolutionary Games and Population Dynamics}.
+\newblock Cambridge University Press, Cambridge, United Kingdom, 1998.
+
+\bibitem[Howard et~al.(2020)Howard, Ramdas, McAuliffe, and
+  Sekhon]{howard2020timeuniform}
+Steven~R. Howard, Aaditya Ramdas, Jon McAuliffe, and Jasjeet Sekhon.
+\newblock Time-uniform {Chernoff} bounds via nonnegative supermartingales.
+\newblock \emph{Probability Surveys}, 17:\penalty0 257--317, 2020.
+\newblock \doi{10.1214/18-PS321}.
+\newblock URL \url{https://doi.org/10.1214/18-PS321}.
+
+\bibitem[Kim et~al.(2026)Kim, Chang, Pham, and Iyyer]{kim2026argument}
+Yekyung Kim, Yapei Chang, Chau~Minh Pham, and Mohit Iyyer.
+\newblock Argument collapse: {LLM}s flatten long-form public debate, 2026.
+\newblock URL \url{https://arxiv.org/abs/2606.01736}.
+
+\bibitem[Kirk et~al.(2024)Kirk, Mediratta, Nalmpantis, Luketina, Hambro,
+  Grefenstette, and Raileanu]{kirk2024understanding}
+Robert Kirk, Ishita Mediratta, Christoforos Nalmpantis, Jelena Luketina, Eric
+  Hambro, Edward Grefenstette, and Roberta Raileanu.
+\newblock Understanding the effects of {RLHF} on {LLM} generalisation and
+  diversity.
+\newblock In \emph{International Conference on Learning Representations}, 2024.
+\newblock URL \url{https://openreview.net/forum?id=PXD3FAVHJT}.
+
+\bibitem[Li et~al.(2026{\natexlab{a}})Li, Zhang, Wang, Ma, Tang, Huang, and
+  Duan]{li2026setpo}
+Chenyi Li, Yuan Zhang, Bo~Wang, Guoqing Ma, Wei Tang, Haoyang Huang, and Nan
+  Duan.
+\newblock {SetPO}: Set-level policy optimization for diversity-preserving {LLM}
+  reasoning, 2026{\natexlab{a}}.
+\newblock URL \url{https://arxiv.org/abs/2602.01062v1}.
+
+\bibitem[Li et~al.(2016)Li, Galley, Brockett, Gao, and Dolan]{li2016diversity}
+Jiwei Li, Michel Galley, Chris Brockett, Jianfeng Gao, and Bill Dolan.
+\newblock A diversity-promoting objective function for neural conversation
+  models.
+\newblock In \emph{Proceedings of the 2016 Conference of the North American
+  Chapter of the Association for Computational Linguistics: Human Language
+  Technologies (NAACL-HLT)}, pp.\  110--119, 2016.
+\newblock \doi{10.18653/v1/N16-1014}.
+\newblock URL \url{https://aclanthology.org/N16-1014/}.
+
+\bibitem[Li et~al.(2025)Li, Zhou, Hao, Liu, Miao, Pang, Tan, Chu, Wang, Pan,
+  Qu, and Qi]{li2025divergence}
+Long Li, Zhijian Zhou, Jiaran Hao, Jason~Klein Liu, Yanting Miao, Wei Pang,
+  Xiaoyu Tan, Wei Chu, Zhe Wang, Shirui Pan, Chao Qu, and Yuan Qi.
+\newblock The choice of divergence: A neglected key to mitigating diversity
+  collapse in reinforcement learning with verifiable reward, 2025.
+\newblock URL \url{https://arxiv.org/abs/2509.07430v4}.
+
+\bibitem[Li et~al.(2026{\natexlab{b}})Li, Li, Fang, Ding, Li, Chen, Ma, Lyu,
+  Li, Lin, Guo, Liu, and Chen]{li2026distribution}
+Xiaozhe Li, Yang Li, Xinyu Fang, Shengyuan Ding, Peiji Li, Yongkang Chen,
+  Yichuan Ma, Tianyi Lyu, Linyang Li, Dahua Lin, Qipeng Guo, Qingwen Liu, and
+  Kai Chen.
+\newblock Beyond mode collapse: Distribution matching for diverse reasoning,
+  2026{\natexlab{b}}.
+\newblock URL \url{https://arxiv.org/abs/2605.19461}.
+
+\bibitem[Lightman et~al.(2024)Lightman, Kosaraju, Burda, Edwards, Baker, Lee,
+  Leike, Schulman, Sutskever, and Cobbe]{lightman2023lets}
+Hunter Lightman, Vineet Kosaraju, Yuri Burda, Harrison Edwards, Bowen Baker,
+  Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+\newblock Let's verify step by step.
+\newblock In \emph{The Twelfth International Conference on Learning
+  Representations ({ICLR})}, 2024.
+
+\bibitem[Lin(1992)]{lin1992selfimproving}
+Long-Ji Lin.
+\newblock Self-improving reactive agents based on reinforcement learning,
+  planning and teaching.
+\newblock \emph{Machine Learning}, 8:\penalty0 293--321, 1992.
+\newblock \doi{10.1007/BF00992699}.
+
+\bibitem[Liu et~al.(2025)Liu, Chen, Li, Qi, Pang, Du, Lee, and
+  Lin]{liu2025understanding}
+Zichen Liu, Changyu Chen, Wenjun Li, Penghui Qi, Tianyu Pang, Chao Du, Wee~Sun
+  Lee, and Min Lin.
+\newblock Understanding {R1-Zero}-like training: A critical perspective.
+\newblock In \emph{Conference on Language Modeling ({COLM})}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2503.20783}.
+
+\bibitem[Lochab et~al.(2026)Lochab, Li, and Zhang]{lochab2026ucpo}
+Anamika Lochab, Bolian Li, and Ruqi Zhang.
+\newblock Uniform-correct policy optimization: Breaking {RLVR}'s indifference
+  to diversity, 2026.
+\newblock URL \url{https://arxiv.org/abs/2605.00365}.
+
+\bibitem[Mei et~al.(2020)Mei, Xiao, Szepesv{\'a}ri, and
+  Schuurmans]{mei2020softmaxpg}
+Jincheng Mei, Chenjun Xiao, Csaba Szepesv{\'a}ri, and Dale Schuurmans.
+\newblock On the global convergence rates of softmax policy gradient methods.
+\newblock In \emph{Proceedings of the 37th International Conference on Machine
+  Learning}, volume 119 of \emph{Proceedings of Machine Learning Research},
+  pp.\  6820--6829. {PMLR}, 2020.
+\newblock URL \url{https://proceedings.mlr.press/v119/mei20b.html}.
+
+\bibitem[Mnih et~al.(2015)Mnih, Kavukcuoglu, Silver, Rusu, Veness, Bellemare,
+  Graves, Riedmiller, Fidjeland, Ostrovski, Petersen, Beattie, Sadik,
+  Antonoglou, King, Kumaran, Wierstra, Legg, and Hassabis]{mnih2015human}
+Volodymyr Mnih, Koray Kavukcuoglu, David Silver, Andrei~A. Rusu, Joel Veness,
+  Marc~G. Bellemare, Alex Graves, Martin Riedmiller, Andreas~K. Fidjeland,
+  Georg Ostrovski, Stig Petersen, Charles Beattie, Amir Sadik, Ioannis
+  Antonoglou, Helen King, Dharshan Kumaran, Daan Wierstra, Shane Legg, and
+  Demis Hassabis.
+\newblock Human-level control through deep reinforcement learning.
+\newblock \emph{Nature}, 518:\penalty0 529--533, 2015.
+\newblock \doi{10.1038/nature14236}.
+
+\bibitem[Mouret \& Clune(2015)Mouret and Clune]{mouret2015illuminating}
+Jean-Baptiste Mouret and Jeff Clune.
+\newblock Illuminating search spaces by mapping elites, 2015.
+\newblock URL \url{https://arxiv.org/abs/1504.04909}.
+
+\bibitem[Pereyra et~al.(2017)Pereyra, Tucker, Chorowski, Kaiser, and
+  Hinton]{pereyra2017confidencepenalty}
+Gabriel Pereyra, George Tucker, Jan Chorowski, {\L}ukasz Kaiser, and Geoffrey
+  Hinton.
+\newblock Regularizing neural networks by penalizing confident output
+  distributions.
+\newblock \emph{arXiv preprint arXiv:1701.06548}, 2017.
+\newblock URL \url{https://arxiv.org/abs/1701.06548}.
+
+\bibitem[Rolnick et~al.(2019)Rolnick, Ahuja, Schwarz, Lillicrap, and
+  Wayne]{rolnick2019replay}
+David Rolnick, Arun Ahuja, Jonathan Schwarz, Timothy~P. Lillicrap, and Greg
+  Wayne.
+\newblock Experience replay for continual learning.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~32, 2019.
+\newblock URL \url{https://arxiv.org/abs/1811.11682}.
+
+\bibitem[Shao et~al.(2024)Shao, Wang, Zhu, Xu, Song, Bi, Zhang, Zhang, Li, Wu,
+  and Guo]{shao2024deepseekmath}
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei
+  Zhang, Mingchuan Zhang, Y.~K. Li, Y.~Wu, and Daya Guo.
+\newblock {DeepSeekMath}: Pushing the limits of mathematical reasoning in open
+  language models.
+\newblock \emph{arXiv preprint arXiv:2402.03300}, 2024.
+
+\bibitem[Sinha et~al.(2026)Sinha, Elango, and Liu]{sinha2026expected}
+Abhijeet Sinha, Sundari Elango, and Dianbo Liu.
+\newblock Expected return causes outcome-level mode collapse in reinforcement
+  learning and how to fix it with inverse probability scaling, 2026.
+\newblock URL \url{https://arxiv.org/abs/2601.21669}.
+
+\bibitem[Snell et~al.(2024)Snell, Lee, Xu, and Kumar]{snell2024testtime}
+Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar.
+\newblock Scaling {LLM} test-time compute optimally can be more effective than
+  scaling model parameters, 2024.
+\newblock URL \url{https://arxiv.org/abs/2408.03314}.
+
+\bibitem[Song et~al.(2025)Song, Kempe, and Munos]{song2025outcome}
+Yuda Song, Julia Kempe, and Remi Munos.
+\newblock Outcome-based exploration for {LLM} reasoning, 2025.
+\newblock URL \url{https://arxiv.org/abs/2509.06941}.
+
+\bibitem[Tajwar et~al.(2026)Tajwar, Zeng, Zhou, Song, Arora, Jiang, Schneider,
+  Salakhutdinov, Feng, and Zanette]{tajwar2026maxrl}
+Fahim Tajwar, Guanning Zeng, Yueer Zhou, Yuda Song, Daman Arora, Yiding Jiang,
+  Jeff Schneider, Ruslan Salakhutdinov, Haiwen Feng, and Andrea Zanette.
+\newblock Maximum likelihood reinforcement learning, 2026.
+\newblock URL \url{https://arxiv.org/abs/2602.02710v3}.
+\newblock Version 3.
+
+\bibitem[van Erven \& Harremo{\"e}s(2014)van Erven and
+  Harremo{\"e}s]{vanerven2014renyi}
+Tim van Erven and Peter Harremo{\"e}s.
+\newblock {R\'enyi} divergence and {Kullback--Leibler} divergence.
+\newblock \emph{IEEE Transactions on Information Theory}, 2014.
+\newblock \doi{10.1109/TIT.2014.2320500}.
+\newblock URL \url{https://arxiv.org/abs/1206.2459v2}.
+
+\bibitem[Vieillard et~al.(2020)Vieillard, Kozuno, Scherrer, Pietquin, Munos,
+  and Geist]{vieillard2020kl}
+Nino Vieillard, Tadashi Kozuno, Bruno Scherrer, Olivier Pietquin, R{\'e}mi
+  Munos, and Matthieu Geist.
+\newblock Leverage the average: An analysis of {KL} regularization in
+  reinforcement learning.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  ({NeurIPS})}, volume~33, 2020.
+\newblock URL
+  \url{https://proceedings.neurips.cc/paper/2020/hash/8e2c381d4dd04f1c55093f22c59c3a08-Abstract.html}.
+
+\bibitem[Wang et~al.(2017)Wang, Ma, Goldfarb, and Liu]{wang2017sqn}
+Xiao Wang, Shiqian Ma, Donald Goldfarb, and Wei Liu.
+\newblock Stochastic quasi-newton methods for nonconvex stochastic
+  optimization.
+\newblock \emph{SIAM Journal on Optimization}, 27\penalty0 (2):\penalty0
+  927--956, 2017.
+\newblock \doi{10.1137/15M1053141}.
+\newblock URL \url{https://doi.org/10.1137/15M1053141}.
+
+\bibitem[Wang et~al.(2023)Wang, Wei, Schuurmans, Le, Chi, Narang, Chowdhery,
+  and Zhou]{wang2023selfconsistency}
+Xuezhi Wang, Jason Wei, Dale Schuurmans, Quoc~V. Le, Ed~H. Chi, Sharan Narang,
+  Aakanksha Chowdhery, and Denny Zhou.
+\newblock Self-consistency improves chain of thought reasoning in language
+  models.
+\newblock In \emph{The Eleventh International Conference on Learning
+  Representations ({ICLR})}, 2023.
+\newblock URL \url{https://openreview.net/forum?id=1PL1NIMMrw}.
+
+\bibitem[Yue et~al.(2025)Yue, Chen, Lu, Zhao, Wang, Yue, Song, and
+  Huang]{yue2025rlvrlimit}
+Yang Yue, Zhiqi Chen, Rui Lu, Andrew Zhao, Zhaokai Wang, Yang Yue, Shiji Song,
+  and Gao Huang.
+\newblock Does reinforcement learning really incentivize reasoning capacity in
+  {LLMs} beyond the base model?, 2025.
+\newblock URL \url{https://arxiv.org/abs/2504.13837}.
+
+\bibitem[Zhang et~al.(2025)Zhang, Fu, Zhang, Fu, Wang, Zhang, and
+  Zhou]{zhang2025rlep}
+Hongzhi Zhang, Jia Fu, Jingyuan Zhang, Kai Fu, Qi~Wang, Fuzheng Zhang, and
+  Guorui Zhou.
+\newblock {RLEP}: Reinforcement learning with experience replay for {LLM}
+  reasoning, 2025.
+\newblock URL \url{https://arxiv.org/abs/2507.07451}.
+
+\bibitem[Zheng et~al.(2023)Zheng, Chiang, Sheng, Zhuang, Wu, Zhuang, Lin, Li,
+  Li, Xing, Zhang, Gonzalez, and Stoica]{zheng2023judging}
+Lianmin Zheng, Wei-Lin Chiang, Ying Sheng, Siyuan Zhuang, Zhanghao Wu, Yonghao
+  Zhuang, Zi~Lin, Zhuohan Li, Dacheng Li, Eric~P. Xing, Hao Zhang, Joseph~E.
+  Gonzalez, and Ion Stoica.
+\newblock Judging {LLM}-as-a-judge with {MT}-bench and chatbot arena.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)
+  Datasets and Benchmarks Track}, volume~36, 2023.
+\newblock URL \url{https://arxiv.org/abs/2306.05685}.
+
+\bibitem[Zhu et~al.(2018)Zhu, Lu, Zheng, Guo, Zhang, Wang, and
+  Yu]{zhu2018texygen}
+Yaoming Zhu, Sidi Lu, Lei Zheng, Jiaxian Guo, Weinan Zhang, Jun Wang, and Yong
+  Yu.
+\newblock Texygen: A benchmarking platform for text generation models.
+\newblock In \emph{Proceedings of the 41st International ACM SIGIR Conference
+  on Research and Development in Information Retrieval (SIGIR)}, pp.\
+  1097--1100, 2018.
+\newblock \doi{10.1145/3209978.3210080}.
+\newblock URL \url{https://arxiv.org/abs/1802.01886}.
+
+\end{thebibliography}

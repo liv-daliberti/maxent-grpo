@@ -1,0 +1,35 @@
+{
+  "status": "pass",
+  "source_snapshot": "12467efeef3e1b2c7cbabcf77c4d20441e2c97aa15bb9665d864406213742416",
+  "parent_source_sha256": "f169b0fe84cbd5b4422d2875c14195543c83a0038c300856c970ba10a9468469",
+  "workshop_sources": {
+    "main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+    "appendix.tex": "9ddbbf24a9fc8a8b44cec7752695377689b518addf9208a70de0a297c80673e8",
+    "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+  },
+  "synced_assets": 24,
+  "build_log": "paper/audits/results_refresh_20260909/workshop-build-r2.log",
+  "pdf_sha256": "3ac998a40092392c20758a1f9654cf3728f3c46bccb48b847051c19a7c47dbda",
+  "source_zip_sha256": "a10fea0f664a2de63b1c6f41e83b5d682480f48148f35e2e86e7a4eca8ce6382",
+  "source_zip_files": 79,
+  "automated_checks": [
+    "Four main content pages; references begin on page 5",
+    "Six main and eight supplementary figures",
+    "Anonymous workshop mode; official style unchanged",
+    "All referenced inputs, copied asset hashes, and compilation receipt current",
+    "No unresolved references or overfull boxes",
+    "Source ZIP contents reconcile to snapshot bindings"
+  ],
+  "visual_review": {
+    "pages": [
+      4,
+      61,
+      62,
+      63
+    ],
+    "renders": "paper/audits/results_refresh_20260909/rendered/workshop-page{page}.png",
+    "result": "Main figures/narrative and all new paired-result tables are legible; no clipping, overlap, or layout repairs needed."
+  },
+  "scientific_review": "All 34 displayed campaign contrasts and 10 E119 common-four-arm contrasts were independently reconciled to the dated snapshot. E120 partial Graph seeds 70/71 endpoints and replay telemetry also independently checked against live source logs.",
+  "final_caption_cleanup": "Mirrored parent shortened empty Qwen-3B PantryPlan statement; no numeric changes."
+}

@@ -1,0 +1,31 @@
+{
+  "documentation_suggestions": [
+    {
+      "priority": "recommended",
+      "reason": "Current live --date2026-09-10 command overwrites the already frozen census. Use --from-audit paper/audits/results_refresh_20260910/latest_endpoints.json for reproducing this dated result; reserve live collection for a new date.",
+      "target": "paper/README.md reproduction command"
+    },
+    {
+      "priority": "optional",
+      "reason": "Expanded table includes E118/E120 as well as three Level2 blocks. Wording includes the three Level2 blocks is more precise than reports the three blocks.",
+      "target": "paper/main.tex paragraph above latest completed effects table"
+    }
+  ],
+  "numeric_findings": [],
+  "observed_at_utc": "2026-09-10T17:00:18.532305+00:00",
+  "reviewed_files": {
+    "paper/README.md": "dc5710431c9e6c01f8f5458512e1ea8e0774bf2409764423da51191c925e3c68",
+    "paper/figures/e118_all_scale_factorial_progress.json": "1d07345b37724a9d2709ecf7248c7747264a5671b99de3cb7a3d34aa4b322418",
+    "paper/figures/modebench_level_admission.json": "21af1b6a793145cdfd8180f0d8050d110b2ded910755a6358965df215ab6d6f0",
+    "paper/main.tex": "ad718125fba12b715f9bf9f2e7e70e86710208dfc89a6445f0884b4c9dc0b170",
+    "paper/results/latest_results_20260910.json": "dbaaf327e1765cbf2dc2d39d64599b69b17333487efb44762ffc09709f4b9d60"
+  },
+  "reviewer_scope": "Independent review of new September10 main manuscript and README numeric claims; no TeX/README edits.",
+  "verified": [
+    "E118137 endpoints,66 matched pairs,12 complete two-arm blocks; Figure5 full-four-arm intersection11 complete blocks and FalconCountdown n4.",
+    "Qwen3BGraph five-seed B8 effect+.162890625 with interval[+.020802305,+.304978945]; all5 seedB8 differences positive; pass8 and distinct8 intervals include0.",
+    "E11985 endpoints; Pantry sole ReplayDrGRPO/DrGRPO pair46 with deltas+.15625 pass8,+.232421875 distinct8,+.076171875 B8; no interval; no four-arm Pantry seed.",
+    "E12041 treatment endpoints/pairs and7 complete mechanism-eligible blocks; FalconPantry full5seed weighting effect intervals allinclude0; Qwen3BGraph paired70\u201373 and Pantry73\u201374.",
+    "Figure6 independently has22 matched domain-seedcells; Pantry43@672,45@0 and other20@3072; all8 series use common cells, displayed replay contrasts positive for both endpoints."
+  ]
+}

@@ -1,0 +1,1960 @@
+{
+ "amendment_sha256": "3fbe91dbd69ba5f9eed70d47bc3895cc009f4bb3cfbf2ff358838b488906d9df",
+ "binding_path": "paper/audits/conditional_concentration_20260914/amendment_4_initial_checkpoint_provenance_binding.json",
+ "binding_sha256": "c5c71589617df0820d9f2210be4ea6da252329d19da922727a7f23aba1f4741b",
+ "cells": 475,
+ "cells_with_initial_checkpoint": 455,
+ "effects_computed": false,
+ "extension_code_sha256": "03bba425fff7fac9e71b7fe6d2b2b3b31f45416fcbaa6447a937d47c2689e5c2",
+ "newly_admitted_initial_checkpoints": 27,
+ "patched_snapshot_sha256": "912849bf979a629f1f3ab852f0039989bcfb5c9f44366053f27c1533876c12bf",
+ "path": "paper/audits/conditional_concentration_20260914/verified_samples_initial_provenance.jsonl.gz",
+ "sha256": "58e9bb30fb2852438c148b0b49e8329391d7d0d134e0919d40ca29312286686e",
+ "status": "collected",
+ "stream_metadata_checks": [
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "maxrl",
+    56
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    56
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    57
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "countdown",
+    "replay_maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610200,
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207
+     ],
+     "parent_seed": 610200
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610201,
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208
+     ],
+     "parent_seed": 610201
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610202,
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209
+     ],
+     "parent_seed": 610202
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610203,
+      610204,
+      610205,
+      610206,
+      610207,
+      610208,
+      610209,
+      610210
+     ],
+     "parent_seed": 610203
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "maxrl",
+    55
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610100,
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107
+     ],
+     "parent_seed": 610100
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108
+     ],
+     "parent_seed": 610101
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109
+     ],
+     "parent_seed": 610102
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109,
+      610110
+     ],
+     "parent_seed": 610103
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610100,
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107
+     ],
+     "parent_seed": 610100
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108
+     ],
+     "parent_seed": 610101
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109
+     ],
+     "parent_seed": 610102
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109,
+      610110
+     ],
+     "parent_seed": 610103
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "replay_maxrl",
+    55
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610100,
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107
+     ],
+     "parent_seed": 610100
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108
+     ],
+     "parent_seed": 610101
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109
+     ],
+     "parent_seed": 610102
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109,
+      610110
+     ],
+     "parent_seed": 610103
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "replay_maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610100,
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107
+     ],
+     "parent_seed": 610100
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108
+     ],
+     "parent_seed": 610101
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109
+     ],
+     "parent_seed": 610102
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109,
+      610110
+     ],
+     "parent_seed": 610103
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "graph_coloring",
+    "replay_maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610100,
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107
+     ],
+     "parent_seed": 610100
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610101,
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108
+     ],
+     "parent_seed": 610101
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610102,
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109
+     ],
+     "parent_seed": 610102
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610103,
+      610104,
+      610105,
+      610106,
+      610107,
+      610108,
+      610109,
+      610110
+     ],
+     "parent_seed": 610103
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    55
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    56
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "replay_maxrl",
+    55
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "replay_maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "mathir",
+    "replay_maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    56
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    57
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    58
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    56
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    57
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "falcon1b",
+    "pantry_plan",
+    "replay_maxrl",
+    59
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76299,
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306
+     ],
+     "parent_seed": 76299
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76300,
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307
+     ],
+     "parent_seed": 76300
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76301,
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308
+     ],
+     "parent_seed": 76301
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      76302,
+      76303,
+      76304,
+      76305,
+      76306,
+      76307,
+      76308,
+      76309
+     ],
+     "parent_seed": 76302
+    }
+   ],
+   "step": 0
+  },
+  {
+   "cell": [
+    "level1",
+    "qwen3b",
+    "mathir",
+    "replay_drgrpo",
+    71
+   ],
+   "draws": [
+    {
+     "draw_index": 0,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610400,
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407
+     ],
+     "parent_seed": 610400
+    },
+    {
+     "draw_index": 1,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610401,
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408
+     ],
+     "parent_seed": 610401
+    },
+    {
+     "draw_index": 2,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610402,
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409
+     ],
+     "parent_seed": 610402
+    },
+    {
+     "draw_index": 3,
+     "neutral_option_and_request_metadata_verified": true,
+     "nominal_child_seeds": [
+      610403,
+      610404,
+      610405,
+      610406,
+      610407,
+      610408,
+      610409,
+      610410
+     ],
+     "parent_seed": 610403
+    }
+   ],
+   "step": 0
+  }
+ ]
+}

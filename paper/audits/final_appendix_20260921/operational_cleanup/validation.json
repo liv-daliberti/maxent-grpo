@@ -1,0 +1,144 @@
+{
+  "edits": 58,
+  "changed_files": 14,
+  "live_exact_matches": true,
+  "checks": [
+    {
+      "path": "paper/main.tex",
+      "removed_labels": [
+        "tab:pinned-revisions"
+      ],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 258
+    },
+    {
+      "path": "paper/results/conditional_concentration_20260912_appendix.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 198
+    },
+    {
+      "path": "paper/results/semantic_current_summary_20260912.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 0
+    },
+    {
+      "path": "paper/results/modebench_prompt_ablation_20260911.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 36
+    },
+    {
+      "path": "paper/results/modebench_discovery_curves_20260911.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 15
+    },
+    {
+      "path": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 20
+    },
+    {
+      "path": "paper/results/inference_followups_20260912.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 1
+    },
+    {
+      "path": "paper/results/portfolio_withdrawals_20260917.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 7
+    },
+    {
+      "path": "paper/results/frontier_hosted_20260911_appendix.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 32
+    },
+    {
+      "path": "paper/results/frontier_comparison_20260911_protocol.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 36
+    },
+    {
+      "path": "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 21
+    },
+    {
+      "path": "paper/results/frontier_temperature_20260911.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 32
+    },
+    {
+      "path": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 39
+    },
+    {
+      "path": "paper/results/hosted_reasoning_off_20260912_appendix.tex",
+      "removed_labels": [],
+      "figures_preserved": true,
+      "input_dependencies_preserved": true,
+      "displayed_theory_preserved": true,
+      "balanced_environments": true,
+      "removed_words": 41
+    }
+  ],
+  "active_tex_files_in_full_reference_scan": 54,
+  "revision_table_inbound_refs": 0,
+  "residual_candidates": [
+    {
+      "path": "paper/results/semantic_current_summary_20260912.tex",
+      "line": 20,
+      "text": "\\caption{\\textbf{Fixed semantic entropy helps Qwen2.5-0.5B \\texttt{PantryPlan} with and without replay.} Without replay is semantic-only minus Dr.GRPO; on replay is semantic-plus-replay minus Re:Dr; interaction subtracts the former effect from the latter. Extra modes equal \\texttt{distinct@8} minus \\texttt{pass@8}. Entries give paired means and nominal 95\\% Student-$t$ intervals; the single-seed 3B effects have no intervals.}"
+    }
+  ]
+}

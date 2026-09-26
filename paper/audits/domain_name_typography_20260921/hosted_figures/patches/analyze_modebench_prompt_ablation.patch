@@ -1,0 +1,26 @@
+--- ops/analyze_modebench_prompt_ablation.py (before)
++++ ops/analyze_modebench_prompt_ablation.py (after)
+@@ -1229,6 +1229,11 @@
+                 plotted.append({'grading':grading,**row})
+         labels = [f"{r['label']} · {DOMAIN_LABELS[r['domain']]} L{r['level']}"+
+                   (f" (s={r['seed_count']})" if family=='local' else '') for r in rows]
++        try:
++            from ops.paper_domain_figure_typography import domain_mathtext
++        except ModuleNotFoundError:
++            from paper_domain_figure_typography import domain_mathtext
++        labels = [domain_mathtext(label) for label in labels]
+         axes[0].set_yticks(range(len(rows)),labels=labels[::-1],fontsize=7)
+         for ax,label in zip(axes,(r'$\Delta D_8$: neutral − original',r'$\Delta P_8$: neutral − original')):
+             ax.axvline(0,color='#777777',lw=.8,ls='--',zorder=0)
+@@ -1237,6 +1242,11 @@
+             ax.tick_params(axis='y',length=0)
+             ax.spines[['top','right','left']].set_visible(False)
+         axes[0].legend(frameon=False,fontsize=7,loc='upper center',bbox_to_anchor=(.5,1.075),ncol=2)
++        try:
++            from ops.paper_domain_figure_typography import apply_domain_typography
++        except ModuleNotFoundError:
++            from paper_domain_figure_typography import apply_domain_typography
++        apply_domain_typography(fig)
+         fig.tight_layout()
+         stem = output/f'modebench_prompt_ablation_{family}'
+         for suffix in ('pdf','png'):

@@ -1,0 +1,129 @@
+{
+  "amendment_sha256": "554033e12ba77d719730b6a8ab9fb934b8799ad6b949fc24e4de39fb35066c1c",
+  "attempt_selection": "replace_exact_never_started_pending_cells",
+  "execution_surface_hash": "c8aa9471d5af05264d2cc04338612f9f2e16a10af34c5ebaea67ac6aa6ddb41a",
+  "invalid_jobs_optimizer_records": 0,
+  "launcher_sha256": "a4e866c3750868a03a13ae329a22bb11851cdec7a5b35b508a52106a30fb2fd9",
+  "manifest_sha256": {
+    "countdown": "42cd89907c7f2891dbc2ff7a7330fd46aa931cd73546ba6f89a0e9d2f08b19f7",
+    "graph_coloring": "5187697a43e3d53e21c0579e610e41d46d7179fc950946f4ea14e9053deb4f5c",
+    "python_factor": "5f8625edab1ce0885da0f13b1d7f048afa5d1d6181d3976062b3d3434a14510a"
+  },
+  "mappings": {
+    "countdown": [
+      {
+        "arm": "grpo",
+        "invalid_job_id": 30159717,
+        "replacement_job_id": 30160185,
+        "run_stamp": "cde69_gate2_placement_repair_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "invalid_job_id": 30159718,
+        "replacement_job_id": 30160186,
+        "run_stamp": "cde69_gate2_placement_repair_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "invalid_job_id": 30159719,
+        "replacement_job_id": 30160187,
+        "run_stamp": "cde69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "invalid_job_id": 30159720,
+        "replacement_job_id": 30160188,
+        "run_stamp": "cde69_gate2_placement_repair_verified_route_successor_s43",
+        "seed": 43
+      }
+    ],
+    "graph_coloring": [
+      {
+        "arm": "grpo",
+        "invalid_job_id": 30159713,
+        "replacement_job_id": 30160181,
+        "run_stamp": "gce69_gate2_placement_repair_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "invalid_job_id": 30159714,
+        "replacement_job_id": 30160182,
+        "run_stamp": "gce69_gate2_placement_repair_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "invalid_job_id": 30159715,
+        "replacement_job_id": 30160183,
+        "run_stamp": "gce69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "invalid_job_id": 30159716,
+        "replacement_job_id": 30160184,
+        "run_stamp": "gce69_gate2_placement_repair_verified_route_successor_s43",
+        "seed": 43
+      }
+    ],
+    "python_factor": [
+      {
+        "arm": "grpo",
+        "invalid_job_id": 30159721,
+        "replacement_job_id": 30160202,
+        "run_stamp": "pye69_gate2_placement_repair_grpo_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_first_global_replay_canonical",
+        "invalid_job_id": 30159722,
+        "replacement_job_id": 30160203,
+        "run_stamp": "pye69_gate2_placement_repair_verified_first_global_replay_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_entropy_gated_singleton_escape_canonical",
+        "invalid_job_id": 30159723,
+        "replacement_job_id": 30160204,
+        "run_stamp": "pye69_gate2_placement_repair_verified_entropy_gated_singleton_escape_canonical_s43",
+        "seed": 43
+      },
+      {
+        "arm": "verified_route_successor",
+        "invalid_job_id": 30159724,
+        "replacement_job_id": 30160205,
+        "run_stamp": "pye69_gate2_placement_repair_verified_route_successor_s43",
+        "seed": 43
+      }
+    ]
+  },
+  "math500_sealed": true,
+  "original_identity_sha256": "733c5d6c348d9ca69a0161ade6a49cea5a1259513d3461a5fb8380588769a904",
+  "outcomes_observed_before_repair": false,
+  "placement": {
+    "countdown": {
+      "account": "mltheory",
+      "gres": "gpu:a5000:1",
+      "node": "node105",
+      "partition": "lowprio"
+    },
+    "graph_coloring": {
+      "account": "mltheory",
+      "gres": "gpu:a40:1",
+      "node": "node101",
+      "partition": "lowprio"
+    },
+    "python_factor": {
+      "account": "mltheory",
+      "gres": "gpu:a5000:1",
+      "node": "node105",
+      "partition": "lowprio"
+    }
+  },
+  "schema": "e69_gate2_pending_placement_repair_v1",
+  "source_hash": "b4075dbaababd0c972cc1ad4df8da34d4271274f21d7859ec9e477dc1c511976"
+}

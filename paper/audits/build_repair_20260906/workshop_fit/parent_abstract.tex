@@ -1,0 +1,18 @@
+
+Mathematical agents need candidate solutions for search, verification, and
+revision. Alternative routes may help when an approach fails or constraints
+change. Yet reinforcement learning with verifiable rewards (RLVR) can improve
+correctness while narrowing the model's repertoire. We introduce \mb{},
+spanning five executable domains whose validators report both correctness and
+a canonical solution identity. This makes the loss of verified alternatives
+measurable alongside \texttt{pass@}$K$. ReplayMaxRL retains policy-generated
+verified outputs by identity and replays them with balanced weights while
+optimizing success on fresh samples. A categorical analysis explains why binary
+on-policy updates amplify frequent correct modes and how recurrent replay
+counters this tendency. Across three model scales, canonical replay improves
+held-out correctness and retains a broader set of sampled outputs than
+verifier-only RL. At the two scales with complete MaxRL comparisons, replay
+also complements sampling-aware learning. ModeBench thus provides a controlled
+setting for studying two requirements of mathematical reasoning: discovering
+successful solutions and preserving alternatives an agent can still propose
+for verification and further search.

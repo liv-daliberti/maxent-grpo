@@ -1,0 +1,254 @@
+--- before-block.tex
++++ replacement.tex
+@@ -12,8 +12,7 @@
+ \]
+ Every all-equal group has zero fresh task component for
+ Equation~\eqref{eq:group-estimator} and for the specified centered MaxRL
+-estimator, so a nonzero fresh task component requires a mixed group, an event
+-whose probability is at most $h_G(P)$ at every correctness level.
++estimator, so the probability of a nonzero fresh task component is at most $h_G(P)$.
+ \end{lemma}
+ 
+ \begin{proof}
+@@ -54,10 +53,10 @@
+ \end{proof}
+ 
+ \begin{remark}
+-Together the two lemmas say only that a banked target can supply a verified
+-signal when the fresh task gradient is unavailable. Lemma~\ref{lem:replay-gradient-availability}
+-bounds an opportunity, not a gradient magnitude, and says nothing about other
+-loss terms, clipping, or momentum carried across updates. The vector in
++A fixed verified bank can supply a replay signal when the fresh task
++gradient is unavailable. Lemma~\ref{lem:replay-gradient-availability}
++bounds the probability of a nonzero fresh task component; it does not bound
++its magnitude or account for other loss terms, clipping, or momentum. The vector in
+ Lemma~\ref{lem:replay-ascent} averages the fixed bank, so a stochastic
+ exemplar draw realizes it only in expectation, and a nonzero logit coordinate
+ can still be annihilated by a degenerate neural Jacobian. Replay also need not
+@@ -76,8 +75,8 @@
+   =-\frac1k\sum_{b\in\mathcal B}\log p_b.
+   \label{eq:verified-replay-loss}
+ \end{equation}
+-For the uniform bank target $w$, this is the established likelihood-replay
+-objective $R_{\mathcal B}=H(w)+\mathrm{KL}(w\|p)$
++For the uniform bank target $w$, the likelihood-replay objective is
++$R_{\mathcal B}=H(w)+\mathrm{KL}(w\|p)$
+ \citep[App.~D.1, version~4]{li2025divergence}. The target assigns mass
+ $1/k$ to each banked mode and zero elsewhere. Decreasing this loss can raise
+ total bank mass as well as redistribute mass within the bank; the bank is
+@@ -86,8 +85,9 @@
+ In an averaged continuous-time model, absorb a fixed round-robin replay
+ frequency and loss scale into an effective dose $\rho>0$. This assumes a
+ fixed eligible-bank set and constant relative weighting; it does not identify
+-finite alternating updates with simultaneous gradient flow. The prompt-isolated categorical mean flow for any of the three fresh
+-binary-reward objectives above plus verified replay is
++finite alternating updates with simultaneous gradient flow. For one
++isolated prompt, the categorical mean flow for any of the three fresh
++binary-reward estimators with verified replay is
+ \begin{equation}
+   \dot z
+   =c_G(P)\nabla_zP-\rho\nabla_zR_{\mathcal B}(z).
+@@ -96,13 +96,12 @@
+ Let $\Psi(P)=\int_0^P c_G(s)\,ds$. For the finite-group estimators in Lemmas~\ref{lem:grpo-mean}
+ and~\ref{lem:maxrl-mean}, $c_G$ has a finite positive extension to $[0,1]$;
+ in particular, Dr.GRPO has $c_G=(G-1)/G$ and MaxRL has
+-$c_G=[1-(1-P)^{G-1}]/P$. Nothing below uses more than that. By
+-Theorem~\ref{thm:objective-inertness} and
+-Equation~\eqref{eq:inertness-polynomial}, every bounded reward-measurable
+-objective contributes $c_a(P)\nabla_zP$ with $c_a$ a polynomial, so it admits
+-the same $\Psi_a$ and the retention argument runs unchanged: what follows is a
+-statement about verified replay added to \emph{any} outcome-binary fresh
+-objective, of which Re:Dr and Re:Max are the two this paper trains. Define
++$c_G=[1-(1-P)^{G-1}]/P$. More generally, Theorem~\ref{thm:objective-inertness} and
++Equation~\eqref{eq:inertness-polynomial} give
++$c_a(P)\nabla_zP$ for every fixed, bounded reward-measurable advantage,
++with $c_a$ a polynomial. Its integral $\Psi_a$ is also bounded on $[0,1]$,
++so the retention argument applies even when the fresh coefficient changes
++sign. Define
+ \begin{equation}
+   F_{\mathcal B}(z)=\rho R_{\mathcal B}(z)-\Psi(P(z)).
+   \label{eq:replay-potential}
+@@ -113,8 +112,9 @@
+ \begin{theorem}[Verified replay prevents banked-mode extinction]
+ \enforcehalffinalproseline
+ \label{thm:replay-retention}
+-Suppose logits are finite at time $T$ and thereafter the nonempty verified
+-bank $\mathcal B$ is fixed, fits within replay capacity, and receives a
++Under Assumption~\ref{ass:categorical-mean-flow}, suppose logits are finite
++at time $T$ and thereafter the nonempty verified bank $\mathcal B$ is fixed,
++fits within replay capacity, and receives a
+ fixed positive effective replay dose $\rho$, the fresh objective being any
+ bounded reward-measurable one in the sense of
+ Theorem~\ref{thm:objective-inertness}. Set
+@@ -256,8 +256,8 @@
+  \label{eq:replay-mass-uniformity-decomposition}
+ \end{equation}
+ The potential is bounded below by $-\Psi_{\max}$, so its descent gives
+-$\int_T^\infty\|\nabla F_{\mathcal C}\|_2^2dt<\infty$. The finite-group
+-$c_G$ is smooth on $[0,1]$, and softmax derivatives and the cross-entropy
++$\int_T^\infty\|\nabla F_{\mathcal C}\|_2^2dt<\infty$. The fixed reward-measurable
++advantage gives a smooth $c_G$ on $[0,1]$, and softmax derivatives and the cross-entropy
+ gradient are bounded. Thus the Hessian of $F_{\mathcal C}$ and the velocity
+ are bounded; the gradient along the trajectory is uniformly continuous.
+ Square integrability then implies $\nabla F_{\mathcal C}\to0$: recurring
+@@ -286,12 +286,11 @@
+  \Pr[D_K(P,u)\ge r]\ge\Pr[D_K(P,q)\ge r].
+  \label{eq:coupon-uniform-coverage}
+ \end{equation}
+-Thus uniform conditional allocation maximizes \texttt{distinct@}$K$ at
+-fixed correctness, and more strongly maximizes every coverage tail
+-probability. The conclusion applies
+-\citet[Theorem~3, v1]{anceaume2015coupon} to a frozen policy with a fixed
+-correctness level and a finite catalogue of verified execution keys under
+-independent sampling.
++Thus uniform conditional allocation maximizes expected \texttt{distinct@}$K$
++at fixed correctness, as well as every coverage tail probability. This is
++the coupon-collection ordering of
++\citet[Theorem~3, v1]{anceaume2015coupon}, applied to independent draws
++from a fixed policy over a finite catalogue of verified execution keys.
+ \end{corollary}
+ \begin{proof}
+ \enforcehalffinalproseline
+@@ -329,7 +328,7 @@
+ A partial bank has a stronger limitation in this same ideal flow. For any
+ fixed nonempty $\mathcal B\subseteq\mathcal C$ and fixed positive weights
+ summing to one, extend $w$ by zero to $\bar w$ on all categories. Then
+-$p(t)\to\bar w$, so even correct modes outside the frozen bank vanish
++$p(t)\to\bar w$, so even correct modes outside the fixed bank vanish
+ asymptotically. For $F=\rho_wR_w-\Psi(P)$, the preceding energy and
+ bounded-Hessian argument still gives $\nabla F\to0$; neither argument
+ requires full bank coverage.
+@@ -363,21 +362,20 @@
+ Python factors, evaluation prompts admit \MDvmPythonRange{} correct execution
+ modes (mean \MDvmPythonMean{}), while the bank capacity is 16. The
+ full-coverage corollary therefore cannot supply a domain-wide guarantee there. The retention theorem protects only
+-admitted banked modes; it supplies no probability floor for an unbanked key.
+-
+-% Insert after the fixed-bank replay subsection and before the exemplar bridge.
++banked modes; it supplies no probability floor for an unbanked key.
++
+ \subsection{When replay reverses concentration, and how fast}
+ \label{app:theory-replay-finite-horizon}
+ 
+-The restoring logit field $\rho(\bar w-p)$ has a shared foundation with
+-inverse probability scaling: the ideal IPS field of
+-\citet[Theorem~4.1]{sinha2026expected}, normalized to a fixed target $w$, is
+-$\bar w-p$. The uniform-correct target and its forward conditional-KL
+-formulation are also established by \citet{lochab2026ucpo}. Here the target is
+-restricted to a discovered bank and evaluated from stored exemplars. The
+-question below is how its restoring field competes with the fresh binary
+-objective over a finite interval. Neither a uniform target nor its
+-cross-entropy gradient is a new contribution of this analysis.
++The restoring logit field $\rho(\bar w-p)$ is proportional to the ideal
++inverse probability scaling field of
++\citet[Theorem~4.1, v1]{sinha2026expected}, normalized to a fixed target $w$.
++The uniform-correct target and its forward conditional-KL formulation also
++appear in \citet[Sections~5.2 and~6.2, v1]{lochab2026ucpo}. For replay, the target is
++supported on the discovered bank and the loss is evaluated from stored
++exemplars. The relative strengths of this restoring field and the fresh
++binary objective determine whether bank diversity increases over a finite
++interval.
+ 
+ Fix a bank $\mathcal B\subseteq\mathcal C$ of $k\ge2$ modes, with uniform
+ categorical weights, and consider Equation~\eqref{eq:replay-mean-flow}.
+@@ -392,7 +390,7 @@
+  \label{eq:replay-finite-notation}
+ \end{equation}
+ Thus $1-C_{\mathcal B}$ is \pmd{} conditional on the bank. It equals the
+-paper's success-conditional \pmd{} when $\mathcal B=\mathcal C$; otherwise
++success-conditional \pmd{} when $\mathcal B=\mathcal C$; otherwise
+ it measures only allocation inside the bank.
+ 
+ \begin{theorem}[Exact replay threshold for bank diversity]
+@@ -489,10 +487,10 @@
+ claims. When $D(T)=0$, uniformity is preserved directly.
+ \end{proof}
+ 
+-The bound specifies the interval on which restoration occurs. It does not
+-assume that bank mass is monotone or that correctness stays above its value
+-at $T$. Both enter through the displayed exposure; a bound on unconditional
+-visibility additionally needs the stated bank-mass lower bound.
++The recovery bound assumes a nonnegative margin $a_\rho$ throughout
++the interval. Bank mass need not be monotone, and correctness need not stay
++above its value at $T$; both contribute to $S(T,t)$. The stated unconditional
++visibility guarantee additionally uses the bank-mass lower bound $M_0$.
+ 
+ \begin{proposition}[Discrete exact-gradient contraction]
+ \enforcehalffinalproseline
+@@ -541,10 +539,10 @@
+ bound.
+ \end{proof}
+ 
+-These discrete statements concern exact mean gradients, without clipping,
+-sampling noise, optimizer state or alternating replay visits. They establish
+-a finite-step result for the specified update, rather than a guarantee for
+-AdamW. Uniform categorical weights are also essential to the stated target.
++The discrete contraction holds for simultaneous exact mean-gradient
++steps. Clipping, sampling noise, optimizer state, and alternating replay
++visits are outside its assumptions, so it does not establish contraction
++for AdamW. Uniform categorical weights are also essential to the stated target.
+ For fixed nonuniform weights $w_b$, the exact conditional equation is instead
+ \begin{equation}
+  \dot r_b=r_b\left\{
+@@ -562,9 +560,10 @@
+ \label{app:theory-exemplar-bridge}
+ 
+ The learner scores a particular response string, while evaluation groups
+-strings by execution key. Event containment provides a conditional bridge:
+-one complete verified response is one way of producing its key. This bridge
+-also makes the loss's length factor explicit. Here
++strings by execution key. A complete verified response is an event contained in the event of
++producing its execution key. This containment converts a complete-response
++probability floor into a key-probability floor while accounting for the
++loss's length factor. Here
+ $p_\theta(b\mid x)=\Pr_{Y\sim\pi_\theta(\cdot\mid x)}[V(Y,s_x)=b]$
+ is the unconditional probability of producing key $b$, rather than the
+ probability conditional on correctness.
+@@ -602,8 +601,9 @@
+ inequality, even with shared parameters and multiple prompts. For example,
+ the ideal categorical model permits
+ $J(\theta)=\sum_x\nu_x\Psi_x(P_x(\theta))$ with fixed nonnegative prompt
+-weights and $J_{\max}=\sum_x\nu_x\max_{s\in[0,1]}\Psi_x(s)$. The lemma does not establish
+-this descent condition for stochastic, clipped, alternating AdamW updates,
++weights and $J_{\max}=\sum_x\nu_x\max_{s\in[0,1]}\Psi_x(s)$.
++This descent condition is not established for stochastic, clipped,
++alternating AdamW updates,
+ and it neither implies uniform neural key probabilities nor requires them.
+ Its bound applies only to the listed exemplar--prompt pairs. Shared
+ parameters do not extend it to held-out prompts; transfer to those prompts
+@@ -727,20 +727,19 @@
+ Counts from changing checkpoints cannot be pooled to certify a current
+ policy, and teacher-forced scores are not independent Bernoulli observations.
+ 
+-% Insert after the existing complete-exemplar/finite-visibility subsection.
+ \subsection{When a replay gradient improves a neural exemplar}
+ \label{app:theory-neural-replay-response}
+ 
+-Lemma~\ref{lem:shared-exemplar-retention} permits shared parameters by
+-assuming descent of a joint potential. A local statement can instead expose
+-the condition under which a realized replay update helps a particular
+-exemplar. This condition involves interference among scores and the optimizer's
+-response, quantities that the categorical abstraction suppresses.
++With shared parameters, a replay update's effect on a particular exemplar
++depends on interference among score gradients and on the optimizer's
++response. A lower bound on that exemplar's change in log probability can be
++obtained from the realized parameter step, without assuming the global
++potential descent required by Lemma~\ref{lem:shared-exemplar-retention}.
+ 
+ \begin{proposition}[Local replay response under shared parameters]
+ \enforcehalffinalproseline
+ \label{prop:neural-replay-local-response}
+-For a selected bank of $k$ complete exemplars, define
++For a fixed bank of $k$ complete exemplars, define
+ \[
+  \ell_b(\theta)=\frac{\log\pi_\theta(e_b\mid x_b)}{L_b},\qquad
+  h_b=\nabla_\theta\ell_b(\theta),\qquad
+@@ -810,7 +809,7 @@
+ It applies to a specified decomposition of the realized step, with any
+ remaining contribution included in $u$; alternatively its Taylor bound can
+ be evaluated directly from $h_b^\top\Delta$. Neither the interference margin
+-nor a curvature bound is established for the experimental runs here.
++nor a curvature bound is established for the experimental runs.
+ The statement concerns complete stored responses under the sampling law
+ specified in App.~\ref{app:theory-exemplar-bridge}. Raising one such
+ probability strengthens that exemplar's contribution to its key, but need

@@ -1,0 +1,136 @@
+{
+  "independent_method": "Raw JSONL read using standard-library math/statistics; linear empirical quantiles independently interpolated; no import of analysis builder.",
+  "runs": [
+    {
+      "seed": 43,
+      "prompts": 310,
+      "identities": 636,
+      "observations": 5504,
+      "mean_logprob": {
+        "median": 0.037920236587524414,
+        "p10": -0.2056105136871338,
+        "minimum": -1.19520902633667,
+        "fraction_below_minus_0_5": 0.014150943396226415,
+        "worst_intermediate_delta": -1.2170066833496094
+      },
+      "sequence_logprob": {
+        "median": 0.15168094635009766,
+        "p10": -0.8638324737548828,
+        "minimum": -4.78083610534668,
+        "fraction_below_minus_0_5": 0.19025157232704404,
+        "worst_intermediate_delta": -4.8680267333984375
+      }
+    },
+    {
+      "seed": 44,
+      "prompts": 314,
+      "identities": 697,
+      "observations": 5961,
+      "mean_logprob": {
+        "median": 0.04257678985595703,
+        "p10": -0.2970502853393554,
+        "minimum": -0.9692378044128418,
+        "fraction_below_minus_0_5": 0.03443328550932568,
+        "worst_intermediate_delta": -1.0560221672058105
+      },
+      "sequence_logprob": {
+        "median": 0.1712799072265625,
+        "p10": -1.225853729248047,
+        "minimum": -3.876951217651367,
+        "fraction_below_minus_0_5": 0.24820659971305595,
+        "worst_intermediate_delta": -5.280111312866211
+      }
+    },
+    {
+      "seed": 45,
+      "prompts": 316,
+      "identities": 635,
+      "observations": 5411,
+      "mean_logprob": {
+        "median": 0.042382240295410156,
+        "p10": -0.23852863311767578,
+        "minimum": -1.008194923400879,
+        "fraction_below_minus_0_5": 0.029921259842519685,
+        "worst_intermediate_delta": -1.1006112098693848
+      },
+      "sequence_logprob": {
+        "median": 0.18149948120117188,
+        "p10": -1.0044689178466797,
+        "minimum": -4.032779693603516,
+        "fraction_below_minus_0_5": 0.1952755905511811,
+        "worst_intermediate_delta": -4.402444839477539
+      }
+    },
+    {
+      "seed": 46,
+      "prompts": 323,
+      "identities": 755,
+      "observations": 6273,
+      "mean_logprob": {
+        "median": 0.02392721176147461,
+        "p10": -0.307843017578125,
+        "minimum": -1.3283381462097168,
+        "fraction_below_minus_0_5": 0.03576158940397351,
+        "worst_intermediate_delta": -1.3283381462097168
+      },
+      "sequence_logprob": {
+        "median": 0.09570884704589844,
+        "p10": -1.2313720703125,
+        "minimum": -5.313352584838867,
+        "fraction_below_minus_0_5": 0.24370860927152319,
+        "worst_intermediate_delta": -5.313352584838867
+      }
+    },
+    {
+      "seed": 47,
+      "prompts": 312,
+      "identities": 683,
+      "observations": 5892,
+      "mean_logprob": {
+        "median": 0.0410614013671875,
+        "p10": -0.24205684661865234,
+        "minimum": -1.1159210205078125,
+        "fraction_below_minus_0_5": 0.014641288433382138,
+        "worst_intermediate_delta": -1.1838421821594238
+      },
+      "sequence_logprob": {
+        "median": 0.1653118133544922,
+        "p10": -0.9784770965576172,
+        "minimum": -4.46368408203125,
+        "fraction_below_minus_0_5": 0.21522693997071743,
+        "worst_intermediate_delta": -4.735368728637695
+      }
+    }
+  ],
+  "pooled": {
+    "mean_logprob": {
+      "median": 0.03837323188781738,
+      "p10": -0.25629353523254395,
+      "minimum": -1.3283381462097168,
+      "fraction_below_minus_0_5": 0.026130358191426895,
+      "worst_intermediate_delta": -1.3283381462097168
+    },
+    "sequence_logprob": {
+      "median": 0.1542797088623047,
+      "p10": -1.0468034744262695,
+      "minimum": -5.313352584838867,
+      "fraction_below_minus_0_5": 0.21990604815032297,
+      "worst_intermediate_delta": -5.313352584838867
+    },
+    "identities": 3406
+  },
+  "passed": true,
+  "analysis_result_sha256": "a69b0c145c7b6f042d65c87e3007367a37efdce17ea60b4c08496acc67ae7a6c",
+  "bootstrap_crosscheck": {
+    "method": "Independent multiplicity-weighted empirical distributions; prompt and seed multinomial counts; weighted order statistics without resampling identity arrays.",
+    "draws": 10000,
+    "rng_seed": 121,
+    "max_absolute_interval_difference": 0.0,
+    "passed": true
+  },
+  "formatting_only_rebuild": {
+    "result_sha256": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
+    "same_scientific_content_sha256": "6548b217665ddae4b29797995faebc12a26c6385683e0c10c7c9dc14275f3438",
+    "verification": "paper/audits/e121_results_20260909/table_format_fix.json"
+  }
+}

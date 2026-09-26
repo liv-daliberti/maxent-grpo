@@ -26,8 +26,18 @@ def test_zero_math_trajectory_dataset_preserves_references():
         info={},
     )
     setattr(trajectory, "reference", '{"verifier":"graph_coloring"}')
+    setattr(
+        trajectory,
+        "canonical_behavior_action_logprobs",
+        [[-0.1, -2.4, -3.0]],
+    )
+    setattr(trajectory, "canonical_behavior_action_token_ids", [16, 17, 18])
 
     dataset = ZeroMathTrajectoryDataset([trajectory], _Tokenizer(), _Strategy())
     batch = dataset.collate_fn([dataset[0]])
 
     assert batch["references"] == ['{"verifier":"graph_coloring"}']
+    assert batch["canonical_behavior_action_logprobs"] == [
+        [[-0.1, -2.4, -3.0]]
+    ]
+    assert batch["canonical_behavior_action_token_ids"] == [[16, 17, 18]]

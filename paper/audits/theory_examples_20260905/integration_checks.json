@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "checked_at_utc": "2026-09-05T23:05:39.850303+00:00",
+  "covered_theory_subsections": 12,
+  "covered_survival_subsubsections": 4,
+  "formal_statement_and_proof_blocks_unchanged": 45,
+  "theory_citation_commands_unchanged": 25,
+  "main_text_unchanged_both_versions": true,
+  "non_theory_content_unchanged_both_versions": true,
+  "bibliographies_unchanged": true,
+  "theory_identical_except_two_document_crossrefs": true,
+  "frozen_copied_assets_unchanged": 28,
+  "source_bundle_files": 42,
+  "source_bundle_entries_match_current_files": true,
+  "final_compilation_diagnostics_clean": true
+}

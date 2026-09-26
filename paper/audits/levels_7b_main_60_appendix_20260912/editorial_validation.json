@@ -1,0 +1,7 @@
+{
+  "main_figure_role": "Methods",
+  "main_scope": "frozenQwen7B,15cells,Levels1-3",
+  "appendix_scope": "fourQwenscales,60cells,Levels1-3",
+  "editorial_structure": "pass",
+  "formal_preservation": "pass"
+}

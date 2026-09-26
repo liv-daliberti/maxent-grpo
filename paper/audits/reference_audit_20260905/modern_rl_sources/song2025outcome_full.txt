@@ -1,0 +1,6924 @@
+Outcome-based Exploration for LLM Reasoning
+Report GitHub Issue
+×
+Title:
+Content selection saved. Describe the issue below:
+Description:
+Submit without GitHub
+Submit in GitHub
+arXiv is now an independent nonprofit!
+Learn more
+×
+Back to arXiv
+Why HTML?
+Report Issue
+Back to Abstract
+Download PDF
+Abstract
+1
+Introduction
+Our contributions
+2
+Diversity Degradation: RL as Sampling
+2.1
+Preliminaries
+Experiment setting:
+2.2
+Diversity Degradation during RL training
+3
+Outcome-based Exploration
+3.1
+Historical Exploration via UCB
+3.1.1
+Naive UCB only Improves Training Performance
+3.2
+UCB with a Baseline
+3.2.1
+UCB with a Baseline Generalizes towards Test Performance
+3.3
+Batch Exploration
+4
+Additional Analysis
+4.1
+Historical vs. Batch Exploration
+Generation Entropy.
+Batch Generation Diversity.
+4.2
+Outcome-Based Bandits
+5
+Related Work
+5.1
+Diversity Degradation in LLM Post Training
+5.2
+Exploration in LLM Post Training
+5.3
+Exploration in theoretical RL
+6
+Conclusion and Discussion
+References
+A
+Theoretical Results
+A.1
+Problem Setup: Outcome-Based Bandit
+Arms, outcomes, and partition.
+Reward.
+Interaction protocol.
+Performance metric (pseudo-regret).
+LLM reasoning interpretation.
+A.2
+Lower Bound
+A.3
+Balanced Partitions
+A.4
+Inbalanced Partition under Strong Generalization
+A.5
+Soft Generalization: Algorithm and Upper Bound
+A.6
+Technical Lemmas
+B
+Additional Experiment on Hard Dataset
+C
+Omitted Plots
+D
+Quantitative Results
+E
+Implementation Details
+License: CC BY 4.0
+arXiv:2509.06941v1 [cs.LG] 08 Sep 2025
+Outcome-based Exploration for LLM Reasoning
+Yuda Song
+Affiliation:
+FAIR at Meta
+Affiliation:
+CMU
+Julia Kempe
+Affiliation:
+FAIR at Meta
+Affiliation:
+NYU
+Remi Munos
+Affiliation:
+FAIR at Meta
+Abstract
+Reinforcement learning (RL) has emerged as a powerful method for improving the reasoning abilities of large language models (LLMs). Outcome-based RL, which rewards policies solely for the correctness of the final answer, yields substantial accuracy gains but also induces a systematic loss in generation diversity. This collapse undermines real-world performance, where diversity is critical for test-time scaling. We analyze this phenomenon by viewing RL post-training as a sampling process and show that, strikingly, RL can reduce effective diversity even on the
+training
+set relative to the base model. Our study highlights two central findings: (i) a
+transfer of diversity degradation
+, where reduced diversity on solved problems propagates to unsolved ones, and (ii) the
+tractability of the outcome space
+, since reasoning tasks admit only a limited set of distinct answers. Motivated by these insights, we propose
+outcome-based exploration
+, which assigns exploration bonuses according to final outcomes. We introduce two complementary algorithms:
+historical exploration
+, which encourages rarely observed answers via
+𝚄𝙲𝙱
+\mathtt{UCB}
+-style bonuses, and
+batch exploration
+, which penalizes within-batch repetition to promote test-time diversity. Experiments on standard competition math with
+𝙻𝚕𝚊𝚖𝚊
+\mathtt{Llama}
+and
+𝚀𝚠𝚎𝚗
+\mathtt{Qwen}
+models demonstrate that both methods improve accuracy while mitigating diversity collapse. On the theoretical side, we formalize the benefit of outcome-based exploration through a new model of
+outcome-based bandits
+. Together, these contributions chart a practical path toward RL methods that enhance reasoning without sacrificing the diversity essential for scalable deployment.
+†
+†
+date:
+August 24, 2026
+†
+†
+correspondence:
+Yuda Song at
+yudas@andrew.cmu.edu
+Figure 1:
+Test performance comparison (averaged across
+𝙼𝙰𝚃𝙷
+​
+-
+​
+𝟻𝟶𝟶
+\mathtt{MATH\text{-}500}
+,
+𝙰𝙸𝙼𝙴𝟸𝟶𝟸𝟺
+/
+𝟸𝟶𝟸𝟻
+\mathtt{AIME2024/2025}
+,
+𝙰𝙼𝙲𝟸𝟹
+\mathtt{AMC23}
+) between our exploration methods (
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+and
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+) and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the easy dataset (left) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the medium dataset (right). We report pass@
+k
+k
+for
+k
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+}
+k\in\{1,2,4,8,16,32\}
+on an early checkpoint (at timestep 100) and the final checkpoint (at timestep 700). We repeat each experiment with 3 different random seeds and plot the mean performance. The exploration methods outperform the baseline on nearly all metrics across the training process (except
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+with
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+on pass@1 on the early checkpoint due to exploration, but it has much higher pass@32 rate), and better exploitation-exploration trade-off and mitigation of overoptimization (note that the last checkpoint of Llama 3.1 8B with Vanilla RL has overall worse performance than its early checkpoint due to overoptimization).
+1
+Introduction
+Large language models (LLMs) are commonly post-trained with reinforcement learning (RL), both in preference alignment
+(
+Ouyang et al., 2022
+;
+Bai et al., 2022
+)
+and in reasoning
+(
+Shao et al., 2024
+;
+Guo et al., 2025
+)
+.
+A longstanding difficulty in RL is the design of reward signals: while one might hope to shape intermediate reasoning steps, recent works have shown that the seemingly crude strategy of rewarding only the final correctness (e.g., whether a math answer is correct) can be remarkably effective
+(
+Shao et al., 2024
+;
+Guo et al., 2025
+)
+.
+However, a growing body of evidence points to an important drawback of RL post-training: a systematic loss of diversity in model generations
+(
+Song et al., 2024b
+;
+Dang et al., 2025
+;
+Yue et al., 2025
+;
+Zhao et al., 2025
+;
+Wu et al., 2025
+)
+.
+This phenomenon is most cleanly captured by the pass@
+k
+k
+metric: when
+k
+k
+is large (say
+k
+=
+512
+k=512
+), post-trained models exhibit a lower pass@
+k
+k
+than the base model.
+This raises a practical concern: in real-world deployments, diversity is often valuable and can amplify performance through test-time scaling
+(
+Wu et al., 2024
+;
+Snell et al., 2024
+)
+, with different sampling processes such as directly sampling from the model or tree search.
+Indeed, we find that diversity degradation already manifests during training, as models collapse to a reduced set of candidate answers on unsolved problems due to a transfer effect of the diversity degradation induced by concentrating on correct answers, which we detail in
+\pref
+sec:motivation.
+Exploration is the canonical RL tool for combating such collapse
+(
+Bellemare et al., 2016
+;
+Azar et al., 2017
+;
+Burda et al., 2018
+)
+.
+However, directly importing classical techniques such as Upper Confidence Bound (
+𝚄𝙲𝙱
+\mathtt{UCB}
+) exploration
+(
+Auer et al., 2002
+)
+to token-level language modeling is intractable, as it would require searching over exponentially many sequences.
+Motivated by the success of outcome-based rewards, we therefore study
+outcome-based exploration
+, where exploration bonuses depend only on final outcomes. This perspective allows us to adapt
+𝚄𝙲𝙱
+\mathtt{UCB}
+-style methods to LLM training, which we further refine by incorporating both positive and negative outcome signals.
+A subtlety arises, however: in language models, one must distinguish between
+historical exploration
+(visiting a more diverse set of states and actions during training) and
+batch exploration
+(producing diverse outputs at test time).
+The latter improves pass@k but does not necessarily increase diversity during training whereas the former improves pass@1 but does not guarantee test-time diversity of the trained model. We introduce and study a batch version of outcome-based exploration, which demonstrates improved tradeoff between accuracy and diversity during test time.
+Our contributions
+1.
+We study RL post-training dynamics by framing RL as a sampling process (
+\pref
+sec:motivation). This perspective reveals that diversity loss is not limited to test-time behavior, but already occurs on the training set: as RL concentrates probability mass on previously solved questions, the resulting collapse propagates and reduces diversity even on unsolved ones. We term this effect the transfer of diversity degradation.
+2.
+We propose outcome-based exploration (
+\pref
+sec:method), which adapts classical exploration bonuses (e.g.
+𝚄𝙲𝙱
+\mathtt{UCB}
+) to the outcome space of LLM tasks. We show that naively adapting
+𝚄𝙲𝙱
+\mathtt{UCB}
+does not lead to improved testing performance. We thus propose more refined algorithms (
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+,
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+) which incorporate both positive and negative signals, and show that they improve both training exploration and test generalization, on standard reasoning dataset such as
+𝙳𝙰𝙿𝙾
+\mathtt{DAPO}
+and models such as
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+. We further provide a theoretical analysis on the benefit of outcome-based exploration in a new bandit setting (outcome-based bandits), inspired by the practical considerations (
+\pref
+sec:theoretical-results-summary).
+3.
+We introduce a batch version of the outcome-based exploration algorithm (
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+) (
+\pref
+sec:batch). By penalizing repetitive answers within the latest samples, the algorithm explicitly encourages diverse generations on the batch level, yielding a better accuracy–diversity tradeoff at test time.
+4.
+We analyze the interaction between historical and batch exploration, showing that they are not mutually exclusive (
+\pref
+sec:his_vs_batch). In summary, our proposed methods can be easily incorporated into standard RL for LLMs reasoning training, agnostic to the training algorithm, and consistently improve both accuracy and diversity.
+2
+Diversity Degradation: RL as Sampling
+2.1
+Preliminaries
+We consider LLM reasoning training with RL in a verifiable reward setting. Denote the set of questions as
+𝒳
+\mathcal{X}
+, the training question set
+𝒳
+𝗍𝗋𝖺𝗂𝗇
+⊆
+𝒳
+\mathcal{X}_{\mathsf{train}}\subseteq\mathcal{X}
+and the test question set
+𝒳
+𝗍𝖾𝗌𝗍
+⊆
+𝒳
+\mathcal{X}_{\mathsf{test}}\subseteq\mathcal{X}
+. Further, define the space of intermediate text as
+𝒴
+\mathcal{Y}
+, and the answer space as
+𝒜
+\mathcal{A}
+; we consider an LLM to be a policy
+π
+:
+𝒳
+→
+Δ
+⁡
+(
+𝒴
+×
+𝒜
+)
+\pi:\mathcal{X}\to\Delta(\mathcal{Y}\times\mathcal{A})
+, i.e, given any question
+x
+∈
+𝒳
+x\in\mathcal{X}
+, the LLM generates a sample
+(
+y
+,
+a
+)
+∼
+π
+(
+⋅
+∣
+x
+)
+(y,a)\sim\pi(\cdot\mid x)
+, where
+y
+∼
+π
+(
+⋅
+∣
+x
+)
+y\sim\pi(\cdot\mid x)
+is the intermediate reasoning trace (chain of thought) and
+a
+∼
+π
+(
+⋅
+∣
+x
+,
+y
+)
+a\sim\pi(\cdot\mid x,y)
+is the final answer. By following the convention in
+(
+Guo et al., 2025
+)
+we have access to a ground truth reward
+r
+:
+𝒳
+×
+𝒜
+→
+{
+0
+,
+1
+}
+r:\mathcal{X}\times\mathcal{A}\to\{0,1\}
+that checks the correctness of the final answer. The evaluation metric for a given (dataset, policy) pair is defined in terms of the accuracy of the final answer:
+J
+(
+π
+,
+𝒳
+)
+=
+𝔼
+x
+∼
+𝗎𝗇𝗂𝖿
+⁡
+(
+𝒳
+)
+𝔼
+(
+y
+,
+a
+)
+∼
+π
+(
+⋅
+∣
+x
+)
+[
+r
+(
+x
+,
+a
+)
+]
+J(\pi,\mathcal{X})=\En_{x\sim\mathsf{unif}(\mathcal{X})}\En_{(y,a)\sim\pi(\cdot\mid x)}[r(x,a)]
+. During RL training, we use the KL-regularized version of the objective
+J
+⁡
+(
+π
+,
+𝒳
+𝗍𝗋𝖺𝗂𝗇
+)
+J(\pi,\mathcal{X}_{\mathsf{train}})
+, which aims to find the
+π
+⋆
+\pi^{\star}
+such that
+π
+⋆
+:=
+arg
+​
+max
+π
+𝔼
+x
+∼
+𝗎𝗇𝗂𝖿
+⁡
+(
+𝒳
+𝗍𝗋𝖺𝗂𝗇
+)
+[
+𝔼
+(
+y
+,
+a
+)
+∼
+π
+(
+⋅
+∣
+x
+)
+[
+r
+(
+x
+,
+a
+)
+]
+−
+β
+KL
+(
+π
+(
+⋅
+∣
+x
+)
+,
+π
+𝖻𝖺𝗌𝖾
+(
+⋅
+∣
+x
+)
+)
+]
+,
+\displaystyle\pi^{\star}:=\argmax_{\pi}\En_{x\sim\mathsf{unif}(\mathcal{X}_{\mathsf{train}})}\left[\En_{(y,a)\sim\pi(\cdot\mid x)}\left[r(x,a)\right]-\beta\mathrm{KL}(\pi(\cdot\mid x),\pi_{\mathsf{base}}(\cdot\mid x))\right],
+where
+π
+𝖻𝖺𝗌𝖾
+\pi_{\mathsf{base}}
+is our base LLM from which the RL training is initialized. In this paper, we consider the fully on-policy GRPO algorithm
+(
+Shao et al., 2024
+)
+, which optimizes the following objective:
+𝔼
+^
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+∼
+π
+(
+⋅
+∣
+x
+)
+[
+1
+n
+∑
+i
+=
+1
+n
+A
+^
+(
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+)
+i
+−
+β
+KL
+^
+(
+π
+(
+⋅
+∣
+x
+)
+,
+π
+𝖻𝖺𝗌𝖾
+(
+⋅
+∣
+x
+)
+)
+]
+,
+\displaystyle\widehat{\En}_{x,\{y_{i},a_{i}\}_{i=1}^{n}\sim\pi(\cdot\mid x)}\left[\frac{1}{n}\sum_{i=1}^{n}\hat{A}\left(x,\{y_{i},a_{i}\}_{i=1}^{n}\right)_{i}-\beta\widehat{\mathrm{KL}}(\pi(\cdot\mid x),\pi_{\mathsf{base}}(\cdot\mid x))\right],
+(1)
+where
+A
+^
+​
+(
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+)
+i
+=
+r
+⁡
+(
+x
+,
+a
+i
+)
+−
+μ
+⁡
+(
+{
+r
+⁡
+(
+x
+,
+a
+i
+′
+)
+}
+i
+′
+=
+1
+n
+)
+σ
+⁡
+(
+{
+r
+⁡
+(
+x
+,
+a
+i
+′
+)
+}
+i
+′
+=
+1
+n
+)
+\hat{A}\left(x,\{y_{i},a_{i}\}_{i=1}^{n}\right)_{i}=\frac{r(x,a_{i})-\mu\left(\{r(x,a_{i^{\prime}})\}_{i^{\prime}=1}^{n}\right)}{\sigma\left(\{r(x,a_{i^{\prime}})\}_{i^{\prime}=1}^{n}\right)}
+and
+KL
+^
+(
+π
+(
+⋅
+∣
+x
+)
+,
+π
+𝖻𝖺𝗌𝖾
+(
+⋅
+∣
+x
+)
+)
+\widehat{\mathrm{KL}}(\pi(\cdot\mid x),\pi_{\mathsf{base}}(\cdot\mid x))
+is estimated by
+log
+⁡
+(
+π
+⁡
+(
+y
+,
+a
+∣
+x
+)
+π
+𝖻𝖺𝗌𝖾
+​
+(
+y
+,
+a
+∣
+x
+)
+)
++
+π
+𝖻𝖺𝗌𝖾
+​
+(
+y
+,
+a
+∣
+x
+)
+π
+⁡
+(
+y
+,
+a
+∣
+x
+)
+−
+1
+\log\left(\frac{\pi(y,a\mid x)}{\pi_{\mathsf{base}}(y,a\mid x)}\right)+\frac{\pi_{\mathsf{base}}(y,a\mid x)}{\pi(y,a\mid x)}-1
+,
+which is considered to enjoy lower variance than directly sampling
+log
+⁡
+(
+π
+⁡
+(
+y
+,
+a
+∣
+x
+)
+π
+𝖻𝖺𝗌𝖾
+​
+(
+y
+,
+a
+∣
+x
+)
+)
+\log\left(\frac{\pi(y,a\mid x)}{\pi_{\mathsf{base}}(y,a\mid x)}\right)
+(
+Schulman, 2020
+)
+. Notice that it is known that this objective leads to a biased gradient of the regularized objective
+J
+J
+, and incidentally minimizes the forward KL-divergence
+KL
+(
+π
+𝖻𝖺𝗌𝖾
+(
+⋅
+∣
+x
+)
+,
+π
+(
+⋅
+∣
+x
+)
+)
+\mathrm{KL}(\pi_{\mathsf{base}}(\cdot\mid x),\pi(\cdot\mid x))
+.
+(
+Tang and Munos, 2025
+)
+. However, we will use this algorithm as it is a popular baseline and will call it vanilla RL in the following.
+Finally, given question
+x
+x
+, we define all possible reasoning traces of LLM
+π
+\pi
+as
+𝒴
+π
+(
+x
+)
+=
+supp
+(
+π
+(
+⋅
+∣
+x
+)
+)
+\mathcal{Y}^{\pi}(x)=\mathrm{supp}(\pi(\cdot\mid x))
+, and thus the answer support of an LLM
+π
+\pi
+as
+𝒜
+π
+(
+x
+)
+:=
+supp
+(
+π
+(
+⋅
+∣
+x
+,
+𝒴
+π
+(
+x
+)
+)
+)
+\mathcal{A}^{\pi}(x):=\mathrm{supp}(\pi(\cdot\mid x,\mathcal{Y}^{\pi}(x)))
+.
+Experiment setting:
+In this paper, we primarily investigate LLM RL training for math reasoning. We test two models:
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+(
+Dubey et al., 2024
+)
+and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+models
+(
+Yang et al., 2024
+)
+. We use two datasets: an easy dataset and a medium difficulty dataset. The easy dataset is the train split of the
+𝙼𝙰𝚃𝙷
+\mathtt{MATH}
+dataset
+(
+Hendrycks et al., 2021
+)
+with a total of 7500 questions. For the medium dataset, we subsample 3840 questions from the training set of
+𝙳𝙰𝙿𝙾
+\mathtt{DAPO}
+(
+Yu et al., 2025
+)
+.
+We also include an additional hard dataset, where we keep the questions from the easy and medium dataset on which the base model’s pass@512 is 0.
+To test, we use the
+𝙼𝙰𝚃𝙷
+​
+-
+​
+𝟻𝟶𝟶
+\mathtt{MATH\text{-}500}
+,
+(
+Lightman et al., 2023
+)
+,
+𝙰𝙸𝙼𝙴𝟸𝟶𝟸𝟺
+/
+𝟸𝟶𝟸𝟻
+\mathtt{AIME2024/2025}
+, and
+𝙰𝙼𝙲𝟸𝟹
+\mathtt{AMC23}
+datasets (dataset adopted from
+Shafayat et al. (2025)
+). To measure whether two given answers are different, we apply the
+math
+​
+_
+​
+verify
+\mathrm{math\_verify}
+function in the verl
+(
+Sheng et al., 2024
+)
+codebase, which treats two answers as the same as long as they are mathematically equivalent. This defines our reward function as well since it is the indicator function of whether a given answer is equivalent to the ground truth answer. Implementation details can be found in
+\pref
+sec:app_imp_detail.
+Figure 2:
+Comparison between RL training dynamics and base model sampling, on both easy and medium difficulty datasets, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+. Top row: number of questions solved so far; Bottom row: number of different answers sampled so far. The bottom x-ticks are the number of epochs
+t
+t
+for training, and the top x-ticks are the corresponding
+k
+k
+for sampling from the base model. We convert
+k
+=
+n
+​
+t
+k=nt
+where
+n
+n
+is the number of samples per epoch and
+t
+t
+is the epoch index. We use
+n
+=
+16
+n=16
+for pass@
+k
+k
+comparison and
+n
+=
+8
+n=8
+for diff@
+k
+k
+comparison. In the diff@
+k
+k
+comparison, solid lines denote the average number of different answers per all questions, and dashed lines denote the average number of different answers per unsolved questions (i.e., all answers are wrong so far). The fact that RL has lower diff@
+k
+k
+on unsolved questions than the base model indicates the transfer of diversity degradation.
+2.2
+Diversity Degradation during RL training
+Recently it has been observed that, during LLM post training (either with SFT or RL), the diversity of the final policy decreases, as measured with the pass@
+k
+k
+metric with
+k
+>
+1
+k>1
+, over the test dataset
+(
+Song et al., 2024b
+;
+Dang et al., 2025
+;
+Yue et al., 2025
+;
+Wu et al., 2025
+)
+. However, the previous analysis only focused on comparing the base model
+π
+𝖻𝖺𝗌𝖾
+\pi_{\mathsf{base}}
+with the final model checkpoint
+π
+T
+\pi_{T}
+, a single artifact of the RL training method.
+To understand how diversity degrades during RL training, we propose to examine the dynamics of RL training by considering RL as a sampling process on the training set. Specifically, in each epoch
+t
+∈
+[
+T
+]
+t\in[T]
+during RL training, one samples
+n
+n
+trajectories for each question
+x
+∈
+𝒳
+𝗍𝗋𝖺𝗂𝗇
+x\in\mathcal{X}_{\mathsf{train}}
+. Thus given a base model
+π
+𝖻𝖺𝗌𝖾
+\pi_{\mathsf{base}}
+and RL algorithm (denoted as
+Alg
+\mathrm{Alg}
+), we sample in total
+n
+​
+T
+nT
+trajectories for each question
+x
+x
+, i.e.,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+​
+T
+∼
+Alg
+⁡
+(
+π
+𝖻𝖺𝗌𝖾
+,
+x
+)
+\{y_{i},a_{i}\}_{i=1}^{nT}\sim\mathrm{Alg}(\pi_{\mathsf{base}},x)
+. Now this allows us to directly compare with sampling the same amount of trajectories from the base model, i.e.,
+{
+y
+i
+′
+,
+a
+i
+′
+}
+i
+=
+1
+k
+∼
+π
+𝖻𝖺𝗌𝖾
+​
+(
+𝒳
+𝗍𝗋𝖺𝗂𝗇
+)
+\{y^{\prime}_{i},a^{\prime}_{i}\}_{i=1}^{k}\sim\pi_{\mathsf{base}}(\mathcal{X}_{\mathsf{train}})
+, where
+k
+=
+n
+​
+T
+k=nT
+.
+We conducted experiments on the
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+models, trained on both the easy and medium difficulty datasets. To compare the RL training dynamics and the base model, we adopt two metrics: total number of questions solved and total number of distinct answers.
+Note that these metrics correspond to the pass@
+k
+k
+and diff@
+k
+k
+metrics that are used to measure a fixed model. Recall that to convert a training epoch
+t
+t
+to
+k
+k
+in pass@
+k
+k
+and diff@
+k
+k
+, we have
+k
+=
+n
+​
+t
+k=nt
+, where in our experiments we use
+n
+=
+16
+n=16
+, and otherwise standard hyperparameters. We summarize the results in
+\pref
+fig:rl_as_sampling, and we make the following observations:
+•
+RL eventually solves fewer questions than the base model
+. At the beginning of the RL training, the rate of questions solving is faster than the base model, which is expected, as RL quickly converges to the correct answers on the ones that it can easily solve. However, as training continues, the rate of question solving decreases faster than the base model, and eventually RL solves fewer questions than the base model with the same amount of samples
+on the training set
+.
+•
+Transfer of diversity degradation across questions.
+In an ideal setting where the training dynamics are independent across questions, vanilla RL training should never underperform the base model. This is because the model does not update on questions
+x
+x
+it has not solved yet (i.e., it receives zero gradient on those questions), so its behavior on those questions is equivalent to the base model, i.e.,
+𝒜
+π
+RL
+​
+(
+x
+)
+=
+𝒜
+π
+𝖻𝖺𝗌𝖾
+​
+(
+x
+)
+\mathcal{A}^{\pi_{\textsf{RL}}}(x)=\mathcal{A}^{\pi_{\mathsf{base}}}(x)
+. The observed diversity degradation can therefore be explained as follows: once the model concentrates its answers on questions it has solved, this reduced diversity propagates to unsolved questions as well. To quantify this effect, we track the cumulative number of distinct answers sampled. We find that RL training yields lower diversity across all questions on average, and, more importantly, even lower diversity on the unsolved questions. We refer to this phenomenon as the
+transfer of diversity degradation
+.
+•
+Diversity is tractable on verifiable domains
+. In general it is hard to predict that, given two generations from LLMs, whether they are semantically different or not. Naively measuring in token space results in an exponentially many candidates and thus is intractable. However, in the verifiable domain, we can use the final answer as a proxy to measure the diversity of the generations. From
+\pref
+fig:rl_as_sampling, we observe that given a large sample budget, we only have
+|
+𝒜
+π
+𝖻𝖺𝗌𝖾
+​
+(
+x
+)
+|
+<
+50
+|\mathcal{A}^{\pi_{\mathsf{base}}}(x)|<50
+on average, which is tractable to measure and optimize. We refer to this property as
+the tractability of the outcome space
+. We will introduce our algorithms that leverage this property in the next section.
+3
+Outcome-based Exploration
+3.1
+Historical Exploration via UCB
+Given the observation that there are bounded number of final answers to search over, our training objective thus becomes to explore as many different answers (and their corresponding reasoning traces) as possible, while also rewarding the correctness of the answer. This problem is well studied in the bandit and RL literature, and the canonical solution for exploration is the upper confidence bound (
+𝚄𝙲𝙱
+\mathtt{UCB}
+) method
+(
+Auer et al., 2002
+;
+Azar et al., 2017
+)
+, which for each state and action adds an additional exploration bonus that is inversely proportional to its historical visitation counts, on top of the correctness reward. Thus, the training objective in
+Equation
+1
+becomes:
+𝔼
+^
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+∼
+π
+(
+⋅
+∣
+x
+)
+[
+1
+n
+∑
+i
+=
+1
+n
+A
+^
+(
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+)
+i
++
+c
+b
+𝗎𝖼𝖻
+(
+x
+,
+a
+i
+)
+−
+β
+KL
+^
+(
+π
+(
+⋅
+∣
+x
+)
+,
+π
+𝖻𝖺𝗌𝖾
+(
+⋅
+∣
+x
+)
+)
+]
+,
+\widehat{\En}_{x,\{y_{i},a_{i}\}_{i=1}^{n}\sim\pi(\cdot\mid x)}\left[\frac{1}{n}\sum_{i=1}^{n}\widehat{A}\left(x,\{y_{i},a_{i}\}_{i=1}^{n}\right)_{i}+cb_{\mathsf{ucb}}(x,a_{i})-\beta\widehat{\mathrm{KL}}(\pi(\cdot\mid x),\pi_{\mathsf{base}}(\cdot\mid x))\right],
+(2)
+where
+c
+c
+is a tunable hyperparameter and
+b
+𝗎𝖼𝖻
+​
+(
+x
+,
+a
+)
+=
+min
+⁡
+{
+1
+,
+1
+N
+⁡
+(
+x
+,
+a
+)
+}
+,
+\displaystyle b_{\mathsf{ucb}}(x,a)=\min\left\{1,\sqrt{\frac{1}{N(x,a)}}\right\},
+where
+N
+⁡
+(
+x
+,
+a
+)
+N(x,a)
+is the number of times we have sampled the answer
+a
+a
+for the question
+x
+x
+. In practice, to prevent bonus hacking, we propose to further mask the final answer during the policy update. In this case, the gradient will only go through
+π
+⁡
+(
+y
+∣
+x
+)
+\pi(y\mid x)
+but not
+π
+⁡
+(
+a
+∣
+y
+,
+x
+)
+\pi(a\mid y,x)
+.
+3.1.1
+Naive UCB only Improves Training Performance
+Figure 3:
+Training performance comparison between different
+𝚄𝙲𝙱
+\mathtt{UCB}
+variants and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the easy dataset (left) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the medium dataset (right). For each subplot: Left: fraction of questions solved so far; Right: number of different answers sampled on the questions that the model has yet to solve (i.e., sample one correct answer historically). The x-axis denotes the number of gradient updates as we train all models fully on-policy. We repeat each experiment with 3 different random seeds and plot the mean performance.
+We present training results in
+\pref
+fig:ucb_experiment_train_main,fig:app_ucb_train and test results in
+\pref
+fig:ucb_test_experiment_main,fig:app_ucb_test. We observe that, although the
+𝚄𝙲𝙱
+\mathtt{UCB}
+bonus improves the training performance consistently
+(and with a larger improvement on the harder dataset), it does not consistently improve the test performance across different models and datasets. In particular, we only observe a significant improvement on the easy dataset with the Llama3.1 8B model.
+Originally, the design of
+𝚄𝙲𝙱
+\mathtt{UCB}
+is due to the fact that, for any pair of state and action, the estimation error of the dynamics and reward scales with the order of
+O
+⁡
+(
+1
+/
+N
+⁡
+(
+x
+,
+a
+)
+)
+O(1/\sqrt{N(x,a)})
+, and thus adding this bonus offsets this error and encourages the policy to explore uncertain states and actions. However, in the LLM reasoning setting, the dynamics and reward are both deterministic, and thus in the extreme case where the training dynamics is independent across questions, the policy should stop visiting an answer once it gets a reward of 0, because now it has a perfect estimation of the reward of this answer already. While in practice the training dynamics is not independent across questions, and intuitively the
+𝚄𝙲𝙱
+\mathtt{UCB}
+bonus encourages the model to explore answers that it has not visited often and thus accelerates the training performance, we hypothesize that a redundant visitation of incorrect answers actually hurts the generalization performance.
+Figure 4:
+Test performance comparison between different
+𝚄𝙲𝙱
+\mathtt{UCB}
+variants and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the easy dataset (top) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the medium dataset (bottom). We report pass@
+k
+k
+for
+k
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+}
+k\in\{1,2,4,8,16,32\}
+at every 20 training steps. We repeat each experiment with 3 different random seeds and plot the mean performance (see
+\pref
+sec:quant-results for error bars). The metrics are calculated based on 32 samples per question during evaluation.
+3.2
+UCB with a Baseline
+The above observation suggests that providing only positive exploration signals is not the most effective strategy where test performance is concerned. Instead, we propose incorporating a baseline into the bonus calculation, so that exploration signals are defined relative to this baseline and can be either positive or negative. A natural starting point—analogous to the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline—is to use the batch mean of the
+𝚄𝙲𝙱
+\mathtt{UCB}
+bonus as the baseline. Concretely, we modify the objective in
+\pref
+eq:ucb by replacing
+b
+𝗎𝖼𝖻
+​
+(
+x
+,
+a
+i
+)
+b_{\mathsf{ucb}}(x,a_{i})
+with:
+B
+^
+​
+(
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+)
+i
+=
+b
+𝗎𝖼𝖻
+​
+(
+x
+,
+a
+i
+)
+−
+1
+n
+−
+1
+​
+∑
+j
+≠
+i
+n
+b
+𝗎𝖼𝖻
+​
+(
+x
+,
+a
+j
+)
+.
+\displaystyle\widehat{B}\left(x,\{y_{i},a_{i}\}_{i=1}^{n}\right)_{i}=b_{\mathsf{ucb}}(x,a_{i})-\frac{1}{n-1}\sum_{j\neq i}^{n}b_{\mathsf{ucb}}(x,a_{j}).
+We refer to this method as
+𝚄𝙲𝙱
+\mathtt{UCB}
+with a mean baseline (
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+). Intuitively, it encourages the model to explore answers that are less frequent in the current batch while penalizing those that appear more often. Although historically frequent answers tend to receive a negative signal, the batch-level baseline means that an answer can still receive a positive exploration signal if it is relatively underrepresented within the current batch.
+To avoid this issue, we propose a third method,
+𝚄𝙲𝙱
+\mathtt{UCB}
+with a constant baseline (
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+), where we simply use a constant as the baseline, i.e.,
+B
+^
+​
+(
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+)
+i
+=
+b
+𝗎𝖼𝖻
+​
+(
+x
+,
+a
+i
+)
+−
+b
+0
+,
+\displaystyle\widehat{B}\left(x,\{y_{i},a_{i}\}_{i=1}^{n}\right)_{i}=b_{\mathsf{ucb}}(x,a_{i})-b_{0},
+where
+b
+0
+b_{0}
+is a tunable hyperparameter. Note that this gives easy control over the tradeoff between positive and negative exploration signal
+(
+Arnal et al., 2025
+)
+, even though in expectation the gradient of the baseline is 0. For example, if we set
+b
+0
+=
+0.5
+b_{0}=0.5
+, then an answer will get a positive exploration signal if it has been visited less than 4 times, and a negative signal otherwise. One issue with the baseline formulation is that, in the case where all answers in the batch are correct, then we have
+A
+i
+=
+0
+A_{i}=0
+for all
+i
+i
+, and thus the exploration signal will dominate the training objective. After the beginning of the training, this objective will assign a negative gradient to the batch where all the answers are correct. To prevent this undesirable behavior, in this case (for both
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+) we simply assign zero exploration bonus to all answers in the batch, thus recovering the regular
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+objective.
+3.2.1
+UCB with a Baseline Generalizes towards Test Performance
+We compare these three variants with the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, and the results are summarized in
+\pref
+fig:ucb_experiment_train_main,fig:ucb_test_experiment_main,fig:app_ucb_test,fig:app_ucb_train. For the training performance, we observe that adding a baseline slightly hurts the training performance, but
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+still outperforms
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+. On the other hand, both
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+consistently improve the test performance across different models and datasets. While
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+improves over
+𝚄𝙲𝙱
+\mathtt{UCB}
+and
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+,
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+achieves the best frontier performance as it achieves the best pass@
+k
+k
+performance for all
+k
+k
+’s in most of the settings. Another observation is that under our large number of epochs training setup, vanilla RL (
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+) sometimes suffers from overoptimization as even the pass@
+k
+k
+performance degrades after a certain number of epochs, while RL with exploration mitigates this issue. See Table
+\pref
+tab:quant_results_best,tab:quant_results_final for a quantitative comparison.
+However, in general, one should not expect global exploration to achieve a high pass@
+k
+k
+when
+k
+k
+is large, especially at the end of the training. A pedagogical example is that, to maximize the exploration bonus, the model can generate a batch of the same answers that currently has the least visitation counts. Indeed, in the theoretical RL literature, the goal of exploration is usually to return a policy that is deterministic (and optimal)
+(
+Azar et al., 2017
+)
+1
+1
+1
+Note that this is not necessarily true with the KL-regularized objective. However, note that the optimal KL-regularized policy
+π
+⋆
+∝
+π
+𝖻𝖺𝗌𝖾
+⋅
+exp
+⁡
+(
+1
+β
+​
+r
+)
+\pi^{\star}\propto\pi_{\mathsf{base}}\cdot\exp\left(\frac{1}{\beta}r\right)
+, and with a small
+β
+\beta
+the optimal policy can still be near deterministic.
+. While in general adding exploration bonus does provide better pass@
+k
+k
+with large
+k
+k
+than vanilla RL, we observe that in certain settings the final pass@
+k
+k
+for
+k
+=
+8
+,
+16
+,
+32
+k=8,16,32
+is similar to that of vanilla RL.
+3.3
+Batch Exploration
+Figure 5:
+Training performance comparison between
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+,
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the easy dataset (left) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the medium dataset (right). For each subplot: Left: fraction of questions solved so far; Right: number of different answers sampled on the questions that the model has yet to solve (i.e., sample one correct answer historically). The x-axis denotes the number of gradient updates as we train all models fully on-policy. We repeat each experiment with 3 different random seeds and plot the mean performance.
+The above issue suggests a fundamental but subtle difference between the goal of traditional RL exploration and the goal of exploration in the LLM reasoning setting. In traditional RL, the goal of exploration is to find the optimal policy which maximizes the expected return (corresponding to pass@1), while in the LLM reasoning setting, in addition to pass@1, sometimes we also care about the diversity of the generation which determines the model’s capacity towards test-time scaling
+(
+Wu et al., 2024
+)
+. To encourage the model to generate diverse answers, we consider a different exploration strategy,
+batch exploration
+, which directly rewards the model to generate diverse answers regardless of their historical behavior. In particular, in batch exploration we propose the (
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+) objective, with
+b
+𝗎𝖼𝖻
+​
+(
+x
+,
+a
+i
+)
+b_{\mathsf{ucb}}(x,a_{i})
+in
+Equation
+2
+replaced by:
+b
+𝖻𝖺𝗍𝖼𝗁
+(
+x
+,
+{
+y
+i
+,
+a
+i
+}
+i
+=
+1
+n
+)
+i
+=
+−
+1
+n
+∑
+j
+≠
+i
+𝟙
+{
+a
+i
+=
+a
+j
+}
+,
+\displaystyle b_{\mathsf{batch}}\left(x,\{y_{i},a_{i}\}_{i=1}^{n}\right)_{i}=-\frac{1}{n}\sum_{j\neq i}\mathbbm{1}\{a_{i}=a_{j}\},
+where we simply penalize each answer based on how repetitive it is in the batch. We remark that we also experimented with the positive version of the batch exploration bonus where we provide a bonus of 1 for unique answers in the batch, but our result shows that such positive batch exploration bonus does not provide meaningful improvement in either training or test results.
+Figure 6:
+Test performance comparison between
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the easy dataset (top) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the medium dataset (bottom). We report pass@
+k
+k
+for
+k
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+}
+k\in\{1,2,4,8,16,32\}
+at every 20 training steps. We repeat each experiment with 3 different random seeds and plot the mean performance (see
+\pref
+sec:quant-results for error bars). The metrics are calculated based on 32 samples per question during evaluation.
+We summarize the experimental results in
+\pref
+fig:batch_train_experiment_main,fig:batch_test_experiment_main,fig:app_batch_train,fig:app_batch_test. We focus on comparing
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+with
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+for a cleaner presentation since both methods outperform the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline consistently. We observe that in general,
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+achieves worse performance during the training, as measured by both the fraction of questions solved and the number of different answers generated. However, note that the objective of
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+is not designed to explicitly optimize these two metrics. One can also consider a pedagogical failure of batch exploration as the model keeps sampling the same
+n
+n
+distinct answers in each epoch for each question it could not solve yet, and thus no real exploration is performed during training. As for test performance, in general
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+achieves similar peak pass@
+k
+k
+performance as
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+(with slight degradation in some settings), but
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+consistently achieves better diversity at the end of the training, as measured by the pass@
+k
+k
+performance for large
+k
+k
+. See
+\pref
+tab:quant_results_final for a quantitative comparison.
+This suggests that batch exploration might be preferable if the objective is to achieve tradeoff between generation accuracy and diversity at test time.
+4
+Additional Analysis
+4.1
+Historical vs. Batch Exploration
+In the previous section, we compared historical exploration and batch exploration in terms of their training dynamics. Overall, historical exploration is superior, as it solves more questions and accumulates more diverse answers over time. This is expected, since both metrics are inherently historical in nature. In this section, we turn to additional aspects of exploration, focusing in particular on batch-level statistics.
+Generation Entropy.
+Entropy has been used as a measure of model diversity and as a tool to encourage exploration
+(
+Cheng et al., 2025
+;
+Zheng et al., 2025
+)
+. We compare token-level entropy averaged over the whole reasoning trajectory (including the outcomes), at training step 400 of the
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+model on the medium dataset, trained with
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+,
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+, and
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+. For each method, we report the average entropy of correct and incorrect generations separately (
+\pref
+tab:entropy). As expected, correct generations have lower entropy than incorrect ones. Among incorrect generations, however,
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+achieves substantially higher entropy than both
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+. Since entropy is measured on the current model rather than accumulated over training, this suggests that batch exploration yields generations with higher entropy, which reflects greater variability and potentially more diversity, when evaluated at a single checkpoint. That said, the absolute entropy values remain low across all methods, consistent with the fact that we do not explicitly optimize for entropy, unlike entropy-regularized exploration approaches.
+Table 1:
+Entropy comparison of
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+,
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+and
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+, measured on correct generation, incorrect generation and all generations. We repeat for 2 random seeds and report the mean and standard deviation (in parentheses).
+Correct Generation
+Incorrect Generation
+All
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+0.080 (0.01)
+0.096 (0.04)
+0.095 (0.02)
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+0.084 (0.01)
+0.103 (0.03)
+0.100 (0.02)
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+0.086 (0.01)
+0.153 (0.07)
+0.125 (0.03)
+Batch Generation Diversity.
+To directly measure batch-level diversity, we consider the number of distinct answers sampled within each batch. Results are shown in Table
+2
+. As expected,
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+consistently produces more distinct answers than
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+, since it directly optimizes for batch diversity.
+Table 2:
+Comparison of different exploration strategies based on the number of different answers sampled in a batch with size of 8. We additionally cluster the statistics based on whether the question has been solved. We repeat for 2 random seeds and report the mean and standard deviation (in parentheses).
+Solved Question
+Unsolved Question
+All
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+2.279 (0.018)
+4.805 (0.075)
+2.883 (0.024)
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+2.272 (0.020)
+4.855 (0.084)
+2.926 (0.035)
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+2.284 (0.057)
+5.390 (0.102)
+3.230 (0.062)
+Finally, we remark on the interaction between historical and batch exploration. In principle, it is possible to construct counterexamples where historical exploration converges to a nearly deterministic policy—thus sacrificing test-time diversity—or where batch exploration cycles through a small set of answers without improving training dynamics. These pathologies highlight that the two notions are not guaranteed to substitute for one another. In practice, however, our empirical results suggest a complementary relationship: historical exploration, by encouraging broader coverage of the training space, naturally increases the diversity available to each batch, while batch exploration, by promoting variation within each batch, in turn helps prevent premature collapse during training. Taken together, these findings indicate that historical and batch exploration are not mutually exclusive.
+4.2
+Outcome-Based Bandits
+To better understand the role of exploration bonuses in our setting, we provide theoretical analysis in a simplified bandit model. While bandits are of course a coarse abstraction of LLM post-training, they have repeatedly yielded useful insights on sample efficiency, algorithmic tradeoffs, and problem difficulty in this context
+(
+Zhu et al., 2023
+;
+Rafailov et al., 2023
+;
+Azar et al., 2024
+;
+Chang et al., 2024
+;
+Song et al., 2024a
+)
+. Here, we present a bandit formulation that captures the gap between the large reasoning-trace space and the much smaller answer space, and use it to explain why outcome-based
+𝚄𝙲𝙱
+\mathtt{UCB}
+-style exploration is a principled strategy.
+Concretely, we consider a stochastic bandit with a large set of arms
+𝒜
+\mathcal{A}
+,
+|
+𝒜
+|
+=
+K
+|\mathcal{A}|=K
+, but with an additional, much smaller set of outcomes
+𝒪
+\mathcal{O}
+,
+|
+𝒪
+|
+=
+m
+≪
+K
+|\mathcal{O}|=m\ll K
+. Each arm
+a
+∈
+𝒜
+a\in\mathcal{A}
+maps to an outcome
+ϕ
+⁡
+(
+a
+)
+∈
+𝒪
+\phi(a)\in\mathcal{O}
+, and the reward of an arm depends only on its outcome:
+𝔼
+⁡
+[
+R
+∣
+a
+]
+=
+μ
+⁡
+(
+ϕ
+⁡
+(
+a
+)
+)
+=
+:
+μ
+⁡
+(
+o
+)
+.
+\En[R\mid a]=\mu(\phi(a))=:\mu(o).
+Intuitively,
+𝒜
+\mathcal{A}
+corresponds to reasoning traces in the LLM setting, while
+𝒪
+\mathcal{O}
+corresponds to final answers. This abstraction captures the fact that the answer space is far smaller than the trace space.
+A natural hope is that by exploiting the outcome-partition structure, we can achieve regret bounds that depend only on the number of outcomes
+m
+m
+, not the number of arms
+K
+K
+. This would mirror the LLM setting, where training on one reasoning trace should generalize to others that yield the same answer. However, without further assumptions, we show that this is not possible: even with outcome partitioning, the problem can remain as hard as the standard
+K
+K
+-armed bandit.
+Theorem 4.1
+(Informal version of
+\pref
+thm:lb-no-gen-minimax)
+.
+For any algorithm, there exists an outcome-partitioned bandit instance with
+K
+K
+arms and
+m
+m
+outcomes such that the expected regret after
+T
+T
+rounds is at least
+Ω
+⁡
+(
+min
+⁡
+{
+T
+,
+K
+}
+)
+\Omega\left(\min\{T,K\}\right)
+.
+This lower bound highlights the need for an additional assumption: that policy updates on one arm can generalize to other arms yielding the same outcome. Under such a generalization assumption, we recover the desired dependence on
+m
+m
+, with an algorithm performing
+𝚄𝙲𝙱
+\mathtt{UCB}
+-style exploration over the outcome space.
+Theorem 4.2
+(Informal version of
+\pref
+thm:pa-ucb)
+.
+Under Assumption
+\pref
+ass:strong-gen, there exists an algorithm that achieves an expected regret after
+T
+T
+rounds of
+𝔼
+⁡
+[
+R
+T
+]
+≤
+O
+⁡
+(
+mT
+​
+log
+⁡
+T
+)
+.
+\En[R_{T}]\leq O\left(\sqrt{mT\log T}\right).
+In other words, applying a
+𝚄𝙲𝙱
+\mathtt{UCB}
+-style bonus at the outcome level recovers the standard regret bound of an
+m
+m
+-armed bandit, as opposed to the original
+K
+K
+-armed bandit. This provides theoretical justification for our outcome-based exploration algorithms.
+5
+Related Work
+5.1
+Diversity Degradation in LLM Post Training
+Reinforcement Learning has become the de facto method for finetuning large language models (LLMs) towards specific objectives, such as maximizing human preference
+(
+Ouyang et al., 2022
+)
+, or improving the reasoning ability of LLMs
+(
+Jaech et al., 2024
+)
+. In the reasoning domain, it has been shown that simply rewarding the model based on the correctness of the final answer, without any intermediate reward, can significantly improve the final accuracy
+(
+Shao et al., 2024
+;
+Guo et al., 2025
+)
+. However, it has been observed that, during the RL training (or even SFT), the diversity of the generations decreases significantly
+(
+Song et al., 2024b
+;
+Dang et al., 2025
+;
+Yue et al., 2025
+;
+Wu et al., 2025
+)
+, as measured with the pass@
+k
+k
+metric. In the non-reasoning domain, similar observations have also been made, where post-training improves the performance of the model on the main metric, but at the cost of losing diversity, measured by either semantic or syntactic metrics
+(
+Kirk et al., 2023
+;
+O’Mahony et al., 2024
+;
+Yun et al., 2025
+)
+.
+5.2
+Exploration in LLM Post Training
+Enhancing exploration during RL training has been considered the key towards addressing diversity issues during either training or testing. In the preference fine-tuning domain,
+Xie et al. (2024)
+;
+Cen et al. (2024)
+;
+Zhang et al. (2024a)
+propose to use the likelihood of the base model as an exploration bonus.
+Lanchantin et al. (2025)
+proposes to label ranking of the data based on their diversity in the preference learning process.
+Xiong et al. (2023)
+;
+Bai et al. (2025)
+theoretically analyzes the guarantees of RL with exploration under the linear setting. In the reasoning domain,
+(
+Gao et al., 2025
+)
+directly uses Random Network Distillation
+(
+Burda et al., 2018
+)
+, a canonical exploration bonus in Deep RL, as an exploration bonus to encourage the model to explore different traces.
+Cheng et al. (2025)
+;
+Zheng et al. (2025)
+proposes to leverage entropy to encourage exploration.
+Chen et al. (2025)
+leverages pass@
+k
+k
+training objective
+(
+Tang et al., 2025
+)
+to improve the batch diversity during training.
+Setlur et al. (2025)
+proposes to improve model’s length generalization towards self-correction.
+Li et al. (2025)
+improves generation diversity through model-based verification. Finally,
+Tajwar et al. (2025)
+uses multi-task training towards multi-turn exploration. Note that our outcome-based method is complementary to all these methods, and can be potentially combined with them to further improve the diversity.
+5.3
+Exploration in theoretical RL
+In the tabular setting, exploration has been studied extensively through count-based methods
+(
+Brafman and Tennenholtz, 2002
+;
+Kearns and Singh, 2002
+;
+Azar et al., 2017
+;
+Jin et al., 2018
+;
+Zhang et al., 2024b
+)
+. These approaches rely on visitation counts to construct exploration bonuses. In linear MDPs, counts are replaced by confidence sets in feature space
+(
+Yang and Wang, 2019
+;
+Jin et al., 2020
+;
+Ayoub et al., 2020
+;
+Zhou et al., 2021
+;
+Agarwal et al., 2023
+)
+, with extensions to the discounted setting
+(
+Moulin et al., 2025
+)
+or model-based setting
+(
+Song and Sun, 2021
+)
+showing that the principle of optimism extends naturally from tabular counts to linear function approximation. The majority of these works share the same bonus-based exploration approach as our historical exploration method. Thompson sampling
+(
+Russo and Van Roy, 2014
+;
+Russo and Van Roy, 2018
+)
+is another popular exploration strategy that has been shown to achieve similar theoretical guarantees in both tabular and linear settings
+(
+Osband et al., 2013
+;
+Osband et al., 2016
+;
+Modi and Tewari, 2020
+)
+. Finally, beyond tabular and linear settings, exploration in RL with general function approximation has been studied under various structural assumptions
+(
+Krishnamurthy et al., 2016
+;
+Jiang et al., 2017
+;
+Du et al., 2021
+;
+Foster et al., 2021
+)
+. However, these methods do not enjoy computational efficiency as opposed to the bonus-based methods.
+6
+Conclusion and Discussion
+In this paper, we study the diversity degradation problem in LLM reasoning post-training through the analysis of RL as sampling. We observe two key phenomena: the transfer of diversity degradation and the tractability of outcome space in verifiable reasoning tasks. Based on these observations, we adopt the classical RL exploration strategy
+𝚄𝙲𝙱
+\mathtt{UCB}
+in the outcome space, and a careful treatment between positive and negative exploration signals achieves improvement in test performance in the pass@
+k
+k
+metrics for all
+k
+k
+. We also identify the distinction of the historical exploration in traditional RL and batch exploration that is more specific in the LLM reasoning setting, and derive the outcome-based batch exploration algorithm, which achieves better accuracy-diversity tradeoff at test time. Finally we provide more in-depth analysis on the connection of historical exploration and batch exploration, and a theoretical outcome-based bandit model that demonstrates the benefit of outcome-based exploration.
+There are a few limitations of our work. First, our current algorithms only apply to the verifiable domain, and problems with a tractable outcome space, extending them to more general settings is an interesting future direction. Second, currently we only evaluate our methods on the single-turn benchmarks, and we believe exploration plays an even more significant role under the multi-turn settings.
+Acknowledgment
+The authors are deeply grateful to Fahim Tajwar for his help on the experiment codebase. The authors would also like to thank other members of the FAIR FoRT team for their support, as well as Kelly He and Ricky Chen for their constructive discussions.
+References
+Agarwal et al. (2023)
+Alekh Agarwal, Yujia Jin, and Tong Zhang.
+Vo
+q
+q
+l: Towards optimal regret in model-free rl with nonlinear function approximation.
+In
+The Thirty Sixth Annual Conference on Learning Theory
+, pages 987–1063. PMLR, 2023.
+Arnal et al. (2025)
+Charles Arnal, GaĂŤtan Narozniak, Vivien Cabannes, Yunhao Tang, Julia Kempe, and Remi Munos.
+Asymmetric reinforce for off-policy reinforcement learning: Balancing positive and negative rewards.
+arXiv preprint arXiv:2506.20520
+, 2025.
+Auer et al. (2002)
+Peter Auer, Nicolo Cesa-Bianchi, and Paul Fischer.
+Finite-time analysis of the multiarmed bandit problem.
+Machine learning
+, 47(2-3):235–256, 2002.
+Ayoub et al. (2020)
+Alex Ayoub, Zeyu Jia, Csaba Szepesvari, Mengdi Wang, and Lin Yang.
+Model-based reinforcement learning with value-targeted regression.
+In
+International Conference on Machine Learning
+, pages 463–474. PMLR, 2020.
+Azar et al. (2017)
+Mohammad Gheshlaghi Azar, Ian Osband, and Rémi Munos.
+Minimax regret bounds for reinforcement learning.
+In
+International Conference on Machine Learning
+, 2017.
+Azar et al. (2024)
+Mohammad Gheshlaghi Azar, Zhaohan Daniel Guo, Bilal Piot, Remi Munos, Mark Rowland, Michal Valko, and Daniele Calandriello.
+A general theoretical paradigm to understand learning from human preferences.
+In
+International Conference on Artificial Intelligence and Statistics
+, pages 4447–4455. PMLR, 2024.
+Bai et al. (2025)
+Chenjia Bai, Yang Zhang, Shuang Qiu, Qiaosheng Zhang, Kang Xu, and Xuelong Li.
+Online preference alignment for language models via count-based exploration.
+arXiv preprint arXiv:2501.12735
+, 2025.
+Bai et al. (2022)
+Yuntao Bai, Andy Jones, Kamal Ndousse, Amanda Askell, Anna Chen, Nova DasSarma, Dawn Drain, Stanislav Fort, Deep Ganguli, Tom Henighan, et al.
+Training a helpful and harmless assistant with reinforcement learning from human feedback.
+arXiv preprint arXiv:2204.05862
+, 2022.
+Bellemare et al. (2016)
+Marc Bellemare, Sriram Srinivasan, Georg Ostrovski, Tom Schaul, David Saxton, and Remi Munos.
+Unifying count-based exploration and intrinsic motivation.
+Advances in neural information processing systems
+, 29, 2016.
+Brafman and Tennenholtz (2002)
+Ronen I Brafman and Moshe Tennenholtz.
+R-max-a general polynomial time algorithm for near-optimal reinforcement learning.
+Journal of Machine Learning Research
+, 3(Oct):213–231, 2002.
+Burda et al. (2018)
+Yuri Burda, Harrison Edwards, Amos Storkey, and Oleg Klimov.
+Exploration by random network distillation.
+arXiv preprint arXiv:1810.12894
+, 2018.
+Cen et al. (2024)
+Shicong Cen, Jincheng Mei, Katayoon Goshvadi, Hanjun Dai, Tong Yang, Sherry Yang, Dale Schuurmans, Yuejie Chi, and Bo Dai.
+Value-incentivized preference optimization: A unified approach to online and offline rlhf.
+arXiv preprint arXiv:2405.19320
+, 2024.
+Chang et al. (2024)
+Jonathan D Chang, Wenhao Zhan, Owen Oertell, Kianté Brantley, Dipendra Misra, Jason D Lee, and Wen Sun.
+Dataset reset policy optimization for rlhf.
+arXiv preprint arXiv:2404.08495
+, 2024.
+Chen et al. (2025)
+Zhipeng Chen, Xiaobo Qin, Youbin Wu, Yue Ling, Qinghao Ye, Wayne Xin Zhao, and Guang Shi.
+Pass@ k training for adaptively balancing exploration and exploitation of large reasoning models.
+arXiv preprint arXiv:2508.10751
+, 2025.
+Cheng et al. (2025)
+Daixuan Cheng, Shaohan Huang, Xuekai Zhu, Bo Dai, Wayne Xin Zhao, Zhenliang Zhang, and Furu Wei.
+Reasoning with exploration: An entropy perspective.
+arXiv preprint arXiv:2506.14758
+, 2025.
+Dang et al. (2025)
+Xingyu Dang, Christina Baek, Kaiyue Wen, Zico Kolter, and Aditi Raghunathan.
+Weight ensembling improves reasoning in language models.
+arXiv preprint arXiv:2504.10478
+, 2025.
+Du et al. (2021)
+Simon S Du, Sham M Kakade, Jason D Lee, Shachar Lovett, Gaurav Mahajan, Wen Sun, and Ruosong Wang.
+Bilinear classes: A structural framework for provable generalization in RL.
+International Conference on Machine Learning
+, 2021.
+Dubey et al. (2024)
+Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan, et al.
+The llama 3 herd of models.
+arXiv e-prints
+, pages arXiv–2407, 2024.
+Foster et al. (2021)
+Dylan J Foster, Sham M Kakade, Jian Qian, and Alexander Rakhlin.
+The statistical complexity of interactive decision making.
+arXiv:2112.13487
+, 2021.
+Gao et al. (2025)
+Jingtong Gao, Ling Pan, Yejing Wang, Rui Zhong, Chi Lu, Qingpeng Cai, Peng Jiang, and Xiangyu Zhao.
+Navigate the unknown: Enhancing llm reasoning with intrinsic motivation guided exploration.
+arXiv preprint arXiv:2505.17621
+, 2025.
+Guo et al. (2025)
+Daya Guo, Dejian Yang, Haowei Zhang, Junxiao Song, Ruoyu Zhang, Runxin Xu, Qihao Zhu, Shirong Ma, Peiyi Wang, Xiao Bi, et al.
+Deepseek-r1: Incentivizing reasoning capability in llms via reinforcement learning.
+arXiv preprint arXiv:2501.12948
+, 2025.
+Hendrycks et al. (2021)
+Dan Hendrycks, Collin Burns, Saurav Kadavath, Akul Arora, Steven Basart, Eric Tang, Dawn Song, and Jacob Steinhardt.
+Measuring mathematical problem solving with the math dataset.
+arXiv preprint arXiv:2103.03874
+, 2021.
+Jaech et al. (2024)
+Aaron Jaech, Adam Kalai, Adam Lerer, Adam Richardson, Ahmed El-Kishky, Aiden Low, Alec Helyar, Aleksander Madry, Alex Beutel, Alex Carney, et al.
+Openai o1 system card.
+arXiv preprint arXiv:2412.16720
+, 2024.
+Jiang et al. (2017)
+Nan Jiang, Akshay Krishnamurthy, Alekh Agarwal, John Langford, and Robert E Schapire.
+Contextual decision processes with low Bellman rank are PAC-learnable.
+In
+International Conference on Machine Learning
+, 2017.
+Jin et al. (2018)
+Chi Jin, Zeyuan Allen-Zhu, Sebastien Bubeck, and Michael I Jordan.
+Is q-learning provably efficient?
+Advances in neural information processing systems
+, 31, 2018.
+Jin et al. (2020)
+Chi Jin, Zhuoran Yang, Zhaoran Wang, and Michael I Jordan.
+Provably efficient reinforcement learning with linear function approximation.
+In
+Conference on Learning Theory
+, pages 2137–2143, 2020.
+Kearns and Singh (2002)
+Michael Kearns and Satinder Singh.
+Near-optimal reinforcement learning in polynomial time.
+Machine learning
+, 49:209–232, 2002.
+Kirk et al. (2023)
+Robert Kirk, Ishita Mediratta, Christoforos Nalmpantis, Jelena Luketina, Eric Hambro, Edward Grefenstette, and Roberta Raileanu.
+Understanding the effects of rlhf on llm generalisation and diversity.
+arXiv preprint arXiv:2310.06452
+, 2023.
+Krishnamurthy et al. (2016)
+Akshay Krishnamurthy, Alekh Agarwal, and John Langford.
+PAC reinforcement learning with rich observations.
+In
+Advances in Neural Information Processing Systems
+, 2016.
+Lanchantin et al. (2025)
+Jack Lanchantin, Angelica Chen, Shehzaad Dhuliawala, Ping Yu, Jason Weston, Sainbayar Sukhbaatar, and Ilia Kulikov.
+Diverse preference optimization.
+arXiv preprint arXiv:2501.18101
+, 2025.
+Li et al. (2025)
+Tianjian Li, Yiming Zhang, Ping Yu, Swarnadeep Saha, Daniel Khashabi, Jason Weston, Jack Lanchantin, and Tianlu Wang.
+Jointly reinforcing diversity and quality in language model generations.
+arXiv preprint arXiv:2509.02534
+, 2025.
+Lightman et al. (2023)
+Hunter Lightman, Vineet Kosaraju, Yuri Burda, Harrison Edwards, Bowen Baker, Teddy Lee, Jan Leike, John Schulman, Ilya Sutskever, and Karl Cobbe.
+Let’s verify step by step.
+In
+The Twelfth International Conference on Learning Representations
+, 2023.
+Modi and Tewari (2020)
+Aditya Modi and Ambuj Tewari.
+No-regret exploration in contextual reinforcement learning.
+In
+Conference on Uncertainty in Artificial Intelligence
+, pages 829–838. PMLR, 2020.
+Motwani and Raghavan (1996)
+Rajeev Motwani and Prabhakar Raghavan.
+Randomized algorithms.
+ACM Computing Surveys (CSUR)
+, 28(1):33–37, 1996.
+Moulin et al. (2025)
+Antoine Moulin, Gergely Neu, and Luca Viano.
+Optimistically optimistic exploration for provably efficient infinite-horizon reinforcement and imitation learning.
+arXiv preprint arXiv:2502.13900
+, 2025.
+Osband et al. (2013)
+Ian Osband, Daniel Russo, and Benjamin Van Roy.
+(more) efficient reinforcement learning via posterior sampling.
+Advances in Neural Information Processing Systems
+, 26:3003–3011, 2013.
+Osband et al. (2016)
+Ian Osband, Charles Blundell, Alexander Pritzel, and Benjamin Van Roy.
+Deep exploration via bootstrapped dqn.
+In
+Advances in neural information processing systems
+, pages 4026–4034, 2016.
+Ouyang et al. (2022)
+Long Ouyang, Jeffrey Wu, Xu Jiang, Diogo Almeida, Carroll Wainwright, Pamela Mishkin, Chong Zhang, Sandhini Agarwal, Katarina Slama, Alex Ray, et al.
+Training language models to follow instructions with human feedback.
+Advances in neural information processing systems
+, 35:27730–27744, 2022.
+O’Mahony et al. (2024)
+Laura O’Mahony, Leo Grinsztajn, Hailey Schoelkopf, and Stella Biderman.
+Attributing mode collapse in the fine-tuning of large language models.
+In
+ICLR 2024 Workshop on Mathematical and Empirical Understanding of Foundation Models
+, volume 2, 2024.
+Rafailov et al. (2023)
+Rafael Rafailov, Archit Sharma, Eric Mitchell, Christopher D Manning, Stefano Ermon, and Chelsea Finn.
+Direct preference optimization: Your language model is secretly a reward model.
+Advances in neural information processing systems
+, 36:53728–53741, 2023.
+Russo and Van Roy (2014)
+Daniel Russo and Benjamin Van Roy.
+Learning to optimize via posterior sampling.
+Mathematics of Operations Research
+, 39(4):1221–1243, 2014.
+Russo and Van Roy (2018)
+Daniel Russo and Benjamin Van Roy.
+Learning to optimize via information-directed sampling.
+Operations Research
+, 66(1):230–252, 2018.
+Schulman (2020)
+John Schulman.
+Approximating kl divergence, 2020.
+URL http://joschu. net/blog/kl-approx. html
+, 2020.
+Setlur et al. (2025)
+Amrith Setlur, Matthew YR Yang, Charlie Snell, Jeremy Greer, Ian Wu, Virginia Smith, Max Simchowitz, and Aviral Kumar.
+e3: Learning to explore enables extrapolation of test-time compute for llms.
+arXiv preprint arXiv:2506.09026
+, 2025.
+Shafayat et al. (2025)
+Sheikh Shafayat, Fahim Tajwar, Ruslan Salakhutdinov, Jeff Schneider, and Andrea Zanette.
+Can large reasoning models self-train?
+arXiv preprint arXiv:2505.21444
+, 2025.
+Shao et al. (2024)
+Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei Zhang, Mingchuan Zhang, YK Li, Yang Wu, et al.
+Deepseekmath: Pushing the limits of mathematical reasoning in open language models.
+arXiv preprint arXiv:2402.03300
+, 2024.
+Sheng et al. (2024)
+Guangming Sheng, Chi Zhang, Zilingfeng Ye, Xibin Wu, Wang Zhang, Ru Zhang, Yanghua Peng, Haibin Lin, and Chuan Wu.
+Hybridflow: A flexible and efficient rlhf framework.
+arXiv preprint arXiv: 2409.19256
+, 2024.
+Snell et al. (2024)
+Charlie Snell, Jaehoon Lee, Kelvin Xu, and Aviral Kumar.
+Scaling llm test-time compute optimally can be more effective than scaling model parameters.
+arXiv preprint arXiv:2408.03314
+, 2024.
+Song and Sun (2021)
+Yuda Song and Wen Sun.
+PC-MLP: Model-based reinforcement learning with policy cover guided exploration.
+In
+International Conference on Machine Learning
+, 2021.
+Song et al. (2024a)
+Yuda Song, Gokul Swamy, Aarti Singh, J Bagnell, and Wen Sun.
+The importance of online data: Understanding preference fine-tuning via coverage.
+Advances in Neural Information Processing Systems
+, 37:12243–12270, 2024a.
+Song et al. (2024b)
+Yuda Song, Hanlin Zhang, Carson Eisenach, Sham Kakade, Dean Foster, and Udaya Ghai.
+Mind the gap: Examining the self-improvement capabilities of large language models.
+arXiv preprint arXiv:2412.02674
+, 2024b.
+Tajwar et al. (2025)
+Fahim Tajwar, Yiding Jiang, Abitha Thankaraj, Sumaita Sadia Rahman, J Zico Kolter, Jeff Schneider, and Ruslan Salakhutdinov.
+Training a generally curious agent.
+arXiv preprint arXiv:2502.17543
+, 2025.
+Tang and Munos (2025)
+Yunhao Tang and Rémi Munos.
+On a few pitfalls in kl divergence gradient estimation for rl.
+arXiv preprint arXiv:2506.09477
+, 2025.
+Tang et al. (2025)
+Yunhao Tang, Kunhao Zheng, Gabriel Synnaeve, and Rémi Munos.
+Optimizing language models for inference time objectives using reinforcement learning.
+arXiv preprint arXiv:2503.19595
+, 2025.
+Wu et al. (2025)
+Fang Wu, Weihao Xuan, Ximing Lu, Zaid Harchaoui, and Yejin Choi.
+The invisible leash: Why rlvr may not escape its origin.
+arXiv preprint arXiv:2507.14843
+, 2025.
+Wu et al. (2024)
+Yangzhen Wu, Zhiqing Sun, Shanda Li, Sean Welleck, and Yiming Yang.
+An empirical analysis of compute-optimal inference for problem-solving with language models.
+2024.
+Xie et al. (2024)
+Tengyang Xie, Dylan J Foster, Akshay Krishnamurthy, Corby Rosset, Ahmed Awadallah, and Alexander Rakhlin.
+Exploratory preference optimization: Harnessing implicit q*-approximation for sample-efficient rlhf.
+arXiv preprint arXiv:2405.21046
+, 2024.
+Xiong et al. (2023)
+Wei Xiong, Hanze Dong, Chenlu Ye, Ziqi Wang, Han Zhong, Heng Ji, Nan Jiang, and Tong Zhang.
+Iterative preference learning from human feedback: Bridging theory and practice for rlhf under kl-constraint.
+arXiv preprint arXiv:2312.11456
+, 2023.
+Yang and Wang (2019)
+Lin Yang and Mengdi Wang.
+Sample-optimal parametric Q-learning using linearly additive features.
+In
+International Conference on Machine Learning
+, pages 6995–7004. PMLR, 2019.
+Yang et al. (2024)
+Qwen An Yang, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng, Bowen Yu, Chengyuan Li, Dayiheng Liu, Fei Huang, Guanting Dong, Haoran Wei, Huan Lin, Jian Yang, Jianhong Tu, Jianwei Zhang, Jianxin Yang, Jiaxin Yang, Jingren Zhou, Junyang Lin, Kai Dang, Keming Lu, Keqin Bao, Kexin Yang, Le Yu, Mei Li, Mingfeng Xue, Pei Zhang, Qin Zhu, Rui Men, Runji Lin, Tianhao Li, Tingyu Xia, Xingzhang Ren, Xuancheng Ren, Yang Fan, Yang Su, Yi-Chao Zhang, Yunyang Wan, Yuqi Liu, Zeyu Cui, Zhenru Zhang, Zihan Qiu, Shanghaoran Quan, and Zekun Wang.
+Qwen2.5 technical report.
+ArXiv
+, abs/2412.15115, 2024.
+Yu et al. (2025)
+Qiying Yu, Zheng Zhang, Ruofei Zhu, Yufeng Yuan, Xiaochen Zuo, Yu Yue, Weinan Dai, Tiantian Fan, Gaohong Liu, Lingjun Liu, et al.
+Dapo: An open-source llm reinforcement learning system at scale.
+arXiv preprint arXiv:2503.14476
+, 2025.
+Yue et al. (2025)
+Yang Yue, Zhiqi Chen, Rui Lu, Andrew Zhao, Zhaokai Wang, Shiji Song, and Gao Huang.
+Does reinforcement learning really incentivize reasoning capacity in llms beyond the base model?
+arXiv preprint arXiv:2504.13837
+, 2025.
+Yun et al. (2025)
+Longfei Yun, Chenyang An, Zilong Wang, Letian Peng, and Jingbo Shang.
+The price of format: Diversity collapse in llms.
+arXiv preprint arXiv:2505.18949
+, 2025.
+Zhang et al. (2024a)
+Shenao Zhang, Donghan Yu, Hiteshi Sharma, Han Zhong, Zhihan Liu, Ziyi Yang, Shuohang Wang, Hany Hassan, and Zhaoran Wang.
+Self-exploring language models: Active preference elicitation for online alignment.
+arXiv preprint arXiv:2405.19332
+, 2024a.
+Zhang et al. (2024b)
+Zihan Zhang, Yuxin Chen, Jason D Lee, and Simon S Du.
+Settling the sample complexity of online reinforcement learning.
+In
+The Thirty Seventh Annual Conference on Learning Theory
+, pages 5213–5219. PMLR, 2024b.
+Zhao et al. (2025)
+Rosie Zhao, Alexandru Meterez, Sham Kakade, Cengiz Pehlevan, Samy Jelassi, and Eran Malach.
+Echo chamber: Rl post-training amplifies behaviors learned in pretraining.
+arXiv preprint arXiv:2504.07912
+, 2025.
+Zheng et al. (2025)
+Tianyu Zheng, Tianshun Xing, Qingshui Gu, Taoran Liang, Xingwei Qu, Xin Zhou, Yizhi Li, Zhoufutu Wen, Chenghua Lin, Wenhao Huang, et al.
+First return, entropy-eliciting explore.
+arXiv preprint arXiv:2507.07017
+, 2025.
+Zhou et al. (2021)
+Dongruo Zhou, Quanquan Gu, and Csaba Szepesvari.
+Nearly minimax optimal reinforcement learning for linear mixture markov decision processes.
+In
+Conference on Learning Theory
+, pages 4532–4576. PMLR, 2021.
+Zhu et al. (2023)
+Banghua Zhu, Michael Jordan, and Jiantao Jiao.
+Principled reinforcement learning with human feedback from pairwise or k-wise comparisons.
+In
+International Conference on Machine Learning
+, pages 43037–43067. PMLR, 2023.
+Appendix A
+Theoretical Results
+A.1
+Problem Setup: Outcome-Based Bandit
+Arms, outcomes, and partition.
+Let
+𝒜
+\mathcal{A}
+be a (large) set of arms with
+|
+𝒜
+|
+=
+K
+|\mathcal{A}|=K
+, and let
+𝒪
+=
+{
+1
+,
+…
+,
+m
+}
+\mathcal{O}=\{1,\dots,m\}
+be a (small) set of
+outcomes
+with
+m
+≪
+K
+m\ll K
+.
+There is an unknown partition mapping
+ϕ
+:
+𝒜
+→
+𝒪
+\phi:\mathcal{A}\to\mathcal{O}
+.
+For each outcome
+o
+∈
+𝒪
+o\in\mathcal{O}
+, denote its class (preimage) and size by
+𝒜
+o
+:=
+ϕ
+−
+1
+​
+(
+o
+)
+,
+s
+o
+:=
+|
+𝒜
+o
+|
+,
+∑
+o
+=
+1
+m
+s
+o
+=
+K
+.
+\mathcal{A}_{o}:=\phi^{-1}(o),\qquad s_{o}:=|\mathcal{A}_{o}|,\qquad\sum_{o=1}^{m}s_{o}=K.
+The partitions are mutually exclusive, i.e., for any
+o
+,
+o
+′
+∈
+𝒪
+o,o^{\prime}\in\mathcal{O}
+and
+o
+≠
+o
+′
+o\neq o^{\prime}
+we have
+𝒜
+o
+∩
+𝒜
+o
+′
+=
+∅
+\mathcal{A}_{o}\cap\mathcal{A}_{o^{\prime}}=\emptyset
+. Define its mass
+p
+o
+:=
+s
+o
+/
+K
+p_{o}:=s_{o}/K
+.
+Partitions may be imbalanced (the
+s
+o
+s_{o}
+’s are arbitrary).
+We will also consider the balanced special case
+s
+o
+=
+K
+/
+m
+s_{o}=K/m
+for all
+o
+o
+.
+Reward.
+Rewards depend only on the outcome:
+pulling arm
+a
+∈
+𝒜
+a\in\mathcal{A}
+yields a stochastic reward
+R
+∈
+[
+0
+,
+1
+]
+R\in[0,1]
+with
+𝔼
+⁡
+[
+R
+∣
+a
+]
+=
+μ
+⁡
+(
+ϕ
+⁡
+(
+a
+)
+)
+=
+:
+μ
+⁡
+(
+o
+)
+,
+\mathbb{E}[R\mid a]=\mu\big(\phi(a)\big)=:\mu(o),
+and we assume
+R
+−
+μ
+⁡
+(
+o
+)
+R-\mu(o)
+is
+1
+1
+-sub-Gaussian (for example, Bernoulli).
+Let
+μ
+⋆
+:=
+max
+o
+∈
+𝒪
+⁡
+μ
+⁡
+(
+o
+)
+\mu^{\star}:=\max_{o\in\mathcal{O}}\mu(o)
+and let
+o
+⋆
+∈
+arg
+⁡
+max
+o
+⁡
+μ
+⁡
+(
+o
+)
+o^{\star}\in\arg\max_{o}\mu(o)
+be an optimal outcome.
+Interaction protocol.
+At each round
+t
+=
+1
+,
+2
+,
+…
+,
+T
+t=1,2,\dots,T
+, a (possibly randomized) policy
+π
+\pi
+selects an arm
+A
+t
+∈
+𝒜
+A_{t}\in\mathcal{A}
+based on the history
+ℋ
+t
+−
+1
+:=
+{
+(
+A
+s
+,
+O
+s
+,
+R
+s
+)
+}
+s
+=
+1
+t
+−
+1
+\mathcal{H}_{t-1}:=\{(A_{s},O_{s},R_{s})\}_{s=1}^{t-1}
+, where
+O
+s
+:=
+ϕ
+⁡
+(
+A
+s
+)
+O_{s}:=\phi(A_{s})
+.
+The environment then reveals the outcome label
+O
+t
+=
+ϕ
+⁡
+(
+A
+t
+)
+O_{t}=\phi(A_{t})
+and draws the reward
+R
+t
+R_{t}
+with mean
+μ
+⁡
+(
+O
+t
+)
+\mu(O_{t})
+.
+The filtration is the natural one generated by
+ℋ
+t
+\mathcal{H}_{t}
+.
+Performance metric (pseudo-regret).
+The pseudo-regret of policy
+π
+\pi
+over horizon
+T
+T
+is
+R
+T
+​
+(
+π
+)
+:=
+T
+​
+μ
+⋆
+−
+𝔼
+π
+​
+[
+∑
+t
+=
+1
+T
+μ
+⁡
+(
+ϕ
+⁡
+(
+A
+t
+)
+)
+]
+=
+∑
+t
+=
+1
+T
+𝔼
+π
+​
+[
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+]
+.
+R_{T}(\pi):=T\,\mu^{\star}-\mathbb{E}_{\pi}\left[\sum_{t=1}^{T}\mu\big(\phi(A_{t})\big)\right]=\sum_{t=1}^{T}\mathbb{E}_{\pi}\left[\mu^{\star}-\mu\big(O_{t}\big)\right].
+We will also use the discovery time of an outcome
+o
+o
+,
+τ
+o
+:=
+inf
+{
+t
+≥
+1
+:
+O
+t
+=
+o
+}
+,
+\tau_{o}:=\inf\{t\geq 1:O_{t}=o\},
+with the convention
+inf
+∅
+=
+∞
+\inf\emptyset=\infty
+.
+These stopping times quantify the unavoidable delay before the learner first encounters a given outcome under the no-generalization constraint.
+LLM reasoning interpretation.
+Each arm
+a
+∈
+𝒜
+a\in\mathcal{A}
+corresponds to a full reasoning trace; the mapping
+ϕ
+⁡
+(
+a
+)
+\phi(a)
+is its final answer (outcome), and the reward is the verifiable correctness of that answer.
+Although the trace space is large, the outcome space
+𝒪
+\mathcal{O}
+is small.
+A.2
+Lower Bound
+We first show that, even with the small outcome space, in the worst case any algorithm can not avoid paying a regret that is polynomial in the number of arms
+K
+K
+, without any additional assumption.
+Theorem A.1
+(Lower bound for outcome-based bandit)
+.
+Fix
+K
+≥
+2
+K\geq 2
+and a partition
+{
+𝒜
+o
+}
+o
+=
+1
+m
+\{\mathcal{A}_{o}\}_{o=1}^{m}
+with class sizes
+s
+o
+=
+|
+𝒜
+o
+|
+s_{o}=|\mathcal{A}_{o}|
+and a unique optimal outcome
+o
+⋆
+o_{\star}
+of size
+s
+⋆
+∈
+{
+1
+,
+…
+,
+K
+}
+s_{\star}\in\{1,\dots,K\}
+. Consider Bernoulli rewards with means
+μ
+⁡
+(
+o
+⋆
+)
+=
+1
+2
++
+Δ
+\mu(o_{\star})=\tfrac{1}{2}+\Delta
+and
+μ
+⁡
+(
+o
+)
+=
+1
+2
+\mu(o)=\tfrac{1}{2}
+for all
+o
+≠
+o
+⋆
+o\neq o_{\star}
+, where
+Δ
+∈
+(
+0
+,
+1
+2
+]
+\Delta\in(0,\tfrac{1}{2}]
+.
+There exists a universal constant
+c
+>
+0
+c>0
+such that for any (possibly randomized) algorithm
+π
+~
+\widetilde{\pi}
+and any horizon
+T
+T
+, there exists some fixed instance
+I
+⋆
+I^{\star}
+such that
+𝔼
+⁡
+[
+R
+T
+​
+(
+π
+~
+,
+I
+⋆
+)
+]
+≥
+c
+​
+Δ
+⋅
+min
+⁡
+{
+T
+,
+K
+s
+⋆
+}
+.
+\mathbb{E}\left[R_{T}(\widetilde{\pi};I^{\star})\right]\ \geq\ c\,\Delta\cdot\min\left\{\,T,\ \frac{K}{s_{\star}}\,\right\}.
+Proof A.2
+.
+Draw an instance by placing the
+s
+⋆
+s_{\star}
+optimal arms uniformly at random among the
+K
+K
+arm indices (keeping all other classes fixed).
+By
+\pref
+lem:yao-minimax, it suffices to lower-bound the expected regret of an
+arbitrary deterministic
+policy
+π
+\pi
+under this distribution; the resulting lower bound then holds for some fixed instance
+I
+⋆
+I^{\star}
+against any randomized algorithm
+π
+~
+\widetilde{\pi}
+.
+Let
+τ
+⋆
+\tau_{\star}
+be the index of the first pull from
+𝒜
+o
+⋆
+\mathcal{A}_{o_{\star}}
+. Before time
+τ
+⋆
+\tau_{\star}
+every reward is
+Δ
+\Delta
+-suboptimal in expectation, hence
+𝔼
+⁡
+[
+R
+T
+​
+(
+π
+)
+]
+≥
+Δ
+⋅
+𝔼
+⁡
+[
+min
+⁡
+{
+T
+,
+τ
+⋆
+−
+1
+}
+]
+=
+Δ
+​
+∑
+t
+=
+1
+T
+Pr
+⁡
+(
+τ
+⋆
+>
+t
+)
+.
+\mathbb{E}[R_{T}(\pi)]\ \geq\ \Delta\cdot\mathbb{E}\left[\min\{T,\tau_{\star}-1\}\right]\ =\ \Delta\sum_{t=1}^{T}\Pr(\tau_{\star}>t).
+Under the random placement, the event
+{
+τ
+⋆
+>
+t
+}
+\{\tau_{\star}>t\}
+is “no optimal arm among the first
+t
+t
+draws without replacement,” so
+Pr
+⁡
+(
+τ
+⋆
+>
+t
+)
+=
+(
+K
+−
+s
+⋆
+)
+!
+(
+K
+−
+s
+⋆
+−
+t
+)
+!
+K
+!
+(
+K
+−
+t
+)
+!
+=
+∏
+i
+=
+0
+t
+−
+1
+K
+−
+s
+⋆
+−
+i
+K
+−
+i
+.
+\Pr(\tau_{\star}>t)\ =\ \frac{\frac{(K-s_{\star})!}{(K-s_{\star}-t)!}}{\frac{K!}{(K-t)!}}=\prod_{i=0}^{t-1}\frac{K-s_{\star}-i}{K-i}\,.
+For any
+t
+≤
+K
+/
+2
+t\leq K/2
+we have
+K
+−
+s
+⋆
+−
+i
+K
+−
+i
+≥
+K
+−
+s
+⋆
+−
+t
+K
+−
+t
+≥
+1
+−
+2
+​
+s
+⋆
+K
+,
+\frac{K-s_{\star}-i}{K-i}\ \geq\ \frac{K-s_{\star}-t}{K-t}\ \geq\ 1-\frac{2s_{\star}}{K}\,,
+hence
+Pr
+⁡
+(
+τ
+⋆
+>
+t
+)
+≥
+(
+1
+−
+2
+​
+s
+⋆
+K
+)
+t
+\Pr(\tau_{\star}>t)\ \geq\ \big(1-\tfrac{2s_{\star}}{K}\big)^{t}
+.
+Set
+t
+⋆
+:=
+min
+⁡
+{
+T
+,
+⌊
+K
+4
+​
+s
+⋆
+⌋
+}
+t^{\star}:=\min\big\{\,T,\ \lfloor\tfrac{K}{4s_{\star}}\rfloor\,\big\}
+(note
+t
+⋆
+≤
+K
+/
+2
+t^{\star}\leq K/2
+when
+s
+⋆
+≤
+K
+s_{\star}\leq K
+). Then
+Pr
+(
+τ
+⋆
+>
+t
+⋆
+)
+≥
+(
+1
+−
+2
+​
+s
+⋆
+K
+)
+K
+/
+(
+4
+​
+s
+⋆
+)
+≥
+e
+−
+1
+/
+2
+,
+\Pr(\tau_{\star}>t^{\star})\ \geq\ \Big(1-\frac{2s_{\star}}{K}\Big)^{K/(4s_{\star})}\ \geq\ e^{-1/2}\,,
+and therefore
+𝔼
+⁡
+[
+min
+⁡
+{
+T
+,
+τ
+⋆
+−
+1
+}
+]
+=
+∑
+t
+=
+1
+T
+Pr
+⁡
+(
+τ
+⋆
+>
+t
+)
+≥
+∑
+t
+=
+1
+t
+⋆
+Pr
+⁡
+(
+τ
+⋆
+>
+t
+)
+≥
+t
+⋆
+​
+Pr
+⁡
+(
+τ
+⋆
+>
+t
+⋆
+)
+≥
+c
+0
+​
+min
+​
+{
+T
+,
+K
+s
+⋆
+}
+\mathbb{E}\left[\min\{T,\tau_{\star}-1\}\right]\ =\ \sum_{t=1}^{T}\Pr(\tau_{\star}>t)\ \geq\ \sum_{t=1}^{t^{\star}}\Pr(\tau_{\star}>t)\ \geq\ t^{\star}\,\Pr(\tau_{\star}>t^{\star})\ \geq\ c_{0}\,\min\left\{T,\ \frac{K}{s_{\star}}\right\}
+for a universal constant
+c
+0
+>
+0
+c_{0}>0
+(e.g.,
+c
+0
+=
+e
+−
+1
+/
+2
+/
+4
+c_{0}=e^{-1/2}/4
+).
+Now combining everything,
+𝔼
+I
+​
+[
+R
+T
+​
+(
+π
+)
+]
+≥
+Δ
+⋅
+𝔼
+⁡
+[
+min
+⁡
+{
+T
+,
+τ
+⋆
+−
+1
+}
+]
+≥
+c
+0
+​
+Δ
+⋅
+min
+⁡
+{
+T
+,
+K
+s
+⋆
+}
+.
+\mathbb{E}_{I}\left[R_{T}(\pi)\right]\ \geq\ \Delta\cdot\mathbb{E}\left[\min\{T,\tau_{\star}-1\}\right]\ \geq\ c_{0}\,\Delta\cdot\min\left\{T,\ \frac{K}{s_{\star}}\right\}.
+Then by
+\pref
+lem:yao-minimax, for any randomized algorithm
+π
+~
+\widetilde{\pi}
+there exists a fixed instance
+I
+⋆
+I^{\star}
+in the support of the above distribution such that
+𝔼
+⁡
+[
+R
+T
+​
+(
+π
+~
+,
+I
+⋆
+)
+]
+≥
+c
+​
+Δ
+⋅
+min
+⁡
+{
+T
+,
+K
+s
+⋆
+}
+\mathbb{E}\left[R_{T}(\widetilde{\pi};I^{\star})\right]\ \geq\ c\,\Delta\cdot\min\left\{T,\tfrac{K}{s_{\star}}\right\}
+with
+c
+=
+c
+0
+c=c_{0}
+.
+A.3
+Balanced Partitions
+Note that the previous lower bound comes from the imbalance of the partitions: the polynomial dependence on
+K
+K
+is due to the small (constant) size of the optimal class
+s
+⋆
+s_{\star}
+. We now show that if the partitions are balanced, i.e.,
+s
+o
+=
+K
+/
+m
+s_{o}=K/m
+for all
+o
+∈
+𝒪
+o\in\mathcal{O}
+, then we can design an algorithm whose regret is independent of
+K
+K
+.
+{assumption}
+[Balanced partition]
+Assume
+|
+𝒜
+o
+|
+=
+s
+=
+K
+/
+m
+|\mathcal{A}_{o}|=s=K/m
+for all
+o
+∈
+𝒪
+o\in\mathcal{O}
+. Rewards depend only on the outcome
+and when an arm
+a
+a
+is pulled we observe its outcome
+o
+=
+ϕ
+⁡
+(
+a
+)
+o=\phi(a)
+and the reward.
+Algorithm 1
+Balanced Outcome UCB
+1:
+Initialize:
+ℛ
+\mathcal{R}
+(set of discovered outcomes, initially
+∅
+\emptyset
+);
+rep
+⁡
+[
+o
+]
+\mathrm{rep}[o]
+(representative arm for outcome
+o
+o
+, initially undefined);
+n
+o
+∈
+ℕ
+n_{o}\in\mathbb{N}
+and
+μ
+^
+o
+∈
+ℝ
+\hat{\mu}_{o}\in\mathbb{R}
+for each discovered
+o
+o
+(both
+0
+0
+initially);
+U
+U
+(set of unseen arms, initially
+U
+=
+𝒜
+U=\mathcal{A}
+).
+2:
+for
+t
+=
+1
+,
+2
+,
+…
+,
+T
+t=1,2,\dots,T
+do
+3:
+if
+|
+ℛ
+|
+<
+m
+|\mathcal{R}|<m
+then
+⊳
+\triangleright
+Discovery phase
+4:
+Pick
+A
+t
+∼
+Uniform
+⁡
+(
+U
+)
+A_{t}\sim\mathrm{Uniform}(U)
+;
+U
+←
+U
+∖
+{
+A
+t
+}
+U\leftarrow U\setminus\{A_{t}\}
+5:
+Pull
+A
+t
+A_{t}
+; observe outcome
+o
+=
+ϕ
+⁡
+(
+A
+t
+)
+o=\phi(A_{t})
+and reward
+r
+t
+r_{t}
+6:
+if
+o
+∉
+ℛ
+o\notin\mathcal{R}
+then
+7:
+ℛ
+←
+ℛ
+∪
+{
+o
+}
+\mathcal{R}\leftarrow\mathcal{R}\cup\{o\}
+;
+rep
+⁡
+[
+o
+]
+←
+A
+t
+\mathrm{rep}[o]\leftarrow A_{t}
+8:
+n
+o
+←
+n
+o
++
+1
+n_{o}\leftarrow n_{o}+1
+;
+μ
+^
+o
+←
+μ
+^
+o
++
+r
+t
+−
+μ
+^
+o
+n
+o
+\hat{\mu}_{o}\leftarrow\hat{\mu}_{o}+\dfrac{r_{t}-\hat{\mu}_{o}}{n_{o}}
+9:
+else
+⊳
+\triangleright
+Outcome-level UCB
+10:
+For each
+o
+∈
+ℛ
+o\in\mathcal{R}
+, set
+UCB
+t
+​
+(
+o
+)
+←
+μ
+^
+o
++
+2
+​
+log
+⁡
+t
+max
+⁡
+{
+1
+,
+n
+o
+}
+\mathrm{UCB}_{t}(o)\leftarrow\hat{\mu}_{o}+\sqrt{\dfrac{2\log t}{\max\{1,n_{o}\}}}
+11:
+o
+t
+∈
+arg
+⁡
+max
+o
+∈
+ℛ
+​
+UCB
+t
+​
+(
+o
+)
+o_{t}\in\arg\max_{o\in\mathcal{R}}\ \mathrm{UCB}_{t}(o)
+12:
+Pull
+rep
+⁡
+[
+o
+t
+]
+\mathrm{rep}[o_{t}]
+; observe
+r
+t
+r_{t}
+;
+n
+o
+t
+←
+n
+o
+t
++
+1
+n_{o_{t}}\leftarrow n_{o_{t}}+1
+;
+μ
+^
+o
+t
+←
+μ
+^
+o
+t
++
+r
+t
+−
+μ
+^
+o
+t
+n
+o
+t
+\hat{\mu}_{o_{t}}\leftarrow\hat{\mu}_{o_{t}}+\dfrac{r_{t}-\hat{\mu}_{o_{t}}}{n_{o_{t}}}
+Theorem A.3
+(Upper bound under
+\pref
+ass:balanced)
+.
+Assuming
+\pref
+ass:balanced,
+\pref
+alg:balanced-ucb satisfies
+𝔼
+⁡
+[
+R
+T
+]
+≤
+O
+⁡
+(
+m
+​
+T
+​
+log
+⁡
+T
+)
+.
+\mathbb{E}[R_{T}]\leq O(\sqrt{mT\log T}).
+Proof A.4
+.
+We decompose regret into a
+discovery
+part (before all
+m
+m
+outcomes have been observed)
+and a
+bandit
+part (afterwards, when we run UCB on the
+m
+m
+outcome representatives).
+Let
+τ
+disc
+\tau_{\mathrm{disc}}
+be the first round at which the set of observed outcomes equals
+𝒪
+\mathcal{O}
+(i.e., the time to discover all
+m
+m
+outcomes).
+Let
+o
+⋆
+o^{\star}
+be an optimal outcome with mean
+μ
+⋆
+\mu^{\star}
+, and write
+Δ
+o
+:=
+μ
+⋆
+−
+μ
+⁡
+(
+o
+)
+∈
+[
+0
+,
+1
+]
+\Delta_{o}:=\mu^{\star}-\mu(o)\in[0,1]
+.
+While
+t
+<
+τ
+disc
+t<\tau_{\mathrm{disc}}
+the algorithm draws
+unseen
+arms uniformly without replacement.
+Because the partition is balanced, the revealed outcome sequence is distributed as a uniformly
+random permutation of a multiset that contains exactly
+K
+/
+m
+K/m
+copies of each label.
+Let
+T
+cc
+T_{\mathrm{cc}}
+denote the coupon-collector time to see all
+m
+m
+labels
+under i.i.d. sampling
+with replacement
+where each label has probability
+1
+/
+m
+1/m
+per draw.
+We will show (
+\pref
+lem:cc-coupling) that
+𝔼
+⁡
+[
+τ
+disc
+]
+≤
+𝔼
+⁡
+[
+T
+cc
+]
+≤
+m
+⁡
+(
+log
+⁡
+m
++
+1
+)
+.
+\displaystyle\mathbb{E}[\tau_{\mathrm{disc}}]\leq\mathbb{E}[T_{\mathrm{cc}}]\leq m(\log m+1).
+Since per-round pseudo-regret is at most
+1
+1
+(rewards lie in
+[
+0
+,
+1
+]
+[0,1]
+), the discovery contribution satisfies
+𝔼
+⁡
+[
+∑
+t
+=
+1
+min
+⁡
+{
+T
+,
+τ
+disc
+−
+1
+}
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+]
+≤
+𝔼
+⁡
+[
+min
+⁡
+{
+T
+,
+τ
+disc
+−
+1
+}
+]
+≤
+𝔼
+⁡
+[
+τ
+disc
+]
+≤
+m
+⁡
+(
+log
+⁡
+m
++
+1
+)
+.
+\mathbb{E}\Big[\sum_{t=1}^{\min\{T,\tau_{\mathrm{disc}}-1\}}(\mu^{\star}-\mu(O_{t}))\Big]\leq\mathbb{E}[\min\{T,\tau_{\mathrm{disc}}-1\}]\leq\mathbb{E}[\tau_{\mathrm{disc}}]\leq m(\log m+1).
+(3)
+Then at time
+τ
+disc
+\tau_{\mathrm{disc}}
+the algorithm has stored one
+representative
+arm per outcome.
+From that time onward it never samples unseen arms; it only chooses among the
+m
+m
+representatives.
+Because rewards depend only on outcome, this reduces
+exactly
+to an
+m
+m
+-armed stochastic bandit.
+Let
+T
+′
+:=
+max
+⁡
+{
+0
+,
+T
+−
+τ
+disc
++
+1
+}
+T^{\prime}:=\max\{0,\,T-\tau_{\mathrm{disc}}+1\}
+be the number of post-discovery rounds (random, but
+T
+′
+≤
+T
+T^{\prime}\leq T
+).
+The algorithm runs UCB on the
+m
+m
+arms with index
+μ
+^
+o
++
+(
+2
+​
+log
+⁡
+t
+)
+/
+n
+o
+\hat{\mu}_{o}+\sqrt{(2\log t)/n_{o}}
+as specified in
+\pref
+alg:balanced-ucb.
+We will bound the regret in these
+T
+′
+T^{\prime}
+rounds by a standard UCB bound (
+\pref
+lem:ucb-gapfree):
+𝔼
+⁡
+[
+∑
+t
+=
+τ
+disc
+T
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+|
+τ
+disc
+]
+≤
+O
+⁡
+(
+m
+​
+T
+′
+​
+log
+⁡
+T
+)
+\displaystyle\mathbb{E}\Big[\sum_{t=\tau_{\mathrm{disc}}}^{T}(\mu^{\star}-\mu(O_{t}))\ \Big|\ \tau_{\mathrm{disc}}\Big]\leq O\left(\sqrt{m\,T^{\prime}\,\log T}\right)
+Taking expectations and using
+T
+′
+≤
+T
+T^{\prime}\leq T
+yields
+𝔼
+⁡
+[
+∑
+t
+=
+τ
+disc
+T
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+]
+≤
+O
+⁡
+(
+m
+​
+T
+​
+log
+⁡
+T
+)
+.
+\mathbb{E}\Big[\sum_{t=\tau_{\mathrm{disc}}}^{T}(\mu^{\star}-\mu(O_{t}))\Big]\leq O\left(\sqrt{m\,T\,\log T}\right).
+(4)
+And we conclude the proof by summing
+\pref
+eq:disc-regret and
+\pref
+eq:postdisc-regret-exp, but noting that
+\pref
+eq:postdisc-regret-exp is the dominant term.
+A.4
+Inbalanced Partition under Strong Generalization
+Our previous results are all established under a non-generalization scenario, where the update of arms in the same outcome partition is independent. This is not realistic under the LLM reasoning setting, since the update of one reasoning path (arm) can affect the other paths that lead to the same answer (outcome). We now show that this generalization capability is the key to demonstrating the benefit of outcome-based exploration, where previously under the worst case scenario the regret must depend on
+K
+K
+. We start with a strong generalization assumption, where we assume that once an outcome is observed, the entire class of arms leading to that outcome is identified.
+{assumption}
+[Strong generalization]
+When the learner pulls an arm
+a
+a
+and observes the outcome
+o
+=
+ϕ
+⁡
+(
+a
+)
+o=\phi(a)
+, it henceforth knows the entire preimage
+𝒜
+o
+=
+ϕ
+−
+1
+​
+(
+o
+)
+\mathcal{A}_{o}=\phi^{-1}(o)
+and can (i)
+route
+to
+o
+o
+by selecting any arm in
+𝒜
+o
+\mathcal{A}_{o}
+, and (ii)
+exclude
+𝒜
+o
+\mathcal{A}_{o}
+from future fresh probes. For any outcome
+o
+o
+not yet observed, the learner cannot route to
+𝒜
+o
+\mathcal{A}_{o}
+nor exclude it a priori.
+Intuitively, with strong generalization, once an outcome is observed, the whole outcome partition is discovered, and then it can be treated as a single arm in the future. Then the problem reduces to an
+m
+m
+-armed bandit problem. We provide the algorithm in
+\pref
+alg:pa-ucb, which enjoys the following regret guarantee.
+Algorithm 2
+Partition-Aware UCB under Strong Generalization
+1:
+Initialize:
+ℛ
+\mathcal{R}
+(set of discovered outcomes, initially
+∅
+\emptyset
+);
+rep
+⁡
+[
+o
+]
+\mathrm{rep}[o]
+(representative arm for
+o
+o
+, undefined until discovery);
+n
+o
+∈
+ℕ
+,
+μ
+^
+o
+∈
+ℝ
+n_{o}\in\mathbb{N},\ \hat{\mu}_{o}\in\mathbb{R}
+for
+o
+∈
+ℛ
+o\in\mathcal{R}
+(both
+0
+0
+initially);
+U
+U
+(pool of arms eligible for fresh probes, initially
+U
+=
+𝒜
+U=\mathcal{A}
+).
+2:
+for
+t
+=
+1
+,
+2
+,
+…
+,
+T
+t=1,2,\dots,T
+do
+3:
+if
+|
+ℛ
+|
+<
+m
+|\mathcal{R}|<m
+then
+⊳
+\triangleright
+Discovery phase
+4:
+Pick any
+A
+t
+∈
+U
+A_{t}\in U
+; pull
+A
+t
+A_{t}
+; observe
+(
+o
+=
+ϕ
+⁡
+(
+A
+t
+)
+,
+r
+t
+)
+(o=\phi(A_{t}),r_{t})
+5:
+if
+o
+∉
+ℛ
+o\notin\mathcal{R}
+then
+6:
+ℛ
+←
+ℛ
+∪
+{
+o
+}
+\mathcal{R}\leftarrow\mathcal{R}\cup\{o\}
+;
+rep
+⁡
+[
+o
+]
+←
+A
+t
+\mathrm{rep}[o]\leftarrow A_{t}
+7:
+n
+o
+←
+1
+n_{o}\leftarrow 1
+;
+μ
+^
+o
+←
+r
+t
+\hat{\mu}_{o}\leftarrow r_{t}
+8:
+U
+←
+U
+∖
+𝒜
+o
+U\leftarrow U\setminus\mathcal{A}_{o}
+9:
+else
+10:
+n
+o
+←
+n
+o
++
+1
+n_{o}\leftarrow n_{o}+1
+;
+μ
+^
+o
+←
+μ
+^
+o
++
+r
+t
+−
+μ
+^
+o
+n
+o
+\hat{\mu}_{o}\leftarrow\hat{\mu}_{o}+\dfrac{r_{t}-\hat{\mu}_{o}}{n_{o}}
+11:
+else
+⊳
+\triangleright
+Outcome-level UCB
+12:
+For each
+o
+∈
+ℛ
+o\in\mathcal{R}
+, set
+UCB
+t
+​
+(
+o
+)
+←
+μ
+^
+o
++
+2
+​
+log
+⁡
+t
+max
+⁡
+{
+1
+,
+n
+o
+}
+\mathrm{UCB}_{t}(o)\leftarrow\hat{\mu}_{o}+\sqrt{\dfrac{2\log t}{\max\{1,n_{o}\}}}
+13:
+o
+t
+∈
+arg
+⁡
+max
+o
+∈
+ℛ
+​
+UCB
+t
+​
+(
+o
+)
+o_{t}\in\arg\max_{o\in\mathcal{R}}\ \mathrm{UCB}_{t}(o)
+14:
+Pull
+rep
+⁡
+[
+o
+t
+]
+\mathrm{rep}[o_{t}]
+; observe
+r
+t
+r_{t}
+; update
+n
+o
+t
+,
+μ
+^
+o
+t
+n_{o_{t}},\hat{\mu}_{o_{t}}
+Theorem A.5
+(Regret upper bound under strong generalization)
+.
+Assuming
+\pref
+ass:strong-gen, Algorithm
+2
+satisfies:
+𝔼
+⁡
+[
+R
+T
+]
+≤
+O
+⁡
+(
+m
+​
+T
+​
+log
+⁡
+T
+)
+,
+\mathbb{E}[R_{T}]\leq O\left(\sqrt{m\,T\,\log T}\right),
+Proof A.6
+.
+Let
+τ
+disc
+\tau_{\mathrm{disc}}
+be the (random) time the set of discovered outcomes first equals
+𝒪
+\mathcal{O}
+. By construction, as soon as a new outcome
+o
+o
+is observed, the algorithm removes the entire class
+𝒜
+o
+\mathcal{A}_{o}
+from
+the fresh-probe pool
+U
+U
+. Hence each subsequent fresh probe must land in an outcome not yet discovered.
+Therefore
+τ
+disc
+≤
+m
+\tau_{\mathrm{disc}}\leq m
+almost surely: at most one fresh probe per outcome is needed.
+Per-round pseudo-regret is at most
+1
+1
+, so the discovery contribution is bounded deterministically by
+∑
+t
+=
+1
+min
+⁡
+{
+T
+,
+τ
+disc
+−
+1
+}
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+≤
+min
+⁡
+{
+T
+,
+m
+}
+≤
+m
+.
+\sum_{t=1}^{\min\{T,\tau_{\mathrm{disc}}-1\}}(\mu^{\star}-\mu(O_{t}))\leq\min\{T,\,m\}\leq m.
+At time
+τ
+disc
+\tau_{\mathrm{disc}}
+the algorithm has one representative per outcome.
+From then on it only selects among these
+m
+m
+representatives using the UCB index
+μ
+^
+o
++
+(
+2
+​
+log
+⁡
+t
+)
+/
+n
+o
+\hat{\mu}_{o}+\sqrt{(2\log t)/n_{o}}
+.
+This reduces exactly to an
+m
+m
+-armed
+stochastic bandit. By
+\pref
+lem:ucb-gapfree, the post-discovery outcome-UCB satisfies
+𝔼
+⁡
+[
+∑
+t
+=
+τ
+disc
+T
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+]
+≤
+O
+⁡
+(
+m
+​
+T
+​
+log
+⁡
+T
+)
+.
+\mathbb{E}\Big[\sum_{t=\tau_{\mathrm{disc}}}^{T}(\mu^{\star}-\mu(O_{t}))\Big]\leq O\left(\sqrt{m\,T\,\log T}\right).
+Again by noting that the post-discovery contribution is the dominant term, we complete the proof.
+A.5
+Soft Generalization: Algorithm and Upper Bound
+The above example of strong generalization is idealized as it is unreasonable to believe that one witness of the outcome is sufficient for generalization towards all related arms. We now consider a more realistic
+soft generalization
+model. Intuitively, soft generalization states that instead of being able to exclude the entire class
+𝒜
+o
+\mathcal{A}_{o}
+upon first observing outcome
+o
+o
+, the learner can only exclude a fraction of
+𝒜
+o
+\mathcal{A}_{o}
+.
+{assumption}
+[Soft generalization]
+Upon first observing an outcome
+o
+o
+, the learner can (i) route perfectly to
+o
+o
+by re-pulling the observed arm; and (ii) exclude only a fraction of
+ρ
+o
+∈
+[
+0
+,
+1
+]
+\rho_{o}\in[0,1]
+of the arms in
+𝒜
+o
+\mathcal{A}_{o}
+from future fresh probes.
+
+When
+ρ
+o
+=
+1
+\rho_{o}=1
+for all
+o
+o
+, this reduces to strong generalization (
+\pref
+ass:strong-gen); when
+ρ
+o
+=
+0
+\rho_{o}=0
+for all
+o
+o
+, this reduces to no generalization. Note that this assumption is rather unconventional: it is an assumption on the learner instead of the environment. However, this is a more suitable assumption here because it is indeed trying to model the generalization capability of the learner (LLM). With this we provide the soft-exclusion outcome-UCB algorithm in
+\pref
+alg:se-oucb and analyze its performance.
+Algorithm 3
+Soft-Exclusion Outcome-UCB
+1:
+Initialize:
+ℛ
+\mathcal{R}
+(discovered outcomes; initially
+∅
+\emptyset
+);
+rep
+⁡
+[
+o
+]
+\mathrm{rep}[o]
+(representative of
+o
+o
+; undefined until discovery);
+(
+n
+o
+,
+μ
+^
+o
+)
+(n_{o},\hat{\mu}_{o})
+for
+o
+∈
+ℛ
+o\in\mathcal{R}
+(both
+0
+0
+initially);
+U
+U
+(pool available for fresh probes; initially
+U
+=
+𝒜
+U=\mathcal{A}
+).
+2:
+for
+t
+=
+1
+,
+2
+,
+…
+,
+T
+t=1,2,\dots,T
+do
+3:
+if
+|
+ℛ
+|
+<
+m
+|\mathcal{R}|<m
+and we are in
+discovery mode
+then
+4:
+Draw
+A
+t
+A_{t}
+uniformly from
+U
+U
+, pull it, observe
+(
+o
+=
+ϕ
+⁡
+(
+A
+t
+)
+,
+r
+t
+)
+(o=\phi(A_{t}),r_{t})
+5:
+if
+o
+∉
+ℛ
+o\notin\mathcal{R}
+then
+6:
+ℛ
+←
+ℛ
+∪
+{
+o
+}
+\mathcal{R}\leftarrow\mathcal{R}\cup\{o\}
+;
+rep
+⁡
+[
+o
+]
+←
+A
+t
+\mathrm{rep}[o]\leftarrow A_{t}
+;
+n
+o
+←
+1
+n_{o}\leftarrow 1
+;
+μ
+^
+o
+←
+r
+t
+\hat{\mu}_{o}\leftarrow r_{t}
+7:
+(Soft exclusion) remove any
+E
+o
+⊆
+𝒜
+o
+E_{o}\subseteq\mathcal{A}_{o}
+with
+|
+E
+o
+|
+=
+ρ
+o
+​
+s
+o
+|E_{o}|=\rho_{o}s_{o}
+8:
+U
+←
+U
+∖
+E
+o
+U\leftarrow U\setminus E_{o}
+9:
+else
+10:
+n
+o
+←
+n
+o
++
+1
+n_{o}\leftarrow n_{o}+1
+;
+μ
+^
+o
+←
+μ
+^
+o
++
+r
+t
+−
+μ
+^
+o
+n
+o
+\hat{\mu}_{o}\leftarrow\hat{\mu}_{o}+\dfrac{r_{t}-\hat{\mu}_{o}}{n_{o}}
+11:
+else
+12:
+For each
+o
+∈
+ℛ
+o\in\mathcal{R}
+, set
+UCB
+t
+​
+(
+o
+)
+:=
+μ
+^
+o
++
+2
+​
+log
+⁡
+t
+max
+⁡
+{
+1
+,
+n
+o
+}
+\mathrm{UCB}_{t}(o):=\hat{\mu}_{o}+\sqrt{\dfrac{2\log t}{\max\{1,n_{o}\}}}
+13:
+o
+t
+∈
+arg
+⁡
+max
+o
+∈
+ℛ
+​
+UCB
+t
+​
+(
+o
+)
+o_{t}\in\arg\max_{o\in\mathcal{R}}\ \mathrm{UCB}_{t}(o)
+14:
+pull
+rep
+⁡
+[
+o
+t
+]
+\mathrm{rep}[o_{t}]
+; observe
+r
+t
+r_{t}
+; update
+n
+o
+t
+,
+μ
+^
+o
+t
+n_{o_{t}},\hat{\mu}_{o_{t}}
+Theorem A.7
+(Upper bound under soft generalization)
+.
+Assuming soft generalization (Assumption
+A.5
+),
+\pref
+alg:se-oucb satisfies
+𝔼
+⁡
+[
+R
+T
+]
+≤
+O
+⁡
+(
+1
+−
+ρ
+¯
+p
+o
+⋆
++
+m
+​
+T
+​
+log
+⁡
+T
+)
+,
+\mathbb{E}[R_{T}]\leq O\left(\frac{1-\bar{\rho}}{p_{o_{\star}}}+\sqrt{mT\log T}\right),
+where
+ρ
+¯
+:=
+∑
+o
+≠
+o
+⋆
+ρ
+o
+​
+p
+o
+∈
+[
+0
+,
+1
+)
+\bar{\rho}:=\sum_{o\neq o_{\star}}\rho_{o}p_{o}\in[0,1)
+.
+To prove this theorem, we first prove the stopping time that we discover the optimal outcome:
+Lemma A.8
+(First hit of the optimal outcome)
+.
+With
+\pref
+alg:se-oucb, let
+τ
+⋆
+\tau_{\star}
+be the index (number of fresh probes) of the
+first pull that lands in
+𝒜
+o
+⋆
+\mathcal{A}_{o_{\star}}
+. Then
+𝔼
+⁡
+[
+τ
+⋆
+]
+≤
+1
+−
+ρ
+¯
+p
+o
+⋆
+.
+\mathbb{E}[\tau_{\star}]\leq\frac{1-\bar{\rho}}{p_{o_{\star}}}.
+Proof A.9
+.
+Let
+U
+t
+U_{t}
+denote the pool of arms available for fresh probes just
+before
+the
+t
+t
+-th fresh probe, and let
+E
+E
+be the (random) union of all excluded sets
+E
+o
+E_{o}
+over non-optimal outcomes
+o
+≠
+o
+⋆
+o\neq o_{\star}
+that have been
+discovered prior to time
+τ
+⋆
+\tau_{\star}
+. By definition of soft exclusion,
+|
+E
+|
+≤
+∑
+o
+≠
+o
+⋆
+ρ
+o
+​
+s
+o
+=
+K
+​
+ρ
+¯
+|E|\leq\sum_{o\neq o_{\star}}\rho_{o}s_{o}=K\bar{\rho}
+.
+Fix any history up to time
+t
+−
+1
+t-1
+with
+τ
+⋆
+>
+t
+−
+1
+\tau_{\star}>t-1
+. Then no arm from
+𝒜
+o
+⋆
+\mathcal{A}_{o_{\star}}
+has been drawn yet, so
+all
+s
+o
+⋆
+s_{o_{\star}}
+optimal arms remain in
+U
+t
+U_{t}
+. The next fresh probe samples uniformly from
+U
+t
+U_{t}
+, hence
+Pr
+⁡
+(
+hit
+​
+𝒜
+o
+⋆
+​
+at probe
+​
+t
+∣
+τ
+⋆
+>
+t
+−
+1
+,
+ℋ
+t
+−
+1
+)
+=
+s
+o
+⋆
+|
+U
+t
+|
+≥
+s
+o
+⋆
+K
+−
+|
+E
+|
+≥
+p
+o
+⋆
+1
+−
+ρ
+¯
+.
+\Pr(\text{hit }\mathcal{A}_{o_{\star}}\text{ at probe }t\mid\tau_{\star}>t-1,\ \mathcal{H}_{t-1})=\frac{s_{o_{\star}}}{|U_{t}|}\geq\frac{s_{o_{\star}}}{K-|E|}\geq\frac{p_{o_{\star}}}{1-\bar{\rho}}.
+The first inequality uses
+|
+U
+t
+|
+≤
+K
+−
+|
+E
+|
+|U_{t}|\leq K-|E|
+(we can only remove arms, via exclusions and previous draws),
+and the second uses
+|
+E
+|
+≤
+K
+​
+ρ
+¯
+|E|\leq K\bar{\rho}
+. Therefore the conditional success probability at each probe is
+uniformly
+lower bounded by
+p
+o
+⋆
+/
+(
+1
+−
+ρ
+¯
+)
+p_{o_{\star}}/(1-\bar{\rho})
+, regardless of the discovery order of non-optimal outcomes.
+Let
+G
+G
+be a geometric random variable with parameter
+p
+o
+⋆
+/
+(
+1
+−
+ρ
+¯
+)
+p_{o_{\star}}/(1-\bar{\rho})
+(counting the number of trials until
+the first success). By the usual domination argument for inhomogeneous Bernoulli sequences with per-trial success
+probability bounded below,
+2
+2
+2
+Formally, if
+X
+t
+∈
+{
+0
+,
+1
+}
+X_{t}\in\{0,1\}
+are conditionally independent given the past with
+Pr
+⁡
+(
+X
+t
+=
+1
+∣
+ℋ
+t
+−
+1
+)
+≥
+θ
+\Pr(X_{t}=1\mid\mathcal{H}_{t-1})\geq\theta
+for all
+t
+t
+, then
+∑
+u
+=
+1
+t
+(
+1
+−
+X
+u
+)
+\sum_{u=1}^{t}(1-X_{u})
+is stochastically dominated by a sum of
+i.i.d.
+Bernoulli
+​
+(
+1
+−
+θ
+)
+\text{Bernoulli}(1-\theta)
+, and the first success time is dominated by
+Geom
+⁡
+(
+θ
+)
+\mathrm{Geom}(\theta)
+.
+we have
+τ
+⋆
+⪯
+G
+\tau_{\star}\preceq G
+(stochastic domination). Taking expectations gives
+𝔼
+⁡
+[
+τ
+⋆
+]
+≤
+(
+1
+−
+ρ
+¯
+)
+/
+p
+o
+⋆
+\mathbb{E}[\tau_{\star}]\leq(1-\bar{\rho})/p_{o_{\star}}
+.
+Proof A.10
+(Proof of
+\pref
+thm:soft-upper)
+.
+Decompose the pseudo-regret as
+R
+T
+=
+∑
+t
+=
+1
+min
+⁡
+{
+T
+,
+τ
+⋆
+−
+1
+}
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
++
+∑
+t
+=
+τ
+⋆
+T
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+.
+R_{T}=\sum_{t=1}^{\min\{T,\tau_{\star}-1\}}(\mu^{\star}-\mu(O_{t}))+\sum_{t=\tau_{\star}}^{T}(\mu^{\star}-\mu(O_{t})).
+For the first term, we have
+𝔼
+⁡
+[
+∑
+t
+=
+1
+min
+⁡
+{
+T
+,
+τ
+⋆
+−
+1
+}
+(
+μ
+⋆
+−
+μ
+⁡
+(
+O
+t
+)
+)
+]
+≤
+𝔼
+⁡
+[
+min
+⁡
+{
+T
+,
+τ
+⋆
+−
+1
+}
+]
+≤
+𝔼
+⁡
+[
+τ
+⋆
+]
+≤
+1
+−
+ρ
+¯
+p
+o
+⋆
+\mathbb{E}\Big[\sum_{t=1}^{\min\{T,\tau_{\star}-1\}}(\mu^{\star}-\mu(O_{t}))\Big]\leq\mathbb{E}[\min\{T,\tau_{\star}-1\}]\leq\mathbb{E}[\tau_{\star}]\leq\frac{1-\bar{\rho}}{p_{o_{\star}}}
+by Lemma
+A.8
+. For the second term, apply
+\pref
+lem:ucb-gapfree.
+Summing the bounds gives the claim.
+Remark A.11
+.
+For all algorithms in this section, we separate the exploration phase (discovering outcomes) and the exploitation phase (outcome-level UCB). This is mainly for ease of presentation and analysis. In practice, the exploration phase can happen naturally with the outcome-level UCB, as the algorithm will always seek unpicked outcomes due to the design of the UCB term.
+A.6
+Technical Lemmas
+Lemma A.12
+.
+Let
+Π
+det
+\Pi_{\det}
+be a (possibly infinite) set of deterministic algorithms (policies), let
+ℐ
+\mathcal{I}
+be a set of instances,
+and let
+L
+:
+Π
+det
+×
+ℐ
+→
+ℝ
+≥
+0
+L:\Pi_{\det}\times\mathcal{I}\to\mathbb{R}_{\geq 0}
+be any (measurable) loss functional.
+Write
+Δ
+⁡
+(
+Π
+det
+)
+\Delta(\Pi_{\det})
+and
+Δ
+⁡
+(
+ℐ
+)
+\Delta(\mathcal{I})
+for distributions over algorithms and instances, respectively.
+Then
+inf
+π
+~
+∈
+Δ
+⁡
+(
+Π
+det
+)
+sup
+I
+∈
+ℐ
+𝔼
+⁡
+[
+L
+⁡
+(
+π
+~
+,
+I
+)
+]
+≥
+sup
+𝒟
+∈
+Δ
+⁡
+(
+ℐ
+)
+inf
+π
+∈
+Π
+det
+𝔼
+I
+∼
+𝒟
+​
+[
+L
+⁡
+(
+π
+,
+I
+)
+]
+.
+\inf_{\widetilde{\pi}\in\Delta(\Pi_{\det})}\ \sup_{I\in\mathcal{I}}\ \mathbb{E}\big[\,L(\widetilde{\pi},I)\,\big]\ \ \geq\ \ \sup_{\mathcal{D}\in\Delta(\mathcal{I})}\ \inf_{\pi\in\Pi_{\det}}\ \mathbb{E}_{I\sim\mathcal{D}}\big[\,L(\pi,I)\,\big].
+Lemma A.13
+(Coupon-collector coupling
+(
+Motwani and Raghavan, 1996
+)
+)
+.
+In the balanced partition setting, let
+τ
+disc
+\tau_{\mathrm{disc}}
+be the discovery time when drawing unseen arms
+uniformly without replacement. Let
+T
+cc
+T_{\mathrm{cc}}
+be the time to observe all
+m
+m
+labels under i.i.d.
+sampling with replacement with uniform label distribution
+1
+/
+m
+1/m
+.
+Then
+𝔼
+⁡
+[
+τ
+disc
+]
+≤
+𝔼
+⁡
+[
+T
+cc
+]
+=
+m
+​
+H
+m
+≤
+m
+⁡
+(
+log
+⁡
+m
++
+1
+)
+\mathbb{E}[\tau_{\mathrm{disc}}]\leq\mathbb{E}[T_{\mathrm{cc}}]=mH_{m}\leq m(\log m+1)
+.
+Lemma A.14
+(
+Auer et al. (2002)
+)
+.
+Consider an
+m
+m
+-armed stochastic bandit with rewards in
+[
+0
+,
+1
+]
+[0,1]
+that are
+1
+1
+-sub-Gaussian and means
+{
+μ
+⁡
+(
+o
+)
+}
+o
+=
+1
+m
+\{\mu(o)\}_{o=1}^{m}
+.
+Run UCB with index
+μ
+^
+o
++
+(
+2
+​
+log
+⁡
+t
+)
+/
+n
+o
+\hat{\mu}_{o}+\sqrt{(2\log t)/n_{o}}
+for
+t
+=
+1
+,
+2
+,
+…
+,
+T
+t=1,2,\dots,T
+(initializing each arm once).
+Then the pseudo-regret satisfies
+𝔼
+⁡
+[
+R
+T
+]
+≤
+O
+⁡
+(
+m
+​
+T
+​
+log
+⁡
+T
+)
+.
+\mathbb{E}[R_{T}]\leq O\left(\sqrt{mT\log T}\right).
+Appendix B
+Additional Experiment on Hard Dataset
+Figure 7:
+Training performance comparison between
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+,
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the hard dataset. Left: fraction of questions solved so far; Right: number of different answers sampled so far. The x-axis denotes the number of gradient updates as we train all models fully on-policy. We repeat each experiment with 3 different random seeds and plot the mean performance.
+In this section, we compare the training performance between
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+,
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline on the hard dataset. For
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+, the dataset comprises 996 questions in total. We observe the improvement of outcome-based exploration algorithm is even larger than the base model in this hard dataset, in both the number of questions solved and the number of unique solutions explored. However, we remark that this is more of a synthetic setting because training on this hard dataset does not bring meaningful improvement on the test dataset, for all of the baselines. Nevertheless, combining with the results from the medium dataset, our results indicate that exploration is more beneficial in the medium to hard training regime.
+Appendix C
+Omitted Plots
+Figure 8:
+Training performance comparison between different
+𝚄𝙲𝙱
+\mathtt{UCB}
+variants and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the medium dataset (left) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the easy dataset (right). For each subplot: Left: fraction of questions solved so far; Right: number of different answers sampled on the questions that the model has yet to solve (i.e., sample one correct answer historically). The x-axis denotes the number of gradient updates as we train all models fully on-policy. We repeat each experiment with 3 different random seeds and plot the mean performance.
+Figure 9:
+Test performance comparison between different
+𝚄𝙲𝙱
+\mathtt{UCB}
+variants and the
+𝙶𝚁𝙿𝙾
+\mathtt{GRPO}
+baseline, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the medium dataset (top) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the easy dataset (bottom). We report pass@
+k
+k
+for
+k
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+}
+k\in\{1,2,4,8,16,32\}
+at every 20 training steps. We repeat each experiment with 3 different random seeds and plot the mean performance (see
+\pref
+sec:quant-results for error bars). The metrics are calculated based on 32 samples per question during evaluation.
+Figure 10:
+Training performance comparison between
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+,
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the medium dataset (left) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the easy dataset (right). For each subplot: Left: fraction of questions solved so far; Right: number of different answers sampled on the questions that the model has yet to solve (i.e., sample one correct answer historically). The x-axis denotes the number of gradient updates as we train all models fully on-policy. We repeat each experiment with 3 different random seeds and plot the mean performance.
+Figure 11:
+Test performance comparison between
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+and
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+, with
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+on the medium dataset (top) and
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+on the easy dataset (bottom). We report pass@
+k
+k
+for
+k
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+}
+k\in\{1,2,4,8,16,32\}
+at every 20 training steps. We repeat each experiment with 3 different random seeds and plot the mean performance (see
+\pref
+sec:quant-results for error bars). The metrics are calculated based on 32 samples per question during evaluation.
+Appendix D
+Quantitative Results
+Table 3:
+Quantitative comparison of different baselines on pass@1 and pass@32 at the best checkpoint over three random seeds. We report mean and standard deviation in parentheses. The best mean results are in bold. Note that
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+in general achieves the best peak performance.
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+Method
+Math
+DAPO
+Math
+DAPO
+Pass@1
+Pass@32
+Pass@1
+Pass@32
+Pass@1
+Pass@32
+Pass@1
+Pass@32
+Vanilla RL
+0.231
+(0.006)
+0.465
+(0.031)
+0.218
+(0.012)
+0.474
+(0.014)
+0.385
+(0.003)
+0.634
+(0.008)
+0.403
+(0.002)
+0.627
+(0.004)
+𝚄𝙲𝙱
+\mathtt{UCB}
+0.236
+(0.000)
+0.472
+(0.024)
+0.214
+(0.004)
+0.473
+(0.014)
+0.379
+(0.002)
+0.635
+(0.012)
+0.397
+(0.001)
+0.627
+(0.005)
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+0.239
+(0.003)
+0.462
+(0.003)
+0.223
+(0.006)
+0.473
+(0.011)
+0.387
+(0.002)
+0.618
+(0.001)
+0.407
+(0.000)
+0.633
+(0.008)
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+0.242
+(0.003)
+0.473
+(0.003)
+0.243
+(0.005)
+0.448
+(0.003)
+0.395
+(0.001)
+0.636
+(0.006)
+0.419
+(0.001)
+0.642
+(0.002)
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+0.241
+(0.001)
+0.467
+(0.025)
+0.229
+(0.003)
+0.469
+(0.014)
+0.390
+(0.007)
+0.629
+(0.011)
+0.413
+(0.008)
+0.631
+(0.005)
+Table 4:
+Quantitative comparison of different baselines on pass@1 and pass@32 at the final checkpoint over three random seeds. We report mean and standard deviation in parentheses. The best mean results are in bold. Note that
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+in general achieves the best final performance in terms of pass@32.
+𝙻𝚕𝚊𝚖𝚊
+​
+-
+​
+3.1
+​
+-
+​
+𝟾
+​
+𝙱
+​
+-
+​
+𝙸𝚗𝚜𝚝𝚛𝚞𝚌𝚝
+\mathtt{Llama\text{-}3.1\text{-}8B\text{-}Instruct}
+𝚀𝚠𝚎𝚗
+​
+-
+​
+2.5
+​
+-
+​
+𝟽
+​
+𝙱
+​
+-
+​
+𝙱𝚊𝚜𝚎
+\mathtt{Qwen\text{-}2.5\text{-}7B\text{-}Base}
+Method
+Math
+DAPO
+Math
+DAPO
+Pass@1
+Pass@32
+Pass@1
+Pass@32
+Pass@1
+Pass@32
+Pass@1
+Pass@32
+Vanilla RL
+0.215
+(0.018)
+0.395
+(0.017)
+0.196
+(0.012)
+0.362
+(0.034)
+0.381
+(0.012)
+0.593
+(0.006)
+0.399
+(0.010)
+0.580
+(0.013)
+𝚄𝙲𝙱
+\mathtt{UCB}
+0.233
+(0.003)
+0.425
+(0.006)
+0.208
+(0.008)
+0.388
+(0.006)
+0.372
+(0.013)
+0.582
+(0.008)
+0.392
+(0.007)
+0.580
+(0.008)
+𝚄𝙲𝙱
+​
+-
+​
+𝙼𝚎𝚊𝚗
+\mathtt{UCB\text{-}Mean}
+0.233
+(0.003)
+0.414
+(0.004)
+0.221
+(0.008)
+0.372
+(0.012)
+0.387
+(0.002)
+0.586
+(0.005)
+0.407
+(0.006)
+0.603
+(0.007)
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+0.228
+(0.003)
+0.417
+(0.007)
+0.242
+(0.009)
+0.393
+(0.005)
+0.391
+(0.003)
+0.578
+(0.007)
+0.419
+(0.006)
+0.589
+(0.006)
+𝙱𝚊𝚝𝚌𝚑
+\mathtt{Batch}
+0.238
+(0.009)
+0.426
+(0.011)
+0.227
+(0.004)
+0.410
+(0.009)
+0.382
+(0.001)
+0.610
+(0.001)
+0.412
+(0.008)
+0.594
+(0.010)
+Appendix E
+Implementation Details
+Our codebase is developed based on the verl codebase
+(
+Sheng et al., 2024
+)
+. Thus we use the verl naming convention for the hyperparameters. For all our experiments, we use the hyperparameters in Table
+5
+unless otherwise specified. For all Llama experiments, we set bonus coefficient
+c
+=
+0.1
+c=0.1
+, and for all Qwen experiments, we set
+c
+=
+0.2
+c=0.2
+. For
+𝚄𝙲𝙱
+​
+-
+​
+𝙲𝚘𝚗
+\mathtt{UCB\text{-}Con}
+, we set
+b
+0
+=
+1
+b_{0}=1
+for easy dataset and
+b
+0
+=
+0.5
+b_{0}=0.5
+for medium dataset.
+Table 5:
+Comparison of different exploration strategies based on the number of different answers sampled in a batch. We repeat for 2 random seeds and report the mean and standard deviation (in parentheses).
+Name
+Value
+train batch size
+256
+learning rate
+1e-6
+ppo mini batch size
+256
+kl loss coef
+0.001
+entropy coeff
+0
+rollout.n
+8
+rollout.val
+_
+\textunderscore
+kwargs.temperature
+1
+Experimental support, please
+view the build logs
+for errors. Generated by
+L
+A
+T
+E
+xml
+.
+Instructions for reporting errors
+We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:
+Click the "Report Issue"
+(
+)
+button, located in the page header.
+Tip:
+You can select the relevant text first, to include it in your report.
+Our team has already identified
+the following issues
+. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.
+Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+list of packages that need conversion
+, and welcome
+developer contributions
+.
+We gratefully acknowledge support from
+        our
+major funders
+,
+member institutions
+,
+,
+        and all contributors.
+About
+·
+Help
+·
+Contact
+·
+Subscribe
+·
+Copyright
+·
+Privacy
+·
+Accessibility
+·
+Operational Status
+(opens in new tab)
+Major funding support from

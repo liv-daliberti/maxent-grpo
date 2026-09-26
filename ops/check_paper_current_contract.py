@@ -1,0 +1,1449 @@
+#!/usr/bin/env python3
+"""Fail-closed contract for the current ModeBench/Re:Max paper story."""
+from __future__ import annotations
+
+from collections import Counter
+import hashlib
+import json
+import re
+import runpy
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+TEX = ROOT / "paper/main.tex"
+APPENDIX_TEX = ROOT / "paper/appendix.tex"
+PDF = ROOT / "paper/main.pdf"
+MAKEFILE = ROOT / "paper/Makefile"
+LINE_FILL_CHECKER = ROOT / "ops/check_paper_line_fill.py"
+E118 = ROOT / "paper/figures/e118_all_scale_factorial_progress.json"
+LEVELS = ROOT / "paper/figures/modebench_level_admission.json"
+FIG4 = ROOT / "paper/figures/experiment1_retention_comparator_matrix.json"
+E120 = ROOT / "paper/results/e120_frequency_progress.json"
+ABSOLUTE_REFERENCES = ROOT / "paper/results/absolute_support_references.json"
+CORE = ROOT / "paper/results/core_terminal_endpoints.json"
+# The snapshot the training-curve figures render from. It carries the
+# provenance admissions of paper/audits/training_curve_provenance_20260919 on
+# top of the September 12 collection, which it leaves in place; the figures are
+# reconstructed from whichever snapshot they declare, so this must track the
+# Makefile's TRAINING_SNAPSHOT.
+TRAINING_SNAPSHOT = ROOT / "paper/results/training_curve_snapshot_20260919.json"
+
+# The sampling-budget figure follows Figure 3 now: both measure models we did
+# not train, so they are read together at the end of ModeBench.
+MAIN_FIGURES = (
+    "modecollapse_story", "modebench_examples", "mode_diversity_levels_appendix",
+    "gpt56_all_levels32_sampling_budget", "replay_bank_balance",
+    "verified_support_story", "concentration_story_resampled",
+    "e118_all_scale_factorial_progress", "replay_key_weighting",
+    "modebench_level_admission",
+)
+MAIN_LABELS = (
+    "fig:story", "fig:modebench-examples", "fig:base-levels-all-scales",
+    "fig:gpt56-sampling-budget", "fig:replay-bank-balance",
+    "fig:verified-support-story", "fig:concentration-story",
+    "fig:maxrl-factorial", "fig:replay-key-weighting", "fig:level2-admission",
+)
+# The retention matrix reads as two tables: at the width the main body allows a
+# heatmap of that many cells was not legible, and a table also carries the
+# paired interval the plate had to leave in the record.
+MAIN_TABLES = (
+    ("tab:direct-comparator-matrix", "results/retention_matrix_panel_b_table_body.tex"),
+)
+# The cross-scale half is the per-domain detail behind Fig. 9's averages, so it
+# reads in the appendix and the main body cites it across the divide.
+APPENDIX_TABLES = (
+    ("tab:cross-scale-terminal-effects", "results/retention_matrix_panel_a_table_body.tex"),
+)
+# Supporting plots retain their numerical, source, rendered-output, and
+# label-preservation checks after moving out of the main narrative.
+MOVED_APPENDIX_FIGURES = {
+    "gpt56_temperature_curve": "fig:gpt56-temperature-curve",
+    "hosted_verified_breadth": "fig:hosted-verified-breadth",
+    "replay_factorial_effects": "fig:replay-factorial-effects",
+    "replay_level2_effects": "fig:replay-level2-effects",
+}
+APPENDIX_FIGURES = (
+    "mode_diversity_level_construction",
+    *MOVED_APPENDIX_FIGURES,
+    "baseline_collapse_precheck",
+    "e118_scale_extensions_appendix",
+    # The comparators' distinct@8 strip is still built, and its record is still
+    # cross-checked against the accuracy figure below, but it is no longer
+    # compiled: distinct@8 rises with correctness, which is the confound PCMD
+    # was adopted to remove, and the strip carried no PCMD counterpart.
+    "factorial_training_curves_pass8",
+    "factorial_training_curves_pmd",
+    "level2_factorial_training_curves",
+    "level2_training_curves_pmd",
+    "direct_baseline_learning_curves_pass8",
+    "e121_fixed_bank_survival",
+    "replay_bank_decomposition",
+    "concentration_story_all_scales",
+    "concentration_levels",
+    "frontier_level_grid",
+)
+# Re-frozen 2026-09-21 for the authorized source-based Appendix P corollaries.
+# Earlier proof_chain_20260919 and proof_chain_20260921 references are retained.
+# See paper/audits/theory_source_impl_20260921 for independent reviews/checks.
+PROOF_REFERENCE = ROOT / "paper/audits/proof_chain_source_reuse_20260921/main.tex"
+PROOF_REFERENCE_SHA256 = "431330d89e60a44b4bcfd353eb30b0f64f7e612de8db04f07aa4c59a1a4d1c89"
+PROOF_REFERENCE_BLOCKS = 68
+RETIRED = (
+    # The registered distinct@8 training curves. The endpoint is still reported
+    # -- its direction in the body, its per-cell values in the machine-readable
+    # record -- but it is no longer drawn: it moves with correctness, which is
+    # the confound PCMD was adopted to remove, and the PCMD panel above it
+    # answered the same question without it.
+    "factorial_training_curves_distinct8",
+    # Both were superseded rather than deleted, and their builders still run.
+    # concentration_story is now read at all three scales
+    # (concentration_story_all_scales); modebench_level_construction was
+    # replaced by mode_diversity_level_construction, whose name differs by two
+    # words and which is the one the paper compiles.  Reconstructing a plate the
+    # manuscript never includes checks nothing, so the guard is the name.
+    "concentration_story",
+    "modebench_level_construction",
+    "sustained_auc_effects_qwen05b",
+    "verified_support_discovery_two_scale_effects",
+    "replay_mechanism_telemetry_qwen05b",
+    "terminal_pass8_distinct8_frontier",
+    "replay_maxrl_qwen05b",
+)
+DOMAINS = {
+    "graph_coloring", "countdown", "python_factors", "mathir", "pantry_plan"
+}
+
+
+def manuscript_text() -> str:
+    """Return main.tex with ``\\input{appendix}`` expanded.
+
+    The appendix is its own file, but every structural check here is about the
+    document the compiler sees --- which label sits before which, what appears
+    in the main body and not in the supplement --- so the checks read the
+    spliced text rather than one file. A check that genuinely cares about main
+    body alone still splits this on ``\\appendix``.
+    """
+
+    text = TEX.read_text(encoding="utf-8")
+    token = "\\input{appendix}"
+    if text.count(token) != 1:
+        raise SystemExit(
+            "Current paper contract failed: main.tex must pull in the appendix "
+            f"exactly once with {token}"
+        )
+    return text.replace(token, APPENDIX_TEX.read_text(encoding="utf-8"))
+
+
+def require(ok: bool, message: str) -> None:
+    if not ok:
+        raise SystemExit(f"Current paper contract failed: {message}")
+
+
+def normalized(text: str) -> str:
+    return " ".join(text.split())
+
+
+
+def check_editorial_structure(main_body: str, appendix: str) -> None:
+    """Preserve the requested main displays and scientific section roles."""
+    # Frontier concentration closes ModeBench: it is the same measurement applied
+    # to models we did not train, so it belongs beside Figure 3 rather than after
+    # the controlled results.
+    ordered = (
+        "sec:introduction", "sec:modebench", "sec:hosted-concentration",
+        "sec:method", "sec:experiments",
+        "sec:results", "sec:results-collapse", "sec:results-retention",
+        "sec:results-maxrl", "sec:results-levels", "sec:related",
+        "sec:conclusion", "sec:main-end",
+    )
+    positions = []
+    for label in ordered:
+        token = r"\label{" + label + "}"
+        require(main_body.count(token) == 1, f"main role label {label} missing or duplicated")
+        positions.append(main_body.index(token))
+    require(positions == sorted(positions), "main sections or final boundary are out of order")
+    image_order = re.findall(r"\\includegraphics(?:\[[^\]]*\])?\s*\{figures/([^{}]+)\.pdf\}", main_body)
+    require(tuple(image_order) == MAIN_FIGURES,
+            "main figure set or order differs from the eight-figure narrative with the hosted summary table")
+    label_positions = []
+    for stem, label in zip(MAIN_FIGURES, MAIN_LABELS, strict=True):
+        token = r"\label{" + label + "}"
+        require(main_body.count(token) == 1 and token not in appendix,
+                f"main figure label {label} missing, duplicated, or moved to the appendix")
+        require(f"figures/{stem}.pdf" not in appendix, f"main figure {stem} duplicated in appendix")
+        label_positions.append(main_body.index(token))
+    require(label_positions == sorted(label_positions), "main figure labels are out of order")
+    for label, body in MAIN_TABLES:
+        token = r"\label{" + label + "}"
+        require(main_body.count(token) == 1 and token not in appendix,
+                f"main table label {label} missing, duplicated, or moved to the appendix")
+        include = r"\input{" + body + "}"
+        require(main_body.count(include) == 1 and include not in appendix,
+                f"main table {label} must compile its generated body exactly once")
+        require(main_body.count(r"\ref{" + label + "}") >= 1,
+                f"main table {label} is never cited in the main body")
+        require((ROOT / "paper" / body).is_file(),
+                f"generated table body for {label} is missing from the tree")
+    for label, body in APPENDIX_TABLES:
+        token = r"\label{" + label + "}"
+        require(appendix.count(token) == 1 and token not in main_body,
+                f"appendix table {label} must be compiled once outside the main")
+        include = r"\input{" + body + "}"
+        require(appendix.count(include) == 1 and include not in main_body,
+                f"appendix table {label} must compile its generated body exactly once")
+        require(main_body.count(r"\ref{" + label + "}") >= 1,
+                f"appendix table {label} is not tied to the main body")
+        require((ROOT / "paper" / body).is_file(),
+                f"generated table body for {label} is missing from the tree")
+    require(main_body.index(r"\end{abstract}")
+            < main_body.index("figures/modecollapse_story.pdf")
+            < main_body.index(r"\label{sec:introduction}"),
+            "original opening story figure must remain between the abstract and Introduction")
+    for stem in APPENDIX_FIGURES:
+        token = f"figures/{stem}.pdf"
+        require(appendix.count(token) == 1 and token not in main_body,
+                f"appendix figure {stem} must be compiled once outside the main")
+    for stem, label in MOVED_APPENDIX_FIGURES.items():
+        token = r"\label{" + label + "}"
+        require(appendix.count(token) == 1 and token not in main_body,
+                f"relocated figure {stem} must retain its unique appendix label {label}")
+    temperature_hook = r"\AddToHookNext{file/after/gpt56_temperature_curve_20260911_appendix.tex}{"
+    temperature_block = re.search(
+        re.escape(temperature_hook) + r"\s*%?\s*(\\begin\{figure\}.*?\\end\{figure\})\s*\}",
+        appendix, flags=re.DOTALL)
+    require(appendix.count(temperature_hook) == 1 and temperature_block is not None
+            and "figures/gpt56_temperature_curve.pdf" in temperature_block.group(1)
+            and r"\label{fig:gpt56-temperature-curve}" in temperature_block.group(1),
+            "temperature figure must remain attached to its generated numerical appendix")
+    comparison_input = r"\input{results/frontier_comparison_20260911_appendix.tex}"
+    require(appendix.count(comparison_input) == 1
+            and appendix.index(temperature_hook) < appendix.index(comparison_input),
+            "temperature figure hook must be registered before its numerical appendix is loaded")
+    roles = (
+        ("sec:introduction", "sec:modebench", "fig:story", None),
+        ("sec:modebench", "sec:method", "fig:modebench-examples", "modebench_examples"),
+        ("sec:levels-design", "sec:method", "fig:base-levels-all-scales", "mode_diversity_levels_appendix"),
+        ("sec:method", "sec:experiments", "fig:verified-support-story", "verified_support_story"),
+        ("sec:results-collapse", "sec:results-retention", "fig:concentration-story",
+         "concentration_story_resampled"),
+        ("sec:results-retention", "sec:results-maxrl", "tab:cross-scale-terminal-effects",
+         None),
+        ("sec:results-maxrl", "sec:results-levels", "fig:maxrl-factorial",
+         "e118_all_scale_factorial_progress"),
+        ("sec:results-levels", "sec:hosted-concentration", "fig:level2-admission", "modebench_level_admission"),
+        ("sec:hosted-concentration", "sec:related", "fig:gpt56-sampling-budget", "gpt56_all_levels32_sampling_budget"),
+        ("sec:hosted-concentration", "sec:related", "fig:gpt56-temperature-curve", None),
+    )
+    for start, end, figure, stem in roles:
+        start_token, end_token = r"\label{" + start + "}", r"\label{" + end + "}"
+        require(main_body.count(start_token) == 1 and main_body.count(end_token) == 1,
+                f"missing or duplicated evidence-role boundary {start}/{end}")
+        role = main_body.split(start_token, 1)[1].split(end_token, 1)[0]
+        require(r"\ref{" + figure + "}" in role,
+                f"scientific role {start} lacks its evidence reference {figure}")
+        if stem is not None:
+            require(f"figures/{stem}.pdf" in role,
+                    f"original figure {stem} must remain in scientific role {start}")
+
+    # The reasoning-off table now sits with the matched control it belongs to;
+    # the main keeps the claim in prose and cites the table across the divide.
+    hosted_include = r"\input{results/hosted_reasoning_off_20260912_main.tex}"
+    hosted_role = main_body.split(r"\label{sec:hosted-concentration}", 1)[1].split(
+        r"\label{sec:related}", 1)[0]
+    require(appendix.count(hosted_include) == 1 and hosted_include not in main_body,
+            "hosted level-average table must be compiled once in the appendix")
+    require(r"\ref{tab:hosted-level-averages}" in hosted_role,
+            "hosted role must still cite the reasoning-off table it summarizes")
+    require(r"\ref{app:gpt56-all-levels-discovery}" in hosted_role,
+            "hosted sampling figure must retain its numerical-appendix reference")
+    for stem, description in (
+        ("hosted_level_averages_20260911.tex", "original medium-reasoning level-average table"),
+        ("hosted_level_averages_20260911_parity.tex", "Python-excluded parity table"),
+        ("gpt56sol_python_parity_20260918.tex", "second-deployment Python wording condition"),
+        ("hosted_reasoning_off_20260912_appendix.tex", "matched reasoning-control appendix"),
+        ("gpt56_all_levels32_sampling_20260913.tex", "all-level sampling-budget appendix"),
+    ):
+        token = r"\input{results/" + stem + "}"
+        require(appendix.count(token) == 1 and token not in main_body,
+                f"{description} must be compiled once in the appendix")
+
+
+def formal_blocks(text: str) -> Counter:
+    pattern = re.compile(r"\\begin\{(lemma|theorem|corollary|proposition|proof)\}.*?\\end\{\1\}", re.DOTALL)
+    return Counter(normalized(match.group(0)) for match in pattern.finditer(text))
+
+
+def check_formal_preservation(manuscript: str, reference: str) -> None:
+    expected = formal_blocks(reference)
+    require(sum(expected.values()) == PROOF_REFERENCE_BLOCKS,
+            "proof reference lost a formal block")
+    require(formal_blocks(manuscript) == expected,
+            "formal statements/proofs changed from the preserved "
+            f"{PROOF_REFERENCE_BLOCKS}-block mathematical chain")
+
+
+def _check_figure_outputs(stem: str, record: dict) -> None:
+    require(set(record.get("outputs", {})) == {"pdf", "png"},
+            f"{stem} lacks both rendered-output hash bindings")
+    for extension in ("pdf", "png"):
+        binding = record["outputs"][extension]
+        path = ROOT / "paper/figures" / (stem + "." + extension)
+        require(Path(binding.get("path", "")) == path.relative_to(ROOT),
+                f"{stem} output binding points to another asset")
+        require(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == binding.get("sha256"),
+                f"{stem} rendered {extension} differs from its bound figure record")
+
+
+def check_new_main_figures() -> None:
+    """Reconstruct displayed numbers from frozen inputs, and bind output bytes."""
+    import matplotlib.pyplot as plt
+    sampling_budget = runpy.run_path(str(ROOT / "ops/plot_paper_gpt56_all_levels32_sampling.py"))
+    sampling_budget["check"]()
+    sampling_appendix = runpy.run_path(str(ROOT / "ops/build_paper_gpt56_all_levels32_discovery.py"))
+    sampling_appendix["check"]()
+    base_levels = runpy.run_path(str(ROOT / "ops/plot_paper_modebench_base_levels_appendix.py"))
+    base_levels["validate_record"](json.loads(
+        (ROOT / "paper/figures/modebench_base_levels_appendix.json").read_text()))
+    replay = runpy.run_path(str(ROOT / "ops/plot_paper_reorganized_results.py"))
+    built = replay["build_figures"](ROOT)
+    require(set(built) == {"replay_factorial_effects", "replay_key_weighting", "replay_level2_effects"},
+            "reorganized replay builder changed the three registered figure roles")
+    for stem, (figure, expected) in built.items():
+        plt.close(figure)
+        retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
+        require(retained.get("schema") == "paper-reorganized-replay-figure-v1"
+                and {key: value for key, value in retained.items() if key != "outputs"} == expected,
+                f"{stem} displayed values, paired seeds, uncertainty, or source bindings drifted")
+        _check_figure_outputs(stem, retained)
+    # Figure 7 had no binding at all. Nothing compared its rendered bytes to a
+    # record, so it went stale against both its builder and its own source and
+    # kept shipping: it was drawn by an older renderer, on an older extract, with
+    # an axis that cut off the values it was meant to show. Bind it like the rest.
+    stem = "concentration_story_resampled"
+    retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
+    source = ROOT / retained["source"]["path"]
+    require(source.is_file()
+            and hashlib.sha256(source.read_bytes()).hexdigest()
+            == retained["source"]["sha256"],
+            f"{stem} is drawn from a different extract than its record binds")
+    renderer = ROOT / retained["renderer"]["path"]
+    require(renderer.is_file()
+            and hashlib.sha256(renderer.read_bytes()).hexdigest()
+            == retained["renderer"]["sha256"],
+            f"{stem} was rendered by a different builder than its record binds")
+    _check_figure_outputs(stem, retained)
+
+    # The A.3 decomposition plate: closed forms drawn over measured prompts.
+    # Its curves are algebra, so there is nothing to reconstruct, but the
+    # measured extract behind its points and the rendered bytes are both bound.
+    stem = "replay_bank_decomposition"
+    retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
+    require(retained.get("schema") == "paper-figure-derived-v1",
+            f"{stem} record changed schema")
+    measured = retained.get("measured", {})
+    source = ROOT / measured.get("source", "")
+    require(source.is_file()
+            and hashlib.sha256(source.read_bytes()).hexdigest()
+            == measured.get("source_sha256"),
+            f"{stem} measured extract differs from the record it is bound to")
+    _check_figure_outputs(stem, retained)
+
+
+def check_training_curves(main_figure: dict) -> None:
+    """Reconstruct plotted evidence from the retained draw-level snapshot."""
+    path = TRAINING_SNAPSHOT
+    raw = path.read_bytes()
+    snapshot = json.loads(raw)
+    collector = runpy.run_path(str(ROOT / "ops/exp_scaling/build_paper_training_curve_snapshot.py"))
+    validation = collector["validate_snapshot"](snapshot, main_figure)
+    latest = json.loads((ROOT / "paper/results/latest_results_20260912.json").read_text())
+    core = json.loads(CORE.read_text())
+    expected_admitted = sum(row.get("status") == "admitted" for row in core["endpoint_audit"])
+    expected_admitted += sum(latest["campaigns"][campaign]["admitted_terminal_endpoints"]
+                             for campaign in ("e118", "e119"))
+    require(validation == {"registered_cells": 400, "panels": 20,
+                           "terminal_admitted_cells": expected_admitted},
+            "training snapshot no longer matches the frozen main-paper population")
+    for name, expected in snapshot["source_sha256"].items():
+        require(hashlib.sha256((ROOT / name).read_bytes()).hexdigest() == expected,
+                f"training snapshot source changed: {name}")
+    renderer_path = ROOT / "ops/exp_scaling/plot_paper_training_curves.py"
+    renderer = runpy.run_path(str(renderer_path))
+    source_hash = hashlib.sha256(raw).hexdigest()
+    for level, metric, stem in (
+        ("level1", "pass8", "factorial_training_curves_pass8"),
+        ("level2", None, "level2_factorial_training_curves"),
+    ):
+        retained = json.loads((ROOT / "paper/figures" / (stem + ".json")).read_text())
+        figure, expected = renderer["build_figure"](snapshot, level=level, metric=metric)
+        renderer["plt"].close(figure)
+        expected.update(source_snapshot=str(path.relative_to(ROOT)), source_sha256=source_hash,
+                        builder={"path": str(renderer_path.relative_to(ROOT)),
+                                 "sha256": hashlib.sha256(renderer_path.read_bytes()).hexdigest()})
+        require(retained == expected,
+                f"training figure values, cohorts, gaps, or source binding drifted: {stem}")
+    direct_modes = json.loads((ROOT / "paper/figures/direct_baseline_learning_curves_static_strip.json").read_text())
+    direct_accuracy = json.loads((ROOT / "paper/figures/direct_baseline_learning_curves_pass8.json").read_text())
+    for field in ("cells", "plotted_cells", "numerical_snapshot_sha256",
+                  "checkpoint_grid_training_passes", "model_rows"):
+        require(direct_modes[field] == direct_accuracy[field],
+                f"direct modes/accuracy figures use different {field}")
+    require(direct_modes["plot_metric"] == "distinct8"
+            and direct_accuracy["plot_metric"] == "pass8"
+            and direct_modes["model_rows"] == ["qwen05b", "falcon1b"]
+            and set(direct_modes["plotted_cells"]) == {
+                f"{scale}/{domain}" for scale in ("qwen05b", "falcon1b") for domain in DOMAINS},
+            "UCPO/RLEP training figures must show both metrics at 0.5B and 1B only")
+
+
+
+def check_hosted_reasoning_off() -> None:
+    """Keep the complete reasoning-off display bound to its paired source cohort."""
+    builder = runpy.run_path(str(ROOT / "ops/build_paper_hosted_reasoning_off.py"))
+    stem = "hosted_reasoning_off_20260912"
+    record = json.loads((ROOT / "paper/results" / (stem + ".json")).read_text())
+    require(record == builder["build_record"](),
+            "reasoning-off source evidence, controls, complete cohorts, or averages drifted")
+    for suffix, renderer, label in (
+        ("main", "render_main_table", "tab:hosted-level-averages"),
+        ("appendix", "render_appendix", "app:hosted-reasoning-control"),
+    ):
+        text = (ROOT / "paper/results" / f"{stem}_{suffix}.tex").read_text()
+        require(text == builder[renderer](record),
+                f"reasoning-off {suffix} table or interpretation differs from its verified record")
+        require(text.count(r"\label{" + label + "}") == 1,
+                f"reasoning-off {suffix} label {label} is missing or duplicated")
+    # The success-conditional column of these tables is rebuilt from the same
+    # retained draws by a separate builder. It is published, so it is checked.
+    pcmd_builder = runpy.run_path(str(ROOT / "ops/build_paper_hosted_reasoning_pmd.py"))
+    pcmd_path = ROOT / "paper/results/hosted_reasoning_pmd.json"
+    require(pcmd_path.is_file(), "reasoning-off PCMD record is missing")
+    pcmd = json.loads(pcmd_path.read_text())
+    require(pcmd == pcmd_builder["build_record"](),
+            "reasoning-off PCMD record differs from its rebuild from the retained draws")
+    require(record["pcmd_record"] == {"path": str(pcmd_path.relative_to(ROOT)),
+                                     "sha256": hashlib.sha256(pcmd_path.read_bytes()).hexdigest()},
+            "reasoning-off display no longer binds the PCMD record it prints")
+    require(all(level["reportable"] for cell in pcmd["deployments"].values()
+                for level in cell["by_level"].values())
+            and all(cell["reportable"] for cell in pcmd["deployments"].values()),
+            "a published PCMD cell fell below its paired support bar")
+    source = json.loads((ROOT / "artifacts/hosted_reasoning_off_32_20260911_v2"
+                         / "reasoning_comparison.json").read_text())
+    admitted = {"gpt-5.6-sol", "gpt-5.4", "grok-4.3", "FW-Kimi-K3", "claude-opus-4-8"}
+    require(len(source["models"]) == 5
+            and {model["model"] for model in source["models"]} == admitted
+            and all(model["status"] == "admitted_complete" for model in source["models"]),
+            "reasoning-off table requires the five complete admitted deployments")
+    expected_cells = {f"level{level}/{domain}" for level in (1, 2, 3) for domain in DOMAINS}
+    for model in source["models"]:
+        for grading in ("strict", "normalized"):
+            for condition in ("on", "off"):
+                cohort = model["analyses"][grading][condition]
+                require(set(cohort["cells"]) == expected_cells
+                        and all(cell["counts"]["prompts"] == 32
+                                and cell["counts"]["responses"] == 256
+                                for cell in cohort["cells"].values())
+                        and set(cohort["levels"]) == {"1", "2", "3"}
+                        and all(level["counts"]["prompts"] == 160
+                                and level["counts"]["responses"] == 1280
+                                for level in cohort["levels"].values())
+                        and cohort["overall"]["counts"]["prompts"] == 480
+                        and cohort["overall"]["counts"]["responses"] == 3840,
+                        "reasoning-off comparison must retain every matched first-32 prompt and all eight draws")
+    excluded = {model["model"]: model for model in source["pending_models"]}
+    require(len(source["pending_models"]) == 2
+            and set(excluded) == {"claude-opus-5", "DeepSeek-V4-Pro"}
+            and all(model["scores_admitted"] is False for model in excluded.values())
+            and excluded["claude-opus-5"]["status"] == "blocked_control_violation"
+            and excluded["claude-opus-5"]["terminal_sample_receipts"] == 183
+            and excluded["DeepSeek-V4-Pro"]["status"] == "pending_collection"
+            and excluded["DeepSeek-V4-Pro"]["terminal_sample_receipts"] == 3839,
+            "reasoning-off comparison must disclose and exclude both incomplete deployments")
+
+
+def check_hosted_comparison(appendix: str) -> None:
+    stem = "frontier_comparison_20260911"
+    include = f"\\input{{results/{stem}_appendix.tex}}"
+    require(appendix.count(include) == 1, "hosted comparison appendix is missing or duplicated")
+    supplement = (ROOT / "paper/results" / (stem + "_appendix.tex")).read_text()
+    require(supplement.count(f"\\input{{results/{stem}_graph_figure.tex}}") == 1,
+            "hosted Graph figure include is missing or duplicated")
+    graphic = (ROOT / "paper/results" / (stem + "_graph_figure.tex")).read_text()
+    require(graphic.count(f"figures/{stem}_graph.pdf") == 1,
+            "hosted Graph PDF is missing or duplicated")
+    record = json.loads((ROOT / "paper/results" / (stem + ".json")).read_text())
+    require(record["completed_model_count"] == 7, "hosted comparison needs all seven audited deployments")
+    require(all(run.get("provider_outcomes") is not None for run in record["models"]),
+            "hosted comparison lacks native refusal/filter outcome audits")
+    exporter = runpy.run_path(str(ROOT / "ops/build_frontier_paper_comparison.py"))
+    expected = exporter["build_record"](
+        [ROOT / run["run_directory"] for run in record["models"]]
+        + [ROOT / run["directory"] for run in record["excluded_runs"]],
+        ROOT / record["protocol"]["path"],
+        {run["model"]: ROOT / run["provider_outcomes"]["path"] for run in record["models"]},
+    )
+    require(record == expected, "hosted source, audit, prompt, provider, or graded evidence changed")
+    for secondary, suffix in ((False, "strict"), (True, "normalized")):
+        require((ROOT / "paper/results" / f"{stem}_{suffix}_overview_rows.tex").read_text()
+                == exporter["overview_table"](record, secondary), "hosted level table drifted")
+        require((ROOT / "paper/results" / f"{stem}_{suffix}_cells.tex").read_text()
+                == exporter["cell_tables"](record, secondary), "hosted domain table drifted")
+    require((ROOT / "paper/results" / (stem + "_python_sensitivity.tex")).read_text()
+            == exporter["python_sensitivity_tex"](record["python_prompt_sensitivity"]),
+            "separate hosted Python prompt sensitivity drifted")
+    require(supplement.count(f"\\input{{results/{stem}_python_sensitivity.tex}}") == 1,
+            "separate hosted Python prompt sensitivity is missing or duplicated")
+    temperature_stem = "frontier_temperature_20260911"
+    require(supplement.count(f"\\input{{results/{temperature_stem}.tex}}") == 1,
+            "paired-temperature appendix is missing or duplicated")
+    temperature = runpy.run_path(str(ROOT / "ops/build_frontier_temperature_paper.py"))
+    temperature_record = json.loads((ROOT / "paper/results" / (temperature_stem + ".json")).read_text())
+    require(temperature_record == temperature["build_record"](),
+            "paired-temperature source, conditions, or audited data changed")
+    require((ROOT / "paper/results" / (temperature_stem + ".tex")).read_text()
+            == temperature["render"](temperature_record), "paired-temperature table or interpretation drifted")
+    retry_stem = "frontier_python_retry_20260911"
+    require(supplement.count(f"\\input{{results/{retry_stem}.tex}}") == 1,
+            "separate selected-validity retry appendix missing or duplicated")
+    retry = runpy.run_path(str(ROOT / "ops/build_frontier_retry_paper.py"))
+    retry_record = json.loads((ROOT / "paper/results" / (retry_stem + ".json")).read_text())
+    require(retry_record == retry["build_record"](), "selected Python retry evidence changed")
+    require((ROOT / "paper/results" / (retry_stem + ".tex")).read_text() == retry["render"](retry_record),
+            "selected Python retry interpretation drifted")
+    temperature_root = ROOT / "artifacts/frontier_temperature_20260911"
+    curve_record = json.loads((ROOT / "paper/figures/gpt56_temperature_curve.json").read_text())
+    if curve_record.get("schema") == "paper-gpt56-pass8-temperature-curve-expanded480-v1":
+        # Use the exact collection Python and a fresh interpreter: other paper
+        # analyses may have imported live modules with the same helper names.
+        frozen = temperature_root / "gpt56_expanded480_analysis_code_v2/ops"
+        script = "\n".join((
+            "import json, runpy",
+            "from pathlib import Path",
+            "root = Path(" + repr(str(temperature_root)) + ")",
+            "code = Path(" + repr(str(frozen)) + ")",
+            "curve = runpy.run_path(str(code / 'analyze_gpt56_temperature_curve_expanded480.py'))",
+            "assert json.loads((root / 'GPT56_TEMPERATURE_CURVE_EXPANDED480.json').read_text()) == curve['build_report'](), 'Expanded GPT native/grade reconstruction differs'",
+            "frontier = runpy.run_path(str(code / 'analyze_gpt56_pass8_frontier_expanded480.py'))",
+            "assert json.loads((root / 'GPT56_PASS8_FRONTIER_EXPANDED480.json').read_text()) == frontier['build_report'](), 'Expanded GPT prompt-group reconstruction differs'",
+            "print('Expanded GPT contract passed: 480 prompts, 19,200 authenticated responses, old/new cohort sensitivity.')",
+        ))
+        subprocess.run([str(ROOT / "var/seed_paper_eval/paper310/bin/python"), "-B", "-c", script], check=True)
+    else:
+        pass8 = runpy.run_path(str(temperature_root / "gpt56_zero_analysis_code/ops/analyze_gpt56_pass8_frontier_with_zero.py"))
+        pass8_report = json.loads((temperature_root / "GPT56_PASS8_FRONTIER_WITH_ZERO.json").read_text())
+        require(pass8_report == pass8["build_report"](temperature_root / "GPT56_TEMPERATURE_CURVE_WITH_ZERO.json"),
+                "GPT pass@8 frontier differs from complete prompt-group reconstruction")
+    curve = runpy.run_path(str(ROOT / "ops/plot_paper_gpt56_temperature_curve.py"))
+    curve_expected = curve["build_record"]()
+    require({k: v for k, v in curve_record.items() if k != "outputs"} == curve_expected,
+            "GPT temperature curve source, reasoning controls, or complete-cohort points changed")
+    for binding in curve_record["outputs"].values():
+        require(hashlib.sha256((ROOT / binding["path"]).read_bytes()).hexdigest() == binding["sha256"],
+                "GPT temperature figure output changed")
+    curve_appendix = "gpt56_temperature_curve_20260911_appendix.tex"
+    require(supplement.count(f"\\input{{results/{curve_appendix}}}") == 1,
+            "GPT temperature appendix missing or duplicated")
+    require((ROOT / "paper/results" / curve_appendix).read_text() == curve["render_appendix"](curve_record),
+            "GPT temperature numerical appendix drifted")
+    main_source = manuscript_text().split(r"\appendix", 1)[0]
+    intro = main_source.split(r"\section{Introduction}", 1)[1].split(r"\section{", 1)[0]
+    require("frontier_comparison_20260911_motivation" not in main_source
+            and "tab:frontier-motivation" not in main_source,
+            "retired hosted introductory table returned")
+    # The guard is about where the hosted section *lives*, not about whether the
+    # contributions list may point forward to it, so test for its definition.
+    # Frontier concentration now sits with the measurement it belongs to, as the
+    # last subsection of ModeBench, so it is read beside Figure 3 rather than
+    # after the controlled results. It must still not open the paper, and the
+    # controlled results must still come before Related Work.
+    require(r"\label{sec:hosted-concentration}" not in intro
+            and main_source.index(r"\label{sec:modebench}")
+            < main_source.index(r"\label{sec:hosted-concentration}")
+            < main_source.index(r"\label{sec:method}")
+            < main_source.index(r"\label{sec:results-levels}")
+            < main_source.index(r"\label{sec:related}"),
+            "frontier concentration must sit inside ModeBench, ahead of the method and results")
+    require(appendix.count(r"\label{fig:hosted-verified-breadth}") == 1
+            and r"\label{fig:hosted-verified-breadth}" not in main_source,
+            "hosted breadth figure must retain its unique appendix label")
+    require("formatting normalizer" in normalized(main_source),
+            "main hosted display must identify its grading condition")
+    require("revised task wording" in normalized(appendix)
+            and "without a system message" in normalized(appendix),
+            "original hosted appendix display must identify its revised prompt condition")
+    require(not re.search(r"\brefusals?\b", main_source, re.IGNORECASE),
+            "refusal reporting belongs in the hosted appendix")
+    visual = runpy.run_path(str(ROOT / "ops/plot_paper_hosted_breadth.py"))
+    figure_record = json.loads((ROOT / "paper/figures/hosted_verified_breadth.json").read_text())
+    expected_visual = visual["build_record"](ROOT / "paper/results" / (stem + ".json"))
+    require({k: v for k, v in figure_record.items() if k != "outputs"} == expected_visual,
+            "hosted breadth figure conditions, complete cohorts, or normalized values drifted")
+    for extension in ("pdf", "png"):
+        path = ROOT / "paper/figures" / ("hosted_verified_breadth." + extension)
+        require(figure_record["outputs"][extension]["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest(),
+                "hosted breadth rendered asset differs from its source record")
+    table_builder = runpy.run_path(str(ROOT / "ops/build_paper_hosted_level_averages.py"))
+    table_stem = "hosted_level_averages_20260911"
+    table_record = json.loads((ROOT / "paper/results" / (table_stem + ".json")).read_text())
+    require(table_record == table_builder["build_record"](),
+            "hosted level-average table values, complete cohorts, or source bindings drifted")
+    require(table_record["display"] == figure_record["display"],
+            "hosted summary table and appendix plot use different populations or grading")
+    table_text = (ROOT / "paper/results" / (table_stem + ".tex")).read_text()
+    require(table_text == table_builder["render_table"](table_record),
+            "hosted level-average rendered table differs from its verified record")
+    require(table_text.count(r"\label{tab:hosted-level-averages-medium}") == 1,
+            "medium-reasoning level-average table label is missing or duplicated")
+    # The substituted Python condition is the one place this cohort leaves a
+    # single protocol, so the parity reading that qualifies it is a build gate.
+    parity_text = (ROOT / "paper/results" / (table_stem + "_parity.tex")).read_text()
+    require(parity_text == table_builder["render_parity_table"](table_record),
+            "hosted parity table differs from its verified record")
+    require(parity_text.count(r"\label{tab:hosted-level-averages-parity}") == 1,
+            "Python-excluded parity table label is missing or duplicated")
+    require(r"\ref{tab:hosted-level-averages-parity}" in table_text,
+            "the five-domain table must point at its Python-excluded companion")
+    require(r"\textsuperscript{\ensuremath{\ddagger}}" in table_text,
+            "the substituted Python cells must be marked in the five-domain table")
+    # The two-wording condition is what keeps the substituted cell answerable, so
+    # it is regenerated and compared here rather than trusted as saved text.
+    sol_builder = runpy.run_path(str(ROOT / "ops/build_paper_gpt56sol_python_parity.py"))
+    sol_stem = "gpt56sol_python_parity_20260918"
+    sol_record = json.loads((ROOT / "paper/results" / (sol_stem + ".json")).read_text())
+    require(sol_record == sol_builder["build_record"](),
+            "second-deployment Python condition values or source bindings drifted")
+    sol_text = (ROOT / "paper/results" / (sol_stem + ".tex")).read_text()
+    require(sol_text == sol_builder["render"](sol_record),
+            "second-deployment Python rendered appendix differs from its verified record")
+    require(sol_text.count(r"\label{tab:gpt56sol-python-parity}") == 1
+            and sol_text.count(r"\label{app:python-wording-second-deployment}") == 1,
+            "second-deployment Python labels are missing or duplicated")
+    analysis = sol_record["analysis"]
+    require(analysis["deployment"]["endpoint"] != analysis["deployment"]["published_cells_provider"],
+            "the second-deployment condition must name the provider it does not share")
+    require(all(count == 0 for count in analysis["native_refusals"].values())
+            or "refus" in sol_text,
+            "a refusing arm must be reported in the condition that compares the wordings")
+    figure_path = ROOT / "paper/figures" / (stem + "_graph.pdf")
+    figure = json.loads(figure_path.with_suffix(".json").read_text())
+    require(figure["pdf_sha256"] == hashlib.sha256(figure_path.read_bytes()).hexdigest(),
+            "hosted figure PDF differs from its data record")
+    require(figure["models"] == [{"model": run["model"],
+                                  "cells": [run["cells"][f"level{level}/graph_coloring"]
+                                            for level in (1, 2, 3)]}
+                                 for run in record["models"]],
+            "hosted figure observations differ from admitted summaries")
+
+
+def main() -> None:
+    manuscript = manuscript_text()
+    main_body, appendix = manuscript.split(r"\appendix", 1)
+    makefile = MAKEFILE.read_text(encoding="utf-8")
+    check_hosted_comparison(appendix)
+    check_hosted_reasoning_off()
+    require(LINE_FILL_CHECKER.is_file(), "rendered line-fill checker is missing")
+    require(r"\enforcehalffinalproseline" in manuscript
+            and r"\AtBeginEnvironment{abstract}{\enforcehalffinalproseline}" in manuscript,
+            "TeX paragraph-ending control is missing")
+    require("python ../ops/check_paper_line_fill.py --pdf $(PAPER).pdf" in makefile,
+            "rendered line-fill checker is not a build gate")
+
+    abstract = manuscript.split(r"\begin{abstract}", 1)[1].split(
+        r"\end{abstract}", 1
+    )[0]
+    abstract_plain = re.sub(r"\\[A-Za-z]+", "", abstract)
+    words = re.findall(r"[A-Za-z0-9@.+-]+", abstract_plain)
+    require(len(words) <= 275, f"abstract has {len(words)} words")
+
+    check_editorial_structure(main_body, appendix)
+    require(PROOF_REFERENCE.is_file()
+            and hashlib.sha256(PROOF_REFERENCE.read_bytes()).hexdigest() == PROOF_REFERENCE_SHA256,
+            "preserved pre-reorganization mathematical reference changed")
+    check_formal_preservation(manuscript, PROOF_REFERENCE.read_text(encoding="utf-8"))
+    check_new_main_figures()
+
+    for stem in RETIRED:
+        require(f"figures/{stem}.pdf" not in manuscript, f"retired figure {stem} returned")
+
+    figure_blocks = re.findall(
+        r"\\begin\{figure\}.*?\\end\{figure\}", manuscript, flags=re.DOTALL
+    )
+    for i, block in enumerate(figure_blocks, 1):
+        require(block.index(r"\includegraphics") < block.index(r"\caption{"),
+                f"figure {i} caption precedes its image")
+
+    # The precheck is a figure over all three scales, not a Qwen-0.5B table, so
+    # the contract is now on the claim rather than on six typeset numbers: the
+    # scale-specific removal figures have to keep matching the frozen builder
+    # output, and the two statements that stop the figure being read as a
+    # universal collapse law -- that pass@8 itself falls in some cells, and that
+    # Qwen2.5-3B ends above its pass-0 distinct@8 -- have to stay in the text.
+    precheck = json.loads(
+        (ROOT / "paper/results/baseline_collapse_precheck.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    # Detailed precheck counts belong with its appendix figure and table.
+    # The main narrative must retain a direct pointer to that evidence.
+    require(r"\ref{app:pre-rl-regression}" in main_body,
+            "main text does not point to the collapse precheck")
+    for token in (
+        "150 complete runs", "falls in 10 of the 30 domain--method--scale comparisons",
+        "macro raw \\texttt{distinct@8} ends above its initial value at Qwen2.5-3B",
+    ):
+        require(normalized(token) in normalized(appendix),
+                f"appendix precheck missing {token!r}")
+    # Keep the detailed per-cell visualization with its appendix analysis.
+    for token in (r"\label{fig:baseline-precheck}", r"figures/baseline_collapse_precheck.pdf"):
+        require(token in appendix,
+                f"appendix baseline-collapse figure missing {token!r}")
+        require(token not in main_body,
+                f"baseline-collapse figure is duplicated into the main body: {token!r}")
+
+    for arm, scales in (("drgrpo", ("qwen05b",)), ("grpo", ("qwen05b",))):
+        for scale in scales:
+            macro = precheck["arms"][arm]["scales"][scale]["macro"]
+            removed = 100 * (1 - macro["extra_modes_retained_fraction"])
+            require(f"{removed:.1f}\\%" in appendix,
+                    f"appendix does not quote the {arm}/{scale} removal {removed:.1f}%")
+    require(
+        all(
+            precheck["arms"][arm]["scales"][scale]["macro"]["complete"]
+            for arm in ("drgrpo", "grpo")
+            for scale in ("qwen05b", "falcon1b", "qwen3b")
+        ),
+        "the precheck figure claims all three scales but a block is incomplete",
+    )
+    require(all(normalized(token) in normalized(appendix) for token in (
+        "150 complete runs", "passes 0 and 8", "all three models and five domains",
+        # The cohort is named in reader terms rather than by its internal code;
+        # the scale and the seed range still pin exactly which runs these are.
+        "Initial evaluations are measured within each method.",
+        "Pantry replay-arm seeds 71--74",
+    )), "baseline-collapse precheck population or initial-reference disclosure is missing")
+    # The precheck evidence is now the plate rather than the macro table beside
+    # it: both reported the same pass-0/pass-8 comparison over the same 150
+    # runs, and the table has been retired in favour of the bars. What this
+    # check preserves is that the evidence is still in the appendix, so it
+    # follows the display that carries it.
+    require(r"\label{fig:baseline-precheck}" in appendix
+            and "figures/baseline_collapse_precheck.pdf" in appendix,
+            "the precheck plate is missing from the appendix")
+
+    absolute = json.loads(ABSOLUTE_REFERENCES.read_text(encoding="utf-8"))
+    require(absolute.get("schema") == "paper-absolute-support-references-v1",
+            "wrong absolute-support reference schema")
+    references = absolute["uninformed_policies"]
+    require(abs(references["graph_coloring"]["primary"] - 1.632851484925304) < 1e-12,
+            "Graph uninformed distinct@8 reference drifted")
+    require(abs(references["pantry_plan"]["primary"] - 2.152919212894907) < 1e-12,
+            "Pantry bit-uniform distinct@8 reference drifted")
+    require(abs(references["pantry_plan"]["instruction_following"] - 2.7142475267937765) < 1e-12,
+            "Pantry instruction-following reference drifted")
+    require(sum(row["replay_drgrpo_distinct8"] > row["frozen_distinct8"] for row in absolute["rows"]) == 13,
+            "Replay-over-frozen cell count drifted")
+    for token in (r"\label{tab:absolute-support-references}",
+                  "Pantry's bit-uniform reference exceeds every final model",
+                  "support-concentration stress test rather than evidence of complete support coverage"):
+        require(normalized(token) in normalized(manuscript),
+                f"absolute-reference disclosure missing {token!r}")
+
+    expected_title = r"There’s More Than One Way: Mode Collapse in RLVR \& ModeBench"
+    require(
+        r"\title{" + expected_title + "}" in normalized(manuscript.replace(r"\\", " ")),
+        "manuscript title must remain: " + expected_title,
+    )
+    require("pdftitle={" + expected_title + "}" in normalized(manuscript),
+            "PDF metadata must use the manuscript title")
+
+    for token in (
+        r"\label{lem:success-breadth}",
+        r"\label{eq:success-breadth-identities}",
+        r"\label{eq:fixed-success-breadth-bounds}",
+        # The claim-evidence map was withdrawn from the manuscript; the scope
+        # statements it carried now live in Conclusion and Limitations.
+        # The theory part was cut on 2026-09-24 to the results the paper
+        # actually uses: the restated (cited) collapse limit, the
+        # conditional-inertness identity, the starvation and sampled-score
+        # lemmas, fixed-buffer retention with its full-coverage and coupon
+        # corollaries, the reference-KL stationary target, and the one local
+        # neural statement.  The proof-chain blocks below are those.
+        r"\label{lem:maxrl-mean}",
+        r"\label{thm:grpo-collapse}",
+        "Thus these categorical mean flows converge to a single correct solution mode",
+        "it is not a new result",
+        r"\label{thm:objective-inertness}",
+        r"\label{lem:replay-gradient-availability}",
+        r"\label{lem:sampled-score-bound}",
+        r"\label{thm:replay-retention}",
+        r"p_b(t)\ge \exp(-kC_T)>0",
+        r"\label{cor:replay-no-collapse}",
+        r"q(t)\longrightarrow u",
+        r"\label{cor:coupon-uniform-coverage}",
+        r"\label{prop:kl-stationary}",
+        r"\label{prop:neural-replay-local-response}",
+        "do not certify the implemented AdamW/PPO trajectories",
+        r"e^{-2560}",
+        "full-coverage corollary therefore cannot supply a domain-wide guarantee there",
+        r"\label{app:fixed-bank-survival}",
+        # These two fixed-bank pins were repointed 2026-09-24: the "bank" ->
+        # "buffer" prose rename had left the old strings matching nothing,
+        # and the "score surrogates" sentence no longer exists at all.
+        "We examine the likelihoods of stored responses during Qwen2.5-0.5B Re:Dr",
+        "A matched fixed-buffer control without replay would be needed to isolate",
+        "supplies no probability floor for an unbuffered key",
+    ):
+        require(normalized(token) in normalized(manuscript), f"proof contract missing {token!r}")
+
+    e121_path = ROOT / "paper/results/e121_fixed_bank_survival.json"
+    e121 = json.loads(e121_path.read_text())
+    require(e121.get("schema") == "e121-fixed-bank-survival-paper-v1"
+            and e121.get("registered_seeds") == [43, 44, 45, 46, 47]
+            and e121.get("freeze_step") == 384
+            and e121.get("final_optimizer_update") == 3072,
+            "fixed-bank score analysis has the wrong registered population")
+    e121_script = ROOT / "ops/exp_scaling/build_paper_e121_survival.py"
+    require(e121["provenance"]["analysis_script_sha256"]
+            == hashlib.sha256(e121_script.read_bytes()).hexdigest(),
+            "fixed-bank analysis builder changed; regenerate results")
+    audit_path = ROOT / e121["provenance"]["audit"]
+    require(e121["provenance"]["audit_sha256"]
+            == hashlib.sha256(audit_path.read_bytes()).hexdigest()
+            and json.loads(audit_path.read_text()).get("passed") is True,
+            "fixed-bank result is not bound to a passing coverage audit")
+    require([row["seed"] for row in e121["runs"]] == [43, 44, 45, 46, 47]
+            and all(row["finite_at_every_scheduled_observation_fraction"] == 1
+                    and row["visit_count_min"] >= 2 for row in e121["runs"]),
+            "fixed-bank result omits a seed or fails registered score coverage")
+    e121_analysis = runpy.run_path(str(e121_script))
+    all_identities = []
+    for row in e121["runs"]:
+        identities = row["identities"]
+        require(len(identities) == row["identity_count"],
+                "fixed-bank reported identity count differs from its population")
+        expected = e121_analysis["named_statistics"](
+            e121_analysis["array_from_identities"](identities))
+        require(row["statistics"] == expected,
+                "fixed-bank seed summaries differ from identity-level changes")
+        all_identities.extend(identities)
+    require(e121["pooled"]["identity_count"] == len(all_identities)
+            and e121["pooled"]["statistics"] == e121_analysis["named_statistics"](
+                e121_analysis["array_from_identities"](all_identities))
+            and e121["bootstrap"]["draws"] == 10000
+            and e121["bootstrap"]["rng_seed"] == 121,
+            "fixed-bank pooled summaries or registered bootstrap settings drifted")
+
+    require(len(re.findall(r"Semantic[- ]MaxEnt", main_body)) == 1,
+            "main body should identify the fixed semantic comparator once")
+    # The comparator's definition is its two equations, so they are what this
+    # pins.  It used to pin \label{app:semantic-estimator}, a bare label with
+    # no \ref anywhere: it anchored whatever counter happened to be current
+    # and would have gone on passing if both equations were deleted.
+    require(r"\label{app:semantic-maxent}" in appendix
+            and r"\label{eq:open-set-predictor}" in appendix
+            and r"\label{eq:legacy-semantic-advantage}" in appendix,
+            "the fixed-semantic comparator definition is missing")
+    require("figures/verified_support_discovery_two_scale_effects.pdf" not in appendix,
+            "the archived bundled semantic experiment returned")
+
+    # Hyperlink destinations are metadata; their visible labels remain subject
+    # to the same reader-facing cohort-code rule.
+    reader_main_body = re.sub(r"\\href\{[^{}]*\}", "", main_body)
+    require(not re.search(r"(?<![A-Za-z])E\d{2,}(?:-R\d+)*(?!\d)", reader_main_body),
+            "reader-facing main body contains an internal cohort code")
+    # The comparison registry was a table of coverage fractions; it is gone, and
+    # what it guarded is not.  The point was never the table, it was the
+    # disclosure that the controls are read at less than full coverage, so this
+    # pins the denominator that appears nowhere else, Fixed Semantic MaxEnt at
+    # 10/15 blocks; the UCPO and RLEP-Dr fractions keep their own check below.
+    # Reword it and this fails on purpose -- repoint it at the new wording
+    # rather than dropping it.
+    require(r"\label{app:ucpo-progress}" in appendix
+            and "10/15" in appendix,
+            "comparator coverage is no longer disclosed with its denominators")
+    require("50/50" in manuscript and "47/50" in manuscript,
+            "UCPO/RLEP coverage must use the selected two-model scope")
+    for phrase in ("Still needed", "finish PantryPlan", "finish both Qwen-3B blocks",
+                   "Newly completed Qwen2.5-3B Python factorial", "Dated endpoint update:"):
+        require(phrase not in manuscript, f"archived campaign chronology returned: {phrase}")
+    for name in ("latest_results_20260912_table_body.tex",
+                 "latest_results_20260912_effects_table_body.tex",
+                 "e118_qwen3b_python_terminal_table_body.tex",
+                 "e120_primary_breadth_seeds_table_body.tex",
+                 "e120_frequency_progress_table_body.tex",
+                 "e120_falcon_graph_20260906_table_body.tex",
+                 "e120_falcon_graph_20260906_seeds_table_body.tex",
+                 "e121_fixed_bank_survival_sequence_table_body.tex",
+                 "e121_fixed_bank_survival_bootstrap_table_body.tex"):
+        require(f"\\input{{results/{name}}}" not in manuscript,
+                f"archived duplicate table returned: {name}")
+
+    core = json.loads(CORE.read_text(encoding="utf-8"))
+    exclusions = core.get("exclusions", [])
+    require(len(exclusions) == 1 and exclusions[0].get("job_id") == 30269051
+            and exclusions[0].get("outcome_value_selected") is False,
+            "registered source exclusion is missing or was replaced by a selected retry")
+    paired_count = 0
+    for model, model_record in core["models"].items():
+        for domain, domain_record in model_record["domains"].items():
+            methods = domain_record["methods"]
+            control = methods["control"]["per_seed"]
+            replay = methods["replay"]["per_seed"]
+            pairs = set(control) & set(replay)
+            expected = set(control)
+            if model == "Falcon3-1B" and domain == "countdown":
+                expected = expected - {"59"}
+                require("59" not in replay, "ambiguous replay endpoint was reintroduced")
+            require(pairs == expected, f"unexpected primary source loss in {model}/{domain}")
+            paired_count += len(pairs)
+    require(paired_count == 74, "primary evidence must contain 74 admissible pairs")
+    require(r"\label{app:source-integrity}" in appendix,
+            "source exclusion is not disclosed in the manuscript")
+
+    fig4 = json.loads(FIG4.read_text(encoding="utf-8"))
+    require(
+        fig4.get("schema") == "paper-experiment1-retention-comparator-matrix-v4",
+        "wrong Experiment 1 composite schema",
+    )
+    require(
+        fig4.get("estimands") == {
+            "pass8": "method minus matched Dr.GRPO terminal pass@8",
+            "distinct8": "method minus matched Dr.GRPO terminal distinct@8",
+            "pmd": "method minus matched Dr.GRPO terminal PCMD",
+        },
+        "Figure 4 does not show the registered endpoint beside the breadth axis",
+    )
+    require(
+        "not encoded as cell-level significance decisions"
+        in fig4.get("uncertainty", ""),
+        "Figure 4 reintroduced cell-level significance encoding",
+    )
+    omnibus = fig4.get("omnibus_consistency_checks", {})
+    require(
+        omnibus.get("status") == "post-hoc omnibus consistency check"
+        and omnibus.get("magnitude_pooling") is False
+        and omnibus.get("family") == ["pass8", "pmd"],
+        "Figure 4 omnibus-test family drifted",
+    )
+    # PCMD is undefined in the blocks whose success is too rare to give verified
+    # pairs, so its sign test runs over fewer blocks than pass@8's.
+    for endpoint, positive, exact, holm in (
+        ("pass8", 14, 0.0001220703125, 0.000244140625),
+        ("pmd", 13, 0.000244140625, 0.000244140625),
+    ):
+        test = omnibus.get("tests", {}).get(endpoint, {})
+        require(
+            test.get("positive") == positive
+            and test.get("negative") == 0
+            and test.get("ties") == 0
+            and abs(test.get("two_sided_exact_sign_p", 0.0) - exact) < 1e-15
+            and abs(
+                test.get("holm_adjusted_p_across_two_coprimary_endpoints", 0.0)
+                - holm
+            )
+            < 1e-15,
+            f"Figure 4 {endpoint} omnibus statistics drifted",
+        )
+    figure4_columns = [
+        "graph_coloring", "countdown", "python_factors",
+        "mathir", "pantry_plan", "average",
+    ]
+    average_definition = (
+        "post-hoc descriptive unweighted macro-average across five "
+        "domains within paired seed; excluded from inference"
+    )
+
+    panel_a = fig4.get("panel_a", {})
+    require(
+        panel_a.get("models")
+        == ["Qwen2.5-0.5B", "Falcon3-1B", "Qwen2.5-3B"]
+        and set(panel_a.get("domains", [])) == DOMAINS
+        and panel_a.get("display_columns") == figure4_columns
+        and panel_a.get("average_definition") == average_definition,
+        "Figure 4A does not contain the complete cross-scale retention grid",
+    )
+    for model in panel_a["models"]:
+        for domain in DOMAINS | {"average"}:
+            require(
+                panel_a["cells"][model][domain]["n"]
+                == (4 if model == "Falcon3-1B" and domain in {"countdown", "average"} else 5),
+                f"Figure 4A denominator drifted for {model}/{domain}",
+            )
+    panel_b = fig4.get("panel_b", {})
+    require(
+        set(panel_b.get("methods", []))
+        == {
+            "before_training", "replay_drgrpo", "replay_maxrl", "maxrl", "ucpo",
+            "gapo", "setpo", "rlep_dr", "semantic_maxent", "grpo",
+        }
+        and set(panel_b.get("domains", [])) == DOMAINS
+        and panel_b.get("display_columns") == figure4_columns
+        and panel_b.get("average_definition") == average_definition,
+        "Figure 4B lacks a requested direct alternative",
+    )
+    for method in panel_b["methods"]:
+        for domain in DOMAINS | {"average"}:
+            require(
+                panel_b["cells"][method][domain]["n"] == 5,
+                f"Figure 4B denominator drifted for {method}/{domain}",
+            )
+
+    e118 = json.loads(E118.read_text(encoding="utf-8"))
+    require(e118.get("schema") == "e118-all-scale-terminal-progress-v7",
+            "wrong E118 figure schema")
+    require(e118.get("target_step") == 3072, "wrong E118 terminal step")
+    require(e118.get("before_training_step") == 0,
+            "Figure 5 lacks the shared before-training checkpoint")
+    display = e118.get("display_contract", {})
+    require(
+        display.get("tracks") == {
+            "upper": "Untrained to MaxRL to Re:Max",
+            "lower": "Untrained to Dr.GRPO to Re:Dr",
+        }
+        and "restricted to each track's paired seeds"
+        in display.get("untrained_reference", ""),
+        "Figure 5 does not retain matched Untrained references on both tracks",
+    )
+    model_scales = ["qwen05b", "falcon1b", "qwen3b"]
+    require(e118.get("main_figure_scales") == model_scales,
+            "Figure 5 must show all three registered model scales")
+    for field in ("main_figure_tracks", "main_cross_domain_tracks"):
+        require(e118.get(field) == {
+            scale: ["maxrl", "drgrpo"] for scale in model_scales
+        }, "Figure 5 must display both replay tracks directly in every model row")
+    require(e118.get("main_domain_tracks") == {},
+            "Figure 5 main layout must use model rows rather than a separate domain panel")
+    require(e118.get("appendix_figure_scales") == model_scales,
+            "E118 appendix panels must cover all three registered models")
+    registered_seeds = {
+        "qwen05b": set(range(43, 48)), "falcon1b": set(range(55, 60)),
+        "qwen3b": set(range(70, 75)),
+    }
+    incomplete_scales = [scale for scale in model_scales if any(
+        set(e118["cells"][scale][domain]["matched_seeds"]) != registered_seeds[scale]
+        for domain in DOMAINS
+    )]
+    qwen3b_complete = "qwen3b" not in incomplete_scales
+    require(e118.get("incomplete_scales") == incomplete_scales,
+            "E118 completion status differs from the registered paired cohorts")
+    domain_definition = "equal domain average of domain-specific paired-seed means"
+    paired_definition = "equal domain average within paired seed"
+    expected_main_description = (
+        "three-model cross-domain pass@8 and PCMD with MaxRL/replay and "
+        "Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses five matched seeds "
+        "across all five domains"
+        if qwen3b_complete else
+        "three-model cross-domain pass@8 and PCMD with MaxRL/replay and "
+        "Dr.GRPO/replay tracks; Qwen2.5-3B MaxRL uses descriptive equal-domain means "
+        "of available within-domain paired seeds"
+    )
+    require(
+        display.get("main_figure")
+        == expected_main_description
+        and display.get("main_panels") == {
+            "A": "cross-domain pass@8", "B": "cross-domain PCMD",
+        }
+        and display.get("appendix_figure")
+        == "all three models across five domains and both terminal metrics"
+        and ("equal domain averages within each paired seed, drawn as marks without seed paths"
+             if qwen3b_complete else "no pooled seed paths or intervals")
+        in display.get("qwen3b_display", "")
+        and display.get("main_figure_marks")
+        == ("marks only: untrained diamond, open control, filled replay on one row; "
+            "no connectors, seed traces or arrows")
+        and display.get("qwen3b_maxrl_average")
+        == (paired_definition if qwen3b_complete else domain_definition)
+        and display.get("dashed_connector")
+        == "partial or domain-specific paired seeds with exact counts and no interval",
+        "Figure 5 model-row layout or descriptive-domain display drifted",
+    )
+    available = e118.get("descriptive_available_domain_average", {})
+    require(set(available) == (set() if qwen3b_complete else {"qwen3b"}),
+            "descriptive domain-specific averaging must be separate from complete model tracks")
+    qwen3_counts = {
+        domain: len(e118["cells"]["qwen3b"][domain]["matched_seeds"])
+        for domain in DOMAINS
+    }
+    require(display.get("qwen3b_maxrl_counts") == qwen3_counts and min(qwen3_counts.values()) > 0,
+            "Qwen3B MaxRL descriptive summary must retain all five domains with exact paired counts")
+    for metric in ("pass8", "distinct8"):
+        summaries = available.get("qwen3b", {}).get(metric, {})
+        require(set(summaries) == (set() if qwen3b_complete else
+                                  {"before_training", "maxrl", "replay_maxrl"}),
+                "Qwen3B descriptive summary must retain its matched initial/MaxRL/replay track")
+        for method, summary in summaries.items():
+            expected_per_domain = {}
+            for domain in DOMAINS:
+                cell = e118["cells"]["qwen3b"][domain]
+                seeds = cell["method_seeds"][method]
+                require(seeds == cell["matched_seeds"],
+                        f"Qwen3B descriptive {domain}/{method} uses unmatched seeds")
+                expected_per_domain[domain] = dict(zip(
+                    map(str, seeds), cell["methods"][method][metric], strict=True,
+                ))
+            expected_means = {
+                domain: sum(values.values()) / len(values)
+                for domain, values in expected_per_domain.items()
+            }
+            require(summary.get("n_domains") == 5
+                    and summary.get("definition") == domain_definition
+                    and summary.get("domain_seed_counts") == qwen3_counts
+                    and summary.get("domain_weights") == {domain: .2 for domain in DOMAINS}
+                    and summary.get("per_domain_per_seed") == expected_per_domain
+                    and all(abs(summary["domain_means"][domain] - value) < 1e-12
+                            for domain, value in expected_means.items())
+                    and abs(summary["mean"] - sum(expected_means.values()) / 5) < 1e-12,
+                    f"Qwen3B {method}/{metric} is not the equally weighted five-domain paired mean")
+            require(not ({"per_seed", "seeds", "n", "student_t_95", "standard_error", "sem"} & set(summary)),
+                    "Qwen3B descriptive domain mean invents a common seed cohort or interval")
+    qwen = e118.get("cells", {}).get("qwen05b", {})
+    require(set(qwen) == DOMAINS, "Qwen E118 domain grid is incomplete")
+    for domain, cell in qwen.items():
+        require(len(cell.get("matched_seeds", [])) == 5,
+                f"Qwen E118 {domain} is not a complete five-seed block")
+        require(set(cell.get("methods", {})) == {
+                    "before_training", "before_training_drgrpo", "drgrpo", "replay_drgrpo",
+                    "maxrl", "replay_maxrl",
+                }, f"Qwen E118 {domain} lacks a before/after factorial arm")
+        for method, record in cell.get("methods", {}).items():
+            # pass@8 and distinct@8 are whole five-seed blocks here. PCMD is
+            # not, by construction: a seed that succeeds on too few prompts
+            # defines no PCMD, so its denominator is its own and is checked
+            # against the seed list the figure prints rather than against five.
+            require(all(len(values) == 5 for name, values in record.items()
+                        if name != "pmd"),
+                    f"Qwen E118 {domain} method denominator drifted")
+            if "pmd" in record:
+                require(len(record["pmd"])
+                        == len(cell.get("method_seeds_pmd", {}).get(method, [])),
+                        f"Qwen E118 {domain} PCMD values and seeds disagree")
+    falcon = e118.get("cells", {}).get("falcon1b", {})
+    require(set(falcon) == DOMAINS, "Falcon E118 domain grid is incomplete")
+    for domain, cell in falcon.items():
+        require(len(cell.get("matched_seeds", [])) == 5
+                and cell.get("replay_maxrl_minus_maxrl", {}).get("status")
+                == "complete paired block",
+                f"Falcon E118 {domain} is not a complete five-seed block")
+    qwen3 = e118.get("cells", {}).get("qwen3b", {})
+    require(set(qwen3) == DOMAINS, "Qwen3B E118 domain grid is incomplete")
+    require(qwen3["python_factors"].get("matched_seeds", []) == [70, 71, 72, 73, 74],
+            "Qwen3B progress record lost the complete five-seed Python block")
+    check_training_curves(e118)
+    latest_path = ROOT / "paper/results/latest_results_20260912.json"
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    require(latest.get("schema") == "paper-latest-terminal-status-v2"
+            and latest.get("analysis_date") == "2026-09-12",
+            "latest terminal census does not describe the September 12 update")
+    source_audit = latest["source_audit"]
+    audit_path = ROOT / source_audit["path"]
+    require(hashlib.sha256(audit_path.read_bytes()).hexdigest() == source_audit["sha256"],
+            "latest terminal census audit hash drifted")
+    latest_qwen3 = {block["domain"]: block for block in latest["campaigns"]["e118"]["blocks"]
+                   if block["model_key"] == "qwen3b"}
+    require(all(qwen3[domain]["matched_seeds"] == latest_qwen3[domain]["paired_seeds"]
+                for domain in DOMAINS),
+            "Qwen3B Figure 5 terminal cohorts differ from the dated audit")
+    require(e118.get("endpoint_snapshot", {}).get("sha256") == source_audit["sha256"],
+            "Figure 5 is not bound to the latest dated endpoint audit")
+    # Reproduce all current result tables from the same frozen endpoint census.
+    digest_builder = runpy.run_path(str(ROOT / "ops/exp_scaling/build_paper_current_campaign_results.py"))
+    digest_result = digest_builder["prepare"](latest, latest_path)
+    digest_result["findings"] = digest_builder["findings"](digest_result)
+    digest_stem = "current_campaign_results_20260912"
+    require(json.loads((ROOT / "paper/results" / (digest_stem + ".json")).read_text()) == digest_result,
+            "current campaign results differ from their audited snapshot")
+    for campaign in ("e118", "e119", "e120"):
+        name = f"{digest_stem}_{campaign}_table_body.tex"
+        require((ROOT / "paper/results" / name).read_text() == digest_builder["render_tex"](digest_result, campaign),
+                f"current campaign table is stale: {name}")
+    # The three campaign tables printed the same replay contrasts the scale
+    # extension plate draws, at the looser 20-prompt pairing bar. The plate is
+    # what the appendix now compiles; the bodies above are still rebuilt and
+    # compared against the endpoint census every run, so the looser-bar readings
+    # stay verified in the record rather than merely retained.
+    require(r"\label{fig:maxrl-factorial-scale-extensions}" in appendix
+            and "figures/e118_scale_extensions_appendix.pdf" in appendix,
+            "the scale-extension plate carrying the campaign contrasts is missing")
+    factorial_builder = runpy.run_path(str(ROOT / "ops/exp_scaling/build_paper_level2_factorial_contrasts.py"))
+    factorial = json.loads((ROOT / "paper/results/level2_factorial_contrasts_20260912.json").read_text())
+    expected_factorial = factorial_builder["build"](json.loads(audit_path.read_text()))
+    require(all(factorial[key] == value for key, value in expected_factorial.items())
+            and factorial["source_audit"] == source_audit,
+            "Level-2 factorial contrasts differ from the common four-arm audited seeds")
+    factorial_name = "level2_factorial_contrasts_20260912_table_body.tex"
+    require((ROOT / "paper/results" / factorial_name).read_text() == factorial_builder["render_table"](factorial)
+            and f"\\input{{results/{factorial_name}}}" in appendix,
+            "Level-2 factorial table is stale or not compiled")
+
+    initial_pass = [
+        value
+        for cell in qwen.values()
+        for value in cell["methods"]["before_training"]["pass8"]
+    ]
+    initial_distinct = [
+        value
+        for cell in qwen.values()
+        for value in cell["methods"]["before_training"]["distinct8"]
+    ]
+    require(len(initial_pass) == len(initial_distinct) == 25
+            and abs(sum(initial_pass) / 25 - .33484375) < 1e-12
+            and abs(sum(initial_distinct) / 25 - .663671875) < 1e-12,
+            "Figure 5 before-training Qwen reference drifted")
+
+    for scale, cells in e118.get("cells", {}).items():
+        for domain, cell in cells.items():
+            for method, record in cell.get("methods", {}).items():
+                seeds = cell.get("method_seeds", {}).get(method)
+                # PCMD is measured on its own seeds -- a seed succeeding on too
+                # few prompts defines none -- so it is held to method_seeds_pmd
+                # rather than to the endpoint pairing every other metric uses.
+                require(seeds is not None
+                        and all(len(values) == len(seeds)
+                                for name, values in record.items() if name != "pmd"),
+                        f"E118 method-specific denominator mismatch in {scale}/{domain}/{method}")
+                if "pmd" in record:
+                    pmd_seeds = cell.get("method_seeds_pmd", {}).get(method)
+                    require(pmd_seeds is not None and len(record["pmd"]) == len(pmd_seeds),
+                            f"E118 PCMD denominator mismatch in {scale}/{domain}/{method}")
+    for metric in ("pass8", "distinct8"):
+        means = e118["absolute_cross_domain_average"]["falcon1b"][metric]
+        for method in ("before_training_drgrpo", "drgrpo", "replay_drgrpo"):
+            require(set(means[method]["per_seed"]) == {"55", "56", "57", "58"},
+                    f"Falcon {method} macro contains an inadmissible or unmatched seed")
+            require("student_t_95" not in means[method], "partial track has a five-seed interval")
+        for method in ("maxrl", "replay_maxrl"):
+            require(set(means[method]["per_seed"]) == {"55", "56", "57", "58", "59"},
+                    f"valid Falcon {method} seed was lost")
+
+    # E80-R1 stays complete; completed E118 adds its own five-seed track.
+    for metric in ("pass8", "distinct8"):
+        means = e118["absolute_cross_domain_average"]["qwen3b"][metric]
+        expected_methods = {"before_training_drgrpo", "drgrpo", "replay_drgrpo"}
+        if qwen3b_complete:
+            expected_methods |= {"before_training", "maxrl", "replay_maxrl"}
+        require(set(means) == expected_methods,
+                "Qwen3B common-seed aggregates do not match factorial completion")
+        if qwen3b_complete:
+            for method in ("before_training", "maxrl", "replay_maxrl"):
+                expected = {
+                    str(seed): sum(
+                        dict(zip(qwen3[domain]["method_seeds"][method],
+                                 qwen3[domain]["methods"][method][metric], strict=True))[seed]
+                        for domain in DOMAINS
+                    ) / 5 for seed in range(70, 75)
+                }
+                summary = means[method]
+                require(summary["n"] == 5 and summary["seeds"] == list(range(70, 75))
+                        and summary["definition"] == paired_definition
+                        and set(summary["per_seed"]) == set(expected)
+                        and all(abs(summary["per_seed"][seed] - value) < 1e-12
+                                for seed, value in expected.items())
+                        and abs(summary["mean"] - sum(expected.values()) / 5) < 1e-12,
+                        f"Qwen3B {method}/{metric} is not the complete within-seed domain mean")
+            contrast = e118["cross_domain_average"]["qwen3b"]
+            expected_effect = {
+                seed: means["replay_maxrl"]["per_seed"][seed] - means["maxrl"]["per_seed"][seed]
+                for seed in map(str, range(70, 75))
+            }
+            require(contrast["definition"] == paired_definition
+                    and set(contrast["per_seed"]) == set(expected_effect)
+                    and all(abs(contrast["per_seed"][seed][metric] - value) < 1e-12
+                            for seed, value in expected_effect.items())
+                    and contrast["summaries"][metric]["n"] == 5
+                    and abs(contrast["summaries"][metric]["mean"]
+                            - sum(expected_effect.values()) / 5) < 1e-12,
+                    f"Qwen3B paired {metric} macro contrast differs from its completed tracks")
+        for method, arm in (("drgrpo", "control"), ("replay_drgrpo", "replay")):
+            expected = {
+                str(seed): sum(
+                    core["models"]["Qwen2.5-3B"]["domains"][domain]
+                    ["methods"][arm]["per_seed"][str(seed)][metric]
+                    for domain in DOMAINS
+                ) / 5
+                for seed in range(70, 75)
+            }
+            require(means[method]["n"] == 5 and all(
+                abs(means[method]["per_seed"][seed] - value) < 1e-12
+                for seed, value in expected.items()
+            ) and set(means[method]["per_seed"]) == set(expected),
+                    f"Qwen3B {method} Figure 5 average is not the five-seed E80-R1 mean")
+        initial = means["before_training_drgrpo"]
+        expected_initial = {
+            str(seed): sum(
+                precheck["arms"]["drgrpo"]["scales"]["qwen3b"]["domains"][domain]
+                ["per_seed"][str(seed)]["pass0"][metric]
+                for domain in DOMAINS
+            ) / 5
+            for seed in range(70, 75)
+        }
+        require(initial["n"] == 5 and set(initial["per_seed"]) == set(expected_initial)
+                and all(abs(initial["per_seed"][seed] - value) < 1e-12
+                        for seed, value in expected_initial.items()),
+                "Qwen3B Figure 5 initial reference drifted")
+
+    # Count completed blocks against the independently audited seed cohorts.
+    all_cells = [cell for cells in e118["cells"].values() for cell in cells.values()]
+    pair_blocks = sum(len(cell.get("replay_maxrl_minus_maxrl", {}).get("per_seed", {})) == 5
+                      for cell in all_cells)
+    four_arm_blocks = sum(
+        len(set.intersection(*(set(cell.get("method_seeds", {}).get(arm, []))
+                               for arm in ("drgrpo", "replay_drgrpo", "maxrl", "replay_maxrl")))) == 5
+        for cell in all_cells)
+    core_by_scale = {model["scale"]: model["domains"] for model in core["models"].values()}
+    expected_four_arm_blocks = sum(
+        len(set(block["paired_seeds"]) & set(map(int,
+            core_by_scale[block["model_key"]][block["domain"]]["methods"]["control"]["per_seed"]))
+            & set(map(int,
+            core_by_scale[block["model_key"]][block["domain"]]["methods"]["replay"]["per_seed"]))) == 5
+        for block in latest["campaigns"]["e118"]["blocks"]
+    )
+    require(pair_blocks == latest["campaigns"]["e118"]["complete_five_seed_blocks"]
+            and four_arm_blocks == expected_four_arm_blocks,
+            "E118 pair/four-arm complete-block counts differ from the audited cohorts")
+    python3b = e118["cells"]["qwen3b"]["python_factors"]
+    require(python3b["matched_seeds"] == [70, 71, 72, 73, 74],
+            "Qwen3B Python does not retain all five registered seeds")
+    # Reproduce the frozen E120 analysis and table bodies without refreshing
+    # a campaign or silently accepting a stale generated analysis.
+    analysis_path = ROOT / "ops/exp_scaling/build_paper_e120_primary_breadth.py"
+    analysis = runpy.run_path(str(analysis_path))
+    expected_primary = analysis["build"]()
+    primary_path = ROOT / "paper/results/e120_primary_breadth.json"
+    require(json.loads(primary_path.read_text()) == expected_primary,
+            "E120 primary estimates/provenance differ from the frozen source")
+    rendered = analysis["render_tables"](expected_primary["rows"])
+    for name, expected in zip(("e120_primary_breadth_table_body.tex",
+                               "e120_primary_breadth_seeds_table_body.tex"), rendered):
+        require((ROOT / "paper/results" / name).read_text() == expected,
+                f"E120 generated table is stale: {name}")
+    require(r"\label{app:frequency-replay-progress}" in appendix
+            and "$+.318$" in appendix and "$+.010$" in appendix,
+            "the registered E120 aggregate is missing from the consolidated ablation")
+
+    levels = json.loads(LEVELS.read_text(encoding="utf-8"))
+    rows = levels.get("admission_rows", [])
+    require(levels.get("schema") == "modebench-level-admission-and-terminal-v5"
+            and levels.get("target_step") == 3072 and len(rows) == 5
+            and levels.get("levels") == ["level1", "level2", "level3"],
+            "wrong matched-level admission/progress record")
+    require(all(.10 <= row["level2_pass8"] <= .90
+                and row["level2_pass8"] < row["level1_pass8"] for row in rows),
+            "Level 2 no longer passes the harder-but-solvable admission gate")
+    partial = levels.get("partial_treatment", {})
+    require(partial.get("domain") == "graph_coloring"
+            and partial.get("matched_seeds") == [43, 44, 45, 46, 47]
+            and partial.get("n") == 5
+            and partial.get("complete_block") is True
+            and set(partial.get("methods", {}))
+            == {"drgrpo", "replay_drgrpo", "maxrl", "replay_maxrl"},
+            "Level-2 Graph prefix is not the exact complete four-arm block")
+    for method in partial["methods"].values():
+        require(set(method["per_seed"]) == {"43", "44", "45", "46", "47"},
+                "Level-2 Graph method denominator drifted")
+        for metric in ("pass8", "distinct8"):
+            values = [row[metric] for row in method["per_seed"].values()]
+            require(abs(method["means"][metric] - sum(values) / 5) < 1e-12,
+                    "Level-2 Graph complete-block mean drifted")
+
+    comparison_snapshot = ROOT / "paper/results/modebench_level_comparison_snapshot.json"
+    frozen_levels = json.loads(comparison_snapshot.read_text(encoding="utf-8"))
+    require(frozen_levels.get("schema") == "modebench-level-comparison-frozen-snapshot-v1",
+            "wrong frozen Level1/Level2 snapshot")
+    require(levels.get("sources", {}).get(str(comparison_snapshot.resolve()))
+            == hashlib.sha256(comparison_snapshot.read_bytes()).hexdigest(),
+            "Figure6 is not bound to its frozen comparison snapshot")
+    level_analysis = runpy.run_path(
+        str(ROOT / "ops/exp_scaling/build_paper_modebench_level_comparison.py")
+    )
+    expected_interim = level_analysis["build_interim_comparison"](
+        frozen_levels["evaluations"], frozen_levels["availability"]
+    )
+    require(levels.get("interim_comparison") == expected_interim,
+            "Figure6 interim selection, pairing, or equal-domain means drifted")
+    require(levels.get("terminal_progress_by_domain")
+            == level_analysis["build_terminal_progress"](frozen_levels["level2_terminal_evaluations"]),
+            "Figure6 terminal coverage is not the frozen exact-step record")
+    require(set(expected_interim["domains"]) == DOMAINS
+            and expected_interim["model"] == "Qwen2.5-0.5B-Instruct",
+            "Figure6 interim audit scope lost a domain or model")
+    # The third level arrives on its own frozen snapshot: Levels 1 and 2 reach
+    # several analyses through the two-level one, so it is read, not widened.
+    level3_snapshot = ROOT / "paper/results/modebench_level3_comparison_snapshot.json"
+    frozen_level3 = json.loads(level3_snapshot.read_text(encoding="utf-8"))
+    require(frozen_level3.get("schema") == "modebench-level3-comparison-frozen-snapshot-v1"
+            and frozen_level3.get("level") == "level3"
+            and frozen_level3.get("target_step") == 3072,
+            "wrong frozen Level3 snapshot")
+    require(levels.get("sources", {}).get(str(level3_snapshot.resolve()))
+            == hashlib.sha256(level3_snapshot.read_bytes()).hexdigest(),
+            "Figure6 is not bound to its frozen Level-3 snapshot")
+    require(levels.get("level3_unadmitted_cells") == frozen_level3["unadmitted_cells"]
+            and levels.get("level3_admission_rule") == frozen_level3["admission_rule"],
+            "Figure6 does not carry the Level-3 admission rule and its exact gaps")
+    # run_path does not put a plain file's directory on the import path, and
+    # the three-level module reads its selection rules from the two-level one.
+    for directory in (ROOT / "ops", ROOT / "ops/exp_scaling"):
+        if str(directory) not in sys.path:
+            sys.path.insert(0, str(directory))
+    baseline_snapshot = ROOT / "paper/results/modebench_level_baseline_snapshot.json"
+    frozen_baseline = json.loads(baseline_snapshot.read_text(encoding="utf-8"))
+    require(frozen_baseline.get("schema") == "modebench-level-baseline-frozen-snapshot-v1"
+            and frozen_baseline.get("baseline_step") == 0,
+            "wrong frozen untrained-checkpoint snapshot")
+    require(levels.get("sources", {}).get(str(baseline_snapshot.resolve()))
+            == hashlib.sha256(baseline_snapshot.read_bytes()).hexdigest(),
+            "Figure6 is not bound to its frozen untrained-checkpoint snapshot")
+    require(levels.get("baseline_admission_rule") == frozen_baseline["admission_rule"],
+            "Figure6 does not carry the untrained-checkpoint admission rule")
+    three_level = runpy.run_path(
+        str(ROOT / "ops/exp_scaling/build_paper_modebench_three_level_comparison.py")
+    )
+    expected_terminal = three_level["build_terminal_comparison"](
+        frozen_levels["terminal_evaluations"] + frozen_level3["terminal_evaluations"],
+        frozen_levels["terminal_admission"] + frozen_level3["terminal_admission"],
+    )
+    require(levels.get("terminal_comparison") == expected_terminal,
+            "Figure6 terminal cohort, seed pairing, or means drifted")
+    diversity_path = ROOT / "paper/results/mode_diversity_training.json"
+    diversity = json.loads(diversity_path.read_text(encoding="utf-8"))
+    expected_pmd = three_level["build_pmd_comparison"](
+        diversity["arms"], frozen_level3["pmd_cells"],
+        diversity["definition"]["min_defined_prompts"],
+    )
+    expected_pmd["source"] = {"path": "paper/results/mode_diversity_training.json",
+                              "sha256": hashlib.sha256(diversity_path.read_bytes()).hexdigest()}
+    require(levels.get("pmd_comparison") == expected_pmd,
+            "Figure6 PCMD matching, support bar, or means drifted")
+    expected_baseline = three_level["build_baseline_points"](
+        frozen_baseline["baseline_admission"] + frozen_level3["baseline_admission"],
+        frozen_baseline["baseline_pmd_cells"] + frozen_level3["baseline_pmd_cells"],
+        expected_terminal["complete_domains"], expected_pmd["matched_domains"],
+    )
+    require(levels.get("baseline_points") == expected_baseline,
+            "Figure6 untrained points, their domain bases, or their support drifted")
+    require(levels.get("replay_gains") == three_level["build_replay_gains"](
+        expected_terminal, expected_pmd),
+        "Figure6 plotted replay gains are not the reported arm means differenced")
+    require(levels.get("sources", {}).get(str(audit_path.resolve()))
+            == hashlib.sha256(audit_path.read_bytes()).hexdigest(),
+            "Figure6 terminal values are not bound to the dated endpoint census")
+
+    if PDF.is_file() and PDF.stat().st_mtime >= TEX.stat().st_mtime:
+        subprocess.run(
+            ["python", str(ROOT / "ops/check_paper_main_length.py"),
+             "--pdf", str(PDF), "--aux", str(ROOT / "paper/main.aux")],
+            check=True,
+        )
+        log = ROOT / "paper/main.log"
+        if log.is_file():
+            require("Overfull" not in log.read_text(errors="replace"),
+                    "LaTeX reports an overfull box")
+
+    print("Current paper contract passed: eight main figures plus the hosted level-average table, preserved 58-block proof chain, and all current/appendix evidence gates.")
+
+
+if __name__ == "__main__":
+    main()

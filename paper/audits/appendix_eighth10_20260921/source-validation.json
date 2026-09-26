@@ -1,0 +1,17 @@
+{
+  "numbered_equation_environments_unchanged": true,
+  "labels_unchanged": true,
+  "all_source_after_P5_unchanged": true,
+  "empirical_fragments_unchanged": true,
+  "main_body_source_unchanged": false,
+  "concurrent_main_change": "Section 2 now distinguishes lower raw mode counts with disabled reasoning from deployment-dependent conditional diversity; consistent with Tables 56\u201357.",
+  "experimental_runs": 0,
+  "new_model_calls": 0,
+  "final_main_sha256": "72f7c3a0e44e4b4bb4d3b64bf73c5f7df3e1536daae13216944ae87e7e12f924",
+  "source_sha256": "3da8a4de2d1b6eb334078779a1d85204d45ab26e5871dcc3755a105282a7e458",
+  "connected_proof_clarifications": [
+    "Single named proof heading for Theorem3.1",
+    "Positive response length in inverse-length example",
+    "Explicit triangle-inequality weight sum in PropositionP.12"
+  ]
+}

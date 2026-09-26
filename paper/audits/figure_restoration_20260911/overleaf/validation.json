@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "archive": "paper/mathai2026/mathai2026-overleaf.zip",
+  "archive_sha256": "42af9ddf117344054ce4435dd14c3a6e73df940cdd49d1860c0825a61a2125a5",
+  "archive_bytes": 15940521,
+  "file_count": 139,
+  "figure_count": 25,
+  "table_count": 26,
+  "build_command": [
+    "latexmk",
+    "-norc",
+    "-r",
+    "latexmkrc",
+    "-pdf",
+    "-interaction=nonstopmode",
+    "-halt-on-error",
+    "-file-line-error",
+    "-recorder",
+    "-latexoption=-no-shell-escape",
+    "main.tex"
+  ],
+  "pdf_text_and_layout_match": true,
+  "original_repository_inputs": [],
+  "main_pages": 4,
+  "figure_1_page": 1,
+  "references_start_page": 5,
+  "total_pages": 77,
+  "tex_version": "pdfTeX 3.14159265-2.6-1.40.21 (TeX Live 2020)"
+}

@@ -1,0 +1,9 @@
+{
+  "analysis_result_sha256": "a69b0c145c7b6f042d65c87e3007367a37efdce17ea60b4c08496acc67ae7a6c",
+  "scientific_content_sha256": "6548b217665ddae4b29797995faebc12a26c6385683e0c10c7c9dc14275f3438",
+  "analysis_script_sha256": "4f23e7bdc23d70570cd827490ec6fffef0e246d4790fe42903ad737693ac94cc",
+  "change": "Append bottom rules inside the generated table body so LaTeX can compile it; no statistical code change.",
+  "regenerated_result_sha256": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
+  "regenerated_script_sha256": "a9ed01e32e9fb26a66604758182fea335a9ddf010f89492d1b507aebb8720e22",
+  "scientific_content_unchanged": true
+}

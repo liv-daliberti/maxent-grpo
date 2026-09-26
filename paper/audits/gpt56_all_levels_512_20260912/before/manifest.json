@@ -1,0 +1,33 @@
+{
+  "reason": "Preserve completed L2/L3 Figure8 manuscript before authorized all-level512 update.",
+  "files": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "65f7056ecd73d63289cffe7129d0daa6f44855fc6cd7c92dbf8ade651736f6d6"
+    },
+    {
+      "path": "paper/main.pdf",
+      "sha256": "e18be071b8933de1fcfcd18483e08b9f60f14a5fb8c0772686270a127be34081"
+    },
+    {
+      "path": "paper/Makefile",
+      "sha256": "5dc9595c57467c33dfca801b31353889c13a89d5bae4b1963337257c7ceb4731"
+    },
+    {
+      "path": "ops/check_paper_current_contract.py",
+      "sha256": "fbbad64f2dd66cc50a5f9479e846b5f2ae7160b2683fe7187ae2cbc2eedaaf3f"
+    },
+    {
+      "path": "ops/check_paper_main_length.py",
+      "sha256": "ba4ea8626db183fc815a89e8ffe5a3f731970b3729431b93b413220a72a093a1"
+    },
+    {
+      "path": "tests/test_paper_current_editorial_contract.py",
+      "sha256": "407e166128ce1847156db92eb68264d5750343d6fdc1bf804d0e63b116222a2d"
+    },
+    {
+      "path": "tests/test_paper_main_length.py",
+      "sha256": "c86414ce977ef91347fcec11045ad1137198f98a6be92b2120678f092a7eb15d"
+    }
+  ]
+}

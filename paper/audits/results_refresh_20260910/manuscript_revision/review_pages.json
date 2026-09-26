@@ -1,0 +1,14 @@
+{
+  "Replay across difficulty levels with Qwen2.5-0.5B-Instruct": [
+    10
+  ],
+  "The newly completed Qwen2.5-3B Graph block": [
+    60
+  ],
+  "ReplayMaxRL effects across model scales at pass 8": [
+    63
+  ],
+  "Uniform versus fresh-frequency replay at pass 8": [
+    64
+  ]
+}

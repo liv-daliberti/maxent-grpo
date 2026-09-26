@@ -1,0 +1,163 @@
+{
+  "status": "passed",
+  "verified_utc": "2026-09-08T15:36:25.734245+00:00",
+  "selected_snapshot": "paper/results/modebench_level_comparison_snapshot.json",
+  "selected_snapshot_sha256": "57752021adf6a9e663e4024a4e7f2fb47fbb0c9119aae894962ba5d7240a374f",
+  "selection_summary_sha256": "f0cce4ec6000bc463eccd186784aabc2282d0e2c8f97fb9cff3584ef2d44a22a",
+  "source_snapshots": {
+    "level1": {
+      "path": "paper/audits/results_refresh_20260908/figure6/level1_coverage_snapshot.json",
+      "sha256": "9281581e93cbb3e767b5920d374a6292d7b5dd5a5fe2b1b541afe75f273f861e"
+    },
+    "level2": {
+      "path": "paper/audits/results_refresh_20260908/figure6/level2_coverage_snapshot.json",
+      "sha256": "c931e73d2befb9e26762bbf2bb8a480059100a224474180869d95a6ad3c04f3e"
+    }
+  },
+  "availability_cells_verified": 200,
+  "domain_seed_pairs_verified": 21,
+  "selected_draws_verified": 672,
+  "separate_level2_terminal_draws_verified": 304,
+  "coverage_by_domain": {
+    "countdown": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        2304,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 2592,
+        "46": 2304,
+        "47": 2304
+      },
+      "training_pass_range": [
+        6.0,
+        8.0
+      ]
+    },
+    "graph_coloring": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "mathir": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    },
+    "pantry_plan": {
+      "initial_checkpoint_only": true,
+      "initial_checkpoint_seeds": [
+        45
+      ],
+      "n": 1,
+      "seeds": [
+        45
+      ],
+      "step_range": [
+        0,
+        0
+      ],
+      "steps_by_seed": {
+        "45": 0
+      },
+      "training_pass_range": [
+        0.0,
+        0.0
+      ]
+    },
+    "python_factors": {
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [],
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "step_range": [
+        3072,
+        3072
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "training_pass_range": [
+        8.0,
+        8.0
+      ]
+    }
+  },
+  "checks": [
+    "all200availability records exactly match frozen inventories",
+    "allqualifying domain/seed pairs included at latest all8-series exact shared step",
+    "every selected metric payload, metadata and origin exactly matches admitted source draw",
+    "allsource prefixes have hashes and origin line numbers within frozen prefix",
+    "K8,4draws,temperature1,128prompts verified for every contribution",
+    "separate terminal draw inventory complete and exact",
+    "withinseed draw means, withindomain seed means, equal five-domain means independently recomputed",
+    "initial-checkpoint contributions independently checked against admitted availability",
+    "selection/source integrity validation used frozen records only; live logs not reread"
+  ]
+}

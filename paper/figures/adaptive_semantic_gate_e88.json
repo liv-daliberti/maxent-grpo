@@ -1,0 +1,113 @@
+{
+  "schema": "paper-adaptive-dose-gate-figure-v1",
+  "generated_at": "2026-09-04T15:29:31.049657+00:00",
+  "status": "closed registered mechanism-gate evidence",
+  "source": "/n/fs/similarity/maxent-grpo/var/artifacts/e88_closure_record.json",
+  "source_sha256": "acb39ccf81a5cfe5e054df3d28fec5ae5f9e5ed4ed5bc4bfaaa95c943375e049",
+  "target_ratio": 0.05,
+  "maximum_bound_hit_fraction": 0.2,
+  "records": [
+    {
+      "at_max": false,
+      "bound_hit_fraction": 0.1439,
+      "domain": "graph_coloring",
+      "final_coefficient": 0.3052,
+      "final_realized_ratio": 0.0488,
+      "frozen_fraction": 0.0902,
+      "seed": 43,
+      "state": "COMPLETED",
+      "updates_with_controller_telemetry": 3073
+    },
+    {
+      "at_max": false,
+      "bound_hit_fraction": 0.0988,
+      "domain": "countdown",
+      "final_coefficient": 0.2326,
+      "final_realized_ratio": 0.0491,
+      "frozen_fraction": 0.5342,
+      "seed": 46,
+      "state": "COMPLETED",
+      "updates_with_controller_telemetry": 3073
+    },
+    {
+      "at_max": false,
+      "bound_hit_fraction": 0.0726,
+      "domain": "countdown",
+      "final_coefficient": 0.3244,
+      "final_realized_ratio": 0.0483,
+      "frozen_fraction": 0.5801,
+      "seed": 47,
+      "state": "COMPLETED",
+      "updates_with_controller_telemetry": 3073
+    },
+    {
+      "at_max": false,
+      "bound_hit_fraction": 0.5758,
+      "domain": "python_factors",
+      "final_coefficient": 0.0805,
+      "final_realized_ratio": 0.0528,
+      "frozen_fraction": 0.6549,
+      "seed": 43,
+      "state": "CANCELLED",
+      "updates_with_controller_telemetry": 2344
+    },
+    {
+      "at_max": true,
+      "bound_hit_fraction": 0.9848,
+      "domain": "python_factors",
+      "final_coefficient": 0.4,
+      "final_realized_ratio": 0.015,
+      "frozen_fraction": 0.5679,
+      "seed": 44,
+      "state": "CANCELLED",
+      "updates_with_controller_telemetry": 2275
+    },
+    {
+      "at_max": true,
+      "bound_hit_fraction": 0.9854,
+      "domain": "mathir",
+      "final_coefficient": 0.4,
+      "final_realized_ratio": 0.0435,
+      "frozen_fraction": 0.5571,
+      "seed": 46,
+      "state": "CANCELLED",
+      "updates_with_controller_telemetry": 2303
+    },
+    {
+      "at_max": true,
+      "bound_hit_fraction": 0.9718,
+      "domain": "mathir",
+      "final_coefficient": 0.4,
+      "final_realized_ratio": 0.0286,
+      "frozen_fraction": 0.7502,
+      "seed": 47,
+      "state": "CANCELLED",
+      "updates_with_controller_telemetry": 2246
+    },
+    {
+      "at_max": false,
+      "bound_hit_fraction": 0.0284,
+      "domain": "pantry_plan",
+      "final_coefficient": 0.2062,
+      "final_realized_ratio": 0.0534,
+      "frozen_fraction": 0.162,
+      "seed": 43,
+      "state": "CANCELLED",
+      "updates_with_controller_telemetry": 2049
+    },
+    {
+      "at_max": false,
+      "bound_hit_fraction": 0.0413,
+      "domain": "pantry_plan",
+      "final_coefficient": 0.2129,
+      "final_realized_ratio": 0.0511,
+      "frozen_fraction": 0.1718,
+      "seed": 44,
+      "state": "CANCELLED",
+      "updates_with_controller_telemetry": 2066
+    }
+  ],
+  "outcome": "closed early on a registered mechanism-gate failure",
+  "gate_failure": "eta pinned at the .40 ceiling on 97-98% of applied updates in MathIR and Python factors while realizing only .017-.036, against a .05 target. The registered response was to re-derive the target, not to widen the bound, because |A_sem| <= eta and the unit reward gap make .40 the largest value preserving the correctness ordering.",
+  "superseded_by": "e89_adaptive_semantic_maxent_reachable_05b_jobs_v1"
+}

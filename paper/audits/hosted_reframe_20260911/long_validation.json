@@ -1,0 +1,42 @@
+{
+  "main_pages": 8,
+  "max_pages": 9,
+  "references_page": 9,
+  "pdf_pages": 57,
+  "figure_pages": {
+    "fig:story": 1,
+    "fig:modebench-examples": 2,
+    "fig:verified-support-story": 4,
+    "fig:cross-scale-terminal-effects": 6,
+    "fig:maxrl-factorial": 6,
+    "fig:level2-admission": 7,
+    "fig:hosted-verified-breadth": 8
+  },
+  "section_pages": {
+    "sec:introduction": 1,
+    "sec:related": 8,
+    "sec:collapse": 2,
+    "sec:modebench": 2,
+    "sec:method": 3,
+    "sec:experiments": 5,
+    "sec:results": 5,
+    "sec:conclusion": 8
+  },
+  "source_sha256": "643bdd8b55c92e0deec1fd82691bb7f082fe6637e819a8e05d714cbbfdf43d45",
+  "pdf_sha256": "dff313f70e2f7f40fc69eec2b0a045eeb92e0d6a143f482d0c92b66351f5dd76",
+  "main_only_pdf_sha256": "df4938fb664782749131d62797faa73702b5f76f13f14d325594b1b72a047e96",
+  "source_binding_verified": true,
+  "main_only_text_matches_full_pdf": true,
+  "pagination_and_display_tests_passed": 49,
+  "line_fill_blocks_passed": 236,
+  "undefined_references": 0,
+  "overfull_boxes": 0,
+  "frozen_domain_prompts_verified": 5,
+  "hosted_deployments": 7,
+  "hosted_cells": 105,
+  "hosted_displayed_responses": 107520,
+  "revised_opus5_python_draws": 3072,
+  "revised_opus5_python_normalized_correct": 3069,
+  "main_contains_refusal_statistics": false,
+  "original_and_revised_evidence_retained_in_appendix": true
+}

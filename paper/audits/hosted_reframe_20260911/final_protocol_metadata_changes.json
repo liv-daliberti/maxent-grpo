@@ -1,0 +1,22 @@
+[
+  [
+    "/builder_sha256",
+    "f4c9c8aaf42e91ecfd4bb02031f207bac6511c00913a1465413a8d7eb0320cac",
+    "ec6b42e5fcf6a3517145b679a69e61cb9b4ca003347e2938a331b41cec62743c"
+  ],
+  [
+    "/models/6/collection_attempt_accounting/nonterminal_protocol_receipts",
+    "absent",
+    "present"
+  ],
+  [
+    "/models/6/collection_attempt_accounting/sidecars/provider_protocol_attempt_audit.json",
+    "absent",
+    "present"
+  ],
+  [
+    "/protocol/sha256",
+    "2619b848e49f3710816cf0becbbff97440212dd3c78f60f59f3c9302409fba11",
+    "85451f24746b85c2b89db49e87866b6fc3970aba9ea247c73e09b23320991eb3"
+  ]
+]

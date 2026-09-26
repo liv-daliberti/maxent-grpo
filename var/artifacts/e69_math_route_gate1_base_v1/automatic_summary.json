@@ -1,0 +1,79 @@
+{
+  "artifacts": {
+    "manual_review_queue": "var/artifacts/e69_math_route_gate1_base_v1/manual_review_queue.jsonl",
+    "manual_review_queue_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sample_archive": "var/artifacts/e69_math_route_gate1_base_v1/sample_archive.jsonl",
+    "sample_archive_sha256": "4dda526d8685b5fe32be66586a22b41fceec3c1f82e6392f5ae4805dd58b2f7d"
+  },
+  "automatic_gate": {
+    "counts": {
+      "cross_prompt_recurring_signatures": 0,
+      "formatting_unstable_accepted_rows": 0,
+      "multi_route_prompts": 0,
+      "prompts": 128,
+      "route_accepted_distinct_signatures": 0,
+      "route_accepted_samples": 0,
+      "samples": 1024,
+      "task_correct_samples": 174,
+      "trace_parse_execute_samples": 0
+    },
+    "prompt_route_support_histogram": {},
+    "rates": {
+      "route_accepted": 0.0,
+      "route_coverage_given_task_correct": 0.0,
+      "task_correct": 0.169921875,
+      "trace_parse_execute": 0.0
+    },
+    "recurring_signature_prompt_counts": [],
+    "status": "fail",
+    "thresholds": {
+      "formatting_stability_required": 1.0,
+      "manual_review_size": 50,
+      "minimum_cross_prompt_recurring_signatures": 3,
+      "minimum_multi_route_prompts": 8,
+      "minimum_route_coverage_given_task_correct": 0.8,
+      "minimum_task_correct_samples": 50
+    },
+    "violations": [
+      "route coverage 0.000000 < 0.800000",
+      "multi-route prompts 0 < 8",
+      "cross-prompt recurring signatures 0 < 3",
+      "accepted routes 0 < manual review size 50"
+    ]
+  },
+  "created_at": "2026-07-28",
+  "manual_gate": {
+    "false_admission_tolerance": 0,
+    "queue_rows": 0,
+    "required_reviews": 50,
+    "status": "pending"
+  },
+  "provenance": {
+    "git_commit": "cfc945eefab918e6c5868971752fd8f31ad1d559",
+    "input_identity_sha256": "baf76a1a4ab19e2c0e5aef8537c80af37e593ab895ab1f576ad6f977ee4f1802",
+    "input_sha256": {
+      "ops/route_successor/sample_e69_math_route_gate1.py": "ae2204aff465015744f36e15964dedf92634be149fe1dd6491c85150345f129b",
+      "paper/preregistration/e69_verified_route_successor_protocol_20260728.md": "a085f77ad64e0c257f526e028f8b56a5848086b5a3c3b0344aed17f6ffb9897c",
+      "src/oat_drgrpo/math_grader.py": "80f38ffe2ef58a1f3994bf889704c70dc13f4dd3559d52b841d498767ff5b374",
+      "src/oat_drgrpo/math_route.py": "12daee41a6fc50abd8e44507bf95770691f0245a0ce141f891f0d4af1f2abf08",
+      "src/oat_drgrpo/templates.py": "6502a5302e8cf2dbd927fdac6f4abd7b1aed49fc119d280f44059bb7fca06f27",
+      "var/data/math12k_384_route_dev128_v1/MATERIALIZATION_MANIFEST.json": "05a0fa4d4558c36cf89714c0497822377a3641868fa0cce6321cb632a1c8286b"
+    },
+    "slurm_job_id": "30158805"
+  },
+  "sampling_contract": {
+    "dataset": "var/data/math12k_384_route_dev128_v1",
+    "max_model_len": 2048,
+    "max_tokens": 1024,
+    "model": "var/cache/huggingface/transformers/models--Qwen--Qwen2.5-0.5B-Instruct/snapshots/7ae557604adf67be50417f59c2c2f167def9a775",
+    "model_revision": "7ae557604adf67be50417f59c2c2f167def9a775",
+    "prompt_count": 128,
+    "prompt_template": "qwen_math_route",
+    "samples_per_prompt": 8,
+    "seed": 690101,
+    "split": "math_dev",
+    "temperature": 1.0,
+    "top_p": 1.0
+  },
+  "schema": "e69_math_route_gate1_base_archive_v1"
+}

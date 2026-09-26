@@ -1,0 +1,86 @@
+[
+  {
+    "kind": "asset path",
+    "old": "iclr2027_overleaf/figures/qwen_level_trends.pdf",
+    "new": "figures/qwen_level_trends.pdf",
+    "count": 1
+  },
+  {
+    "kind": "citation key",
+    "old": "brown2024large",
+    "new": "brown2024monkeys",
+    "count": 1
+  },
+  {
+    "kind": "citation key",
+    "old": "yue2025does",
+    "new": "yue2025rlvrlimit",
+    "count": 1
+  },
+  {
+    "kind": "citation key",
+    "old": "\\citep{anschel2025group}",
+    "new": "\\citep{anschel2025groupaware}",
+    "count": 2
+  },
+  {
+    "kind": "Dr.GRPO attribution",
+    "old": "\\citep{shao2024deepseekmath}",
+    "new": "\\citep{liu2025understanding}",
+    "count": 1
+  },
+  {
+    "kind": "reference type",
+    "old": "App~\\ref{tab:tasks}",
+    "new": "Table~\\ref{tab:tasks}",
+    "count": 1
+  },
+  {
+    "kind": "reference formatting",
+    "old": "App.\\ref{app:level2-interim}",
+    "new": "App.~\\ref{app:level2-interim}",
+    "count": 1
+  },
+  {
+    "kind": "reference",
+    "old": "collapse (App.~\\ref{app:hosted-concentration})",
+    "new": "collapse (App.~\\ref{app:hosted-mode-diversity})",
+    "count": 1
+  },
+  {
+    "kind": "reference",
+    "old": "(Apps.~\\ref{app:portfolio-withdrawals},~\\ref{app:pantry-adaptation})",
+    "new": "(Apps.~\\ref{app:withdrawal-recovery},~\\ref{app:pantry-adaptation})",
+    "count": 1
+  },
+  {
+    "kind": "reference",
+    "old": "We further show analytically that diversity depends on whether all modes were contained within the initial policy or discovered during training (App.~\\ref{app:theory-kl-measured}).",
+    "new": "We further show analytically that diversity depends on whether all modes were contained within the initial policy or discovered during training (App.~\\ref{app:theory-kl}).",
+    "count": 1
+  },
+  {
+    "kind": "reference",
+    "old": "(Sec.~\\ref{sec:results-collapse} and~\\ref{sec:hosted-concentration})",
+    "new": "(Sec.~\\ref{sec:results-collapse} and App.~\\ref{app:hosted-mode-diversity})",
+    "count": 1
+  },
+  {
+    "kind": "reference",
+    "old": "(Table~\\ref{tab:hosted-level-averages}, App.~\\ref{app:hosted-reasoning-control}",
+    "new": "(Table~\\ref{tab:hosted-reasoning-matched-levels}, App.~\\ref{app:hosted-reasoning-control}",
+    "count": 1
+  },
+  {
+    "kind": "remove unsupported source link; figure retained",
+    "old": ", Fig.~\\ref{fig:hosted-verified-breadth}",
+    "new": "",
+    "count": 1
+  },
+  {
+    "kind": "reference to figure moved to appendix by user request",
+    "old": ", Fig.~\\ref{fig:replay-key-weighting}",
+    "new": ", App. Fig.~\\ref{fig:replay-key-weighting}",
+    "count": 1
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "pdf": "/tmp/paper-latest-theory-20260921/build/main.pdf",
+  "pdf_sha256": "b75011131430db22c2cfeff15d97db95c38a4a0f406526758cdef474fd70ef17",
+  "pages_reviewed": [
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108
+  ],
+  "raster_resolution_max_dimension": 1500,
+  "concrete_findings": [],
+  "checks": [
+    "No equation clipping or collisions; numbered displays remain within text margins.",
+    "Proof headings and QED marks are legible and separate from equations/text.",
+    "No orphan subsection headings; starts near page bottoms have substantive following text.",
+    "Theorem/proof page breaks occur between a completed statement and its proof; no isolated equation fragments.",
+    "No visible broken cross-references in inspected pages.",
+    "P.10 continues onto page108; its proof, interference example and ending were inspected.",
+    "The page99 superscript-star math renders correctly; no question-mark reference defect."
+  ]
+}

@@ -1,0 +1,69 @@
+% Insert after the proof of Proposition~\ref{prop:kl-stationary}.
+% No change to Section 3.1 or the MaxRL stationary-policy statement.
+For Dr.GRPO, the constant fresh coefficient permits a stronger conclusion
+by direct application of established optimization theory. The following
+specializes \citet[Theorem~5 and Lemma~13]{mei2020softmaxpg}; its Gibbs
+target is also the standard regularized maximizer of
+\citet[Proposition~1]{geist2019regmdp}.
+
+\begin{corollary}[Exact Dr.GRPO with reference KL converges]
+\enforcehalffinalproseline
+\label{cor:kl-dr-mei-convergence}
+Fix one prompt, a finite category set
+$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$ with both parts
+nonempty, and independently optimized logits $p_n=\operatorname{softmax}(z_n)$.
+Let $z_1$ be finite, let $\mu$ be a reference distribution with
+$\mu_a>0$ for every category, and take $\beta>0$ and
+$\alpha=(G-1)/G$ for $G\ge2$. Define
+\[
+ \mathcal J_\beta(p)=\alpha P(p)-\beta\mathrm{KL}(p\|\mu).
+\]
+For constant $0<\eta\le1/\beta$, consider the exact gradient updates
+\begin{equation}
+ z_{n+1}=z_n+\eta\nabla_z\mathcal J_\beta(p_n).
+ \label{eq:kl-dr-mei-update}
+\end{equation}
+Then $p_n\to p^\star$, where
+\[
+ p^\star_a=
+ \frac{\mu_a\exp(\alpha R_a/\beta)}
+      {\sum_b\mu_b\exp(\alpha R_b/\beta)},
+ \qquad R_a=\1[a\in\mathcal C],
+ \qquad q^\star=\mu|_{\mathcal C}.
+\]
+There are constants $\underline p>0$ and $C<\infty$, depending only on
+$|\mathcal A|,z_1,\mu,\alpha,\beta$, such that for every $n\ge1$,
+\begin{equation}
+ \min_a p_{n,a}\ge\underline p,
+ \qquad
+ \mathcal J_\beta(p^\star)-\mathcal J_\beta(p_n)
+ =\beta\mathrm{KL}(p_n\|p^\star)
+ \le C e^{-2\beta\eta\underline p(n-1)}.
+ \label{eq:kl-dr-mei-rate}
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+Set $\widetilde r_a=\alpha R_a+\beta\log\mu_a$. Then
+$\mathcal J_\beta(p)=\langle p,\widetilde r\rangle+\beta H(p)$.
+For $B=\max\{1,\max_a\widetilde r_a-\min_a\widetilde r_a\}$, define
+$r'_a=(\widetilde r_a-\min_b\widetilde r_b)/B\in[0,1]$,
+$\tau=\beta/B$, and $\eta'=\eta B$. Equation~\eqref{eq:kl-dr-mei-update}
+is exactly the entropy-regularized bandit update of
+\citet{mei2020softmaxpg} with reward $r'$, temperature $\tau$, and step
+$\eta'\le1/\tau$. Their Lemma~13 supplies $\underline p$, and their
+Theorem~5 supplies the displayed rate after multiplying the objective by
+$B$. The optimum $\operatorname{softmax}(r'/\tau)$ is $p^\star$;
+substitution gives the KL gap identity and hence convergence.
+\end{proof}
+
+This positive trajectory floor depends on initialization and the reference;
+it need not provide useful finite-sample visibility. It is compatible with
+the vanishing coordinate force below and with increasingly slow recovery
+as the initial probability decreases. The result concerns exact discrete
+gradients with a fixed reference and the stated step size, not sampled KL
+gradients, PPO epochs, or AdamW. For centered MaxRL with $G\ge3$,
+$c_G(P)$ is nonconstant, so its potential cannot be absorbed into the fixed
+reward vector used in this reduction; Proposition~\ref{prop:kl-stationary}
+continues to specify its stationary target without asserting convergence.

@@ -1,0 +1,2105 @@
+{
+  "schema": "paper-open-bank-bundle-endpoint-effects-v1",
+  "generated_at": "2026-09-04T15:36:56.015608+00:00",
+  "status": "terminal preregistered follow-up; 25/25 cells passed mechanism audit",
+  "matrix_scope": "E102 is a separately preregistered bundled follow-up outside the canonical ten-method 750-cell organizing matrix",
+  "model": "Qwen2.5-0.5B",
+  "treatment": "ReplayDr.GRPO plus retention-safe whole-bank balance, one fresh original-prompt proposal group per update, and four-visit 4x mass priority for newly admitted verified modes",
+  "comparators": [
+    "ReplayDr.GRPO",
+    "Dr.GRPO"
+  ],
+  "endpoint_metrics": [
+    "pass@8",
+    "distinct@8",
+    "distinct@8-pass@8"
+  ],
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "target_steps": 3072,
+  "cells": [
+    {
+      "domain": "graph_coloring",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30583684,
+          "endpoint": {
+            "pass8": 0.970703125,
+            "distinct8": 2.298828125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.98046875,
+              "distinct8": 2.435546875
+            },
+            "control": {
+              "pass8": 0.3515625,
+              "distinct8": 0.359375
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.009765625,
+              "distinct8": -0.13671875,
+              "adjusted_breadth8": -0.126953125
+            },
+            "control": {
+              "pass8": 0.619140625,
+              "distinct8": 1.939453125,
+              "adjusted_breadth8": 1.3203125
+            }
+          },
+          "mechanism": {
+            "admissions": 758.0,
+            "priority_replay_groups": 1874.0,
+            "proposal_groups": 3037.0,
+            "proposal_rows": 48592.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3073
+          }
+        },
+        "44": {
+          "job_id": 30583685,
+          "endpoint": {
+            "pass8": 0.9921875,
+            "distinct8": 2.408203125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.966796875,
+              "distinct8": 2.419921875
+            },
+            "control": {
+              "pass8": 0.3125,
+              "distinct8": 0.3125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.025390625,
+              "distinct8": -0.01171875,
+              "adjusted_breadth8": -0.037109375
+            },
+            "control": {
+              "pass8": 0.6796875,
+              "distinct8": 2.095703125,
+              "adjusted_breadth8": 1.416015625
+            }
+          },
+          "mechanism": {
+            "admissions": 687.0,
+            "priority_replay_groups": 1847.0,
+            "proposal_groups": 3026.0,
+            "proposal_rows": 48416.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3072
+          }
+        },
+        "45": {
+          "job_id": 30583686,
+          "endpoint": {
+            "pass8": 0.97265625,
+            "distinct8": 2.37109375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.97265625,
+              "distinct8": 2.466796875
+            },
+            "control": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.0,
+              "distinct8": -0.095703125,
+              "adjusted_breadth8": -0.095703125
+            },
+            "control": {
+              "pass8": 0.65234375,
+              "distinct8": 2.05078125,
+              "adjusted_breadth8": 1.3984375
+            }
+          },
+          "mechanism": {
+            "admissions": 750.0,
+            "priority_replay_groups": 1785.0,
+            "proposal_groups": 3036.0,
+            "proposal_rows": 48576.0,
+            "replay_actuation_updates": 3072,
+            "balance_eligible_updates": 3069
+          }
+        },
+        "46": {
+          "job_id": 30583687,
+          "endpoint": {
+            "pass8": 0.978515625,
+            "distinct8": 2.55078125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.955078125,
+              "distinct8": 2.306640625
+            },
+            "control": {
+              "pass8": 0.3125,
+              "distinct8": 0.3125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.0234375,
+              "distinct8": 0.244140625,
+              "adjusted_breadth8": 0.220703125
+            },
+            "control": {
+              "pass8": 0.666015625,
+              "distinct8": 2.23828125,
+              "adjusted_breadth8": 1.572265625
+            }
+          },
+          "mechanism": {
+            "admissions": 752.0,
+            "priority_replay_groups": 1918.0,
+            "proposal_groups": 3029.0,
+            "proposal_rows": 48464.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3071
+          }
+        },
+        "47": {
+          "job_id": 30583688,
+          "endpoint": {
+            "pass8": 0.978515625,
+            "distinct8": 2.43359375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.970703125,
+              "distinct8": 2.55859375
+            },
+            "control": {
+              "pass8": 0.3203125,
+              "distinct8": 0.3203125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.0078125,
+              "distinct8": -0.125,
+              "adjusted_breadth8": -0.1328125
+            },
+            "control": {
+              "pass8": 0.658203125,
+              "distinct8": 2.11328125,
+              "adjusted_breadth8": 1.455078125
+            }
+          },
+          "mechanism": {
+            "admissions": 764.0,
+            "priority_replay_groups": 1934.0,
+            "proposal_groups": 3036.0,
+            "proposal_rows": 48576.0,
+            "replay_actuation_updates": 3072,
+            "balance_eligible_updates": 3072
+          }
+        }
+      },
+      "effect_summaries": {
+        "replay": {
+          "pass8": {
+            "mean": 0.009375,
+            "student_t_95": [
+              -0.009362916254001099,
+              0.0281129162540011
+            ],
+            "range": [
+              -0.009765625,
+              0.025390625
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": -0.034375,
+            "student_t_95": [
+              -0.21759315336044233,
+              0.14884315336044235
+            ],
+            "range": [
+              -0.1328125,
+              0.220703125
+            ]
+          }
+        },
+        "control": {
+          "pass8": {
+            "mean": 0.655078125,
+            "student_t_95": [
+              0.6270786941943642,
+              0.6830775558056357
+            ],
+            "range": [
+              0.619140625,
+              0.6796875
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 1.432421875,
+            "student_t_95": [
+              1.3178414555721154,
+              1.5470022944278845
+            ],
+            "range": [
+              1.3203125,
+              1.572265625
+            ]
+          }
+        }
+      },
+      "mechanism_summaries": {
+        "admissions": {
+          "mean": 742.2,
+          "range": [
+            687.0,
+            764.0
+          ]
+        },
+        "priority_replay_groups": {
+          "mean": 1871.6,
+          "range": [
+            1785.0,
+            1934.0
+          ]
+        }
+      },
+      "domain_gate": {
+        "admissions": 3711.0,
+        "passed": true,
+        "priority_replay_groups": 9358.0
+      },
+      "compute_accounting": {
+        "proposal_charged_response_token_budget": 46583808.0,
+        "proposal_rows_generated": 242624.0,
+        "replay_charged_response_token_budget": 47201280.0,
+        "replay_realized_prompt_tokens": 14590952.0,
+        "replay_realized_response_tokens": 388841.0
+      }
+    },
+    {
+      "domain": "countdown",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30583679,
+          "endpoint": {
+            "pass8": 0.671875,
+            "distinct8": 3.025390625
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.65625,
+              "distinct8": 1.55859375
+            },
+            "control": {
+              "pass8": 0.6171875,
+              "distinct8": 0.6171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.015625,
+              "distinct8": 1.466796875,
+              "adjusted_breadth8": 1.451171875
+            },
+            "control": {
+              "pass8": 0.0546875,
+              "distinct8": 2.408203125,
+              "adjusted_breadth8": 2.353515625
+            }
+          },
+          "mechanism": {
+            "admissions": 586.0,
+            "priority_replay_groups": 1956.0,
+            "proposal_groups": 2278.0,
+            "proposal_rows": 36448.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 2993
+          }
+        },
+        "44": {
+          "job_id": 30583680,
+          "endpoint": {
+            "pass8": 0.6640625,
+            "distinct8": 2.294921875
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.65625,
+              "distinct8": 1.546875
+            },
+            "control": {
+              "pass8": 0.41015625,
+              "distinct8": 0.435546875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.0078125,
+              "distinct8": 0.748046875,
+              "adjusted_breadth8": 0.740234375
+            },
+            "control": {
+              "pass8": 0.25390625,
+              "distinct8": 1.859375,
+              "adjusted_breadth8": 1.60546875
+            }
+          },
+          "mechanism": {
+            "admissions": 319.0,
+            "priority_replay_groups": 1148.0,
+            "proposal_groups": 2292.0,
+            "proposal_rows": 36672.0,
+            "replay_actuation_updates": 3072,
+            "balance_eligible_updates": 2928
+          }
+        },
+        "45": {
+          "job_id": 30583681,
+          "endpoint": {
+            "pass8": 0.66015625,
+            "distinct8": 2.73828125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.6796875,
+              "distinct8": 1.73828125
+            },
+            "control": {
+              "pass8": 0.4375,
+              "distinct8": 0.4375
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.01953125,
+              "distinct8": 1.0,
+              "adjusted_breadth8": 1.01953125
+            },
+            "control": {
+              "pass8": 0.22265625,
+              "distinct8": 2.30078125,
+              "adjusted_breadth8": 2.078125
+            }
+          },
+          "mechanism": {
+            "admissions": 614.0,
+            "priority_replay_groups": 2052.0,
+            "proposal_groups": 2252.0,
+            "proposal_rows": 36032.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3025
+          }
+        },
+        "46": {
+          "job_id": 30583682,
+          "endpoint": {
+            "pass8": 0.662109375,
+            "distinct8": 2.548828125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.6640625,
+              "distinct8": 1.63671875
+            },
+            "control": {
+              "pass8": 0.328125,
+              "distinct8": 0.333984375
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.001953125,
+              "distinct8": 0.912109375,
+              "adjusted_breadth8": 0.9140625
+            },
+            "control": {
+              "pass8": 0.333984375,
+              "distinct8": 2.21484375,
+              "adjusted_breadth8": 1.880859375
+            }
+          },
+          "mechanism": {
+            "admissions": 344.0,
+            "priority_replay_groups": 1184.0,
+            "proposal_groups": 2251.0,
+            "proposal_rows": 36016.0,
+            "replay_actuation_updates": 3069,
+            "balance_eligible_updates": 2988
+          }
+        },
+        "47": {
+          "job_id": 30583683,
+          "endpoint": {
+            "pass8": 0.677734375,
+            "distinct8": 2.244140625
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.703125,
+              "distinct8": 1.703125
+            },
+            "control": {
+              "pass8": 0.609375,
+              "distinct8": 0.609375
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.025390625,
+              "distinct8": 0.541015625,
+              "adjusted_breadth8": 0.56640625
+            },
+            "control": {
+              "pass8": 0.068359375,
+              "distinct8": 1.634765625,
+              "adjusted_breadth8": 1.56640625
+            }
+          },
+          "mechanism": {
+            "admissions": 398.0,
+            "priority_replay_groups": 1354.0,
+            "proposal_groups": 2409.0,
+            "proposal_rows": 38544.0,
+            "replay_actuation_updates": 3067,
+            "balance_eligible_updates": 2769
+          }
+        }
+      },
+      "effect_summaries": {
+        "replay": {
+          "pass8": {
+            "mean": -0.0046875,
+            "student_t_95": [
+              -0.02641910990960643,
+              0.01704410990960643
+            ],
+            "range": [
+              -0.025390625,
+              0.015625
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 0.93828125,
+            "student_t_95": [
+              0.5228530201833954,
+              1.3537094798166045
+            ],
+            "range": [
+              0.56640625,
+              1.451171875
+            ]
+          }
+        },
+        "control": {
+          "pass8": {
+            "mean": 0.18671875,
+            "student_t_95": [
+              0.03600352365739512,
+              0.33743397634260486
+            ],
+            "range": [
+              0.0546875,
+              0.333984375
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 1.896875,
+            "student_t_95": [
+              1.4870525535327503,
+              2.3066974464672496
+            ],
+            "range": [
+              1.56640625,
+              2.353515625
+            ]
+          }
+        }
+      },
+      "mechanism_summaries": {
+        "admissions": {
+          "mean": 452.2,
+          "range": [
+            319.0,
+            614.0
+          ]
+        },
+        "priority_replay_groups": {
+          "mean": 1538.8,
+          "range": [
+            1148.0,
+            2052.0
+          ]
+        }
+      },
+      "domain_gate": {
+        "admissions": 2261.0,
+        "passed": true,
+        "priority_replay_groups": 7694.0
+      },
+      "compute_accounting": {
+        "proposal_charged_response_token_budget": 35272704.0,
+        "proposal_rows_generated": 183712.0,
+        "replay_charged_response_token_budget": 47201280.0,
+        "replay_realized_prompt_tokens": 6551850.0,
+        "replay_realized_response_tokens": 830033.0
+      }
+    },
+    {
+      "domain": "python_factors",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30583699,
+          "endpoint": {
+            "pass8": 0.2265625,
+            "distinct8": 0.4375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 1.0,
+              "distinct8": 1.0
+            },
+            "control": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.7734375,
+              "distinct8": -0.5625,
+              "adjusted_breadth8": 0.2109375
+            },
+            "control": {
+              "pass8": 0.0546875,
+              "distinct8": 0.265625,
+              "adjusted_breadth8": 0.2109375
+            }
+          },
+          "mechanism": {
+            "admissions": 8.0,
+            "priority_replay_groups": 24.0,
+            "proposal_groups": 727.0,
+            "proposal_rows": 11632.0,
+            "replay_actuation_updates": 2977,
+            "balance_eligible_updates": 2825
+          }
+        },
+        "44": {
+          "job_id": 30583700,
+          "endpoint": {
+            "pass8": 1.0,
+            "distinct8": 2.7421875
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.998046875,
+              "distinct8": 0.998046875
+            },
+            "control": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.001953125,
+              "distinct8": 1.744140625,
+              "adjusted_breadth8": 1.7421875
+            },
+            "control": {
+              "pass8": 0.828125,
+              "distinct8": 2.5703125,
+              "adjusted_breadth8": 1.7421875
+            }
+          },
+          "mechanism": {
+            "admissions": 319.0,
+            "priority_replay_groups": 1033.0,
+            "proposal_groups": 2179.0,
+            "proposal_rows": 34864.0,
+            "replay_actuation_updates": 3027,
+            "balance_eligible_updates": 1799
+          }
+        },
+        "45": {
+          "job_id": 30583701,
+          "endpoint": {
+            "pass8": 0.6484375,
+            "distinct8": 1.830078125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.21875,
+              "distinct8": 0.21875
+            },
+            "control": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.4296875,
+              "distinct8": 1.611328125,
+              "adjusted_breadth8": 1.181640625
+            },
+            "control": {
+              "pass8": 0.4765625,
+              "distinct8": 1.658203125,
+              "adjusted_breadth8": 1.181640625
+            }
+          },
+          "mechanism": {
+            "admissions": 214.0,
+            "priority_replay_groups": 811.0,
+            "proposal_groups": 1902.0,
+            "proposal_rows": 30432.0,
+            "replay_actuation_updates": 3069,
+            "balance_eligible_updates": 2407
+          }
+        },
+        "46": {
+          "job_id": 30583702,
+          "endpoint": {
+            "pass8": 1.0,
+            "distinct8": 3.2734375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.2265625,
+              "distinct8": 0.443359375
+            },
+            "control": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.7734375,
+              "distinct8": 2.830078125,
+              "adjusted_breadth8": 2.056640625
+            },
+            "control": {
+              "pass8": 0.828125,
+              "distinct8": 3.1015625,
+              "adjusted_breadth8": 2.2734375
+            }
+          },
+          "mechanism": {
+            "admissions": 967.0,
+            "priority_replay_groups": 2239.0,
+            "proposal_groups": 2866.0,
+            "proposal_rows": 45856.0,
+            "replay_actuation_updates": 3068,
+            "balance_eligible_updates": 2688
+          }
+        },
+        "47": {
+          "job_id": 30583703,
+          "endpoint": {
+            "pass8": 1.0,
+            "distinct8": 2.087890625
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.1953125,
+              "distinct8": 0.1953125
+            },
+            "control": {
+              "pass8": 0.171875,
+              "distinct8": 0.171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.8046875,
+              "distinct8": 1.892578125,
+              "adjusted_breadth8": 1.087890625
+            },
+            "control": {
+              "pass8": 0.828125,
+              "distinct8": 1.916015625,
+              "adjusted_breadth8": 1.087890625
+            }
+          },
+          "mechanism": {
+            "admissions": 511.0,
+            "priority_replay_groups": 1625.0,
+            "proposal_groups": 2752.0,
+            "proposal_rows": 44032.0,
+            "replay_actuation_updates": 2981,
+            "balance_eligible_updates": 2137
+          }
+        }
+      },
+      "effect_summaries": {
+        "replay": {
+          "pass8": {
+            "mean": 0.247265625,
+            "student_t_95": [
+              -0.5676261739734556,
+              1.0621574239734555
+            ],
+            "range": [
+              -0.7734375,
+              0.8046875
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 1.255859375,
+            "student_t_95": [
+              0.37713548635422556,
+              2.1345832636457747
+            ],
+            "range": [
+              0.2109375,
+              2.056640625
+            ]
+          }
+        },
+        "control": {
+          "pass8": {
+            "mean": 0.603125,
+            "student_t_95": [
+              0.1781035957774882,
+              1.028146404222512
+            ],
+            "range": [
+              0.0546875,
+              0.828125
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 1.29921875,
+            "student_t_95": [
+              0.33980454352728373,
+              2.2586329564727166
+            ],
+            "range": [
+              0.2109375,
+              2.2734375
+            ]
+          }
+        }
+      },
+      "mechanism_summaries": {
+        "admissions": {
+          "mean": 403.8,
+          "range": [
+            8.0,
+            967.0
+          ]
+        },
+        "priority_replay_groups": {
+          "mean": 1146.4,
+          "range": [
+            24.0,
+            2239.0
+          ]
+        }
+      },
+      "domain_gate": {
+        "admissions": 2019.0,
+        "passed": true,
+        "priority_replay_groups": 5732.0
+      },
+      "compute_accounting": {
+        "proposal_charged_response_token_budget": 32028672.0,
+        "proposal_rows_generated": 166816.0,
+        "replay_charged_response_token_budget": 47201280.0,
+        "replay_realized_prompt_tokens": 6518062.0,
+        "replay_realized_response_tokens": 1201437.0
+      }
+    },
+    {
+      "domain": "mathir",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30583689,
+          "endpoint": {
+            "pass8": 0.865234375,
+            "distinct8": 0.978515625
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.791015625,
+              "distinct8": 0.8203125
+            },
+            "control": {
+              "pass8": 0.576171875,
+              "distinct8": 0.576171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.07421875,
+              "distinct8": 0.158203125,
+              "adjusted_breadth8": 0.083984375
+            },
+            "control": {
+              "pass8": 0.2890625,
+              "distinct8": 0.40234375,
+              "adjusted_breadth8": 0.11328125
+            }
+          },
+          "mechanism": {
+            "admissions": 64.0,
+            "priority_replay_groups": 256.0,
+            "proposal_groups": 2631.0,
+            "proposal_rows": 42096.0,
+            "replay_actuation_updates": 3069,
+            "balance_eligible_updates": 1276
+          }
+        },
+        "44": {
+          "job_id": 30583690,
+          "endpoint": {
+            "pass8": 0.798828125,
+            "distinct8": 0.912109375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.83203125,
+              "distinct8": 0.85546875
+            },
+            "control": {
+              "pass8": 0.5078125,
+              "distinct8": 0.5078125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.033203125,
+              "distinct8": 0.056640625,
+              "adjusted_breadth8": 0.08984375
+            },
+            "control": {
+              "pass8": 0.291015625,
+              "distinct8": 0.404296875,
+              "adjusted_breadth8": 0.11328125
+            }
+          },
+          "mechanism": {
+            "admissions": 85.0,
+            "priority_replay_groups": 340.0,
+            "proposal_groups": 2714.0,
+            "proposal_rows": 43424.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 1436
+          }
+        },
+        "45": {
+          "job_id": 30583691,
+          "endpoint": {
+            "pass8": 0.896484375,
+            "distinct8": 0.982421875
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.798828125,
+              "distinct8": 0.84375
+            },
+            "control": {
+              "pass8": 0.556640625,
+              "distinct8": 0.556640625
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.09765625,
+              "distinct8": 0.138671875,
+              "adjusted_breadth8": 0.041015625
+            },
+            "control": {
+              "pass8": 0.33984375,
+              "distinct8": 0.42578125,
+              "adjusted_breadth8": 0.0859375
+            }
+          },
+          "mechanism": {
+            "admissions": 83.0,
+            "priority_replay_groups": 332.0,
+            "proposal_groups": 2667.0,
+            "proposal_rows": 42672.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 1410
+          }
+        },
+        "46": {
+          "job_id": 30583692,
+          "endpoint": {
+            "pass8": 0.810546875,
+            "distinct8": 0.875
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.849609375,
+              "distinct8": 0.908203125
+            },
+            "control": {
+              "pass8": 0.474609375,
+              "distinct8": 0.474609375
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": -0.0390625,
+              "distinct8": -0.033203125,
+              "adjusted_breadth8": 0.005859375
+            },
+            "control": {
+              "pass8": 0.3359375,
+              "distinct8": 0.400390625,
+              "adjusted_breadth8": 0.064453125
+            }
+          },
+          "mechanism": {
+            "admissions": 59.0,
+            "priority_replay_groups": 236.0,
+            "proposal_groups": 2545.0,
+            "proposal_rows": 40720.0,
+            "replay_actuation_updates": 3072,
+            "balance_eligible_updates": 1159
+          }
+        },
+        "47": {
+          "job_id": 30583693,
+          "endpoint": {
+            "pass8": 0.775390625,
+            "distinct8": 0.859375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.7109375,
+              "distinct8": 0.71484375
+            },
+            "control": {
+              "pass8": 0.443359375,
+              "distinct8": 0.451171875
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.064453125,
+              "distinct8": 0.14453125,
+              "adjusted_breadth8": 0.080078125
+            },
+            "control": {
+              "pass8": 0.33203125,
+              "distinct8": 0.408203125,
+              "adjusted_breadth8": 0.076171875
+            }
+          },
+          "mechanism": {
+            "admissions": 72.0,
+            "priority_replay_groups": 288.0,
+            "proposal_groups": 2608.0,
+            "proposal_rows": 41728.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 1238
+          }
+        }
+      },
+      "effect_summaries": {
+        "replay": {
+          "pass8": {
+            "mean": 0.0328125,
+            "student_t_95": [
+              -0.04680033135667228,
+              0.11242533135667229
+            ],
+            "range": [
+              -0.0390625,
+              0.09765625
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 0.06015625,
+            "student_t_95": [
+              0.015557680423391715,
+              0.10475481957660829
+            ],
+            "range": [
+              0.005859375,
+              0.08984375
+            ]
+          }
+        },
+        "control": {
+          "pass8": {
+            "mean": 0.317578125,
+            "student_t_95": [
+              0.2861636282904139,
+              0.34899262170958606
+            ],
+            "range": [
+              0.2890625,
+              0.33984375
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 0.090625,
+            "student_t_95": [
+              0.06326296904562952,
+              0.11798703095437048
+            ],
+            "range": [
+              0.064453125,
+              0.11328125
+            ]
+          }
+        }
+      },
+      "mechanism_summaries": {
+        "admissions": {
+          "mean": 72.6,
+          "range": [
+            59.0,
+            85.0
+          ]
+        },
+        "priority_replay_groups": {
+          "mean": 290.4,
+          "range": [
+            236.0,
+            340.0
+          ]
+        }
+      },
+      "domain_gate": {
+        "admissions": 363.0,
+        "passed": true,
+        "priority_replay_groups": 1452.0
+      },
+      "compute_accounting": {
+        "proposal_charged_response_token_budget": 13480960.0,
+        "proposal_rows_generated": 210640.0,
+        "replay_charged_response_token_budget": 15733760.0,
+        "replay_realized_prompt_tokens": 4139543.0,
+        "replay_realized_response_tokens": 87896.0
+      }
+    },
+    {
+      "domain": "pantry_plan",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30583694,
+          "endpoint": {
+            "pass8": 0.8984375,
+            "distinct8": 2.609375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.8046875,
+              "distinct8": 1.62890625
+            },
+            "control": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.09375,
+              "distinct8": 0.98046875,
+              "adjusted_breadth8": 0.88671875
+            },
+            "control": {
+              "pass8": 0.3671875,
+              "distinct8": 2.078125,
+              "adjusted_breadth8": 1.7109375
+            }
+          },
+          "mechanism": {
+            "admissions": 1822.0,
+            "priority_replay_groups": 2955.0,
+            "proposal_groups": 2374.0,
+            "proposal_rows": 37984.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3073
+          }
+        },
+        "44": {
+          "job_id": 30583695,
+          "endpoint": {
+            "pass8": 0.740234375,
+            "distinct8": 1.611328125
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.736328125,
+              "distinct8": 1.779296875
+            },
+            "control": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.00390625,
+              "distinct8": -0.16796875,
+              "adjusted_breadth8": -0.171875
+            },
+            "control": {
+              "pass8": 0.208984375,
+              "distinct8": 1.080078125,
+              "adjusted_breadth8": 0.87109375
+            }
+          },
+          "mechanism": {
+            "admissions": 1853.0,
+            "priority_replay_groups": 3072.0,
+            "proposal_groups": 2508.0,
+            "proposal_rows": 40128.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3073
+          }
+        },
+        "45": {
+          "job_id": 30583696,
+          "endpoint": {
+            "pass8": 0.77734375,
+            "distinct8": 2.009765625
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.673828125,
+              "distinct8": 1.2734375
+            },
+            "control": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.103515625,
+              "distinct8": 0.736328125,
+              "adjusted_breadth8": 0.6328125
+            },
+            "control": {
+              "pass8": 0.24609375,
+              "distinct8": 1.478515625,
+              "adjusted_breadth8": 1.232421875
+            }
+          },
+          "mechanism": {
+            "admissions": 1779.0,
+            "priority_replay_groups": 2909.0,
+            "proposal_groups": 2394.0,
+            "proposal_rows": 38304.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3072
+          }
+        },
+        "46": {
+          "job_id": 30583697,
+          "endpoint": {
+            "pass8": 0.84375,
+            "distinct8": 2.27734375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.69921875,
+              "distinct8": 1.55078125
+            },
+            "control": {
+              "pass8": 0.484375,
+              "distinct8": 0.484375
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.14453125,
+              "distinct8": 0.7265625,
+              "adjusted_breadth8": 0.58203125
+            },
+            "control": {
+              "pass8": 0.359375,
+              "distinct8": 1.79296875,
+              "adjusted_breadth8": 1.43359375
+            }
+          },
+          "mechanism": {
+            "admissions": 1792.0,
+            "priority_replay_groups": 2980.0,
+            "proposal_groups": 2416.0,
+            "proposal_rows": 38656.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3073
+          }
+        },
+        "47": {
+          "job_id": 30583698,
+          "endpoint": {
+            "pass8": 0.80859375,
+            "distinct8": 2.24609375
+          },
+          "baselines": {
+            "replay": {
+              "pass8": 0.728515625,
+              "distinct8": 1.46484375
+            },
+            "control": {
+              "pass8": 0.53125,
+              "distinct8": 0.53125
+            }
+          },
+          "effects": {
+            "replay": {
+              "pass8": 0.080078125,
+              "distinct8": 0.78125,
+              "adjusted_breadth8": 0.701171875
+            },
+            "control": {
+              "pass8": 0.27734375,
+              "distinct8": 1.71484375,
+              "adjusted_breadth8": 1.4375
+            }
+          },
+          "mechanism": {
+            "admissions": 1811.0,
+            "priority_replay_groups": 2993.0,
+            "proposal_groups": 2422.0,
+            "proposal_rows": 38752.0,
+            "replay_actuation_updates": 3073,
+            "balance_eligible_updates": 3072
+          }
+        }
+      },
+      "effect_summaries": {
+        "replay": {
+          "pass8": {
+            "mean": 0.08515625,
+            "student_t_95": [
+              0.021347344717022265,
+              0.14896515528297774
+            ],
+            "range": [
+              0.00390625,
+              0.14453125
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 0.526171875,
+            "student_t_95": [
+              0.02089663094398264,
+              1.0314471190560173
+            ],
+            "range": [
+              -0.171875,
+              0.88671875
+            ]
+          }
+        },
+        "control": {
+          "pass8": {
+            "mean": 0.291796875,
+            "student_t_95": [
+              0.20531132764102822,
+              0.3782824223589718
+            ],
+            "range": [
+              0.208984375,
+              0.3671875
+            ]
+          },
+          "adjusted_breadth8": {
+            "mean": 1.337109375,
+            "student_t_95": [
+              0.9507617687650873,
+              1.7234569812349128
+            ],
+            "range": [
+              0.87109375,
+              1.7109375
+            ]
+          }
+        }
+      },
+      "mechanism_summaries": {
+        "admissions": {
+          "mean": 1811.4,
+          "range": [
+            1779.0,
+            1853.0
+          ]
+        },
+        "priority_replay_groups": {
+          "mean": 2981.8,
+          "range": [
+            2909.0,
+            3072.0
+          ]
+        }
+      },
+      "domain_gate": {
+        "admissions": 9057.0,
+        "passed": true,
+        "priority_replay_groups": 14909.0
+      },
+      "compute_accounting": {
+        "proposal_charged_response_token_budget": 1162944.0,
+        "proposal_rows_generated": 193824.0,
+        "replay_charged_response_token_budget": 1966720.0,
+        "replay_realized_prompt_tokens": 87137431.0,
+        "replay_realized_response_tokens": 913080.0
+      }
+    }
+  ],
+  "mechanism_audit": {
+    "domain_gate": {
+      "countdown": {
+        "admissions": 2261.0,
+        "passed": true,
+        "priority_replay_groups": 7694.0
+      },
+      "graph_coloring": {
+        "admissions": 3711.0,
+        "passed": true,
+        "priority_replay_groups": 9358.0
+      },
+      "mathir": {
+        "admissions": 363.0,
+        "passed": true,
+        "priority_replay_groups": 1452.0
+      },
+      "pantry_plan": {
+        "admissions": 9057.0,
+        "passed": true,
+        "priority_replay_groups": 14909.0
+      },
+      "python_factors": {
+        "admissions": 2019.0,
+        "passed": true,
+        "priority_replay_groups": 5732.0
+      }
+    },
+    "compute_accounting": {
+      "by_domain": {
+        "countdown": {
+          "proposal_charged_response_token_budget": 35272704.0,
+          "proposal_rows_generated": 183712.0,
+          "replay_charged_response_token_budget": 47201280.0,
+          "replay_realized_prompt_tokens": 6551850.0,
+          "replay_realized_response_tokens": 830033.0
+        },
+        "graph_coloring": {
+          "proposal_charged_response_token_budget": 46583808.0,
+          "proposal_rows_generated": 242624.0,
+          "replay_charged_response_token_budget": 47201280.0,
+          "replay_realized_prompt_tokens": 14590952.0,
+          "replay_realized_response_tokens": 388841.0
+        },
+        "mathir": {
+          "proposal_charged_response_token_budget": 13480960.0,
+          "proposal_rows_generated": 210640.0,
+          "replay_charged_response_token_budget": 15733760.0,
+          "replay_realized_prompt_tokens": 4139543.0,
+          "replay_realized_response_tokens": 87896.0
+        },
+        "pantry_plan": {
+          "proposal_charged_response_token_budget": 1162944.0,
+          "proposal_rows_generated": 193824.0,
+          "replay_charged_response_token_budget": 1966720.0,
+          "replay_realized_prompt_tokens": 87137431.0,
+          "replay_realized_response_tokens": 913080.0
+        },
+        "python_factors": {
+          "proposal_charged_response_token_budget": 32028672.0,
+          "proposal_rows_generated": 166816.0,
+          "replay_charged_response_token_budget": 47201280.0,
+          "replay_realized_prompt_tokens": 6518062.0,
+          "replay_realized_response_tokens": 1201437.0
+        }
+      },
+      "proposal_charge_rule": "generated proposal rows times the frozen per-update response ceiling",
+      "proposal_realized_tokens": "not retained by the E102 actor path; this preregistered reporting quantity is unavailable and is not imputed",
+      "unit": "tokens summed over the five terminal seeds in each domain"
+    },
+    "violations": []
+  },
+  "reporting_gap": "not retained by the E102 actor path; this preregistered reporting quantity is unavailable and is not imputed",
+  "input_sha256": {
+    "paper/preregistration/e102_full_open_bank_maxent_replay_05b_20260814.md": {
+      "byte_length": 6480,
+      "sha256": "af094035a9c89dd26be6956fb6f72b21fff610c665ab9a48143a90988414b009"
+    },
+    "var/artifacts/e102_full_open_bank_maxent_replay_05b_audit_latest.json": {
+      "byte_length": 43358,
+      "sha256": "c92b61fc8a044986c3ecd83d2de75a005e017e210f7d3cbd74968c577da7e90f"
+    },
+    "var/artifacts/e102_full_open_bank_maxent_replay_05b_jobs.json": {
+      "byte_length": 218637,
+      "sha256": "4d0ded84cc2ce1664022c0275a5bf9945078fca4e79c25872a2eb6f7e4046c44"
+    },
+    "var/artifacts/e78_verified_replay_only_05b_jobs.json": {
+      "byte_length": 293716,
+      "sha256": "4a6a70d07c5f1fc30334bea848776900c85425f771ebadc39e802fb2e2d83ce2"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 724,
+      "sha256": "6fb7ddb4d8f4fd0d2a2186adebcec4e56abc8797981f8ff9e2db6acca5ec73d8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s43/debug_job30263959/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24726375,
+      "sha256": "c1933684bfc20825fd345a7679cfc302a25b3f229b2c0844743f64bceb8b5222"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "baf2052d1ffbafe0b446e519c5011ac6a8050b72ad5da060e92791a938f20299"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s44/debug_job30263961/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24866633,
+      "sha256": "b4c3ca7ad7c79b5024d0db5da66203ef1d5f99a54d9aa3a73283300fc123ff59"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 724,
+      "sha256": "a45ff7a3c92a645977c6135044bbe785af077033e1089795c1b8d97eba77fbfb"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s45/debug_job30263963/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24756191,
+      "sha256": "5996863b768d7c20b3ac2beeae5f43db11c7de8ae0ae05aeb09955e82322973e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 724,
+      "sha256": "9cae414f9bd3a147f46cd3c48b41f81ebbb6e4ca91b1969ae68e23db7301595c"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s46/debug_job30263965/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24881687,
+      "sha256": "15281f7d79eee786e942a5c606a4113d1deadd929bef6a00c61d1f18064bd751"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "aa297d7d0f22350b143ce4463c89e044680d3e3d2984dec57350920219249853"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_countdown_control_s47/debug_job30263967/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24808737,
+      "sha256": "5746b0ec8916ff3dec59622c780af0b2f1eaedbfe6269309eab2e1eead6a4de9"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 712,
+      "sha256": "08f54ad253c9543650e45cc6d23575a6d95ed99e3844e314b2d8eedc723aab1e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s43/debug_job30263969/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29851790,
+      "sha256": "f5993df7a004ea8439a76d5c85251f46a1966103a4ba339955433a94679533a2"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 713,
+      "sha256": "c1ac8c0b29b0c4310fb41906890915ef468c27089bacc2c25d9b63c988ff3ed0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s44/debug_job30263971/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29830980,
+      "sha256": "5457362a5c32a8ecd8edae6ba0058810a28833bae7c985d6adbe869c2003757a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 713,
+      "sha256": "94795dc1f8034990eddecd9c8630fa22b441cc22af9781b6798887a2c2078a5d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s45/debug_job30263973/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 30022704,
+      "sha256": "68525ff42ab1d883b5184d766c0d7c8c7bb835accb2503b6b1e82e688ca20f5e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 713,
+      "sha256": "021922520df60bedc12c5b40d218edf131a049e640ac8eb25e6427bc2c2452a8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s46/debug_job30263975/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29822520,
+      "sha256": "ab19eaf035df39bec2c4ce0b108341d2dbc6a1221485d896ee4c1afc53c45b53"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 713,
+      "sha256": "32b5e1e1daf6aacb1494cc426cc9f2ff16eede23e5034d045e5ee6bd7c52334e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_graph_control_s47/debug_job30263977/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 30376759,
+      "sha256": "ad9b475157f7f8523d1dcdd8ad73f71ef0c05b191932849a36e4cbc53bbbffdc"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 715,
+      "sha256": "47f8f0e3ffa0a7cead50b8689e365407255182a309c0925ebffa14c0a13dcba8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s43/debug_job30263979/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 41286594,
+      "sha256": "8957dc9f9a616b749615b03238e660358da5a2bc022603ff59301a67ea9f3d4e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "1a77f7212c8fc21b6398a6b85aa9eed4e3b70bf69c320df6e786c5734abc2220"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s44/debug_job30263981/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 41521285,
+      "sha256": "09cb768b502c75c3782f409d677a7d37effbfc9bd5f8d713a1152b711417767d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 715,
+      "sha256": "5da8f19e81e84832f1378639980a63f94f22409d7c34fb88fa2ca1fb5e07ea93"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s45/debug_job30263983/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 41177585,
+      "sha256": "783324b26e53ac27ba594dc9898d3111b91208bcff0c4dcd7cc1d805ca9a15c1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "f043cd7e4b29633142d0fc3fe711f5ce8c69812cee700dab64e6ef7ba49f0940"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s46/debug_job30263985/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 40737897,
+      "sha256": "65e48f7aa56c897d3c607055a8024fba216729a24e03603438e589a2bdbab023"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 715,
+      "sha256": "44b6e1212bde6a5c784cee88a3fbf596ea5f610ac870915c4d94500bd097964d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_mathir_control_s47/debug_job30263987/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 40339161,
+      "sha256": "e2e97cae4c3bcea3fea58780c33b4a4458214b4704cf92b8e98fb78e8aec6de0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "99862195b93917eb1e50e34fe1515786c6b2cf7d18b8c54c00b05fc467aa0a8f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s43/debug_job30263989/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 88872223,
+      "sha256": "539b8b0acc8dffd2fbdced1b4859753fb804bca42058507885c5fc16174d43fd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "2488c9f126e52d7a6bb1039a8ff5578884e055deec6d57d0ec7b437fb1f18083"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s44/debug_job30263991/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 88869119,
+      "sha256": "68590eae4aa0fd99332100d010fcafa6d77266dd8388d69ec657ec64d8be1306"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "b957126ed9d0cdc0f4dc49252423b01e15e28a887a3a912dd6ddae4153030ad6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s45/debug_job30263993/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 88897106,
+      "sha256": "3495365afe0202a31c8fb09e8d10b2eea8c35eac1f7ce6e23806e3487abb77f4"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "0db3b2705223ec9da33b6c60ef986ef52debd9f35ed08821d675798772779e91"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s46/debug_job30263995/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 88577866,
+      "sha256": "a1e4619bfe7025f2c5113b2145f61e4d8f5aedf30daf5c049b7091538ff1a79c"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "f95d2188aa7d2779f831fdfe5f5443695101eb494cf5a294717b5eb096b0216d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_pantry_control_s47/debug_job30263997/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 88895273,
+      "sha256": "efade10d09a89c2f88510f4cdb9ee25492610ed21007135eb1f1c13596005f06"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "327167260d09b71e4f84d2027a2fb9e9cc8788b38247e54111ddcbca4e24c5de"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s43/debug_job30263999/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33978022,
+      "sha256": "0e6dbaeca1a06bf863550827240eeb579f142ec69be0a67d810474e0a4f6a232"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "bd7718f3a549b186ed66a65de73d6336328d1f7f5cdcb4055a9fb3b3b18f4627"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s44/debug_job30264001/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33178485,
+      "sha256": "dc2acba7e7c5e56ebd0a75fde8c2137ffff005fdd95a7613bc2b23b519d2c71d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "f2dc5039b9496b854800fa0e886a9a9b5720b9611cfe55896fe0a9865b9f66a8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s45/debug_job30264003/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33834823,
+      "sha256": "8adde25948f953b0e353c3c1acc0b89a6dba77fe7292a278881fb756f6de6470"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "5832a8048543ce75daacc36e101943de277b94160179fbc414def3b07d6ece31"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s46/debug_job30264005/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33369348,
+      "sha256": "b155a28150c187e683355484f0076160c8b586141a46c87f9f19f3f82a141188"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 716,
+      "sha256": "5e9dff35686c5fb61ff0ec0cf04e5673b530754f3a48e08e609bea4b80b29e52"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s47/debug_job30264007/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33561032,
+      "sha256": "1f939d737995248f895110a51d445db61e543d1e12472a47bf7b25ad1ad11610"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 737,
+      "sha256": "66284b97d54f03a1dbbb2b75905d8df72d8984133aeba7abfa514774e17f4cc6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s43/debug_job30583679/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25092129,
+      "sha256": "c2651bc4a12355e47d21a07519187500129eddef48fcc65343589260d94e3992"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 736,
+      "sha256": "f4fd547b03b2eb9dc29e05d2f31a8509876e7e08becc5d3e435cce5e341cc69f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s44/debug_job30583680/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25547035,
+      "sha256": "2192a7b5bd844c02783728929caebeb3a8a6ebf448ab1f5893e7448a5e2c77cc"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 737,
+      "sha256": "6ff9081aa6c0c2d37bfc83c69073c5cab61bc098459306dee626e2735ea9045f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s45/debug_job30583681/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25078648,
+      "sha256": "0faeeef7f56f5c0c178d2d0bf5717f6123ca5b001ae24e5f473502de33615df8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 736,
+      "sha256": "ae1d87a681fed193a397af3b98cd6a9907ba704e7eeb784013477025c12c1946"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s46/debug_job30583682/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25479313,
+      "sha256": "d4fa0e12e53fe33a34eab24424ec08c7ddeea834f0bff1f703ab3f2278a68694"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 737,
+      "sha256": "4dd195081955288ccca3b19a22dda93e32d11e8e2be3565fd7da5cc7c3c3d2c0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s47/debug_job30583683/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24992851,
+      "sha256": "671f28b42a975072bc920ac6247b80e823f3124fda67b1145625d985684c52e3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "aab1718a10b89e696d5cdf46ee07c40f3f24358f9a15c054031f4c51668e6e85"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s43/debug_job30583684/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29895829,
+      "sha256": "aa2ef2db78c8c71416fe14f65f519aed425020d5efb2b50f5b10fa75199fafc3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "a51cdb5a8baebf46766d6189a60321169d605bff6e11626b4e343cb581e47998"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s44/debug_job30583685/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29887580,
+      "sha256": "a0e4d5d14b86c8553bb18bd9f0d5df6af30e61902d3c27ef973f5a446c1fa4c7"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "f6f05cf676513f4e83b9780464367728ad0104b701dd9bf75e5bee4b45077188"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s45/debug_job30583686/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29883581,
+      "sha256": "c27e5c0a83d7ea68863b1221ca2d3ebab4051a6a51b7b94e4333393317ab05f9"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "e94ee990cda378552169903a39439d4acbd1093d180ae0b6e0a2459f0c290df2"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s46/debug_job30583687/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29868387,
+      "sha256": "38a1724782c8763ef0218f9fc73e2003d1d95a20171cb63974b7d1734cca3939"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "773d35ca5b8711689583303f0db039fb76b5b0f241727fe0317e35b0b84764c1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s47/debug_job30583688/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29870090,
+      "sha256": "29b2b70cbdb0b24ec6713e2b9ddbf7801954325b507cc2a08f8548933e6e6cbd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "600f81a58d997c0cc7baf8c43a70c7a738ecf407a08716e297d311038faaabc2"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s43/debug_job30583689/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43575878,
+      "sha256": "ce758053b0d21820d3e8d9389ba42ceb81fcd83f161117f8862f3bce49548e35"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "0ebd484ff93fb33b8b5a65143eee4d8ee47102a097d5cd49a20dc1f388c412f1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s44/debug_job30583690/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42857167,
+      "sha256": "1f3244d5242ca3ceb236fc266ecc89dd07e3be64663a489a137cb394a106717c"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "27c777dbfeace025b69dd9956bfb6fd8dc05a4f7cb5c2c68e6d22cb1122cac2b"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s45/debug_job30583691/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43849618,
+      "sha256": "3b5b28a13ee74614cee02ae5cde5f77f23e556d1deaf0ae3414805013c84f014"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "fb43c9d504860b7aeb758abcf0c38fcbeb81119c48f11e43d9d07514a084a1a8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s46/debug_job30583692/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43098898,
+      "sha256": "890a0b5110c5b7ceeb475c9adc0419eba620e0e1919af0bff7ea61dd304f5879"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "7df44d33b75a670eec40c6a652ab4fdf8747324b1751946b9b0e5820845f34c6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s47/debug_job30583693/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43487378,
+      "sha256": "d346da2a197fa66d906020384dcec89ab310177d780b2be95592a81e9d129574"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "e42ab92ac6d6ea539b6c85b2ae51b8b79191a12b824c995a42636e40e4b37d71"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s43/debug_job30583694/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89127161,
+      "sha256": "9b836a6c8c16cb4ba1c8afd683a0a420647728737454a1c198effd0d14ad5110"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 727,
+      "sha256": "da52a912a31fcdf1034be740a07a3c66d21f9ff8b272ea4ed6fb566b24e1f5e8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s44/debug_job30583695/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89181601,
+      "sha256": "9db723933291cb510223afea5fc53dad4f1e1f66ceda0ac746bf6094c355ab58"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "4f4d76f34c18488b607e7b27479bd5d2d607f1b65c364047ed56f6b261a8550f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s45/debug_job30583696/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89192746,
+      "sha256": "1ffe465e052c790f53e537e2f911687041b161ad34e597c1ff54decc6edc1230"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "614be63d8d00aa351a2c5d4f9adb39716aa9f48a32cc23085353aa0cbcbdd290"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s46/debug_job30583697/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89047666,
+      "sha256": "a57e93054063adc62048282b2aa49bdbddc4a717d609ba5fcad31cb8e77680b7"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "102547e5077186a47bd56f22d4273ce6f7249433d77684b408aeaafbbfcf1304"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s47/debug_job30583698/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89232278,
+      "sha256": "2ad2e4cea18b07f5087e2266f9d59796e5cf404e1d99da43318d1c76b365ca92"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "9456edc8f82dcb18f38db5814e753d815db2e3852da427c8bb24cd61b177ce69"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s43/debug_job30583699/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 34521039,
+      "sha256": "ad1bb71b653f05b3ad2ba19a5d0086c0217e2d8c1885a3bce8ee1465928bd7a1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "2155fd6bf5d539bb536a4a22dd0529ddd2db5827090e8ab014dd8b7bf82db04a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s44/debug_job30583700/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 39034578,
+      "sha256": "d48647c959d99517f0826c9cd767f1ea6a619eb6cc22c7a2da2d86d4cb642e1a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "d2a053af8f33b76ac564e9af5de17020e40fa807ef9db3973b6df8ffa639e1c6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s45/debug_job30583701/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 35657174,
+      "sha256": "62e31cd5cdb4e1639b0159c82dd8d0e1d10e55bc1264051cb6ef7b011caa2834"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "838c72e9784a194da3a03d22756bf9a064399c6742ae8ff1a3ee9accfab17976"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s46/debug_job30583702/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42643765,
+      "sha256": "662600f0dd3a7d15c95cc41efcc2e16bcf07e9cc18ae70e739e7c319cd791cdd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "b847eafdbbde815768cf428f9ce035ee25ce6b3153a7b1668369d06971a6fb7a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s47/debug_job30583703/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 44495012,
+      "sha256": "3af49b3413c2c4a256a6b36f81c13bdbbcd2e93ad43a0e8b30d15fa31b0d569a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 770,
+      "sha256": "52171466745ed39d59a7541bde7f8e448a2cfad63b0d02cb563acee9ec31d334"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s43/debug_job30263960/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25033880,
+      "sha256": "3b125df086a2c085a22412b315c3a44c6f1476f21e8c5ce42298e66b16ef6787"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 770,
+      "sha256": "b3d0f0f29dc34c79ceb973c18b5a334465d36f892d0b7b2aa198e951fd998b15"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s44/debug_job30263962/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24954504,
+      "sha256": "8d373397932b651d06df2c4f61238fa9b80bbca6514f1b807e9a4d5f05f38c12"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 769,
+      "sha256": "f49a05c6676ce6c9d3d6609fa890f2660165228ea1de1303608695c303b20d57"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s45/debug_job30263964/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24802616,
+      "sha256": "be27e98419afa97e7eb3c1042b044a72d7439707bd0cda8696ba8a815729eefd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 770,
+      "sha256": "51939910f8a587113509748a43e822240a077396f2214bce77d4dfb74838dcab"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s46/debug_job30263966/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24678715,
+      "sha256": "aa513dca396445eae66deb2dcf7257a30a77ea8d9c75e497fd63e9897843f27d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 770,
+      "sha256": "19cae22a2f44c9ad97741cc8346830b2681f9ed6654b5b0f1499db16dde3ddc0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_countdown_replay_s47/debug_job30263968/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24770566,
+      "sha256": "4b22d0cd8243f3c33ed4174ce87ee200c405d41973a9a1fc681a8162defa2cf8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 758,
+      "sha256": "b0e12ba0d7cc743c019e2bd50e1f4d6eef866c099f0c0e8e7d9e7146d1c8ba8c"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s43/debug_job30263970/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29894800,
+      "sha256": "e7ca2fdf710486d25ba3f0123f64062748e4355bac89623f047d12277625f129"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 758,
+      "sha256": "b5f8428a93ccde3430b12356b24b9a12968eb160eda2f26c260eee7d45389c61"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s44/debug_job30263972/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29889216,
+      "sha256": "c56d8a0f2aff9d6174a7d1b2ca81f687ddd4c234a1ed93a4aa3bbdfadcbe4815"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 758,
+      "sha256": "f385c61a8fe694639315e63fd6ade4d35050c0b2eb20d30cec0bfcd308cdfbe9"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s45/debug_job30263974/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29887074,
+      "sha256": "bb500f8f80bbbdfb7e5f969231d3a6d0f9f1f46fdfa59ed9ad21fae93ed91456"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 758,
+      "sha256": "97ef3b7351ed76993d46dbf1609304d936558b9fe4742f86177396b31f95e8c0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s46/debug_job30263976/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29879179,
+      "sha256": "33b4fe890b5d8b2cb80fc067d7ae5552cf44eaef07f2de6b420af901e836b75d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 758,
+      "sha256": "b468cd1c542d8f8cb9907cd57e63a55f521bc1d170433e27f29ae9d1ba168fa3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_graph_replay_s47/debug_job30263978/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29870344,
+      "sha256": "c981c2f9aeda72fd6dd34877071ea5b638cb06d850159387702a8a4c4a5cd47b"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "e11ec90dfc0a60ed63b24cb7eb82f1f62fd7db7ab282093adf474280c5eb1904"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s43/debug_job30263980/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43602165,
+      "sha256": "c1fcbeaf3fdf545a15acb9cf0f1c0c60f80c55b46ac3dd35a5ec9cf00e61889d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "10872c799593a4a0e8dc2539df887213dfa23698e5eaaa1156867c5117b40531"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s44/debug_job30263982/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43806859,
+      "sha256": "8f1775b49b767d732a10805bc98dbe4891a61c7cbf744ea8ce3cea616deac840"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "045e0c94071bbaff0a2be274ed95f79d275c3a2cdd0b60e8672044ddcbb8367b"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s45/debug_job30263984/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43315690,
+      "sha256": "32fcd815e241c393aa4c54a250d7e1052b1cf29491f172d285ace02092c2ab70"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "93fb89af1055a4c6155ab847b155c389a93973a913f17e5b0ce2e98d90a4a5c0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s46/debug_job30263986/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43797583,
+      "sha256": "ace5a01a8a07ce3aa9923e3ed6e6d35e6e6fc0dc7deea0b02456eeaa1f98849e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "4460055d47551a50518e6d911dfc657d01e11fa3e2a466018a3e514fda366bdd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_mathir_replay_s47/debug_job30263988/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42768737,
+      "sha256": "4b94275a30b28d57a883b34f261ec43edd4488554d31320a323d31e1f4f6a0d4"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "4d745dad6e828d9af7c7779d83b025c3a45db1d27c7f900de189c223904d6239"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s43/debug_job30263990/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89067035,
+      "sha256": "dac52b5e68ca3ae9c48f7dde10812641a7c73781656eb70f569540bad6cafc05"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "299320924ddf9a0b8e69c741fa5b2f892f6506268a334d21bf1cb0e023f50210"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s44/debug_job30263992/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89228151,
+      "sha256": "e66643482a9fe42f305c8e6e8983b5286bc262c604fe0cd5d30f76077c18df08"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "29c97869af5c3a2e4571bccd4e36a03958e4e5a9c8a2296f6343dd9719550a40"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s45/debug_job30263994/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89204024,
+      "sha256": "4a3fce14d4a6032ad1ac782cf3d009edfc61dc5fb3ebe2fddbfe31f1f794183b"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "cb39bae38937566b145295cd42d47ce88f9c4afb63b80b71f23ed25a99ce72cb"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s46/debug_job30263996/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89120319,
+      "sha256": "e5174f81a93aa1934df98d590bafa2135e0019a4975d3b1cdd597ef1db335715"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "e1346c37e310ea20ff1d266eb2b97683440d9c140fe721738c9d265b7db3026b"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_pantry_replay_s47/debug_job30263998/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89241172,
+      "sha256": "fb59ed626a3d370dbac891ee13757a0388894f6998e4ecaccf93af586c850ffe"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "81c4084e18d3cf6e296a40d46d647e1ab8755d029496619a24dbbc7744c90034"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s43/debug_job30264000/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42950926,
+      "sha256": "b0a93a504fbc384d5aee927344542b25ef89633a72868d965963e513c5b5227f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 760,
+      "sha256": "6b75151257c75fd0122afe59787300b71427a12c74c3f7def5574ce3308cd78e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s44/debug_job30264002/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 40386385,
+      "sha256": "a35758d8ecd75f090192ff6bc37d010bee5f7946495a3b1fe5dc757d3413af29"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "ad60b7f4579e3efa001d26e794e2dbabba1243b37250652cacf870b49e1fa65f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s45/debug_job30264004/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33146145,
+      "sha256": "e8ec4d08b14123c2a9d266757b7cbd0f46ce101ac8178d099bc3a34d59858a59"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "ae8e71428d98e3c7648bec5eaaf6fff1c35aea235fd5a6539c0ce692209cc890"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s46/debug_job30264006/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 32578255,
+      "sha256": "ba789e8f4e8623dd4c78cce56b38a56539e3c80a1ced778d24752ef15f1a767a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 761,
+      "sha256": "6933324e5adb46dbc042442d7fdeab2899672ea5b5eeb5a0b13ceb6d75496169"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s47/debug_job30264008/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 32679867,
+      "sha256": "3230e7d4631521a5e7209939f50ba5cac77aa22d0ea6079d6cd0fc169a88bc90"
+    }
+  }
+}

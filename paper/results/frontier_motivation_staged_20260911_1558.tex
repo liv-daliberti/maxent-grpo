@@ -1,0 +1,35 @@
+% PREFERRED STAGED DRAFT. Not activated in either manuscript; not built.
+% Supersedes the 1553 staged draft without overwriting it.
+% Uses original OpenAI and Claude icons; these are cosmetic table assets.
+
+\noindent\textbf{A motivating hosted-model test.}
+A held-out test reveals concentration over verified output modes: both hosted
+deployments answer correctly on every draw, yet eight samples yield almost
+one distinct coloring per prompt (Table~\ref{tab:frontier-motivation}).
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Concentration over verified output modes.}
+  Level-3 Graph: 128 held-out prompts, eight independent samples per prompt
+  and deployment, and no additional training. Every model produces 1,024
+  verified answers. Distinct modes is the mean per eight samples; collision
+  is the percentage of within-prompt correct pairs sharing a coloring.
+  The conditional uniform-correct-coloring reference is $19.0\%$ collision.}
+  \label{tab:frontier-motivation}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Deployment & Accuracy (\%) & Distinct modes / 8 & Collision (\%) \\
+    \midrule
+    \raisebox{-.15ex}{\includegraphics[height=1.4ex]{icons/openai.png}}\,
+      GPT-5.6 Sol & 100.0 & 1.16 & 95.1 \\
+    \raisebox{-.15ex}{\includegraphics[height=1.4ex]{icons/claude.png}}\,
+      Claude Opus 5 & 100.0 & 1.02 & 99.4 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+These results characterize the evaluated inference settings. Level 3 is an
+exploratory test extension; all domains, prompt limitations, and separately
+counted native provider refusals appear in Appendix~\ref{app:hosted-comparison}.

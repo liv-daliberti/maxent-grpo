@@ -1,0 +1,25 @@
+{
+  "alpha": {
+    "base": 0.000075,
+    "max": 0.0006,
+    "min": 0.000075
+  },
+  "alpha_lr": 0.01,
+  "legacy_pooled_target_entropy": 0.2922906872943104,
+  "method": "Set the fixed target to 125% of the pooled E21 warmup entropy (rounded to 0.4567 nats). Preserve the intended base dose as the lower alpha bound, use four times the saturated legacy upper bound, and double the log-alpha Adam learning rate so the controller can respond earlier.",
+  "new_fixed_target_entropy": 0.4567,
+  "pooled_warmup_mean_entropy": 0.3653633594512939,
+  "per_seed_warmup_mean_entropy": {
+    "43": 0.33802319306414574,
+    "44": 0.3761734676081687,
+    "45": 0.38189341768156737
+  },
+  "post_warmup_legacy_alpha_max_fraction": {
+    "43": 0.6880116959064327,
+    "44": 0.7642673836001467,
+    "45": 0.8044249881684808
+  },
+  "schema": "e26_math_freeform_dual_high_entropy_calibration_v2",
+  "source_prefix": "mte21_math_conditional_token_05b_v4",
+  "warmup_steps": 64
+}

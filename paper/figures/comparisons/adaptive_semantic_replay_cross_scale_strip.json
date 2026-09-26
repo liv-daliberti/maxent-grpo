@@ -1,0 +1,340 @@
+{
+  "schema": "paper-aligned-domain-strip-v2",
+  "generated_at": "2026-09-04T15:32:05.107780+00:00",
+  "figure_key": "adaptive_semantic_replay_cross_scale_strip",
+  "comparison": "adaptive_semantic_replay",
+  "layout": "three physical model rows by five static-domain columns",
+  "environment_columns": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "model_rows": [
+    "qwen05b",
+    "falcon1b",
+    "qwen3b"
+  ],
+  "model_encoding": "row 1 Qwen2.5-0.5B; row 2 Falcon3-1B; row 3 Qwen2.5-3B; insufficient cells are blank",
+  "evidence": "terminal five-seed where shown",
+  "metric": "mean distinct correct@8 with paired-seed range",
+  "methods": [
+    "drgrpo",
+    "replay_grpo",
+    "adaptive_semantic_replay"
+  ],
+  "sources": [
+    {
+      "path": "paper/figures/comparisons/adaptive_semantic_replay_qwen05b_part1.json",
+      "sha256": "32f6c5243bb8b6371ce6b99a9bdbb4b0974cbd00235581e06c330ac5e2dec241"
+    },
+    {
+      "path": "paper/figures/comparisons/adaptive_semantic_replay_qwen05b_part2.json",
+      "sha256": "1cd495542568b925d412f77d8186d0271bd2cc1ab973ad415d0613ecb42fb34a"
+    },
+    {
+      "path": "paper/figures/comparisons/adaptive_semantic_replay_falcon1b_part1.json",
+      "sha256": "2d8e57e5c46e0d594598b1b69409116e78d4fd6a87d3403e8fa8f9eb88ade039"
+    },
+    {
+      "path": "paper/figures/comparisons/adaptive_semantic_replay_falcon1b_part2.json",
+      "sha256": "0c12c624099ef40a6ca0209efedec26363fd822727ee909f3b6818d2147d5be1"
+    },
+    {
+      "path": "paper/figures/comparisons/adaptive_semantic_replay_qwen3b_part1.json",
+      "sha256": "6946b8ba2e3323e5d818d07508912bf7d1b404644619f9b0b3470688014095ba"
+    },
+    {
+      "path": "paper/figures/comparisons/adaptive_semantic_replay_qwen3b_part2.json",
+      "sha256": "c9fccce4a684aa623e14b2eeec2068c5e8df0040114dffffc5bfc82f4db83aaa"
+    }
+  ],
+  "panels": {
+    "graph_coloring": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "falcon1b",
+          "scale_label": "Falcon3-1B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "qwen3b",
+          "scale_label": "Qwen2.5-3B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 1
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "available"
+        },
+        "qwen3b": {
+          "status": "available"
+        }
+      }
+    },
+    "countdown": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "falcon1b",
+          "scale_label": "Falcon3-1B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "qwen3b",
+          "scale_label": "Qwen2.5-3B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 1
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "available"
+        },
+        "qwen3b": {
+          "status": "available"
+        }
+      }
+    },
+    "python_factors": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "falcon1b",
+          "scale_label": "Falcon3-1B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "qwen3b",
+          "scale_label": "Qwen2.5-3B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 1
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "available"
+        },
+        "qwen3b": {
+          "status": "available"
+        }
+      }
+    },
+    "mathir": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "falcon1b",
+          "scale_label": "Falcon3-1B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "qwen3b",
+          "scale_label": "Qwen2.5-3B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 1
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "available"
+        },
+        "qwen3b": {
+          "status": "available"
+        }
+      }
+    },
+    "pantry_plan": {
+      "available": [
+        {
+          "scale": "qwen05b",
+          "scale_label": "Qwen2.5-0.5B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "falcon1b",
+          "scale_label": "Falcon3-1B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 5
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        },
+        {
+          "scale": "qwen3b",
+          "scale_label": "Qwen2.5-3B",
+          "minimum_paired_seed_count_by_method": {
+            "drgrpo": 5,
+            "replay_grpo": 5,
+            "adaptive_semantic_replay": 1
+          },
+          "available_methods": [
+            "drgrpo",
+            "replay_grpo",
+            "adaptive_semantic_replay"
+          ]
+        }
+      ],
+      "cells": {
+        "qwen05b": {
+          "status": "available"
+        },
+        "falcon1b": {
+          "status": "available"
+        },
+        "qwen3b": {
+          "status": "available"
+        }
+      }
+    }
+  }
+}

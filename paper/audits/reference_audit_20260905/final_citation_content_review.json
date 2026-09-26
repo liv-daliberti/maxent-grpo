@@ -1,0 +1,142 @@
+{
+  "reviewed_at": "2026-09-05T20:55:45.011801+00:00",
+  "reviewer": "/root/e120_health",
+  "verdict": "PASS",
+  "scope": "Independent read-only review of the final citation-content changes in full paper and workshop main/appendix against the pre-reference-audit backup. Does not certify layout, current builds, or the entire bibliography.",
+  "backup_root": "/tmp/paper_reference_review_20260905_before",
+  "files": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
+      "before_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0"
+    },
+    {
+      "path": "paper/mathai2026/main.tex",
+      "sha256": "5ce26f5259c0cf685514d040f3dd028ca40898a56b23200edb32d15a6061a11e",
+      "before_sha256": "9d03106339f9e3938c093bedfaefb7af9da5ba42777e07a4fa4dc0e273eb816b"
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "sha256": "d30ac07967bdd4b598a96cd3ae6a3a4e7363e034de30808e1be8a86a1e218f81",
+      "before_sha256": "5c5912c478126196b507a52d5e47b1c7bf655822bfcb106477b46f8ee56b4ad2"
+    },
+    {
+      "path": "paper/example_paper.bib",
+      "sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+      "before_sha256": "96ecce3e3ada4e1545447850e285e2c43a9b7ee887f4c1ef50d4131989c3b1cf"
+    },
+    {
+      "path": "paper/mathai2026/example_paper.bib",
+      "sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+      "before_sha256": "96ecce3e3ada4e1545447850e285e2c43a9b7ee887f4c1ef50d4131989c3b1cf"
+    }
+  ],
+  "checks": [
+    {
+      "topic": "DeepSeek-R1, GRPO, and Dr.GRPO attribution",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:134",
+        "paper/main.tex:316",
+        "paper/mathai2026/main.tex:22",
+        "paper/mathai2026/main.tex:96"
+      ],
+      "assessment": "Executable correctness is attributed to DeepSeek-R1. Shao is cited for GRPO, Liu for Dr.GRPO. Workshop now says Dr.GRPO debiases GRPO and explicitly names ReplayDr.GRPO as ours. No claim that Liu introduced replay or demonstrated execution-key collapse.",
+      "primary_sources": [
+        "https://www.nature.com/articles/s41586-025-09422-z",
+        "https://arxiv.org/html/2402.03300v3",
+        "https://arxiv.org/html/2503.20783v2"
+      ]
+    },
+    {
+      "topic": "Repeated sampling and fixed-correctness pass@K",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:139",
+        "paper/mathai2026/main.tex:25"
+      ],
+      "assessment": "Verifier references support repeated sampling and candidate selection. The verified-mode collapse result is identified as the present manuscript result. The fixed-per-sample-correctness caveat avoids suggesting that within-correct-mode concentration must reduce pass@K; under independent draws pass@K depends only on total correctness probability."
+    },
+    {
+      "topic": "External diversity metrics versus execution keys",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:210",
+        "paper/mathai2026/appendix.tex:474"
+      ],
+      "assessment": "Revised text distinguishes output diversity, policy entropy, and high-budget problem coverage from within-prompt execution-key breadth. Semantic entropy is correctly described as inferred answer equivalence, not execution-defined identity. Shortened full-paper prose retains all distinctions."
+    },
+    {
+      "topic": "MaxRL practical estimator and prior theorem credit",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:223",
+        "paper/main.tex:443",
+        "paper/main.tex:943",
+        "paper/mathai2026/appendix.tex:489",
+        "paper/mathai2026/appendix.tex:593",
+        "paper/mathai2026/appendix.tex:2014"
+      ],
+      "assessment": "ArgMaxRL attribution is removed. The centered estimator drops the complete update on all-failure groups and gives zero on all-success groups. Tajwar v3 Section 4.3 and Appendix D Theorem 5 state exactly this estimator and effective truncation N-1. With N=G, expected coefficient is sum_{t=1}^{G-1}(1-P)^(t-1), so the pass@k harmonic-mixture claim and explicit specialization credit are correct. Both bibliographies pin version 3.",
+      "primary_sources": [
+        "https://arxiv.org/html/2602.02710v3"
+      ],
+      "local_evidence": [
+        "paper/audits/reference_audit_20260905/modern_rl_sources/tajwar2026maxrl_full.txt:7794",
+        "paper/audits/reference_audit_20260905/modern_rl_sources/tajwar2026maxrl_full.txt:7824"
+      ]
+    },
+    {
+      "topic": "UCPO and Sinha prior-theory scope",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:1004",
+        "paper/mathai2026/appendix.tex:654"
+      ],
+      "assessment": "UCPO Section 4 analyzes correctness indifference, sampling bias, and gradient amplification. Sinha studies outcome collapse and inverse-probability scaling. Wording credits these topics without adopting universal collapse claims or assigning the current persistent execution-key replay result to them.",
+      "primary_sources": [
+        "https://arxiv.org/html/2605.00365",
+        "https://arxiv.org/html/2601.21669v1"
+      ],
+      "local_evidence": [
+        "paper/audits/reference_audit_20260905/modern_rl_sources/lochab2026ucpo_full.txt:792",
+        "paper/audits/reference_audit_20260905/modern_rl_sources/sinha2026expected_full.txt:100"
+      ]
+    },
+    {
+      "topic": "RLEP comparator and replay/search attribution",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:228",
+        "paper/main.tex:549",
+        "paper/mathai2026/appendix.tex:342",
+        "paper/mathai2026/appendix.tex:494"
+      ],
+      "assessment": "General replay references are used for experience reuse and forgetting. RLEP is used for successful reasoning trajectory replay. The tested frequency-weighted RLEP-Dr comparator is explicitly called a local adaptation; the source does not introduce that method name. Novelty search is credited for novelty and MAP-Elites for one elite per descriptor cell.",
+      "primary_sources": [
+        "https://arxiv.org/html/2507.07451"
+      ],
+      "local_evidence": [
+        "paper/audits/reference_audit_20260905/modern_rl_sources/zhang2025rlep_full.txt:606"
+      ]
+    },
+    {
+      "topic": "Shortened categorical proof conclusion",
+      "status": "PASS",
+      "locations": [
+        "paper/main.tex:1080",
+        "paper/mathai2026/appendix.tex:730"
+      ],
+      "assessment": "Replacement prose preserves the explicit preceding exponential ratio bound and the normalization argument. It does not add a mathematical or priority claim."
+    }
+  ],
+  "residual_content_findings": [],
+  "resolved_during_review": [
+    {
+      "file": "paper/mathai2026/main.tex:96",
+      "issue": "Citation placement after debiased GRPO variant could imply Shao introduced debiasing.",
+      "resolution": "Current text now says Dr.GRPO [Liu], which debiases GRPO [Shao], yields our ReplayDr.GRPO."
+    }
+  ],
+  "modifications_by_reviewer": "Only this audit JSON; no TeX, Bib, scheduler, runtime, or ledger mutations."
+}

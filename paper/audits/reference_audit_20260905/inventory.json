@@ -1,0 +1,1642 @@
+{
+  "entries": [
+    {
+      "key": "hofbauer1998evolutionary",
+      "type": "book",
+      "bib": "@book{hofbauer1998evolutionary,\n  title     = {Evolutionary Games and Population Dynamics},\n  author    = {Hofbauer, Josef and Sigmund, Karl},\n  year      = {1998},\n  address   = {Cambridge, United Kingdom},\n  publisher = {Cambridge University Press}\n}",
+      "uses": [
+        {
+          "keys": [
+            "hofbauer1998evolutionary"
+          ],
+          "file": "paper/main.tex",
+          "line": 1012,
+          "context": "The conditional correct-mode flow derived below is a standard\nfrequency-dependent replicator system with fitness $f_c(q)=q_c$\n\\citep{hofbauer1998evolutionary}; the following\ntheorem is not claimed as a new replicator-dynamics result. Its role is to show\nthat the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that\nfamiliar winner-take-all flow under the paper's categorical assumptions."
+        },
+        {
+          "keys": [
+            "hofbauer1998evolutionary"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 656,
+          "context": "The conditional correct-mode flow derived below is a standard\nfrequency-dependent replicator system with fitness $f_c(q)=q_c$\n\\citep{hofbauer1998evolutionary}; the following\ntheorem is not claimed as a new replicator-dynamics result. Its role is to show\nthat the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that\nfamiliar winner-take-all flow under the paper's categorical assumptions."
+        }
+      ]
+    },
+    {
+      "key": "sorensen2024pluralistic",
+      "type": "inproceedings",
+      "bib": "@inproceedings{sorensen2024pluralistic,\n  title     = {Position: A Roadmap to Pluralistic Alignment},\n  author    = {Sorensen, Taylor and Moore, Jared and Fisher, Jillian and Gordon, Mitchell L. and Mireshghallah, Niloofar and Rytting, Christopher Michael and Ye, Andre and Jiang, Liwei and Lu, Ximing and Dziri, Nouha and Althoff, Tim and Choi, Yejin},\n  booktitle = {Proceedings of the 41st International Conference on Machine Learning},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {235},\n  pages     = {46280--46302},\n  year      = {2024},\n  publisher = {PMLR},\n  url       = {https://proceedings.mlr.press/v235/sorensen24a.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "park2024diversitythought",
+      "type": "article",
+      "bib": "@article{park2024diversitythought,\n  title   = {Diminished Diversity-of-Thought in a Standard Large Language Model},\n  author  = {Park, Peter S. and Schoenegger, Philipp and Zhu, Chongyang},\n  journal = {Behavior Research Methods},\n  volume  = {56},\n  number  = {6},\n  pages   = {5754--5770},\n  year    = {2024},\n  doi     = {10.3758/s13428-023-02307-x}\n}",
+      "uses": []
+    },
+    {
+      "key": "wang2025flatten",
+      "type": "article",
+      "bib": "@article{wang2025flatten,\n  title   = {Large Language Models That Replace Human Participants Can Harmfully Misportray and Flatten Identity Groups},\n  author  = {Wang, Angelina and Morgenstern, Jamie and Dickerson, John P.},\n  journal = {Nature Machine Intelligence},\n  volume  = {7},\n  pages   = {400--411},\n  year    = {2025},\n  doi     = {10.1038/s42256-025-00986-z}\n}",
+      "uses": []
+    },
+    {
+      "key": "doshi2024creative",
+      "type": "article",
+      "bib": "@article{doshi2024creative,\n  title   = {Generative {AI} Enhances Individual Creativity but Reduces the Collective Diversity of Novel Content},\n  author  = {Doshi, Anil R. and Hauser, Oliver P.},\n  journal = {Science Advances},\n  volume  = {10},\n  number  = {28},\n  pages   = {eadn5290},\n  year    = {2024},\n  doi     = {10.1126/sciadv.adn5290}\n}",
+      "uses": []
+    },
+    {
+      "key": "anderson2024homogenization",
+      "type": "inproceedings",
+      "bib": "@inproceedings{anderson2024homogenization,\n  title     = {Homogenization Effects of Large Language Models on Human Creative Ideation},\n  author    = {Anderson, Barrett R. and Shah, Jash Hemant and Kreminski, Max},\n  booktitle = {Proceedings of the 16th Conference on Creativity \\& Cognition},\n  pages     = {413--425},\n  year      = {2024},\n  publisher = {Association for Computing Machinery},\n  doi       = {10.1145/3635636.3656204}\n}",
+      "uses": []
+    },
+    {
+      "key": "brown2024monkeys",
+      "type": "misc",
+      "bib": "@misc{brown2024monkeys,\n  title         = {Large Language Monkeys: Scaling Inference Compute with Repeated Sampling},\n  author        = {Brown, Bradley and Juravsky, Jordan and Ehrlich, Ryan and Clark, Ronald and Le, Quoc V. and R\\'{e}, Christopher and Mirhoseini, Azalia},\n  year          = {2024},\n  eprint        = {2407.21787},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url           = {https://arxiv.org/abs/2407.21787}\n}",
+      "uses": [
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime",
+            "cobbe2021training",
+            "lightman2023lets"
+          ],
+          "file": "paper/main.tex",
+          "line": 144,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime"
+          ],
+          "file": "paper/main.tex",
+          "line": 214,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 25,
+          "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives limits what repeated sampling can supply to a verifier\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+        },
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 476,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "snell2024testtime",
+      "type": "misc",
+      "bib": "@misc{snell2024testtime,\n  title         = {Scaling {LLM} Test-Time Compute Optimally Can Be More Effective than Scaling Model Parameters},\n  author        = {Snell, Charlie and Lee, Jaehoon and Xu, Kelvin and Kumar, Aviral},\n  year          = {2024},\n  eprint        = {2408.03314},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url           = {https://arxiv.org/abs/2408.03314}\n}",
+      "uses": [
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime",
+            "cobbe2021training",
+            "lightman2023lets"
+          ],
+          "file": "paper/main.tex",
+          "line": 144,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime"
+          ],
+          "file": "paper/main.tex",
+          "line": 214,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 25,
+          "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives limits what repeated sampling can supply to a verifier\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+        },
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 476,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "dang2025diversity",
+      "type": "inproceedings",
+      "bib": "@inproceedings{dang2025diversity,\n  title     = {Assessing Diversity Collapse in Reasoning},\n  author    = {Dang, Xingyu and Baek, Christina and Kolter, J. Zico and Raghunathan, Aditi},\n  booktitle = {{ICLR} Workshop on Scaling Self-Improving Foundation Models without Human Supervision},\n  year      = {2025},\n  url       = {https://openreview.net/forum?id=AMiKsHLjQh}\n}",
+      "uses": [
+        {
+          "keys": [
+            "liu2025understanding",
+            "cui2025entropy",
+            "dang2025diversity"
+          ],
+          "file": "paper/main.tex",
+          "line": 140,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/main.tex",
+          "line": 216,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "cui2025entropy",
+            "dang2025diversity"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 102,
+          "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+        },
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 478,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "bellemare2016pseudocount",
+      "type": "inproceedings",
+      "bib": "@inproceedings{bellemare2016pseudocount,\n  title     = {Unifying Count-Based Exploration and Intrinsic Motivation},\n  author    = {Bellemare, Marc G. and Srinivasan, Sriram and Ostrovski, Georg and Schaul, Tom and Saxton, David and Munos, Remi},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {29},\n  year      = {2016},\n  eprint    = {1606.01868},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/1606.01868}\n}",
+      "uses": []
+    },
+    {
+      "key": "rolnick2019replay",
+      "type": "inproceedings",
+      "bib": "@inproceedings{rolnick2019replay,\n  title     = {Experience Replay for Continual Learning},\n  author    = {Rolnick, David and Ahuja, Arun and Schwarz, Jonathan and Lillicrap, Timothy P. and Wayne, Greg},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {32},\n  year      = {2019},\n  eprint    = {1811.11682},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/1811.11682}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "rolnick2019replay",
+            "zhang2025rlep"
+          ],
+          "file": "paper/main.tex",
+          "line": 234,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        },
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "rolnick2019replay",
+            "zhang2025rlep"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 496,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        }
+      ]
+    },
+    {
+      "key": "lin1992selfimproving",
+      "type": "article",
+      "bib": "@article{lin1992selfimproving,\n  title   = {Self-Improving Reactive Agents Based on Reinforcement Learning, Planning and Teaching},\n  author  = {Lin, Long-Ji},\n  journal = {Machine Learning},\n  volume  = {8},\n  pages   = {293--321},\n  year    = {1992},\n  doi     = {10.1007/BF00992699}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "mnih2015human",
+            "ecoffet2021return",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/main.tex",
+          "line": 168,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        },
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "rolnick2019replay",
+            "zhang2025rlep"
+          ],
+          "file": "paper/main.tex",
+          "line": 234,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        },
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "rolnick2019replay",
+            "zhang2025rlep"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 496,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        }
+      ]
+    },
+    {
+      "key": "mnih2015human",
+      "type": "article",
+      "bib": "@article{mnih2015human,\n  title   = {Human-Level Control through Deep Reinforcement Learning},\n  author  = {Mnih, Volodymyr and Kavukcuoglu, Koray and Silver, David and Rusu, Andrei A. and Veness, Joel and Bellemare, Marc G. and Graves, Alex and Riedmiller, Martin and Fidjeland, Andreas K. and Ostrovski, Georg and Petersen, Stig and Beattie, Charles and Sadik, Amir and Antonoglou, Ioannis and King, Helen and Kumaran, Dharshan and Wierstra, Daan and Legg, Shane and Hassabis, Demis},\n  journal = {Nature},\n  volume  = {518},\n  pages   = {529--533},\n  year    = {2015},\n  doi     = {10.1038/nature14236}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "mnih2015human",
+            "ecoffet2021return",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/main.tex",
+          "line": 168,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        }
+      ]
+    },
+    {
+      "key": "sutton2018reinforcement",
+      "type": "book",
+      "bib": "@book{sutton2018reinforcement,\n  title     = {Reinforcement Learning: An Introduction},\n  author    = {Sutton, Richard S. and Barto, Andrew G.},\n  edition   = {2},\n  publisher = {MIT Press},\n  year      = {2018},\n  url       = {http://incompleteideas.net/book/the-book-2nd.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "schaul2016prioritized",
+      "type": "inproceedings",
+      "bib": "@inproceedings{schaul2016prioritized,\n  title        = {Prioritized Experience Replay},\n  author       = {Schaul, Tom and Quan, John and Antonoglou, Ioannis and Silver, David},\n  booktitle    = {International Conference on Learning Representations},\n  year         = {2016},\n  eprint       = {1511.05952},\n  archivePrefix= {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/1511.05952}\n}",
+      "uses": []
+    },
+    {
+      "key": "ecoffet2021return",
+      "type": "article",
+      "bib": "@article{ecoffet2021return,\n  title   = {First Return, Then Explore},\n  author  = {Ecoffet, Adrien and Huizinga, Joost and Lehman, Joel and Stanley, Kenneth O. and Clune, Jeff},\n  journal = {Nature},\n  volume  = {590},\n  pages   = {580--586},\n  year    = {2021},\n  doi     = {10.1038/s41586-020-03157-9}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "mnih2015human",
+            "ecoffet2021return",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/main.tex",
+          "line": 168,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        }
+      ]
+    },
+    {
+      "key": "tajwar2026maxrl",
+      "type": "misc",
+      "bib": "@misc{tajwar2026maxrl,\n  title         = {Maximum Likelihood Reinforcement Learning},\n  author        = {Tajwar, Fahim and Zeng, Guanning and Zhou, Yueer and Song, Yuda and Arora, Daman and Jiang, Yiding and Schneider, Jeff and Salakhutdinov, Ruslan and Feng, Haiwen and Zanette, Andrea},\n  year          = {2026},\n  eprint        = {2602.02710},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url           = {https://arxiv.org/abs/2602.02710}\n}",
+      "uses": [
+        {
+          "keys": [
+            "tajwar2026maxrl"
+          ],
+          "file": "paper/main.tex",
+          "line": 191,
+          "context": "  \\item \\textbf{ReplayMaxRL explores and preserves.} MaxRL directs fresh-rollout\n  learning toward success across sampling budgets \\citep{tajwar2026maxrl};\n  key-balanced verified replay retains one exemplar per discovered mode and\n  revisits modes uniformly. A categorical mean-flow calculation connects the\n  objectives to standard replicator dynamics: binary MaxRL inherits binary\n  GRPO's winner-take-all instability, while an idealized fixed replay bank adds\n  a qualitative barrier against exact extinction."
+        },
+        {
+          "keys": [
+            "tajwar2026maxrl"
+          ],
+          "file": "paper/main.tex",
+          "line": 227,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "tajwar2026maxrl"
+          ],
+          "file": "paper/main.tex",
+          "line": 450,
+          "context": "For a fresh group of $G$ binary rewards $r_{1:G}$, let\n$m=\\sum_{i=1}^G r_i$. The implemented MaxRL task advantage is\n\\[\n  A_i^{\\mathrm{MaxRL}}=\n  \\begin{cases}\n    G r_i/m-1, & m>0,\\\\\n    0, & m=0.\n  \\end{cases}\n\\]\nWhen successes are scarce, their weight increases; failures receive $-1$.\nAll-failure and all-success groups have zero task advantage. This is the\nbinary special case of ArgMaxRL and optimizes best@\\(k\\) across sampling\nbudgets \\citep{tajwar2026maxrl}. It is applied only to fresh on-policy rows."
+        },
+        {
+          "keys": [
+            "tajwar2026maxrl"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 88,
+          "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields\nReplayDr.GRPO \\citep{liu2025understanding}. Appendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+        },
+        {
+          "keys": [
+            "tajwar2026maxrl"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 489,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "tajwar2026maxrl"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 2007,
+          "context": "For a fresh on-policy group of $G$ responses, let $r_i\\in\\{0,1\\}$ be the\nverified reward of response $i$ and let $m=\\sum_{i=1}^G r_i$ count successes.\nThe binary MaxRL task advantage is\n\\[\n  A_i^{\\mathrm{MaxRL}}=\n  \\begin{cases}\n    G r_i/m-1, & m>0,\\\\\n    0, & m=0.\n  \\end{cases}\n\\]\nMixed groups assign failures advantage $-1$ and increase the weight of each\nsuccess when successes are scarce. All-correct and all-failure groups have\nzero task advantage. This is the binary special case of ArgMaxRL and\noptimizes a harmonic mixture of best@\\(k\\) for $k=1,\\ldots,G-1$\n\\citep{tajwar2026maxrl}. It is applied only to fresh on-policy responses;\nreplay exemplars enter through the separate verified-likelihood loss."
+        }
+      ]
+    },
+    {
+      "key": "gspo2025",
+      "type": "misc",
+      "bib": "@misc{gspo2025,\n  title        = {Group Sequence Policy Optimization},\n  author       = {Zheng, Chujie and Liu, Shixuan and Li, Mingze and Chen, Xiong-Hui and Yu, Bowen and Gao, Chang and Dang, Kai and Liu, Yuqiong and Men, Rui and Yang, An and Zhou, Jingren and Lin, Junyang},\n  year         = {2025},\n  eprint       = {2507.18071},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.CL},\n  url          = {https://arxiv.org/abs/2507.18071}\n}",
+      "uses": []
+    },
+    {
+      "key": "divpo2025",
+      "type": "misc",
+      "bib": "@misc{divpo2025,\n  title        = {Diversity-Aware Policy Optimization for Large Language Model Reasoning},\n  author       = {Yao, Jian and Cheng, Ran and Wu, Xingyu and Wu, Jibin and Tan, Kay Chen},\n  year         = {2025},\n  eprint       = {2505.23433},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.CL},\n  url          = {https://arxiv.org/abs/2505.23433}\n}",
+      "uses": []
+    },
+    {
+      "key": "cheng2025exploration",
+      "type": "misc",
+      "bib": "@misc{cheng2025exploration,\n  title        = {Reasoning with Exploration: An Entropy Perspective},\n  author       = {Cheng, Daixuan and Huang, Shaohan and Zhu, Xuekai and Dai, Bo and Zhao, Wayne Xin and Zhang, Zhenliang and Wei, Furu},\n  year         = {2025},\n  eprint       = {2506.14758},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.CL},\n  url          = {https://arxiv.org/abs/2506.14758}\n}",
+      "uses": [
+        {
+          "keys": [
+            "cheng2025exploration",
+            "song2025outcome",
+            "chen2025passktraining"
+          ],
+          "file": "paper/main.tex",
+          "line": 166,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        }
+      ]
+    },
+    {
+      "key": "chen2025passktraining",
+      "type": "misc",
+      "bib": "@misc{chen2025passktraining,\n  title        = {{Pass@k} Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models},\n  author       = {Chen, Zhipeng and Qin, Xiaobo and Wu, Youbin and Ling, Yue and Ye, Qinghao and Zhao, Wayne Xin and Shi, Guang},\n  year         = {2025},\n  eprint       = {2508.10751},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2508.10751}\n}",
+      "uses": [
+        {
+          "keys": [
+            "cheng2025exploration",
+            "song2025outcome",
+            "chen2025passktraining"
+          ],
+          "file": "paper/main.tex",
+          "line": 166,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 224,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 486,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        }
+      ]
+    },
+    {
+      "key": "song2025outcome",
+      "type": "misc",
+      "bib": "@misc{song2025outcome,\n  title        = {Outcome-Based Exploration for {LLM} Reasoning},\n  author       = {Song, Yuda and Kempe, Julia and Munos, Remi},\n  year         = {2025},\n  eprint       = {2509.06941},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2509.06941}\n}",
+      "uses": [
+        {
+          "keys": [
+            "cheng2025exploration",
+            "song2025outcome",
+            "chen2025passktraining"
+          ],
+          "file": "paper/main.tex",
+          "line": 166,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 224,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 486,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        }
+      ]
+    },
+    {
+      "key": "li2025divergence",
+      "type": "misc",
+      "bib": "@misc{li2025divergence,\n  title        = {The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward},\n  author       = {Li, Long and Zhou, Zhijian and Hao, Jiaran and Liu, Jason Klein and Miao, Yanting and Pang, Wei and Tan, Xiaoyu and Chu, Wei and Wang, Zhe and Pan, Shirui and Qu, Chao and Qi, Yuan},\n  year         = {2025},\n  eprint       = {2509.07430},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2509.07430}\n}",
+      "uses": [
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 224,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 486,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        }
+      ]
+    },
+    {
+      "key": "agrae2026",
+      "type": "misc",
+      "bib": "@misc{agrae2026,\n  title        = {Unveiling Implicit Advantage Symmetry: Why {GRPO} Struggles with Exploration and Difficulty Adaptation},\n  author       = {Yu, Zhiqi and Chen, Zhangquan and Liu, Mengting and Zhang, Heye and Qu, Liangqiong},\n  year         = {2026},\n  eprint       = {2602.05548},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2602.05548}\n}",
+      "uses": []
+    },
+    {
+      "key": "avspo2026",
+      "type": "misc",
+      "bib": "@misc{avspo2026,\n  title        = {Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation},\n  author       = {He, Xixiang and Sun, Qiyao and Cheng, Ao and Li, Xingming and Ji, Xuanyu and Lu, Hailun and Huang, Runke and Hu, Qingyong},\n  year         = {2026},\n  eprint       = {2605.21125},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2605.21125}\n}",
+      "uses": []
+    },
+    {
+      "key": "sinha2026expected",
+      "type": "misc",
+      "bib": "@misc{sinha2026expected,\n  title         = {Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling},\n  author        = {Sinha, Abhijeet and Elango, Sundari and Liu, Dianbo},\n  year          = {2026},\n  eprint        = {2601.21669},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/2601.21669}\n}",
+      "uses": []
+    },
+    {
+      "key": "li2026distribution",
+      "type": "misc",
+      "bib": "@misc{li2026distribution,\n  title        = {Beyond Mode Collapse: Distribution Matching for Diverse Reasoning},\n  author       = {Li, Xiaozhe and Li, Yang and Fang, Xinyu and Ding, Shengyuan and Li, Peiji and Chen, Yongkang and Ma, Yichuan and Lyu, Tianyi and Li, Linyang and Lin, Dahua and Guo, Qipeng and Liu, Qingwen and Chen, Kai},\n  year         = {2026},\n  eprint       = {2605.19461},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.AI},\n  url          = {https://arxiv.org/abs/2605.19461}\n}",
+      "uses": [
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 224,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 486,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        }
+      ]
+    },
+    {
+      "key": "li2026setpo",
+      "type": "misc",
+      "bib": "@misc{li2026setpo,\n  title         = {{SetPO}: Set-Level Policy Optimization for Diversity-Preserving {LLM} Reasoning},\n  author        = {Li, Chenyi and Zhang, Yuan and Wang, Bo and Ma, Guoqing and Tang, Wei and Huang, Haoyang and Duan, Nan},\n  year          = {2026},\n  eprint        = {2602.01062},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.AI},\n  url       = {https://arxiv.org/abs/2602.01062}\n}",
+      "uses": [
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 224,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 486,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        }
+      ]
+    },
+    {
+      "key": "ouyang2022training",
+      "type": "inproceedings",
+      "bib": "@inproceedings{ouyang2022training,\n  title     = {Training Language Models to Follow Instructions with Human Feedback},\n  author    = {Ouyang, Long and Wu, Jeff and Jiang, Xu and Almeida, Diogo and Wainwright, Carroll L. and Mishkin, Pamela and Zhang, Chong and Agarwal, Sandhini and Slama, Katarina and Ray, Alex and Schulman, John and Hilton, Jacob and Kelton, Fraser and Miller, Luke and Simens, Maddie and Askell, Amanda and Welinder, Peter and Christiano, Paul and Leike, Jan and Lowe, Ryan},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {35},\n  pages     = {27730--27744},\n  year      = {2022},\n  eprint    = {2203.02155},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": []
+    },
+    {
+      "key": "shao2024deepseekmath",
+      "type": "article",
+      "bib": "@article{shao2024deepseekmath,\n  title   = {{DeepSeekMath}: Pushing the Limits of Mathematical Reasoning in Open Language Models},\n  author  = {Shao, Zhihong and Wang, Peiyi and Zhu, Qihao and Xu, Runxin and Song, Junxiao and Bi, Xiao and Zhang, Haowei and Zhang, Mingchuan and Li, Y. K. and Wu, Y. and Guo, Daya},\n  journal = {arXiv preprint arXiv:2402.03300},\n  year    = {2024},\n  eprint  = {2402.03300},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": [
+        {
+          "keys": [
+            "shao2024deepseekmath",
+            "guo2025deepseekr1"
+          ],
+          "file": "paper/main.tex",
+          "line": 136,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "shao2024deepseekmath",
+            "guo2025deepseekr1"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 22,
+          "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives limits what repeated sampling can supply to a verifier\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+        }
+      ]
+    },
+    {
+      "key": "guo2025deepseekr1",
+      "type": "article",
+      "bib": "@article{guo2025deepseekr1,\n  title   = {{DeepSeek-R1} Incentivizes Reasoning in {LLM}s through Reinforcement Learning},\n  author  = {Guo, Daya and Yang, Dejian and Zhang, Haowei and Song, Junxiao and Wang, Peiyi and Zhu, Qihao and Xu, Runxin and Zhang, Ruoyu and Ma, Shirong and Bi, Xiao and others},\n  journal = {Nature},\n  volume  = {645},\n  number  = {8081},\n  pages   = {633--638},\n  year    = {2025},\n  doi     = {10.1038/s41586-025-09422-z},\n  eprint  = {2501.12948},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": [
+        {
+          "keys": [
+            "shao2024deepseekmath",
+            "guo2025deepseekr1"
+          ],
+          "file": "paper/main.tex",
+          "line": 136,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "shao2024deepseekmath",
+            "guo2025deepseekr1"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 22,
+          "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives limits what repeated sampling can supply to a verifier\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+        }
+      ]
+    },
+    {
+      "key": "hendrycks2021math",
+      "type": "inproceedings",
+      "bib": "@inproceedings{hendrycks2021math,\n  title     = {Measuring Mathematical Problem Solving with the {MATH} Dataset},\n  author    = {Hendrycks, Dan and Burns, Collin and Kadavath, Saurav and Arora, Akul and Basart, Steven and Tang, Eric and Song, Dawn and Steinhardt, Jacob},\n  booktitle = {Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks},\n  year      = {2021},\n  eprint    = {2103.03874},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG}\n}",
+      "uses": []
+    },
+    {
+      "key": "cobbe2021training",
+      "type": "article",
+      "bib": "@article{cobbe2021training,\n  title   = {Training Verifiers to Solve Math Word Problems},\n  author  = {Cobbe, Karl and Kosaraju, Vineet and Bavarian, Mohammad and Chen, Mark and Jun, Heewoo and Kaiser, Lukasz and Plappert, Matthias and Tworek, Jerry and Hilton, Jacob and Nakano, Reiichiro and Hesse, Christopher and Schulman, John},\n  journal = {arXiv preprint arXiv:2110.14168},\n  year    = {2021},\n  eprint  = {2110.14168},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG}\n}",
+      "uses": [
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime",
+            "cobbe2021training",
+            "lightman2023lets"
+          ],
+          "file": "paper/main.tex",
+          "line": 144,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        }
+      ]
+    },
+    {
+      "key": "lewkowycz2022solving",
+      "type": "inproceedings",
+      "bib": "@inproceedings{lewkowycz2022solving,\n  title     = {Solving Quantitative Reasoning Problems with Language Models},\n  author    = {Lewkowycz, Aitor and Andreassen, Anders and Dohan, David and Dyer, Ethan and Michalewski, Henryk and Ramasesh, Vinay and Slone, Ambrose and Anil, Cem and Schlag, Imanol and Gutman-Solo, Theo and Wu, Yuhuai and Neyshabur, Behnam and Gur-Ari, Guy and Misra, Vedant},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {35},\n  pages     = {3843--3857},\n  year      = {2022},\n  eprint    = {2206.14858},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": []
+    },
+    {
+      "key": "lightman2023lets",
+      "type": "inproceedings",
+      "bib": "@inproceedings{lightman2023lets,\n  title     = {Let's Verify Step by Step},\n  author    = {Lightman, Hunter and Kosaraju, Vineet and Burda, Yuri and Edwards, Harrison and Baker, Bowen and Lee, Teddy and Leike, Jan and Schulman, John and Sutskever, Ilya and Cobbe, Karl},\n  booktitle = {The Twelfth International Conference on Learning Representations ({ICLR})},\n  year      = {2024},\n  eprint    = {2305.20050},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG}\n}",
+      "uses": [
+        {
+          "keys": [
+            "brown2024monkeys",
+            "snell2024testtime",
+            "cobbe2021training",
+            "lightman2023lets"
+          ],
+          "file": "paper/main.tex",
+          "line": 144,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        }
+      ]
+    },
+    {
+      "key": "le2022coderl",
+      "type": "inproceedings",
+      "bib": "@inproceedings{le2022coderl,\n  title     = {{CodeRL}: Mastering Code Generation through Pretrained Models and Deep Reinforcement Learning},\n  author    = {Le, Hung and Wang, Yue and Gotmare, Akhilesh Deepak and Savarese, Silvio and Hoi, Steven C. H.},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {35},\n  pages     = {21314--21328},\n  year      = {2022},\n  eprint    = {2207.01780},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG}\n}",
+      "uses": []
+    },
+    {
+      "key": "liu2025understanding",
+      "type": "inproceedings",
+      "bib": "@inproceedings{liu2025understanding,\n  title     = {Understanding {R1-Zero}-Like Training: A Critical Perspective},\n  author    = {Liu, Zichen and Chen, Changyu and Li, Wenjun and Qi, Penghui and Pang, Tianyu and Du, Chao and Lee, Wee Sun and Lin, Min},\n  booktitle = {Conference on Language Modeling ({COLM})},\n  year      = {2025},\n  eprint    = {2503.20783},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/2503.20783}\n}",
+      "uses": [
+        {
+          "keys": [
+            "liu2025understanding",
+            "cui2025entropy",
+            "dang2025diversity"
+          ],
+          "file": "paper/main.tex",
+          "line": 140,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "liu2025understanding"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 97,
+          "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields\nReplayDr.GRPO \\citep{liu2025understanding}. Appendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+        }
+      ]
+    },
+    {
+      "key": "wang2023selfconsistency",
+      "type": "inproceedings",
+      "bib": "@inproceedings{wang2023selfconsistency,\n  title     = {Self-Consistency Improves Chain of Thought Reasoning in Language Models},\n  author    = {Wang, Xuezhi and Wei, Jason and Schuurmans, Dale and Le, Quoc V. and Chi, Ed H. and Narang, Sharan and Chowdhery, Aakanksha and Zhou, Denny},\n  booktitle = {The Eleventh International Conference on Learning Representations ({ICLR})},\n  year      = {2023},\n  eprint    = {2203.11171},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL},\n  url       = {https://openreview.net/forum?id=1PL1NIMMrw}\n}",
+      "uses": []
+    },
+    {
+      "key": "lin2025cppo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{lin2025cppo,\n  title     = {{CPPO}: Accelerating the Training of Group Relative Policy Optimization-Based Reasoning Models},\n  author    = {Lin, Zhihang and Lin, Mingbao and Xie, Yuan and Ji, Rongrong},\n  booktitle = {Advances in Neural Information Processing Systems ({NeurIPS})},\n  year      = {2025},\n  eprint    = {2503.22342},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.AI},\n  url       = {https://arxiv.org/abs/2503.22342}\n}",
+      "uses": []
+    },
+    {
+      "key": "chen2025seedgrpo",
+      "type": "misc",
+      "bib": "@misc{chen2025seedgrpo,\n  title     = {{SEED-GRPO}: Semantic Entropy Enhanced {GRPO} for Uncertainty-Aware Policy Optimization},\n  author    = {Chen, Minghan and Chen, Guikun and Wang, Wenguan and Yang, Yi},\n  year      = {2025},\n  eprint    = {2505.12346},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.AI},\n  howpublished  = {arXiv preprint arXiv:2505.12346},\n  url       = {https://arxiv.org/abs/2505.12346}\n}",
+      "uses": []
+    },
+    {
+      "key": "farquhar2024detecting",
+      "type": "article",
+      "bib": "@article{farquhar2024detecting,\n  title   = {Detecting hallucinations in large language models using semantic entropy},\n  author  = {Farquhar, Sebastian and Kossen, Jannik and Kuhn, Lorenz and Gal, Yarin},\n  journal = {Nature},\n  volume  = {630},\n  number  = {8017},\n  pages   = {625--630},\n  year    = {2024},\n  doi     = {10.1038/s41586-024-07421-0},\n  publisher = {Nature Publishing Group}\n}",
+      "uses": [
+        {
+          "keys": [
+            "farquhar2024detecting"
+          ],
+          "file": "paper/main.tex",
+          "line": 218,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "farquhar2024detecting"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 480,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "wen2024etpo",
+      "type": "misc",
+      "bib": "@misc{wen2024etpo,\n  title     = {Entropy-Regularized Token-Level Policy Optimization for Language Agent Reinforcement},\n  author    = {Wen, Muning and Liao, Junwei and Deng, Cheng and Wang, Jun and Zhang, Weinan and Wen, Ying},\n  year      = {2024},\n  eprint    = {2402.06700},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:2402.06700},\n  url       = {https://arxiv.org/abs/2402.06700}\n}",
+      "uses": []
+    },
+    {
+      "key": "infogrpo",
+      "type": "misc",
+      "bib": "@misc{infogrpo,\n  title     = {Info-{GRPO}: Training Reasoning Models via Correlation-Aware Exploration},\n  author    = {Anonymous},\n  year      = {2025},\n  howpublished = {OpenReview preprint (submitted to ICLR 2026)},\n  url       = {https://openreview.net/forum?id=d5qElNtXS5}\n}",
+      "uses": []
+    },
+    {
+      "key": "oord2018cpc",
+      "type": "misc",
+      "bib": "@misc{oord2018cpc,\n  title     = {Representation Learning with Contrastive Predictive Coding},\n  author    = {van den Oord, Aaron and Li, Yazhe and Vinyals, Oriol},\n  year      = {2018},\n  eprint    = {1807.03748},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:1807.03748},\n  url       = {https://arxiv.org/abs/1807.03748}\n}",
+      "uses": []
+    },
+    {
+      "key": "reps",
+      "type": "inproceedings",
+      "bib": "@inproceedings{reps,\n  author    = {Peters, Jan and M{\"u}lling, Katharina and Altun, Yasemin},\n  title     = {Relative Entropy Policy Search},\n  booktitle = {Proceedings of the Twenty-Fourth {AAAI} Conference on Artificial Intelligence ({AAAI})},\n  year      = {2010},\n  pages     = {1607--1612},\n  publisher = {{AAAI} Press},\n  doi       = {10.1609/aaai.v24i1.7727}\n}",
+      "uses": []
+    },
+    {
+      "key": "mpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{mpo,\n  author    = {Abdolmaleki, Abbas and Springenberg, Jost Tobias and Tassa, Yuval and Munos, R{\\'e}mi and Heess, Nicolas and Riedmiller, Martin},\n  title     = {Maximum a Posteriori Policy Optimisation},\n  booktitle = {International Conference on Learning Representations ({ICLR})},\n  year      = {2018},\n  eprint    = {1806.06920},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://openreview.net/forum?id=S1ANxQW0b}\n}",
+      "uses": []
+    },
+    {
+      "key": "vmpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{vmpo,\n  author    = {Song, H. Francis and Abdolmaleki, Abbas and Springenberg, Jost Tobias and Clark, Aidan and Soyer, Hubert and Rae, Jack W. and Noury, Seb and Ahuja, Arun and Liu, Siqi and Tirumala, Dhruva and Heess, Nicolas and Belov, Dan and Riedmiller, Martin and Botvinick, Matthew M.},\n  title     = {{V-MPO}: On-Policy Maximum a Posteriori Policy Optimization for Discrete and Continuous Control},\n  booktitle = {International Conference on Learning Representations ({ICLR})},\n  year      = {2020},\n  eprint    = {1909.12238},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.AI},\n  url       = {https://openreview.net/forum?id=SylOlp4FvH}\n}",
+      "uses": []
+    },
+    {
+      "key": "mdpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{mdpo,\n  author    = {Tomar, Manan and Shani, Lior and Efroni, Yonathan and Ghavamzadeh, Mohammad},\n  title     = {Mirror Descent Policy Optimization},\n  booktitle = {International Conference on Learning Representations ({ICLR})},\n  year      = {2022},\n  eprint    = {2005.09814},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/2005.09814}\n}",
+      "uses": []
+    },
+    {
+      "key": "trpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{trpo,\n  author    = {Schulman, John and Levine, Sergey and Abbeel, Pieter and Jordan, Michael I. and Moritz, Philipp},\n  title     = {Trust Region Policy Optimization},\n  booktitle = {Proceedings of the 32nd International Conference on Machine Learning ({ICML})},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {37},\n  pages     = {1889--1897},\n  publisher = {{PMLR}},\n  year      = {2015},\n  eprint    = {1502.05477},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://proceedings.mlr.press/v37/schulman15.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "schulman2017ppo",
+      "type": "article",
+      "bib": "@article{schulman2017ppo,\n  author  = {Schulman, John and Wolski, Filip and Dhariwal, Prafulla and Radford, Alec and Klimov, Oleg},\n  title   = {Proximal Policy Optimization Algorithms},\n  journal = {arXiv preprint arXiv:1707.06347},\n  year    = {2017},\n  eprint  = {1707.06347},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url     = {https://arxiv.org/abs/1707.06347}\n}",
+      "uses": []
+    },
+    {
+      "key": "geist2019regmdp",
+      "type": "inproceedings",
+      "bib": "@inproceedings{geist2019regmdp,\n  author    = {Geist, Matthieu and Scherrer, Bruno and Pietquin, Olivier},\n  title     = {A Theory of Regularized {M}arkov Decision Processes},\n  booktitle = {Proceedings of the 36th International Conference on Machine Learning ({ICML})},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {97},\n  pages     = {2160--2169},\n  publisher = {{PMLR}},\n  year      = {2019},\n  eprint    = {1901.11275},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://proceedings.mlr.press/v97/geist19a.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "zhan2023pmd",
+      "type": "article",
+      "bib": "@article{zhan2023pmd,\n  author  = {Zhan, Wenhao and Cen, Shicong and Huang, Baihe and Chen, Yuxin and Lee, Jason D. and Chi, Yuejie},\n  title   = {Policy Mirror Descent for Regularized Reinforcement Learning: A Generalized Framework with Linear Convergence},\n  journal = {{SIAM} Journal on Optimization},\n  volume  = {33},\n  number  = {2},\n  pages   = {1061--1091},\n  year    = {2023},\n  doi     = {10.1137/21M1456789},\n  eprint  = {2105.11066},\n  archivePrefix = {arXiv},\n  primaryClass  = {math.OC}\n}",
+      "uses": []
+    },
+    {
+      "key": "vieillard2020kl",
+      "type": "inproceedings",
+      "bib": "@inproceedings{vieillard2020kl,\n  author    = {Vieillard, Nino and Kozuno, Tadashi and Scherrer, Bruno and Pietquin, Olivier and Munos, R{\\'e}mi and Geist, Matthieu},\n  title     = {Leverage the Average: An Analysis of {KL} Regularization in Reinforcement Learning},\n  booktitle = {Advances in Neural Information Processing Systems ({NeurIPS})},\n  volume    = {33},\n  year      = {2020},\n  eprint    = {2003.14089},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://proceedings.neurips.cc/paper/2020/hash/8e2c381d4dd04f1c55093f22c59c3a08-Abstract.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "haarnoja18b",
+      "type": "inproceedings",
+      "bib": "@inproceedings{haarnoja18b,\n  title     = {Soft Actor-Critic: Off-Policy Maximum Entropy Deep Reinforcement Learning with a Stochastic Actor},\n  author    = {Haarnoja, Tuomas and Zhou, Aurick and Abbeel, Pieter and Levine, Sergey},\n  booktitle = {Proceedings of the 35th International Conference on Machine Learning ({ICML})},\n  editor    = {Dy, Jennifer and Krause, Andreas},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {80},\n  pages     = {1861--1870},\n  publisher = {PMLR},\n  year      = {2018},\n  eprint    = {1801.01290},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://proceedings.mlr.press/v80/haarnoja18b.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "achiam2017constrained",
+      "type": "inproceedings",
+      "bib": "@inproceedings{achiam2017constrained,\n  title     = {Constrained Policy Optimization},\n  author    = {Achiam, Joshua and Held, David and Tamar, Aviv and Abbeel, Pieter},\n  booktitle = {Proceedings of the 34th International Conference on Machine Learning ({ICML})},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {70},\n  pages     = {22--31},\n  publisher = {PMLR},\n  year      = {2017},\n  url       = {https://proceedings.mlr.press/v70/achiam17a.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "ying2022dual",
+      "type": "inproceedings",
+      "bib": "@inproceedings{ying2022dual,\n  title     = {A Dual Approach to Constrained Markov Decision Processes with Entropy Regularization},\n  author    = {Ying, Donghao and Ding, Yuhao and Lavaei, Javad},\n  booktitle = {Proceedings of the 25th International Conference on Artificial Intelligence and Statistics ({AISTATS})},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {151},\n  pages     = {1887--1909},\n  publisher = {PMLR},\n  year      = {2022},\n  url       = {https://proceedings.mlr.press/v151/ying22a.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "haarnoja2018algorithms",
+      "type": "article",
+      "bib": "@article{haarnoja2018algorithms,\n  title        = {Soft Actor-Critic Algorithms and Applications},\n  author       = {Haarnoja, Tuomas and Zhou, Aurick and Hartikainen, Kristian and Tucker, George and Ha, Sehoon and Tan, Jie and Kumar, Vikash and Zhu, Henry and Gupta, Abhishek and Abbeel, Pieter and Levine, Sergey},\n  journal      = {arXiv preprint arXiv:1812.05905},\n  year         = {2018},\n  eprint       = {1812.05905},\n  archivePrefix = {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/1812.05905}\n}",
+      "uses": []
+    },
+    {
+      "key": "levine2018control",
+      "type": "article",
+      "bib": "@article{levine2018control,\n  title   = {Reinforcement Learning and Control as Probabilistic Inference: Tutorial and Review},\n  author  = {Levine, Sergey},\n  journal = {arXiv preprint arXiv:1805.00909},\n  year    = {2018},\n  eprint  = {1805.00909},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url     = {https://arxiv.org/abs/1805.00909}\n}",
+      "uses": []
+    },
+    {
+      "key": "ziebart2008maximum",
+      "type": "inproceedings",
+      "bib": "@inproceedings{ziebart2008maximum,\n  title     = {Maximum Entropy Inverse Reinforcement Learning},\n  author    = {Ziebart, Brian D. and Maas, Andrew L. and Bagnell, J. Andrew and Dey, Anind K.},\n  booktitle = {Proceedings of the Twenty-Third {AAAI} Conference on Artificial Intelligence ({AAAI})},\n  pages     = {1433--1438},\n  publisher = {AAAI Press},\n  year      = {2008},\n  url       = {https://cdn.aaai.org/AAAI/2008/AAAI08-227.pdf}\n}",
+      "uses": []
+    },
+    {
+      "key": "todorov2006",
+      "type": "inproceedings",
+      "bib": "@inproceedings{todorov2006,\n  title     = {Linearly-Solvable {M}arkov Decision Problems},\n  author    = {Todorov, Emanuel},\n  booktitle = {Advances in Neural Information Processing Systems 19 ({NeurIPS})},\n  volume    = {19},\n  pages     = {1369--1376},\n  publisher = {MIT Press},\n  year      = {2006},\n  url       = {https://proceedings.neurips.cc/paper_files/paper/2006/hash/d806ca13ca3449af72a1ea5aedbed26a-Abstract.html}\n}",
+      "uses": []
+    },
+    {
+      "key": "dpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{dpo,\n  title     = {Direct Preference Optimization: Your Language Model is Secretly a Reward Model},\n  author    = {Rafailov, Rafael and Sharma, Archit and Mitchell, Eric and Ermon, Stefano and Manning, Christopher D. and Finn, Chelsea},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {36},\n  year      = {2023},\n  eprint    = {2305.18290},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG}\n}",
+      "uses": []
+    },
+    {
+      "key": "simpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{simpo,\n  title     = {{SimPO}: Simple Preference Optimization with a Reference-Free Reward},\n  author    = {Meng, Yu and Xia, Mengzhou and Chen, Danqi},\n  booktitle = {Advances in Neural Information Processing Systems},\n  volume    = {37},\n  year      = {2024},\n  eprint    = {2405.14734},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": []
+    },
+    {
+      "key": "orpo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{orpo,\n  title     = {{ORPO}: Monolithic Preference Optimization without Reference Model},\n  author    = {Hong, Jiwoo and Lee, Noah and Thorne, James},\n  booktitle = {Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing},\n  pages     = {11170--11189},\n  address   = {Miami, Florida, USA},\n  publisher = {Association for Computational Linguistics},\n  year      = {2024},\n  eprint    = {2403.07691},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": []
+    },
+    {
+      "key": "kto",
+      "type": "inproceedings",
+      "bib": "@inproceedings{kto,\n  title     = {Model Alignment as Prospect Theoretic Optimization},\n  author    = {Ethayarajh, Kawin and Xu, Winnie and Muennighoff, Niklas and Jurafsky, Dan and Kiela, Douwe},\n  booktitle = {Proceedings of the 41st International Conference on Machine Learning},\n  series    = {Proceedings of Machine Learning Research},\n  volume    = {235},\n  pages     = {12634--12651},\n  publisher = {PMLR},\n  year      = {2024},\n  eprint    = {2402.01306},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG}\n}",
+      "uses": []
+    },
+    {
+      "key": "liu2024lipo",
+      "type": "inproceedings",
+      "bib": "@inproceedings{liu2024lipo,\n  title     = {{LiPO}: Listwise Preference Optimization through Learning-to-Rank},\n  author    = {Liu, Tianqi and Qin, Zhen and Wu, Junru and Shen, Jiaming and Khalman, Misha and Joshi, Rishabh and Zhao, Yao and Saleh, Mohammad and Baumgartner, Simon and Liu, Jialu and Liu, Peter J. and Wang, Xuanhui},\n  booktitle = {Proceedings of the 2025 Conference of the Nations of the Americas Chapter of the Association for Computational Linguistics: Human Language Technologies (Volume 1: Long Papers)},\n  pages     = {2404--2420},\n  address   = {Albuquerque, New Mexico},\n  publisher = {Association for Computational Linguistics},\n  year      = {2025},\n  eprint    = {2402.01878},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": []
+    },
+    {
+      "key": "song2024pro",
+      "type": "inproceedings",
+      "bib": "@inproceedings{song2024pro,\n  title     = {Preference Ranking Optimization for Human Alignment},\n  author    = {Song, Feifan and Yu, Bowen and Li, Minghao and Yu, Haiyang and Huang, Fei and Li, Yongbin and Wang, Houfeng},\n  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},\n  volume    = {38},\n  pages     = {18990--18998},\n  year      = {2024},\n  eprint    = {2306.17492},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL}\n}",
+      "uses": []
+    },
+    {
+      "key": "maa_invitational",
+      "type": "misc",
+      "bib": "@misc{maa_invitational,\n  author       = {{Mathematical Association of America}},\n  title        = {American Invitational Mathematics Examination ({AIME})},\n  howpublished = {\\url{https://maa.org/maa-invitational-competitions/}},\n  year         = {2024},\n  note         = {MAA Invitational Competitions. Accessed July 2026}\n}",
+      "uses": []
+    },
+    {
+      "key": "maa_amc",
+      "type": "misc",
+      "bib": "@misc{maa_amc,\n  author       = {{Mathematical Association of America}},\n  title        = {American Mathematics Competitions ({AMC})},\n  howpublished = {\\url{https://maa.org/student-programs/amc/}},\n  year         = {2024},\n  note         = {Accessed July 2026}\n}",
+      "uses": []
+    },
+    {
+      "key": "he2024olympiadbench",
+      "type": "inproceedings",
+      "bib": "@inproceedings{he2024olympiadbench,\n  title     = {{O}lympiad{B}ench: A Challenging Benchmark for Promoting {AGI} with Olympiad-Level Bilingual Multimodal Scientific Problems},\n  author    = {He, Chaoqun and Luo, Renjie and Bai, Yuzhuo and Hu, Shengding and Thai, Zhen and Shen, Junhao and Hu, Jinyi and Han, Xu and Huang, Yujie and Zhang, Yuxiang and Liu, Jie and Qi, Lei and Liu, Zhiyuan and Sun, Maosong},\n  booktitle = {Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)},\n  editor    = {Ku, Lun-Wei and Martins, Andre and Srikumar, Vivek},\n  month     = aug,\n  year      = {2024},\n  address   = {Bangkok, Thailand},\n  publisher = {Association for Computational Linguistics},\n  pages     = {3828--3850},\n  doi       = {10.18653/v1/2024.acl-long.211},\n  eprint    = {2402.14008},\n  archivePrefix = {arXiv}\n}",
+      "uses": []
+    },
+    {
+      "key": "gandhi2024stream",
+      "type": "inproceedings",
+      "bib": "@inproceedings{gandhi2024stream,\n  title     = {Stream of Search ({SoS}): Learning to Search in Language},\n  author    = {Gandhi, Kanishk and Lee, Denise and Grand, Gabriel and Liu, Muxin and Cheng, Winson and Sharma, Archit and Goodman, Noah D.},\n  booktitle = {First Conference on Language Modeling ({COLM})},\n  year      = {2024},\n  eprint    = {2404.03683},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url           = {https://arxiv.org/abs/2404.03683}\n}",
+      "uses": []
+    },
+    {
+      "key": "tinyzero2025",
+      "type": "misc",
+      "bib": "@misc{tinyzero2025,\n  title        = {{TinyZero}},\n  author       = {Pan, Jiayi and Zhang, Junjie and Wang, Xingyao and Yuan, Lifan and Peng, Hao and Suhr, Alane},\n  year         = {2025},\n  howpublished = {\\url{https://github.com/Jiayi-Pan/TinyZero}},\n  note         = {Accessed 2026-07-12}\n}",
+      "uses": []
+    },
+    {
+      "key": "williams1991entropy",
+      "type": "article",
+      "bib": "@article{williams1991entropy,\n  title     = {Function Optimization Using Connectionist Reinforcement Learning Algorithms},\n  author    = {Williams, Ronald J. and Peng, Jing},\n  journal   = {Connection Science},\n  volume    = {3},\n  number    = {3},\n  pages     = {241--268},\n  year      = {1991},\n  publisher = {Taylor \\& Francis}\n}",
+      "uses": []
+    },
+    {
+      "key": "mnih2016a3c",
+      "type": "inproceedings",
+      "bib": "@inproceedings{mnih2016a3c,\n  title     = {Asynchronous Methods for Deep Reinforcement Learning},\n  author    = {Mnih, Volodymyr and Badia, Adri{\\`a} Puigdom{\\`e}nech and Mirza, Mehdi and Graves, Alex and Lillicrap, Timothy and Harley, Tim and Silver, David and Kavukcuoglu, Koray},\n  booktitle = {International Conference on Machine Learning ({ICML})},\n  year      = {2016},\n  eprint    = {1602.01783},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/1602.01783}\n}",
+      "uses": []
+    },
+    {
+      "key": "peters2007rwr",
+      "type": "inproceedings",
+      "bib": "@inproceedings{peters2007rwr,\n  title     = {Reinforcement Learning by Reward-Weighted Regression for Operational Space Control},\n  author    = {Peters, Jan and Schaal, Stefan},\n  booktitle = {International Conference on Machine Learning ({ICML})},\n  year      = {2007},\n  pages     = {745--750}\n}",
+      "uses": []
+    },
+    {
+      "key": "peng2019awr",
+      "type": "misc",
+      "bib": "@misc{peng2019awr,\n  title     = {Advantage-Weighted Regression: Simple and Scalable Off-Policy Reinforcement Learning},\n  author    = {Peng, Xue Bin and Kumar, Aviral and Zhang, Grace and Levine, Sergey},\n  year      = {2019},\n  eprint    = {1910.00177},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:1910.00177},\n  url       = {https://arxiv.org/abs/1910.00177}\n}",
+      "uses": []
+    },
+    {
+      "key": "howard1972risk",
+      "type": "article",
+      "bib": "@article{howard1972risk,\n  title     = {Risk-Sensitive {Markov} Decision Processes},\n  author    = {Howard, Ronald A. and Matheson, James E.},\n  journal   = {Management Science},\n  volume    = {18},\n  number    = {7},\n  pages     = {356--369},\n  year      = {1972},\n  publisher = {INFORMS}\n}",
+      "uses": []
+    },
+    {
+      "key": "mihatsch2002risk",
+      "type": "article",
+      "bib": "@article{mihatsch2002risk,\n  title     = {Risk-Sensitive Reinforcement Learning},\n  author    = {Mihatsch, Oliver and Neuneier, Ralph},\n  journal   = {Machine Learning},\n  volume    = {49},\n  number    = {2},\n  pages     = {267--290},\n  year      = {2002},\n  publisher = {Springer}\n}",
+      "uses": []
+    },
+    {
+      "key": "dong2023raft",
+      "type": "article",
+      "bib": "@article{dong2023raft,\n  title     = {{RAFT}: Reward r{A}nked {F}ine{T}uning for Generative Foundation Model Alignment},\n  author    = {Dong, Hanze and Xiong, Wei and Goyal, Deepanshu and Zhang, Yihan and Chow, Winnie and Pan, Rui and Diao, Shizhe and Zhang, Jipeng and Shum, Kashun and Zhang, Tong},\n  journal   = {Transactions on Machine Learning Research},\n  year      = {2023},\n  eprint    = {2304.06767},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  url       = {https://arxiv.org/abs/2304.06767}\n}",
+      "uses": []
+    },
+    {
+      "key": "cui2025entropy",
+      "type": "misc",
+      "bib": "@misc{cui2025entropy,\n  title     = {The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models},\n  author    = {Cui, Ganqu and Zhang, Yuchen and Chen, Jiacheng and Yuan, Lifan and Wang, Zhi and Zuo, Yuxin and Li, Haozhan and Fan, Yuchen and Chen, Huayu and Chen, Weize and Liu, Zhiyuan and Peng, Hao and Bai, Lei and Ouyang, Wanli and Cheng, Yu and Zhou, Bowen and Ding, Ning},\n  year      = {2025},\n  eprint    = {2505.22617},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:2505.22617},\n  url       = {https://arxiv.org/abs/2505.22617}\n}",
+      "uses": [
+        {
+          "keys": [
+            "liu2025understanding",
+            "cui2025entropy",
+            "dang2025diversity"
+          ],
+          "file": "paper/main.tex",
+          "line": 140,
+          "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+        },
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/main.tex",
+          "line": 216,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "cui2025entropy",
+            "dang2025diversity"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 102,
+          "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+        },
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 478,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "zhu2025negative",
+      "type": "inproceedings",
+      "bib": "@inproceedings{zhu2025negative,\n  title     = {The Surprising Effectiveness of Negative Reinforcement in {LLM} Reasoning},\n  author    = {Zhu, Xinyu and Xia, Mengzhou and Wei, Zhepei and Chen, Wei-Lin and Chen, Danqi and Meng, Yu},\n  booktitle = {Advances in Neural Information Processing Systems ({NeurIPS})},\n  year      = {2025},\n  eprint    = {2506.01347},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL},\n  url       = {https://arxiv.org/abs/2506.01347}\n}",
+      "uses": []
+    },
+    {
+      "key": "park2025cliplow",
+      "type": "misc",
+      "bib": "@misc{park2025cliplow,\n  title     = {{Clip-Low} Increases Entropy and {Clip-High} Decreases Entropy in Reinforcement Learning of Large Language Models},\n  author    = {Park, Jaesung R. and Kim, Junsu and Kim, Gyeongman and Jo, Jinyoung and Choi, Sean and Cho, Jaewoong and Ryu, Ernest K.},\n  year      = {2025},\n  eprint    = {2509.26114},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:2509.26114},\n  url       = {https://arxiv.org/abs/2509.26114}\n}",
+      "uses": []
+    },
+    {
+      "key": "huang2025lowprob",
+      "type": "misc",
+      "bib": "@misc{huang2025lowprob,\n  title     = {Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward},\n  author    = {Huang, Guanhua and Xu, Tingqiang and Wang, Mingze and Yi, Qi and Gong, Xue and Li, Siheng and Xiong, Ruibin and Li, Kejiao and Jiang, Yuhao and Zhou, Bo},\n  year      = {2025},\n  eprint    = {2510.03222},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:2510.03222},\n  url       = {https://arxiv.org/abs/2510.03222}\n}",
+      "uses": []
+    },
+    {
+      "key": "deng2025negativegrad",
+      "type": "misc",
+      "bib": "@misc{deng2025negativegrad,\n  title     = {On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization},\n  author    = {Deng, Wenlong and Ren, Yi and Li, Muchen and Sutherland, Danica J. and Li, Xiaoxiao and Thrampoulidis, Christos},\n  year      = {2025},\n  eprint    = {2505.18830},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.LG},\n  howpublished  = {arXiv preprint arXiv:2505.18830},\n  url       = {https://arxiv.org/abs/2505.18830}\n}",
+      "uses": []
+    },
+    {
+      "key": "geng2023grammar",
+      "type": "inproceedings",
+      "bib": "@inproceedings{geng2023grammar,\n  title     = {Grammar-Constrained Decoding for Structured {NLP} Tasks without Finetuning},\n  author    = {Geng, Saibo and Josifoski, Martin and Peyrard, Maxime and West, Robert},\n  booktitle = {Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing},\n  pages     = {10932--10952},\n  year      = {2023},\n  publisher = {Association for Computational Linguistics},\n  address   = {Singapore},\n  doi       = {10.18653/v1/2023.emnlp-main.674},\n  url       = {https://aclanthology.org/2023.emnlp-main.674/}\n}",
+      "uses": []
+    },
+    {
+      "key": "yue2025rlvrlimit",
+      "type": "misc",
+      "bib": "@misc{yue2025rlvrlimit,\n  title        = {Does Reinforcement Learning Really Incentivize Reasoning Capacity in {LLMs} Beyond the Base Model?},\n  author       = {Yue, Yang and Chen, Zhiqi and Lu, Rui and Zhao, Andrew and Wang, Zhaokai and Yue, Yang and Song, Shiji and Huang, Gao},\n  year         = {2025},\n  eprint       = {2504.13837},\n  archivePrefix= {arXiv},\n  primaryClass = {cs.AI},\n  url          = {https://arxiv.org/abs/2504.13837}\n}",
+      "uses": [
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/main.tex",
+          "line": 216,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 478,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "kirk2024understanding",
+      "type": "inproceedings",
+      "bib": "@inproceedings{kirk2024understanding,\n  title     = {Understanding the Effects of {RLHF} on {LLM} Generalisation and Diversity},\n  author    = {Kirk, Robert and Mediratta, Ishita and Nalmpantis, Christoforos and Luketina, Jelena and Hambro, Eric and Grefenstette, Edward and Raileanu, Roberta},\n  booktitle = {International Conference on Learning Representations},\n  year      = {2024},\n  url       = {https://openreview.net/forum?id=PXD3FAVHJT}\n}",
+      "uses": [
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/main.tex",
+          "line": 216,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        },
+        {
+          "keys": [
+            "kirk2024understanding",
+            "dang2025diversity",
+            "cui2025entropy",
+            "yue2025rlvrlimit"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 478,
+          "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+        }
+      ]
+    },
+    {
+      "key": "hu2024amortizing",
+      "type": "inproceedings",
+      "bib": "@inproceedings{hu2024amortizing,\n  title     = {Amortizing Intractable Inference in Large Language Models},\n  author    = {Hu, Edward J. and Jain, Moksh and Elmoznino, Eric and Kaddar, Younesse and Lajoie, Guillaume and Bengio, Yoshua and Malkin, Nikolay},\n  booktitle = {International Conference on Learning Representations},\n  year      = {2024},\n  url       = {https://arxiv.org/abs/2310.04363}\n}",
+      "uses": []
+    },
+    {
+      "key": "bengio2023gflownet",
+      "type": "article",
+      "bib": "@article{bengio2023gflownet,\n  title   = {{GFlowNet} Foundations},\n  author  = {Bengio, Yoshua and Lahlou, Salem and Deleu, Tristan and Hu, Edward J. and Tiwari, Mo and Bengio, Emmanuel},\n  journal = {Journal of Machine Learning Research},\n  volume  = {24},\n  number  = {210},\n  pages   = {1--55},\n  year    = {2023}\n}",
+      "uses": []
+    },
+    {
+      "key": "zhu2025flowrl",
+      "type": "misc",
+      "bib": "@misc{zhu2025flowrl,\n  title        = {{FlowRL}: Matching Reward Distributions for {LLM} Reasoning},\n  author       = {Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Zhou, Che and Qi, Youbang and Ding, Ermo and Cheng, Yuxin and Zhou, Bowen},\n  year         = {2025},\n  eprint       = {2509.15207},\n  archivePrefix= {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2509.15207}\n}",
+      "uses": []
+    },
+    {
+      "key": "lehman2011novelty",
+      "type": "article",
+      "bib": "@article{lehman2011novelty,\n  title   = {Abandoning Objectives: Evolution Through the Search for Novelty Alone},\n  author  = {Lehman, Joel and Stanley, Kenneth O.},\n  journal = {Evolutionary Computation},\n  volume  = {19},\n  number  = {2},\n  pages   = {189--223},\n  year    = {2011}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lehman2011novelty",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/main.tex",
+          "line": 237,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        },
+        {
+          "keys": [
+            "lehman2011novelty",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 499,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        }
+      ]
+    },
+    {
+      "key": "mouret2015illuminating",
+      "type": "misc",
+      "bib": "@misc{mouret2015illuminating,\n  title        = {Illuminating Search Spaces by Mapping Elites},\n  author       = {Mouret, Jean-Baptiste and Clune, Jeff},\n  year         = {2015},\n  eprint       = {1504.04909},\n  archivePrefix= {arXiv},\n  primaryClass = {cs.AI},\n  url          = {https://arxiv.org/abs/1504.04909}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "mnih2015human",
+            "ecoffet2021return",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/main.tex",
+          "line": 168,
+          "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+        },
+        {
+          "keys": [
+            "lehman2011novelty",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/main.tex",
+          "line": 237,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        },
+        {
+          "keys": [
+            "lehman2011novelty",
+            "mouret2015illuminating"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 499,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        }
+      ]
+    },
+    {
+      "key": "lochab2026ucpo",
+      "type": "misc",
+      "bib": "@misc{lochab2026ucpo,\n  title        = {Uniform-Correct Policy Optimization: Breaking {RLVR}'s Indifference to Diversity},\n  author       = {Lochab, Anamika and Li, Bolian and Zhang, Ruqi},\n  year         = {2026},\n  eprint       = {2605.00365},\n  archivePrefix= {arXiv},\n  primaryClass = {cs.LG},\n  url          = {https://arxiv.org/abs/2605.00365}\n}",
+      "uses": [
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 224,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        },
+        {
+          "keys": [
+            "lochab2026ucpo"
+          ],
+          "file": "paper/main.tex",
+          "line": 553,
+          "context": "\\phantomsection\\label{sec:retention-design}\n\\noindent\\textbf{Exp.~1:} We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five seeds: 75 registered comparisons, of\nwhich 74 are admissible after one source-integrity exclusion\n(Appendix~\\ref{app:source-integrity}). Methods differ only in the replay\nderivative; the control executes the same bank code with zero replay gradient. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+        },
+        {
+          "keys": [
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 118,
+          "context": "Five seeds are registered per comparison for eight passes; each of 128 held-out prompts per\ndomain receives four eight-sample draws. Controls execute the replay code with its gradient zeroed. Figure~\\ref{fig:cross-scale-terminal-effects} compares\nDr.GRPO with replay and alternatives targeting reward normalization, on-policy\ndiversity (UCPO; \\citealp{lochab2026ucpo}), success replay (RLEP-Dr),\nand semantic entropy. Protocols and uncertainty are in\nAppendices~\\ref{app:experimental-design} and~\\ref{app:extended-results}."
+        },
+        {
+          "keys": [
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 342,
+          "context": "We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five registered seeds: 75 planned pairs, of\nwhich 74 are source-admissible. Fourteen blocks contain five seeds; Falcon\nCountdown contains four (Appendix~\\ref{app:source-integrity}). The methods\nshare replay code and differ in whether its derivative is applied. Subsequent\nbanks, schedules, and realized workloads depend on each policy. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+        },
+        {
+          "keys": [
+            "song2025outcome",
+            "chen2025passktraining",
+            "li2025divergence",
+            "li2026setpo",
+            "li2026distribution",
+            "lochab2026ucpo"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 486,
+          "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+        }
+      ]
+    },
+    {
+      "key": "zhang2025rlep",
+      "type": "misc",
+      "bib": "@misc{zhang2025rlep,\n  title        = {{RLEP}: Reinforcement Learning with Experience Replay for {LLM} Reasoning},\n  author       = {Zhang, Hongzhi and Fu, Jia and Zhang, Jingyuan and Fu, Kai and Wang, Qi and Zhang, Fuzheng and Zhou, Guorui},\n  year         = {2025},\n  eprint       = {2507.07451},\n  archivePrefix= {arXiv},\n  primaryClass = {cs.CL},\n  url          = {https://arxiv.org/abs/2507.07451}\n}",
+      "uses": [
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "rolnick2019replay",
+            "zhang2025rlep"
+          ],
+          "file": "paper/main.tex",
+          "line": 234,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        },
+        {
+          "keys": [
+            "zhang2025rlep"
+          ],
+          "file": "paper/main.tex",
+          "line": 554,
+          "context": "\\phantomsection\\label{sec:retention-design}\n\\noindent\\textbf{Exp.~1:} We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five seeds: 75 registered comparisons, of\nwhich 74 are admissible after one source-integrity exclusion\n(Appendix~\\ref{app:source-integrity}). Methods differ only in the replay\nderivative; the control executes the same bank code with zero replay gradient. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+        },
+        {
+          "keys": [
+            "zhang2025rlep"
+          ],
+          "file": "paper/mathai2026/main.tex",
+          "line": 103,
+          "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+        },
+        {
+          "keys": [
+            "zhang2025rlep"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 343,
+          "context": "We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five registered seeds: 75 planned pairs, of\nwhich 74 are source-admissible. Fourteen blocks contain five seeds; Falcon\nCountdown contains four (Appendix~\\ref{app:source-integrity}). The methods\nshare replay code and differ in whether its derivative is applied. Subsequent\nbanks, schedules, and realized workloads depend on each policy. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+        },
+        {
+          "keys": [
+            "lin1992selfimproving",
+            "rolnick2019replay",
+            "zhang2025rlep"
+          ],
+          "file": "paper/mathai2026/appendix.tex",
+          "line": 496,
+          "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+        }
+      ]
+    }
+  ],
+  "uses": [
+    {
+      "keys": [
+        "shao2024deepseekmath",
+        "guo2025deepseekr1"
+      ],
+      "file": "paper/main.tex",
+      "line": 136,
+      "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+    },
+    {
+      "keys": [
+        "liu2025understanding",
+        "cui2025entropy",
+        "dang2025diversity"
+      ],
+      "file": "paper/main.tex",
+      "line": 140,
+      "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+    },
+    {
+      "keys": [
+        "brown2024monkeys",
+        "snell2024testtime",
+        "cobbe2021training",
+        "lightman2023lets"
+      ],
+      "file": "paper/main.tex",
+      "line": 144,
+      "context": "Reinforcement learning with verifiable rewards (RLVR) scales outcome\nsupervision through executable validation\n\\citep{shao2024deepseekmath,guo2025deepseekr1}. Yet a conventional verifier\nrecords only correctness: repeated copies and different successful outputs\nreceive the same scalar reward. A policy can therefore become more accurate as\nits support over verified output modes contracts\n\\citep{liu2025understanding,cui2025entropy,dang2025diversity}. This limitation\nweakens repeated sampling, best-of-$K$, and verifier-guided selection: once one\noutput dominates training, additional samples reproduce the familiar rather\nthan extend the set available to a selector\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+    },
+    {
+      "keys": [
+        "cheng2025exploration",
+        "song2025outcome",
+        "chen2025passktraining"
+      ],
+      "file": "paper/main.tex",
+      "line": 166,
+      "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+    },
+    {
+      "keys": [
+        "lin1992selfimproving",
+        "mnih2015human",
+        "ecoffet2021return",
+        "mouret2015illuminating"
+      ],
+      "file": "paper/main.tex",
+      "line": 168,
+      "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+    },
+    {
+      "keys": [
+        "tajwar2026maxrl"
+      ],
+      "file": "paper/main.tex",
+      "line": 191,
+      "context": "  \\item \\textbf{ReplayMaxRL explores and preserves.} MaxRL directs fresh-rollout\n  learning toward success across sampling budgets \\citep{tajwar2026maxrl};\n  key-balanced verified replay retains one exemplar per discovered mode and\n  revisits modes uniformly. A categorical mean-flow calculation connects the\n  objectives to standard replicator dynamics: binary MaxRL inherits binary\n  GRPO's winner-take-all instability, while an idealized fixed replay bank adds\n  a qualitative barrier against exact extinction."
+    },
+    {
+      "keys": [
+        "brown2024monkeys",
+        "snell2024testtime"
+      ],
+      "file": "paper/main.tex",
+      "line": 214,
+      "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+    },
+    {
+      "keys": [
+        "kirk2024understanding",
+        "dang2025diversity",
+        "cui2025entropy",
+        "yue2025rlvrlimit"
+      ],
+      "file": "paper/main.tex",
+      "line": 216,
+      "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+    },
+    {
+      "keys": [
+        "farquhar2024detecting"
+      ],
+      "file": "paper/main.tex",
+      "line": 218,
+      "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+    },
+    {
+      "keys": [
+        "song2025outcome",
+        "chen2025passktraining",
+        "li2025divergence",
+        "li2026setpo",
+        "li2026distribution",
+        "lochab2026ucpo"
+      ],
+      "file": "paper/main.tex",
+      "line": 224,
+      "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+    },
+    {
+      "keys": [
+        "tajwar2026maxrl"
+      ],
+      "file": "paper/main.tex",
+      "line": 227,
+      "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+    },
+    {
+      "keys": [
+        "lin1992selfimproving",
+        "rolnick2019replay",
+        "zhang2025rlep"
+      ],
+      "file": "paper/main.tex",
+      "line": 234,
+      "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+    },
+    {
+      "keys": [
+        "lehman2011novelty",
+        "mouret2015illuminating"
+      ],
+      "file": "paper/main.tex",
+      "line": 237,
+      "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. ReplayDr.GRPO instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+    },
+    {
+      "keys": [
+        "tajwar2026maxrl"
+      ],
+      "file": "paper/main.tex",
+      "line": 450,
+      "context": "For a fresh group of $G$ binary rewards $r_{1:G}$, let\n$m=\\sum_{i=1}^G r_i$. The implemented MaxRL task advantage is\n\\[\n  A_i^{\\mathrm{MaxRL}}=\n  \\begin{cases}\n    G r_i/m-1, & m>0,\\\\\n    0, & m=0.\n  \\end{cases}\n\\]\nWhen successes are scarce, their weight increases; failures receive $-1$.\nAll-failure and all-success groups have zero task advantage. This is the\nbinary special case of ArgMaxRL and optimizes best@\\(k\\) across sampling\nbudgets \\citep{tajwar2026maxrl}. It is applied only to fresh on-policy rows."
+    },
+    {
+      "keys": [
+        "lochab2026ucpo"
+      ],
+      "file": "paper/main.tex",
+      "line": 553,
+      "context": "\\phantomsection\\label{sec:retention-design}\n\\noindent\\textbf{Exp.~1:} We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five seeds: 75 registered comparisons, of\nwhich 74 are admissible after one source-integrity exclusion\n(Appendix~\\ref{app:source-integrity}). Methods differ only in the replay\nderivative; the control executes the same bank code with zero replay gradient. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+    },
+    {
+      "keys": [
+        "zhang2025rlep"
+      ],
+      "file": "paper/main.tex",
+      "line": 554,
+      "context": "\\phantomsection\\label{sec:retention-design}\n\\noindent\\textbf{Exp.~1:} We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five seeds: 75 registered comparisons, of\nwhich 74 are admissible after one source-integrity exclusion\n(Appendix~\\ref{app:source-integrity}). Methods differ only in the replay\nderivative; the control executes the same bank code with zero replay gradient. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+    },
+    {
+      "keys": [
+        "hofbauer1998evolutionary"
+      ],
+      "file": "paper/main.tex",
+      "line": 1012,
+      "context": "The conditional correct-mode flow derived below is a standard\nfrequency-dependent replicator system with fitness $f_c(q)=q_c$\n\\citep{hofbauer1998evolutionary}; the following\ntheorem is not claimed as a new replicator-dynamics result. Its role is to show\nthat the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that\nfamiliar winner-take-all flow under the paper's categorical assumptions."
+    },
+    {
+      "keys": [
+        "shao2024deepseekmath",
+        "guo2025deepseekr1"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 22,
+      "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives limits what repeated sampling can supply to a verifier\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+    },
+    {
+      "keys": [
+        "brown2024monkeys",
+        "snell2024testtime"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 25,
+      "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{shao2024deepseekmath,guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives limits what repeated sampling can supply to a verifier\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+    },
+    {
+      "keys": [
+        "tajwar2026maxrl"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 88,
+      "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields\nReplayDr.GRPO \\citep{liu2025understanding}. Appendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+    },
+    {
+      "keys": [
+        "liu2025understanding"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 97,
+      "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields\nReplayDr.GRPO \\citep{liu2025understanding}. Appendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+    },
+    {
+      "keys": [
+        "cui2025entropy",
+        "dang2025diversity"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 102,
+      "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+    },
+    {
+      "keys": [
+        "zhang2025rlep"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 103,
+      "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+    },
+    {
+      "keys": [
+        "lochab2026ucpo"
+      ],
+      "file": "paper/mathai2026/main.tex",
+      "line": 118,
+      "context": "Five seeds are registered per comparison for eight passes; each of 128 held-out prompts per\ndomain receives four eight-sample draws. Controls execute the replay code with its gradient zeroed. Figure~\\ref{fig:cross-scale-terminal-effects} compares\nDr.GRPO with replay and alternatives targeting reward normalization, on-policy\ndiversity (UCPO; \\citealp{lochab2026ucpo}), success replay (RLEP-Dr),\nand semantic entropy. Protocols and uncertainty are in\nAppendices~\\ref{app:experimental-design} and~\\ref{app:extended-results}."
+    },
+    {
+      "keys": [
+        "lochab2026ucpo"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 342,
+      "context": "We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five registered seeds: 75 planned pairs, of\nwhich 74 are source-admissible. Fourteen blocks contain five seeds; Falcon\nCountdown contains four (Appendix~\\ref{app:source-integrity}). The methods\nshare replay code and differ in whether its derivative is applied. Subsequent\nbanks, schedules, and realized workloads depend on each policy. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+    },
+    {
+      "keys": [
+        "zhang2025rlep"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 343,
+      "context": "We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five registered seeds: 75 planned pairs, of\nwhich 74 are source-admissible. Fourteen blocks contain five seeds; Falcon\nCountdown contains four (Appendix~\\ref{app:source-integrity}). The methods\nshare replay code and differ in whether its derivative is applied. Subsequent\nbanks, schedules, and realized workloads depend on each policy. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; frequency-weighted, non-key-balanced RLEP-Dr replay\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+    },
+    {
+      "keys": [
+        "brown2024monkeys",
+        "snell2024testtime"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 476,
+      "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+    },
+    {
+      "keys": [
+        "kirk2024understanding",
+        "dang2025diversity",
+        "cui2025entropy",
+        "yue2025rlvrlimit"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 478,
+      "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+    },
+    {
+      "keys": [
+        "farquhar2024detecting"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 480,
+      "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on proposal support\n\\citep{brown2024monkeys,snell2024testtime}, yet RLHF, fine-tuning, and RLVR can\nnarrow that support\n\\citep{kirk2024understanding,dang2025diversity,cui2025entropy,yue2025rlvrlimit}.\nSemantic clustering typically infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+    },
+    {
+      "keys": [
+        "song2025outcome",
+        "chen2025passktraining",
+        "li2025divergence",
+        "li2026setpo",
+        "li2026distribution",
+        "lochab2026ucpo"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 486,
+      "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+    },
+    {
+      "keys": [
+        "tajwar2026maxrl"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 489,
+      "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL jointly\noptimizes best@\\(k\\) objectives through the rollout budget, while ArgMaxRL\nextends the construction to continuous rewards \\citep{tajwar2026maxrl}.\nBecause our task rewards are binary, the MaxRL method is the exact binary special\ncase; ReplayMaxRL tests whether explicit mode memory adds support beyond this\nsampling-aware fresh-rollout objective."
+    },
+    {
+      "keys": [
+        "lin1992selfimproving",
+        "rolnick2019replay",
+        "zhang2025rlep"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 496,
+      "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+    },
+    {
+      "keys": [
+        "lehman2011novelty",
+        "mouret2015illuminating"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 499,
+      "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay preserves successful trajectories\n\\citep{lin1992selfimproving,rolnick2019replay,zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Quality-diversity search similarly keeps one elite per\nbehavior descriptor \\citep{lehman2011novelty,mouret2015illuminating}; our replay\nbank uses the execution key as that descriptor inside a policy-gradient update."
+    },
+    {
+      "keys": [
+        "hofbauer1998evolutionary"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 656,
+      "context": "The conditional correct-mode flow derived below is a standard\nfrequency-dependent replicator system with fitness $f_c(q)=q_c$\n\\citep{hofbauer1998evolutionary}; the following\ntheorem is not claimed as a new replicator-dynamics result. Its role is to show\nthat the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that\nfamiliar winner-take-all flow under the paper's categorical assumptions."
+    },
+    {
+      "keys": [
+        "tajwar2026maxrl"
+      ],
+      "file": "paper/mathai2026/appendix.tex",
+      "line": 2007,
+      "context": "For a fresh on-policy group of $G$ responses, let $r_i\\in\\{0,1\\}$ be the\nverified reward of response $i$ and let $m=\\sum_{i=1}^G r_i$ count successes.\nThe binary MaxRL task advantage is\n\\[\n  A_i^{\\mathrm{MaxRL}}=\n  \\begin{cases}\n    G r_i/m-1, & m>0,\\\\\n    0, & m=0.\n  \\end{cases}\n\\]\nMixed groups assign failures advantage $-1$ and increase the weight of each\nsuccess when successes are scarce. All-correct and all-failure groups have\nzero task advantage. This is the binary special case of ArgMaxRL and\noptimizes a harmonic mixture of best@\\(k\\) for $k=1,\\ldots,G-1$\n\\citep{tajwar2026maxrl}. It is applied only to fresh on-policy responses;\nreplay exemplars enter through the separate verified-likelihood loss."
+    }
+  ]
+}

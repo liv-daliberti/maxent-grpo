@@ -1,0 +1,466 @@
+\section{Why On-Policy RL Can Lose Modes and Verified Replay Retains Them}
+\label{app:theory}
+
+\noindent\emph{Main-body link.} This appendix supplies the formal claims
+invoked in Sections~\ref{sec:method} and~\ref{sec:results}.
+
+This appendix separates two questions that are easy to conflate: whether a
+binary-reward group update preserves ratios among already correct modes, and
+whether verified replay preserves modes the policy has produced
+and the validator has accepted. The first admits a generic-collapse result in a
+finite model with independently trained categorical logits. The second necessarily requires a coverage
+assumption: the replay term directly protects only represented bank modes;
+it does not by itself guarantee retention of modes never sampled or constructed. We therefore
+prove support preservation first and state full no-collapse as a coverage
+corollary. Accordingly, the positive theorem explains the stability mechanism
+after discovery; it does not prove that a ReplayMaxRL policy will establish its own
+coverage premise in a language model.
+
+\paragraph{How to read the proof chain.}
+The group-expectation lemmas first reduce the fresh task update to a positive
+multiple of the correctness gradient. The collapse theorem then separates
+that scalar learning clock from the within-correct-mode dynamics. The shared
+correctness theorem compares those dynamics at matched accuracy, and
+Corollary~\ref{cor:collapse-error-rate} quantifies their eventual loss.
+Lemmas~\ref{lem:entropy-scope} and~\ref{lem:sampled-score-bound} separate
+exact entropy regularization from bounded sampled surprisal.
+Lemma~\ref{lem:replay-gradient-availability} distinguishes a fresh task signal
+from a replay signal. The retention theorem and its fixed-bank limit then
+identify exactly which stored modes survive. The natural-gradient comparison
+in Section~\ref{app:theory-natural-gradient} makes the role of update geometry
+explicit, while Section~\ref{app:theory-entropy-comparison} relates exact entropy
+to replay through their distinct relative-entropy objectives.
+Lemma~\ref{lem:shared-exemplar-retention} then states the energy condition
+needed for complete exemplars in a shared model. The remaining sections extend
+that condition to controlled stochastic updates and changing banks, and derive
+sharp per-mode certificates and valid finite-sample interpretations
+(Sections~\ref{app:theory-optimizer}--\ref{app:theory-survival-certificates}).
+Each extension states its additional assumptions and the established
+literature tools used in its proof.
+
+Here $G$ counts training rollouts, $K$ counts evaluation draws, $m,n$ count
+correct and incorrect categories, and $k$ is the bank size. In the mean-flow results, $t$ is
+continuous optimization time and $\tau$ is a reparameterized learning clock.
+The later stochastic and admission results use explicitly defined update or
+opportunity indices. None is a wall-clock or GPU-runtime prediction. ``Collapse'' refers to
+limiting concentration: finite softmax logits already give positive
+probabilities at every finite time. A uniform lower bound for all future
+times is the stronger retention property proved below.
+
+\subsection{Categorical reduction and the GRPO mean update}
+\label{app:theory-grpo-mean}
+
+Fix one prompt. Let the finite response categories be
+$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$, where the $m\ge2$
+categories in $\mathcal C$ are correct execution modes and the $n\ge1$
+categories in $\mathcal N$ are incorrect. Let
+$p_a=\operatorname{softmax}(z)_a$, $P=\sum_{c\in\mathcal C}p_c$, and
+$q_c=p_c/P$. Thus $q$ is exactly the conditional correct-mode distribution
+$p_\theta^+(\cdot\mid x)$ of Section~\ref{sec:collapse}, and $P$ is the correct
+mass $P_\theta^+(x)$.
+
+Draw a group $A_1,\ldots,A_G\stackrel{\mathrm{iid}}{\sim}p$ with $G\ge2$,
+write $R_i=\1[A_i\in\mathcal C]$, and let $M=\sum_iR_i$. Both GRPO variants
+can be written, at the on-policy point where the PPO ratio equals one, as
+\begin{equation}
+  \widehat g_G
+  =\frac1G\sum_{i=1}^G
+   w(M)\left(R_i-\frac{M}{G}\right)\nabla_z\log p_{A_i}.
+  \label{eq:group-estimator}
+\end{equation}
+For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
+binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
+on mixed groups. We absorb the same fixed response-length normalizer in both
+variants; response-dependent row normalization is outside this reduction.
+In either case $0<w(\ell)<\infty$ for $\ell\in\{1,\ldots,G-1\}$.
+We define the entire update as zero on all-equal groups, without evaluating an
+undefined reciprocal standard deviation; likewise, $w(M)M(G-M)$ below is
+defined as zero when $M=0$ or $M=G$. We take explicit reference KL to be zero, as
+in the experiments.
+
+\begin{lemma}[A group baseline does not remove frequency amplification]
+\label{lem:grpo-mean}
+For $0<P<1$, the expected group update is
+\begin{equation}
+  \E[\widehat g_G]
+  =c_G(P)\nabla_z P,
+  \qquad
+  c_G(P)=
+  \frac{\E\!\big[w(M)M(G-M)\big]}{G^2P(1-P)}>0.
+  \label{eq:expected-group-gradient}
+\end{equation}
+For Dr.GRPO, $c_G(P)=(G-1)/G$. Hence reward centering and binary reward
+standardization change the speed, but not the expected direction, of the
+binary-reward policy gradient.
+\end{lemma}
+
+\begin{proof}
+Condition on the complete binary reward vector, whose sum is $M$. The score
+identities give
+\[
+  \E[\nabla_z\log p_{A_i}\mid R_i=1]=\nabla_z\log P,
+  \qquad
+  \E[\nabla_z\log p_{A_i}\mid R_i=0]
+  =\nabla_z\log(1-P).
+\]
+There are $M$ correct rows with centered reward $(G-M)/G$ and $G-M$
+incorrect rows with centered reward $-M/G$. Therefore the conditional
+expectation of the unaveraged sum in~\eqref{eq:group-estimator} is
+\[
+  w(M)\frac{M(G-M)}{G}
+  \left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+  =w(M)\frac{M(G-M)}{GP(1-P)}\nabla_zP.
+\]
+The outer factor $1/G$ and expectation over
+$M\sim\operatorname{Binomial}(G,P)$ yield~\eqref{eq:expected-group-gradient}.
+For $w\equiv1$,
+$\E[M(G-M)]=G(G-1)P(1-P)$, proving the Dr.GRPO value.
+\end{proof}
+
+The binomial identity also gives the denominator-free expression
+\[
+ c_G(P)=\frac{G-1}{G}\sum_{j=0}^{G-2}\binom{G-2}{j}
+ w(j+1)P^j(1-P)^{G-2-j}.
+\]
+The binomial weights sum to one, so $c_G$ lies between
+$(G-1)\min_j w(j+1)/G$ and $(G-1)\max_j w(j+1)/G$.
+This establishes the smooth, positive extension to $P=0,1$ used in the
+subsequent flow and convergence arguments.
+
+The next lemma specializes the practical-estimator analysis of
+\citet[Section~4.3 and Appendix~D, Theorem~5]{tajwar2026maxrl}
+to our categorical notation; we include the derivation for completeness.
+
+\begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+\label{lem:maxrl-mean}
+Let MaxRL assign
+$A_i^{\mathrm{MaxRL}}=GR_i/M-1$ when $M>0$ and zero when $M=0$, as in
+Section~\ref{sec:maxrl-method}. At the on-policy point, its expected update is
+\begin{equation}
+  \E[\widehat g_G^{\mathrm{MaxRL}}]
+  =c_G^{\mathrm{MaxRL}}(P)\nabla_zP,
+  \qquad
+  c_G^{\mathrm{MaxRL}}(P)
+  =\frac{1-(1-P)^{G-1}}{P}>0,
+  \label{eq:maxrl-expected-gradient}
+\end{equation}
+with continuous endpoint values
+$c_G^{\mathrm{MaxRL}}(0)=G-1$ and
+$c_G^{\mathrm{MaxRL}}(1)=1$.
+\end{lemma}
+
+\begin{proof}
+Condition on $M=m>0$. Each successful row has advantage $(G-m)/m$ and each
+failed row has advantage $-1$. Using the same conditional score identities as
+above, the expected unaveraged sum is
+\[
+  (G-m)\!\left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+  =\frac{G-m}{P(1-P)}\nabla_zP.
+\]
+After the outer factor $1/G$ and averaging over
+$M\sim\operatorname{Binomial}(G,P)$,
+\[
+ \E[(G-M)\1\{M>0\}]
+ =G(1-P)-G\Pr(M=0)
+ =G\big[(1-P)-(1-P)^G\big].
+\]
+Substitution gives Equation~\eqref{eq:maxrl-expected-gradient}. Its endpoint
+values follow by continuity (or the finite geometric-series identity), which
+also gives the stated continuous extension at both boundaries.
+\end{proof}
+
+The same finite-series identity gives the potential used below:
+\begin{equation}
+ \Psi_{\mathrm{MaxRL}}(P)
+ :=\int_0^P c_G^{\mathrm{MaxRL}}(s)\,ds
+ =\sum_{k=1}^{G-1}\frac{1-(1-P)^k}{k}.
+ \label{eq:maxrl-potential-finite-sum}
+\end{equation}
+In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
+For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
+mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
+$G-1$, not $G$: the implemented centered estimator drops the entire update
+on all-failure groups. Subtracting an unconditional score baseline even on
+those groups instead gives the order-$G$ estimator. This distinction concerns
+the exact finite-group expectation at the on-policy point; it does not assert
+unbiasedness of subsequent clipped or adaptive-optimizer updates.
+
+\subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+\label{app:theory-collapse}
+
+Prior work studies objective-induced outcome collapse and inverse-probability
+correction \citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse
+through sampling bias and gradient amplification \citep[Section~4]{lochab2026ucpo}.
+Here we connect our group estimators to a standard categorical flow and then study
+persistent replay over execution-defined keys.
+Consider the infinitesimal expected-update flow
+$\dot z=\E[\widehat g_G]=c_G(P)\nabla_zP$. This is the clean mean-field limit
+of fresh on-policy groups and the first-order PPO update. By Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately
+removes sampling noise; the result below therefore identifies a structural
+instability rather than blaming finite batches.
+
+The conditional correct-mode flow derived below is a standard
+frequency-dependent replicator system with fitness $f_c(q)=q_c$
+\citep{hofbauer1998evolutionary}; the following
+theorem is not claimed as a new replicator-dynamics result. Its role is to show
+that the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that
+familiar winner-take-all flow under the paper's categorical assumptions.
+
+\begin{theorem}[Standard replicator specialization for binary-reward RL]
+\label{thm:grpo-collapse}
+Start from finite logits with $0<P(0)<1$. If the conditional correct-mode
+distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+\[
+  P(t)\longrightarrow1,
+  \qquad
+  q_{c^\star}(t)\longrightarrow1,
+  \qquad
+  q_c(t)\longrightarrow0\quad(c\ne c^\star).
+\]
+Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single
+correct execution mode for generic initial conditions, even though every mode
+in $\mathcal C$ has exactly the same reward.
+\end{theorem}
+
+\begin{proof}
+For a correct mode $c$ and incorrect category $a$,
+\[
+  \dot z_c=c_G(P)p_c(1-P),
+  \qquad
+  \dot z_a=-c_G(P)p_aP.
+\]
+Also $\dot P=c_G(P)\lVert\nabla_zP\rVert_2^2>0$. If $P$ converged to an
+interior value, continuity and positivity of $c_G$, together with
+\[
+ \lVert\nabla_zP\rVert_2^2
+ \ge P^2(1-P)^2\left(\frac1m+\frac1n\right),
+\]
+would keep $\dot P$ bounded away from zero, a contradiction. Hence $P\to1$.
+
+Define the effective optimization time
+\[
+  \tau(t)=\int_0^t c_G(P(s))P(s)(1-P(s))\,ds.
+\]
+If $\tau(\infty)<\infty$, every correct and incorrect logit would have finite
+total variation, because the absolute velocity of each is at most $\dot\tau$.
+All logits would then converge to finite values, contradicting $P\to1$.
+Therefore $\tau(t)\to\infty$, leaving infinite effective time for the
+correct-simplex dynamics below.
+
+On the correct simplex, changing from $t$ to $\tau$ gives the replicator flow
+\begin{equation}
+  \frac{dq_c}{d\tau}
+  =q_c\left(q_c-\sum_{d\in\mathcal C}q_d^2\right),
+  \qquad
+  \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
+  \label{eq:grpo-replicator}
+\end{equation}
+The initially unique maximum remains the unique maximum. For $c\ne c^\star$,
+set $\xi_c=q_c/q_{c^\star}$, so $\xi_c(0)<1$ and $\xi_c$ is nonincreasing.
+Since $q_{c^\star}\ge1/m$,
+\[
+ \frac{d\log\xi_c}{d\tau}
+ =-q_{c^\star}(1-\xi_c)
+ \le-\frac{1-\xi_c(0)}{m}.
+\]
+Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
+Every competing mode vanishes relative to $c^\star$; normalization then
+yields $q_{c^\star}\to1$, establishing the claimed single-mode limit.
+\end{proof}
+
+\begin{corollary}[Ties are nongeneric]
+\label{cor:grpo-ties}
+If exactly $k<m$ correct modes tie for the largest initial probability, symmetry
+preserves the tie and the flow converges to the uniform distribution on those
+$k$ modes while eliminating the rest. Only the exactly uniform initialization preserves all $m$ correct modes
+in the limit; a tie among $1<k<m$ maxima yields partial collapse onto those
+$k$ modes. Any perturbation creating a unique maximum gives single-mode
+collapse by Theorem~\ref{thm:grpo-collapse}.
+\end{corollary}
+
+Finite groups also introduce sampling effects: a mode absent from
+a group has no sampled response of its own carrying a score term,
+all-correct groups have zero task advantage, and sampling noise can break exact
+ties. Softmax normalization and shared parameters can still change an
+unsampled mode's probability. These facts are not needed for
+the theorem.
+
+\subsection{How model parameterization changes collapse}
+\label{app:theory-size}
+
+The cross-scale losses raise a further question: can a larger model learn
+correctness while preserving more correct alternatives? The preceding theorem
+already allows every logit to vary independently, so representational capacity
+alone cannot answer this question. We give a conditional mechanism: directions
+that raise correct logits together can improve correctness with less
+amplification of differences among correct modes.
+
+For a smooth parameterization $z=z(\theta)$, write
+$J_\theta=\partial z/\partial\theta$ and
+$\mathsf K_\theta=J_\theta J_\theta^\top$. The chain rule extends
+Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} to Euclidean parameter
+gradient flow:
+\begin{equation}
+ \dot z=c_G(P)\mathsf K_\theta\nabla_zP,
+ \qquad
+ \frac{d}{dt}\log\frac{q_c}{q_d}
+ =c_G(P)(\mathbf e_c-\mathbf e_d)^\top\mathsf K_\theta\nabla_zP,
+ \label{eq:parameterized-collapse}
+\end{equation}
+where $\mathbf e_c$ is a coordinate basis vector. Thus the logit-gradient geometry,
+not the number of columns of $J_\theta$ alone, governs mode amplification.
+The independent-logit theorem has $\mathsf K_\theta=I$.
+
+To isolate shared correctness learning, let $v=\1_{\mathcal C}$ be the
+vector that is one on correct categories and zero on incorrect categories,
+and consider the constant geometry
+\begin{equation}
+ \mathsf K_\lambda=I+\lambda vv^\top,\qquad \lambda\ge0.
+ \label{eq:shared-correctness-kernel}
+\end{equation}
+The added direction moves all correct logits equally, so it improves their
+mass without directly changing their ratios. For example,
+$z=u+\alpha\sum_{j=1}^s h_jv$, with trainable $u$ and scalar $h_j$, realizes
+this geometry with $\lambda=s\alpha^2$. More such coordinates strengthen the
+shared update if $\alpha$ is fixed; normalizing $\alpha=1/\sqrt{s}$ removes
+that dependence. These coordinates are redundant for expressivity and assume
+perfect correctness alignment. They describe an optimization mechanism, not
+a feature that an arbitrary larger language model is guaranteed to possess.
+
+\begin{theorem}[Shared correctness learning preserves more sampled modes at matched accuracy]
+\label{thm:shared-correctness}
+Compare the flows~\eqref{eq:parameterized-collapse} with
+$\mathsf K_\theta=\mathsf K_\lambda$, the same finite initial logits, and any
+of the three functions $c_G$ above. Fix a target correct mass
+$P_\star\in(P(0),1)$. At the first time each flow reaches $P_\star$,
+$\texttt{distinct@}K$ is nondecreasing in $\lambda$ for every integer $K\ge1$,
+while $\texttt{pass@}K$ is identical. The increase is strict for $K\ge2$ when
+$q(0)$ is nonuniform. In addition, every correct mode satisfies
+\begin{equation}
+ q_c^{(\lambda)}(P_\star)
+ \ge q_c(0)\exp\!\left(-\frac{L}{\lambda+1/m+1/n}\right),
+ \quad
+ L=\log\frac{P_\star}{1-P_\star}-\log\frac{P(0)}{1-P(0)}.
+ \label{eq:shared-correctness-bound}
+\end{equation}
+Here $m,n$ count output categories, not model parameters. For every fixed
+finite $\lambda$, a unique initial maximum still implies eventual
+single-mode collapse as $t\to\infty$.
+\end{theorem}
+
+\begin{proof}
+Let $r_a=p_a/(1-P)$ for $a\in\mathcal N$, and write
+$S_q=\sum_cq_c^2$, $S_r=\sum_ar_a^2$. In the effective time
+$d\tau=c_G(P)P(1-P)\,dt$, the logit velocities are
+$dz_c/d\tau=q_c+\lambda$ and $dz_a/d\tau=-r_a$. Hence
+\begin{equation}
+ \frac{dq_c}{d\tau}=q_c(q_c-S_q),\qquad
+ \frac{dr_a}{d\tau}=-r_a(r_a-S_r),\qquad
+ \frac{d}{d\tau}\log\frac{P}{1-P}=S_q+S_r+\lambda.
+ \label{eq:shared-correctness-clock}
+\end{equation}
+The paths $q(\tau),r(\tau)$ therefore do not depend on $\lambda$.
+Also $\dot P=c_G(P)P^2(1-P)^2(S_q+S_r+\lambda)>0$; the same interior-limit
+argument as in Theorem~\ref{thm:grpo-collapse} gives $P\to1$.
+At $P_\star$, the effective time $\tau_\lambda$ uniquely solves
+\[
+ L=\lambda\tau_\lambda+
+   \int_0^{\tau_\lambda}(S_q(u)+S_r(u))\,du.
+\]
+The right-hand side increases strictly with both its positive time argument
+and $\lambda$, so $\tau_\lambda$ decreases strictly with $\lambda$.
+Since $S_q\ge1/m$ and $S_r\ge1/n$,
+$\tau_\lambda\le L/(\lambda+1/m+1/n)$. Integrating
+$d\log q_c/d\tau=q_c-S_q\ge-1$ over this bounded interval gives the probability
+floor in Equation~\eqref{eq:shared-correctness-bound}.
+
+At fixed $P_\star$, define
+$\mathcal D_K(q)=\sum_c[1-(1-P_\star q_c)^K]$, the expected number of correct modes in
+$K$ independent draws. For
+$a(u)=KP_\star(1-P_\star u)^{K-1}$, the replicator equation gives
+\[
+ \frac{d\mathcal D_K}{d\tau}
+ =\frac12\sum_{c,d}q_cq_d(q_c-q_d)\bigl(a(q_c)-a(q_d)\bigr)\le0.
+\]
+The inequality holds because $a$ is nonincreasing; it is strict for $K\ge2$
+and nonuniform $q$. Thus the smaller $\tau_\lambda$ gives larger
+$\texttt{distinct@}K$, whereas
+$\texttt{pass@}K=1-(1-P_\star)^K$ is unchanged. Finally,
+$S_q+S_r+\lambda\le2+\lambda$ and $P\to1$ imply $\tau\to\infty$.
+The unchanged correct-mode replicator flow then gives eventual collapse
+under a unique initial maximum.
+\end{proof}
+
+\begin{corollary}[Collapse rate as correctness approaches one]
+\label{cor:collapse-error-rate}
+Under Theorem~\ref{thm:shared-correctness}, fix finite $\lambda\ge0$
+and suppose the initial correct-mode maximum is unique. For every other
+correct mode $c$,
+\begin{equation}
+ \lim_{P\uparrow1}\frac{\log q_c^{(\lambda)}(P)}{\log(1-P)}
+ =\frac{1}{\lambda+1+1/n}.
+ \label{eq:collapse-error-exponent}
+\end{equation}
+Thus $q_c^{(\lambda)}(P)=(1-P)^{1/(\lambda+1+1/n)+o(1)}$:
+larger fixed $\lambda$ reduces the decay exponent, but every minority mode
+still vanishes. The exponent describes the limiting ratio of logarithms;
+finite-accuracy probabilities also depend on the initial distribution.
+\end{corollary}
+
+\begin{proof}
+Theorem~\ref{thm:shared-correctness} gives $q\to\mathbf e_{c^\star}$,
+so $S_q\to1$. The incorrect conditional flow in
+Equation~\eqref{eq:shared-correctness-clock} preserves ordering and makes
+$r_{\min}$ nondecreasing. For $h=\log(r_{\max}/r_{\min})$,
+\[
+ h'=-(r_{\max}-r_{\min})
+ =-r_{\min}(e^h-1)\le-r_{\min}(0)h.
+\]
+Hence $r\to(1/n,\ldots,1/n)$ and $S_r\to1/n$, including trivially $n=1$.
+Integrating $d\log q_c/d\tau=q_c-S_q$ and the correctness-clock equation
+and taking time averages yields
+\[
+ \frac{\log q_c(\tau)}{\tau}\to-1,
+ \qquad
+ \frac{\log(P(\tau)/(1-P(\tau)))}{\tau}
+ \to\lambda+1+1/n.
+\]
+Since $\log(1-P)=\log P-\log(P/(1-P))$ and $\log P\to0$, their ratio proves
+Equation~\eqref{eq:collapse-error-exponent}.
+\end{proof}
+
+\paragraph{Correctness alone does not imply collapse.}
+The independent-logit component matters. With purely shared geometry
+$\mathsf K=\lambda vv^\top$, $\lambda>0$, all correct logits move equally,
+so $q(t)=q(0)$ while
+$\dot P=\lambda c_G(P)P^2(1-P)^2>0$ and $P\to1$.
+For $\mathsf K=aI+bvv^\top$ with fixed $a>0$ and $b\ge0$, time rescaling
+instead recovers Theorem~\ref{thm:shared-correctness} with $\lambda=b/a$.
+Thus persistent mode-specific amplification, not increasing correctness by
+itself, drives this collapse result.
+
+\paragraph{Why parameter count alone is insufficient.}
+For an integer $h\ge1$, replace each independent logit by
+$z_a=h^{-\gamma}\sum_{j=1}^h\theta_{aj}$, initializing
+$\theta_{aj}(0)=h^{\gamma-1}z_a(0)$. Every added parameter affects the logits,
+and every model represents the same categorical policies, but
+$\mathsf K=h^{1-2\gamma}I$. Its policy follows exactly the original collapse
+trajectory with time multiplied by $h^{1-2\gamma}$. Increasing the parameter
+count therefore makes collapse faster, unchanged, or slower for
+$\gamma=0,1/2,1$, respectively. A size claim requires assumptions about how
+additional parameters change the update geometry, not just their number.
+
+\paragraph{What this explains and what remains untested.}
+Theorem~\ref{thm:shared-correctness} connects a specified kind of shared
+learning to the paper's sampling metrics at matched accuracy. It also
+clarifies why a slower loss can coexist with eventual collapse, leaving a
+role for replay. It does not identify the cause of the empirical cross-scale
+pattern: those runs start from different pretrained distributions, use
+different learning-rate schedules, and compare equal training passes rather
+than matched accuracy. Falcon also changes model family. Neither the assumed
+geometry nor its dependence on size is measured here. Establishing that link
+would require controlled within-family scaling and measurements of shared
+versus mode-specific updates. The result retains prompt isolation, exact
+mean updates, and zero reference KL; it does not cover shared-prompt
+interference, adaptive optimizer effects, or finite-step stochastic training.
+

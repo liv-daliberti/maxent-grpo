@@ -1,0 +1,14 @@
+{
+  "case_count": 4,
+  "eval_rows": 128,
+  "eval_rows_sha256": "be0f621c5a0ae84ca45ef4ab866ae12f4c64472eeed1a0ae4666918ab794d183",
+  "external_verifier": "isolated_python_jsonl_worker",
+  "max_value": 96,
+  "maximum_exact_mode_count": 3600,
+  "minimum_exact_mode_count": 16,
+  "schema": "python_factor_modebench_v1",
+  "seed": 5100,
+  "support": "finite_exact",
+  "train_rows": 384,
+  "train_rows_sha256": "bcfa9accfa3b5c7dd312c85683157af070e7f2741385e9b5a882fd57da037cf7"
+}

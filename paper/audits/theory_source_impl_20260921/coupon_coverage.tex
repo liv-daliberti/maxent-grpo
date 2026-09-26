@@ -1,0 +1,25 @@
+\begin{corollary}[Uniform allocation maximizes finite-budget coverage]
+\label{cor:coupon-uniform-coverage}
+Fix correctness $P\in(0,1]$ and $m\ge2$ possible correct keys.
+Let $D_K(P,q)$ count distinct verified keys in $K$ independent draws with
+key probabilities $Pq_1,\ldots,Pq_m$ and failure probability $1-P$.
+For $u=(1/m,\ldots,1/m)$, every $K\ge1$ and $r=1,\ldots,m$ satisfy
+\begin{equation}
+ \Pr[D_K(P,u)\ge r]\ge\Pr[D_K(P,q)\ge r].
+ \label{eq:coupon-uniform-coverage}
+\end{equation}
+Thus uniform conditional allocation maximizes \texttt{distinct@}$K$ at
+fixed correctness, and more strongly maximizes every coverage tail
+probability. This is a consequence of
+\citet[Theorem~3, v1]{anceaume2015coupon}.
+\end{corollary}
+\begin{proof}
+Map each correct key to a coupon of mass $Pq_c$ and every failure to the
+null coupon of mass $1-P$. The cited theorem makes the time to collect $r$
+distinct non-null coupons stochastically smallest when each has mass $P/m$.
+The event that this time is at most $K$ is exactly $D_K\ge r$.
+Zero coordinates and $P=1$ follow by continuity of finite-horizon
+probabilities. Summing these tail inequalities gives the expectation claim.
+\end{proof}
+This sampling optimum does not assert that a training algorithm reaches the
+uniform allocation.

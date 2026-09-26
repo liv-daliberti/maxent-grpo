@@ -1,0 +1,3947 @@
+# Exploration compute-scaling campaign — run log
+
+Prereg: `paper/preregistration/exploration_compute_scaling.md`
+Goal: turn "diversity at flat accuracy" into "group-level exploration is where RL
+compute pays off" via E1 (compute-scaling divergence), E2 (two-stage), E3 (temp control).
+
+## Launched 2026-07-16 (~00:15)
+
+| Exp | Stamp | Model | Arms | Horizon | Node | Jobs | Status |
+|-----|-------|-------|------|---------|------|------|--------|
+| E1 pilot | `gce1_05b` | 0.5B | grpo, xdr τ0.05 | 16 ep (~3072 st) | node105 a5000 | 29997357–62 | RUNNING |
+| E1 3B | `gce1_3b` | 3B | grpo, xdr τ0.05 | planned 16 ep; stopped at 2 ep | node302 a100 | 30000479–84 | CANCELLED intentionally (trend established) |
+| E3 3B | `gce3_3b` | 3B | grpo T=1.2 | 16 ep | node302 | — | NOT LAUNCHED (staged; gated on E1) |
+| E2 3B | — | 3B | two-stage | — | node302 | — | NOT BUILT (needs E1 epoch-1 ckpt) |
+
+Decision 2026-07-16: leave agora untouched; 3B E1 starts as agora clears (no deadline).
+
+## How to run / analyze
+
+- Launch: `bash ops/exp_scaling/launch_e1_05b_pilot.sh` (or `_e1_3b`, `_e3_tempcontrol_3b`).
+- Curve: `var/seed_paper_eval/paper310/bin/python ops/exp_scaling/parse_scaling_curve.py --stamp-prefix <stamp>`
+  → writes `var/artifacts/<stamp>_scaling_curve.json` + prints coverage@8 divergence table.
+- Metrics source: inline `<run_dir>/debug_*/train_metrics.jsonl` (no checkpoints needed);
+  keys `eval/{multi,unique}_answer/sampled_{any_correct,mean,mode_coverage,distinct_correct}_at_8`
+  and `.../accuracy` (greedy). E1 primary = multi_answer coverage@8 vs log(step) interaction.
+- Watch: `squeue -u od2961`; per-run log `var/artifacts/logs/xdr_train-<jobid>.out`.
+
+## Update 2026-07-16 (midday)
+
+- BUDGET KNOB (the one that matters): steps = MAX_TRAIN / G. num_prompt_epoch is
+  ignored when MAX_TRAIN binds. N pool-passes -> MAX_TRAIN = N x pool x G.
+  First pilot ran 3 passes (not 16); first 3B submit would have run 1 pass —
+  both corrected. Corrected jobs: 3B `gce1_3b` 30000479-84 (16 passes, running
+  since 11:19, ~32 h); 0.5B extended `gce1b_05b` 30000485-90 (24 passes, running).
+- PILOT RESULT (3 passes, decisive): baseline coverage@8 DECLINES .12->.07 while
+  xDr climbs .11->.19; gap widens monotonically. 3B epoch-1 (from the 1-pass runs):
+  gap +14.1 cov / +21.1 pass@8 / +0.79 distinct at flat mean@8.
+- PAPER: new §Results "Longer Training: Collapse Versus Divergence"
+  (sec:compute-scaling) + Figure `paper/figures/compute_divergence` (built by
+  `ops/exp_scaling/plot_divergence.py`); abstract + Discussion updated; compiles
+  clean (27 pp). Refresh when long runs land:
+  `parse_scaling_curve.py --stamp-prefix gce1b_05b; ... gce1_3b; plot_divergence.py; (cd paper && make)`
+  (also in a % NOTE above the subsection in main.tex).
+
+- 2026-07-16 ~12:55: launched E1 domain-generality arm `cde1_05b` (0.5B Countdown
+  easy3, 24 passes = MAX_TRAIN 147456, jobs 30000793-98, node105). Rationale: fig
+  is GC-only; 0.5B Countdown has traction (pass@8 ~.40) so dynamics are testable
+  there; 3B Countdown-4 is floor-bound (.073) so dynamics uninformative at 3B.
+
+- 2026-07-16 ~13:35: 0.5B GC extended (gce1b_05b) CANCELLED at ~14/24 passes by
+  user decision -- both arms fully converged at the collapsed floor (~.06
+  coverage), so the remaining passes carried no information. KEY FINDING kept
+  on disk (train_metrics.jsonl + gce1b_05b_scaling_curve.json): xDr DELAYS
+  collapse ~5-10x in passes (gap peak +.127 @ ~1.3 passes -> ~0 by ~12-14)
+  but does not prevent it under extreme repetition of the tiny 192-pool.
+  "Delay, not immunity" at 0.5B; whether 3B (5x pool) closes too is the open
+  question the running gce1_3b answers. Cancellation freed node105 for the
+  0.5B Countdown queue (cde1_05b).
+
+## Update 2026-07-16 ~14:50 (figure refresh #2)
+
+- Re-parsed all stamps; rebuilt fig:compute-divergence (now 3 rows: 0.5B GC,
+  0.5B Countdown NEW, 3B GC; 3B Countdown row auto-appears when cde1_3b lands).
+- 0.5B Countdown (cde1_05b relaunch, thru 3/24 passes, 2 xdr seeds): NO baseline
+  collapse; xDr early lead (+15.5 pass@8 / +5.0 cov @ 1 pass) dissipates by 2-3
+  passes -> "buys speed, not a persistent gap". Sentence added to
+  sec:compute-scaling (domain dependence, exploratory).
+- 3B GC thru 1.5 passes (2 seeds): gap WIDENS +10.9->+14.5 cov, +16.8->+26.2
+  pass@8, +0.59->+0.81 distinct; baseline declining from half-pass peak on all
+  three metrics; mean@8/greedy gaps now positive (+4.3/+4.9, watch as more
+  passes land). 3B paragraph updated (1.25 -> 1.5-pass snapshot).
+- Paper compiles clean, 18 pp (post-restructure), no undefined refs.
+
+## Next steps
+1. Treat gce1_3b as an intentionally stopped exploratory trajectory, not a
+   completed 16-pass endpoint; the frozen right edge is two seeds at 2 passes.
+2. cde1_05b full 24 passes + cde1_3b (queued): refresh again; 3B Countdown row
+   auto-appears.
+3. Commit prereg (disclose launch-vs-commit timing honestly).
+4. Build E2 two-stage (Phase-A ckpt -> Phase-B plain Dr.GRPO); E3 temp control.
+
+## Update 2026-07-16 (3B collapse telemetry snapshot)
+
+- Consolidated the ad hoc diagnostic and phase plots into
+  `plot_collapse_telemetry.py`. It writes the paper PDF/PNG and
+  `paper/results/collapse_telemetry_3b_summary.json` from the longest coherent
+  metrics log for each seed.
+- Through the current common telemetry step 1471 (1.44 passes; two seeds per
+  arm at the right edge), the 25-step-smoothed token entropy is .087 for
+  Dr.GRPO and .165 for xDr; the informative mixed-group fraction is .577 vs
+  .885. Dr.GRPO first remains below entropy .20 at step 209, versus step 872
+  for xDr (4.2x later).
+- In the narrow observed entropy overlap [.179, .218], coverage@8 averages
+  .224 for two Dr.GRPO observations and .282 for seven xDr observations
+  (+.058). This is explicitly descriptive: observations occur at different
+  steps and do not identify a causal reallocation of entropy to modes.
+- xDr's effective aggregation count remains mild (30.6/32 at the snapshot),
+  so there is no telemetry evidence that its continuing token-entropy decline
+  is driven by progressively stronger candidate-weight concentration.
+- Paper language is now "collapse resistance, not collapse immunity." The
+  0.5B extended run closes its peak +.127 coverage gap by 12--13 passes; the
+  running 3B campaign determines whether the larger pool ultimately does the
+  same.
+
+## Staged 2026-07-16 (E4 entropy-feedback tau; not launched)
+
+- Added a label-free xDr controller that runs at tau=.05 for 64 globally
+  averaged entropy observations, targets 80% of the warmup mean, and lowers
+  candidate-aggregation tau toward .005 only below target (EMA .9, gain 20).
+- Staged matched 1.5B and 3B graph-coloring recipes with exactly three arms:
+  Dr.GRPO, fixed xDr tau=.05, and entropy-feedback xDr; three seeds, G=32,
+  16 passes, identical evaluation and checkpoint cadence.
+- This intervention was designed from the already observed 0.5B/3B telemetry.
+  `paper/preregistration/e4_tau_control.md` records that post-hoc provenance
+  and freezes the exploratory outcomes before launch.
+- Launchers: `launch_e4_tau_control_1p5b.sh` and
+  `launch_e4_tau_control_3b.sh`. Neither has been executed.
+
+## Staged 2026-07-16 (E4 7B scale amendment; not launched)
+
+- Added Qwen2.5-7B as the next same-family scale after 3B; using an unrelated
+  model near 5B would confound model family with scale.
+- Consolidated E4 behind `launch_e4_tau_control.sh`; the 1.5B, 3B, 7B-smoke,
+  and 7B wrappers now resolve through the same three-arm configuration.
+- The 7B smoke runs dedicated non-analysis seed 9001 for each arm over 256
+  updates, crossing the controller's 64-update warmup. Full 7B submission
+  requires explicit `OAT_ZERO_7B_SMOKE_APPROVED=1` after operational checks
+  only.
+- 7B requests 192 GB host memory, CPU optimizer/activation offload, and retains
+  a rolling four-checkpoint window. At this staging point no E4 job had been
+  executed.
+
+## Update 2026-07-16 ~15:05 (figure refresh #3, divergence_grid_latest)
+
+- Refreshed var/artifacts/divergence_grid_latest.png (= copy of the rebuilt
+  compute_divergence.png; the "latest" viewing convention). Paper rebuilt.
+- 3B GC thru 1.75 passes (2 seeds): gap off its 1.5-pass peak but still wide
+  (+12.1 cov / +22.5 pass@8 / +0.68 distinct); mean@8/greedy blips at 1.5
+  regressed to ~0 at 1.75 (single-draw noise — correctly kept out of prose).
+  Text snapshot synced 1.5 -> 1.75 passes ("remains wide, after a 1.5-pass peak").
+- 0.5B Countdown thru 4 passes: still converged (gap ~0-+3 pts) — transient-lead
+  reading unchanged.
+
+## Stopped 2026-07-16 ~15:46 (E1 3B graph coloring)
+
+- User-directed early stop: the qualitative divergence was already clear, so
+  the remaining planned 14 passes no longer justified the compute.
+- Cancelled only corrected `gce1_3b` jobs 30000479--84. Jobs 30000479--83 had
+  started; 30000484 (xDr seed 45) was still pending. Countdown jobs were left
+  untouched.
+- Frozen curve: all three matched seeds through 1 pass; seeds 43--44 through
+  2 passes. At the final two-seed point, xDr--Dr.GRPO is +13.1 coverage points,
+  +23.4 pass@8 points, and +0.72 distinct modes. This is a deliberately stopped
+  exploratory trajectory, not a completed long-horizon or confirmatory result.
+- Re-parsed `var/artifacts/gce1_3b_scaling_curve.json` from the last written
+  metrics. Do not relaunch this stamp without an explicit new decision.
+
+## Update 2026-07-16 ~15:58 (all-environment refresh)
+
+- Re-parsed all four compute-dynamics cells and rebuilt
+  `compute_divergence.pdf`: 0.5B/3B x Countdown/graph coloring.
+- 0.5B Countdown now has a seven-pass common horizon (three baseline, two xDr
+  seeds). Its coverage gap is +1.1 points there; the +7.0 pass@8 gap tracks a
+  +7.7 mean@8 gap rather than greater answer-set breadth.
+- 3B Countdown has landed only its initialization evaluation: three baseline
+  and two xDr jobs, with coverage .051 vs .048. The figure shows these points
+  on non-magnified axes and labels them `INITIAL EVAL ONLY`; no post-training
+  checkpoint or trajectory has landed yet. The sixth job (xDr seed 45) remains
+  queued.
+
+## Launched 2026-07-16 ~16:10 (E4 7B operational smoke)
+
+- CS A6000 availability confirmed on `node206`; added explicit Slurm
+  partition/account overrides to the common comparative launcher.
+- Submitted the outcome-blind seed-9001 smoke only, not the analytical 7B
+  campaign: Dr.GRPO 30001480, fixed xDr 30001481, feedback xDr 30001482.
+- Placement is `cs` / `allcs`, `node206`, one `gpu:a6000` and 192 GB host
+  memory per job, with a 12-hour limit. Dr.GRPO and fixed xDr started
+  immediately; feedback xDr is resource-pending because only two 192 GB jobs
+  fit concurrently under the node's scheduler allocation.
+- Full seeds 43--45 remain gated. Run `check_e4_7b_smoke.py` only after all
+  three arms cross the 64-update warmup and write a loadable step-256
+  checkpoint; approval must not inspect outcome differences.
+
+## Blocked 2026-07-16 ~16:20 (E4 7B single-A6000 smoke)
+
+- Dr.GRPO 30001480 and fixed xDr 30001481 both failed before training with
+  `RuntimeError: vllm cannot load the model` on one A6000. Neither wrote a
+  training-metrics record. The feedback arm 30001482 had not started.
+- Cancelled all three jobs to release CS resources. This is an operational
+  failure, not a null outcome; no smoke metrics enter any figure or analysis.
+- The full 7B campaign remains gated. A retry requires a revised placement or
+  model-serving configuration and a fresh operational smoke decision.
+- Concurrent refresh: 3B Countdown landed its first post-training evaluation
+  at 0.67 passes for five jobs; 0.5B Countdown advanced to an 8.3-pass common
+  horizon. `compute_divergence` and its paper prose were refreshed accordingly.
+
+## Retried 2026-07-16 ~16:25 (E4 7B two-A6000 smoke)
+
+- Added `launch_e4_tau_control_7b_smoke_2xa6000.sh` with a fresh
+  `gce4_taucontrol_7b_smoke_2xa6000` stamp. Each job requests two A6000s and
+  sets total GPUs and GPUs per actor to two, yielding one tensor-parallel vLLM
+  actor across the pair while the collocated learner sees both devices.
+- Submitted Dr.GRPO 30001489, fixed xDr 30001490, and feedback xDr 30001491 on
+  `node206` (`cs` / `allcs`, 192 GB, 12 hours). All three are priority-pending
+  behind a higher-priority CS A6000 request; no metrics exist yet.
+- The smoke remains seed 9001 and outcome-excluded. Full 7B seeds 43--45 remain
+  gated on all three retry arms passing the operational checker.
+
+## Blocked 2026-07-16 ~16:28 (E4 7B two-A6000 smoke v2)
+
+- The first two-A6000 attempt established that the intended placement works:
+  vLLM loaded one tensor-parallel actor across GPUs 0 and 1, using about 7.1
+  GiB of model memory per worker. It then stopped before training on OAT's
+  assertion that global `rollout_batch_size` be divisible by the two-GPU actor
+  width. Cancelled jobs 30001489--30001491; they produced no analysis results.
+- Updated `launch_e4_tau_control_7b_smoke_2xa6000.sh` to use global rollout
+  batch 2 and per-device rollout batch 1, under the fresh
+  `gce4_taucontrol_7b_smoke_2xa6000_v2` stamp.
+- Submitted Dr.GRPO 30001492, fixed xDr 30001493, and feedback xDr 30001494.
+  The first two jobs again loaded vLLM across both A6000s, then DeepSpeed
+  rejected global train batch 32 with per-device train batch 32 over two
+  learner ranks (zero gradient-accumulation steps). The feedback arm had not
+  started. Cancelled all three without analysis results.
+- This remains an outcome-blind operational smoke at seed 9001. Full 7B seeds
+  43--45 remain gated, and no smoke value is plotted as an experimental result.
+
+## Preflight 2026-07-16 ~16:34 (E4 7B two-A6000 smoke v5)
+
+- Preserved global train batch 32 and set per-device train batch 16, satisfying
+  DeepSpeed's two-rank batch identity with one gradient-accumulation step. The
+  rollout geometry remains global 2 / per-device 1.
+- Jobs 30001515--30001517 (v3) were submitted correctly but cancelled while
+  priority-pending: node206 became planned for higher-priority CS work, so a
+  12-hour smoke no longer fit the backfill window. A v4 submission to the
+  non-preemptible `all` partition was rejected before any job was created.
+- Submitted the fresh `gce4_taucontrol_7b_smoke_2xa6000_v5` stamp through the
+  `lowprio` partition under `allcs`, allowing the idle A6000 nodes node103,
+  node104, and node208. Dr.GRPO 30001581 and fixed xDr 30001582 ran on
+  node208; feedback xDr 30001583 ran on node103. Every job requested two
+  A6000s, 192 GB host memory, and 12 hours. Low-priority jobs may be requeued
+  if an owning partition needs a node.
+- All three jobs loaded vLLM tensor-parallel, initialized the two-rank ZeRO-2
+  learner with gradient accumulation 1, and entered step-0 evaluation. The
+  live scheduler log then revealed `max_steps=32`: one epoch over the 1,024
+  prompts at train batch 32 could never reach the step-256 smoke gate or cross
+  the controller warmup. Cancelled all three before extended training; their
+  operational records remain outcome-excluded.
+
+## Running 2026-07-16 ~16:40 (E4 7B two-A6000 smoke v6)
+
+- Corrected the smoke budget to eight prompt epochs over the 1,024-prompt
+  graph-coloring pool. At global train batch 32 this resolves to 256 optimizer
+  steps, matching the checker, the step-64 controller warmup, and the step-256
+  checkpoint. `max_train=1024` now states the actual pool cap explicitly.
+- Submitted Dr.GRPO 30001591, fixed xDr 30001592, and feedback xDr 30001593
+  under `gce4_taucontrol_7b_smoke_2xa6000_v6`. The first two are running on
+  node103 and the feedback arm is running on node104; every job has two A6000s.
+- Live initialization logs for all three resolve one actor and two learner
+  ranks over GPUs 0--1, report successful tensor-parallel model loading, and
+  print `num_policy_sgd_steps_per_episodes=32; max_steps=256` with no startup
+  traceback.
+- This is still the seed-9001 operational smoke, not the full 7B experiment.
+  Full seeds 43--45 remain gated on all three arms reaching step 256 with
+  finite entropy logs and non-empty checkpoints.
+
+## Storage cleanup 2026-07-16 ~16:47
+
+- The shared filesystem had only 336 GB free. The dominant debris was
+  DeepSpeed optimizer state from stopped graph-coloring campaigns, not source
+  code, datasets, metrics, or model caches.
+- Removed 21 optimizer-state shards from the cancelled 3B graph-coloring
+  campaign (about 955 GiB allocated) and 65 from the cancelled 0.5B
+  graph-coloring campaigns (about 474 GiB allocated). These files are needed
+  only to resume training.
+- Retained all 86 corresponding model-state checkpoints, every training metric
+  log, manifests, evaluation artifacts, plots, and paper inputs. Active
+  Countdown and 7B runs were excluded from cleanup.
+- Free shared capacity rose from 336 GB (96% used) to 1.4 TB (81% used). The
+  active 7B smoke jobs 30001591--30001593 remained running throughout.
+
+## Figure refresh 2026-07-16 ~16:50
+
+- Re-parsed all four landed compute-scaling stamps. The 0.5B Countdown block
+  now has a ten-pass common horizon (individual runs through 10.7 passes), and
+  the five active 3B Countdown jobs now include step-512 / 1.33-pass
+  evaluations in addition to initialization and step 256.
+- Updated `compute_divergence` and its manuscript prose. At the newest common
+  3B Countdown point, fixed xDr remains essentially matched to Dr.GRPO; this
+  short trajectory is displayed as progress, not a domain conclusion.
+- The 7B graph-coloring row remains workflow status only: all three two-A6000
+  smoke arms are running, and no smoke outcome enters the figure.
+
+## Figure amendment 2026-07-16 ~16:52
+
+- Added greedy `pass@1` as the first metric column in both Countdown and graph
+  coloring, alongside sampled `pass@8`, `coverage@8`, and `distinct@8`.
+- Job 30001482 is not pending: it was the never-started single-A6000 feedback
+  smoke and was cancelled at 16:20. Its corrected two-A6000 successor is job
+  30001593, running under the outcome-excluded v6 smoke stamp.
+
+## Figure refresh 2026-07-16 ~17:02
+
+- Re-parsed all landed curves after adding `pass@1`. The 0.5B Countdown common
+  horizon advanced to 12.3 passes (individual runs to 13), while all five
+  active 3B Countdown jobs reached the two-pass evaluation.
+- The two-pass 3B Countdown snapshot shows an early sampled-breadth separation
+  for fixed xDr, while greedy `pass@1` and `mean@8` remain nearly matched.
+  Manuscript language labels this as a short exploratory trajectory rather
+  than a domain conclusion.
+- The outcome-excluded 7B smoke remains status-only and contributes no curve.
+
+## Adaptive-arm figure visibility 2026-07-16 ~17:52
+
+- Added `xdr_tau_control` as an explicit orange-dotted series in the
+  compute-divergence plotting contract and legend. The 7B status row now names
+  Dr.GRPO, fixed xDr, and feedback xDr separately instead of hiding them behind
+  “3 arms.”
+- No orange outcome curve is drawn yet. Job 30001593 is the outcome-excluded
+  operational smoke and remains before the controller's 64-observation warmup;
+  the 0.5B and 3B analytical curve files contain only Dr.GRPO and fixed xDr.
+
+## Launched 2026-07-16 ~18:03 (full analytical 7B E4)
+
+- Diagnosed the v6 smoke's premature end: OAT clamps `max_queries` by
+  `max_train`, so `max_train=1024` exhausted the query budget after 17
+  controller observations. It could not cross the 64-observation warmup.
+- Cancelled outcome-excluded smoke jobs 30001591--30001593. No smoke outcome
+  is admitted to analysis.
+- Promoted `launch_e4_tau_control_7b.sh` to the two-A6000 analytical recipe and
+  submitted all three arms at seeds 43--45 under
+  `gce4_taucontrol_7b_full_2xa6000_v1`: jobs 30001867--30001875. Each requests
+  two A6000s, 192 GB, and seven days in `lowprio/allcs` over nodes 103, 104,
+  and 208.
+- The analytical budget is 16 prompt-pool passes with checkpoint evaluation
+  every 256 collection steps (half a pass). Inline metrics and evaluations are
+  retained; ZeRO optimizer checkpoints are disabled and model retention is
+  one rolling snapshot so nine 7B jobs do not exhaust shared storage.
+
+## Figure refresh 2026-07-16 ~18:25
+
+- Parsed the first admissible 7B records: initialization evaluations for seeds
+  43 and 44 in Dr.GRPO, fixed xDr, and entropy-feedback xDr. These six records
+  are displayed as initialization only; their sampled differences are not
+  treatment effects. Six jobs are running and the three seed-45 jobs are
+  queued.
+- Refreshed every older scaling curve. The 0.5B Countdown common horizon is
+  now 15.3 passes (individual runs to 16.3). The 3B Countdown jobs now share a
+  3.33-pass horizon, where fixed xDr minus Dr.GRPO is +2.1 coverage points,
+  +7.8 pass@8 points, +0.11 distinct modes, and +2.7 pass@1 points.
+
+## Launched 2026-07-16 ~18:30 (entropy-feedback scale/domain extension)
+
+- Corrected the figure/workflow mismatch: the orange entropy-feedback arm had
+  only been launched at 7B graph coloring. Added a feedback-only extension for
+  0.5B and 3B in both Countdown and graph coloring, reusing the landed Dr.GRPO
+  and fixed-xDr controls under their exact E1 recipes.
+- Submitted seeds 43--45 for Countdown 0.5B (30002161--30002163), Countdown 3B
+  (30002164--30002166), graph coloring 0.5B (30002167--30002169), and graph
+  coloring 3B (30002170--30002172). The 0.5B jobs target idle A5000 node204
+  through `lowprio/allcs`; the matched 3B jobs remain queued for A100 node302.
+- Added `OAT_ZERO_ONLY_ARMS` to the shared comparative launcher so incremental
+  treatments do not duplicate expensive landed controls. Optimizer archives
+  are disabled and one rolling model snapshot is retained for these extensions.
+- Moved the six 0.5B jobs to idle A5000 node204 under `lowprio/allcs`; all six
+  started with the resolved full query budgets and entropy-feedback controller
+  enabled. Their initialization evaluations landed. The 3B jobs remain queued
+  for the matched A100 node302.
+
+## Figure refresh 2026-07-16 ~18:52
+
+- The 0.5B feedback extension now has post-training curves: all three Countdown
+  seeds through step 512 / 1.33 passes, and all three graph-coloring seeds
+  through step 384 / two passes (one seed through step 448). All six controllers
+  are active and have reached the configured minimum tau of 0.005.
+- At the latest common feedback point, Countdown feedback minus fixed xDr is
+  +4.4 coverage points and +0.17 distinct modes but -6.0 pass@1 points; graph
+  coloring feedback is close to fixed xDr (-0.6 coverage points and essentially
+  equal distinct modes). These are early exploratory tradeoffs, not endpoints.
+- Refreshed the fixed-arm curves as well: 0.5B Countdown now has a 17-pass
+  common horizon (individual runs to 18), and 3B Countdown has a four-pass
+  common horizon. The 3B feedback jobs remain queued; 7B remains initialization
+  only.
+
+## Figure refresh 2026-07-16 ~18:58
+
+- Re-parsed every scaling source. All three 0.5B Countdown feedback seeds now
+  reach step 640 / 1.67 passes; all three graph-coloring feedback seeds reach
+  step 576 / three passes, with one seed through step 640 / 3.33 passes.
+- At the latest common feedback point, Countdown feedback minus fixed xDr is
+  +5.8 coverage points, +0.24 distinct modes, +3.1 pass@8 points, and +1.8
+  pass@1 points. Graph coloring is +0.6 coverage points and +0.07 distinct
+  modes, with pass@8 5.6 points lower. These remain short exploratory curves.
+- The fixed-arm 0.5B Countdown common horizon advanced to 17.3 passes
+  (individual runs to 18.3). The 3B feedback jobs remain queued, and the 7B
+  graph-coloring campaign still has initialization only.
+
+## Figure refresh 2026-07-16 ~19:02
+
+- A final live re-parse captured the completed 0.5B Countdown feedback runs:
+  all three seeds reached step 768 / two passes. Feedback minus fixed xDr at
+  that point is +8.6 coverage points, +0.35 distinct modes, and +6.0 pass@8
+  points; pass@1 and mean@8 are 1.8 and 3.8 points lower.
+- The three graph-coloring feedback seeds reached step 704 / 3.67 common
+  passes, with one seed through step 768 / four passes. At the common point,
+  feedback is +1.3 coverage points and +0.10 distinct modes relative to fixed
+  xDr, with pass@8 4.0 points lower.
+- The fixed-arm 0.5B Countdown common horizon advanced to 17.7 passes
+  (individual runs to 18.3). No 3B feedback or post-training 7B result has
+  landed.
+
+## Figure refresh 2026-07-16 ~20:12
+
+- Re-parsed all nine curve sources. The 0.5B fixed-arm Countdown comparison
+  now has a 21.67-pass common horizon (individual runs to 22.67), and the 3B
+  Countdown comparison has a six-pass common horizon.
+- The 0.5B graph-coloring feedback arm advanced to step 1792 / 9.33 common
+  passes, with one seed at step 1856 / 9.67. At the common point, feedback
+  minus fixed xDr is +9.6 coverage points, +0.60 distinct modes, +22.7 pass@8
+  points, +5.9 pass@1 points, and +0.6 mean@8 points. The adaptive arm remains
+  broad after fixed xDr has returned near the baseline regime, but no plateau
+  or endpoint has landed.
+- The 0.5B Countdown feedback common horizon remains two passes, with one seed
+  at 2.33 after requeue. Its current common-point gaps versus fixed xDr are
+  +4.3 coverage points, +0.15 distinct modes, and +2.3 pass@8 points, with
+  pass@1 and mean@8 lower by 3.4 and 5.3 points.
+- Initialization is now present for all three seeds in every 7B arm. No
+  post-training 7B evaluation or 3B feedback evaluation has landed.
+
+## Figure refresh 2026-07-16 ~21:05
+
+- All five fixed-arm 0.5B Countdown jobs reached step 8960 / 23.33 passes. The
+  fixed-xDr gaps are effectively zero: +0.1 pass@1, +0.1 pass@8, +0.2 mean@8,
+  and -0.2 coverage points relative to Dr.GRPO.
+- The five 3B Countdown jobs reached step 2816 / 7.33 common passes, with one
+  baseline seed at eight passes. Fixed xDr is +1.0 coverage, +5.7 pass@8,
+  +6.3 pass@1, and +6.5 mean@8 points at the common horizon.
+- The 0.5B graph-coloring feedback arm reached step 3328 / 17.33 common passes,
+  with one seed at step 3456 / 18 passes. At the 14-pass horizon shared by all
+  fixed-arm seeds, feedback minus fixed xDr is +4.6 coverage points, +0.30
+  distinct modes, and +12.0 pass@8 points. Feedback coverage has nevertheless
+  fallen to 9.8% by 17.33 passes: adaptive tempering substantially delays the
+  collapse but has not stopped it.
+- Countdown feedback remains at two common passes after repeated requeues. The
+  3B feedback arms remain queued, and all 7B arms remain initialization-only.
+
+## Figure refresh 2026-07-16 ~22:05
+
+- Countdown feedback moved beyond the prior frontier for seeds 44 and 45,
+  which now reach step 896 / 2.33 passes. Seed 43 remains at step 768 / two
+  passes after seven scheduler restarts, so the three-seed common horizon is
+  still two passes. At that horizon, feedback minus fixed xDr is +6.4 coverage
+  points, +0.25 distinct modes, and +4.2 pass@8 points; pass@1 and mean@8 are
+  lower by 6.3 and 5.7 points.
+- All three 0.5B graph-coloring feedback seeds completed step 4608 / 24 passes.
+  The scheduled endpoint evaluation has 8.8% coverage and 0.57 distinct modes:
+  substantially delayed, but continuing, collapse.
+- Fixed-xDr seed 43 produced the first post-training 7B evaluation at step 256
+  / half a pass. No control or feedback seed has a matched post-training point,
+  so this is displayed as progress rather than a treatment comparison.
+- The parser now ignores a duplicate terminal evaluation when it follows the
+  scheduled evaluation at the same step, preserving the figure's one-draw-per-
+  checkpoint contract.
+
+## Night queue hardening 2026-07-16 ~22:16
+
+- Audited the complete matrix of Dr.GRPO, fixed xDr, and entropy-feedback xDr
+  across Countdown and graph coloring at 0.5B, 3B, and 7B. Landed controls are
+  reused rather than duplicated.
+- Moved the repeatedly preempted 0.5B Countdown feedback jobs 30002161--63 from
+  `lowprio` to non-preemptible `cs/allcs` on idle A5000 nodes 202--203. Their
+  existing run stamps and furthest coherent attempts are preserved.
+- Replaced the six node302-blocked 3B feedback jobs with two-A6000 CS jobs:
+  Countdown 30002806--08 and graph coloring 30002809--11. The Countdown trio
+  started immediately on node207; the original pending jobs 30002164--66 and
+  30002170--72 were cancelled only after their replacements were accepted.
+- Moved pending 7B graph-coloring jobs 30001867, 30001869, and 30001871 onto
+  non-preemptible CS placement; all three started on nodes205/207. The six
+  already-running graph jobs were left undisturbed.
+- Submitted the previously missing full 7B Countdown matrix on CS A6000 nodes:
+  Dr.GRPO, fixed xDr, and entropy-feedback xDr at seeds 43--45, jobs
+  30002812--20. The nine jobs are queued behind the older 3B feedback work and
+  use the shared easy3 pool, 16 passes, and two A6000s per job.
+
+## Night breadth scheduling 2026-07-16 ~22:21
+
+- A strict FIFO estimate left every 7B Countdown job several days behind extra
+  graph-coloring seeds. Rebalanced the available CS A6000 memory so one complete
+  7B Countdown method triplet runs tonight: seed-43 Dr.GRPO 30002812, fixed xDr
+  30002813, and entropy-feedback xDr 30002814.
+- The just-started 7B graph jobs 30001867/69/71 and 3B graph jobs 30002810/11
+  were returned to the queue after negligible startup-only runtime; they were
+  released from hold and remain eligible. Six older 7B graph jobs and 3B graph
+  feedback seed 43 (30002809) continue running.
+- All three 0.5B Countdown feedback jobs 30002161--63 started on node202 in the
+  non-preemptible CS partition. All three 3B Countdown feedback jobs
+  30002806--08 continue healthy two-GPU initialization/training on node207.
+- The 7B Countdown Dr.GRPO and fixed-xDr seed-43 initialization evaluations
+  landed immediately after launch; the feedback initialization was still in
+  startup at the last queue audit. These are initialization checks, not a
+  treatment comparison.
+- Initialization evaluations also landed for all three 3B Countdown feedback
+  seeds and graph-coloring feedback seed 43. No post-training 3B feedback
+  evaluation had landed at handoff.
+
+## Figure refresh 2026-07-16 ~22:30
+
+- Re-parsed all twelve curve sources after moving the live extensions onto CS.
+  Two 0.5B Countdown feedback seeds now reach step 1152 / three passes; seed 43
+  remains at step 768 / two passes, so the three-seed common horizon and its
+  previously reported fixed-xDr contrasts are unchanged.
+- The 7B graph-coloring feedback seed 45 reached step 256 / half a pass
+  (pass@1 0.414, pass@8 0.859, coverage 0.278). Fixed-xDr seed 43 is the only
+  other post-training 7B graph-coloring checkpoint. Because the two points are
+  from different seeds and Dr.GRPO has no post-training point, the figure shows
+  both as thin progress traces and makes no method comparison.
+- Initialization evaluations have landed for every arm of the running seed-43
+  7B Countdown triplet, all three 3B Countdown feedback seeds, and 3B
+  graph-coloring feedback seed 43. None has a post-training evaluation yet.
+- Queue audit at refresh: the seed-43 7B Countdown triplet, all three 0.5B and
+  3B Countdown feedback jobs, one 3B graph-coloring feedback job, and six 7B
+  graph-coloring jobs are running. The remaining requested seeds are queued.
+
+## Countdown control recovery 2026-07-16 ~22:49
+
+- The ten scheduler-visible 0.5B/3B Countdown control jobs were not healthy:
+  every actor had terminated with CPython's `none_dealloc` fatal error while
+  the learner remained blocked on the dead Courier RPC. Slurm therefore kept
+  the allocations in `RUNNING` state after their logs stopped advancing.
+- Preserved every landed metric and checkpoint, submitted replacement jobs
+  30002923--30002934, then cancelled the twelve old running/pending jobs
+  30001013--18 and 30001019--24 after every replacement was accepted.
+- The five immediately schedulable 0.5B jobs resumed from step 8064 / 21
+  passes, restored optimizer and prompt traversal state, and advanced beyond
+  the checkpoint. Fixed-xDr seed 45 (30002928) is queued behind them.
+- The five immediately schedulable 3B jobs resumed from step 2304 / six
+  passes and all restored model, optimizer, and prompt traversal state.
+  Fixed-xDr seed 45 (30002934) is queued behind them.
+- Added opt-in highest-checkpoint discovery and a progress watchdog to the
+  canonical launcher. These replacement jobs check `train_metrics.jsonl`
+  progress after a one-hour startup grace; a 45-minute stall terminates the
+  process tree and requeues the same job, up to four restarts. Subsequent
+  restarts rediscover the numerically highest checkpoint rather than returning
+  to the original recovery point. The recovery path also skips rewriting an
+  already-loaded checkpoint at the initial resume evaluation, avoiding a
+  second multi-gigabyte I/O burst on future restarts.
+- Updated the curve parser to treat above-zero attempts as checkpoint resumes:
+  it preserves the coherent pre-checkpoint prefix, switches to the resumed
+  branch only after that branch overtakes the crashed frontier, and continues
+  to keep unrelated step-zero reruns separate.
+
+## Five-pass standardization 2026-07-17 ~11:23
+
+- Standardized every maintained scaling launcher and restart path to a maximum
+  of five complete prompt-pool passes in Countdown and graph coloring at every
+  model scale. `ops/train.sh` is the final guard: inherited requests above five
+  are explicitly logged and capped before the Python trainer starts.
+- Corrected a misleading budget convention in the launchers. `MAX_TRAIN` caps
+  unique dataset rows loaded per pass; it is not total rollout samples. The
+  launchers now set it to the actual pool size (192, 384, or 1,024) and use
+  `NUM_PROMPT_EPOCH=5` for the repeated-traversal budget.
+- Cropped every compute-divergence panel to the shared zero-to-five-pass axis.
+  Historical overrun metrics remain in the raw curve JSONs for provenance but
+  are excluded by the plot loader and from the paper's five-pass comparisons.
+- This ceiling was chosen after observing longer exploratory trajectories and
+  is therefore documented as a post-outcome amendment, not a confirmatory
+  preregistration change.
+
+## Stale-allocation recovery 2026-07-17 ~11:33
+
+- The scheduler's `RUNNING` label overstated experimental progress. Countdown
+  3B feedback jobs 30002806--08 and graph-coloring 3B feedback seed 43 job
+  30002809 had fatal actor failures followed by one-hour NCCL timeouts, but
+  their batch allocations remained alive. The nine running 7B allocations
+  stopped writing between 06:33 and 08:38 and showed 0% GPU utilization at the
+  audit; they were blocked inside learn or parameter synchronization.
+- Requeued all 13 stale allocations in place: 30002806--09, 30002812--14, and
+  30001868/70/72--75. Existing metrics remain under their original run stamps;
+  restarted attempts execute the new five-pass cap.
+- Enabled recovery by default in `ops/run_experiment.sh`: highest-checkpoint
+  discovery, a 45-minute no-metrics watchdog after a one-hour startup grace,
+  same-job Slurm requeue, and up to six restarts. Checkpoint-free 7B runs start
+  a fresh attempt under the same stamp, which the parser keeps separate until
+  it overtakes the prior trajectory.
+- Moved the three never-started graph-coloring 7B jobs 30001867/69/71 from a
+  July-24 CS estimate back to the A6000 `lowprio` pool used by their six matched
+  peers. This completes the runnable nine-job graph-coloring matrix without
+  changing model or method settings.
+
+## mltheory and idle-node recovery 2026-07-17 ~11:41
+
+- The campaign launchers had hard-pinned the missing 3B entropy-feedback arms
+  to CS A6000 nodes even though `mltheory/node302` was idle. Replaced that
+  placement in situ: countdown jobs 30002806--08 and graph-coloring seed-43 job
+  30002809 now occupy all eight node302 A100s and are producing training steps.
+- Original graph-coloring feedback seed-45 job 30002811 failed during startup.
+  Submitted replacement 30005532 under the same analytical run stamp on two
+  `mltheory/node105` A5000s, with optimizer and activation offload to respect
+  the cards' 24 GiB memory. Direct inspection showed ten idle GPUs and 489 GiB
+  host memory available. The replacement initialized the feedback controller
+  successfully.
+- Fixed an early-exit hole in the progress watchdog: a child that stopped
+  before creating `SAVE_PATH/train_metrics.jsonl` could trigger `set -e` in the
+  probe and bypass automatic requeue. A missing metrics directory is now an
+  expected empty state, and the wrapper reaches the child-status/requeue path.
+- Moved the pending Countdown 7B seed-43 triplet onto otherwise idle 48 GiB
+  hardware: Dr.GRPO 30002812 and fixed xDr 30002813 on node403 L40s, and
+  feedback xDr 30002814 on node805 A6000s. All three began immediately.
+- Original Countdown 7B seed-44 Dr.GRPO 30002815 and fixed-xDr 30002816 failed
+  in the same startup window. Their same-stamp replacements 30005533 and
+  30005534 target two A40s each on node101 and remain scheduler-eligible.
+
+## Pass-axis, query-budget, and storage repair 2026-07-17 ~12:24
+
+- Corrected the compute-divergence x axis to use
+  `prompt_consumed / (num_samples * prompt_pool_size)`. Dividing global steps
+  by prompt rows understated progress by two on placements with
+  `rollout_batch_size=2`. All curve JSONs and the figure were rebuilt with the
+  rollout-normalized pass coordinate.
+- Confirmed that two-prompt optimizer steps also made fixed `eval_steps`
+  schedules half as frequent in prompt-pass units. Comparative submissions now
+  export an evaluation interval in prompts; `run_experiment.sh` converts it to
+  optimizer steps using the resolved rollout batch size. Existing live jobs
+  retain their submitted cadence; future jobs/restarts use pass-normalized
+  cadence when the prompt interval is present.
+- OAT's generic argument validation silently clamped an explicit
+  `max_queries=100000000` to `max_train`. Once `max_train` was corrected to the
+  prompt-pool row count, that would end five-pass jobs after roughly one pool
+  of rollout queries. The xDr entry point now preserves an explicit positive
+  query budget after upstream validation. Corrected jobs report five prompt
+  epochs and `max_queries=100000000` at runtime.
+- Replacement graph-3B feedback seed 45 job 30005538 is training on two
+  node105 A5000s after the first wrapper-level failure. Countdown-7B seed-44
+  replacements 30005533/30005534 are training on node101 A40s. An L40 attempt
+  for Countdown-7B Dr.GRPO seed 43 was stopped after repeat ZeRO-2 optimizer
+  failures; replacement 30005624 is queued for two node302 A100s.
+- Deleted 49 inactive `checkpoints`/`saved_models` trees while preserving all
+  metrics, evaluations, manifests, plots, and dataset definitions. This freed
+  2,089.5 GiB: `var/data` fell from 2.1 TiB to 29 GiB and filesystem usage from
+  78% to 56%. Cleanup job 30005623 depends on the full current campaign and
+  will repeat the active-stamp-protected cleanup after it terminates.
+
+## Live-motion audit and 7B baseline recovery 2026-07-17 ~13:50
+
+- Reparsed every Countdown/graph-coloring curve and rebuilt
+  `compute_divergence` from the rollout-normalized five-pass axis.
+- A timed metrics audit separated genuine optimizer motion from Slurm's
+  allocation state. All six 3B feedback runs were advancing; several 7B runs
+  were advancing or in fresh startup, but Countdown-7B Dr.GRPO seeds 43 and 44
+  were still allocated after fatal ZeRO optimizer OOM/NCCL failures.
+- Cancelled the dead L40/A40 allocations 30002812 and 30005533. Seed 43 already
+  had two-A100 replacement 30005624; submitted matching two-A100 seed-44
+  replacement 30005908 with prompt-normalized evaluation cadence. Extended
+  cleanup job 30005623's dependency set to protect the new replacement.
+
+## Graph-coloring 3B full-five-pass controls 2026-07-17 ~14:56
+
+- Submitted a clean five-pass extension of the incomplete graph-coloring 3B
+  Dr.GRPO and fixed-xDr controls under stamp `gce1_3b_full5_qeval_v1`.
+  Seeds 43--45 are jobs 30006113--30006118 on node302, one A100 per job.
+- The 1,024-prompt pool evaluates every 256 prompts (one quarter epoch), with
+  runtime enforcement against hardware-dependent or looser step cadences.
+  Optimizer checkpoints are disabled; inline evaluations and the latest model
+  snapshot are retained. All six jobs were accepted and initially pending on
+  the node302 reservation.
+
+## E5 Haarnoja-style entropy-dual extension 2026-07-17 ~14:35
+
+- Froze the prospective exploratory design in
+  `paper/preregistration/e5_haarnoja_dual.md` before launching any E5 job. The
+  fourth arm learns `log(alpha_xdr)` with the signed SAC entropy-dual objective
+  and scalar Adam, then maps `alpha_xdr = 0.05 / tau`. It is a controller
+  transfer, not full SAC or a token-entropy reward.
+- Submitted seeds 43--45 for both environments at 0.5B, 3B, and 7B: 18 new
+  treatment jobs, with existing Dr.GRPO, fixed-xDr, and proportional-feedback
+  controls reused. Every E5 run is capped at five prompt-pool passes and saves
+  inline metrics rather than large model checkpoints.
+- 0.5B jobs 30006002--30006007 launched on node202 A5000s and all advanced
+  beyond the 64-observation controller warmup. Logs contain signed dual
+  gradients and nonconstant alpha/tau values, directly confirming the new
+  controller is active rather than silently behaving as fixed xDr.
+- The initial 3B A6000 submissions 30006008--30006013 were cancelled before
+  startup when Slurm predicted a multi-day CS priority wait. Clean replacement
+  manifests use two node105 A5000s with optimizer/activation offload:
+  Countdown 30006060--30006062 and graph coloring 30006063--30006065. Four
+  began immediately; two remain scheduler-eligible behind local capacity.
+- 7B jobs 30006014--30006019 request two node302 A100-80GB GPUs each with the
+  established two-prompt layout and offload. They are queued behind the active
+  7B work rather than being routed to the 48GB devices that caused prior
+  optimizer failures.
+- Extended cleanup job 30005623 to wait for every active E5 job. Refreshed all
+  six E5 curve artifacts and rebuilt `compute_divergence` as a four-method
+  grid; missing E5 outcomes remain explicitly marked queued.
+
+## E6 true Candidate-MaxEnt projection extension 2026-07-17 ~15:20
+
+- Froze the prospective design in
+  `paper/preregistration/e6_candidate_maxent_projection.md` before running the
+  smoke or full grid. The requested `t=0.05` is the projection target
+  temperature: score temperature is 1, reference tilt is disabled, and the
+  target is therefore exactly the fixed-xDr candidate distribution while the
+  learner objective changes from signed clipped PPO to the Appendix
+  length-normalized candidate-distribution projection.
+- Added three rows: fixed projection (`xdr_maxent`), proportional feedback on
+  the projection temperature (`xdr_maxent_tau_control`), and the Haarnoja-style
+  entropy dual on that temperature (`xdr_maxent_sac_dual`). The smoke jobs
+  30006204--30006206 completed successfully through terminal step 4 with
+  finite projection gradients and controller telemetry; they are operational
+  validation only and are excluded from analysis.
+- Submitted the full prospective grid: three methods x three seeds x two
+  environments x three model scales = 54 runs. Countdown jobs are
+  30006209--30006217 (0.5B), 30006227--30006235 (3B), and
+  30006245--30006253 (7B); graph-coloring jobs are 30006218--30006226,
+  30006236--30006244, and 30006254--30006262, respectively. Every run is
+  capped at five prompt-pool passes and writes inline evaluation metrics.
+- The 0.5B jobs began immediately on CS A5000 nodes and live logs confirmed
+  optimizer motion for all three objectives, including nontrivial
+  proportional and signed-dual state. The 3B A6000 jobs are CS-priority
+  pending; 7B jobs request two A100-80GB GPUs on `mltheory/node302` and are
+  pending node availability.
+- Extended cleanup sentinel 30005623 to wait for all 54 E6 jobs. Added the six
+  E6 curve artifacts and seven-row plotting/monitoring surface; absent outcomes
+  are displayed as queued rather than fabricated or silently omitted.
+
+## E6 guardrail failure and E7 objective repair 2026-07-17 ~15:34
+
+- The first E6 0.5B evaluations were not a plotting artifact. All six inspected
+  method/environment trajectories converged to mean response length 2, zero
+  rollout reward, and all-zero groups. Fixed graph seed 43 reached reward
+  0.8125 at step 21 but had reward 0 at step 250; its reward EMA was effectively
+  zero. This triggered E6's pre-specified pass@1/accuracy guardrail.
+- Cancelled jobs 30006209--30006262. Fifteen 0.5B jobs had trained for roughly
+  13 minutes; the remaining 0.5B jobs and every 3B/7B job had not started.
+  Metrics remain under the E6 stamps as a negative pilot.
+- Diagnosed a structural candidate-length bias. For on-policy uniform targets,
+  `E[grad log pi(Y)] = 0`, while E6's per-candidate division gives
+  `E[grad log pi(Y)/T(Y)] = grad E[1/T(Y)]`; descent therefore rewards short
+  samples even without a reward contrast, creating the observed EOS attractor.
+- Froze `paper/preregistration/e7_candidate_maxent_fixed_scale.md` before any
+  repaired run. E7 uses a shared `1/T_max` scale, which only rescales the
+  forward-KL projection, and excludes reward-constant groups from finite-sample
+  self-distillation. Target weights and all three temperature laws are
+  otherwise unchanged.
+- Repointed launch, curve, plot, and monitor stamps from E6 to E7. A mandatory
+  128-step three-arm graph-0.5B smoke must pass finite telemetry, response
+  length, trailing reward, and controller-warmup checks before any repaired
+  3B/7B job is submitted.
+- Submitted that gate as jobs 30006354--30006356 under stamp
+  `gce7_maxent_fixedscale_smoke_v1` after 139 maintained tests passed. The
+  analytical 54-run E7 grid remains unsubmitted pending the automated gate.
+
+## E7 smoke pass and full fixed-scale grid 2026-07-17 ~15:50
+
+- Jobs 30006354--30006356 completed all 128 updates and Slurm recorded exit 0.
+  The frozen gate passed: terminal mean lengths were 3.88, 15.75, and 4.00;
+  maximum trailing-32-step rollout rewards were 0.8125, 0.9375, and 0.875 for
+  fixed, proportional, and dual projection. Losses/gradients were finite and
+  both controllers crossed warmup; the dual learned a nonconstant target
+  temperature. Unlike E6, no arm converged to two-token zero-reward output.
+- After the gate passed, submitted the complete E7 grid. Countdown job ranges
+  are 30006358--30006366 (0.5B), 30006376--30006384 (3B), and
+  30006394--30006402 (7B). Graph-coloring ranges are 30006367--30006375,
+  30006385--30006393, and 30006403--30006411. Each range contains the three
+  methods x seeds 43--45, for 54 unique jobs total.
+- All 0.5B/3B jobs target the established CS A5000/A6000 placements; all 7B
+  jobs request two A100-80GB GPUs on `mltheory/node302`. Every run retains the
+  five-pass cap and prompt-normalized evaluation cadence. Cleanup sentinel
+  30005623 now waits for all 54 jobs.
+
+## Stall recovery and immutable job entry points 2026-07-17 ~15:22
+
+- A two-sample metric/log audit found one genuine stall: graph-coloring 3B
+  proportional-feedback seed 43, job 30002809, stopped after step 1089 when a
+  vLLM worker aborted in `cumem.unmap_and_release` with Python's
+  `none_dealloc` fatal error. The learner remained blocked on the dead actor
+  RPC while Slurm still reported `RUNNING`. Requeued the same job under the
+  same run stamp; restart count is now two and the replacement is pending
+  node302 availability. All other allocated campaign jobs wrote fresh metrics.
+- Added immediate watchdog recognition of fatal Python/vLLM worker signatures,
+  scoped to log bytes from the current attempt, while retaining the 45-minute
+  no-metrics fallback. Requeued legacy jobs infer their Slurm output path, so
+  job 30002809 also receives the faster detector when it restarts.
+- The three graph-coloring 0.5B Haarnoja jobs reached their terminal five-pass
+  evaluations but Slurm recorded exit 2. They had started before a live edit of
+  `ops/train.sh`; Bash later read the changed file during shutdown and reported
+  an unmatched quote. New allocations snapshot `run_experiment.sh` and
+  `train.sh` into an attempt-specific local directory before execution, so
+  working-tree edits cannot splice a running shell program again.
+- Fixed the live monitor to merge duplicate historical directories and to
+  carry the original graph-coloring 3B control frontier into the queued
+  full-five-pass extension. Focused campaign/cadence/parser/progress tests pass.
+
+## Deterministic vLLM sleep failure and checkpointed recovery 2026-07-17 ~16:00
+
+- Graph-coloring 3B proportional-feedback seed 44, job 30002810, repeated the
+  seed-43 failure exactly: after step 1089, the next vLLM sleep call aborted in
+  `cumem.py` with `none_dealloc`, its worker exited `-6`, and the learner hung
+  on the dead actor RPC while Slurm remained `RUNNING`.
+- Requeue alone cannot cross this frontier because the original jobs disabled
+  optimizer checkpoints. Replaced the stalled seed-43/44 copies with jobs
+  30006412/30006413 under the same run stamps. They retain one rolling
+  checkpoint at step 1024, automatically resume it after watchdog requeue, and
+  preserve quarter-prompt-epoch evaluation. The old checkpoint-free pending
+  jobs 30002809/30002810 were cancelled after replacements were accepted.
+- Changed the maintained two-A6000 3B feedback launcher to enable one rolling
+  recovery checkpoint. The submission helper now supports explicit append-only
+  same-stamp recovery manifests, and the 3B launcher permits a seed subset so
+  recovery does not duplicate healthy seeds. Cleanup job 30005623 waits for
+  both replacements.
+
+## Live motion and complete figure refresh audit 2026-07-17 ~17:01
+
+- Sampled every allocated campaign run twice across a four-minute window. All
+  26 jobs that remained allocated at the second sample advanced their current
+  optimizer step; one additional Countdown-0.5B MaxEnt run completed. No job
+  crossed the strict 12-minute no-metrics threshold, so no healthy allocation
+  was cancelled or requeued.
+- Reconfirmed the two historical failure classes. Graph-coloring 3B feedback
+  seeds 43/44 aborted their vLLM workers in `cumem.unmap_and_release` with
+  `Fatal Python error: none_dealloc` at step 1089. Their replacements
+  30006412/30006413 retain a rolling step-1024 checkpoint, automatic resume,
+  quarter-epoch evaluation, and Slurm requeue. The six 0.5B Haarnoja jobs had
+  already landed terminal five-pass evaluations before a live-edited shell
+  script produced their exit-2 status; immutable per-attempt script snapshots
+  prevent that shutdown-only failure in new allocations.
+- Added `refresh_campaign_curves.py` as the single refresh point for all 26
+  figure inputs. The old `make figures` path refreshed only E5/E7, leaving live
+  controls and E4 trajectories stale. Every parse now explicitly selects the
+  valid five-pass horizon, including restarted attempts. Rebuilt the combined,
+  Countdown, and graph-coloring PDF/PNG figures from the 17:00 metrics state.
+- Focused cadence, parser, campaign-monitor, and progress-metric tests pass
+  (23 tests), along with Ruff and shell syntax checks.
+
+## E7 cancellation audit and Python-source immutability 2026-07-17 ~17:28
+
+- A new scheduler audit found that 38 E7 allocations were canceled together by
+  user action at 17:11:47; these were not independent crashes or watchdog stall
+  detections. Two running Countdown-0.5B proportional jobs were healthy and
+  writing metrics when terminated. The unstarted 3B/7B E7 grid was canceled in
+  the same event.
+- E7 Countdown-0.5B fixed seed 45 job 30006364 had instead been requeued. Its
+  original process reached a landed 4.75-pass evaluation, but restarted
+  allocations imported a changed checkout whose argument schema no longer
+  recognized the candidate-projection flags. Three restart attempts exited at
+  argument parsing. Canceled the resulting pending requeue loop; the 4.75-pass
+  metrics remain preserved.
+- Closed the underlying reproducibility gap. Comparative submissions now copy
+  the complete Python `src/` tree into an immutable campaign snapshot before
+  `sbatch`; the snapshot path is exported to every arm. Ad hoc Slurm jobs create
+  a persistent per-job source snapshot on first allocation and reuse it across
+  restarts. `PYTHONPATH` explicitly prioritizes the snapshot. The existing
+  immutable shell snapshots remain in place.
+- All 21 remaining allocated campaign jobs advanced and had metric ages below
+  95 seconds. No active job was stale. Rebuilt all 26 curve artifacts and both
+  environment figures; figure annotations now report the E7 grid as canceled,
+  not queued. Shell syntax, Ruff, and 23 focused tests pass.
+
+## E8 direct on-policy MaxEnt replacement 2026-07-17 ~17:42
+
+- Retired E7 as an objective, not merely as an implementation failure. With
+  candidates sampled from the behavior policy, its empirical Gibbs target has
+  population base measure `pi_old`; it therefore implements a KL-regularized
+  improvement step rather than direct policy entropy. The E7 launcher is now
+  a fail-closed compatibility tombstone, and its code/traces remain only for
+  provenance.
+- Froze `paper/preregistration/e8_on_policy_maxent.md` before any E8 training
+  outcome. E8 directly adds a leave-one-out sequence-surprisal advantage to
+  fresh on-policy Dr.GRPO groups and uses one PPO epoch per rollout. Its fixed,
+  proportional, and Haarnoja-dual arms all act on the same positive entropy
+  coefficient; both controllers observe the exact normalized sequence-entropy
+  statistic in the objective.
+- Replaced the maintained public variants, launch surface, monitor, curve
+  refresh, figure labels, repository overview, and manuscript appendix with
+  the E8 treatment. The full replacement remains blocked on a separately
+  stamped 128-update three-arm smoke; no E7 outcome is relabeled or reused.
+
+## E8 smoke pass 2026-07-17 ~17:53
+
+- Jobs 30006794--30006796 completed cleanly on node203 in seven minutes. The
+  frozen checker passed fixed, proportional, and Haarnoja-dual direct MaxEnt at
+  step 128: all required objective telemetry was finite, each arm retained a
+  nonzero reward in its trailing window, and terminal response lengths were
+  16.12, 4.12, and 4.00 tokens rather than the E6 two-token collapse.
+- Both adaptive arms crossed their 64-observation warmup. At the low-entropy
+  endpoint, proportional feedback raised alpha from 0.05 to 0.09515 and the
+  dual raised it to 0.05574. This verifies that the replacement actuators move
+  in the entropy-preserving direction while acting on direct policy entropy.
+
+## E8 full direct-objective grid submitted 2026-07-17 ~17:54
+
+- Released all 54 analytical jobs only after the automated smoke gate passed:
+  Countdown-0.5B 30006799--30006807, graph-coloring-0.5B
+  30006808--30006816, Countdown-3B 30006817--30006825,
+  graph-coloring-3B 30006826--30006834, Countdown-7B
+  30006835--30006843, and graph-coloring-7B 30006844--30006852.
+- Each cell has fixed, proportional, and Haarnoja-dual direct MaxEnt at seeds
+  43--45, one PPO epoch, prompt-normalized quarter-epoch evaluation, and a
+  five-pass ceiling. The 3B runs request two A6000s on CS; the 7B runs request
+  two A100s on node302 in `mltheory`. At submission all 54 were accepted and
+  pending scheduler resources/priority.
+- Extended cleanup sentinel 30005623 across all E8 jobs. It will preserve
+  metrics while removing inactive model/checkpoint payloads after the complete
+  campaign dependency set terminates.
+
+## E8 first-motion and split-panel refresh audit 2026-07-17 ~17:59
+
+- All 18 E8 0.5B analytical runs started across nodes 202--204 and advanced in
+  two live samples. Countdown reached its first 0.25-pass evaluations for all
+  nine runs; graph coloring reached 0.25--0.50 landed passes. Every one of the
+  39 total allocated campaign jobs wrote metrics within 48 seconds during the
+  strict audit. No allocation was stalled or failed, so none was canceled or
+  requeued.
+- Rebuilt all campaign curves and the new matched split-panel figures. The
+  left panel contains only Dr.GRPO plus xDr aggregation-rescaling methods; the
+  right repeats Dr.GRPO against direct on-policy MaxEnt. Corresponding metric
+  axes share limits. The queued E8 3B/7B rows remain explicitly labeled rather
+  than receiving smoke data or retired E7 outcomes.
+- Corrected the live dashboard heading from E7 to E8. Ruff/compile checks and
+  55 focused objective, smoke-gate, cadence, parser, and monitor tests pass.
+
+## E8 actuator failure audit and retirement 2026-07-17 ~18:18
+
+- The early behavioral curves were not consistent with a working entropy
+  actuator. Direct telemetry isolated the failure: as policies concentrated,
+  the prompt-group dispersion of E8's centered sampled surprisal collapsed.
+  In graph-coloring dual runs, alpha rose from about 0.05 to its 0.5 ceiling
+  while carrier dispersion fell from about 0.095 to 0.0011; Countdown fell
+  from about 0.029 to 0.0034. The on-policy score identity is valid in
+  expectation, but multiplying a vanished finite-group carrier by a larger
+  coefficient cannot restore unsampled support.
+- Cancelled all analytical E8 jobs 30006799--30006852. The 18 allocated 0.5B
+  jobs stopped after approximately 25 minutes and retain their run directories,
+  manifests, and partial metric/curve artifacts. The 36 queued 3B/7B jobs were
+  cancelled before allocation. Completed smoke jobs 30006794--30006796 remain
+  unchanged. No E8 metric is eligible for the replacement grid.
+
+## E9 direct-gradient MaxEnt repair frozen 2026-07-17 ~18:31
+
+- Froze `paper/preregistration/e9_direct_entropy_gradient.md` before any E9
+  training outcome. E9 preserves the appendix objective
+  `E[R] + alpha H(pi)/T_max`; it does not multiply the registered entropy
+  strength by `T_max`.
+- Removed entropy from the group-relative completion advantage. The actor now
+  differentiates full categorical entropy at each sampled prefix and adds the
+  causal future-entropy score term required for the complete autoregressive
+  sequence-entropy gradient. This local full-vocabulary term remains active
+  even when all sampled completions are identical and is outside PPO clipping.
+- Applied Dr.GRPO's outer `1/T_max` scale and its `(G-1)/G` self-including
+  reward-baseline attenuation to the entropy term, preserving alpha's stated
+  objective units. Both controllers now observe categorical sequence entropy
+  in `sequence_nats_per_tmax`, and checkpoint state records that unit tag.
+- Repointed the maintained launcher, live monitor, curve refresh, figures,
+  docs, and manuscript from E8 artifacts to fresh `*e9_direct_maxent*` stamps.
+  The new seed-9005, 128-update three-arm smoke is mandatory before any of the
+  54 analytical E9 jobs may be submitted. Exact enumeration tests verify that
+  the causal surrogate matches a two-step policy's true sequence-entropy
+  gradient; focused Ruff/shell checks and 35 tests pass before smoke launch.
+
+## E9 smoke: operational pass, actuator guard failure 2026-07-17 ~18:53
+
+- Initial CS jobs 30006996--30006998 were cancelled while pending because
+  nodes 202--204 were planned until the next day. Two alternate placement
+  attempts were also cancelled pending, and one `pvl-lowprio` attempt was
+  invalid for the available account. These attempts produced no training row.
+  The compact placement record is
+  `var/artifacts/gce9_direct_maxent_smoke_v1_attempts.tsv`.
+- Jobs 30007047--30007049 started on 24 GB RTX 3090s but OOMed on the first
+  direct-entropy backward with a 16-row microbatch. They were cancelled before
+  the watchdog could requeue. The repaired jobs kept effective train batch 16
+  and used four-row microbatches with gradient accumulation; that setting is
+  now shared by every E9 scale.
+- Final smoke jobs 30007051--30007053 completed all 128 updates on node024.
+  The original mechanical checker passed: all direct-gradient telemetry was
+  finite, `(G-1)/G=0.9375`, gradients and tail rewards were nonzero, both
+  controllers crossed warmup with the correct sign, and terminal lengths were
+  4.06 fixed / 4.00 proportional / 4.12 dual rather than two-token EOS.
+- The scientifically relevant actuator check failed. Final normalized
+  categorical sequence entropy was 0.00565 fixed, 0.00658 proportional, and
+  0.00511 dual. Over the last 16 updates, proportional retained 0.01273 versus
+  target 0.03244 (39.2%); dual retained 0.00630 versus target 0.03668 (17.2%).
+  Alpha moved in the correct direction (0.0751 proportional, 0.0583 dual), but
+  neither adaptive arm held even half its own target.
+- Added a clearly post-smoke, fail-closed actuator amendment to the E9 record
+  and checker. `launch_on_policy_maxent_extension.sh all` now exits before
+  submission on this observed run. No analytical E9 job was submitted; the
+  six E9 curve artifacts remain empty and the figure labels them smoke-gated.
+
+## E9b actuator calibration and adaptive smoke 2026-07-17 ~19:43
+
+- Froze `paper/preregistration/e9b_maxent_actuator_calibration.md` before E9b
+  outcomes. The direct causal estimator and objective were unchanged. E9b
+  first measured a frozen-policy target, then tested fixed coefficient doses
+  before allowing repaired controller jobs.
+- Calibration job 30007143 supplied the prospectively selected first 64
+  zero-learning-rate entropy observations, giving target 0.05191685. OAT
+  continued beyond the requested 64 rows; the allocation was cancelled after
+  84 rows and its watchdog requeue was cancelled. Overshoot rows are ignored.
+- Fixed-dose jobs 30007144--30007147 completed. Alpha 0.05/0.10/0.20 retained
+  11.5%/21.4%/25.2% of target. Alpha 0.50 retained 1223.9%, demonstrating
+  actuator authority but producing a pathological 145-token terminal mean,
+  12/16 no-EOS rollouts, and zero final evaluation accuracy.
+- Replaced the proportional controller's unit-sensitive absolute-deficit
+  exponent with a dimensionless relative deficit spanning the configured
+  log-alpha range. Added explicit frozen entropy targets so both controllers
+  act from their first observation. E9b dual used alpha LR 0.03 instead of
+  0.003. Controller checkpoint rules and configured targets are tagged and
+  incompatible states are rejected.
+- Adaptive jobs 30007197--30007198 completed all 128 updates. Proportional
+  peaked at alpha 0.3266 but retained 29.2% of target. Dual initially weakened
+  alpha on high-entropy batches, reached alpha 0.5 only near the endpoint, and
+  retained 13.3%. Both kept tail reward and four-token terminal responses.
+- The frozen E9b adaptive gate therefore failed. No analytical direct-MaxEnt
+  job was submitted. The failure is now localized to control across a sharp
+  low-entropy/long-output transition, rather than estimator support or
+  controller sensor units. The maintained test suite passes 166 tests before
+  the post-smoke documentation update.
+
+## E10 prefix-ratio estimator repair and smoke 2026-07-17 ~22:10
+
+- Froze `paper/preregistration/e10_prefix_ratio_maxent.md` before outcomes.
+  E10 replaces E9's rollout-tangent causal surrogate with the exact
+  finite-horizon identity under behavior rollouts: new-policy categorical
+  entropy at each state is weighted by the exclusive new/old prefix ratio.
+  Positive prefix-occupancy increases use PPO's upper clipping branch.
+- Exact enumeration under genuinely distinct old and new two-step
+  autoregressive policies verifies both the unclipped entropy value and its
+  gradient. Exclusive indexing, masking, clipping, restarted-metric
+  discovery, and the fail-closed gate are covered by tests. The full
+  pre-submission check passed 169 tests.
+- Jobs 30007613--30007616 completed all 128 updates on node023 with exit code
+  zero. Fixed alpha 0.05, proportional control, and Haarnoja dual retained
+  24.7%, 17.7%, and 11.7% of the frozen target over their final 16 updates.
+  The adaptive arms therefore fail the preregistered 50% retention gate even
+  though final response lengths, evaluation accuracy, gradients, ratios, and
+  tail rewards remained finite and nondegenerate.
+- The corrected gradient created transient entropy/length excursions rather
+  than stable target tracking. Fixed, proportional, and dual peak mean
+  lengths were 40.25, 38.94, and 39.00 before all returned to roughly
+  four-token terminal batches. Proportional and dual ended at alpha 0.321 and
+  0.317 with only 0.00618 and 0.00412 terminal normalized entropy.
+- The isolated alpha-0.50 guard ended at normalized entropy 0.752, mean length
+  168.75/192, 14/16 no-EOS rollouts, and zero evaluation accuracy. Its
+  terminal exclusive prefix ratio was one, demonstrating why ratio clipping
+  cannot constrain the local categorical entropy incentive when learner and
+  behavior policies are aligned.
+- E10 therefore repairs the finite-step estimator but fails the scientific
+  control gate. All 54 analytical direct-MaxEnt cells remain held and no
+  analytical E10 job was submitted.
+
+## E11 standard sequence-MaxEnt objective frozen 2026-07-17 ~22:35
+
+- Froze `paper/preregistration/e11_standard_sequence_maxent.md` before any E11
+  outcome. E11 retains E10's exact exclusive-prefix importance estimator but
+  changes the active objective from `E[R] + alpha H/T_max` to standard
+  `E[R] + alpha H`.
+- The learner now computes raw categorical sequence entropy and applies only
+  Dr.GRPO's one shared outer `1/T_max` update normalization. A unit-tested loss
+  helper makes the absence of a second entropy division explicit. Raw
+  `maxent_sequence_entropy` drives the controllers; the old normalized value
+  remains separately available as `maxent_sequence_entropy_per_tmax`.
+- Controller checkpoints now carry `sequence_nats_v1` and reject E9/E10's
+  `sequence_nats_per_tmax` state. The frozen raw target is exactly 192 times
+  E9b's normalized calibration target. Historical E10 launch code is a
+  tombstone so it cannot silently execute under E11 units.
+- Because literal standard `alpha=0.05` is 192 times stronger than E10's
+  coefficient with the same numeral, E11 begins with a 32-update fixed-arm
+  guard. Its failure blocks the adaptive smoke; both stages must pass before
+  any of the 54 analytical cells can be reviewed for release.
+
+## E11 literal standard-alpha gate failed 2026-07-17 ~22:37
+
+- Job 30007745 ran the frozen 0.5B graph-coloring, seed-9005,
+  `alpha=0.05` gate on node023. OAT ignored the requested 32-row ceiling and
+  continued, so the allocation was cancelled after step 38. The checker is
+  pinned to the prospectively specified step-32 row; overshoot is retained but
+  excluded. The watchdog-created deferred requeue was cancelled before it
+  allocated.
+- Raw entropy and the comparison diagnostic had the required exact scale:
+  62.4276 raw nats and 0.325144 nats per `T_max` at step 32. This verifies that
+  the second entropy division was removed in live training.
+- The gate failed with mean response length 87 and 7/16 no-EOS rollouts.
+  Batch reward was 0.4375 and evaluation accuracy 0.05208, so the failure is
+  strong long-output entropy pressure rather than numerical failure or
+  complete loss of task signal.
+- No proportional, Haarnoja-dual, or analytical E11 job was submitted. All 54
+  standard-MaxEnt analytical cells remain held.
+
+## E12 standard-MaxEnt coefficient calibration 2026-07-17 ~23:05
+
+- Froze `paper/preregistration/e12_standard_maxent_dose_calibration.md` before
+  outcomes. E12 retained E11's exact prefix-ratio estimator and standard raw-
+  sequence objective, and varied only fixed `alpha` over 0.0005, 0.0010,
+  0.0015, and 0.0020. This was a single-seed engineering calibration, not a
+  comparative result.
+- A scheduler-inaccessible first attempt reserved a header-only v1 manifest
+  but created no job. Fresh v2 jobs 30007803--30007806 used byte-identical
+  source snapshots, ran together on node023, completed the exact step-128
+  endpoint, and exited zero. The pre-submission repository check passed 179
+  tests; the hardened E12 checker additionally requires contiguous steps
+  97--128, the assigned alpha on every row, and no controller telemetry.
+- Alpha 0.0005, 0.0010, and 0.0015 were behaviorally safe but retained only
+  1.794, 2.113, and 1.715 raw entropy nats over the final 16 updates, below the
+  frozen 4.984-nat threshold. Their terminal evaluation accuracies were
+  0.198, 0.203, and 0.172.
+- Alpha 0.0020 retained 48.464 raw nats but failed behaviorally: final-16 mean
+  length 60.76, maximum batch mean length 121.94, and maximum 10/16 no-EOS
+  rollouts. Terminal accuracy was 0.172.
+- The frozen selector therefore returns no coefficient. This supports a sharp
+  engineering transition between entropy collapse and length/EOS runaway in
+  the tested bracket; it does not establish a population threshold. No
+  adaptive or analytical job was submitted. The next MaxEnt intervention
+  must impose an explicit expected-length constraint.
+
+## E13 expected-length-constrained MaxEnt 2026-07-17 ~23:36
+
+- Froze `paper/preregistration/e13_length_constrained_maxent.md` before
+  outcomes. E13 keeps standard sequence-MaxEnt at fixed `alpha=0.002` and
+  imposes `E[L] <= 16` with a separate projected multiplier. The exact
+  exclusive-prefix length estimator uses the conservative PPO `max` cost
+  branch, opposite entropy's positive-reward `min` branch. The multiplier
+  observes detached unclipped expected new-policy length and is updated for
+  the next actor step from a target-initialized EMA.
+- Exact variable-length enumeration verifies estimator value and gradient
+  under distinct old/new policies. Tests cover prefix indexing, masking,
+  cost clipping, the one shared outer `1/T_max`, zero-price equivalence,
+  controller direction/projection/state, distributed observation, argument
+  confounds, legacy-shell compatibility, and the fail-closed E13 checker.
+- Jobs 30007892 (`eta=0.00005`) and 30007893 (`eta=0.00020`) used
+  byte-identical source snapshots, completed 128 updates on node023, exited
+  zero, and reproduced every frozen controller transition. Neither job
+  requeued or required intervention.
+- Both passed. Slow/fast final-16 entropy was 9.675/9.594 nats, actor length
+  12.97/11.14, and expected length 12.98/11.13. Maximum final-16 no-EOS was
+  2/16 in both. Terminal pass@1 was 0.182/0.177, pass@8 0.573/0.510, and
+  coverage@8 0.144/0.138. The 5% tie rule selects `eta=0.00005`.
+- The preferred slow arm transiently peaked at mean length 86.25 and 7/16
+  no-EOS before its multiplier caught up; fast peaked at 40.25 and 3/16.
+  This is a successful single-seed endpoint actuator gate, not per-update
+  safety or replicated effectiveness. It authorizes a separately frozen
+  three-seed replication. No replication or analytical-grid job was
+  submitted automatically.
+- Final repository verification passed 238 tests plus Python compilation,
+  Ruff, shell syntax, and whitespace checks. The rebuilt paper has no
+  undefined citations/references or fatal TeX errors.
+
+## Non-MaxEnt five-pass backfill 2026-07-18 ~22:08
+
+- Audited all 72 eligible Dr.GRPO, fixed-xDr, proportional-feedback, and
+  Haarnoja-dual seed-runs against the five-pass landed horizon. There were 34
+  deficient runs: 15 already had a live replacement, leaving 19 missing
+  submissions. The 54 held standard-MaxEnt cells were explicitly excluded.
+- Submitted same-stamp replacements for all 19 gaps: Countdown-3B controls
+  30012401--30012406, graph-coloring-0.5B fixed-xDr seed 45 job 30012421,
+  graph-coloring-3B controls 30012408--30012410, graph-coloring-3B Haarnoja
+  jobs 30012423--30012425, and graph-coloring-7B controls/feedback
+  30012414--30012419. Append-only manifests preserve the full attempt history.
+- The graph-coloring-3B Haarnoja failures were the known vLLM
+  `none_dealloc` crash just beyond two passes. Their replacements run on two
+  CS A6000s and retain one rolling step-1024 optimizer checkpoint so automatic
+  requeue can cross that frontier. The three missing graph-coloring-3B control
+  replacements use the same recovery checkpoint policy. Initial pending jobs
+  30012411--30012413 were cancelled before allocation when a configuration
+  audit found their direct invocation had omitted inline coverage; final jobs
+  30012423--30012425 explicitly restore coverage-at-8 every quarter pass.
+- The exhausted graph-coloring-7B jobs were failing at the optimizer step with
+  a 14.19-GiB allocation request on 48-GiB A6000s. Their six replacements use
+  the successful 7B recovery layout: global batch 32, microbatch 4 with
+  accumulation, optimizer and activation offload, two A6000s, and the
+  non-preemptible CS partition.
+- The first graph-coloring-0.5B replacement, 30012407, exposed the analogous
+  24-GiB A5000 limit immediately: its 16-row backward OOMed at step 2. It was
+  cancelled. Intermediate job 30012420 verified global batch 16 with a
+  four-row microbatch and accumulation, but its startup dump exposed a missing
+  inline-coverage flag in the direct seed-filtered submission, so it was
+  cancelled before training. Final replacement 30012421 retains microbatch 4
+  and restores coverage-at-8 evaluation every quarter pass.
+- Extended cleanup sentinel 30005623 across all 19 new jobs. At the final
+  audit, the dashboard reported 9 running and 25 pending eligible runs, zero
+  terminal failures, and every sub-five cell had a live `R` or `P` status.
+
+## Graph-coloring 7B allocator recovery 2026-07-19 ~15:11
+
+- Resolved six displayed terminal failures—E4 Dr.GRPO seed 45, E4 feedback
+  seeds 43/44, and all three E5 Haarnoja-dual seeds—to the same deterministic
+  runtime fault. Every process completed learner step 1023 and died while
+  entering step 1024 in vLLM 0.8.4's CuMem `unmap_and_release` sleep path with
+  `Fatal Python error: none_dealloc: deallocating None`. The failure boundary
+  and stack were identical across methods and seeds.
+- The six earlier backfill jobs 30012414--30012419 had no optimizer checkpoint
+  and were already in ineffective startup/requeue loops. They were cancelled
+  after the repaired replacements had been submitted held and audited.
+- Shared storage had only 501 GiB free, so rolling 7B optimizer checkpoints
+  for twelve jobs were not safe. Recovery instead removes the defective path:
+  vLLM remains resident (`OAT_ZERO_VLLM_SLEEP=0`) with KV ratio 0.10, while the
+  learner uses the validated two-A6000, microbatch-4, optimizer/activation-
+  offload layout. The objective, data, seeds, G=32, global batch, learning
+  rate, five-pass ceiling, and quarter-pass evaluation cadence are unchanged.
+- Submitted and released same-stamp E4 jobs 30016313--30016321 and E5 jobs
+  30016322--30016324 on the healthy node103/node104/node208 A6000 pool under
+  `lowprio/mltheory`. All twelve explicit Slurm exports passed the held-job
+  audit before release. At 15:11 EDT they were pending for priority; the live
+  monitor showed `submitted` for all twelve Graph-coloring 7B cells and no
+  remaining `FAIL` label.
+
+## Active-safe storage cleanup 2026-07-20 ~12:02
+
+- Audited shared storage and the live Countdown-3B allocations before
+  deleting anything. Shared storage had 2.7 TiB free; node103/node104 had
+  2.0/1.6 TiB free in `/tmp`, essentially empty `/dev/shm`, and about 235 GiB
+  of available RAM each. Each job-local `/tmp/od2961` tree was only 52 KiB.
+- Removed 73 inactive `saved_models`/`checkpoints` payload trees from the old
+  E1 and E4--E8 campaigns, freeing 315.2 GiB. Run directories, inline
+  metrics, evaluations, manifests, figures, and dataset definitions were
+  retained. The cleanup discovered active stamps from Slurm and therefore
+  could not touch any live run root.
+- Explicitly retained all E16--E21 canonical and free-form model state,
+  including the four 46-GiB rolling optimizer checkpoints that belong to
+  live 3B runs. Shared filesystem usage fell from 63% to 60%, with 2.9 TiB
+  free after deletion.
+- Countdown-3B matched Dr.GRPO jobs 30020609--30020611 and Standard MaxEnt
+  fixed jobs 30020671--30020673 remained `RUNNING` throughout cleanup. All
+  six crossed optimizer initialization and emitted advancing finite training
+  metrics; their observed RSS was about 84--86 GiB against a 96-GiB job
+  limit.
+
+## Countdown E17 dual and E4 7B fixed recovery 2026-07-20 ~12:44
+
+- Recovered the three Countdown-3B Standard MaxEnt Haarnoja-dual seeds under
+  the frozen E17 protocol. Original seeds 43/44 jobs 30015737/30015740 were
+  zero-second wrapper failures; seed 45 job 30015743 was a genuinely wedged
+  writer whose metrics had stopped after step 651 following a shared-storage
+  error. The stale writer was cancelled, while its complete step-576 rolling
+  optimizer checkpoint was retained for automatic resume.
+- Submitted append-only replacement jobs 30020758--30020760. At the recovery
+  audit, seed 43 was advancing at step 155 with finite dual/entropy telemetry
+  and all NaN/Inf sentinels zero; seeds 44/45 were pending on the constrained
+  A6000 pool. Pending placement was widened from nodes 207--208 to identical
+  A6000 node 205 as well, without changing the protocol. Seeds 43/44 start
+  clean and seed 45 will resume step 576 when it receives an allocation.
+- Recovered Countdown-7B fixed-xDr seeds 43/44 from the frozen E4 source. The
+  earlier jobs 30008062/30008063 had rejected the newer, inert
+  `--maxent-objective` selector. `ops/train.sh` now capability-gates that
+  selector: old source may omit it only for non-MaxEnt runs, while a MaxEnt
+  request against unsupported source still fails closed.
+- Startup-only jobs 30020761--30020764 exposed and isolated two configuration
+  hazards before training: expandable allocator segments conflict with the
+  vLLM CuMem sleep pool, while a resident 7B actor cannot use a 0.10 memory
+  ratio because the actor weights alone exceed that budget. Their watchdog
+  requeues were disabled and the jobs were cancelled. Resident-vLLM attempts
+  30020765/30020766 then proved the evaluator and learner initialized, but
+  seed 44 OOMed on the first 14.19-GiB backward allocation; both were cancelled
+  rather than accepting an input-length-sensitive or cross-seed protocol.
+- Final jobs 30020817/30020818 exactly restore the successful E4 seed-45
+  memory protocol: two A6000s, vLLM sleep enabled, ratio 0.25, global batch
+  32, microbatch 16, optimizer/activation offload, and no expandable allocator.
+  Both completed step-0 Countdown evaluation and a full backward/sleep-wake/
+  parameter-sync cycle. At the audit they were advancing at optimizer steps
+  2 and 1 with no OOM, traceback, or numerical failure. Evaluation remains
+  scheduled every 96 prompts, exactly one quarter of the 384-prompt epoch.
+- Focused recovery contracts passed (5 tests), as did shell syntax and Python
+  lint checks. Append-only manifests retain every discarded attempt for audit.
+
+## Graph-coloring 3B idle-GPU canaries 2026-07-20 ~14:38
+
+- Audited the attached campaign table against live Slurm allocations and host
+  memory. Node302 had eight idle mltheory A100s, while node204 had six idle
+  A5000s and enough real memory for one additional 96-GiB allocation. Existing
+  A6000 capacity was already memory-bound or reserved for submitted recoveries.
+- The latest graph-coloring-3B feedback seed-45 and Haarnoja-dual retries had
+  not failed in training: both were rejected at startup because frozen E4/E5
+  source predates the inert `--maxent-objective` selector. Submitted held,
+  audited replacements with the frozen capability-gated runtime and preserved
+  the five-pass objective, global batch 32, and quarter-pass evaluation.
+- Feedback seed 45 job 30021274 started immediately on two node302 A100s. It
+  cleared evaluation and optimizer startup and was advancing at step 29 with
+  finite telemetry and no traceback or memory error at the audit.
+- Haarnoja seed 43 canary 30021275 started on two node204 A5000s but OOMed on
+  the first backward pass at microbatch 16. Its watchdog requeue was disabled
+  and it was cancelled. Replacement 30021389 keeps global batch 32 while
+  reducing the per-device microbatch to four; it is pending on the same A5000
+  hardware in `lowprio/mltheory`, with Slurm's current estimate at
+  2026-07-21 10:40 EDT. Seeds 44/45 were intentionally not duplicated before
+  this canary proves the repaired memory layout.
+- Focused recovery and frozen-source compatibility tests passed (3 tests), as
+  did shell syntax, Python lint, and whitespace checks.
+
+## Completed canonical checkpoint cleanup 2026-07-20 ~15:02
+
+- Revalidated every deletion candidate against the 28 live or pending Slurm
+  run stamps immediately before removal; no candidate belonged to an active
+  job.
+- Removed only 33 completed-run `saved_models`/`checkpoints` directories from
+  Countdown and graph-coloring E16/E19 0.5B canonical campaigns and the fully
+  completed graph-coloring E17 3B Standard MaxEnt campaign.
+- Reclaimed 79,786,065,132 bytes (74.3 GiB). All 759 retained training-metric
+  and evaluation-result files remained present, so dashboards, trajectory
+  figures, and final-result analysis remain reproducible from landed outputs.
+- Shared storage reported 2.7 TiB free and 63% utilization after cleanup.
+
+## Countdown E17 node302 A100 backfill 2026-07-20 ~15:14
+
+- Node302 was not empty: graph-coloring-3B feedback job 30021274 occupied two
+  A100s. The Countdown E17 launcher was still pinned to the A6000 pool
+  (nodes 103/104/208), which is why its remaining jobs did not consider the
+  six otherwise-idle A100s. A live check through job 30021274 showed about
+  396 GiB host memory available before the new startups.
+- Retargeted the existing pending Countdown-3B Standard MaxEnt fixed jobs
+  30020671/30020672 (seeds 43/44) and proportional job 30015742 (seed 45) to
+  one node302 A100 and 96 GiB RAM each. They started and loaded their exact
+  rolling optimizer checkpoints at steps 288, 384, and 672. Healthy fixed
+  seed 45 job 30020673 remained untouched on node103.
+- Added a narrow held-and-audited proportional recovery path for seeds 43/44,
+  whose earlier landed model snapshots had no optimizer state. Fresh
+  same-seed jobs 30021732/30021733 target one node302 A100 and 96 GiB each.
+  Seed 43 started from initialization and advanced through step 5 with finite
+  canonical overlap telemetry; seed 44 remains scheduler-safe pending on host
+  memory rather than oversubscribing the node.
+- Node302 now reserves 480 GiB and six GPUs across five running allocations:
+  the existing two-GPU feedback job plus four one-GPU Countdown jobs. The
+  fifth Countdown retry waits on resources. All E17 jobs retain evaluation
+  and rolling checkpoints every 96 prompts, exactly one quarter of the
+  384-prompt epoch. Startup scans found no traceback, OOM, NCCL failure, or
+  numerical sentinel, and the focused recovery contract passed (3 tests).
+
+## E22 free-form dual placement recovery 2026-07-20 ~20:30
+
+- The six frozen E22 0.5B free-form conditional-token Haarnoja-dual jobs
+  30024472--30024477 were pending indefinitely because their requested A5000
+  node, node105, was unavailable. No duplicate jobs or run stamps were
+  created.
+- Retargeted the existing pending jobs to `lowprio` node025 with one RTX 3090
+  and 64 GiB of host memory per job. The RTX 3090 has the same 24-GiB memory
+  class and Ampere architecture as the frozen A5000 target; model, source,
+  data, seeds, objective, controller, budgets, and evaluation/checkpoint
+  cadence are unchanged. This is an operator-authorized placement exception,
+  not a scientific-protocol change.
+- All three graph-coloring jobs (30024472--30024474; seeds 43--45) and all
+  three Countdown jobs (30024475--30024477; seeds 43--45) began running on
+  node025. The node allocated six of ten GPUs, 96 CPUs, and 384 GiB of RAM.
+  Initial logs attest the frozen identity, fresh initialization, correct
+  task-specific pools, and CUDA detection; the first startup scan found no
+  traceback, OOM, NCCL, or storage failure.
+
+## E23 canonical Countdown 7B launch 2026-07-20 ~23:00
+
+- The dashboard's held Countdown-7B Standard MaxEnt rows were not released
+  under the failed free-form E11 namespace. Froze a separate E23 canonical
+  protocol using the immutable E16/E17 source, Countdown codec, treatments,
+  seeds, five-pass budget, and quarter-pass evaluation/checkpoint cadence.
+- Initial v1 jobs 30031135--30031143 exposed a pre-training argument mismatch:
+  canonical learner sampling requires rollout batch one. V2 jobs
+  30031150--30031158 passed that check but exposed OAT's complementary rule
+  that a two-GPU actor requires a rollout batch divisible by two. Neither
+  namespace produced an evaluation or optimizer update; both cohorts were
+  held and cancelled, with manifests and logs retained.
+- E23 amendment A2 records the compatible topology: one node302 A100, one
+  learner/actor GPU identity, rollout batch one, global batch 16, microbatch
+  four, ZeRO-2, vLLM sleep, and optimizer/activation offload. Model, source,
+  data, methods, seeds, coefficients, entropy target, and analytical budget
+  are unchanged.
+- Submitted, held-audited, and released the complete v3 cohort: fixed,
+  proportional, and Haarnoja-dual seeds 43--45 are jobs
+  30031175--30031183. Fixed seed 43 started immediately, passed both prior
+  runtime constraints, loaded the 7B learner and actor, verified the canonical
+  108-action support, and entered ZeRO optimizer initialization. The other
+  eight jobs were released and remained pending for node302 resources at this
+  audit.
+
+## E24 canonical graph-coloring 7B launch 2026-07-21 ~00:54
+
+- Replaced the dashboard's held E11 free-form namespace with a distinct E24
+  canonical graph-coloring protocol. E24 transfers the frozen E16/E17
+  27-action codec, three Standard MaxEnt treatments, seeds 43--45, group size
+  16, five-pass budget, and quarter-pass evaluation/checkpoint cadence to the
+  pinned Qwen2.5-7B-Instruct snapshot.
+- Reused E23's validated one-A100 7B topology on node302: one collocated
+  learner/actor GPU identity, rollout batch one, global batch 16, microbatch
+  four, ZeRO-2, optimizer/activation offload, and vLLM sleep at ratio 0.25.
+- Submitted all nine jobs held, audited exactly one allocation per method/seed
+  cell plus every scientific identity and resource invariant, then released
+  jobs 30031621--30031629. At the live audit all nine were `PENDING` for node
+  availability, none had `JobHeldUser`, and the campaign dashboard showed
+  `P / P / P` for fixed, proportional, and Haarnoja-dual graph-coloring 7B.
+
+## Countdown-3B matched Dr.GRPO seed-43 fresh recovery 2026-07-21 ~01:11
+
+- Diagnosed job 30020609's persistent `R init` state as an ineffective
+  restart loop. Its step-480 DeepSpeed directory contained the model-state
+  file but not `bf16_zero_pp_rank_0_mp_rank_00_optim_states.pt`; every restart
+  raised `FileNotFoundError` before evaluation or training. Slurm recorded 18
+  restarts while the allocation continued reserving one node104 A6000.
+- Added a fail-closed E18 seed-43 recovery path that explicitly disables
+  automatic checkpoint discovery. Replacement job 30031645 was submitted
+  held and audited against the frozen E18 run stamp, seed, task, model, A6000
+  resource request, and fresh-start marker before the prior writer was
+  touched.
+- Disabled requeue on 30020609 and cancelled it, then released 30031645. The
+  replacement started on node103 from the pinned pretrained model, completed
+  the step-0 canonical Countdown evaluation, entered training, and emitted a
+  finite step-1 record with no checkpoint-load error, traceback, or OOM.
+
+## Active-safe model-state cleanup 2026-07-21 ~10:00
+
+- Recomputed the cleanup plan directly from the live Slurm queue and protected
+  every active run root, including E18 replacement 30031645, all E23/E24 7B
+  jobs, and the active E21/E22 cohorts. Datasets, metrics, evaluations,
+  manifests, and each inactive analytical run's highest final export remained
+  outside the deletion set.
+- Removed 80 inactive payloads: 39 raw optimizer-checkpoint trees, 25
+  superseded-attempt model exports, and 16 redundant preterminal exports.
+  The completed report records 663 files, 1,098,203,072,301 logical bytes, and
+  1,373,831,094,272 physically allocated bytes removed.
+- Shared storage changed from 5.2 TiB used / 1.9 TiB free (75%) to 4.3 TiB
+  used / 2.8 TiB free (61%). A post-cleanup queue audit confirmed all live and
+  pending jobs remained present; every reported target was absent.
+
+## E25 3B free-form conditional-token dual launch 2026-07-21 ~10:07
+
+- Froze a treatment-only 3B extension of E22-v2 for graph coloring and
+  Countdown easy3. It preserves unrestricted `qwen_boxed` generation,
+  `conditional_token_mean`, group size 16, the base-preserving alpha interval
+  `[0.000075, 0.00015]`, and E22-v2's fixed task-specific entropy targets.
+  No new matched free-form Dr.GRPO control was launched or claimed.
+- Selected one node302 A100-80GB per job with 96 GiB host memory, ZeRO-2,
+  optimizer/activation offload, vLLM sleep, global batch 16, and backward
+  microbatch one. The model is the pinned Qwen2.5-3B-Instruct snapshot and the
+  tokenizer was verified byte-identical to E22-v2's 0.5B tokenizer.
+- Submitted all six jobs held and audited task, model, method, seed, objective,
+  controller target/bounds, five-pass budget, cadence, and resource request
+  before release. Graph-coloring seeds 43--45 are 30033851--30033853;
+  Countdown seeds 43--45 are 30033854--30033856. All six were pending for
+  node302 availability and appeared as `P / P / P` in their new 3B dashboard
+  rows at the launch audit.
+## E23/E24 four-A100 canonical 7B recovery 2026-07-21 ~10:29
+
+- Retired the ineffective one-A100/96-GiB E23 jobs 30031175--30031183 and E24
+  jobs 30031621--30031629 after their repeated ZeRO CPU-optimizer cgroup OOM
+  loops produced no optimizer update or eligible outcome. Five E24 wrappers
+  caught the first cancellation and requeued with a delayed begin time; their
+  Slurm requeue flag was disabled and they were cancelled again, after which
+  none of the superseded jobs remained live.
+- At the user's direction, amended each individual 7B run to use four node302
+  A100s and 192 GiB host RAM. The derived frozen source
+  `a02e2d242f797d65d788cfbcf8e278e675031d2f10de31edfca5cf88e07b4b43`
+  replicates the current prompt/full G=16 group across learner ranks for
+  advantage construction, then partitions the group into four disjoint
+  microbatches of four for one synchronized global-batch-16 update.
+- Replaced the opaque inherited topology with an explicit frozen submitter
+  surface (`72abacc11178931c3d3923c691fa303d06e45aec0dfef686e87ec607ef4bd808`)
+  so GPU count, actor topology, rollout layout, batch sizes, offload, vLLM,
+  resume, and watchdog settings are visible in each Slurm SubmitLine before
+  release. Held draft jobs 30033880--30033888 were cancelled without running.
+- Submitted, audited, and released Countdown jobs 30033890--30033898 under
+  `cde23_canonical_maxent_7b_v4_4xa100` and graph-coloring jobs
+  30033899--30033907 under `gce24_canonical_maxent_7b_v2_4xa100`.
+- All 18 replacements request `gres/gpu:a100:4` and 192 GiB. They are queued,
+  not held. Five valid E25 3B jobs 30033851--30033855 currently occupy five
+  node302 A100s/480 GiB and were deliberately left running; the 7B jobs will
+  become runnable as those allocations finish.
+- Updated the live monitor, curve refresh, and figure inputs to the replacement
+  namespaces. The focused launcher/reporting suite passed (36 tests), 77
+  canonical source tests passed directly against the derived snapshot, both
+  configuration-only launch gates passed, and the live dashboard showed
+  `P / P / P` for every E23 and E24 treatment row.
+## E21 MATH-500 0.5B retirement 2026-07-21 ~10:33
+
+- At the user's direction, stopped the unfinished
+  `mte21_math_conditional_token_05b_v4` MATH-500 cohort because the one-pass
+  free-form jobs were too slow and its original Haarnoja-dual formulation has
+  been superseded by the base-preserving conditional-token dual used in
+  E22/E25.
+- Dr.GRPO seed 45 (30020403) and original Haarnoja-dual seed 45 (30020406)
+  were already terminal. Disabled Slurm requeue and cancelled the ten remaining
+  active jobs: 30020395--30020402, 30020404, and 30020405. Existing metrics,
+  evaluations, and checkpoints were retained as incomplete exploratory
+  artifacts rather than deleted or presented as completed outcomes.
+- The exact retirement mapping is recorded in
+  `var/artifacts/e21_math_05b_retirement_20260721.tsv`. Countdown,
+  graph-coloring, E22/E25 base-preserving dual jobs, and all queued four-A100
+  7B replacements were left untouched.
+
+## E26 MATH-500 0.5B high-entropy dual launch 2026-07-21 ~10:42
+
+- Launched only the corrected free-form conditional-token MaxEnt
+  base-preserving Haarnoja-dual treatment for seeds 43--45. No replacement
+  Dr.GRPO, fixed-MaxEnt, or proportional-MaxEnt jobs were submitted; the
+  retired E21 runs remain visible as incomplete historical comparisons.
+- Calibrated a fixed conditional-token entropy target of
+  `0.3653633594512939` nats from the pooled E21 warmup entropy. This is 25%
+  above the corresponding legacy pooled 80%-of-warmup target. Preserved the
+  base/minimum alpha at `0.000075` and doubled the controller's alpha ceiling
+  from `0.00015` to `0.00030`, with log-alpha Adam LR `0.005` and a 64-update
+  warmup.
+- Submitted held, audited the immutable objective, target, bounds, budget,
+  dataset, model, seeds, and resources, then released jobs 30033993--30033995
+  under `mte26_math_freeform_conditional_dual_high_entropy_05b_v1`. Each uses
+  one node105 A5000 and 64 GiB; all three entered RUNNING and reached the
+  step-zero MATH evaluation with clean startup logs.
+- Added a separate E26 dashboard row so this exploratory higher-target cohort
+  is not conflated with the superseded E21 dual. Launcher/reporting contract
+  tests passed (24 tests). The frozen protocol and calibration are recorded in
+  `paper/preregistration/e26_math_freeform_dual_high_entropy.md` and
+  `paper/results/e26_math_freeform_dual_high_entropy_calibration.json`.
+
+## E26 MATH-500 0.5B aggressive-entropy replacement 2026-07-21 ~10:49
+
+- At the user's direction, replaced the conservative E26-v1 draft before any
+  optimizer metric was written. Disabled requeue and cancelled jobs
+  30033993--30033995 after they had performed only the step-zero evaluation;
+  they contribute no training outcome.
+- Raised the fixed conditional-token entropy target from the pooled warmup
+  mean to `0.4567` nats (125% of that mean), expanded the base-preserving alpha
+  interval to `[0.000075, 0.00060]`, and doubled the log-alpha Adam learning
+  rate to `0.010`. With an explicitly configured target, this controller adapts
+  from the first entropy observation despite retaining the 64-step warmup field.
+- Validated configuration-only output and 24 launcher/reporting contract tests,
+  then submitted held and audited seed-43--45 jobs 30033998--30034000 under
+  `mte26_math_freeform_conditional_dual_high_entropy_05b_v2`. All three
+  immutable records contain the requested target, alpha bounds, LR, objective,
+  seeds, and one-A5000/64-GiB resources; all three entered RUNNING on node105.
+
+## E25 3B aggressive-entropy replacement 2026-07-21 ~10:54
+
+- At the user's direction, disabled requeue and cancelled the six weaker E25-v1
+  graph-coloring/Countdown jobs 30033851--30033856. The three graph jobs had
+  reached roughly update 40, Countdown seeds 43/44 roughly updates 39/66, and
+  Countdown seed 45 was pending. Their partial artifacts are retained but are
+  not merged with the replacement trajectories.
+- Applied the E26-v2 exploration policy on each task's own entropy scale:
+  graph coloring target `1.622718550885717` and Countdown target
+  `1.347109432487438`, each 125% of its E22 pooled warmup reference. Both use
+  base-preserving alpha bounds `[0.000075, 0.00060]`, log-alpha Adam LR `0.010`,
+  and fixed-target adaptation from the first entropy observation.
+- Configuration and reporting tests passed (31 tests). Submitted held, audited,
+  and released graph jobs 30034001--30034003 and Countdown jobs
+  30034004--30034006 under their `*_v2` prefixes. All six immutable records
+  contain the requested objective, task-specific target, alpha bounds, LR,
+  model, seed, budget, and one-A100/96-GiB request. They are queued on node302,
+  not held, currently awaiting node availability: four-GPU 7B jobs 30033890
+  and 30033891 claimed all eight node302 GPUs during the replacement handoff.
+
+## Active visualization refresh for E25-v2/E26-v2 2026-07-21 ~12:15
+
+- Redirected curve parsing, combined/split divergence figures, and live monitor
+  inputs from the retired E25-v1 3B prefixes to the clean E25-v2 prefixes. The
+  3B free-form panels now explicitly identify the 125%-target treatment and
+  show `PENDING FIRST EVALUATION`; no partial v1 points are pooled into them.
+- Reworked the MATH visualization to read the active E26-v2 aggressive dual
+  while retaining only E21 Dr.GRPO as a clearly labeled historical reference.
+  Cancelled E21 fixed, proportional, and old-dual curves are excluded. The
+  active E26 curve already contains live training telemetry through roughly
+  0.04 pass, with step-zero MATH evaluation points.
+- Regenerated the combined grid, canonical-only, free-form-only,
+  environment-split, and MATH PDF/PNG/preview artifacts. The MATH live output
+  is now `paper/figures/e26_freeform_math_maxent_live.{pdf,png}`; the stable
+  compute preview remains `var/artifacts/divergence_math_maxent_latest.png`.
+  Figure-input and E25/E26 reporting contracts passed (34 focused tests), and
+  a final figure-input check passed all 6 tests after the label update.
+
+## E27 ModeBench 0.5B aggressive-entropy replacement 2026-07-21 ~12:27
+
+- Launched new treatment-only 0.5B cohorts for graph coloring and Countdown
+  using the same corrected conditional-token, base-preserving Haarnoja dual as
+  E25-v2/E26-v2. The completed E22-v2 Dr.GRPO runs remain the historical
+  matched controls; completed E22-v2 dual outcomes are no longer used as the
+  active dashboard row or treatment figure curves.
+- Set each fixed target to 125% of its task-specific pooled E22 warmup entropy:
+  graph coloring `1.622718550885717` nats and Countdown
+  `1.347109432487438` nats. Both cohorts use alpha bounds
+  `[0.000075, 0.00060]`, log-alpha Adam LR `0.010`, seeds 43--45, and five
+  passes over the prompt pool.
+- Submitted all six jobs held, audited the immutable task, model, objective,
+  target, alpha bounds, controller LR, seed, budget, and one-A5000/64-GiB
+  request, then released them. Graph-coloring jobs 30034356--30034358 entered
+  RUNNING on node105; startup telemetry confirmed the requested target and
+  finite controller updates. Countdown jobs 30034359--30034361 are queued,
+  not held, pending node105 availability.
+- Redirected the monitor, curve refresh, and free-form figure inputs to the E27
+  treatment prefixes while retaining only E22-v2 Dr.GRPO as the historical
+  0.5B reference. The dashboard and figures explicitly label the active 0.5B
+  treatment as `E27` with a `125% entropy target`; missing treatment data is
+  shown as pending rather than silently filled from the old E22-v2 dual.
+- Configuration-only launch validation passed, the focused launcher/monitor/
+  figure-input suite passed all 33 tests, and the combined/split figures and
+  latest previews were regenerated from the new routing.
+
+## Retired E21 MATH optimizer-state cleanup 2026-07-21 ~12:55
+
+- Removed 11 raw optimizer-checkpoint trees belonging exclusively to the
+  explicitly retired `mte21_math_conditional_token_05b_v4` jobs. The removed
+  trees occupied approximately 190 GiB; they are irreversible resume state
+  for the superseded E21 runs and are not used by E26/E27.
+- Retained all 12 E21 exported-model directories, metrics, evaluations, logs,
+  run directories, and visualization inputs. Verified that the three active
+  E26-v2 MATH roots and three active E27 graph-coloring roots remained intact;
+  E27 Countdown had not allocated and therefore had no run root to protect.
+- Shared storage moved from 4.3 TiB used / 2.8 TiB free (61%) to 4.2 TiB used /
+  2.9 TiB free (59%). Slurm remained unavailable during the post-cleanup
+  audit, so the separately authorized E27 Countdown placement amendment to
+  nodes202/203 was not applied or assumed successful.
+
+## E27 Countdown 0.5B placement recovery 2026-07-21 ~13:00
+
+- Amended pending jobs 30034359--30034361 in place from
+  `mltheory/node105` to `cs/allcs` with eligible nodes202/203, preserving job
+  IDs, run stamps, source, data, seeds, objective, controller, and budget. The
+  wall-time request was reduced from 24 hours to the previously validated
+  four-hour backfill window.
+- All three jobs allocated simultaneously on node202 before a follow-up CPU
+  shape reduction could be applied. Their effective allocations therefore
+  retain 16 CPUs, 64 GiB, and one A5000 each; the rejected post-allocation
+  update did not alter the running jobs.
+- Startup telemetry reached optimizer steps 16--17 across all seeds, logged
+  the requested Countdown entropy target `1.3471094369888306`, and showed
+  finite adaptive-alpha updates. The initial audit found no traceback, OOM,
+  fatal error, or controller mismatch.
+
+## E23/E24 four-A100 empty-shard recovery 2026-07-21 ~16:45
+
+- Diagnosed the repeated pre-update 7B failures in source hash
+  `a02e2d242f797d65d788cfbcf8e278e675031d2f10de31edfca5cf88e07b4b43`.
+  The replicated-canonical path correctly constructed one disjoint
+  four-candidate shard per learner rank, but its backward loop still iterated
+  over the full replicated group length of 16. Each rank therefore issued one
+  valid microbatch followed by empty microbatches; Qwen's zero-sized forward
+  failed, and NCCL watchdog aborts followed. No affected job completed an
+  optimizer update.
+- Created immutable fixed source hash
+  `044f6df047788dc8b67bbe224281a403c6d5eab04de89881f5a17cfe5c147cf9`.
+  Its only behavioral diff makes the loop terminate at the rank-local shard
+  length. A regression contract verifies four nonempty four-candidate shards
+  exactly cover the global group of 16; both configuration gates and 39
+  focused source/launcher/reporting tests passed.
+- Submitted and held-audited Countdown replacements 30035422--30035430 under
+  `cde23_canonical_maxent_7b_v5_4xa100_fix` and graph-coloring replacements
+  30035431--30035439 under `gce24_canonical_maxent_7b_v3_4xa100_fix`. Disabled
+  requeue and cancelled the 18 broken jobs 30033890--30033907.
+- Released fixed seed-43 canaries 30035422 and 30035431; the other 16 jobs
+  remain user-held until both canaries pass a real optimizer update. The
+  canaries are scheduler-pending because five healthy E25-v2 3B treatments
+  currently reserve five of node302's eight A100s and 480 GiB. They require
+  four A100s and 192 GiB on that one node and will allocate once at least two
+  of those 3B allocations finish.
+
+## E28 post-hoc matched 3B free-form Dr.GRPO controls 2026-07-21 ~17:00
+
+- At the user's direction, froze a fresh matched-control extension for both
+  E25-v2 ModeBench environments. E28 changes only the entropy treatment:
+  ordinary unrestricted free-form Dr.GRPO uses `alpha=0`, `xdr_tau=inf`, and
+  no entropy or aggregation controller while preserving E25-v2's model,
+  source and execution snapshots, datasets, group size 16, learning rate,
+  five-pass budget, evaluation cadence, offload topology, and seeds 43--45.
+- The comparison is explicitly post-hoc because E25-v2 had begun before E28
+  was requested. Historical E1 3B Dr.GRPO remains contextual only and is not
+  relabeled as matched evidence.
+- Configuration-only validation passed for graph coloring and Countdown, and
+  33 focused launcher, monitor, and figure-routing tests passed. Submitted all
+  six jobs held, audited their resolved scheduler records, and released the
+  complete cohort atomically: graph coloring 30035541--30035543 under
+  `gce28_freeform_drgrpo_3b_v1`; Countdown 30035544--30035546 under
+  `cde28_freeform_drgrpo_3b_v1`.
+- All six controls are scheduler-pending on node302 after release. The monitor,
+  curve refresh, and free-form figures now pair E28 Dr.GRPO with E25-v2 rather
+  than leaving the 3B panels treatment-only.
+- A resolved SubmitLine diff for paired graph and Countdown seed-43 jobs found
+  no non-treatment runtime mismatch. Differences were limited to run/protocol
+  identity, `variant=grpo`, and removal/zeroing of the MaxEnt dual and its
+  length-controller-only arguments.
+
+## E23/E24 four-A100 runtime validation and release 2026-07-21 ~17:12
+
+- Temporarily requeue-held active E25-v2 jobs 30034001--30034005 and held its
+  sixth pending job 30034006 to make all eight node302 A100s available. The
+  five interrupted jobs were only 8 minutes into their first allocation and
+  remained intact as held Slurm records rather than being cancelled.
+- Both corrected seed-43 canaries then allocated together with the requested
+  topology: Countdown job 30035422 and graph-coloring job 30035431 each used
+  four A100s and 192 GiB on the single node302 host. Four-rank learner and
+  vLLM initialization completed without OOM or fatal NCCL errors.
+- Countdown completed optimizer step 1 on all ranks at 17:11:44 EDT and was
+  observed through step 3. Graph coloring completed optimizer step 1 on all
+  ranks at 17:12:13 EDT and entered step 2. Neither reproduced the retired
+  empty-microbatch traceback; both continued normally after the exact old
+  failure boundary.
+- Released replacement jobs 30035423--30035430 and 30035432--30035439 into
+  the normal scheduler queue, then released E25-v2 jobs 30034001--30034006.
+  The final audit showed the two canaries RUNNING and every other corrected
+  7B and restored 3B job PENDING for resources, with no user-held jobs in
+  either set. Scientific settings remained unchanged.
+- Refreshed the campaign curves and all combined/split canonical, free-form,
+  Countdown, and graph-coloring figures. The live monitor now follows the
+  replacement prefixes and reports persisted seed-43 7B progress rather than
+  the retired jobs; 32 focused monitor, figure-input, and source-contract
+  tests passed after the runtime release.
+
+## E28 Countdown matched-control recovery 2026-07-22 ~11:33
+
+- Diagnosed terminal jobs 30035544--30035546 as a shared infrastructure
+  interruption rather than an objective failure. All three allocations ended
+  at the same instant with Slurm reason `ReqNodeNotAvail`; their logs stop
+  mid-update without a traceback, OOM, or runtime error.
+- Preserved the same E28 run stamps and complete optimizer state. Seeds 43 and
+  44 resume from step 384 / 1.00 pass, and seed 45 resumes from step 864 / 2.25
+  passes. Restored the protocol-pinned Qwen2.5-3B-Instruct revision
+  `aa8e72537993ba99e69dfaafa59ed015b17504d1` after its shared-cache snapshot
+  had been removed; no training artifact or checkpoint was replaced.
+- Added an audited same-stamp Countdown recovery path to the E28 launcher.
+  It submits replacements held, verifies task, model, objective, resources,
+  run stamps, and checkpoint settings, and supports releasing an already
+  staged trio without duplicate submission. The launcher syntax check and all
+  three focused E28 contract tests passed.
+- Submitted and released recovery jobs 30046076--30046078 on three idle
+  node302 A100s. All three entered `RUNNING`; startup logs selected the exact
+  expected step-384, step-384, and step-864 checkpoints, with watchdog requeue
+  enabled for up to eight allocation restarts.
+
+## 0.5B/3B free-form resume-contamination repair 2026-07-22 ~12:25
+
+- Supersedes the E28 Countdown recovery immediately above. The restored
+  learner state was not synchronized to actors before the resumed boundary
+  evaluation or first rollout in the old frozen source. Jobs 30046076--30046078
+  were stopped before accepting their output; artifacts were preserved for
+  audit. Seeds 43 and 44 were already contaminated from step 96, so step 384
+  was not a valid rollback point.
+- Audited every E22-v2/E27 0.5B and E25-v2/E28 3B free-form seed. All eighteen
+  0.5B task/arm/seed trajectories are single uninterrupted attempts from step
+  zero through terminal evaluation and never entered the faulty resume path;
+  they are certified clean and are not needlessly rerun.
+- Frozen the remediation addendum
+  `paper/preregistration/modebench_freeform_resume_repair_20260722.md`. Exact
+  clean optimizer states remain only for E28 Countdown seeds 43, 44, and 45
+  at steps 96, 96, and 864. The other nine 3B branches must replay from the
+  pinned pretrained initialization because their qualifying optimizer states
+  were pruned; model-only exports were explicitly rejected as substitutes.
+- Added resume-before-eval actor synchronization and a one-time external
+  bootstrap mechanism. On watchdog requeue, a repaired run follows its own
+  rolling checkpoint; it uses the predecessor bootstrap again only if no new
+  clean checkpoint exists. Two rolling optimizer checkpoints are retained and
+  automatic success pruning is disabled pending repair validation.
+- Rejected and cancelled held staging jobs 30046264--30046275 because critical
+  recovery settings were inherited through `--export=ALL` and therefore absent
+  from the auditable Slurm `SubmitLine`. They performed no training. Updated
+  the shared submitter to pin those fields explicitly.
+- Source hash
+  `33fbde7130221b188ad251696345e37fd227f7ef3ce21c19cabcab1f80637359`
+  and 11 focused repair/parser/sync tests passed. Submitted, held-audited, and
+  released repair-v2 jobs 30046276--30046287 under four fresh prefixes. Nine
+  jobs start from initialization; E28 Countdown jobs 30046285--30046287 use
+  exact clean one-time step-96, step-96, and step-864 bootstraps. At release,
+  five fresh-start jobs were running on node302 and seven released jobs were
+  pending for resources/node availability. All five allocated jobs passed
+  initialization and entered optimizer step 1 without a traceback, OOM, or
+  NCCL failure. Storage had 4.5 TiB free.
+- Updated the central curve refresh to clip the four abandoned 3B free-form
+  prefixes seed-by-seed at the audited clean boundary, retaining the valid
+  predecessor boundary evaluation and discarding all downstream contaminated
+  points. Regenerated the combined, canonical, free-form, task-split, and 0.5B
+  paper figures without smoothing. JSON validation passed, the four observed
+  per-seed maxima exactly match the remediation table, and 19 focused figure,
+  repair, parser, and three-seed-mean tests passed.
+
+## E30 fixed-draw 0.5B free-form diagnostic 2026-07-22 ~13:45
+
+- Made ModeBench evaluation reproducible by default: four K=8 draws with
+  fixed seeds 1001--1004. The compatibility headline is their arithmetic
+  mean; every raw draw, prompt outcome, normalized answer, reward, and seed is
+  retained, with SD, SE, minimum, and maximum reported without smoothing.
+- Completed the prospectively frozen terminal diagnostic for all three clean
+  E22-v2 Dr.GRPO and E27 conditional-token MaxEnt seeds on Countdown and graph
+  coloring. Correct vLLM V0 jobs 30046468 and 30046469 exited successfully.
+  Partial output from a superseded V1 launch was quarantined before metric
+  inspection rather than mixed into the analysis.
+- Evaluation noise is too small to explain the visible bumpiness. MaxEnt
+  pass@8 MC SD was 0.0050 on Countdown and 0.0040 on graph coloring, versus
+  raw adjacent-checkpoint MAAD of 0.0703 and 0.0571 (about 14x larger).
+- Terminal MaxEnt-minus-Dr.GRPO effects were +0.0944 pass@8 / +0.0286
+  coverage@8 on Countdown and +0.2326 / +0.0612 on graph coloring. Greedy
+  effects were unresolved, and graph mean@8 was unchanged. Generated the raw
+  12-point-per-cell diagnostic figure and machine-readable findings.
+
+## Compute-divergence evaluation contract and five-metric figures 2026-07-22 ~14:30
+
+- Extended every combined, method-specific, environment-specific, and 0.5B
+  compute-divergence figure to show deterministic pass@1 plus mean@8, pass@8,
+  coverage@8, and distinct@8. Heavy curves remain all-three-seed means and
+  thin curves remain unsmoothed seed trajectories.
+- Merged the real E30 four-draw terminal results into all twelve eligible
+  E22-v2/E27 0.5B free-form curve endpoints. Each curve row retains seeds
+  1001--1004, mean/SD/SE/min/max, and links to all raw attempt and per-prompt
+  traces. The matching deterministic greedy terminal traces were merged too.
+- Audited 1,574 plotted multi-answer rows across twenty curve artifacts. All
+  1,574 contain the five requested metrics; twelve have genuine four-draw
+  uncertainty. The remaining 1,562 historical points are visibly identified
+  as legacy single evaluations because their intermediate model exports were
+  not retained; no uncertainty was fabricated.
+- Future inline sidecars now retain a dedicated deterministic K=1 pass@1 trace
+  plus raw prompts, references, generated response text, rewards, normalized
+  answers, and draw identities for every K=8 draw. Wrote the
+  machine-readable coverage audit to
+  `var/artifacts/compute_divergence_eval_coverage.json`. Seventy-seven focused
+  tests passed across the plotting and training environments; lint and visual
+  inspection passed.
+
+## E31 responsive entropy-EMA dual default 2026-07-22 ~15:15
+
+- Changed the default sensor for new Haarnoja `maxent_dual` runs from a raw
+  one-prompt-group entropy observation to an EMA with decay 0.7. This is a
+  deliberately responsive smoother: about two updates of half-life and six
+  observations of effective averaging, rather than the roughly 22-update 90%
+  settling time of decay 0.9.
+- The raw observation remains logged. Added separate EMA entropy, EMA decay,
+  and EMA-based error telemetry; only the error passed to log-alpha Adam is
+  smoothed. Alpha learning rate, target, projection bounds, and objective are
+  unchanged so the intervention is isolated.
+- Persisted EMA state and decay in controller checkpoints and versioned the
+  rule as `log_alpha_adam_entropy_ema_v2`. Historical instantaneous-feedback
+  checkpoints fail closed instead of silently resetting or changing their
+  dynamics. Frozen E16--E29 runs and active repairs retain their original
+  sources and are not retroactively relabeled.
+- Pinned `OAT_ZERO_MAXENT_DUAL_EMA_DECAY=0.7` through the public runtime,
+  low-level trainer, and auditable comparative Slurm submit line. The
+  prospective E31 method note was frozen before new compute.
+
+## E32 clean matched 0.5B free-form rerun 2026-07-22 ~14:52
+
+- Froze a new prospective matched design for Countdown and graph coloring:
+  Dr.GRPO versus conditional-token EMA-Haarnoja MaxEnt, seeds 43/44/45, ten
+  prompt-pool passes, the prior 125% targets, EMA decay 0.7, and quarter-pass
+  evaluations. Every evaluation retains deterministic pass@1 and four fixed
+  K=8 draws with all raw traces and mean/SD/SE/min/max.
+- Restored the exact pinned Qwen2.5-0.5B-Instruct revision after cache cleanup;
+  no trained checkpoint or floating model revision was substituted. Froze
+  source hash `69a22e21276aa04bea617e4539afdd57a2056ef97b5b08fd925c710c4f561c0a`
+  and execution-surface hash
+  `b2cc8619554d115213440043a605362a3a9ec749ae40a89b95f11587507b1f65`.
+- A first held v1 submission was rejected because its audit incorrectly
+  required the active treatment target on inactive Dr.GRPO controls. All
+  twelve held jobs 30047228--30047239 were cancelled before allocation. The
+  audit was corrected to verify arm-specific invariants and to cancel the
+  complete cohort on any failure.
+- Submitted, held-audited, and released E32-v2 jobs 30047240--30047251. The six
+  graph-coloring jobs allocated on node105 and all produced step-0 repeated
+  evaluations plus optimizer metrics without traceback, OOM, or runtime
+  failure. The six Countdown jobs initially remained pending because those
+  graph jobs' 16-core requests exhausted all 96 schedulable node105 CPUs while
+  four A5000s were idle. Live MaxRSS was only 12.7--13.0 GiB and average CPU
+  use was about one core, so the pending jobs were amended in place to four
+  cores, 32 GiB, and the same-model A5000 low-priority pool on nodes 202--204.
+  All six then allocated immediately; no scientific setting or run identity
+  changed. The scheduler amendment is recorded in
+  `var/artifacts/e32_freeform_05b_ema_10ep_v2_placement_amendment.json`.
+  Runtime logs attest terminal-only export, per-pass resumable
+  checkpoints (keep two), no success pruning, and the frozen protocol identity.
+- Simplified `make monitor` to the four newest 0.5B rows only and a dedicated
+  one-minute E32 curve/figure refresh. The first implementation republished
+  only `freeform_05b_latest`, leaving the established combined, free-form, and
+  task-split files stale even while metrics advanced. Corrected the refresher
+  to atomically republish every E32-consuming divergence figure each minute.
+  Published `freeform_05b_latest` and rerouted all compute-divergence 0.5B
+  free-form panels to E32. Heavy lines require all three seeds; thin seed
+  traces remain unsmoothed and every raw draw remains retained. The focused
+  53-test regression suite, follow-up monitor/storage
+  tests, lint, shell syntax, figure refresh, and visual inspection passed.
+- After launch, replaced the plotted four raw-draw dots and min/max whiskers
+  with light 95% Student-t bands for Monte Carlo evaluation uncertainty. Each
+  fixed draw is first averaged across the three training seeds; the interval
+  uses the four draw-level means and df=3. Thin seed trajectories remain
+  unsmoothed, pass@1 remains deterministic with no band, and every raw draw
+  remains in the artifacts. The visualization-only decision is frozen in
+  `paper/preregistration/e32_visualization_amendment_20260722.md`.
+
+## E51 projection-free policy-entropy canonical restart 2026-07-24 ~13:46
+
+- Replaced E50 after its live uncapped Haarnoja log-alpha controller grew far
+  above the reference dose in graph coloring. E50 remains immutable,
+  post-selection historical evidence and none of its checkpoints, optimizer
+  state, canonical bank, controller state, or partial trajectories enters E51.
+- Froze a fresh three-domain paired design at 0.5B: Dr.GRPO versus
+  `online_canonical_policy_entropy`, seeds 43--45, group size 16, and 50
+  complete passes for graph coloring, Countdown easy3, and executable Python
+  factors. The controller observes the learner's masked-mean full-vocabulary
+  token entropy, holds alpha at 0.10 for 64 observations, then applies
+  `alpha_next = 0.10 * entropy_ema / warmup_mean` with EMA decay 0.9.
+  It has no Haarnoja loss, Adam or other accumulating optimizer state, target
+  bank entropy, lower projection, or upper projection.
+- Focused validation passed: 119 controller/argument/bank/parser/E51 tests,
+  14 historical E44/E46/E48/E50 compatibility tests, Ruff, shell syntax,
+  whitespace checks, and configuration-only audits for all three domains.
+  Frozen identity source hash is
+  `63f79255eb66096e37b7ade57295983b8deaf1d305f3a335adef0efd02993667`;
+  execution-surface hash is
+  `299f42d22e6dbeb2051f2af1e009d7cce43867c53fdf15be4da6d88fbbfda82d`.
+- Cancelled the exact 18 E50 jobs from their three manifests. Seven running
+  jobs initially reappeared pending via the old watchdog; cancelled those
+  requeues too and verified that no E50 job remains in the active queue.
+  Artifacts were retained.
+- Submitted all E51 jobs held, audited arm-specific objective isolation and
+  the complete frozen environment, then released the cohort atomically:
+  graph coloring 30074925--30074930, Countdown 30074931--30074936, and Python
+  factors 30074937--30074942. At the first post-release check graph jobs
+  30074925--30074927 were running on node302 and the other jobs were released
+  and scheduler-pending.
+- Runtime validation crossed the first adaptive update. Treatment job 30074926
+  reached observation 65 with warmup reference 0.79596, entropy EMA 0.66423,
+  normalized score 0.83451, and next alpha 0.08345. This exactly matches the
+  projection-free registered formula. Its startup log explicitly attests the
+  new controller, and no startup traceback or runtime error was present. The
+  current-canonical monitor, parser, refresh route, and live figure now follow
+  E51 rather than the cancelled E50 cohort.
+
+## E51-only monitor and GPU-capacity audit 2026-07-24 ~14:04
+
+- Removed the cancelled E45 MathIR rows from the current-canonical monitor and
+  refresh route. The live view now contains exactly the 18 E51 runs in six
+  method/domain rows, reports no historical cancellations in its completion
+  denominator, and links `paper/figures/e51_current_canonical_05b_live.png`.
+  Seventy focused monitor/plot tests and Ruff passed; the live scheduler-backed
+  snapshot showed three graph jobs running, fifteen E51 jobs pending, and no
+  terminal failures.
+- Read-only Slurm inspection found no 64-GiB slot on node302 despite one
+  unallocated A100: seven of eight GPUs and 480 GiB are allocated. MLTheory
+  has two unallocated A5000s on node105 and two RTX 2080s on node915; both
+  accept an immediate one-node 64-GiB placement through `lowprio` in
+  `srun --test-only`.
+- The allcs-accessible 3090 nodes node020/node022/node023/node024/node026 have
+  7/5/3/2/4 unallocated GPUs respectively (21 total at inspection time).
+  A one-node allcs `lowprio` 3090 placement tested as immediately runnable.
+  Node101 also has two unallocated A40s and accepted the same immediate
+  test-only route. At this audit boundary, the E51 jobs were unchanged and no
+  scientific placement had yet been altered.
+
+## E51 Countdown/Python RTX 3090 placement 2026-07-24 ~14:13
+
+- Following the user's explicit direction to use the available GPUs, froze
+  `paper/preregistration/e51_rtx3090_placement_amendment_20260724.md`.
+  Confirmed Countdown jobs 30074931--30074936 and Python jobs
+  30074937--30074942 were all pending with zero runtime, zero restarts, and no
+  allocation, then user-held all twelve before any scheduler mutation.
+- Amended the held jobs in place to account `allcs`, partition `lowprio`, one
+  RTX 3090 from node020/node022/node023/node024/node026, eight CPUs, 64 GiB,
+  and the original seven-day limit. Every resolved record retained the
+  original run stamp, frozen source and execution snapshots, arm, seed, model,
+  data, objective, checkpoint settings, and protocol identity. All twelve
+  held audits passed before atomic release.
+- All jobs allocated: Countdown 30074931--30074936 on node020; Python
+  30074937 on node026, 30074938--30074939 on node024,
+  30074940--30074941 on node026, and 30074942 on node022. Startup logs were
+  clean. Treatment telemetry reached optimizer step 6 on Countdown and step 2
+  on Python with finite policy entropy and alpha 0.10 during the registered
+  64-observation warmup. Graph coloring remained on the original A100
+  placement.
+
+## E51 live-figure compatibility repair 2026-07-24 ~14:23
+
+- Diagnosed a stale viewer path rather than a failed refresh loop. The active
+  E51 curve JSONs and `e51_current_canonical_05b_live.png` were updating each
+  minute, but the earlier `e45_e51_current_canonical_05b_live.png` filename
+  stopped changing after the E51-only monitor rename.
+- The renderer now atomically republishes the earlier E45/E51 filename as a
+  byte-identical compatibility alias on every E51 refresh. Updated Makefile
+  help and operations documentation to describe the six-row E51-only monitor.
+  Fifty-eight focused monitor/figure tests and Ruff passed. A live refresh
+  produced identical SHA-256 hashes and timestamps for the canonical PNG and
+  compatibility alias.
+
+## E51 inverse policy-entropy corrected relaunch 2026-07-24 ~14:46
+
+- Audited the live E51-v1 telemetry after policy entropy visibly collapsed.
+  The logged EMA and warmup reference reproduced the controller arithmetic to
+  within `6e-8`; this was not a parser, plot, or EMA defect. Graph treatment
+  had fallen from a `0.79596` warmup reference to an EMA near `0.099`, while
+  the direct multiplier simultaneously reduced alpha near `0.012`. Countdown
+  showed the same direction at lower severity; Python remained near reference.
+  Matched controls also lost entropy, but the direct response weakened
+  canonical pressure precisely when the requested entropy-preserving response
+  required it to strengthen.
+- Superseded and cancelled E51-v1 jobs `30074925--30074942`; their artifacts
+  remain diagnostic-only and are not pooled. Froze the user-directed E51-v2
+  correction with the memoryless inverse rule
+  `alpha_next = 0.10 * warmup_mean / entropy_ema`. The rule has no optimizer,
+  lower projection, upper projection, or numerical epsilon. A nonpositive
+  post-warmup EMA fails closed because the unbounded inverse is undefined.
+  Controller checkpoint identity is versioned
+  `unprojected_warmup_inverse_policy_entropy_alpha_v2`, so v1 state cannot be
+  resumed accidentally.
+- All focused controller, E51 contract, monitor, and plot checks passed
+  (78 tests), as did shell syntax and all three configuration-only launch
+  audits. The frozen source hash is
+  `ecf5396f4be9b50bf20a85bbd8eb8fb5e8232d9863c3e7434d729b8be964c4fc`;
+  execution-surface hash remains
+  `299f42d22e6dbeb2051f2af1e009d7cce43867c53fdf15be4da6d88fbbfda82d`.
+- Submitted, held-audited, and atomically released the fresh jobs: graph
+  `30075025--30075030`, Countdown `30075031--30075036`, and Python factors
+  `30075037--30075042`. All twelve Countdown/Python jobs allocated immediately
+  on the frozen `allcs/lowprio` RTX 3090 pool. Three graph jobs allocated on
+  node302 A100; the other three were scheduler-pending because seven of its
+  eight A100s were allocated and the remaining slot was planned/reserved.
+- Republished the E51-only monitor and live figure against the v2 prefixes.
+  The first scheduler-backed snapshot contained 15 running, three pending,
+  zero terminal failures, and no superseded v1 rows. Initial v2 treatment
+  telemetry was finite and held alpha at `0.10` during the registered
+  64-observation warmup. Graph treatment `30075026` then crossed the first
+  adaptive update with warmup reference `0.74498`, entropy EMA `0.60606`,
+  inverse multiplier `1.22922`, and next alpha `0.12292`. Thus the live
+  response raises alpha when policy entropy falls, matching the corrected
+  unbounded inverse rule end to end.
+
+## E51 terminal Python audit and 50-pass figure repair 2026-07-26 ~13:45
+
+- Audited all six Python-factor E51-v2 jobs after the cohort settled. Slurm
+  accounting reports `COMPLETED` with exit code `0:0` for jobs
+  `30075037--30075042`; each arm/seed contains all 19,200 optimizer steps and
+  201 evaluations from pass 0 through pass 50. The 2--4 recorded restarts per
+  job were preemptions recovered by the registered resume path, not missing
+  endpoints or terminal failures.
+- The visible anomaly is real but scientific rather than operational. Python
+  policy entropy collapsed in both arms. Treatment seeds 43/44 ended with EMA
+  entropy `0.000391/0.000537` and unbounded alpha `260.64/176.64`; seed 45
+  ended at EMA `0.1484`, alpha `0.6887`, after an earlier maximum alpha
+  `54.03`. Controls also ended near zero token entropy, so the controller did
+  not originate the collapse.
+- The canonical actuator could not oppose it. Treatment seeds 43 and 44
+  discovered exactly one verified outcome per tracked prompt and emitted zero
+  canonical entropy advantage on every post-warmup update. Seed 45 finished
+  with mean support `1.0115` and had a nonzero entropy advantage on only
+  `0.258%` of post-warmup updates. Thus the inverse sensor correctly increased
+  alpha, but multiplying an absent canonical-bank advantage produced no
+  entropy-preserving gradient. All six terminal quality vectors were identical
+  (`pass@1 = pass@8 = mean@8 = coverage@8 = distinct@8 = 0.171875`).
+- Diagnosed a separate visualization bug: the E51 renderer declared a 50-pass
+  budget, but the shared loader discarded points after its historical global
+  10-pass limit. Added an explicit per-renderer `max_training_epochs` argument,
+  passed each E51 row's frozen `max_passes=50`, and retained the 10-pass default
+  for historical consumers. The 19-test plotting suite, Ruff, and whitespace
+  checks passed. Republished and visually verified both E51 figure filenames
+  with axes and data through pass 50.
+
+## E52 direct inverse-entropy sentinel 2026-07-26 ~14:35
+
+- The cross-domain E51 audit showed the same structural mismatch everywhere:
+  policy entropy was the sensor, but the adaptive coefficient multiplied a
+  canonical-bank advantage that is zero before a second verified mode exists.
+  Python stayed in that dead zone; Countdown and graph coloring received
+  delayed impulses whose scale was unrelated to the token-entropy sensor.
+- Froze E52 to separate the jobs. A projection-free inverse controller now
+  multiplies direct conditional content-token entropy at every visited prefix,
+  with EOS removed and sampled state visitation detached. It holds
+  `lambda=0.000075` for 64 observations and then applies
+  `lambda_next=0.000075*warmup_mean/entropy_ema`, with no lower or upper
+  coefficient projection. The hybrid independently retains a fixed
+  validator-bound canonical coefficient `0.10` and novelty coefficient
+  `0.50`; neither evaluation labels nor bank support enter the direct
+  controller.
+- The first held-audited v1 submission (`30124287--30124295`) exposed an old
+  argument-validation guard that prohibited every direct-MaxEnt/canonical-bank
+  composition. All nine jobs were cancelled before reuse or pooling. A frozen
+  execution amendment permits only inverse `conditional_token_mean` plus a
+  fixed canonical coefficient; fixed/sequence direct MaxEnt and either
+  canonical adaptive controller remain rejected.
+- The fresh v2 jobs are graph `30124298--30124300`, Countdown
+  `30124301--30124303`, and Python factors `30124304--30124306`. All nine are
+  running across node302 A100 and the allcs RTX 3090 pool. Their source hash is
+  `2858707e3a83ebdb3491a2a68890bfa788743565cf3205d7baac23c8aba93cce`.
+  The first live machine audit found zero arithmetic, sensor, finiteness,
+  projection, fixed-bank, gradient, length, or EOS violations. Graph direct
+  entropy had crossed warmup with reference `1.26682`, EMA `1.06909`,
+  multiplier `1.18496`, and next alpha `8.88717e-5`.
+- Replaced the current-canonical monitor with the nine E52 sentinel cells and
+  republished `paper/figures/e52_current_canonical_05b_live.png`. Every panel
+  uses the explicit full 0--50-pass x-axis. Added a prospective machine audit
+  that checks exact inverse arithmetic, objective/sensor identity, unbounded
+  projection telemetry, negative direct loss, fixed canonical alpha, finite
+  policy gradients, EOS/length guardrails, trailing entropy retention, and
+  the frozen last-eight-boundary behavioral gate.
+
+## E52 early transfer checkpoint and terminal-audit hardening 2026-07-26 ~15:00
+
+- All nine E52-v2 jobs and the independent audit/plot sidecar remained live
+  with zero controller-arithmetic, finiteness, projection, fixed-bank,
+  gradient, length, EOS, or validator violations. No run was stopped or
+  retuned from an early evaluation boundary.
+- At the matched pass-0.5 boundary, Countdown hybrid reached distinct@8
+  `0.798828` and pass@8 `0.558594`, versus matched Dr.GRPO `0.595703` and
+  `0.455078`. Python hybrid reached distinct@8 `0.220703` and pass@8
+  `0.183594`, versus direct-only `0.191406` and `0.179688` and matched
+  Dr.GRPO `0.011719` and `0.011719`. The hybrid's rolling verified discovery
+  count was `32`, versus `18` direct-only and `5` control at the then-current,
+  slightly unmatched live positions. Graph hybrid remained
+  strong through pass 1.0 at distinct@8 `1.614583` and pass@8 `0.833333`.
+  These are mechanism/transfer checks only; they do not satisfy the frozen
+  50-pass late-collapse gate.
+- Hardened `audit_e52_sentinel.py` so prompt consumption alone can no longer
+  mark a run complete. A run now also needs finite distinct@8, pass@8, and
+  mean@8 telemetry at its exact domain-specific pass-50 step. The change
+  affects only the sidecar verifier, not frozen training processes. The
+  focused E52/controller/argument suite passed all 117 tests and Ruff passed.
+
+## E52 scale-free stability-gate amendment 2026-07-26 ~15:05
+
+- Replayed the proposed completion semantics against the terminal E51 curves.
+  This exposed two cases not excluded by simple treatment-versus-control
+  distinct@8 dominance: Python's single-mode plateau had
+  `distinct@8 == pass@8`, while graph treatments could finish above a weak
+  control after retaining only `2--33%` of their own best rolling-eight
+  distinct@8 mean.
+- Before any E52 terminal window, froze a target-free amendment based on
+  `X_t = distinct@8 - pass@8`. The final hybrid must have positive
+  multiplicity excess and beat control's excess at least six of the last
+  eight boundaries, and its last-eight distinct@8 mean must retain at least
+  half of its own best rolling-eight mean. These checks use no gold mode
+  count, reference multiplicity, maximum support, or domain-specific target.
+- Corrected the live auditor so eight early boundaries are always reported as
+  a provisional preview. A behavioral pass/fail now requires both control and
+  hybrid to be complete with exact pass-50 telemetry, preventing an early
+  Graph window from falsely terminating the monitor. All 121 focused
+  E52/controller/argument checks and Ruff passed.
+- Slurm still showed all nine training jobs and the independent sidecar
+  running. The refreshed live audit remained `in_progress` with zero
+  violations; no training state or coefficient was changed.
+
+## E52 conditional Stage A authorization 2026-07-26 ~15:25
+
+- Built a fail-closed Stage A path for fresh seeds `43,44,45` in all three
+  domains and all three arms. It cannot submit until the engineering sentinel
+  has exact pass-50 telemetry for every run, all controller/runtime checks
+  pass, and each domain passes the preregistered target-free final-window
+  multiplicity, control-dominance, quality, and self-retention gates.
+- The approval artifact binds the sentinel identity, source and operations
+  trees, protocols, sentinel launcher, and auditor by SHA-256. The Stage A
+  verifier recomputes every binding immediately before submission. The
+  launcher then submits exactly the frozen 27-run Cartesian cohort and an
+  independent audit sidecar as one held-and-audited release; it does not
+  resume or pool sentinel checkpoints.
+- The Stage A auditor requires every individual seed and the three-seed mean
+  trajectory to pass the same target-free gates. No gold number of modes,
+  domain-specific support target, answer-count threshold, or evaluation
+  statistic enters training or selects the entropy coefficient.
+- Revalidated all three configurations without submitting jobs, checked shell
+  syntax, and passed the focused authorization/audit suite. A missing
+  pass-50 approval currently fails closed and creates no Stage A identity,
+  manifest, or launch lock. The live sentinel watcher is armed to perform the
+  one-shot launch only after a terminal approval appears.
+
+## E52 early actuator checkpoint 2026-07-26 ~15:30
+
+- All nine training jobs and the watcher remained `RUNNING`; exact log scans
+  found no traceback, CUDA/OOM/NCCL/runtime failure, or non-finite model or
+  controller quantity. The framework's printed `nan` elapsed-time fields are
+  initialization placeholders and do not enter optimization.
+- Graph's current provisional final-eight-shaped window passed every
+  prospective behavioral check: hybrid distinct@8 beat control at `8/8`
+  boundaries, multiplicity excess beat control at `8/8`, hybrid had positive
+  multiplicity at `8/8`, and it retained `0.894` of its own best rolling-eight
+  distinct@8 mean. This remains non-authorizing because the run is early.
+- Python supplied the most diagnostic separation: the direct entropy arm
+  recovered correctness but was still effectively single-mode, whereas the
+  hybrid reached distinct@8 `0.34375` at pass@8 `0.171875`. Countdown hybrid
+  reached distinct@8 `1.058594` at pass@8 `0.619141` by pass `1.0`.
+  Consequently direct entropy is operating before bank multiplicity exists,
+  while the fixed bank begins preserving discovered verified alternatives.
+- The live figure was visually checked with a frozen `0--50` pass x-axis in
+  every panel. Countdown and Python still had fewer than eight paired
+  evaluation boundaries, so their behavioral gates correctly remained
+  `pending`; no early outcome triggered a stop, retune, or launch.
+## E59 executable MathIR global verified replay — 2026-07-26
+
+- Added a frozen `mathir_action_menu_v1` domain with 384 train and 128 disjoint evaluation problems across four linear-equation families.
+- Each prompt exposes six shuffled primitive actions. The submitted action IDs are expanded, executed by the deterministic MathIR interpreter, and canonicalized from the resulting state trajectory; prose labels cannot define or alter a mode.
+- Exhaustive enumeration gives exactly five valid canonical solution modes per problem, while the learner receives no gold route catalogue or support feedback.
+- E59 uses the latest E58 `verified_first_global_replay_canonical` objective unchanged: zero augmentation before discovery, one global verified replay group, verified-mass replay, known-mode balance, and no direct token entropy.
+- Disclosed base probes were mixed: reward-bearing executable support was reachable, and one prompt naturally showed two verified modes at 64 samples, but the stronger multi-family support screen did not pass. The launched run is therefore a bounded engineering smoke, not a positive empirical result.
+- Contract, grader, MathIR, and E58 regression tests passed (65 tests); both smoke and matched launch configurations passed.
+- Smoke job `30125201` launched on one A100 on `node302`; the six-run matched Dr.GRPO/treatment cohort remains gated on a clean terminal smoke audit.
+- Smoke job `30125201` completed all 384 updates and passed the fail-closed terminal audit with zero violations. First verified discovery was step 20; replay activated on all 365 post-discovery updates; terminal controller observations were 365 verified-mass, 82 open-set, and 18 multi-mode balance.
+- Smoke held-out initialization/terminal metrics were pass@1 `0.0547 -> 0.1016`, any-correct@8 `0.2188 -> 0.2871`, distinct-correct@8 `0.2363 -> 0.2871`, and canonical coverage@8 `0.0473 -> 0.0574`. These authorize the matched test but are not a matched claim.
+- Submitted and released the frozen six-job E59 matched cohort on one A100 per run: Dr.GRPO/treatment seeds 43, 44, and 45 are jobs `30125245` through `30125250`.
+- Added the fresh E59 MathIR rows to the current ModeBench tracker and combined E58+E59 live figure. Lightweight job `30125255` refreshes curves, tracker output, and `paper/figures/e59_mathir_global_verified_replay_05b_live.{png,pdf}` every 60 seconds while the cohort is live.
+
+## E64 held-out MATH-500 realism transfer — 2026-07-27
+
+- Registered a separate external-validity/generalization track rather than
+  calling ordinary MATH a fifth multi-mode ModeBench domain. Training uses the
+  frozen first 384 MATH12K rows; all 500 MATH-500 rows are held out, with zero
+  normalized problem overlap and byte/row-order hashes frozen prospectively.
+- Added `math_verified_answer`: every `math_verify`-positive completion for a
+  prompt maps to one `math_verified_answer:correct` key and every reward-zero
+  completion maps to no key. This permits verified-mass replay while making
+  known-mode balance structurally ineligible; answer formatting and free-form
+  prose are not reported as reasoning modes.
+- Froze E64 as three matched Dr.GRPO seeds and three literal-E58 seeds for 12
+  passes, with full MATH-500 evaluation at passes 0, 2, 4, 6, 8, 10, and 12.
+  The matched launcher fails closed until a one-seed, 96-update treatment
+  smoke passes its source/data/job/checkpoint and singleton-actuator audit.
+- The focused implementation/configuration surface passed 138 tests. Smoke
+  job `30126939` started immediately on an RTX 3090 on `node020`. Untouched
+  greedy MATH-500 accuracy was `0.3360` over all 500 rows.
+- The first verifier-positive discovery occurred at update 2. From that
+  update onward the live audit observed one scheduled singleton replay group,
+  verified-mass raw score-gradient sum `-1`, and zero balance eligibility,
+  loss, score gradient, and controller observations. The smoke remained live
+  and violation-free when this entry was written.
+- Smoke job `30126939` completed all 96 updates with zero violations. Replay
+  activated on all 95 post-discovery updates; the terminal bank contained 66
+  prompt-local exemplars with maximum support exactly one; known-mode balance
+  retained zero observations. The verified-mass controller crossed warmup and
+  changed its unprojected coefficient from `0.10`, ending at `0.08928`.
+- The untouched/terminal full-MATH-500 greedy diagnostic was
+  `0.3360 -> 0.3400` accuracy with mean response length
+  `562.48 -> 551.74` tokens. This treatment-only smoke change is not a matched
+  empirical claim.
+- The supplemental terminal gate scanned all 291 saved model tensors
+  (630,167,424 parameters) and found no nonfinite values.
+- The RTX 3090 pool was saturated or draining at advancement time. All six
+  matched 12-pass jobs were therefore held, audited, and released together on
+  the idle 10-GPU A5000 `node105`: baseline/treatment seeds 43--45 are jobs
+  `30126986--30126991`. Watcher job `30126994` refreshes the six-run audit and
+  `paper/figures/e64_math500_realism_05b_12ep_live.{png,pdf}` every 60 seconds
+  and exits immediately on a fail-closed violation.
+
+## E65R1 five-domain terminal confirmation — 2026-07-27
+
+- Froze a single paper contract over E61-R1, E64, and the prospective repair:
+  ten fixed ModeBench checkpoints, seven fixed MATH-500 checkpoints, pass-12
+  and trapezoidal-AUC primary summaries, all three seed points/ranges/paired
+  deltas, and explicit cross-domain, repair, and realism interpretation gates.
+- Added the E65 singleton escape: literal E58 plus at most one independently
+  verified support-only alternate, eligible only after the unbounded
+  open-set controller completes warmup, detects entropy below its own
+  warmup reference, and the current verified bank has support exactly one.
+  The actuator becomes ineligible at support two; no proposal row enters PPO.
+  Twenty-five focused controller/counterfactual tests passed.
+- The original 12 E65 jobs `30127067--30127078` exposed an execution-contract
+  error at runtime validation: the submission wrapper had not pinned
+  replicated free-form sampling and local one-GPU weight sync. All had zero
+  optimizer progress. They were canceled with artifacts retained, and the
+  zero-step amendment was recorded before changing the execution contract.
+- E65R1 pins both flags by arm and audits both in every held SubmitLine.
+  Its corrected jobs are Graph `30127478,30127479,30127481`, Countdown
+  `30127483--30127485`, Python `30127486--30127488`, and MathIR
+  `30127489--30127491`. Graph seed 43 allocated on A5000 node105 and crossed
+  argument validation into actor/learner initialization without an exception.
+- Read-only capacity tests showed that moving the non-MLTheory jobs to idle
+  general RTX 2080 nodes would start later than their registered RTX 3090
+  route, so Countdown/Python were unchanged. The five remaining zero-runtime
+  MLTheory jobs were frozen in a placement amendment, held, changed to one RTX
+  2080 on idle node915/node917, fully re-audited for identity and training
+  flags, and released together. The allocation exposed a deterministic
+  compatibility failure before any optimizer metric: the frozen bfloat16 vLLM
+  path requires compute capability >=8.0, while RTX 2080 Ti is 7.5. A second
+  frozen amendment forbade changing dtype; all five zero-step jobs were
+  requeued-held, restored to their original A5000 request, re-audited, and
+  released. Both hardware attempts remain in provenance.
+- A final compatible-capacity audit found two immediately usable A6000 slots
+  on node103 and three A100 slots on node302; both Ampere families support the
+  frozen bfloat16 path, and the E61-R1 Graph/MathIR cohort already uses
+  A6000s. Before mutation, the same five jobs remained pending with no
+  optimizer metrics. A third frozen placement amendment routed Graph
+  seeds 44/45 to node103 A6000 and MathIR seeds 43--45 to node302 A100.
+  All five held job records passed identity/configuration audits and allocated
+  immediately after release.
+- The combined live audit now expects 42 terminal runs across E61-R1, E64, and
+  E65R1. It reports zero integrity violations and preserves the frozen E64
+  auditor while distinguishing its caught per-example `math_verify` timeout
+  traceback from an uncaught training failure. A detached monitor refreshes
+  all audits, scaling curves, and the five-row paper figure every 60 seconds.
+- The first four prospective singleton escapes occurred without changing the
+  protocol: two distinct eligible Countdown prompt banks in seed 43 and two in
+  seed 44. Every admission independently had known support `1`, completed
+  self-entropy warmup, entropy EMA below its own reference, inverse multiplier
+  `>1`, active gate `1`, coefficient projection `0`, and zero conditioned or
+  transform proposal rows sent to PPO. Each proposal group admitted exactly
+  one alternate; the mechanism audit remained violation-free.
+- The fail-closed E65R1 auditor now records each intervention conjunction in
+  machine-readable form and rejects any admission missing a registered gate
+  predicate. The focused controller/reporting/counterfactual suite passes 31
+  tests.
+- The live result artifact now separates three evidential roles: E58 Python
+  telemetry diagnoses the dead-actuator problem, the one-seed E62R10 pilot
+  establishes support-only actuator feasibility but is explicitly labeled
+  overactive engineering evidence, and only the prospective three-seed E65R1
+  terminal comparison can pass the repair claim. The paper figure and report
+  continue to use only fixed, three-seed-complete performance checkpoints.
+- Added a supplemental response-level E64 verifier-sensitivity audit without
+  mutating the frozen E64 auditor or its primary scores. All six base-model
+  step-0 runs produced identical greedy and fixed-seed sampled responses and
+  identical 500-prompt reward vectors. Across 4,500 unique saved
+  prompt/reference/response tuples, 39 caught timeout diagnostics and one
+  caught grader traceback produced zero identical-response reward conflicts.
+  The supplemental audit now runs continuously and must cover both raw traces
+  at all seven registered MATH checkpoints before the combined terminal audit
+  can pass.
+- Added a continuously regenerated flat checkpoint table at
+  `paper/results/e65_five_domain_confirmation_fixed_checkpoints_live.csv`.
+  Every row is a registered, three-seed-complete domain/arm/metric/checkpoint
+  combination and includes all three seed values, the mean/range, optimizer
+  step, and terminal flag. This is the numerical companion to the paper
+  figure rather than a digitized or peak-selected reconstruction.
+
+## E66 same-plumbing actuator-off causal control — 2026-07-27
+
+- The historical E61-R1 E58 arm and prospective E65R1 repair do not provide a
+  clean actuator ablation: E65R1 pins replicated free-form request seeding and
+  local single-GPU actor-weight synchronization, while E61-R1 used the older
+  collector path. The historical E58 comparison therefore remains useful but
+  cannot by itself identify the singleton actuator's effect.
+- Before any three-seed-complete E65R1 post-training checkpoint landed, froze
+  E66 as literal E58 with E65R1's exact source, execution surface, rollout
+  plumbing, seed set, data, optimizer, checkpoint schedule, and 12-pass
+  horizon. Only counterfactual proposals and the singleton entropy gate are
+  disabled. Coefficients remain unbounded and unprojected.
+- Submitted the prospective 12-run control: Graph jobs
+  `30128394--30128396`, Countdown `30128397--30128399`, Python
+  `30128400--30128402`, and MathIR `30128403--30128405`. Eight allocated
+  immediately on the frozen A6000, RTX 3090, and A100 placements; four remain
+  cleanly pending for those placements rather than silently changing
+  accelerator family.
+- The fail-closed causal gate now compares E65R1 directly with E66: Python
+  terminal pass@8 must improve in both three-seed mean and worst seed; Graph,
+  Countdown, and MathIR must remain within a `0.05` mean and `0.15` paired-seed
+  loss margin; both audits must pass and E65R1 must contain at least one fully
+  valid entropy-gated intervention. E66 versus historical E58 is separately
+  reported as execution-plumbing sensitivity, not causal evidence.
+- The combined campaign now expects 54 terminal runs. Its paper surface keeps
+  ten fixed checkpoints per ModeBench arm and seven per MATH-500 arm, includes
+  E66 as a fourth ModeBench arm, emits AUC only after every frozen checkpoint
+  lands, and preserves all individual seed values in the live checkpoint CSV.
+
+## E65R1 invalidation and corrected E67 treatment — 2026-07-27
+
+- A paired pre-intervention telemetry check found that E65R1 was not literal
+  E58 plus the singleton actuator as documented. All 12 E65R1 runtime logs
+  control reported `0.50`. Countdown seed 43 already differed in novelty
+  advantage and policy-gradient norm at optimizer update 1, before the
+  64-update singleton gate warmup could complete.
+- The cause was deterministic in E65R1's frozen execution branch: it
+  explicitly overwrote the configured E58 novelty beta to zero. This is a
+  non-outcome objective mismatch. A machine-readable invalidation audit
+  confirms it across all 12 jobs. E65R1 is excluded from confirmatory gates
+  and the 54-run denominator, but its artifacts remain preserved as disclosed
+  engineering evidence.
+- Stopped only the invalid E65R1 jobs `30127478,30127479,30127481` and
+  `30127483--30127491`. E61-R1, E64, and E66 were untouched.
+- Froze E67 before any three-seed-complete post-training E66 checkpoint. Its
+  correction makes the repair variant inherit literal E58's configured bank
+  alpha and novelty beta and adds a runtime expectation that aborts unless
+  novelty beta remains exactly `0.50`. Relative to E66, only proposals and the
+  singleton gate are enabled.
+- Submitted and released the 12 corrected jobs: Graph
+  `30128500--30128502`, Countdown `30128503--30128505`, Python
+  `30128506--30128508`, and MathIR `30128509--30128511`. The held-job audit
+  bound source, execution, protocol, launcher, manifests, seeds, controllers,
+- A zero-step placement amendment moved only nine unmaterialized pending jobs
+  to broader same-family A6000/RTX 3090 capacity under MLTheory; the artifact
+  hashes the amendment and mutation script and records that no scientific
+  setting changed. Low-priority preemption subsequently requeued the initial
+  A100 allocations with checkpoint recovery enabled.
+- Added a paired pre-intervention equivalence audit over request seeds,
+  rewards, novelty advantages, replay state, entropy controllers, and
+  optimization telemetry. The terminal campaign cannot pass unless all 12
+  E66/E67 pairs clear that audit before the first E67 intervention.
+- The live five-row figure, seed-level checkpoint CSV, combined audit, and
+  frozen causal gate now use E67 rather than E65R1. The valid denominator
+  remains 54 runs: E61-R1 24, E64 6, E66 12, and E67 12.
+
+## E67 pre-optimizer invalidation and E68 separated support — 2026-07-27
+
+- E67 exposed a second, independent contract problem before optimization.
+  Literal E58 novelty beta `0.50` and proposal admission shared the same
+  canonical count table. The source validator correctly rejected this because
+  off-policy proposal support could otherwise alter a subsequent neutral
+  rollout's on-policy novelty advantage. All 12 E67 logs reproduce the common
+  validator, and none wrote `train_metrics.jsonl`.
+- Canceled only E67 jobs `30128500--30128511`; all logs and frozen identities
+  remain preserved. The machine-readable E67 invalidation audit is
+  `confirmed`. E67 is excluded from performance evidence and from the valid
+  denominator.
+- Implemented a default-off separation contract. Proposal outcomes can expand
+  replay-exemplar support but cannot enter the on-policy count table used by
+  canonical entropy or novelty advantages. A proposed outcome remains novel
+  to E58 until the neutral policy produces it; it then receives the ordinary
+  E58 novelty bonus and replaces the proposal exemplar with its neutral
+  exemplar. Proposal admissions emit an objective-outcome delta that must be
+  exactly zero.
+- Added checkpoint schema v3 for the separated proposal-only support and
+  fail-closed resume validation. Unit tests prove replay support can grow from
+  one to two while objective support remains one, exact E58 novelty is
+  retained on later neutral discovery, proposal-only state resumes exactly,
+  and capacity failures are atomic. The relevant bank, argument, mechanism,
+  E58, and reporting suites pass 154 tests.
+- Froze E68 before submission with the same data, seeds, optimizer,
+  request-seeding, evaluation, ten ModeBench checkpoints, and 12-pass horizon
+  as E66. Relative to E66 it enables proposals, the singleton entropy gate,
+  and the explicit proposal/objective separation contract. Runtime beta
+  remains `0.50`; proposal rows sent to PPO remain zero.
+- Scheduler-only probes found startable paired capacity on A6000
+  node103/node104, RTX 3090 node022 within the registered five-node pool, and
+  A100 node302. The probe artifact is hash-bound in E68's identity.
+- Submitted and released Graph `30130469--30130471`, Countdown
+  `30130472--30130474`, Python `30130475--30130477`, and MathIR
+  `30130478--30130480`. All three MathIR jobs allocated immediately and
+  crossed argument validation. Their first optimizer records report beta
+  `0.50`, separated support `1`, objective-outcome delta `0`, proposal PPO
+  rows `0`, and no integrity violation.
+- The live figure, checkpoint table, causal gate, and 54-run audit now use E68
+  and require both E65R1 and E67 invalidation audits to remain confirmed.
+  E66/E68 pre-intervention equivalence is checked over all 12 paired seeds
+  before any actuator admission.
+- A post-release scheduler-only probe suggested earlier `lowprio` starts for
+  the nine unmaterialized Graph/Countdown/Python jobs. A hash-bound zero-step
+  amendment moved them without changing any scientific setting. Actual batch
+  estimates contradicted the interactive probe and became later, so a second
+  hash-bound zero-step amendment restored `pvl-lowprio`. Both records are
+  required by the E68 auditor; the three running MathIR jobs were untouched.
+
+## E68 first intervention and durable checkpoint — 2026-07-27
+
+- All three MathIR E68 seeds matched their E66 controls before actuation. The
+  fail-closed equivalence audit compared 318, 305, and 337 updates before the
+  first seed-specific interventions and found zero mismatches.
+- Each seed independently crossed the 64 usable-observation entropy warmup and
+  later activated only below its own reference. The first interventions
+  occurred at steps 319, 306, and 338 for seeds 43, 44, and 45.
+  Every audited proposal group has warmup complete, below-reference entropy,
+  multiplier greater than one, singleton support, at most one admission,
+  zero proposal rows sent to PPO, zero projection, and objective-outcome delta
+  exactly zero.
+- At the registered pass-1 checkpoint, E68 MathIR mean pass@8 is `0.339`
+  versus E66's `0.330` (`+0.0085`); mean@8 is `+0.0026`, distinct@8 is
+  `+0.0104`, and greedy accuracy is tied. This is an interim fixed-checkpoint
+  result and does not satisfy the frozen pass-12 gate.
+- Added a cached machine audit of each latest durable E68 checkpoint. All
+  three step-384 states use separated-support schema v3. Their 5, 9, and 7
+  proposal-only outcomes are present in replay exemplars, with zero overlap
+  in the on-policy objective count table. The checkpoint audit is now required
+  by the combined terminal gate.
+- After preemption, the nine pending non-Math E66 controls had poor or absent
+  single-node `lowprio` start estimates. A pre-recorded, hash-bound
+  infrastructure amendment moved them to `pvl-lowprio` and broadened only
+  within their original accelerator families (A6000 for Graph, RTX 3090 for
+  Countdown/Python). Run IDs, frozen settings, metrics, and checkpoints are
+  retained; the E66 audit fails if any trace regresses below its recorded
+  pre-amendment step. Running MathIR controls were untouched.
+- At the registered MathIR pass-2 checkpoint, the E68-versus-E66 mean deltas
+  are positive on every reported metric: pass@8 `+0.0143`, mean@8 `+0.0103`,
+  distinct@8 `+0.0150`, and greedy `+0.0156`. Pass@8 improves for seeds 43
+  and 44 and is nearly tied (`-0.0039`) for seed 45. The pass-1 advantage has
+  therefore persisted at a second prospectively fixed checkpoint.
+- The step-768 checkpoint audit found 40, 62, and 39 current proposal-only
+  outcomes for seeds 43, 44, and 45. All 141 are present in replay exemplars,
+  none overlap the on-policy objective count table, and all three checkpoints
+  retain schema v3 with the unprojected entropy controller. Five additional
+  proposal discoveries have graduated: the neutral policy later produced
+  those modes, at which point they entered on-policy counts through ordinary
+  E58 novelty rather than through proposal admission.
+- The first non-initial held-out MATH-500 checkpoint landed across all six
+  E64 runs. Relative to GRPO at pass 2, E58 changes three-seed greedy accuracy
+  by `+0.0087`, mean@8 by `-0.0063`, and pass@8 by `-0.0133`. This is mixed
+  interim evidence but remains inside the frozen terminal realism margins:
+  mean@8 loss no worse than `0.02` and at least one of greedy/mean@8 positive.
+  The raw-trace sensitivity audit has zero identical-response reward conflicts.
+- Twenty-one of 24 E61-R1 jobs became terminal or running after scheduler
+  recovery. The last three pending checkpoint-resume jobs were transparently
+  moved to `pvl-lowprio` under a hash-bound same-family amendment: Graph stays
+  on A6000 and Countdown stays on RTX 3090. Their recorded pre-amendment steps
+  are 1930, 1953, and 2450; the E61-R1 audit fails on any trace regression.
+
+## E68 paired prompt uncertainty — 2026-07-27
+
+- The retained E66/E68 evaluation sidecars contain the same prompt identities,
+  ordering, references, fixed draw indices, and fixed evaluation seeds for all
+  three complete MathIR pairs. Added a post-specified descriptive uncertainty
+  surface that resamples training seeds and prompts as crossed paired units.
+  The four K=8 draws are averaged before resampling and never counted as
+  independent training replicates.
+- The initial local v1 analysis centered greedy intervals on the sidecar's
+  second temperature-zero evaluation. That repeated call differed slightly
+  from the earlier primary greedy result used by the paper figure. Before
+  integrating the analysis into reporting, froze a source-aligned v2:
+  `greedy` uses primary `eval_results`, while sampled metrics continue to use
+  the four fixed sidecar draws. Both versions and their hash-bound identities
+  remain archived.
+- At MathIR pass 2, the source-aligned E68-minus-E66 estimates and descriptive
+  crossed-bootstrap 95% intervals are: greedy `+0.0156`
+  `[-0.0313, +0.0625]`, mean@8 `+0.0103`
+  `[-0.0029, +0.0303]`, pass@8 `+0.0143`
+  `[-0.0241, +0.0547]`, and distinct@8 `+0.0150`
+  `[-0.0326, +0.0664]`. All intervals are explicitly secondary and cannot
+  alter the frozen terminal/AUC gates.
+- The repeated greedy sensitivity changed 13 of 768 prompt scores across the
+  six arm-seed evaluations at pass 2; per-run mean shifts were between
+  `-0.0156` and `+0.0156`. The live report now exposes this rather than
+  treating a second temperature-zero call as bitwise reproducible.
+- The analysis tests pass, the live monitor refreshes it before rendering, and
+  the report labels the central limitation: prompt resampling does not turn
+  three independently trained seeds into more than three independent runs.
+
+## Paired Graph A6000 drain recovery — 2026-07-27
+
+- Slurm marked both registered prospective Graph nodes as draining after node
+  health checks reported overheated A6000s: 9 on node103 and 7 on node104.
+  E68 Graph had no start estimate; all three partial E66 Graph controls were
+  also pending on that pool.
+- A scheduler-only probe found a schedulable same-family A6000 placement under
+  non-MLTheory account `allcs`, partition `lowprio`, on
+  `node205,node206,node207`. No GPU was allocated by the probe.
+- Froze and applied one paired infrastructure amendment to E66 jobs
+  `30128394--30128396` and E68 jobs `30130469--30130471`. All six stayed on
+  one A6000 each. Job IDs, run stamps, checkpoints, metrics, source,
+  objective, seeds, and scientific settings are unchanged.
+- The amendment records E66's pre-move steps `492/356/383` and E68's
+  zero-update state. Both cohort auditors now verify the document and script
+  hashes, exact affected job set, paired move, accelerator family, and
+  no-regression checkpoints. E66, E68, and the 54-run combined audit remain
+  `in_progress` with zero violations after the move.
+
+## E61-R1 second same-family resume recovery — 2026-07-27
+
+- Eight additional E61-R1 Countdown/Python jobs were preempted after the first
+  placement amendment froze. All were pending, materialized checkpoint
+  resumes and had reached steps `2011`, `2344`, `2407`, `2824`, `3165`,
+  `3203`, `2418`, and `2498`.
+- Their original RTX 3090 `allcs/lowprio` estimates extended from July 30
+  through August 2 or were unknown. A scheduler-only probe found an earlier
+  same-family `mltheory/pvl-lowprio` backfill window; E68 retained higher
+  scheduler priority.
+- Froze and applied a second placement-only amendment to jobs `30126339`,
+  `30126340`, `30126341`, `30126343`--`30126347`. Node eligibility was
+  broadened to `node020,node021,node022,node023,node024,node026`; every job
+  remains on one RTX 3090 with its original job ID, run stamp, checkpoint,
+  frozen source, arm, seed, optimizer state, and scientific settings.
+- The E61-R1 auditor verifies both amendment document/script hashes, exact
+  affected sets, same-family mutation, and per-job no-regression steps. The
+  E61-R1 and combined audits remain `in_progress` with zero violations.
+
+## Paired Graph A6000 contamination recovery — 2026-07-27
+
+- E68 Graph jobs `30130469` and `30130470` were assigned node206 before any
+  optimizer step. Both failed while vLLM tried to load the 0.5B model.
+- Inside job `30130469`'s allocation, Slurm exposed physical GPU 6 with
+  `48,323 MiB` already used. Five listed compute processes belonged to users
+  `mi9937` and `rj5498`, not the E68 owner. This establishes
+  cross-allocation GPU contamination rather than model memory demand.
+- Requeue-held both zero-step attempts and held all six paired E66/E68 Graph
+  jobs. Froze and applied a same-A6000 recovery to
+  `node103,node104,node805` under `mltheory/pvl-lowprio`; job IDs,
+  checkpoints, sources, arms, seeds, objectives, evaluation cadence, and
+  scientific settings are unchanged.
+- The amendment records E66's retained steps `492/356/383`, E68's zero-step
+  state, and exact pre-amendment stdout/stderr byte lengths for both failed
+  jobs. Auditors exempt uncaught signatures only before those offsets; any
+  later OOM remains a hard failure.
+- E66, E68, equivalence, checkpoint-separation, and combined audits returned
+  to `in_progress` with zero violations after the move.
+
+## Five-domain cadence and fixed-checkpoint coverage hardening — 2026-07-27
+
+- Added a fail-closed evaluation-cadence audit over durable
+  `eval_results/*.json` artifacts for all 54 registered runs. Every
+  materialized run with optimizer progress must have an evaluation gap no
+  larger than one prompt epoch and an exact terminal evaluation. The first
+  integrated audit checked 44 progressed runs plus two pre-optimizer runs and
+  found zero violations. Held-out MATH-500 is landing evaluations every 96
+  updates, four times per 384-update epoch.
+- Added an independent seed-level fixed-checkpoint coverage audit. It requires
+  all registered metrics and seeds 43/44/45 at each paper point, enforces no
+  more than ten checkpoints per domain, and cannot pass until every E61,
+  E64, E66, and E68 cohort is terminal. The initial surface contains 77/174
+  complete arm/domain checkpoint cells and 912/2046 required seed-metric
+  values with zero integrity violations.
+- Both audits are required by the combined terminal gate, are rendered in the
+  live report, and run in durable monitor job `30131521`. Reporting and audit
+  tests pass.
+- E61 jobs `30126338` and `30126350` had already written their terminal
+  evaluations, exported model directories, and clean
+  `TRAINING_COMPLETE.json` markers but remained as stale pending watchdog
+  resumptions. Those two scheduler entries were canceled without deleting or
+  changing any result artifact.
+
+## Legitimate-result readiness gate — 2026-07-27
+
+- Added `audit_e65_legitimate_result_readiness.py` as the final fail-closed
+  claim gate. It requires the exact five-domain surface, nonempty primary and
+  all-epoch diagnostic figures, at most ten registered paper checkpoints per
+  domain, passing per-epoch cadence, complete three-seed fixed-checkpoint
+  coverage, a passing 54-run integrity audit, and all four frozen scientific
+  gates.
+- The primary paper figure now uses ten registered ModeBench anchors and seven
+  registered MATH-500 anchors. A separate diagnostic figure grows at every
+  completed integer MATH-500 epoch, so monitoring remains granular without
+  silently changing the paper estimand.
+- The first readiness audit correctly reports `in_progress`, with 7/54
+  terminal runs, 78/174 complete fixed-checkpoint cells, seven pending
+  requirements, zero failed requirements, and zero integrity violations.
+  Evaluation-at-least-once-per-epoch already passes.
+- The combined reporting tests now contain 17 checks and pass. Readiness is
+  not allowed to report success merely because the figures exist or an
+  interim effect looks promising.
+
+## E80 Qwen2.5-3B verified-replay scale replication — 2026-08-05
+
+- Froze a fresh five-domain, two-arm, five-seed Qwen2.5-3B-Instruct protocol:
+  50 paired cells, seeds 65--69, exactly eight 384-prompt passes, registered
+  half-pass endpoints, and no checkpoint selection.
+- The common scale-aware optimizer is AdamW at peak learning rate 1e-7, 10%
+  warmup, cosine decay to 1e-8, betas (0.9, 0.999), no weight decay or
+  reference KL, one PPO epoch, group size 16, temperature/top-p 1, and gradient
+  clipping at 1. It was chosen from pre-E80 Qwen3B control evidence and public
+  Qwen/GRPO conventions without consulting any E80 replay outcome.
+- The only applied auxiliary derivative is fixed-weight verified replay:
+  exact zero in the compute-matched control and weight 0.10 in treatment.
+  Semantic MaxEnt, adaptive coefficients, balance losses, support escape, and
+  counterfactual proposals are hard-disabled.
+- Submitted jobs `30276720`--`30276769` held, audited every scheduler
+  environment, then released all 50 from runtime snapshot
+  `e76_tuned_scale_c464da12102076f1`. The first cell started on node302; the
+  remaining cells queue behind available A100/host-memory capacity.
+- The shared wrapper retains resumable checkpoints every 192 updates as
+  requested and additionally evaluates every 96 updates under its mandatory
+  quarter-pass safety policy. The pre-outcome clarification freezes the
+  half-pass reporting grid and forbids using extra evaluations for selection.
+
+## E80-R1 corrected Qwen2.5-3B cohort — 2026-08-05
+
+- Canceled all original E80 jobs `30276720`--`30276769`. Only Graph control
+  seed 65 had begun (154 prompt updates); no replay cell started. The retained
+  E80 artifacts are audit-only and are excluded from every E80-R1 result.
+- Root cause: OAT computed a 192-step cosine horizon from batch-level policy
+  updates while this path advanced the scheduler once per prompt update. Thus
+  E80 reached the minimum rate after 192 of the intended 3,072 updates.
+- Added explicit `max_step_adjustment` plumbing to the shared training wrapper.
+  E80-R1 fixes it at 16.0, producing a 3,072-update horizon and 308-update
+  warmup. No scientific coefficient or treatment definition changed.
+- Froze fresh paired seeds 70--74 in a separate protocol, run namespace, and
+  ledger. Submitted jobs `30277372`--`30277421` held, audited all 50 scheduler
+  environments, and released them from snapshot
+  `e76_tuned_scale_9eb43ef4fa7b0318`.
+- Audited Falcon E79 independently: all 21 runs with optimizer metrics report
+  the exact constant learning rate `2.0000000233721948e-07` at every nonzero
+  step. Falcon uses a constant scheduler with zero warmup and is not affected
+  by E80's cosine-horizon error.
+
+## E81 fixed semantic MaxEnt on verified replay, Qwen2.5-0.5B — 2026-08-06
+
+- Added one arm to the completed E78 design rather than a new cohort. The E78
+  `control` and `replay` runs are inherited unchanged and are never re-run;
+  E81 trains only `semantic` = the E78 replay arm plus fixed open-set semantic
+  MaxEnt. 5 domains x 5 seeds = 25 cells, seeds 43--47, exactly eight
+  384-prompt passes, registered half-pass endpoints, no checkpoint selection.
+- The treatment adds one detached advantage, `A_sem = 0.10 * z` with
+  `z` in [-1, 1] the predictor-centered clipped surprisal of a row's canonical
+  outcome under a prompt-local open-set predictor (pseudocount 1, one
+  structural unseen bucket, surprisal clip 5). Only active, parseable,
+  validator-positive rows are eligible; every other row receives exact zero and
+  never enters the predictor's support. It is added after Dr.GRPO's own task
+  centering, with no second centering and no outer clamp.
+- `eta = 0.10` is the fixed reference dose inherited from E43/E56/E72, frozen
+  before execution and never adapted. E81 does not search the coefficient.
+  There is no first-discovery bonus, no balance loss, no novelty term, and no
+  controller of any kind. Every other actuator is hard-disabled.
+- Two source changes, both strictly additive: `args.py` widens one validation
+  predicate so open-set semantic MaxEnt may compose with the uniform
+  verified-likelihood replay objective as well as the split mass/balance
+  objective it already allowed, and `run_experiment.sh` adds the
+  `verified_replay_semantic_maxent` variant branch. Neither is reachable from
+  any E78 arm's configuration.
+- E81 runs from the E78 runtime snapshot `e76_tuned_scale_96f68ebb47757af8`
+  with exactly those two files replaced, materialized as
+  `e81_semantic_maxent_8a8dc15b3e560ed0`. The launcher walks both trees and
+  fails closed unless the divergence is exactly that patch set, so E81 inherits
+  E78's training code byte-for-byte on every path either E78 arm executes.
+- Each cell is pinned to the same physical node as its E78 pair, so every
+  paired difference is taken within one GPU model. The launcher also asserts
+  both E78 arms exist for each (domain, seed) and that the pair did not
+  straddle nodes.
+- Submitted jobs `30344136`--`30344160` held, audited every scheduler
+  environment against the frozen objective, then released all 25.
+- Primary estimand is the paired seed difference `semantic - replay` at pass 8
+  for `distinct@8` and `pass@8`; `semantic - control` reports the combined
+  package. Reported per domain, all five seeds shown, no pooling.
+- PointMaze is excluded. Its interactive trainer is a separate driver with no
+  semantic-advantage path, and distributing an episode-level semantic advantage
+  across decisions without creating a length incentive is a design question
+  rather than a configuration change.
+
+## E82 fixed semantic MaxEnt on verified replay, Falcon3-1B — 2026-08-07
+
+- The Falcon replication of E81, registered before E81 has a reportable
+  endpoint so it is a replication by construction rather than a follow-up
+  conditioned on E81's outcome. Adds one arm to the E79 design; the E79
+  `control` and `replay` runs are inherited unchanged and never re-run.
+  5 domains x 5 seeds = 25 cells, seeds 55--59, exactly eight 384-prompt
+  passes, registered half-pass endpoints, no checkpoint selection.
+- The treatment is E81's objective verbatim: `A_sem = 0.10 * z` with `z` in
+  [-1, 1] the predictor-centered clipped surprisal of a row's canonical outcome
+  under a prompt-local open-set predictor (pseudocount 1, one structural unseen
+  bucket, surprisal clip 5), applied only to active, parseable,
+  validator-positive rows and added after Dr.GRPO's own task centering. A test
+  asserts the two launchers emit an identical objective dictionary, so the two
+  families test one intervention rather than two.
+- Every cell definition comes from the E79 launcher and every objective setting
+  from the E81 launcher; the E82 launcher only combines them. E79's placement
+  is a deterministic function of domain and seed, so each cell lands on the
+  same node and GPU model as its E79 pair and every paired difference is taken
+  within one GPU model. The launcher additionally asserts both E79 arms exist
+  per (domain, seed) and that the pair did not straddle placements.
+- Runs from the E79 runtime snapshot `e76_tuned_scale_594ecd3c19c600d9` with
+  exactly the same two additive files E81 patches, materialized as
+  `e82_falcon_semantic_maxent_c3df77b26fe9de68`. E81's snapshot builder was
+  generalized with a `prefix` argument so both semantic arms are built and
+  audited by one implementation; E81's own snapshot identity is unchanged.
+- Submitted jobs `30374908`--`30374932` held, audited every scheduler
+  environment against the frozen objective and the pinned Falcon revision
+  `28ba2251970a01dd1edc7ba7dad2eb71216ccfdf`, then released all 25.
+- The cross-family reading is registered in advance: agreement in both families
+  is reported as a family-general extension, disagreement is reported as
+  family-dependent naming exactly where it held, and a Qwen-only effect is
+  reported as a Qwen-only effect. Domains are not pooled and the two families
+  are not pooled.
+- Figure 4 now attaches a semantic arm per family, so the Falcon row carries
+  its own MaxEnt curve with its own coverage count.
+- PointMaze is excluded for the same reason as E81.
+
+## E83 fixed semantic MaxEnt without verified replay, Qwen2.5-0.5B — 2026-08-07
+
+- Closes a 2x2 over the two applied derivatives. With E78's two arms and E81,
+  the four cells are: control (neither), replay (replay only), E83 (semantic
+  only), E81 (both). E78 and E81 are inherited unchanged and never re-run.
+  5 domains x 5 seeds = 25 cells, seeds 43--47, eight 384-prompt passes.
+- "Without replay" means what the published control means by it: the verified
+  bank, the one-group replay scoring, and the backward traversal are all still
+  performed, and the replay score derivative is identically zero. All four
+  cells therefore carry one compute envelope and differ only in which
+  derivative is applied.
+- The semantic term is E81's verbatim: eta = 0.10, clip 5, pseudocount 1,
+  validator-positive rows only, added after Dr.GRPO's own task centering.
+  A test asserts that E83's objective differs from E81's in exactly two keys,
+  the variant label and the compute-only switch, and from E78 control's in
+  exactly the semantic keys.
+- New `compute_matched_semantic_maxent` variant in run_experiment.sh, copied
+  line for line from `grpo_compute_matched` plus four semantic exports; a test
+  asserts the two branches are identical once the semantic lines are removed,
+  and that the published control branch remains free of semantic exports.
+- Runs from the E78 runtime snapshot with the same two additive patched files,
+  materialized as `e83_semantic_maxent_no_replay_0e7d31dcd35b535e`. Each cell
+  is pinned to its E78 pair's node.
+- Submitted jobs `30382176`--`30382203` held, audited every scheduler
+  environment (including that the replay derivative is compute-only), then
+  released all 25.
+- Primary estimand is `semantic_only - control` at pass 8: the main effect of
+  semantic MaxEnt with no replay present. The interaction contrast
+  `(E81 - replay) - (E83 - control)` is registered as secondary and is
+  reported descriptively per domain, never tested for significance. The four
+  possible readings, including "helps only with replay present" and "helps in
+  neither", are fixed in the protocol before any cell reports.
+- Note for provenance: adding this variant changed run_experiment.sh, so the
+  content-addressed snapshot tag for any future E81/E82 re-derivation differs
+  from the tags those cohorts recorded. Running jobs are unaffected --- each
+  reads its own frozen snapshot copy --- and each ledger records the snapshot
+  it actually ran from.
+
+## E85 PantryPlan semantic-MaxEnt repair — 2026-08-09
+
+- Defect: PantryPlan is a canonical-action task, so its rollouts are eight-token
+  action sequences. The semantic term derived its outcome key with the free-form
+  text extractor, which returns None for such a row, so every PantryPlan row was
+  scored unparseable and received exact zero semantic advantage for the whole of
+  training. Confirmed in 15 of 15 cells: reward-positive fraction .544,
+  parseable fraction .000, eligible fraction .000, mean |A_sem| RMS .0000. The
+  verifier and the replay bank were unaffected (bank size 7.1 modes/prompt),
+  which is why it was silent.
+- Root cause: the sibling outcome-collision path already bound the task's own
+  canonicalization surfaces at the same call site; the semantic path omitted the
+  branch. Fixed in `learner/grpo.py` inside the
+  `semantic_shannon_tracker is not None` guard, so it is unreachable for every
+  arm that does not enable semantic MaxEnt.
+- Invalidates the PantryPlan column of E81, E82, and E83. Those arms' applied
+  objectives were identical to their comparators, so E81's PantryPlan
+  `distinct@8` of +0.076 is run-to-run variance, not a semantic effect, and
+  E83's +0.000 is an arm compared against itself. The original 15 cells are
+  retained as audit-only evidence and excluded from every result.
+- Re-ran exactly those 15 cells as E85, each recording the run it supersedes by
+  stamp, directory, and job id. Acceptance gate is mechanism-only: parseable
+  fraction above 0.5 and eligible fraction above 0.1 per cell, or the cell fails
+  closed as unrepaired.
+- Figure 4 now reads the E85 ledger and, for any domain E85 supersedes, drops
+  the parent's cells entirely and redraws from the repair. The superseded curves
+  were not a weak version of the treatment; they were the comparator's curves
+  under the treatment's colour.
+- Scope audit: the defect needs canonical actions and semantic MaxEnt together.
+  Three canonical-action tasks exist (graph_coloring, countdown,
+  pantry_support_mask) but only PantryPlan is ever run in canonical mode, and
+  only E81/E82/E83 combine it with a positive semantic coefficient. Within this
+  campaign the 15 cells are the complete set.
+
+## Open question: historical cohorts are unaudited for the same defect — 2026-08-09
+
+**Not investigated. Deliberately deferred, recorded so it is not forgotten.**
+
+Three further answer-key derivation sites in `learner/grpo.py` carry the same
+latent gap and were left unrepaired because no arm in the current campaign
+enables them: DIAYN (`mi_tracker`), mode-adaptive xDr (`xdr_mode_adaptive`), and
+SEED (`seed_alpha`). A test asserts there are exactly five sites so a sixth
+cannot appear unnoticed.
+
+The unresolved risk is historical. Any earlier cohort that ran semantic MaxEnt,
+DIAYN, or SEED over PantryPlan would have had that arm silently inert on that
+domain, exactly as E81--E83 did. The E72 component study is the case that
+matters, because `check_paper_figure1_contract.py` binds the manuscript's
+rehearsal table to `var/artifacts/e72_b1b_summary.json`, and that table reports
+a PantryPlan row with the effect label "balance better". If E72's semantic or
+balance arms were inert on PantryPlan for this reason, that row is not
+measuring what it says.
+
+A disk-wide sweep for runs whose semantic parseable fraction is ~0 was started
+and timed out against ~1,600 run directories. The bounded version worth running
+later is: for each E72-era ledger, read the semantic telemetry of its PantryPlan
+cells and check `parseable_fraction`. Until that is done, the PantryPlan row of
+the rehearsal table should be treated as unverified rather than wrong.
+
+## E87 Qwen2.5-3B verified replay plus semantic MaxEnt, seed 70 — 2026-08-09
+
+- One paired seed, five domains, five cells. Seed 70 is the only seed for which
+  E80-R1 has both arms terminal in all five domains, so every E87 cell is
+  immediately pairable rather than waiting on its own comparator; the launcher
+  fails closed if any of those ten comparator runs is not terminal.
+- Cell definitions inherited from the E80-R1 launcher, objective from E81
+  verbatim (eta = 0.10, replay 0.10). Runs from the E80-R1 snapshot with three
+  files replaced, including the `learner/grpo.py` canonical-action key repair,
+  so PantryPlan's semantic term is live here from the first update rather than
+  needing a later repair cohort.
+- Submitted jobs `30446413`--`30446417` held, audited, released at `nice=50`.
+- Prioritisation required a second step. `nice=50` alone left E87 at priority
+  8477 against E80-R1's 8824, because those cells had accrued four days of age
+  priority. Raised `Nice=500` on E80-R1's 34 **pending** cells, dropping them to
+  8430; running cells were untouched. E87 now leads. Reversible with
+  `scontrol update JobId=<ids> Nice=100`. The cost is that E80-R1 seeds 71--74
+  finish later; E87 is unaffected because its comparators are already terminal.
+- Registered as a directional probe, not an estimate. One seed per domain
+  supports a sign, not an uncertainty statement, and the protocol forbids
+  reporting it as one.
+
+## E86 Falcon3-1B semantic MaxEnt without replay — 2026-08-09
+
+- Closes the Falcon 2x2. E79 supplied `control` and `replay`, E82 added
+  replay plus semantic MaxEnt, and E86 is the fourth cell: semantic MaxEnt with
+  the replay derivative off. It is the Falcon replication of E83, cell for cell,
+  so the cross-family question is whether the interaction contrast
+  `(E82 - replay) - (E86 - control)` keeps the sign it carries on Qwen.
+- The cohort had been declared in `campaign_stats.py` for some time with no
+  preregistration, launcher, or ledger behind it. Because `cohort_row` returns
+  `None` for a missing ledger, it dropped silently out of the status table and
+  out of the completion denominator; the campaign was reported at 78.6% of 260
+  cells when it was 71% of 285. Registering it was the fix.
+- Cell definitions come from the E79 launcher and the objective from the E83
+  launcher, taken whole: `fixed_objective()` is asserted equal to E83's, so the
+  arm is a replication rather than a second specification. Against E82 exactly
+  two keys move, the variant label and
+  `OAT_ZERO_ONLINE_CANONICAL_REPLAY_COMPUTE_ONLY`. The declared replay dose
+  stays 0.10 and is never applied.
+- Placement is E79's deterministic function of domain and seed, so each E86
+  cell lands on the same node and GPU model as its E79 pair and its E82 cell.
+  Verified against the E82 ledger for all 25 cells before submission.
+- E86 is born repaired. Its patch set is E85's, one file wider than E82's, so
+  `learner/grpo.py` binds the canonical-action semantic key from the first
+  update and PantryPlan needs no repair sibling. The branch sits inside
+  `if canonical_actions:`, and only PantryPlan resolves to a canonical action
+  task -- graph_coloring, countdown, python_factors, and mathir all run
+  `canonical_action_task=none` -- so those four domains run E82's runtime byte
+  for byte. Confirmed by diffing the derived snapshot against the E79 base:
+  exactly the three declared files differ, and the working-tree `grpo.py`
+  differs from the E79 runtime's by a single hunk.
+- PantryPlan's `semantic` comparator is therefore the E85 repair of E82, not
+  E82's superseded column. The launcher fails closed if the E85 record for a
+  PantryPlan seed is absent, so the defective comparator cannot be picked up by
+  accident.
+- Submitted jobs `30447343`--`30447367` held, audited, released at `nice=100`.
+  All 25 queue on the `cs` a5000/a6000 nodes behind E79, E82, and E85, which is
+  the correct order: those cohorts free the exact slots E86 needs.
+
+### Snapshot identity has a read-then-copy race
+
+`ensure_paired_snapshot` hashes the patched files to name the snapshot, then
+copies them. A file edited between those two steps yields a directory whose
+name does not describe its contents. It happened here: a dry run during
+concurrent E88 edits produced
+`e86_falcon_semantic_maxent_no_replay_010a28c328e98cfb`, whose content is
+identical to the correctly-named `..._8545357686c9c8ee` the submission used.
+The submitted cohort is bound to the correct snapshot -- recomputing the tag
+from the current files reproduces `8545357686c9c8ee` -- and the orphan is
+unreferenced. The race is harmless when the tree is quiet and silently
+mislabels when it is not. Worth closing by hashing the copied files rather than
+the source files, which is not done here because it would change the identity
+every already-submitted cohort recorded.
+
+## E88 adaptive semantic MaxEnt closed on its own gate; E89 re-derives the target — 2026-08-10
+
+- E88 targeted a realized semantic/task advantage RMS ratio of .05, adapting eta
+  per run. Three of five domains reached it cleanly: PantryPlan (.047/.050, 3-5%
+  of updates at a bound), Countdown (.049/.048, 7-10%), Graph coloring (.049,
+  14%). Two did not: MathIR and Python factors sat at the .40 ceiling for 97-98%
+  of applied updates while realizing only .017-.036.
+- The failure is arithmetic, not instability. Those domains produce very little
+  semantic pressure per unit coefficient, so .05 would need eta far above the
+  ceiling. The ceiling is not the adjustable parameter: |A_sem| <= eta against a
+  unit reward gap makes .40 the largest value that still leaves a verified
+  response a .60 advantage margin, and so the largest that preserves the
+  correctness ordering. The registered response was to re-derive the target.
+- The safety criterion also tripped once: python_factors seed 44, pinned at the
+  ceiling, ran +364% longer than its fixed-coefficient pair with no-EOS .054,
+  above the .05 threshold. Read with care --- that domain's lengths were already
+  bimodal across seeds at fixed eta --- but it is the historical failure shape.
+- Closed early: 22 cells cancelled, 3 terminal, 9 carry controller telemetry and
+  are retained as the evidence for the re-derivation. Nothing deleted; partial
+  logs kept. Recorded in `var/artifacts/e88_closure_record.json`.
+- A launch bug preceded all of this and is worth remembering. The controller's
+  shell defaults were defined in `ops/train.sh` while the variant branch lives in
+  `ops/run_experiment.sh`, which runs under `set -euo pipefail`. Three cells died
+  at one second each on an unbound variable and all 25 would have. Fixed by
+  binding the defaults in `run_experiment.sh` alongside the other
+  `SEMANTIC_SHANNON_*` locals, verified by resolving the frozen snapshot's
+  variant under `set -u` and by parsing every emitted flag through the real
+  tyro parser from the frozen source.
+- E89 re-derives the target from what the saturated cells actually sustained at
+  the ceiling: the binding cell was python_factors seed 44 at .0170, so
+  rho = .015, 88% of it. Every other controller setting is inherited; the
+  launcher asserts the two objectives differ in exactly one environment
+  variable. 25 cells submitted and released.
+- Registered cost, stated before the runs: a single reachable target is set by
+  the weakest domain, so at rho = .015 Countdown is dosed *below* the fixed
+  eta = .10 that produced its +.115 gain. E89 tests uniformity, not strength,
+  and may legitimately come out weaker than the fixed arm.
+
+## PantryPlan repair lands and changes the semantic result — 2026-08-10
+
+- The E85 re-runs confirm the fix by data, not just by code review: parseable
+  fraction .000 -> .53 and eligible fraction .000 -> .53 across all seven cells
+  with telemetry, every one passing the registered acceptance gate.
+- The repaired PantryPlan cells carry the largest semantic effect in the
+  campaign, an order of magnitude above any other domain: replay + MaxEnt minus
+  replay is +.922 distinct@8 at pass 8 on four seeds, and MaxEnt alone minus
+  matched Dr.GRPO is +1.186 on two. The inert runs had reported +.076, which was
+  variance between two runs with identical applied objectives.
+- Figure 4 draws PantryPlan's semantic curve from the repair cohort and records
+  `superseded_domains` in its provenance, so the substitution is documented
+  rather than inferred. The manuscript table and results prose now carry
+  PantryPlan and read "six of nine" evaluable cells.
+
+## PointMaze Tour admission ladder opens; v1 retired as a boundary result — 2026-08-10
+
+- E78-PM/E79-PM is inert, and the numbers say so plainly: over 3,072 updates the
+  Qwen control moves `distinct@8` by +.016 and `pass@8` by +.006, while the mean
+  within-run SD of `distinct@8` across its 17 registered checkpoints is .048.
+  The reported +.025 paired difference is half that noise, two of five seeds are
+  exactly .000, and the Falcon panel's -.016 is the same noise with a sign. The
+  cohort cost about 23.5 GPU-hours per Qwen cell to produce a flat line.
+- The cause is structural, not statistical. Mode identity rides on one decision
+  in ~33: the generator builds a single barrier with three to five holes, and
+  the runner divides the episode advantage across every decision, so the one
+  mode-bearing choice receives about 1/30 of the pressure. GRPO has no lever, so
+  there is no collapse for verified replay to prevent. This is a null result
+  about the environment, not about x-Mode, and the paper will report it as one.
+- PointMaze Tour replaces it. The policy names one unvisited landmark per
+  decision, so an episode is exactly K scored decisions and every one emits an
+  element of the canonical key; identity is the order in which the MuJoCo
+  trajectory first crosses each landmark's doorway gate. Because the menu is
+  over landmarks not yet *named*, decision count is constant inside every prompt
+  group — which is precisely the property whose absence excluded PointMaze from
+  E81/E82/E83, so the redesign makes the domain eligible for the semantic arms.
+- Stage 0 is measured, not declared: all 24 orders of every candidate map were
+  executed in the pinned runtime, and a map is admitted only if a step budget
+  exists that admits a target count. `var/data/point_maze_tour_v1r1` holds
+  384/64/128 maps at 8.33 certified tours each, fingerprints deduplicated across
+  splits so evaluation maps are disjoint by construction.
+- Stage 1, untouched Qwen2.5-0.5B with **no warm start**: `pass@8` 1.000,
+  `distinct@8` 3.531, every dev map exposing two or more modes. v1 needed a
+  72-update SFT warm start to reach `distinct@8` 1.37; v2 reaches 3.53 with no
+  demonstrations, so the domain-specific warm start is dropped.
+- Registered exception, stated before the gate ran: `mean@8` is .652 against a
+  prospective ceiling of .65. The ceiling exists to keep the advantage
+  non-degenerate, and at .652 over 99.8% of 16-sample groups contain both a
+  success and a failure. Recorded as a .002 overshoot rather than relabelled;
+  K=5 is the fix if the collapse gate later shows the domain lacks headroom.
+- Stage 2 is the gate v1 never had: the matched control must *lose* at least .50
+  `distinct@8` on development maps before any scientific cell is scheduled. v1
+  would have failed it at +.016. Amended to four passes with an evaluation each
+  pass, registered before running, because a one-pass probe showed breadth
+  rising while the policy was still learning to succeed at all — two passes
+  risked rejecting the domain for being early rather than inert.
+- Gating domains on "the control collapses" biases ModeBench toward domains
+  where collapse happens. Both mitigations are required and in place: every
+  threshold registered before measurement, and v1 reported as the domain that
+  failed the gate.
+- Three cells submitted to `cs` on a6000: control seeds 43/44 (collapse gate)
+  and replay seed 43 (matched smoke, folded in to save a queue round trip).
+  Registered as `point_maze_tour_gate_jobs.json`, cohort tag `tourgate`,
+  `plotted=False` — an admission check must not be drawn beside measured
+  treatment effects.
+- Two measurement notes for anyone scheduling these. Throughput is 4.08
+  s/update on an A6000 but 18.64 on an RTX 2080, because Turing reports
+  `is_bf16_supported()` true and emulates it; a paired cohort must not straddle
+  architectures, and the runner now records `device_name` in its receipt.
+  Separately, this cluster routes by requested walltime, not by `--partition`:
+  `--time` of one hour or less lands in `all` and starts immediately, anything
+  longer is rerouted into the contested `cs`/`mltheory` queues.
+
+## Tour stage-2 collapse gate returns: phenomenon present, threshold not met — 2026-08-10
+
+- Recorded before any follow-up is decided, so the registered number is fixed.
+  Four passes, two control seeds, 64 development maps, untouched Qwen2.5-0.5B:
+
+  | seed | distinct@8 by pass (0..4) | drop | mean@8 by pass |
+  |---|---|---|---|
+  | 43 | 3.53 3.41 3.27 3.05 3.19 | +.344 | .65 .81 .86 .83 .88 |
+  | 44 | 3.56 3.25 3.22 3.17 3.03 | +.531 | .65 .80 .85 .85 .86 |
+
+  Mean drop +.438 against a registered threshold of +.50. **The gate as
+  specified is not met**: one seed clears it, one does not.
+- What *is* established is the phenomenon the paper is about. Accuracy rises
+  while breadth falls, in both seeds, monotonically apart from one uptick:
+  `mean@8` .65 -> .87 while `distinct@8` 3.53 -> 3.19, and modes-per-success
+  falls .69 -> .46. Redundancy among correct samples is increasing. Against v1,
+  whose control moved +.016 over eight passes against a checkpoint SD of .048,
+  this is a different regime entirely: the control here has something to lose
+  and is losing it.
+- Specification error worth naming: the gate window (4 passes) is shorter than
+  the protocol it gates (8 passes), so it asks a question the cohort does not.
+  Neither seed has plateaued at pass 4. Extending the window would be an
+  outcome-dependent change and is not taken unilaterally; the pass-4 result
+  above stands as the registered outcome regardless of what is measured later.
+- Stage 3 matched smoke passes: 2,577 banked outcomes, 7.0 active replay modes,
+  applied replay gradient L2 .0378 against the control's exact zero. The replay
+  path runs, the bank fills, and the derivative is live.
+- Execution note: the chunked path works. Twelve one-hour chunks, three cells x
+  four passes, each ~29 minutes, all COMPLETED, first chunk starting within a
+  minute of submission. The same work as a single long job sat 5+ hours in `cs`
+  without starting. Resume was verified end-to-end before use: 384 training rows
+  spanning 1..384 across three process restarts, no duplicates and no gaps.
+
+## Tour stage-2 gate completes at eight passes; K=4 admitted, K=5 rejected — 2026-08-11
+
+- Both releases reached pass 8 on two control seeds, 64 development maps.
+
+  | release | seed | distinct@8 pass 0 -> 8 | drop | mean@8 pass 0 -> 8 |
+  |---|---|---|---|---|
+  | K=4 | 43 | 3.53 -> 3.20 | +.328 | .65 -> .85 |
+  | K=4 | 44 | 3.56 -> 2.92 | +.641 | .64 -> .87 |
+  | K=5 | 43 | 2.64 -> 3.72 | -1.078 | .38 -> .73 |
+  | K=5 | 44 | 2.69 -> 3.84 | -1.156 | .37 -> .75 |
+
+- K=4 mean drop **+.484 against the registered +.50**, missing by .016; one seed
+  clears it, one does not. Extending the window from four passes to eight
+  narrowed the miss from .062 to .016 but did not close it, so the window was
+  part of the story and not all of it. The four-pass figure of +.438 stands as
+  first registered.
+- The admission reasoning is not contradicted by the endpoint, which is the
+  check that mattered. Both K=4 seeds still show accuracy rising while breadth
+  falls: `mean@8` .65 -> .85 and .64 -> .87 against `distinct@8` 3.53 -> 3.20
+  and 3.56 -> 2.92. Had breadth recovered, E93-PT would have been stopped.
+- K=5 is rejected as a benchmark instrument and the reason is worth keeping.
+  Its control *gains* breadth, by more than a mode, while its accuracy climbs
+  from .38 to .74: eight passes are spent learning to succeed at all, and
+  collapse has not begun by the end of the protocol. Tightening a domain to
+  clear the stage-1 saturation ceiling pushes it out of the regime the stage-2
+  gate measures. The two gates cannot both be satisfied by construction, and
+  K=4 sits on the correct side of that trade.
+- Endpoint trajectories are visibly noisy at this scale: K=4 seed 43 reads
+  3.19, 3.20, 3.23, 2.97, 3.20 across passes 4 through 8. A .50 threshold on a
+  single endpoint difference is a sharper instrument than the measurement
+  supports, which is a further argument for reading the trend rather than the
+  endpoint alone.
+- Stage 3 passes on both releases: 5,502 banked outcomes, 14 active replay
+  modes, applied replay gradient L2 .0267 against the control's exact zero.
+- E93-PT (10 cells, K=4, sealed 128-map evaluation split) is running and was
+  registered before these endpoints were read.
+
+## External comparative baselines E97 UCPO and E98 RLEP-Dr launch — 2026-08-12
+
+- Prospective three-domain panel: Graph Coloring, Python Factors, PantryPlan;
+  Qwen2.5-0.5B seeds 43--47; 384 prompts x 8 passes. Each scientific cell is
+  paired to the already-completed E78 Dr.GRPO control on the same domain, seed,
+  data, prompt surface, placement, and schedule. The preregistrations are
+  `paper/preregistration/e97_ucpo_05b_20260812.md` and
+  `paper/preregistration/e98_rlep_dr_05b_20260812.md`.
+- E97 freezes UCPO tau=.2 and keeps E78 control's passive compute-only replay
+  traversal. One non-scientific 32-query Graph/s43 learner smoke, job 30508620,
+  gates all 15 scientific jobs (30508621--30508624 and 30508628--30508638).
+  At launch the smoke allocated on node105 and passed immutable-runtime and
+  argument parsing; scientific cells remain dependency-blocked until it exits
+  successfully. Ledger: `var/artifacts/e97_ucpo_05b_jobs.json`; runtime:
+  `var/artifacts/source_snapshots/e97_ucpo_9e2919a7410cc9dc`.
+- E98 follows the two-stage RLEP protocol rather than using the base model as a
+  collector. Each of 15 completed terminal E78 control checkpoints generates
+  4x16 candidates for all 384 corresponding *training* prompts at T=.7,
+  top-p=.95. A CPU audit requires exactly four draws, identical prompt coverage,
+  and at least two verified trajectories for every prompt. No prompt can be
+  dropped and frequency is preserved rather than mode-balanced.
+- E98 collection jobs are 30508679, 30508681, 30508683, 30508685, 30508687,
+  30508689, 30508691, 30508693, 30508696, 30508698, 30508700, 30508702,
+  30508704, 30508706, 30508708; their audits are 30508680, 30508682, 30508684,
+  30508686, 30508688, 30508690, 30508692, 30508695, 30508697, 30508699,
+  30508701, 30508703, 30508705, 30508707, 30508709. Smoke 30508710 depends on
+  the Graph/s43 audit. Scientific jobs 30508711--30508725 depend on their own
+  pool audit and the shared smoke. Ledger: `var/artifacts/e98_rlep_dr_05b_jobs.json`;
+  runtime: `var/artifacts/source_snapshots/e98_rlep_dr_48516561a1be84bc`.
+- E98 is explicitly RLEP-Dr: 16 fresh rollouts plus two offline verified
+  successes share one mean-only Dr.GRPO baseline. Canonical replay and mode
+  discovery tracking are disabled, and the two extra replay rows are not
+  claimed to be compute-matched to E78.
+
+## E97 UCPO smoke clears; E98 collection begins — 2026-08-12
+
+- E97 smoke job 30508620 completed successfully (`ExitCode=0:0`) on node105.
+  The UCPO learner path ran at tau=.2, exercised an eligible group with a
+  correct row, and reported maximum advantage-mass error exactly 0.0. Its
+  completion receipt records terminal step 4. The configured
+  `OAT_ZERO_MAX_QUERIES=32` gate was crossed at logged query step 48 because
+  the training loop checks its strict stopping condition after a full
+  16-sample update; this is a non-scientific smoke-only bookkeeping note and
+  does not alter the sealed scientific protocol.
+- The successful smoke released all 15 E97 scientific cells. At the first
+  post-gate status check, three were running and twelve were queued for
+  resources.
+- E98 Graph/s43 pool collector 30508679 completed successfully (`ExitCode=0:0`)
+  with the sealed 4x16, T=.7, top-p=.95 coverage settings and optimizer_steps=0.
+  Its fail-closed CPU pool audit 30508680 is now scheduler-eligible; RLEP smoke
+  30508710 and all scientific cells remain dependency-gated until the required
+  pool audits succeed.
+
+## E98 fails feasibility; preregistered E98-R1 sparse repair launches — 2026-08-13
+
+- E98 is a failed feasibility gate, not a queueing result.  All 15 immutable
+  collections completed, but the pools have binary prompt support: Graph has
+  131--150/384 eligible prompts, PantryPlan 206--221/384, and Python Factors
+  81/384.  The remaining prompts have zero verified successes, so neither
+  scheduler priority nor more identical draws can satisfy the registered
+  requirement of two verified trajectories for every prompt.  The original
+  E98 outcome remains failed and is not relabeled.
+- Before any repaired training, E98-R1 froze a separate estimand in
+  `paper/preregistration/e98r1_sparse_rlep_dr_05b_20260813.md`: reuse the
+  immutable E98 pools; apply 16 fresh + 2 prompt-matched replay rows only when
+  a prompt has at least two verified successes; otherwise apply the unchanged
+  16-row E78 Dr.GRPO update.  All 384 prompts remain, without dropping,
+  reweighting, borrowing, or canonicalization.
+- The 32-update Graph/s43 mechanism smoke 30538119 started immediately on
+  node105 and completed `ExitCode=0:0`.  Independent audit 30538120 also
+  completed `0:0`, observing both registered dose pairs `(0,0)` and `(1,2)`
+  and finite replay loss, replay advantage, and mixed-reward telemetry.  Its
+  receipt is
+  `var/data/e98r1_sparse_rlep_smoke_graph_s43/E98R1_SMOKE_COMPLETE.json`.
+- The passed gate released scientific jobs 30538121--30538135 at `nice=0`.
+  At the first post-gate check, all five node105 cells were running.  The ten
+  node302 cells were dependency-free but waiting because five current jobs
+  reserve 480/515 GB, leaving less than the requested 64 GB per RLEP cell.
+  Owner-side `scontrol top` is disabled on this cluster; no unrelated campaign
+  was held or cancelled to work around that policy.
+- The 26 permanently blocked original E98 pending jobs (audits pinned to the
+  unavailable placement plus smoke/science descendants with failed
+  dependencies) were cancelled after E98-R1 passed release validation.  Their
+  completed collections, failed audit evidence, ledger, and source snapshot
+  remain intact.  E98-R1 ledger:
+  `var/artifacts/e98r1_sparse_rlep_dr_05b_jobs.json`; runtime:
+  `var/artifacts/source_snapshots/e98r1_sparse_rlep_dr_5b527387f5a2c267`.
+
+## E108 admission-to-retention mechanism gate completes — 2026-08-18
+
+- All ten Qwen2.5-0.5B seed-43 arm-domain cells completed 64/64 optimizer
+  updates; terminal audit job 30644701 passed with zero violations. The
+  scheduler-only `mltheory` constraint was repaired to `Partition=all` before
+  any model update; the requested account, node pool, and scientific commands
+  were unchanged.
+- Passive/adaptive tracking observed 68/64 admissions, 65/61 later rollout-
+  eligible admissions, and 46/43 on-policy conversions. These admitted sets
+  are affected by treatment, so the aggregate .708/.705 fractions are
+  descriptive and are not a causal effect estimate.
+- All 67 passive and 62 adaptive admissions with score follow-up remained
+  inside the 0.5-nat mean-token drop threshold. The adaptive arm therefore
+  emitted zero score-drop requests; 89 rollout-absence requests added 220
+  bounded mass-replay priority visits.
+- Terminal adaptive-minus-passive `pass@8` deltas (Graph, Countdown, Python,
+  MathIR, PantryPlan) are +.125, -.016, 0, +.016, 0; `distinct@8` deltas are
+  +.234, -.023, 0, +.016, 0. This one-seed mechanism gate validates the
+  tracker/controller but does not justify promoting the current trigger rule.
+- Next design: log passive shadow triggers plus trigger-to-rescue survival at
+  fixed post-admission horizons, then test a multi-seed controller only if
+  actual rescue separates from natural reappearance. More proposal sampling
+  remains unsupported by E103/E108.
+- Audit: `var/artifacts/e108_admission_retention_mechanism_gate_audit_latest.json`.
+  Ledger: `var/artifacts/e108_admission_retention_mechanism_gate_jobs.json`.
+
+## E113 DAPO gate fails; E113-R1 operational recovery is frozen — 2026-08-19
+
+- Both original Countdown smokes failed at the unchanged ten-generation-batch
+  dynamic-sampling limit: Qwen before its first accepted update and Falcon
+  after five. The 50 scientific cells (25 per family) therefore remain at zero
+  updates with `DependencyNeverSatisfied`. This is a failed launch gate, not
+  DAPO efficacy evidence, and the original jobs, ledger, and logs remain
+  immutable.
+- The learner implementation matches the intended fail-closed DAPO behavior:
+  constant-reward groups are rejected and collection raises after ten failed
+  generation batches. The recoverable operational errors were the smoke
+  surface and budget. Countdown's completed-control step-zero correctness was
+  only .011 for Qwen and .037 for Falcon, versus .199 and .178 on Graph;
+  Python had zero support in both families. In addition, the original smoke
+  allowed only 640 sampled rows although 32 accepted updates can require up to
+  `32 * 16 * 10 = 5,120` rows under the frozen retry rule.
+- Before any replacement job, E113-R1 froze two non-scientific Graph smokes in
+  `paper/preregistration/e113r1_dapo_recovery_smokes_20260819.md`. They retain
+  the original snapshot, DAPO objective, clips, ten-batch limit, and seeds;
+  they change only the diagnostic domain, fresh output paths, and the query
+  ceiling to 5,120. The pass rule requires exactly 32 accepted updates with
+  finite loss/gradient/token telemetry.
+- `ops/exp_scaling/launch_e113r1_dapo_recovery_smokes.py` and
+  `ops/exp_scaling/audit_e113r1_dapo_recovery_smokes.py` are dry-run/audit
+  ready. The launcher contains zero scientific jobs and cannot rewire or
+  release the original 50 cells. As of this entry no E113-R1 ledger exists and
+  no recovery job has been submitted; a later scientific design would require
+  a separate prospective amendment after the two smoke outcomes are audited.
+
+## E113-R1 released; full E113-R2 comparative frozen behind it — 2026-08-19
+
+- With explicit authorization for exactly the two recovery smokes, E113-R1
+  jobs 30790111 (Qwen) and 30790112 (Falcon) were submitted held, their
+  scheduler-expanded environments passed audit, one atomic two-smoke/zero-
+  science ledger was written, and both were released. At 15:46 EDT both were
+  still pending at zero updates: Qwen for requested-node availability on
+  node105 and Falcon for priority on node202.
+- The now-materialized zero-science ledger exposed and received a monitor fix:
+  `campaign_stats.py` retains a zero-cell row and reports its two gate jobs
+  separately, rather than asking the generic science reader for an absent
+  `train_rows` field. The regression is covered in
+  `tests/test_cohort_registry.py`.
+- Before either recovery-smoke outcome, the complete successor was frozen as
+  `paper/preregistration/e113r2_dapo_full_relaunch_20260819.md`. E113-R2 is all
+  50 original model/domain/seed cells with fresh paths, the exact E113 DAPO
+  objective and runtime snapshot, the correct 491,520-response per-cell
+  ceiling, and matched E78/E79 controls. It submits nothing unless both R1
+  audits pass and has no force or partial-family path.
+- E113-R2 treats ten-batch dynamic-sampling exhaustion as one terminal cell
+  failure by disabling wrapper-triggered requeue after learner failure. This
+  changes no successful optimizer trajectory and prevents an unsupported
+  domain from receiving six unregistered restarts. The full denominator and
+  every failed/incomplete cell remain reportable.
+
+## E114--E116 direct-comparator matrix completed and released — 2026-08-19
+
+- The paper scope requested here is five methods (plain GRPO, Dr.GRPO, UCPO,
+  sparse RLEP-Dr, and ReplayDr.GRPO), five static ModeBench environments,
+  three model scales, and five seeds: 375 scientific cells. Adaptive and
+  semantic variants are explicitly outside this scope.
+- Before submission, E114 froze the 20 missing Qwen2.5-3B plain-GRPO seeds;
+  E115 froze the 10 missing Qwen2.5-0.5B and all 25 Qwen2.5-3B UCPO cells;
+  E116 froze the analogous 35 sparse-RLEP cells. The launchers reuse immutable
+  E95, E97, and final repaired E98-R1 runtime surfaces, respectively, and
+  preserve cell-matched controls, datasets, endpoints, and compute.
+- E114 released 20 scientific jobs. E115 released two fixed 32-update smokes
+  and 35 scientific jobs. E116 released 35 collection jobs, 35 independent
+  pool audits, two fixed smokes, two smoke audits, and 35 scientific jobs.
+  Every job was submitted held, scheduler-audited, ledgered atomically, and
+  then released. The live queue contained all 166 E114--E116 DAG nodes with no
+  residual user holds at the first post-release audit.
+- E100-R2 separately closed the pre-existing Falcon sparse-RLEP execution
+  loose ends. Pantry seeds 56, 57, and 59 had passed 384-prompt pool audits
+  with 228 eligible prompts each; original science jobs 30572828, 30572829,
+  and 30572831 were released. Empty transient-OOM collection failures for
+  Pantry seeds 55 and 58 received exact-command replacements 30790678 and
+  30790680, fresh audits 30790679 and 30790681, smoke re-audit 30790682, and
+  replacement science jobs 30790683 and 30790684. Python seed 58 was corrected
+  to the same frozen zero-eligibility block as seeds 56 and 59. E100 therefore
+  has 22 executable cells and three explicit gate-blocked cells, with no
+  unclassified failures.
+- Canonical audit after release: direct comparators are 225/225 registered
+  with zero missing batches. Adding the already registered 75 Dr.GRPO and 75
+  ReplayDr.GRPO cells gives 375/375 for the requested scope. The full legacy
+  ten-method matrix still reports 190 absent adaptive/semantic cells; those
+  are intentionally excluded rather than silently treated as required work.
+- Focused regression suite: 52 passed. Ledgers:
+  `var/artifacts/e114_plain_grpo_qwen3b_extension_jobs.json`,
+  `var/artifacts/e115_ucpo_qwen05b_domain_extension_jobs.json`,
+  `var/artifacts/e115_ucpo_qwen3b_jobs.json`,
+  `var/artifacts/e116_sparse_rlep_qwen05b_domain_extension_jobs.json`,
+  `var/artifacts/e116_sparse_rlep_qwen3b_jobs.json`, and
+  `var/artifacts/e100_pantry_infrastructure_recovery_jobs.json`.
+
+## E113 effective DAPO recovery gate passes; E113-R3 releases 50 cells — 2026-08-19
+
+- The original R1 Qwen Graph smoke failed from placement-related memory
+  pressure. Falcon job 30790112 reached 32 unique accepted updates and wrote
+  its step-33 completion receipt before allocator teardown failed with
+  `137:0`; that trajectory is classified as training-complete/shutdown-failed,
+  not as an efficacy result. The prospectively frozen Qwen A6000 memory repair,
+  job 30790590, completed 32 unique updates and exited `COMPLETED/0:0`.
+  `ops/exp_scaling/audit_e113r1m1_dapo_effective_gate.py` therefore passes the
+  two-family operational gate without treating either smoke as science.
+- E113-R2 remained closed because its literal two-original-smoke condition did
+  not pass. E113-R3 was frozen separately, retaining the exact DAPO objective,
+  snapshot, five domains, five seeds per family, completed paired controls, and
+  491,520-row worst-case query ceiling. Its Qwen placement change is capacity
+  only: A6000 nodes, no optimizer or activation offload. The held-stage
+  partition normalization is recorded prospectively in E113-R3-S2.
+- All 50 science jobs, IDs 30790925--30790974, passed held-record audit and were
+  released atomically. The ledger is
+  `var/artifacts/e113r3_dapo_full_relaunch_jobs.json`. The retired original
+  E113 dependency-blocked placeholders remain historical and are excluded from
+  active totals only after that exact released successor validates.
+
+## E113-R3 feasibility failures and external allocation reaper — 2026-08-19
+
+- By the 17:01 EDT operational cutoff, all five Qwen Countdown cells had
+  reached the registered ten-generation-batch all-zero exhaustion boundary.
+  Seeds 43--47 stopped after `(3, 0, 1, 0, 8)` accepted policy updates,
+  respectively. None wrote `TRAINING_COMPLETE.json`; these are scientific
+  feasibility failures in the 50-cell denominator, not efficacy endpoints.
+- Launchpad actors survived the dead learner, so Slurm continued to show the
+  affected allocations as `RUNNING`. Exact-evidence cleanup records preserve
+  each fatal signature, metrics hash, accepted-update count, missing receipt,
+  and scheduler transition before releasing the stranded GPU. No cell was
+  retried, resumed, or resampled.
+- The S3 wrapper amendment could not affect this already submitted cohort:
+  Slurm had spooled all 50 batch scripts at submission. E113-R3-S4 therefore
+  froze an external CPU-only reaper. Job 30791185 requests one CPU and 1 GB,
+  no GPU, has `Requeue=0`, validates its own frozen hashes and the exact 50 job
+  IDs, and cancels only a still-running cell with the registered fatal
+  signature, no receipt, and a log stale for at least 300 seconds. Its ledger
+  is `var/artifacts/e113r3_failure_reaper_job.json`.
+- `campaign_stats.py` now reports scientific failures explicitly, counts
+  `CONFIGURING`/`COMPLETING` as active, and retires the original E113 row only
+  after exact R3 release. At 17:01 EDT E113-R3 was 0 endpoint-terminal, 7
+  active, 38 pending, 5 failed, with 695/153,600 accepted updates observed.
+  These live counts do not license a DAPO efficacy estimate or a figure point.
+
+## Overnight completion and paper-evidence refresh — 2026-08-20
+
+- E111 closed at 15/15 terminal. Its frozen mechanism audit passes with no
+  violations and without using task endpoints for the gate. The paper now
+  includes a 3x5 v7 mechanism diagnostic: all 15 cells pass implementation
+  invariants and replay actuation, 11 complete the full cell-local
+  discovery-to-pressure chain, and four boundary cells remain explicit.
+- E80-R1 added Qwen2.5-3B Python control seed 73 and replay seed 72. The exact
+  endpoint record is now Dr.GRPO `n=4`, ReplayDr.GRPO `n=3`, paired `n=3` on
+  Python; the 3B core contains 15 paired endpoints in total and all 15 have a
+  positive raw `distinct@8` difference.
+- The direct-comparator matrix is fully registered. At the 11:35 EDT canonical
+  paper snapshot it is: GRPO 55/75 terminal, Dr.GRPO 66/75, UCPO 43/75,
+  sparse RLEP-Dr 32/75, and ReplayDr.GRPO 65/75. The new terminal comparator
+  evidence is the exact Qwen2.5-0.5B Countdown UCPO `n=3` prefix; it receives
+  seed points but no mean or interval.
+- E109 is 9/15 terminal with six pending. E114 is 0/20 terminal with three
+  running; E115 Qwen2.5-0.5B is 3/10 terminal with one running and six pending;
+  the Qwen2.5-3B E115 and both E116 extensions remain nonterminal.
+- E113-R3 remains an immutable but excluded custom-adapter diagnostic. The
+  frozen E113-R4 official-verl DAPO cohort remains held with no job ledger and
+  no outcome.
+
+## E112-R1 private exploratory interim deviation — 2026-08-20
+
+- At explicit author request, the private interim membership was frozen before
+  opening any E112-R1 endpoint file. The immutable selection contains exactly
+  the 14 cells with valid terminal markers at
+  `2026-08-20T14:54:08.318729+00:00`; PointMaze is excluded.
+- The freeze is
+  `var/artifacts/e112r1_private_interim_unblinding_freeze.json` and the protocol
+  deviation is
+  `paper/preregistration/e112r1_user_requested_private_interim_unblinding_20260820.md`.
+  The exact paired-seed plot and JSON live only under
+  `var/artifacts/private_interim/e112r1_subset_endpoint_effects.*`.
+- The plot contains no mean, interval, test, stopping rule, or pooled estimate.
+  It is forbidden from paper efficacy output and from cancellation,
+  prioritization, relaunch, retuning, or any other campaign selection. The
+  eventual E112-R1 record must disclose that continuous confirmatory outcome
+  blindness was interrupted.
+- The later 11:26 EDT operational snapshot was 15 terminal, 12 running, 48
+  pending, zero failed, and 66,480/230,400 optimizer steps. The private plot
+  remains the exact earlier 14-cell freeze and is not silently refreshed.
+
+## E113-R4 official-verl DAPO launch — 2026-08-20
+
+- At author request, all exact E113-R3 jobs 30790925--30790974 were canceled
+  and excluded from named-DAPO efficacy. The immutable retirement record is
+  `var/artifacts/e113r3_retirement_for_official_dapo.json`; R3's one-prompt
+  retry sampler is not the published multi-prompt filter-and-buffer algorithm.
+- E113-R4 pins unmodified upstream `verl-project/verl` commit
+  `4f80e465c2ec79ab9c3c30ec74b9745de61d0490` and the official image
+  `hiyouga/verl:ngc-th2.6.0-cu126-vllm0.8.3-flashinfer0.2.2-cxx11abi0`.
+  The 13,399,597,056-byte SIF SHA-256 is
+  `1e978dd8f5b100d7d0214e56d694de23412f167fa417b503cc2c62d2a968969f`.
+- CPU-only preflights 30800569, 30800578, 30800589, and 30800607 passed
+  upstream imports, both frozen model/tokenizer loads, all ten data splits,
+  all-domain correct/wrong reward separation, and exact Hydra composition.
+  The immutable runtime snapshot is
+  `var/artifacts/source_snapshots/e113r4_official_verl_dapo_6eef4abdfa8a6d88`.
+- The initial 2+50 submission used account `mltheory`, which the site forced
+  into its A5000-only partition and left both A6000 smokes at
+  `BadConstraints`. All 52 jobs were held before allocation or output.
+  Prospective R4-P1 changed placement only to the established `allcs` A6000
+  pool. Original administratively held smokes 30800705--30800706 were
+  canceled without running and replaced by held-audited smokes
+  30800804--30800805.
+- All 50 science jobs retain IDs 30800707--30800760 with four unrelated
+  interleaved IDs. Their dependencies were rewritten and audited against both
+  replacement smokes before atomic release. The authoritative amended ledger
+  is `var/artifacts/e113r4_official_verl_dapo_jobs.json`.
+- Current evidence state: both smokes are schedulable in the A6000 `cs` pool;
+  all 50 science cells are released behind their joint `afterok` gate; zero
+  R4 endpoint is terminal. This is a method-recipe comparative against the
+  exact paired E78/E79 controls, not a component ablation or efficacy result.
+
+## E113-R4 R4-P2 scheduler backfill amendment — 2026-08-20
+
+- At 14:06:40 EDT all 52 authoritative jobs remained pending, every run
+  directory was absent, and no allocation or scientific outcome had been
+  observed. The two smokes were pending for priority and all 50 science jobs
+  remained pending on their joint smoke dependency.
+- R4-P2 returns all 52 jobs from user-requested `Nice=100` to default
+  `Nice=0`. The 50 science jobs retain their seven-day limit; only the two
+  one-step operational smokes change to a one-day limit to improve backfill.
+  No workload, image, source, model, data, seed, dependency, DAPO setting, or
+  scientific parameter changed.
+- A post-amendment audit passed all exact 52 scheduler records. Smokes
+  30800804--30800805 remain schedulable in `cs` pending `Priority`; all 50
+  science jobs remain released and dependency-gated. R4 still has zero
+  terminal scientific endpoints.
+- The earlier original-E113 ledger still had 50 unrun
+  `DependencyNeverSatisfied` placeholders in the queue. All exact registered
+  IDs 30736383--30736432 were canceled after verifying absent run directories;
+  Slurm accounting records 50/50 canceled and the immutable record is
+  `var/artifacts/e113_original_dependency_placeholders_retirement.json`.
+
+## E109 stalled-comparator placement amendment — 2026-08-21
+
+- The six nonterminal E109 Python ReplayDr.GRPO comparators were stalled by
+  placement, not by science. Falcon-1B seeds 55, 56, 58, and 59 (jobs
+  30659546, 30659547, 30659549, 30659550) sat at `Priority=0`,
+  `Reason=JobHeldUser`, `Restarts=0`, `RunTime=00:00:00`, with absent run
+  directories and an unchanged `SubmitTime=2026-08-18T10:19:35`; the launcher
+  had released all fifteen at submission, so the campaign did not apply that
+  hold. Each was pinned to exactly one node, `node205` or `node207`, and every
+  other single-node-pinned Falcon `cs` job was in the same state, while the
+  `node206`-pinned seed-57 cell allocated and completed and the two-node
+  `node[205,207]` E100 replacements stayed eligible. All A6000 nodes restarted
+  `slurmd` between 16:48 and 17:09 EDT on 2026-08-20 and the stalled jobs were
+  last evaluated at 19:50 EDT the same day.
+- Qwen2.5-3B seeds 73 and 74 were eligible but on `lowprio`
+  (`PriorityTier=1`, `PreemptMode=REQUEUE`) and had been requeued 11 and 9
+  times. Seed 73 holds a `step_00192` checkpoint and resumes; seed 74 has
+  never reached its first checkpoint, so all nine of its allocations were
+  discarded.
+- `paper/preregistration/e109_stalled_comparator_placement_amendment_20260821.md`
+  authorizes a scheduler-only change: `cs` to `all` plus the registered A6000
+  pool `node[103-104,205-208,805]` and release for the four Falcon cells, and
+  `lowprio` to `all` for the two Qwen-3B cells. Both moves reuse pools already
+  registered in the E106 amendments. `all` is `PreemptMode=OFF`, which also
+  ends seed 74's requeue loop. Accounts, GPU type, CPU and memory requests,
+  three-day limit, snapshots, seeds, data, objective, and output paths are
+  unchanged; a live probe job confirmed that `scontrol update Partition=all`
+  is honored for a three-day job even though submit-side routing sends one to
+  `cs`.
+- `ops/exp_scaling/apply_e109_stalled_comparator_placement_amendment.py`
+  applied it transactionally after verifying, for all six cells, that the full
+  103/106-key `--export` environment is byte-identical to the frozen E109
+  ledger. Post-amendment all six are `Partition=all`,
+  `ReqNodeList=node[103-104,205-208,805]`, `Reason=None`, with priorities 3610
+  (Falcon) and 7976 (Qwen-3B). No run directory was touched and no E105, E109,
+  E111, or E112-R1 outcome was inspected. Artifact:
+  `var/artifacts/e109_stalled_comparator_placement_amendment.json`.
+- E109 remains 9/15 terminal. The same single-node auto-hold currently parks
+  nine E112-R1 Falcon cells --- including the four Python cells that pair with
+  these very comparators --- and three E100 Falcon Pantry cells; those are not
+  covered by this amendment.
+
+## E115 Qwen-0.5B routed-away cells and E100 PantryPlan widening — 2026-08-21
+
+- E115's four nonterminal Qwen2.5-0.5B UCPO cells --- Countdown and MathIR
+  seeds 46 and 47, jobs 30790285, 30790286, 30790290, 30790291 --- had been
+  `Priority=0`, `Reason=BadConstraints`, `Restarts=0` since
+  `SubmitTime=2026-08-19T15:53:47`. `direct_comparator_completion` clones the
+  paired parent `SubmitLine` verbatim, so they inherited E78's
+  `--partition=all --nodelist=node105 --time=1-12:00:00`; submit-side routing
+  sends anything longer than one hour to `cs`, and `cs` contains only
+  `node[202-207]`, so the required node was not in the job's partition. The
+  same trap is already registered in
+  `e111_scheduler_partition_amendment_20260818.md`, and their own E78 parents
+  hit it: 30263965--30263968 and 30263985--30263988 were also recorded at
+  submission as `Partition=cs` and ultimately ran on `node105` in `mltheory`.
+- `paper/preregistration/e115_qwen05b_badconstraints_partition_repair_20260821.md`
+  authorizes partition `cs` to `mltheory` and account `allcs` to `mltheory`
+  for those four jobs, retaining `node105`, one A5000, 8 CPUs, 64 GiB, the
+  36-hour limit, and the frozen environment. That restores the placement of
+  the paired E78 control for the same domain and seed, so the hardware class
+  still matches cell by cell, and it matches the three completed E115
+  Qwen-0.5B siblings, which ran in `mltheory`.
+  `ops/exp_scaling/apply_e115_qwen05b_badconstraints_partition_repair.py`
+  applied it after verifying all four 97-key `--export` environments against
+  the ledger and that no run directory exists. All four are now `Priority=8426`
+  and schedulable. Artifact:
+  `var/artifacts/e115_qwen05b_badconstraints_partition_repair.json`.
+- E100's five nonterminal cells are all PantryPlan. Science jobs 30572828,
+  30572829, and 30572831 were caught by the same single-node auto-hold as
+  E109, with requeue counters 2, 6, and 2 and no checkpoint in any run
+  directory, so each of those allocations was discarded. Seed 55's replacement
+  30790683 and seed 58's replacement pool collection 30790680 were eligible but
+  restricted to `node[205,207]`, and one two-node pool job gated two of the
+  five cells through audit 30790681 and science 30790684.
+- `paper/preregistration/e100_pantry_pool_widening_amendment_20260821.md`
+  authorizes `cs` to `all` plus the registered A6000 pool
+  `node[103-104,205-208,805]` for all six of those jobs and release of the
+  three held ones.
+  `ops/exp_scaling/apply_e100_pantry_pool_widening_amendment.py` applied it
+  transactionally after verifying every `--export` environment against the
+  primary and recovery ledgers. All six are now `Partition=all` on the full
+  pool with `Priority=3710`; 30790684 keeps its `afterok:30790681`
+  dependency and the CPU-only audit was not modified. Artifact:
+  `var/artifacts/e100_pantry_pool_widening_amendment.json`.
+- No run directory was touched and no E100, E109, or E115 outcome endpoint was
+  inspected in either amendment. E100 stays 17/22 terminal and E115
+  Qwen-0.5B stays 6/10 terminal until the cells produce their own receipts.
+
+## Paper terminal-result refresh — 2026-08-21 16:55 EDT
+
+- The regenerated canonical paper matrix is 453/750 terminal with 560/750
+  registered cells. Plain GRPO advances from 55/75 to 59/75 and UCPO from
+  43/75 to 46/75; all other canonical-method denominators are unchanged.
+- E114 contributes Qwen2.5-3B Graph GRPO seeds 71--74 (jobs
+  30790253--30790256), which join seed 70 to form a balanced terminal n=5
+  block. Against matched Dr.GRPO, its mean pass@8 effect is +0.022656
+  (paired 95% Student-t interval [-0.002347, +0.047660]) and its
+  correctness-adjusted breadth effect is -0.015234
+  ([-0.083772, +0.053303]). No domain pooling or scale trend is licensed.
+- E115 contributes Qwen2.5-0.5B UCPO seeds 43--45 on Countdown (jobs
+  30790282--30790284) and MathIR (30790287--30790289). Both are exact terminal
+  n=3 prefixes: the endpoint forest shows their raw paired seed effects but
+  no mean or interval. Countdown adjusted-breadth effects are
+  (+0.050781, +0.042969, +0.074219); MathIR's are all exactly zero.
+- paper/results/paper_program_status.json,
+  paper/figures/direct_comparator_endpoint_effects.{json,pdf,png}, and
+  paper/figures/direct_baseline_learning_curves_static_strip.{json,pdf,png}
+  were regenerated from the ledgers and source logs after freezing this
+  cutoff. The manuscript, README, readiness audit, figure manifest, and figure
+  data audit use the same exact evidence classes and denominators.
+- E112-R1 is operationally 28/75 terminal, zero running, 47 pending, and zero
+  failed at this cutoff. Its frozen private interim values remain excluded;
+  this refresh uses no E112 efficacy endpoint.
+- Official E113-R4 remains operational-only. Replacement smokes 30800804 and
+  30800805 are both PENDING (JobHeldUser) and 0/2 terminal; all 50 science
+  jobs are dependency-pending with zero terminal endpoints. Earlier log
+  entries describe their state when released; the paper now reports the live
+  hold explicitly and includes no DAPO efficacy marker.
+
+## E113-R4 author-approved smoke release — 2026-08-21 17:26 EDT
+
+- The author explicitly approved release of official-R4 smoke jobs 30800804
+  and 30800805. Immediately before release, both exact jobs were
+  PENDING (JobHeldUser), dependency-free, at zero runtime and zero restarts;
+  their names, models, seeds, official-verl snapshot, image, data hashes, and
+  one-step smoke budgets matched the frozen R4 ledger.
+- scontrol release was applied only to those two IDs. Both acquired
+  EligibleTime 2026-08-21T17:26:39, Priority 4160, Nice 0, and Reason=None.
+  Neither had allocated at the post-release audit.
+- The first and last science jobs, 30800707 and 30800760, remained PENDING
+  (Dependency) on afterok:30800804 and afterok:30800805. The live monitor
+  reported the R4 gate as 0/2 terminal, 0 running, 2 pending, 0 failed and the
+  50-cell science cohort as 0 terminal, 0 running, 50 pending, 0 failed.
+- This release is operational progress only. Science remains blocked until
+  both smokes succeed, and no DAPO efficacy result or paper endpoint exists.
+
+## Paper terminal-result refresh and queue audit — 2026-08-21 20:30 EDT
+
+- The fixed paper cutoff advances the regenerated canonical matrix to 457/750
+  terminal with 560/750 registered cells: plain GRPO is 60/75, UCPO is 48/75,
+  and sparse RLEP-Dr is 33/75. The refreshed endpoint forest and trajectory
+  grid were rebuilt from the source ledgers and logs.
+- E114 job 30790257 completes Qwen2.5-3B Countdown GRPO seed 71. Together with
+  seed 70 this is an exact n=2 prefix; seeds 72--74 remained running at the
+  cutoff and receive no summary interval.
+- E115 jobs 30790285 and 30790286 complete Qwen2.5-0.5B Countdown UCPO seeds
+  46 and 47, balancing the block at n=5. Against matched Dr.GRPO, the mean
+  pass@8 effect is +0.133203 (paired 95% Student-t interval
+  [+0.004736,+0.261671]); the correctness-adjusted breadth effect is +0.051172
+  ([+0.031292,+0.071052]). This is the first complete direct UCPO or RLEP-Dr
+  block whose adjusted-breadth interval is strictly positive. The two MathIR
+  UCPO jobs remained running, leaving that block at the frozen n=3 prefix.
+- E116 job 30790405 completes Qwen2.5-0.5B Countdown sparse RLEP-Dr seed 43.
+  Its exact n=1 pass@8 effect is -0.027344 and adjusted-breadth effect is zero;
+  it receives no interval. Seed 44 remained running at the cutoff.
+- Official E113-R4 smokes 30800804 and 30800805 were released but remained
+  PENDING (Priority), at zero runtime with no logs or allocation. The scheduler
+  estimated starts on August 23 near 00:00 and 00:40 EDT. All 50 science jobs
+  remain dependency-pending on both smokes, so there is still no DAPO endpoint.
+- The live scientific queue was 648 terminal, eight running, 195 pending, and
+  zero failed across 851 active cells (1,889,895/2,338,672 recorded steps).
+  Adding a new method family would increase backlog rather than unlock the
+  current evidence plan. Three outcome-blind scheduler repairs are actionable
+  but were not applied: widen the two R4 smokes from `cs` to `all` over the
+  registered A6000 pool `node[103-104,205-208]`; reroute four E116 node105 pool
+  jobs 30790388, 30790390, 30790399, and 30790401 from `cs/allcs` to
+  `mltheory`; and widen/release nine zero-runtime E112-R1 Falcon jobs
+  30791519--30791520, 30791522--30791523, and 30791529--30791533. Each requires
+  an explicit scheduler-only amendment and author authorization before action.
+
+## E113-R4 / E116 / E112-R1 scheduler acceleration — 2026-08-21 21:06 EDT
+
+- The author explicitly approved the scheduler-only acceleration package for
+  all three diagnosed groups. The prospective boundary is frozen in
+  `paper/preregistration/e113r4_e116_e112r1_scheduler_acceleration_package_20260821.md`.
+  The application script verified all 15 live `--export` environments against
+  their frozen launch records, exact zero-runtime pending states, resource
+  requests, and replacement partition inventory before mutation.
+- Official DAPO smoke jobs 30800804 and 30800805 changed from partition `cs`
+  with no node requirement to partition `all` on the live A6000 pool
+  `node[103-104,205-208]`. Their authoritative R4-P2 one-day limit, `Nice=0`,
+  account `allcs`, one-A6000 request, and one-step official-verl workloads were
+  retained. Both remain released and eligible with nonzero priority; neither
+  has allocated yet. All 50 science jobs retain their exact two-smoke `afterok`
+  dependency and remain non-scientific until that gate passes.
+  Immediately after the amendment, `squeue --start` estimated August 26 13:00
+  EDT for 30800804 and August 28 15:40 EDT for 30800805. These forecasts are
+  advisory; the wider pool clears placement but partition `all` has a lower
+  priority factor than `cs`, so fair-share/priority is now the limiting state.
+  No additional priority, QoS, or recipe change is authorized by this package.
+- E116 pool jobs 30790388, 30790390, 30790399, and 30790401 changed from the
+  impossible `cs/allcs` plus `node105` placement to `mltheory/mltheory`, retaining
+  node105, one A5000, every collection input and seed, and all downstream audit
+  dependencies. `BadConstraints` cleared: one is waiting on resources and three
+  on ordinary node availability.
+- E112-R1 Falcon Python jobs 30791519, 30791520, 30791522, and 30791523 and
+  Pantry jobs 30791529--30791533 changed from their single-node `cs` pins to
+  partition `all` on `node[103-104,205-208]` and were released. All nine moved
+  from `JobHeldUser`/priority zero to eligible, nonzero-priority pending state.
+- Durable before/after evidence is
+  `var/artifacts/scheduler_acceleration_package_20260821.json`. It records 15
+  jobs, no scientific-environment, GPU-type, stopping-rule, or dependency
+  change, no target-outcome inspection, and no run-directory mutation. The
+  default campaign monitor continues to omit historical gates and retired
+  cohorts unless `--include-history` is requested.
+
+## E80-R1 completion scheduler repair — 2026-08-21 21:38 EDT
+
+- E80-R1 was 31/50 terminal with 19 pending jobs and 99,694/153,600 recorded
+  updates. The three unfinished Python jobs had never started on their
+  registered node302 A100 placement. The 16 matched MathIR/Pantry jobs were in
+  preemptible `lowprio` on `node[103-104,205-208,805]`; 15 reported the down
+  node805 as unavailable and all had one or two requeues. Seven retain durable
+  step-384 or step-768 checkpoints, and all retain their frozen auto-resume
+  policy.
+- All 19 still carried `Nice=500`, the temporary 2026-08-09 demotion used to
+  run E87 first. The authoritative monitor now shows E87 5/5 terminal, so the
+  application restored E80-R1's registered `Nice=100` setting on every
+  unfinished cell.
+- Both arms of each unfinished MathIR/Pantry seed changed together from
+  `lowprio` to non-preempting `all` and from the seven-node A6000 list to the
+  six live nodes `node[103-104,205-208]`. The three Python jobs stayed on
+  `mltheory`/node302/A100, preserving the hardware class of the already
+  terminal Python seed-73 control and both seed-74 arms.
+- Immediate postflight state is 19 pending and zero failed. All 16 A6000 jobs
+  now report ordinary `Priority`, never node805, at priority 7976. Their age
+  component reset when the partition changed, so no start estimate is yet
+  available; they remain above most of the current A6000 queue but behind one
+  two-GPU job from the same account. The Python jobs are priority 8926; the
+  scheduler estimated 2026-08-24 17:40 EDT for replay seed 73,
+  2026-08-27 18:00 for control seed 74, and no estimate yet for replay seed 74.
+  These forecasts are advisory and can change with backfill.
+- The frozen boundary is
+  `paper/preregistration/e80r1_completion_scheduler_repair_20260821.md`; the
+  transactional application and full before/after record are
+  `ops/exp_scaling/apply_e80r1_completion_scheduler_repair_20260821.py` and
+  `var/artifacts/e80r1_completion_scheduler_repair_20260821.json`. No
+  scientific environment, GPU type within a cell, stopping rule, dependency,
+  run directory, or evaluation outcome changed or was inspected.
+## E113-R4-R1 Ray socket-path recovery and relaunch — 2026-08-23 20:18 EDT
+
+- Replacement smokes 30800804 and 30800805 allocated on node208 and failed
+  before training with the identical Ray exception
+  `AF_UNIX path length cannot exceed 107 bytes`. The runner had placed
+  `RAY_TMPDIR` under the long scientific output directory. Neither smoke wrote
+  a completion receipt or checkpoint. Slurm consequently canceled all exact 50
+  dependency-gated science jobs 30800707--30800760 (excluding the four
+  unrelated interleaved IDs) at zero runtime; no science output directory
+  exists.
+- The prospective infrastructure-only repair is frozen in
+  `paper/preregistration/e113r4r1_ray_socket_recovery_20260823.md`. The runner
+  now uses a unique short node-local `/tmp/e113r4-...` directory for
+  `TMPDIR` and `RAY_TMPDIR`, binds it into the pinned image, and cleans it on
+  exit. The recovery snapshot
+  `var/artifacts/source_snapshots/e113r4_official_verl_dapo_raytmp_9419ba707c93b23d`
+  differs from the original snapshot only in the runner and snapshot identity
+  metadata. Upstream verl, image, verifier, models, data, reward adapter,
+  prompts, seeds, DAPO settings, 24-step stopping rule, and paired controls are
+  unchanged.
+- Held-state audits rejected and canceled jobs 30855187 and 30855219 at zero
+  runtime while normalizing the fresh one-node pool request and Slurm's
+  equivalent `NumNodes=1-1` representation. No rejected job was released or
+  allocated. The final command explicitly requests one node, 16 CPUs, 128 GiB,
+  and one A6000.
+- Repaired one-step smokes 30855240 (Qwen-0.5B) and 30855241 (Falcon-1B) and
+  replacement science jobs 30855242--30855291 were held-audited and released.
+  Both smokes are currently `PENDING (Priority)` in partition `all`, account
+  `allcs`, on the approved A6000 pool with a one-day limit and no scheduler
+  start estimate. All 50 science jobs are `PENDING (Dependency)` at zero
+  runtime on the exact joint `afterok` gate, with their original seven-day
+  limits. The live monitor now reports 0 terminal, 0 running, 50 pending,
+  0 failed, and 0/1,200 steps.
+- The authoritative ledger
+  `var/artifacts/e113r4_official_verl_dapo_jobs.json` preserves the two failed
+  smokes, all 50 canceled science records, both held-audit rejections, and the
+  full active replacement graph. All seven focused tests pass inside the exact
+  pinned verl container. This licenses real execution only; no R4 efficacy
+  endpoint exists until replacement science cells terminate.
+
+## August 23 paper evidence refresh and second private E112-R1 look — 2026-08-23 21:33 EDT
+
+- The manuscript evidence set is frozen at 2026-08-23 20:30 EDT. The canonical
+  ten-method matrix contains 560 registered and 487 terminal cells of the
+  750-cell organizing target, 30 more terminal cells than the prior paper
+  cutoff: 19 core E80-R1 cells, four plain-GRPO cells, two UCPO cells, and five
+  sparse RLEP-Dr cells. All terminal paper artifacts were regenerated from the
+  immutable ledgers; no missing endpoint was imputed.
+- E80-R1 is complete at 50/50 cells and 153,600/153,600 updates. Together with
+  E78 and E79, Dr.GRPO and ReplayDr.GRPO are now 75/75 terminal each, giving
+  five paired seeds in all 15 model--domain blocks. On Qwen2.5-3B,
+  ReplayDr.GRPO minus Dr.GRPO mean pass@8 effects are +.154, +.137, +.590,
+  +.409, and +.106 on Graph, Countdown, Python, MathIR, and Pantry; every
+  paired 95% Student-t interval excludes zero. Correctness-adjusted breadth is
+  +.423 [.331, .515], +.197 [.150, .244], +.194 [-.106, .494], +.019
+  [-.002, .041], and +.567 [.366, .768]. Thus Graph, Countdown, and Pantry
+  show breadth beyond accuracy at 3B; Python and MathIR are chiefly accuracy
+  rescues. Raw distinct@8 is higher in all 25 Qwen2.5-3B pairs. No domain or
+  model is pooled and no model-size trend is claimed.
+- Plain GRPO is 64/75 terminal: Qwen2.5-3B Graph and Countdown are complete at
+  n=5, Python is n=2, and MathIR/Pantry are n=1. The new complete Qwen3B
+  Countdown block is neutral relative to matched Dr.GRPO. UCPO is 50/75 with
+  all ten smaller-model blocks complete; the newly completed Qwen-0.5B MathIR
+  block is neutral (+.031 [-.071, .133] pass@8 and -.002 [-.006, .003]
+  adjusted breadth). Sparse RLEP-Dr is 38/75: six blocks are complete, Falcon
+  Python is n=2, and Qwen Countdown/MathIR are n=3 prefixes. Exact prefixes
+  receive no interval or completed-block claim.
+- Before reading newly available E112-R1 endpoint files, the author-requested
+  second private exploratory subset was frozen at exactly 33 terminal cells in
+  `var/artifacts/e112r1_private_interim_unblinding_freeze_20260823.json`, bound
+  to
+  `paper/preregistration/e112r1_user_requested_private_interim_unblinding_20260823.md`.
+  Qwen-0.5B Countdown is the strongest coherent early pattern: adjusted
+  breadth is positive in all five frozen seeds while pass@8 is near-zero and
+  mixed. Qwen Pantry is positive on both metrics in its two available seeds;
+  Falcon MathIR has four positive and one zero adjusted-breadth effects but
+  mixed pass@8. Graph and Falcon Countdown are mixed; Qwen Python's two seeds
+  sharply disagree; Falcon Python has one seed; Falcon Pantry and every
+  Qwen2.5-3B domain have no frozen terminal cell. This heterogeneity is not a
+  reportable efficacy result. The official analysis still requires all 75
+  treatment cells and matched controls, and neither the paper nor campaign
+  selection uses either private look.
+- The post-cutoff live monitor at 21:32:55 EDT reports 686 terminal, 14
+  running, 149 pending, and zero failed across 851 active scientific cells.
+  E112-R1 remains 33/75 terminal with ten running and 32 pending. E109 advanced
+  after the paper cutoff to 12/15 terminal with one running. The R4-R1 DAPO
+  smokes remain priority-pending; current advisory starts are August 25 14:20
+  EDT for Qwen and August 26 00:40 EDT for Falcon. All 50 DAPO science cells
+  remain at zero updates behind the joint gate, so there is still no DAPO
+  efficacy evidence.
+- The default monitor was corrected after this audit so an active scientific
+  row always prints its launch-smoke summary. At 21:57 EDT it reports the
+  E113-R4/R4-R1 gate as 0/2 terminal, zero running, two pending, and zero
+  failed, directly below the 0/50 science row. Retired and zero-science-only
+  historical rows remain absent from the default view and are available only
+  through `campaign_stats.py --include-history`.
+
+## August 24 overnight evidence refresh and DAPO R4-R1 diagnosis — 2026-08-24 08:48 EDT
+
+- The new paper evidence cutoff is 2026-08-24 08:24 EDT. The canonical
+  ten-method matrix is 488/750 terminal with 560/750 registered, one terminal
+  cell above the August 23 cutoff. Plain GRPO is now 65/75 terminal. The new
+  reportable cell is Qwen2.5-3B Python seed 72, which moves that domain from an
+  exact `n=2` to exact `n=3` prefix. Its matched effects are exactly 0 on both
+  pass@8 and correctness-adjusted breadth. Across seeds 70--72, pass@8 effects
+  are (0, +0.171875, 0) and adjusted-breadth effects are (0, 0, 0). Because
+  the block remains incomplete, the endpoint forest shows paired seed points
+  only and reports no mean or interval.
+- `paper/results/paper_program_status.{json,tex}` and the Qwen-3B progress,
+  direct-comparator endpoint, and aligned direct-baseline assets were
+  regenerated from the exact ledgers and source logs. The manuscript, README,
+  readiness audit, figure data audit, manifest, and contracts now use the same
+  65/75 GRPO denominator and Qwen-3B Python `n=3` evidence class.
+- E109 advanced to 13/15 terminal by the cutoff. The newly terminal repaired
+  Falcon Python cells after the prior paper freeze are seeds 55, 58, and 59;
+  the last completed at 23:20 EDT. These are comparator-coverage progress, not
+  a separately selected efficacy result, and the two remaining E109 cells are
+  still incomplete.
+- E112-R1 advanced from the frozen 33-cell private look to 38/75 terminal by
+  the paper cutoff: Qwen-0.5B MathIR seeds 44--45 and Falcon Python seeds 55,
+  56, and 58 completed. Their endpoint values were not read. Falcon Python
+  seed 59 completed at 08:29 EDT after the cutoff, moving the live cohort to
+  39/75; its value is likewise unread. The only private efficacy looks remain
+  the prospectively frozen 14- and 33-cell subsets, and neither later endpoint
+  set enters the manuscript or campaign selection.
+- DAPO R4-R1 smokes 30855240 and 30855241 allocated on node208 at 23:24 and
+  23:29 EDT and failed 1:0 after 4:21 and 3:57. The short Ray path succeeded:
+  both started Ray, passed Hydra validation, loaded their models under FSDP,
+  and reached vLLM rollout construction. Both then failed before rollout or
+  training because `max_num_batched_tokens=448` was below the pinned
+  `max_num_seqs=1024`. Neither wrote a checkpoint, completion receipt, sampled
+  response, or accepted update. All 50 joint-dependency science jobs were
+  canceled at zero runtime; the monitor's 50 failures are therefore
+  dependency-never-satisfied placeholders, not scientific endpoints.
+- R4-R2 is prospectively frozen in
+  `paper/preregistration/e113r4r2_vllm_scheduler_recovery_20260824.md`. It
+  preserves `max_num_seqs=1024`, raises only the aggregate scheduler-token cap
+  to `max(context_tokens, 1024)`, validates the invariant inside the pinned
+  container, and uses a two-stage gate: submit only two one-step smokes first,
+  then create the 50 science jobs only after both pass. At 08:40:31 EDT, only
+  the two R4-R2 smokes, 30865563--30865564, were released. At 08:50 EDT both
+  were pending for priority, no R4-R2 science jobs had been submitted, and
+  there remained no named-DAPO efficacy evidence.
+- At 08:50:46 EDT the live 851-cell operational monitor reported 694 terminal,
+  12 running, 143 pending, and zero failed, with 2,041,231/2,338,672 recorded
+  steps. The 50 planned DAPO science cells are virtual gated-pending rows, not
+  submitted jobs; the smoke gate is 0/2 terminal, zero running, two pending,
+  and zero failed. E114 was 10/20 terminal with three running; E100 was 17/22
+  terminal with three running and two pending. These live prefixes remain
+  separate from the frozen paper cutoff.
+
+## E113-R4-R2 DAPO smoke pass and science release — 2026-08-24 15:32 EDT
+
+- R4-R2 smoke 30865563 (Qwen-0.5B Graph seed 43) completed on node208 with
+  exit 0:0 after 12:53; smoke 30865564 (Falcon-1B Graph seed 55) completed on
+  node208 with exit 0:0 after 9:18. Each wrote its exact one-step completion
+  receipt, global-step-1 actor checkpoint, latest-checkpoint pointer, and the
+  required upstream trainer markers. The outcome-blind release audit passed
+  both smokes without violations.
+- The first authorized science-release attempt assigned no job ID because the
+  cluster's 300-second `MinJobAge` had expired both completed smoke records
+  from the active controller, so Slurm rejected their now-unresolvable
+  `afterok` expression. Accounting and immutable smoke outputs remained valid.
+- Before any science job existed, the scheduler-only correction was frozen in
+  `paper/preregistration/e113r4r2s1_completed_smoke_dependency_expiry_20260824.md`.
+  It retains the full pre-submission smoke audit, held audit of every science
+  job, smoke IDs as ledger provenance, and the exact 50-cell scientific
+  matrix, but omits the redundant expired Slurm dependency. No scientific
+  parameter or endpoint was changed or inspected.
+- The corrected transaction submitted all 50 science jobs held, audited their
+  resources, environment, runtime snapshot, and unique cell identities,
+  atomically recorded jobs 30869111--30869160, and released them together at
+  15:31 EDT. At 15:32 EDT the cohort was 0/50 terminal, zero running, 50
+  pending, zero failed, and 0/1,200 accepted updates; both smokes remained 2/2
+  terminal and excluded from scientific totals.
+
+## 2026-09-03 16:07 EDT — E121 fixed-bank survival telemetry registered and dependency-released
+
+- Registered the prospective five-seed Qwen2.5-0.5B Graph cohort in
+  `paper/preregistration/e121_fixed_bank_survival_telemetry_20260903.md` before
+  any E121 science outcome existed. Bank membership and fresh counts freeze at
+  learner step 384; per-prompt/per-key mean and sequence log probabilities are
+  retained on every subsequent replay visit.
+- Added E121 to the single cohort registry and created
+  `var/artifacts/e121_fixed_bank_survival_telemetry_jobs.json`, so
+  `campaign_stats.py` reports the five scientific cells while excluding the
+  operational barriers from the scientific denominator.
+- Source compilation, shell syntax, and the focused 201-test gate passed. The
+  immutable runtime snapshot is
+  `var/artifacts/source_snapshots/e76_tuned_scale_970e16dc21f47834`.
+- A direct 45-ID Slurm dependency was rejected before creating a job. A first
+  held CPU barrier (`31040752`) was immediately canceled when the scheduler
+  normalized requested partition `cs` to effective `all`; it allocated no
+  resources. The final audit accepts this label rewrite only with account
+  `allcs`, explicit `node202`, and no `pvl` substring.
+- Four E120-R1 IDs were already verified `COMPLETED`; the remaining 41 were
+  split across five non-GPU `afterok` barriers (`31040757`--`31040761`), each
+  with at most ten inputs. E121 science jobs `31040762`--`31040766` depend on
+  all five barriers and are pinned to `node202`/`node203`/`node204`.
+- Final campaign state: E120-R1 `6 terminal / 13 running / 26 pending / 0
+  failed`; E121 `0 terminal / 0 running / 5 pending / 0 failed`. Every E121
+  scheduler record passed the case-insensitive PVL audit.
+
+
+## 2026-09-08 — E121 scheduling dependencies removed at user request
+
+- The user explicitly requested taking the five E121 Graph survival-telemetry runs off hold and getting them running.
+- Science jobs `31040762`–`31040766` were pending behind barriers `31040759`–`31040761`; two barriers had `DependencyNeverSatisfied` after original E120 jobs failed. E121 consumes no E120 outputs, so these dependencies enforce scheduling order only.
+- Cleared the five science jobs' dependencies in place. This amends the original all-E120-success scheduling prerequisite; it does not assert E120 is complete. The frozen E121 source, base model, datasets, seeds 43–47, bank freeze at step 384, 3,072-step horizon, and non-PVL resource placements remain as submitted.
+- Verified all five have `Dependency=(null)` and are eligible in the normal priority queue. Starting remains subject to scheduler resource availability.
+- Full before/after scheduler records and authorization: `var/artifacts/e121_dependency_release_20260908T180159.json`. The original launch ledger and preregistration are preserved.
+
+- Follow-up placement adjustment: all five E121 cells now request approved `node204`. This node freed enough capacity for all five; four pending cells were moved from node202/node203. Each retains 1 A5000, 8 CPUs, 64 GiB, 36 hours, account allcs, and the frozen runtime fence. Details: `var/artifacts/e121_placement_update_20260908T180828.json`.
+
+- Startup verified: all five E121 jobs are `RUNNING` on node204, with no dependencies. Startup logs passed the PVL/error check; seeds43/44/46/47 had already begun learner updates, and seed45 had reached DeepSpeed initialization at18:15:27UTC. Verification artifact: `var/artifacts/e121_startup_verified_20260908T181711.json`.
+
+
+## 2026-09-08 15:09 EDT — E118 Qwen-3B Countdown MaxRL seed 73 timeout recovery
+
+- At the user's request, repaired the one unrecovered E118 failure: job `31048123`, Qwen2.5-3B Countdown MaxRL seed 73, ended `TIMEOUT` at its 12-hour limit on node205. The last learner metric was step 1927; the latest structurally valid model/optimizer checkpoint is step 1920. No terminal completion receipt exists.
+- Submitted replacement `31146150` held, audited it, promoted the same source and aggregate cell under the ledger lock, then released it. It resumes the existing run directory automatically on node205/A6000 with 16 CPUs, 128 GiB and a 72-hour allocation (`allcs/lowprio`, requeue enabled). Frozen launcher, source, seed, all scientific/runtime exports, and the 3072-step target are unchanged.
+- Independent verification found exactly one changed row per ledger, preserved predecessor history, and 150 unique aggregate cells. At 19:09 UTC the replacement was `PENDING (Priority)`; checkpoint restoration and fresh optimizer updates cannot yet be verified. E118 status was 124 terminal / 11 running / 15 pending / 0 failed, 405070/460800 recorded steps.
+- Amendment: `paper/preregistration/e118_countdown_s73_timeout_recovery_20260908.md`. Transaction, before/after ledger images and post-release verification: `var/artifacts/e118_countdown_s73_timeout_20260908/`.
+
+
+## 2026-09-08 evening — E118/E119/E120 recovery and completion acceleration
+
+- User requested requeuing failures and accelerating completion. Recovered E11831048124→31151244 (step1728) and E11931048160→31151272 (step2496), with72-hour new allocations.
+- Three E119 Countdown jobs31048154/61/57 were memory-throttled at96GiB; checkpoint-requeued to128GiB under the same IDs and original36-hour limits. Pending Pantry31048191 increased64→96GiB. No training settings changed.
+- Removed15 resource-only afterany gates; expanded21 compatible node pools. Six lowprio jobs replaced oncs with exact recipes and validated histories:31151400/404/409/411/412/416. All six predecessor holds were retired after ledger promotion.
+- Site job_submit.lua prohibits post-submission account,partition,andwalltime changes. Queue amendments use permitted fields; priority changes use audited new submissions. CPU-only job31151368 provides bounded48-hour timeout recovery for four existing Pantry jobs.
+- All three cohorts show zero failed cells after recovery. Startup evaluation is still in progress; fresh optimizer verification is recorded separately. Complete audit and live counts: `var/artifacts/campaign_completion_push_20260908/report.md`.
+- Durable CPU startup-audit job31151461 checks all four recovered E119 allocations through22:50EDT, requiring fresh steps and memory health; its reports are linked from the completion-push audit. Timeout guard31151368 independently monitors four Pantry allocations for48hours.
+- Startup confirmation:31151272 reached fresh step2498 from2496 at2026-09-09T02:36:41.510917+00:00 with zero memory.high/OOM events; checkpoint recovery is operationally verified.
+
+
+## 2026-09-10 evening — E122 expansion and E118–E120 completion queues
+
+- E122 increased from one to three RUNNING allocations on node208: new MaxRL 31158680 and ReplayMaxRL 31158681; ReplayDr.GRPO 31158679 also gained node208 eligibility. Original four-slot controller and frozen scientific plan remain unchanged.
+- E119 nine pending Pantry routes gained node208 through CPU guard handoff 31170078 → 31194078, preserving all ten monitored cells and the original deadline. All nine were released after the two E122 starts; fresh guard heartbeat verified.
+- E118 Pantry ReplayMaxRL seed 73 job 31124284 was qualified and resized pending-only to 116 GiB to fit the next node302 slot. MathIR ReplayMaxRL seed 72 continuation 31158504 → 31193187 uses protected mltheory/node105 after paired running job 31158503; checkpoint 2304 and exact scientific lineage preserved.
+- E120 Graph seed 74 job 31158507 moved to node105-only eligibility and resumed fresh updates beyond checkpoint 960. All four remaining E120 cells are RUNNING.
+- Counts: E118 137/150 complete, E119 86/100 complete, E120-R1 41/45 complete, E122 3 running. Completion still needs further allocation waves. Consolidated action and verification evidence: `var/artifacts/factorial_push_20260910_evening/README.md`.
+
+
+## 2026-09-10 22:37 EDT — E122 additional Graph pair released; storage restoration verified
+
+- At the user's request for another couple of E122 jobs, released the existing Graph seed 43 Dr.GRPO **31158698** and ReplayDr.GRPO **31158699** at 22:00 EDT. Both remain **PENDING (Priority)** at final readback. E122 has **3 running, 3 released pending and 94 held**; the extra pair has not started training.
+- Qualified both jobs for 40 GiB using the completed E119 Qwen-0.5B Graph runtime, and expanded eligibility to node105/202/203/204/205/206/207/208/302. Preserved 8 CPUs, one GPU, 36 hours, original IDs, scientific inputs and the 3,072-step target. Running Countdown allocations retain 128 GiB. The original controller counts all six release journals without issues and keeps its persistent cap of four.
+- Full shared checkpoint admission required temporarily holding six already pending E118 continuations and pausing the E124 CPU launcher. Observer 31220594 has restored 31151400; five E118 IDs remain under automatic storage-gated restoration: 31124282, 31124283, 31124285, 31193187 and 31048143. E124 CPU 31164037 is restored last after the E118 holds and an additional 220 GiB allowance. Preserved all checkpoints, dependencies and the original seven-day restoration deadline.
+- Repaired a proven observer stall caused by unbounded ZIP footer reads while another job's optimizer checkpoint grew. Archived the original operational source/plan, installed process-local bounded metadata reads and increased only the same CPU observer to 8 GiB. Two healthy passes at 22:34 and 22:36 EDT verified recovery; process RSS was about 30 MiB with zero memory-pressure/OOM events. No running GPU allocation was interrupted by the handoff or repair.
+- Node203 later had enough raw capacity for both jobs, but Slurm priority still blocked allocation. Test-only partition and shorter backfill-window comparisons found no immediate start; no account/partition migration or training resubmission was performed.
+- Latest counts: E118 137/150 complete, 7 running; E119 86/100 complete, 5 running; E120-R1 43/45 complete, both remaining running; E122 3 running. All four cohorts have zero failed cells. Release-helper tests, storage-handoff checks, bounded-reader regressions and independent runtime checks passed. Final audit: `var/artifacts/e122_two_cell_push_20260910/README.md`; final readback: `var/artifacts/e122_two_cell_push_20260910/handoff_verification.json`.
+
+
+## 2026-09-12 — Completed paper census, neutral Python CLI repair, and finite E122 expansion
+
+- Both papers now contain the completed GPT/Grok discovery analysis and E118 150/150, E119 100/100, E120-R1 45/45 endpoints. The original frozen E120 primary estimate and Falcon Countdown exclusion are retained. All five Level-2 factorials and the full 135-contrast concentration report are included. Both PDF builds and the workshop source bundle pass their publication checks; Table 1 icons were visually verified.
+- Neutral Python V5 remains admitted at pass@1 22.34% / pass@8 70.51%, with 4,096 exact external regrades. Four first-release jobs exposed a separate missing CLI registration before any training output. They were held; all 22 Python jobs were replaced with CLI-tested immutable successors. Only native argument admission changed. Current E122 IDs: 31259067–31259086; E124 IDs: 31259087–31259088, still blocked by its prior systems qualification. The first four E122 treatments are running with zero restarts and verified initial evaluations.
+- The earlier finite expansions admitted nine additional E122 cells; a fresh post-repair capacity census admitted seven more non-Python cells, 31158704–31158710. All seven obtained RUNNING allocations. At 17:06 UTC the merged campaign has 18 running, 11 completed endpoints, 71 held, and no issues. All inference tasks, including the new two-task array31258973, retain their storage reservations; the final seven-job plan had over3TiB remaining margin.
+- CPU controller31259141 restores the migrated queue continuation at the original persistent cap4; finite expansions do not replenish automatically. Node302 is in use; node105 remains DOWN after an unexpected reboot; draining node206 contributes no new capacity.
+- User-authorized home cleanup removed only a VS Code download cache and an explicitly obsolete, unused extension. This restored about500MiB quota headroom and approval-session access. Scientific files, active editor installations and Codex sessions were preserved.
+- Consolidated evidence: `paper/audits/paper_refresh_20260912/README.md`; migration: `var/artifacts/python_level3_cli_recovery_20260912/committed.json`; final finite expansion: `var/artifacts/e122_after_cli_capacity_20260912/plan.json`.
+
+- End-to-end Python repair verified at 2026-09-12T17:11:15.214677+00:00: drgrpo 32, replay_drgrpo 28, maxrl 11, replay_maxrl 32. All four have finite policy loss/gradient metrics and zero restarts. Immutable metric prefixes and scheduler readbacks are retained in `var/artifacts/python_level3_cli_recovery_20260912/FINAL_STATUS.json`.
+
+
+## 2026-09-12 — E122 false-failure correction and three more starts
+
+- The 20 reported failures were cancelled Python predecessors. Updated campaign_stats.py to follow both committed migrations to current jobs31259067–31259086, preserving the original 100 cells and job history. Current Python seed43 treatments have optimizer progress and zero restarts.
+- Released existing Graph seed46 jobs31158711–31158713 after a fresh capacity and aggregate storage census. All three are running: one on node207 and two on node302. Finite active bound21; persistent cap4 unchanged. Both inference31259131 task reservations are retained; storage margin2910GiB.
+- Final readback: 11 complete,21 running,68 held,0 failed. Tracker58 and capacity6 targeted tests passed, and the actual campaign_stats.py CLI was verified. Evidence: var/artifacts/e122_failure_review_20260912/README.md and final_verification.json; release receipts: var/artifacts/e122_more_capacity_20260912/.
+
+
+## 2026-09-13 — All 68 remaining E122 cells released
+
+- At the user's explicit request, released all 68 remaining held jobs through the migrated E122 release journal, with an aggregate 68-writer reservation. The prior CPU controller 31259141 had failed on shared admission-lock contention; finite expansions left no working replenishment.
+- Final verified census at 2026-09-13T15:10:30.879853+00:00: 32 complete, 6 running, 62 released pending, zero held, zero reconciliation issues. Initial jobs 31158689–31158694 obtained allocations on node208/node302; startup readback has zero restarts and no fatal log errors.
+- Added already-qualified node208 eligibility after held-job audits. All 68 submitted commands, scientific parameters, and resource requests remain unchanged. Peak/terminal/headroom reserve 1,277 GiB; admission margin 1,882 GiB. All 28 targeted regression tests passed. Published a fresh controller status to replace the stale held annotation.
+- Evidence: `var/artifacts/e122_all_remaining_20260913/README.md`, `verification.json`, and `final_status.json`. The remaining queue progresses directly through Slurm without a replenishment controller.

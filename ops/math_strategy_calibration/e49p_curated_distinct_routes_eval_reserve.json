@@ -1,0 +1,252 @@
+{
+  "eval:0004:fc6210b97821b1458ef5": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CENTRAL_ISOSCELES_GEOMETRY] Apply the diameter-subtended right-angle theorem and the triangle angle sum to determine the requested angle."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:AFFINE_COORDINATE_AREA] Place the diameter on a coordinate axis, represent the remaining vertex by a ray at the given angle, impose the circle equation, and obtain the angle at the other endpoint from vector slopes."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:thales_angle_chase] Use the diameter theorem and a synthetic triangle-angle calculation.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:coordinate_circle_slopes] Solve the same angle from a coordinate circle and direction vectors.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0006:90cb2730a3aed671cfaf": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CUBIC_VOLUME_SCALING] Use the sphere's diameter as the sharp lower bound on every enclosing cube side, attain that bound, and cube the side length."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:AFFINE_COORDINATE_AREA] Center the sphere at the coordinate origin, bound each coordinate projection of the sphere, construct the smallest axis-aligned bounding cube, and compute its volume."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:diameter_side_bound] Derive the cube directly from the sphere diameter.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:coordinate_bounding_box] Derive the minimal cube from coordinate extrema.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0012:6383ddee9669e046995c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_EXPONENT_ACCUMULATION] Cancel and rebalance the denominator's prime powers to a decimal place-value denominator, form the terminating integer numerator, and sum its digits."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:RADIX_REPEATED_DIVISION] Perform exact long division of the numerator by the given denominator until the remainder vanishes, record the decimal digits, and sum them."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:denominator_power_balancing] Convert by prime-power cancellation and place-value scaling.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:literal_long_division] Generate the terminating decimal digits by the remainder algorithm.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0013:8dec94f0fda28ca703ca": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:INDEPENDENT_CHOICE_PRODUCT] Choose a witch and a sorcerer independently and use the resulting Cartesian product as the handshake count."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Build the complete witch-by-sorcerer incidence grid, mark each cross-group pair exactly once, and count the marked cells."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:bipartite_product] Use a closed-form bipartite Cartesian-product count.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:incidence_grid_enumeration] Enumerate and count every allowed cross-group pair.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0014:819ab71860d2491541bd": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ORDERED_ENUMERATION] Extract the requested-year column, sort all county values, and average the central pair."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Without sorting, test each distinct table value by counting entries below and above it, identify the two central ranks, and average them."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:full_sort_median] Obtain the median from a complete ordered list.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:rank_count_selection] Select the central ranks by comparison counts without sorting.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0020:772d34a0867554010dee": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_FACTOR_GCD_LCM] Factor both integers, intersect their prime exponents, generate the common two-digit divisors, and return their count."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:EUCLIDEAN_ALGORITHM] Compute the gcd by quotient-remainder steps, scan all two-digit integers for exact divisibility by that gcd, and return the passing count."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:prime_lattice_common_divisors] Construct common divisors through prime exponents.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:euclidean_gcd_scan] Use Euclid followed by a literal divisor scan.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0023:5050e85c57ac45b52494": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ORDERED_ENUMERATION] Enumerate integers in the stated interval, test each candidate and the candidate increased by two for primality, and return the unique simultaneous pass."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:PRIME_EXPONENT_ACCUMULATION] Sieve the interval by residues modulo the relevant small primes, apply the same sieve after the fixed offset, and directly verify the sole surviving candidate."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:twin_prime_literal_scan] Test every integer in the interval.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:modular_prime_sieve] Eliminate residue classes before the final primality check.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0043:dd79eab60f0f24c25e74": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ORTHOCENTER_SUPPLEMENT] Use the perpendicular altitude relations to identify the orthocenter angle as the supplement of the remaining triangle angle."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:AFFINE_COORDINATE_AREA] Place a side on a coordinate axis, construct rays with the two given angles, solve their intersection, write both altitude direction vectors, and compute their included angle from a dot product."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:synthetic_orthocenter_angle] Use perpendicular-line angle chasing.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:coordinate_altitude_vectors] Compute the altitude angle analytically from coordinates.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0047:5310db58fbda4a6559d0": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:POLYGON_EXTERIOR_TURNING] Use the equal exterior turns of the regular polygon and the straight-line extension to obtain the star-tip angle."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:CENTRAL_ISOSCELES_GEOMETRY] Join the polygon vertices to its center, derive the base angles of the congruent isosceles central triangles, and transfer those angles through the extended sides."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:exterior_turning_angle] Solve from the polygon's exterior turns.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:central_isosceles_decomposition] Solve from central triangles and line-angle transfer.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0048:bb835aabaedccfa0c71d": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:DIRECT_RATE_DEFINITION] Condition on Alice's transferred color, use its multiplicity in Bob's enlarged bag, and return the necessary-and-sufficient return-color probability."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ORDERED_ENUMERATION] Enumerate every labeled transfer-and-return outcome, retain exactly those restoring equal color contents, and divide the passing count by the total count."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:conditional_color_multiplicity] Compute the probability by conditioning on the transferred color.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:labeled_transition_scan] Exhaust all labeled two-step transitions.",
+        "strategy_id": "S2"
+      }
+    ]
+  }
+}

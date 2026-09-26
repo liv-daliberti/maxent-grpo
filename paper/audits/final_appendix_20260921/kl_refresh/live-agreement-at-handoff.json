@@ -1,0 +1,27 @@
+{
+  "plot_paper_reference_kl_plane.py": {
+    "snapshot_sha256": "e80100dac666a374def048d52a18b0d243521d772666cff32dbba0d70bc5911e",
+    "live_sha256": "e80100dac666a374def048d52a18b0d243521d772666cff32dbba0d70bc5911e",
+    "matches": true
+  },
+  "reference_kl_knee.pdf": {
+    "snapshot_sha256": "510a0e2fc7b39fd4ad169a6ccd2c3630ad58f22f308d76318115a06cc93594c5",
+    "live_sha256": "510a0e2fc7b39fd4ad169a6ccd2c3630ad58f22f308d76318115a06cc93594c5",
+    "matches": true
+  },
+  "reference_kl_knee.png": {
+    "snapshot_sha256": "a4bafa5ae517db761f635e99d7b8d23cb1d62d6585c30832ec1c09f4efbcb009",
+    "live_sha256": "a4bafa5ae517db761f635e99d7b8d23cb1d62d6585c30832ec1c09f4efbcb009",
+    "matches": true
+  },
+  "reference_kl_plane.pdf": {
+    "snapshot_sha256": "25a959cee8d2f479e7f4ba746d350d0436c2b682e11ea02698941c02d7b6c28b",
+    "live_sha256": "25a959cee8d2f479e7f4ba746d350d0436c2b682e11ea02698941c02d7b6c28b",
+    "matches": true
+  },
+  "reference_kl_plane.png": {
+    "snapshot_sha256": "b2e95cb150382d447065a9d3c09906ae37f7bd8612b154f1e0c0fe7b65263bda",
+    "live_sha256": "b2e95cb150382d447065a9d3c09906ae37f7bd8612b154f1e0c0fe7b65263bda",
+    "matches": true
+  }
+}

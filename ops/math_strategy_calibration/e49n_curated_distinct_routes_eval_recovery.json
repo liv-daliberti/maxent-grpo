@@ -1,0 +1,164 @@
+{
+  "eval:0001:36611d0560b627daf41a": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Represent a placement by an unordered pair of nonnegative box occupancies summing to the given ball count and enumerate the smaller occupancy through half that total."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:GEOMETRIC_SERIES_DIFFERENTIATION] Form the ordinary generating function for partitions into at most two parts and extract the coefficient at the requested ball count."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:unordered_occupancy_scan] List every canonical occupancy pair directly.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:partition_generating_function] Extract the required coefficient from the finite-part partition series.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0025:b44fdd37e232dc4c84bb": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:EUCLIDEAN_ALGORITHM] Take an integer linear combination of n+7 and 2n+1 to obtain a constant divisible by every possible gcd, then exhibit an n attaining that bound."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Enumerate n by residue class modulo the constant produced by the Euclidean combination, evaluate both expressions in each class, and select the largest attainable gcd."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:symbolic_euclidean_bound] Prove a universal gcd bound by a linear combination and construct equality.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:residue_class_gcd_scan] Exhaust the finite residue classes and compare their attainable gcd values.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0031:77943c11f8ca982d042c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ARITHMETIC_MEAN] Use symmetry of the odd-length consecutive list to equate median and mean, then divide the given total by the term count and return that numeric quotient."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ARITHMETIC_SEQUENCE_SUM] Write the endpoint sum formula, solve for the first term, advance to the unique central term, and return its numeric value."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:median_equals_mean_numeric] Compute the median directly as the list mean.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:sequence_endpoint_numeric] Solve the arithmetic-series endpoint equation and index its center.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0038:08a98d7d42f9f5d8949c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_FACTORIZE] Factor the fixed final term into prime powers."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:PRIME_EXPONENT_ACCUMULATION] Require the integer common ratio squared to divide the final term and determine the largest ratio compatible with strict increase."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ARITHMETIC] Divide the final term by that ratio squared and return the resulting first term."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Enumerate every integer ratio in its finite square-root bound, test integrality and strict increase, and return the first term from the unique passing ratio."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:factor_exponent_complete] Use prime exponents to constrain the ratio and explicitly compute the first term.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4"],
+        "plan": "[KERNEL:complete_integer_ratio_scan] Exhaust ratios and explicitly return the first term from the passing case.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0041:9a01eabaf416b53ac8ba": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CONSTRUCT_OBJECT] Contract the three named people into a super-person while preserving every internal order."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:COMBINATION_PRODUCT] Count circular permutations of the contracted objects and multiply by the block's internal permutations."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Fix a labeled person at a reference seat, enumerate every permutation of all remaining people, directly test whether the named people occupy a consecutive cyclic run, and return the passing count."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:circular_block_contraction] Count with a contracted consecutive block.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3"],
+        "plan": "[KERNEL:literal_anchored_seating_scan] Exhaust anchored circular seatings and test cyclic adjacency directly.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0044:6d905488e3e784c856e5": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PLANE_CROSS_PRODUCT] Form two displacement vectors from the given points, take their cross product, normalize its integer components, and determine the constant by substitution."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:AFFINE_COORDINATE_AREA] Set the affine four-column determinant containing a variable point and all listed points to zero, expand its cofactors, and normalize the resulting integer equation."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1"],
+        "plan": "[KERNEL:normal_vector_cross_product] Obtain the plane normal from a vector cross product.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A2"],
+        "plan": "[KERNEL:affine_coplanarity_determinant] Expand a coplanarity determinant without constructing a cross product.",
+        "strategy_id": "S2"
+      }
+    ]
+  }
+}

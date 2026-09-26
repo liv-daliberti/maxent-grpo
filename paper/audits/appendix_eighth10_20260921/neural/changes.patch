@@ -1,0 +1,89 @@
+--- P4-before.tex
++++ P4-replacement.tex
+@@ -1,15 +1,16 @@
+ \subsection{Neural score identities and the limits of conditional inertness}
+ \label{app:neural-binary-inertness}
+ 
+-The distinction between correctness and its allocation among correct outputs
+-is established in prior work: \citet[Theorem~3.1, v1]{sinha2026expected}
+-derive the expected-return log-ratio dynamics for softmax outcome logits,
+-and \citet[Section~4.1, v1]{lochab2026ucpo} identify binary reward's
+-indifference to allocation within the correct set. The extension here gives
+-the mean and covariance of general outcome-binary group estimators in neural
+-parameters, then states what survives finite steps, shared prompts, and
+-response-length weighting. This subsection replaces the categorical
+-assumptions with the differentiable-policy assumptions stated below.
++Expected binary reward equals the total correct mass; conditional diversity
++depends on its allocation among solution modes.
++\citet[Theorem~3.1, v1]{sinha2026expected} derive the expected-return
++log-ratio dynamics for softmax outcome logits, and
++\citet[Section~4.1, v1]{lochab2026ucpo} identify binary reward's
++indifference to allocation within the correct set. For differentiable neural
++policies, outcome-binary group estimators have per-prompt means proportional
++to the correctness gradient but can differ in covariance. Finite steps,
++shared prompts, and response-dependent weighting limit the resulting
++trajectory equivalence.
+ 
+ \begin{theorem}[Per-prompt neural mean and covariance]
+ \enforcehalffinalproseline
+@@ -104,18 +105,21 @@
+ =c_a(P)^2\|v\|_2^2+\operatorname{tr}\operatorname{Cov}(\widehat g_a)$.
+ \end{proof}
+ 
+-The normalization by $c_a(P)$ isolates direction for this comparison; it is
+-not an additional step in the implemented algorithm. For two such estimators,
+-their expected changes in $f$ differ by at most the sum of the two
+-second-order bounds. Conditional mode probabilities or \pmd{} may be used
+-as $f$ where the stated smoothness bounds hold. Thus mean-direction
+-equivalence is a first-order statement for stochastic finite updates, and
+-does not identify their trajectories or eventual surviving modes. Adam's
+-moments and subsequent PPO epochs require additional analysis.
++For two estimators satisfying the corollary, division by their respective
++coefficients $c_a(P)$ gives the same mean step $\eta v$; the training updates
++do not use this normalization. Their expected changes in $f$ then differ by
++at most the sum of the two second-order bounds. Conditional solution mode
++probabilities or \pmd{} may be used as $f$ where the stated smoothness bounds
++hold. Mean-direction equivalence is
++therefore a first-order statement for stochastic finite updates; it does
++not determine their trajectories or eventual surviving solution modes.
++The bound assumes fresh on-policy score updates and does not cover Adam's
++moment estimates or subsequent PPO epochs.
+ 
+ \begin{remark}[Shared prompts need not follow the same trajectory]
+ \label{rem:neural-binary-shared-prompts}
+-For prompt probabilities $\mu_x$ and shared parameters, the aggregate mean is
++For a fixed prompt-sampling distribution $\mu_x$ and shared parameters,
++the aggregate mean, assuming integrable updates, is
+ \begin{equation}
+  \E[\widehat g_a]
+  =\sum_x\mu_x c_a(P_x)\nabla_\theta P_x.
+@@ -199,18 +203,17 @@
+ \end{proof}
+ 
+ The residual is a within-outcome covariance between response weighting and
+-the policy score. A common length makes it zero; equal mean lengths for
+-correct and incorrect responses need not. More generally, response-dependent
+-information can leave the outcome-binary class. IPS uses outcome-frequency
+-weights \citep[Section~4.4, v1]{sinha2026expected}, and UCPO adds a
+-conditional-uniformity term \citep[Section~6, v1]{lochab2026ucpo}; neither
+-intervention is excluded by the mean-direction identity proved here.
+-
+-
+-The verified-key metric also fits an existing distributional diversity
+-functional. The following specialization gives its gradient for shared
+-neural parameters, connecting the conditional score identities to the
+-verified execution keys used by the reported diversity metric.
++the policy score. For inverse-length weighting, a common response length
++makes it zero; equal mean lengths for correct and incorrect responses need
++not. Response-dependent weights need not be functions of binary outcomes
++alone. IPS uses outcome-frequency weights
++\citep[Section~4.4, v1]{sinha2026expected}, and UCPO adds a
++conditional-uniformity term \citep[Section~6, v1]{lochab2026ucpo}; these
++interventions are outside the outcome-binary class analyzed above.
++
++The verified-key diversity metric is a specialization of SetPO's
++distributional functional. Its influence gives an exact metric gradient
++for shared neural parameters and fixed verified execution keys.
+ 
+ \begin{corollary}[Verified-key specialization of SetPO]
+ \enforcehalffinalproseline

@@ -1,0 +1,1797 @@
+{
+  "builder": {
+    "path": "ops/plot_paper_reorganized_results.py",
+    "sha256": "5c9cf567496c7c21ce35457b87745b2ef270afa2eec4961fd1f5167ddf5e26a7"
+  },
+  "contrast_direction": "replay minus the same base objective",
+  "display_metrics": {
+    "breadth8": {
+      "label": "extra@8 = distinct@8 - pass@8",
+      "source_scale_multiplier": 1,
+      "unit": "expected extra verified keys"
+    },
+    "distinct8": {
+      "label": "distinct@8",
+      "source_scale_multiplier": 1,
+      "unit": "expected verified keys"
+    },
+    "pass8": {
+      "label": "pass@8",
+      "source_scale_multiplier": 100,
+      "unit": "probability points"
+    }
+  },
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "figure": "replay_factorial_effects",
+  "figure_size_inches": [
+    6.7,
+    3.1
+  ],
+  "inference_note": "Intervals copied exactly from frozen summaries; unadjusted descriptive estimation intervals, not equivalence tests or simultaneous intervals.",
+  "minimum_font_pt": 9.75,
+  "outputs": {
+    "pdf": {
+      "path": "paper/figures/replay_factorial_effects.pdf",
+      "sha256": "865861bde5d9f4edc1122928e85b31ee2e5e0aa40c1d18dec2cb6cb1c0e868a9"
+    },
+    "png": {
+      "path": "paper/figures/replay_factorial_effects.png",
+      "sha256": "e261fe90f1ed63b4c9d1a2b62d24dfa2b26698c5ce4089b0839c7d1b950eb97e"
+    }
+  },
+  "paired_seed_counts": {
+    "drgrpo": 74,
+    "maxrl": 75
+  },
+  "partial_blocks": [
+    {
+      "ci95": null,
+      "domain": "countdown",
+      "n": 4,
+      "objective": "drgrpo",
+      "scale": "falcon1b",
+      "seeds": [
+        55,
+        56,
+        57,
+        58
+      ]
+    }
+  ],
+  "plotted_metrics": [
+    "pass8",
+    "distinct8"
+  ],
+  "rows": [
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "graph_coloring",
+      "model": "Qwen2.5-0.5B",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            2.0008704664098573,
+            2.2241295335901423
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 2.1125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 2.076171875,
+            "44": 2.107421875,
+            "45": 2.146484375,
+            "46": 1.994140625,
+            "47": 2.23828125
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.632802007050937,
+            0.6586042429490631
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.645703125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.62890625,
+            "44": 0.654296875,
+            "45": 0.65234375,
+            "46": 0.642578125,
+            "47": 0.650390625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "graph_coloring",
+      "model": "Qwen2.5-0.5B",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            1.1550762256136562,
+            2.1042987743863435
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 1.6296875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 1.220703125,
+            "44": 1.83203125,
+            "45": 1.552734375,
+            "46": 1.365234375,
+            "47": 2.177734375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.19956484212656048,
+            0.6168414078734396
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.408203125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.3203125,
+            "44": 0.478515625,
+            "45": 0.404296875,
+            "46": 0.1953125,
+            "47": 0.642578125
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "countdown",
+      "model": "Qwen2.5-0.5B",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.9594200434934598,
+            1.3405799565065402
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 1.15,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.94140625,
+            "44": 1.111328125,
+            "45": 1.30078125,
+            "46": 1.302734375,
+            "47": 1.09375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.040346072439522485,
+            0.3424664275604775
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.19140625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.0390625,
+            "44": 0.24609375,
+            "45": 0.2421875,
+            "46": 0.3359375,
+            "47": 0.09375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "countdown",
+      "model": "Qwen2.5-0.5B",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.8224478047919026,
+            1.3252084452080972
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 1.073828125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.97265625,
+            "44": 0.849609375,
+            "45": 0.99609375,
+            "46": 1.185546875,
+            "47": 1.365234375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.07387244872582413,
+            0.24184119872582413
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.083984375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": -0.0078125,
+            "44": 0.015625,
+            "45": 0.03125,
+            "46": 0.076171875,
+            "47": 0.3046875
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "python_factors",
+      "model": "Qwen2.5-0.5B",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.10051178303536584,
+            0.8989492830353658
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.39921875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.828125,
+            "44": 0.826171875,
+            "45": 0.046875,
+            "46": 0.271484375,
+            "47": 0.0234375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.17852835011511647,
+            0.8902471001151164
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.355859375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.828125,
+            "44": 0.826171875,
+            "45": 0.046875,
+            "46": 0.0546875,
+            "47": 0.0234375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "python_factors",
+      "model": "Qwen2.5-0.5B",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.0822685611474242,
+            1.9932060611474243
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.95546875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 1.828125,
+            "44": 1.767578125,
+            "45": 0.90234375,
+            "46": 0.279296875,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.03326372063132599,
+            1.052013720631326
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.509375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.828125,
+            "44": 0.828125,
+            "45": 0.828125,
+            "46": 0.0625,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "mathir",
+      "model": "Qwen2.5-0.5B",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.2199328250796188,
+            0.4105359249203812
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.315234375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.244140625,
+            "44": 0.34765625,
+            "45": 0.287109375,
+            "46": 0.43359375,
+            "47": 0.263671875
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.20454565721000406,
+            0.364985592789996
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.284765625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.21484375,
+            "44": 0.32421875,
+            "45": 0.2421875,
+            "46": 0.375,
+            "47": 0.267578125
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "mathir",
+      "model": "Qwen2.5-0.5B",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.2737374664017516,
+            0.43798128359824834
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.355859375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.359375,
+            "44": 0.3046875,
+            "45": 0.373046875,
+            "46": 0.287109375,
+            "47": 0.455078125
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.26246409695860357,
+            0.4242546530413965
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.343359375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.34375,
+            "44": 0.296875,
+            "45": 0.357421875,
+            "46": 0.275390625,
+            "47": 0.443359375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "pantry_plan",
+      "model": "Qwen2.5-0.5B",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.7813306180305092,
+            1.253825631969491
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 1.017578125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 1.09765625,
+            "44": 1.248046875,
+            "45": 0.7421875,
+            "46": 1.06640625,
+            "47": 0.93359375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.14865528284502277,
+            0.2646259671549772
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.206640625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.2734375,
+            "44": 0.205078125,
+            "45": 0.142578125,
+            "46": 0.21484375,
+            "47": 0.197265625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "pantry_plan",
+      "model": "Qwen2.5-0.5B",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.6361071229336768,
+            1.2451428770663233
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.940625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 1.322265625,
+            "44": 0.927734375,
+            "45": 0.7578125,
+            "46": 0.99609375,
+            "47": 0.69921875
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.10762536824480519,
+            0.2712808817551948
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.189453125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.279296875,
+            "44": 0.162109375,
+            "45": 0.12109375,
+            "46": 0.236328125,
+            "47": 0.1484375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "graph_coloring",
+      "model": "Falcon3-1B",
+      "objective": "drgrpo",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.46860654780586086,
+            0.8970184521941392
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.6828125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.701171875,
+            "56": 0.958984375,
+            "57": 0.505859375,
+            "58": 0.578125,
+            "59": 0.669921875
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.0889992479238401,
+            0.2164695020761599
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.152734375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.142578125,
+            "56": 0.228515625,
+            "57": 0.09375,
+            "58": 0.173828125,
+            "59": 0.125
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "graph_coloring",
+      "model": "Falcon3-1B",
+      "objective": "maxrl",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.22940870481005438,
+            0.043471204810054384
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": -0.09296875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": -0.2734375,
+            "56": 0.021484375,
+            "57": -0.083984375,
+            "58": -0.04296875,
+            "59": -0.0859375
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.015905216154799617,
+            0.04403021615479962
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0140625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": -0.0234375,
+            "56": 0.0234375,
+            "57": 0.033203125,
+            "58": 0.033203125,
+            "59": 0.00390625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "countdown",
+      "model": "Falcon3-1B",
+      "objective": "drgrpo",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": null,
+          "interval_type": null,
+          "mean": 0.42333984375,
+          "n": 4,
+          "partial": true,
+          "per_seed": {
+            "55": 0.296875,
+            "56": 0.513671875,
+            "57": 0.44140625,
+            "58": 0.44140625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58
+          ]
+        },
+        "pass8": {
+          "ci95": null,
+          "interval_type": null,
+          "mean": 0.30712890625,
+          "n": 4,
+          "partial": true,
+          "per_seed": {
+            "55": 0.220703125,
+            "56": 0.361328125,
+            "57": 0.302734375,
+            "58": 0.34375
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "countdown",
+      "model": "Falcon3-1B",
+      "objective": "maxrl",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.10078436462924115,
+            0.16562188537075886
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.133203125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.134765625,
+            "56": 0.10546875,
+            "57": 0.14453125,
+            "58": 0.169921875,
+            "59": 0.111328125
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.009862248357265811,
+            0.04091900164273419
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.025390625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.015625,
+            "56": 0.02734375,
+            "57": 0.0390625,
+            "58": 0.03515625,
+            "59": 0.009765625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "python_factors",
+      "model": "Falcon3-1B",
+      "objective": "drgrpo",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.8713872500639845,
+            1.3418939999360155
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 1.106640625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 1.439453125,
+            "56": 0.994140625,
+            "57": 1.083984375,
+            "58": 1.015625,
+            "59": 1.0
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.925680418935986,
+            1.032132081064014
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.97890625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.90234375,
+            "56": 0.994140625,
+            "57": 0.998046875,
+            "58": 1.0,
+            "59": 1.0
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "python_factors",
+      "model": "Falcon3-1B",
+      "objective": "maxrl",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.20912530481329833,
+            0.7685003048132983
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.2796875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.0,
+            "56": 0.5703125,
+            "57": 0.0,
+            "58": 0.0,
+            "59": 0.828125
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.3715938296254989,
+            0.6247188296254989
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.1265625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.0,
+            "56": -0.1953125,
+            "57": 0.0,
+            "58": 0.0,
+            "59": 0.828125
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "mathir",
+      "model": "Falcon3-1B",
+      "objective": "drgrpo",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.6134062455288898,
+            0.7053437544711103
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.659375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.69921875,
+            "56": 0.67578125,
+            "57": 0.681640625,
+            "58": 0.615234375,
+            "59": 0.625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.5821223884313815,
+            0.6983463615686185
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.640234375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.703125,
+            "56": 0.65625,
+            "57": 0.654296875,
+            "58": 0.59765625,
+            "59": 0.58984375
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "mathir",
+      "model": "Falcon3-1B",
+      "objective": "maxrl",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.3172897033687549,
+            0.5686477966312451
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.44296875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.376953125,
+            "56": 0.47265625,
+            "57": 0.515625,
+            "58": 0.546875,
+            "59": 0.302734375
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.309936423142672,
+            0.538501076857328
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.42421875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.359375,
+            "56": 0.44921875,
+            "57": 0.490234375,
+            "58": 0.521484375,
+            "59": 0.30078125
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "pantry_plan",
+      "model": "Falcon3-1B",
+      "objective": "drgrpo",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.5248530063223039,
+            1.361084493677696
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.94296875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.5390625,
+            "56": 1.390625,
+            "57": 1.16015625,
+            "58": 0.74609375,
+            "59": 0.87890625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.07426264162201456,
+            0.16167485837798545
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.11796875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.109375,
+            "56": 0.171875,
+            "57": 0.1015625,
+            "58": 0.078125,
+            "59": 0.12890625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "pantry_plan",
+      "model": "Falcon3-1B",
+      "objective": "maxrl",
+      "scale": "falcon1b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.06488728925832127,
+            0.6851127107416788
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.1484375,
+            "56": 0.15234375,
+            "57": 0.29296875,
+            "58": 0.62109375,
+            "59": 0.66015625
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.027628949387644805,
+            0.1192460506123552
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0734375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "55": 0.04296875,
+            "56": 0.02734375,
+            "57": 0.08203125,
+            "58": 0.109375,
+            "59": 0.10546875
+          },
+          "seeds": [
+            55,
+            56,
+            57,
+            58,
+            59
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "graph_coloring",
+      "model": "Qwen2.5-3B",
+      "objective": "drgrpo",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.4464845555939967,
+            0.7074216944060032
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.576953125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.671875,
+            "71": 0.458984375,
+            "72": 0.484375,
+            "73": 0.580078125,
+            "74": 0.689453125
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.10160967399877525,
+            0.20698407600122476
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.154296875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.181640625,
+            "71": 0.08984375,
+            "72": 0.1328125,
+            "73": 0.19140625,
+            "74": 0.17578125
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "graph_coloring",
+      "model": "Qwen2.5-3B",
+      "objective": "maxrl",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.022363709433259243,
+            0.3950199594332593
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.186328125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.232421875,
+            "71": 0.212890625,
+            "72": 0.4296875,
+            "73": 0.05078125,
+            "74": 0.005859375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.04782569654948335,
+            0.09470069654948335
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0234375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.0546875,
+            "71": 0.048828125,
+            "72": 0.0859375,
+            "73": -0.01953125,
+            "74": -0.052734375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "countdown",
+      "model": "Qwen2.5-3B",
+      "objective": "drgrpo",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.28517967588519494,
+            0.38278907411480506
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.333984375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.375,
+            "71": 0.3515625,
+            "72": 0.294921875,
+            "73": 0.2890625,
+            "74": 0.359375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.11339464464746109,
+            0.16004285535253893
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.13671875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.14453125,
+            "71": 0.162109375,
+            "72": 0.140625,
+            "73": 0.119140625,
+            "74": 0.1171875
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "countdown",
+      "model": "Qwen2.5-3B",
+      "objective": "maxrl",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.23715727972203715,
+            0.36596772027796287
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.3015625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.37109375,
+            "71": 0.3203125,
+            "72": 0.306640625,
+            "73": 0.23046875,
+            "74": 0.279296875
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.08738707569816065,
+            0.21183167430183933
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.149609375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.236328125,
+            "71": 0.146484375,
+            "72": 0.1328125,
+            "73": 0.1171875,
+            "74": 0.115234375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "python_factors",
+      "model": "Qwen2.5-3B",
+      "objective": "drgrpo",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.3484902341289491,
+            1.2186972658710509
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.78359375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 1.38671875,
+            "71": 0.7421875,
+            "72": 0.529296875,
+            "73": 0.712890625,
+            "74": 0.546875
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.4297855002315457,
+            0.7499019997684543
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.58984375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.76171875,
+            "71": 0.6328125,
+            "72": 0.4609375,
+            "73": 0.6328125,
+            "74": 0.4609375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "python_factors",
+      "model": "Qwen2.5-3B",
+      "objective": "maxrl",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.07867982295403525,
+            0.7041326770459648
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.39140625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.1484375,
+            "71": 0.6015625,
+            "72": 0.55859375,
+            "73": 0.0859375,
+            "74": 0.5625
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.0369152769998326,
+            0.5900402769998325
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.2765625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.0,
+            "71": 0.4609375,
+            "72": 0.4609375,
+            "73": 0.0,
+            "74": 0.4609375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "mathir",
+      "model": "Qwen2.5-3B",
+      "objective": "drgrpo",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.3263276058068496,
+            0.5291411441931504
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.427734375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.498046875,
+            "71": 0.443359375,
+            "72": 0.4140625,
+            "73": 0.294921875,
+            "74": 0.48828125
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.3105424944134387,
+            0.5066450055865612
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.40859375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.4609375,
+            "71": 0.40625,
+            "72": 0.4140625,
+            "73": 0.279296875,
+            "74": 0.482421875
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "mathir",
+      "model": "Qwen2.5-3B",
+      "objective": "maxrl",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.1790513266305475,
+            0.33110492336945246
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.255078125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.1796875,
+            "71": 0.26171875,
+            "72": 0.349609375,
+            "73": 0.2421875,
+            "74": 0.2421875
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.1685564531729873,
+            0.3298810468270127
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.24921875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.169921875,
+            "71": 0.2578125,
+            "72": 0.349609375,
+            "73": 0.234375,
+            "74": 0.234375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_drgrpo minus drgrpo",
+      "domain": "pantry_plan",
+      "model": "Qwen2.5-3B",
+      "objective": "drgrpo",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.38060729689422534,
+            0.9662677031057747
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.6734375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.701171875,
+            "71": 0.794921875,
+            "72": 0.984375,
+            "73": 0.396484375,
+            "74": 0.490234375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.007018223438527094,
+            0.2054817765614729
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.10625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.09375,
+            "71": 0.177734375,
+            "72": 0.19921875,
+            "73": 0.037109375,
+            "74": 0.0234375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    },
+    {
+      "contrast": "replay_maxrl minus maxrl",
+      "domain": "pantry_plan",
+      "model": "Qwen2.5-3B",
+      "objective": "maxrl",
+      "scale": "qwen3b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.5227738894392849,
+            0.8358198605607151
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.679296875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.677734375,
+            "71": 0.625,
+            "72": 0.61328125,
+            "73": 0.896484375,
+            "74": 0.583984375
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.04218732261700017,
+            0.09843767738299983
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0703125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "70": 0.087890625,
+            "71": 0.0546875,
+            "72": 0.0390625,
+            "73": 0.091796875,
+            "74": 0.078125
+          },
+          "seeds": [
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        }
+      }
+    }
+  ],
+  "sample_budget_k": 8,
+  "schema": "paper-reorganized-replay-figure-v1",
+  "scope": "Level 1 matched terminal replay effects; each objective retains its own source-admitted paired seeds.",
+  "source_endpoint_snapshot": {
+    "collection_finished_at_utc": "2026-09-12T15:37:38.751403+00:00",
+    "collection_started_at_utc": "2026-09-12T15:32:12.793811+00:00",
+    "path": "paper/audits/results_completion_20260912/latest_endpoints.json",
+    "sha256": "8be05fb5b3b7032ddf5db42d4e874a393ccdc73bede4087c9ddb9a545452cfbb"
+  },
+  "source_sha256": {
+    "paper/figures/e118_all_scale_factorial_progress.json": "3b2353523c2f024c514f3230a6d48e670f19713b652b3ecc68139878e80989d4",
+    "paper/figures/experiment1_retention_comparator_matrix.json": "43d9f0a65a1ced50752b8f39942051a6a9288384342e6f0c02bcc6cb530cdc74"
+  },
+  "sources": [
+    {
+      "path": "paper/figures/experiment1_retention_comparator_matrix.json",
+      "sha256": "43d9f0a65a1ced50752b8f39942051a6a9288384342e6f0c02bcc6cb530cdc74"
+    },
+    {
+      "path": "paper/figures/e118_all_scale_factorial_progress.json",
+      "sha256": "3b2353523c2f024c514f3230a6d48e670f19713b652b3ecc68139878e80989d4"
+    }
+  ],
+  "terminal_step": 3072
+}

@@ -1,0 +1,118 @@
+{
+ "schema": "paper-domain-support-v1",
+ "what": "valid-mode counts per prompt, per split, for the Level-1 released datasets; the manuscript's means are the evaluation split and its ranges the training split.",
+ "builder": "ops/build_paper_domain_support_macros.py",
+ "domains": {
+  "Graph": {
+   "dataset": "var/data/graph_coloring_modebench_v2",
+   "train": {
+    "rows": 384,
+    "mean": 6.296875,
+    "min": 4,
+    "max": 18
+   },
+   "eval": {
+    "rows": 128,
+    "mean": 6.265625,
+    "min": 4,
+    "max": 12
+   }
+  },
+  "Countdown": {
+   "dataset": "var/data/exact_countdown_easy3_probe",
+   "train": {
+    "rows": 384,
+    "mean": 4.486979166666667,
+    "min": 2,
+    "max": 8
+   },
+   "eval": {
+    "rows": 128,
+    "mean": 4.5234375,
+    "min": 2,
+    "max": 8
+   }
+  },
+  "Python": {
+   "dataset": "var/data/python_factor_modebench_v1",
+   "train": {
+    "rows": 384,
+    "mean": 243.4375,
+    "min": 16,
+    "max": 3600
+   },
+   "eval": {
+    "rows": 128,
+    "mean": 229.4375,
+    "min": 16,
+    "max": 1512
+   }
+  },
+  "MathIR": {
+   "dataset": "var/data/mathir_action_menu_v1",
+   "train": {
+    "rows": 384,
+    "mean": 5,
+    "min": 5,
+    "max": 5
+   },
+   "eval": {
+    "rows": 128,
+    "mean": 5,
+    "min": 5,
+    "max": 5
+   }
+  },
+  "Pantry": {
+   "dataset": "var/data/pantry_plan_modebench_v2",
+   "train": {
+    "rows": 384,
+    "mean": 18.760416666666668,
+    "min": 8,
+    "max": 45
+   },
+   "eval": {
+    "rows": 128,
+    "mean": 18.1875,
+    "min": 8,
+    "max": 40
+   }
+  },
+  "PythonCases": {
+   "cases_per_prompt": [
+    4
+   ],
+   "integer_range": [
+    6,
+    96
+   ]
+  },
+  "Reached": {
+   "Graph": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 2.53125
+   },
+   "Countdown": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 3.46875
+   },
+   "Python": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 3.75
+   },
+   "MathIR": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 1.90625
+   },
+   "Pantry": {
+    "draws": 512,
+    "prompts": 32,
+    "distinct_modes": 6.90625
+   }
+  }
+ }
+}

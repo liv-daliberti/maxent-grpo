@@ -1,0 +1,11 @@
+\textbf{GRPO} & direct comparator & Ordinary group-relative policy optimization. & 75/75 & 75 & none \\
+\textbf{Dr.GRPO} & core control & Length-debiased GRPO and the matched zero-replay control. & 75/75 & 75 & none \\
+\textbf{UCPO} & direct comparator & Online redistribution toward a uniform correct conditional policy. & 75/75 & 50 & 25 failed \\
+\textbf{RLEP-Dr} & direct comparator & Prompt-matched verified-success replay on eligible prompts, with an unchanged Dr.GRPO update otherwise. & 75/75 & 47 & 6 blocked; 22 failed \\
+\textbf{Re:Dr.GRPO} & headline method & Canonical mode-balanced verified replay on top of Dr.GRPO. & 75/75 & 75 & none \\
+\textbf{Adaptive Re:Dr.GRPO} & replay ablation & Re:Dr.GRPO with bank-normalized replay dose. & 25/75 & 25 & 50 unregistered \\
+\textbf{Semantic MaxEnt} & semantic ablation & Fixed semantic-MaxEnt derivative without verified replay. & 50/75 & 50 & 25 unregistered \\
+\textbf{Adaptive Semantic MaxEnt} & semantic ablation & Adaptive semantic-MaxEnt derivative without verified replay. & 0/75 & 0 & 75 unregistered \\
+\textbf{Re:Dr.GRPO + Semantic MaxEnt} & semantic factorial & Fixed semantic MaxEnt added to canonical verified replay. & 55/75 & 55 & 20 unregistered \\
+\textbf{Adaptive Semantic MaxEnt + Re:Dr.GRPO} & semantic factorial & Adaptive semantic MaxEnt added to canonical verified replay. & 55/75 & 55 & 20 unregistered \\
+    \bottomrule

@@ -1,0 +1,1264 @@
+{
+  "builder": {
+    "path": "ops/build_mode_diversity_hosted.py",
+    "sha256": "7448f04e9604dbccea2187a4bcd37edcbf7f74bf535374bb938e1b218e12065c"
+  },
+  "comparison": {
+    "path": "paper/results/frontier_comparison_20260911.json",
+    "sha256": "8c45e607ef127bc8de0cbba205f7075340c3069c109b66feac4466382964b3c6"
+  },
+  "definition": {
+    "aggregation": "unweighted mean over prompts with at least two verified draws",
+    "metric": "pairwise modal diversity (PMD)",
+    "min_defined_prompts": 30
+  },
+  "models": [
+    {
+      "cells": [
+        {
+          "defined_prompts": 122,
+          "domain": "countdown",
+          "effective_modes": 1.4591223623885867,
+          "level": 1,
+          "pass8": 0.984375,
+          "pmd": 0.31465651834504293,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.953125
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.1185319268460145,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.10597098214285715,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 115,
+          "domain": "mathir",
+          "effective_modes": 1.2435633367662204,
+          "level": 1,
+          "pass8": 0.8984375,
+          "pmd": 0.1958592132505176,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.8984375
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 2.1333333333333333,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.53125,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 84,
+          "domain": "python_factors",
+          "effective_modes": 1.1542614101096025,
+          "level": 1,
+          "pass8": 0.90625,
+          "pmd": 0.1336451247165533,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.65625
+        },
+        {
+          "defined_prompts": 99,
+          "domain": "countdown",
+          "effective_modes": 1.5767320162299494,
+          "level": 2,
+          "pass8": 0.8671875,
+          "pmd": 0.36577681577681576,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.7734375
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.1991969663171982,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.16610863095238096,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 110,
+          "domain": "mathir",
+          "effective_modes": 1.0,
+          "level": 2,
+          "pass8": 0.9296875,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.859375
+        },
+        {
+          "defined_prompts": 115,
+          "domain": "pantry_plan",
+          "effective_modes": 1.6280167183497372,
+          "level": 2,
+          "pass8": 0.9609375,
+          "pmd": 0.3857556935817805,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.8984375
+        },
+        {
+          "defined_prompts": 14,
+          "domain": "python_factors",
+          "effective_modes": 1.0,
+          "level": 2,
+          "pass8": 0.1171875,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": false,
+          "support": 0.109375
+        },
+        {
+          "defined_prompts": 109,
+          "domain": "countdown",
+          "effective_modes": 1.295379304490535,
+          "level": 3,
+          "pass8": 0.8984375,
+          "pmd": 0.2280253385757973,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.8515625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.0519518638098033,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.04938616071428571,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 125,
+          "domain": "mathir",
+          "effective_modes": 1.0,
+          "level": 3,
+          "pass8": 0.9765625,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9765625
+        },
+        {
+          "defined_prompts": 125,
+          "domain": "pantry_plan",
+          "effective_modes": 1.8364991079861475,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.4554857142857143,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9765625
+        },
+        {
+          "defined_prompts": 15,
+          "domain": "python_factors",
+          "effective_modes": 1.0,
+          "level": 3,
+          "pass8": 0.140625,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": false,
+          "support": 0.1171875
+        }
+      ],
+      "cells_total": 15,
+      "label": "GPT-5.6 Sol",
+      "macro_pmd": 0.22553232248782656,
+      "model": "gpt-5.6-sol",
+      "reportable_cells": 13,
+      "samples": {
+        "path": "artifacts/frontier_modebench_gpt56sol_20260911/audited_primary_samples.jsonl",
+        "sha256": "992295ffb616e4914f8e873caf312e61253bf440d3e02ce70d453abeb5cbe97c"
+      }
+    },
+    {
+      "cells": [
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.2691218130311614,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.21205357142857142,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.062870699881376,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.05915178571428571,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 117,
+          "domain": "mathir",
+          "effective_modes": 1.08297520661157,
+          "level": 1,
+          "pass8": 0.9140625,
+          "pmd": 0.07661782661782661,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9140625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.3736011037866014,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.27198660714285716,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 79,
+          "domain": "python_factors",
+          "effective_modes": 1.0854488353834075,
+          "level": 1,
+          "pass8": 0.8125,
+          "pmd": 0.07872212176009645,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.6171875
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.4422535211267606,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.306640625,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.13381841189497,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.11802455357142858,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 125,
+          "domain": "mathir",
+          "effective_modes": 1.0363205684958547,
+          "level": 2,
+          "pass8": 0.984375,
+          "pmd": 0.03504761904761905,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9765625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.246001946878042,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.19743303571428572,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 0,
+          "domain": "python_factors",
+          "effective_modes": null,
+          "level": 2,
+          "pass8": 0.0234375,
+          "pmd": null,
+          "prompts": 128,
+          "reportable": false,
+          "support": 0.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.313301575668743,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.23856026785714285,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.0061763054463786,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.006138392857142857,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 127,
+          "domain": "mathir",
+          "effective_modes": 1.0119521912350598,
+          "level": 3,
+          "pass8": 0.9921875,
+          "pmd": 0.011811023622047244,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9921875
+        },
+        {
+          "defined_prompts": 127,
+          "domain": "pantry_plan",
+          "effective_modes": 1.297778642855405,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.2294525684289464,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9921875
+        },
+        {
+          "defined_prompts": 0,
+          "domain": "python_factors",
+          "effective_modes": null,
+          "level": 3,
+          "pass8": 0.0,
+          "pmd": null,
+          "prompts": 128,
+          "reportable": false,
+          "support": 0.0
+        }
+      ],
+      "cells_total": 15,
+      "label": "Claude Opus 5",
+      "macro_pmd": 0.14166461528940386,
+      "model": "claude-opus-5",
+      "reportable_cells": 13,
+      "samples": {
+        "path": "artifacts/frontier_modebench_claude_opus5_20260911/audited_primary_samples.jsonl",
+        "sha256": "8f0e2dc6dad57657659eb0b86f707f98c689940509a506d243b36da42a703d9c"
+      }
+    },
+    {
+      "cells": [
+        {
+          "defined_prompts": 126,
+          "domain": "countdown",
+          "effective_modes": 1.376798397377527,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.2736772486772487,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.984375
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.2269770626497776,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.1849888392857143,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 115,
+          "domain": "mathir",
+          "effective_modes": 1.26821583300512,
+          "level": 1,
+          "pass8": 0.90625,
+          "pmd": 0.21149068322981368,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.8984375
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 2.3389166847944307,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.5724516369047619,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.8110156644770086,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.4478236607142857,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5634269760949224,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.36037946428571427,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.3480441323971917,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.25818452380952384,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 117,
+          "domain": "mathir",
+          "effective_modes": 1.0,
+          "level": 2,
+          "pass8": 0.921875,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9140625
+        },
+        {
+          "defined_prompts": 127,
+          "domain": "pantry_plan",
+          "effective_modes": 1.516504136695761,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.3405886764154481,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9921875
+        },
+        {
+          "defined_prompts": 113,
+          "domain": "python_factors",
+          "effective_modes": 1.3762904535436724,
+          "level": 2,
+          "pass8": 0.9609375,
+          "pmd": 0.273409186683523,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.8828125
+        },
+        {
+          "defined_prompts": 116,
+          "domain": "countdown",
+          "effective_modes": 1.408988374110706,
+          "level": 3,
+          "pass8": 0.9375,
+          "pmd": 0.2902709359605911,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.90625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.078219013237064,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.07254464285714286,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 125,
+          "domain": "mathir",
+          "effective_modes": 1.0,
+          "level": 3,
+          "pass8": 0.9765625,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9765625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.7189448441247,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.41824776785714285,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 115,
+          "domain": "python_factors",
+          "effective_modes": 1.5075376884422111,
+          "level": 3,
+          "pass8": 0.9765625,
+          "pmd": 0.33666666666666667,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.8984375
+        }
+      ],
+      "cells_total": 15,
+      "label": "GPT-5.4",
+      "macro_pmd": 0.26938159555650515,
+      "model": "gpt-5.4",
+      "reportable_cells": 15,
+      "samples": {
+        "path": "artifacts/frontier_modebench_gpt54_20260911/audited_primary_samples.jsonl",
+        "sha256": "63c5646ef375d77579bcb5837bc5f29089d45cd882089a192d5b48266abbb023"
+      }
+    },
+    {
+      "cells": [
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5439402642159679,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.3523065476190476,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.1395866454689985,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.12248883928571429,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 122,
+          "domain": "mathir",
+          "effective_modes": 1.1076523994811933,
+          "level": 1,
+          "pass8": 0.9765625,
+          "pmd": 0.0971896955503513,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.953125
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 3.1595650896268,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.6835007440476191,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.1366952109102442,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.12025669642857142,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5199321458863442,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.34207589285714285,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.185969556585043,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.15680803571428573,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "mathir",
+          "effective_modes": 1.0532915360501567,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.050595238095238096,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.5058823529411764,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.3359375,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.0118577075098814,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.01171875,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.510112359550562,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.33779761904761907,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.058476077968104,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.05524553571428571,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "mathir",
+          "effective_modes": 1.0237075121393886,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.023158482142857144,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.7384555684904928,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.42477678571428573,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.0153933327037492,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.015159970238095238,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        }
+      ],
+      "cells_total": 15,
+      "label": "Grok 4.3",
+      "macro_pmd": 0.20860108883034087,
+      "model": "grok-4.3",
+      "reportable_cells": 15,
+      "samples": {
+        "path": "artifacts/frontier_modebench_grok43_20260911/audited_primary_samples.jsonl",
+        "sha256": "6d8edc01dc8c668548dc4745b86d2ab7e1afea8ee322421f93302d825b87b587"
+      }
+    },
+    {
+      "cells": [
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.457898305084746,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.3140811011904762,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.190829549230258,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.16024925595238096,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 117,
+          "domain": "mathir",
+          "effective_modes": 1.313376987839102,
+          "level": 1,
+          "pass8": 0.921875,
+          "pmd": 0.23860398860398863,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9140625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 3.8119549032120834,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.7376674107142858,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.7200447928331468,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.4186197916666667,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5495921367422822,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.3546688988095238,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.250377950924526,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.2002418154761905,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "mathir",
+          "effective_modes": 1.0099947396107312,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.009895833333333333,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 2.4145519874242085,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.5858444940476191,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.6182048040455121,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.38203125,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.4210192429689152,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.2962797619047619,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.0572271386430678,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.05412946428571429,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "mathir",
+          "effective_modes": 1.0,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.0,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 2.2808655070004242,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.5615699404761905,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.5476293289575958,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.35385044642857144,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        }
+      ],
+      "cells_total": 15,
+      "label": "Kimi K3",
+      "macro_pmd": 0.31118223019264685,
+      "model": "FW-Kimi-K3",
+      "reportable_cells": 15,
+      "samples": {
+        "path": "artifacts/frontier_modebench_kimi_k3_20260911/audited_primary_samples.jsonl",
+        "sha256": "ffb4af7690407b8642976cc52af08fdc22ac69aa72a33e4069b99be0b63e8aef"
+      }
+    },
+    {
+      "cells": [
+        {
+          "defined_prompts": 126,
+          "domain": "countdown",
+          "effective_modes": 1.4357026587086272,
+          "level": 1,
+          "pass8": 0.9921875,
+          "pmd": 0.3034769463340892,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.984375
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.141764893278114,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.12416294642857142,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 121,
+          "domain": "mathir",
+          "effective_modes": 1.0644046497015394,
+          "level": 1,
+          "pass8": 0.9453125,
+          "pmd": 0.06050767414403778,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9453125
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.8118701762663882,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.4480840773809524,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.1743119266055047,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.1484375,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5322787516032494,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.34737723214285715,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.2974851571173434,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.2292782738095238,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "mathir",
+          "effective_modes": 1.1172069825436408,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.10491071428571429,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.4789546079779918,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.3238467261904762,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.1621271076523996,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.13950892857142858,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 126,
+          "domain": "countdown",
+          "effective_modes": 1.379310344827586,
+          "level": 3,
+          "pass8": 0.9921875,
+          "pmd": 0.27499999999999997,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.984375
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.0278176082592485,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.027064732142857144,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "mathir",
+          "effective_modes": 1.0092931568572234,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.009207589285714286,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.641025641025641,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.390625,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.1596203623813632,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.13764880952380953,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        }
+      ],
+      "cells_total": 15,
+      "label": "Claude Opus 4.8",
+      "macro_pmd": 0.20460914334933547,
+      "model": "claude-opus-4-8",
+      "reportable_cells": 15,
+      "samples": {
+        "path": "artifacts/frontier_modebench_claude_opus48_20260911/audited_primary_samples.jsonl",
+        "sha256": "c25d07dff62f1a233c4aa6ac54b9c7b3d0d667ead661fa7ba0f753ca6724d644"
+      }
+    },
+    {
+      "cells": [
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5205770046669496,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.3423549107142857,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.3662007623888184,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.26804315476190477,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 116,
+          "domain": "mathir",
+          "effective_modes": 1.0638716017032426,
+          "level": 1,
+          "pass8": 0.921875,
+          "pmd": 0.060036945812807885,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.90625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 2.9833518312985574,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.6648065476190477,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.1249215317011927,
+          "level": 1,
+          "pass8": 1.0,
+          "pmd": 0.11104910714285715,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.5774647887323945,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.3660714285714286,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.468210618308936,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.31889880952380956,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 116,
+          "domain": "mathir",
+          "effective_modes": 1.8528941963946146,
+          "level": 2,
+          "pass8": 0.953125,
+          "pmd": 0.460303776683087,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.90625
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "pantry_plan",
+          "effective_modes": 1.7702845100105373,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.4351190476190476,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.0161610433796429,
+          "level": 2,
+          "pass8": 1.0,
+          "pmd": 0.015904017857142856,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "countdown",
+          "effective_modes": 1.474290415466886,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.3217075892857143,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "graph_coloring",
+          "effective_modes": 1.2,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.16666666666666666,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        },
+        {
+          "defined_prompts": 125,
+          "domain": "mathir",
+          "effective_modes": 1.2729741525629212,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.21443809523809523,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.9765625
+        },
+        {
+          "defined_prompts": 118,
+          "domain": "pantry_plan",
+          "effective_modes": 1.7707588966700014,
+          "level": 3,
+          "pass8": 0.984375,
+          "pmd": 0.4352703793381759,
+          "prompts": 128,
+          "reportable": true,
+          "support": 0.921875
+        },
+        {
+          "defined_prompts": 128,
+          "domain": "python_factors",
+          "effective_modes": 1.0225392296718974,
+          "level": 3,
+          "pass8": 1.0,
+          "pmd": 0.022042410714285712,
+          "prompts": 128,
+          "reportable": true,
+          "support": 1.0
+        }
+      ],
+      "cells_total": 15,
+      "label": "DeepSeek V4 Pro",
+      "macro_pmd": 0.28018085916989044,
+      "model": "DeepSeek-V4-Pro",
+      "reportable_cells": 15,
+      "samples": {
+        "path": "artifacts/frontier_modebench_deepseek_v4_pro_20260911/audited_primary_samples.jsonl",
+        "sha256": "1e543e98683538ec3782580db73d41cb9a5a4adbf37b335abb5b6cb29ee8e4f0"
+      }
+    }
+  ],
+  "schema": "paper-mode-diversity-hosted-cohort-v1"
+}

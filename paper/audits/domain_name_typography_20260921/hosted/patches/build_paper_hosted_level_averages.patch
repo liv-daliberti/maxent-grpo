@@ -1,0 +1,36 @@
+--- ops/build_paper_hosted_level_averages.py (before)
++++ ops/build_paper_hosted_level_averages.py (after)
+@@ -13,6 +13,15 @@
+ import math
+ from pathlib import Path
+ from typing import Any
++
++try:
++    from ops.paper_domain_typography import format_domain_names
++except ModuleNotFoundError:
++    from paper_domain_typography import format_domain_names
++
++_DOMAIN_LANGUAGE_EXCEPTIONS = (
++    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
++)
+ 
+ try:
+     from ops.plot_paper_hosted_breadth import (
+@@ -413,7 +422,7 @@
+         r"  \label{tab:hosted-level-averages-medium}",
+         r"\end{table}",
+     ])
+-    return "\n".join(lines) + "\n"
++    return format_domain_names("\n".join(lines) + "\n", exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def _readings(record: dict[str, Any]) -> dict[str, dict[int, dict[str, float]]]:
+@@ -533,7 +542,7 @@
+         r"  \label{tab:hosted-level-averages-parity}",
+         r"\end{table}",
+     ])
+-    return "\n".join(lines) + "\n"
++    return format_domain_names("\n".join(lines) + "\n", exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def main(argv: list[str] | None = None) -> int:

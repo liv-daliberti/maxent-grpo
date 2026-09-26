@@ -1,0 +1,53 @@
+\section{Comparison across Hosted Deployments}
+\label{app:hosted-comparison}
+
+Figure~\ref{fig:hosted-verified-breadth} compares accuracy and success-conditional
+solution-mode diversity across hosted deployments. Its accuracy row uses a
+common formatting normalizer and the revised Opus 5 \texttt{Python} instructions at
+each level; hollow marks show that deployment's original \texttt{Python} condition.
+Other accuracy cells use the original instructions. The diversity row uses
+strict grades and original instructions for every deployment, with the
+prompt-level estimand and eligibility criteria of App.~\ref{app:hosted-mode-diversity}.
+Accuracy includes every response, including refusals and verification failures.
+Provider settings differ, so the figure describes the stated configurations
+rather than ranking models under matched prompts and compute.
+
+The tables and \texttt{Graph} figure use the original instructions for every deployment.
+The \texttt{Python} comparison reports both instruction conditions under strict and
+formatting-normalized grading. Level 3 extends the evaluation beyond the
+training levels, and difficulty need not increase with level for every hosted deployment.
+
+\input{results/frontier_comparison_20260911_protocol.tex}
+\input{results/frontier_comparison_20260911_graph_figure.tex}
+\input{results/frontier_comparison_20260911_python_sensitivity.tex}
+\input{results/frontier_python_retry_20260911.tex}
+
+\input{results/frontier_temperature_20260911.tex}
+
+\input{results/gpt56_temperature_curve_20260911_appendix.tex}
+\input{results/frontier_comparison_20260911_provider_outcomes.tex}
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Hosted deployments average fewer than three distinct correct modes per prompt.}
+  Each row averages five domains equally under strict grading and original
+  instructions, with 128 prompts per domain and eight responses per prompt.
+  M/P are \texttt{mean@8}/\texttt{pass@8} (\%); D averages distinct correct
+  solution modes, including zeros. C is correct-pair collision (\%), pooling
+  pairs within each domain before averaging domains. Pointwise 95\% intervals
+  use 2,000 whole-prompt bootstrap resamples within domains. A dash denotes
+  an undefined domain collision and hence an undefined five-domain mean.
+  Provider settings differ, so these are descriptive deployment comparisons.}
+  \small
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}lrrrrr@{}}
+    \toprule
+    Deployment & Level & M & P & D & C (95\% interval) \\
+    \midrule
+    \input{results/frontier_comparison_20260911_strict_overview_rows.tex}
+  \end{tabular}
+\end{table}
+
+\input{results/frontier_comparison_20260911_strict_cells.tex}
+\input{results/frontier_comparison_20260911_normalized_cells.tex}
+

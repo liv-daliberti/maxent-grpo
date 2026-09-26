@@ -1,0 +1,245 @@
+{
+  "status": "passed",
+  "method": "Exact rational enumeration plus exact algebraic radicals; deterministic floating-point finite-step examples.",
+  "moments": {
+    "exact_enumeration_cases": 60,
+    "ordered_groups_enumerated": 1344,
+    "policy_correctness": [
+      "3/4",
+      "1/4"
+    ],
+    "score_geometries": [
+      "four independent logits",
+      "two shared parameters with four distinct feature vectors"
+    ],
+    "advantages": [
+      "DrGRPO",
+      "MaxRL",
+      "standardized_GRPO (population standard deviation, exact radicals)",
+      "leave_one_out",
+      "arbitrary mixed_sign"
+    ],
+    "group_sizes": [
+      2,
+      3,
+      4
+    ]
+  },
+  "finite_steps": {
+    "case_count": 25,
+    "examples": [
+      {
+        "case": "nonuniform",
+        "h": 0.001,
+        "D_before": 0.54,
+        "D_after": 0.5399351935932447,
+        "log_odds_gain": 0.00108499275983874
+      },
+      {
+        "case": "nonuniform",
+        "h": 0.1,
+        "D_before": 0.54,
+        "D_after": 0.5334571717971817,
+        "log_odds_gain": 0.1084249660057384
+      },
+      {
+        "case": "nonuniform",
+        "h": 1.0,
+        "D_before": 0.54,
+        "D_after": 0.4700876986291267,
+        "log_odds_gain": 1.0751571773078465
+      },
+      {
+        "case": "nonuniform",
+        "h": 20.0,
+        "D_before": 0.54,
+        "D_after": 0.002487696344605772,
+        "log_odds_gain": 17.876578712794824
+      },
+      {
+        "case": "nonuniform",
+        "h": 1000.0,
+        "D_before": 0.54,
+        "D_after": 0.0,
+        "log_odds_gain": 850.8754687373539
+      },
+      {
+        "case": "uniform",
+        "h": 0.001,
+        "D_before": 0.6666666666666667,
+        "D_after": 0.6666666666666667,
+        "log_odds_gain": 0.0009583098938801638
+      },
+      {
+        "case": "uniform",
+        "h": 0.1,
+        "D_before": 0.6666666666666667,
+        "D_after": 0.6666666666666667,
+        "log_odds_gain": 0.09559701161864226
+      },
+      {
+        "case": "uniform",
+        "h": 1.0,
+        "D_before": 0.6666666666666667,
+        "D_after": 0.6666666666666667,
+        "log_odds_gain": 0.9330355082205275
+      },
+      {
+        "case": "uniform",
+        "h": 20.0,
+        "D_before": 0.6666666666666667,
+        "D_after": 0.6666666666666667,
+        "log_odds_gain": 13.052824837271618
+      },
+      {
+        "case": "uniform",
+        "h": 1000.0,
+        "D_before": 0.6666666666666667,
+        "D_after": 0.6666666666666667,
+        "log_odds_gain": 584.7196276944533
+      },
+      {
+        "case": "tied_maxima",
+        "h": 0.001,
+        "D_before": 0.585,
+        "D_after": 0.5849779515988347,
+        "log_odds_gain": 0.0010399820725323931
+      },
+      {
+        "case": "tied_maxima",
+        "h": 0.1,
+        "D_before": 0.585,
+        "D_after": 0.5828111899995655,
+        "log_odds_gain": 0.10381829137624224
+      },
+      {
+        "case": "tied_maxima",
+        "h": 1.0,
+        "D_before": 0.585,
+        "D_after": 0.5647041551613577,
+        "log_odds_gain": 1.0197261588651108
+      },
+      {
+        "case": "tied_maxima",
+        "h": 20.0,
+        "D_before": 0.585,
+        "D_after": 0.5001012945580882,
+        "log_odds_gain": 15.280898970032974
+      },
+      {
+        "case": "tied_maxima",
+        "h": 1000.0,
+        "D_before": 0.585,
+        "D_after": 0.5,
+        "log_odds_gain": 701.2809338454621
+      },
+      {
+        "case": "two_modes",
+        "h": 0.001,
+        "D_before": 0.375,
+        "D_after": 0.37490624414550755,
+        "log_odds_gain": 0.0012499999960937053
+      },
+      {
+        "case": "two_modes",
+        "h": 0.1,
+        "D_before": 0.375,
+        "D_after": 0.3655712482409328,
+        "log_odds_gain": 0.12499609436028174
+      },
+      {
+        "case": "two_modes",
+        "h": 1.0,
+        "D_before": 0.375,
+        "D_after": 0.27978520950627894,
+        "log_odds_gain": 1.2461540879301447
+      },
+      {
+        "case": "two_modes",
+        "h": 20.0,
+        "D_before": 0.375,
+        "D_after": 3.0265703794052357e-05,
+        "log_odds_gain": 21.098491231348582
+      },
+      {
+        "case": "two_modes",
+        "h": 1000.0,
+        "D_before": 0.375,
+        "D_after": 0.0,
+        "log_odds_gain": 1001.0986122886682
+      },
+      {
+        "case": "uniform_two",
+        "h": 0.001,
+        "D_before": 0.5,
+        "D_after": 0.5,
+        "log_odds_gain": 0.0011249765605468305
+      },
+      {
+        "case": "uniform_two",
+        "h": 0.1,
+        "D_before": 0.5,
+        "D_after": 0.5,
+        "log_odds_gain": 0.11226367828530893
+      },
+      {
+        "case": "uniform_two",
+        "h": 1.0,
+        "D_before": 0.5,
+        "D_after": 0.5,
+        "log_odds_gain": 1.0997021748871942
+      },
+      {
+        "case": "uniform_two",
+        "h": 20.0,
+        "D_before": 0.5,
+        "D_after": 0.5,
+        "log_odds_gain": 16.38615817060495
+      },
+      {
+        "case": "uniform_two",
+        "h": 1000.0,
+        "D_before": 0.5,
+        "D_after": 0.5,
+        "log_odds_gain": 751.3862943611199
+      }
+    ],
+    "interpretation": "Illustrative deterministic arithmetic checks; not proofs, training, or sampled experiments."
+  },
+  "equation_comparison": {
+    "snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/appendix_eighth10_20260921/algebra_snapshot.tex",
+    "live": "/n/fs/similarity/maxent-grpo/paper/main.tex",
+    "snapshot_display_count": 48,
+    "live_display_count": 48,
+    "whitespace_normalized_equations_unchanged": true,
+    "byte_identical_equations": true
+  },
+  "checks": {
+    "conditional_score": 24,
+    "vector_Cauchy_Schwarz": 8,
+    "enumerated_binomial_mass": 48,
+    "enumerated_mean": 180,
+    "enumerated_covariance": 600,
+    "Bernstein_coefficient": 60,
+    "weighted_residual_identity": 180,
+    "aggregate_residual_bound": 60,
+    "DrGRPO_closed_coefficient": 12,
+    "MaxRL_closed_coefficient": 12,
+    "MaxRL_G2_constant": 4,
+    "MaxRL_lower_endpoint": 11,
+    "MaxRL_upper_endpoint": 11,
+    "MaxRL_polynomial_identity": 11,
+    "MaxRL_G2_ratio": 1,
+    "MaxRL_first_gap": 11,
+    "MaxRL_last_gap": 11,
+    "MaxRL_interior_gaps": 66,
+    "finite_step_diversity": 25,
+    "finite_step_leader": 25,
+    "finite_step_order_and_ties": 55,
+    "finite_step_derivative_identity": 20,
+    "finite_step_derivative_sign": 20,
+    "finite_step_odds_bound": 25
+  },
+  "total_checks": 1480,
+  "no_training_sampling_or_experiments": true
+}

@@ -1,0 +1,12 @@
+{
+  "at_utc": "2026-09-11T20:01:41.870307+00:00",
+  "substantive_report_equal": true,
+  "all_cells_csv_byte_equal": true,
+  "plotted_records_equal": true,
+  "metadata_fields_excluded": [
+    "analysis_dependencies",
+    "analyzer_source",
+    "publication_source"
+  ],
+  "source": "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/analysis_local_complete_editorial_v2"
+}

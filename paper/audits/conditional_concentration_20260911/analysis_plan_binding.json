@@ -1,0 +1,13 @@
+{
+  "status": "frozen_before_collision_results",
+  "retrospective": true,
+  "created_at_utc": "2026-09-11T19:59:36.646461+00:00",
+  "analysis_plan_sha256": "edef7d2ab8d266ee680e5f66bcef6e2f46d520953d02036a8979ada99f4a0223",
+  "inputs": {
+    "paper/results/training_curve_snapshot_20260911.json": "6b9e4d90d337152cc30b904bd41ffe660939d80f2f3611984368c788b25d33f1",
+    "paper/results/baseline_collapse_precheck.json": "6c851f9e09c9d914e6dc39d470b93c9113ad6075e5c71f16180e06a20f95b861",
+    "paper/results/frontier_comparison_20260911.json": "bbcbea828c6b88d552283db7340147109eb3add236e0f4a493acae66a80603a4",
+    "paper/main.tex": "859819fbd38834f4f8642da556d36c4bdc9578caad6005b2e1f41ecc1452a563",
+    "paper/mathai2026/appendix.tex": "8d60ccdfeccae6d65ce049635f699d11866664d988a83d7fadb440e99326a3fc"
+  }
+}

@@ -1,0 +1,22 @@
+                 Workshop footer configuration probe
+
+
+                                Named Author for Camera-Ready Probe
+
+
+
+                                                   Abstract
+          This isolated document checks the workshop footer and anonymous review format-
+          ting.
+
+
+1    Configuration check
+The manuscript uses the workshop template. Its submission keeps anonymous authors and line
+numbering. The camera-ready document keeps the official workshop notice.
+
+
+
+
+40th Conference on Neural Information Processing Systems (NeurIPS 2026). Workshop: The 6th Workshop on Mathematical
+Reasoning and AI.
+

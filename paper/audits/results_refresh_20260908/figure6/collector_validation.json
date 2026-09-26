@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "validated_at_utc": "2026-09-08T15:34:30.209605+00:00",
+  "baseline_snapshot": "paper/audits/results_refresh_20260908/figure6/before_modebench_level_comparison_snapshot.json",
+  "baseline_reproduction": {
+    "availability_cells": 200,
+    "selected_draws": 672,
+    "equal_fields": [
+      "availability",
+      "evaluations",
+      "level2_terminal_evaluations",
+      "reference_figure",
+      "input_snapshots",
+      "selection_policy",
+      "collection_intervals"
+    ]
+  },
+  "tests": {
+    "command": "python -m pytest -q tests/test_evaluation_coverage_snapshot.py tests/test_paper_modebench_level_comparison.py",
+    "passed": 16
+  }
+}

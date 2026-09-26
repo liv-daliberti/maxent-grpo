@@ -1,1 +1,1 @@
-"""Minimal 1.5B OAT Dr.GRPO / Dr.X-GRPO package."""
+"""Direct MaxEnt-GRPO primitives and the landed xDr.GRPO surrogate."""

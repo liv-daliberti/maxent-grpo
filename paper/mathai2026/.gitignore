@@ -1,0 +1,6 @@
+*.aux
+*.blg
+*.log
+*.out
+build-*.txt
+camera-ready.pdf

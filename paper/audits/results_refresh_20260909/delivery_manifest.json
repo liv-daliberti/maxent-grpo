@@ -1,0 +1,52 @@
+{
+  "files": {
+    "ops/check_paper_current_contract.py": "f5180647b839130202b9f967ab4320baf7564789a449935661bf102c82dc7f3b",
+    "ops/exp_scaling/build_paper_current_campaign_results.py": "8b7c5d457e173fda13b7b5a8ce180e0fcb030a4e19b4e67b964f64b8c6982eb7",
+    "ops/exp_scaling/build_paper_level2_factorial_contrasts.py": "088088ebf0c6e45dd1ef3f190554b8ebe2d9a4d9943c3180ab4fe8dfe69f6282",
+    "paper/Makefile": "2db50636385f3bd27498351efc3a4680d74d8c0d4dc653bf4d785a8c4097ab7a",
+    "paper/README.md": "017a11c15ccdeb98cffba04a20c1e1ef6d5968751f96196c3438a678ef5b3736",
+    "paper/figures/current_campaign_results_20260909.pdf": "b0617f23c2e90a333f838cf0fcbdef0becfafbd7681036a26291f64f6dc18b86",
+    "paper/figures/current_campaign_results_20260909.png": "e383cbd0ef950548312999ffdf2f1e83b28103f9043208b26f0cbf1be9aa5fd7",
+    "paper/figures/e118_all_scale_factorial_progress.json": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b",
+    "paper/figures/e118_all_scale_factorial_progress.pdf": "ce8f03ed8936f4a8c958924513dc1a3bc798730772f324d62b6f8271a7cd629f",
+    "paper/figures/e118_all_scale_factorial_progress.png": "036db7f6faa8a652d7dcbea9f9f9f0dc97daf25a404cb74de48ca2c416ab9e34",
+    "paper/figures/e118_scale_extensions_appendix.json": "bf34168668bcbaa6f9ec988867d3de1d05189809b4e3d9f27b62cb4e2f51d86b",
+    "paper/figures/e118_scale_extensions_appendix.pdf": "70b288c7e862cad73d5e627eb562c6edbbf5bebcaee4778fd451706d334e7a40",
+    "paper/figures/e118_scale_extensions_appendix.png": "f11b953f77093ec811c9fa4e7d2d8c342a2517e3c894ed4dd639ea2103a31ed7",
+    "paper/figures/modebench_level_admission.json": "5f6421c2349df8388d5f273db9953b852479ef5fbfb8c0f48307dd5535ddeee5",
+    "paper/figures/modebench_level_admission.pdf": "0a06f11b90d8a98bfb7c3bbbc044bf1f8138391595dd8a55cacc9bbd424854f3",
+    "paper/figures/modebench_level_admission.png": "dc5031fbfbe7cd85dcf0f2d76ed5cce830427f37c7770c72ab5a482df6c490f1",
+    "paper/main.pdf": "44113505b86fbadaa7737b802354519d1aa5ab001693022747877469f89258cc",
+    "paper/main.tex": "f169b0fe84cbd5b4422d2875c14195543c83a0038c300856c970ba10a9468469",
+    "paper/mathai2026/appendix.tex": "9ddbbf24a9fc8a8b44cec7752695377689b518addf9208a70de0a297c80673e8",
+    "paper/mathai2026/main.pdf": "3ac998a40092392c20758a1f9654cf3728f3c46bccb48b847051c19a7c47dbda",
+    "paper/mathai2026/main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+    "paper/mathai2026/mathai2026-source.zip": "a10fea0f664a2de63b1c6f41e83b5d682480f48148f35e2e86e7a4eca8ce6382",
+    "paper/mathai2026/snapshot.json": "12467efeef3e1b2c7cbabcf77c4d20441e2c97aa15bb9665d864406213742416",
+    "paper/results/current_campaign_results_20260909.csv": "4d3ee409649ffe2cb0030c974c1cff20dd600e452fad65f8726587f14fdea488",
+    "paper/results/current_campaign_results_20260909.json": "4226ed01832dbd3679e63156591d67eb8573ff4130f2ea0a318855ce76fc5474",
+    "paper/results/current_campaign_results_20260909.md": "e6481bc79e0938f51025b54394636d46433ec8cf63b41a3736792b3ca37d1883",
+    "paper/results/current_campaign_results_20260909_coverage_table_body.tex": "629011a8a3de41c1c1d8835bcefa9ffc6889ea3510e3b053c4d97eb14162a152",
+    "paper/results/current_campaign_results_20260909_e118_table_body.tex": "33a45e698fac1f10b8a7508801197c126450704c267c2b8d44a38ca2d21aa341",
+    "paper/results/current_campaign_results_20260909_e119_table_body.tex": "5db8c1465b978ef66eefe975ff356664a03de0ed60c1abfdb1730d06c5d720dc",
+    "paper/results/current_campaign_results_20260909_e120_table_body.tex": "e5c0ea1fc4942e6580d7c355fabb28b99a1232bafedc46ed536db99c745fa41e",
+    "paper/results/latest_results_20260909.json": "048c9adde4e56ead61e6236e2c81f1e4052ee25ec244d3b59c90fc612aad42ec",
+    "paper/results/latest_results_20260909_effects_table_body.tex": "d0de9b1cea18817f102863bf7e9bac8d0e312b41a55f2d17d0c468126f33462d",
+    "paper/results/latest_results_20260909_table_body.tex": "4454de34ddceeed7f8af25b081e5e9f9ea7a2140c979c8944dc57e8351aa74c9",
+    "paper/results/level2_factorial_contrasts_20260909.json": "bcbcbac790ce1e17f58a26e3a7dd9c88f957c0a0a7fd7fcc230c8c33a1a1929e",
+    "paper/results/level2_factorial_contrasts_20260909_table_body.tex": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f",
+    "paper/results/modebench_level_comparison_snapshot.json": "6238497463c1012016f6ebdf25d9ab4482eac50d62beefd1aae66f89e2e14753"
+  },
+  "generated_at_utc": "2026-09-09T17:52:56.979261+00:00",
+  "preserved_e120_sha256": "92304ed9ac70f6ebc4dd38e12801750175b96703bf657459dafed3c390bf2bab",
+  "source_census": {
+    "path": "paper/audits/results_refresh_20260909/latest_endpoints.json",
+    "sha256": "3fdb29841d58ce368bde7c7f54defc75822429d1ba5e9bd47a0e6aefe7e9db12"
+  },
+  "validation": {
+    "parent_build": "paper-build-r2.log",
+    "targeted_tests": 50,
+    "visual_review": "report.md",
+    "workshop_build": "workshop-build-r2.log"
+  }
+}

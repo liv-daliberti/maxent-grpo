@@ -143,7 +143,7 @@ def aggregation_group_diagnostics(
     *,
     num_samples: int,
 ) -> dict[str, torch.Tensor]:
-    """Candidate-level exploration diagnostics from the aggregation weights.
+    """Candidate-aggregation diagnostics from the realized row weights.
 
     Defined identically for every quartet arm: pass the realized per-row
     aggregation weights — uniform ones (Dr.GRPO, Token-MaxEnt), the

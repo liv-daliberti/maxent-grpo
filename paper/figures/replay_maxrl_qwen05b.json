@@ -1,0 +1,15 @@
+{
+  "schema": "page1-e118-qwen05b-factorial-figure-v1",
+  "source": "/n/fs/similarity/maxent-grpo/paper/results/e118_qwen05b_factorial.json",
+  "output": "/n/fs/similarity/maxent-grpo/paper/figures/replay_maxrl_qwen05b.pdf",
+  "metrics": [
+    "pass8",
+    "distinct8"
+  ],
+  "methods": [
+    "drgrpo",
+    "replay_drgrpo",
+    "maxrl",
+    "replay_maxrl"
+  ]
+}

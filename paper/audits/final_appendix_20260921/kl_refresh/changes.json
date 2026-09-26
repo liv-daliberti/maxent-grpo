@@ -1,0 +1,38 @@
+[
+  {
+    "id": "figure12_caption",
+    "old": "Rules mark initial means; shading marks either side of the interpolated KL curve, without uncertainty estimates",
+    "new": "Rules mark initial means; the curve connects measured means without uncertainty bands",
+    "reason": "Removes the obsolete shading description; measured curve and reference rules are unchanged."
+  },
+  {
+    "id": "main_coefficient_interval",
+    "old": "Beyond $\\beta=.01$, the three-domain mean gains diversity while losing correctness",
+    "new": "From $\\beta=.01$ to $.2$, the three-domain mean gains diversity while losing correctness",
+    "reason": "The new .3 point reverses both changes slightly; the revised interval is monotone in measured means."
+  },
+  {
+    "id": "P12_coefficient_dependence",
+    "old": "KL produces larger conditional-diversity estimates at several coefficients\nin every domain. The response is not uniformly monotone: \\texttt{Graph} changes\nfrom $.465$ to $.458$ and \\texttt{MathIR} from $.103$ to $.101$ between\n$\\beta=.2$ and $.3$, while \\texttt{Python} changes from $.344$ to $.225$ between\n$\\beta=.04$ and $.1$. The \\texttt{Python} $.1$ cell contains three seeds and the\n\\texttt{MathIR} $.3$ cell four; all other reported coefficient cells contain five.\nThese are comparisons of point estimates, without a seed-level uncertainty\nanalysis for their differences.",
+    "new": "KL produces larger conditional-diversity estimates at several coefficients\nin every domain. The response is not uniformly monotone: \\texttt{Graph} changes\nfrom $.465$ to $.458$ and \\texttt{MathIR} from $.103$ to $.099$ between\n$\\beta=.2$ and $.3$, while \\texttt{Python} changes from $.344$ to $.225$ between\n$\\beta=.04$ and $.1$.\nThese are comparisons of point estimates, without a seed-level uncertainty\nanalysis for their differences.",
+    "reason": "Updates MathIR and removes obsolete sample-completion narration; sample counts remain in the table."
+  },
+  {
+    "id": "P12_aggregate_curve",
+    "old": "These comparisons concern the reported coefficient cells and seed means;\nthey establish neither statistical dominance nor a ranking at equal total\ncompute. Figure~\\ref{fig:reference-kl-plane} averages \\texttt{Graph}, \\texttt{MathIR}, and\n\\texttt{Pantry}, the three domains with reportable initial \\pmd{}, using only\ncoefficients present in all three. Its aggregate curve therefore stops at\n$\\beta=.2$; the $.3$ measurements remain in the domain-level table and\nFig.~\\ref{fig:reference-kl-knee}.",
+    "new": "These comparisons concern seed means; they establish neither statistical\ndominance nor a ranking at equal total compute.\nFigure~\\ref{fig:reference-kl-plane} averages \\texttt{Graph}, \\texttt{MathIR}, and\n\\texttt{Pantry}, the three domains with reportable initial \\pmd{}, across all\nsix coefficients. Between $\\beta=.2$ and $.3$, mean \\pmd{} changes from\n$.498$ to $.496$, while \\texttt{pass@8} changes from $.527$ to $.528$.",
+    "reason": "All six coefficients now enter the aggregate; the .2 to .3 change is slightly nonmonotone."
+  },
+  {
+    "id": "P13_limits",
+    "old": "Of \\MDklTotalCells{} reported coefficient cells, \\MDklThinCells{} have\nfewer than five seeds, with a minimum of \\MDklSeedsMin{}; three of the\n30 domain--coefficient combinations have no terminal estimate. The table\nmarks both types of missing coverage. Reference \\pmd{} requires at least\n30 defined prompts in an initial evaluation; only \\texttt{Graph}, \\texttt{MathIR}, and\n\\texttt{Pantry} satisfy that condition. \\texttt{Countdown}'s initial conditional is\nunreported, and \\texttt{Python}'s zero observed initial correctness cannot support\nan inheritance explanation for its measured KL gains. \\texttt{MathIR}'s support\ncertificate counts derivations and does not imply that a policy will\nproduce every certified solution mode.",
+    "new": "Reference \\pmd{} requires at least 30 defined prompts in an initial\nevaluation. This eligibility condition affects which policy conditionals\ncan be compared. \\texttt{Python}'s zero observed initial correctness cannot\nsupport an inheritance explanation for its measured KL gains.\n\\texttt{MathIR}'s support certificate counts derivations and does not imply\nthat a policy will produce every certified solution mode.",
+    "reason": "Removes obsolete completion accounting while retaining estimator eligibility and substantive limitations."
+  },
+  {
+    "id": "P12_figure_caption",
+    "old": "  calculation. This threshold does not predict the observed\n  \\texttt{pass@8} knee. Missing reference summaries are omitted.",
+    "new": "  calculation. This threshold does not predict the observed\n  \\texttt{pass@8} knee.",
+    "reason": "The caption already identifies the reference rules as reportable values."
+  }
+]

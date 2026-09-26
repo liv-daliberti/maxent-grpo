@@ -1,0 +1,2520 @@
+[
+  {
+    "page": 20,
+    "figure": "Figure 13:",
+    "following": [
+      {
+        "text": "Balanced mode probabilities maximize expected coverage at fixed accuracy and",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "mode count.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Points show held-out Level-1 prompts from terminal Re:Dr and Re:Max checkpoints of",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Qwen2.5-0.5B (seed 43), grouped by their verified response fraction",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ". Bands show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "26",
+          "size": "14",
+          "family": "ZGMMZI+CMEX10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "c",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "[1",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "\u2212",
+        "font": {
+          "id": "22",
+          "size": "14",
+          "family": "RDTSQR+CMSY10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(1",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "\u2212",
+        "font": {
+          "id": "22",
+          "size": "14",
+          "family": "RDTSQR+CMSY10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 24,
+    "figure": "Figure 14:",
+    "following": [
+      {
+        "text": "Accuracy and solution diversity respond differently to harder levels.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Left:",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ";",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "right:",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ", averaged equally over domains for each Qwen2.5-Instruct scale (coloured lines) and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "GPT-5.6 Sol (black dashed line). Qwen evaluations combine 128 held-out prompts with 384 training-",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 25,
+    "figure": "Figure 15:",
+    "following": [
+      {
+        "text": "High accuracy can coexist with low solution diversity.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Each row shows one frozen",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "checkpoint across five domains, with",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "on the horizontal axis and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "on the vertical axis.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Colour indicates parameter count and marker shape indicates level. Each cell uses four groups of",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 26,
+    "figure": "Figure 16:",
+    "following": [
+      {
+        "text": "Every hosted deployment has lower mean solution diversity at Level 3 than at Level 1.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Lines show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "for 7 deployments, using eight responses to each of 128 held-out prompts per cell.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Panels show individual domains and their equally weighted average over a domain set fixed across",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 26,
+    "figure": "Figure 17:",
+    "following": [
+      {
+        "text": "Parameter count does not determine solution diversity across model families.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Frozen",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "SmolLM2, Qwen2.5, Falcon3, and OLMo-2 checkpoints are plotted by",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "across",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "five domains and the available levels. Colour indicates parameter count on a logarithmic scale;",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 33,
+    "figure": "Figure 18:",
+    "following": [
+      {
+        "text": "Replay improves correctness across all three model scales.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Terminal paired effects",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "of Re:Dr minus Dr.GRPO (circles) and Re:Max minus MaxRL (squares), in percentage points of",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and changes in",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ". Open marks have fewer than five seeds. Correctness uses four seeds",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 35,
+    "figure": "Figure 19:",
+    "following": [
+      {
+        "text": "Replay gains vary by domain and model scale.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "for the",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "three model scales. Open/filled marks denote the fresh objective/its replay variant; circles denote",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Dr.GRPO, squares MaxRL, and gray diamonds the untrained checkpoint. Correctness uses five paired",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 36,
+    "figure": "Figure 20:",
+    "following": [
+      {
+        "text": "Replay improves Level-2 Graph accuracy and solution diversity.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Paired terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "effects of Re:Dr minus Dr.GRPO (circles) and Re:Max minus MaxRL (squares) for Qwen2.5-0.5B, in",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "percentage points of",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and changes in",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ". Correctness uses five paired seeds per domain.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 37,
+    "figure": "Figure 21:",
+    "following": [
+      {
+        "text": "Replay improves terminal accuracy across scales.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "over eight training passes",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "for the four primary methods. Rows show Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B; columns",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "show domains. Each objective pair uses five terminal training seeds except Falcon Countdown",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 38,
+    "figure": "Figure 22:",
+    "following": [
+      {
+        "text": "Replay limits the loss of PantryPlan solution diversity at every scale.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "throughout",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "training, with model rows and method colours as in Fig. 21. Both fresh objectives reach zero terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PantryPlan diversity at 0.5B and 1B, whereas both replay variants retain multiple solution modes.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 39,
+    "figure": "Figure 23:",
+    "following": [
+      {
+        "text": "Replay improves final accuracy and verified-mode counts at Level 2.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Qwen2.5-0.5B",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "trajectories for Dr.GRPO, Re:Dr, MaxRL, and Re:Max across five domains. Rows show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "distinct@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "; the latter depends on both correctness and solution diversity. Each objective pair",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 39,
+    "figure": "Figure 24:",
+    "following": [
+      {
+        "text": "Replay preserves greater solution diversity on Level-2 Graph.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "during Qwen2.5-",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "0.5B training for the four primary methods. At the terminal checkpoint, Re:Dr and Re:Max reach",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ".",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "346",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ".",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "325",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ", compared with",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ".",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "023",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "for Dr.GRPO and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ".",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "112",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "for MaxRL. MathIR remains near zero",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 40,
+    "figure": "Figure 25:",
+    "following": [
+      {
+        "text": "Re:Dr has the highest terminal mean accuracy in every displayed comparison.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "during Level-1 training for Dr.GRPO, Re:Dr, UCPO, and sparse RLEP-Dr. Rows show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Qwen2.5-0.5B and Falcon3-1B; columns show the five domains. Lines average available members of",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 48,
+    "figure": "Figure 26:",
+    "following": [
+      {
+        "text": "Graph and PantryPlan lose conditional solution diversity across scales and task levels.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Changes in",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ", in percentage points.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(A)",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Initial-to-final changes at Level 1 across three model",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "scales and three objectives. Each seed averages over prompts with at least two correct responses at",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 49,
+    "figure": "Figure 27:",
+    "following": [
+      {
+        "text": "RLVR-only training reduces average extra verified modes at every tested scale.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Bars",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "decompose",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "distinct@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "into",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and extra verified modes before training and after eight",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "passes. Panels show Dr.GRPO and GRPO across three models and five domains: 150 runs, with five",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 51,
+    "figure": "Figure 28:",
+    "following": [
+      {
+        "text": "Median exemplar scores rise, while some exemplars decline.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Empirical cumulative",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "distributions of first-to-final score changes for 3,406 fixed-bank exemplars from five Qwen2.5-0.5B",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Re:Dr Graph seeds. Panels show mean token and sequence log probability. Colored curves represent",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 54,
+    "figure": "Figure 29:",
+    "following": [
+      {
+        "text": "Python guidance removal produces the largest wording effects in this panel.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Neutral-",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "minus-original",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "D",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "8",
+        "font": {
+          "id": "23",
+          "size": "10",
+          "family": "NFBISP+CMR7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(left) and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "8",
+        "font": {
+          "id": "23",
+          "size": "10",
+          "family": "NFBISP+CMR7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(right) for the initial Qwen2.5-0.5B checkpoint and Level-2-trained",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "DrGRPO and Re:Dr on Python factors, MathIR, and Pantry at Levels 2 and 3, with 32 paired",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 55,
+    "figure": "Figure 30:",
+    "following": [
+      {
+        "text": "Control diversity remains low across the tested decoding settings.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Qwen2.5-0.5B",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "across five domains.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(A)",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Eight-pass Dr.GRPO/Re:Dr checkpoints at six temperatures",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "T",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "=",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ".",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "5",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "\u2013",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "2",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ".",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "0",
+        "font": {
+          "id": "21",
+          "size": "14",
+          "family": "MKQBLD+CMR10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "): 300 checkpoint\u2013setting evaluations.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 58,
+    "figure": "Figure 31:",
+    "following": [
+      {
+        "text": "Additional draws reveal solution modes beyond early success.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Hosted deployments;",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "rows show Python, MathIR, and Pantry, with paired",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "D",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "columns for Levels 2 and 3. Curves",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "show pass probability",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and distinct verified modes",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "D",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "against draw budget",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 60,
+    "figure": "Figure 32:",
+    "following": [
+      {
+        "text": "Neutral wording broadens GPT solutions in MathIR at fixed correct-draw budgets.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Hosted deployments; rows show Python, MathIR, and Pantry, and columns Levels 2 and 3. Curves",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "R",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "m",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ", the expected distinct verified modes in",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "m",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "correct draws, on prompts with at least",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "m",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "correct",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 61,
+    "figure": "Figure 33:",
+    "following": [
+      {
+        "text": "Additional draws reveal few new MathIR modes after training.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Qwen2.5-0.5B-Instruct",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "checkpoints; rows show Python, MathIR, and Pantry, with paired",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "D",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "columns for Levels 2",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and 3. Curves show pass probability",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "P",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and distinct verified modes",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "D",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "against draw budget",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "k",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 63,
+    "figure": "Figure 34:",
+    "following": [
+      {
+        "text": "MathIR correct solutions remain concentrated after training.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Qwen2.5-0.5B-Instruct",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "checkpoints; rows show Python, MathIR, and Pantry, and columns Levels 2 and 3. Curves show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "R",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "m",
+        "font": {
+          "id": "20",
+          "size": "10",
+          "family": "LKPKLJ+CMMI7",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ", the expected distinct verified modes in",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "m",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "correct draws, on prompts with at least",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "m",
+        "font": {
+          "id": "19",
+          "size": "14",
+          "family": "GZRVPI+CMMI10",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "correct",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 65,
+    "figure": "Figure 35:",
+    "following": [
+      {
+        "text": "Re:Dr improves portfolio survival and success within eight recovery calls.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Panels",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "compare ordinary sampling, tuned temperature, and diversity prompting on the same 181 feasible",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "ingredient outages from 32 Pantry problems. The horizontal axis is the additional recovery-call",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 70,
+    "figure": "Figure 36:",
+    "following": [
+      {
+        "text": "Diversity gains correlate with survival gains after a withdrawal.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Each mark is one",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "replay\u2013fresh-objective contrast in a domain, scale and level. The horizontal axis is the terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "difference; the vertical axis is the percentage-point survival difference at four verified draws, averaged",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 77,
+    "figure": "Figure 37:",
+    "following": [
+      {
+        "text": "Hosted Graph answers are usually correct but concentrated relative to uniform",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "sampling.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Panel A shows strict per-response accuracy; panel B shows the fraction of correct",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pairs sharing a solution mode, pooling pairs across prompts. Colors and markers identify seven",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 82,
+    "figure": "Figure 38:",
+    "following": [
+      {
+        "text": "Nonzero temperatures yield greater observed eight-draw coverage.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "GPT-5.6 Sol with",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "reasoning",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "none",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": ", typography normalization, and the same 480 prompts at each of five temperatures",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(32 per domain\u2013level cell, eight responses each). Left: an equal mean over all 15 domain\u2013level cells;",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 87,
+    "figure": "Figure 39:",
+    "following": [
+      {
+        "text": "Accurate hosted responses can still concentrate on few solution modes.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Columns show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "domains; colors and marker shapes distinguish Levels 1\u20133. Each deployment\u2013domain\u2013level cell uses",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "128 prompts and eight responses per prompt. Top: formatting-normalized response accuracy. Solid",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  },
+  {
+    "page": 113,
+    "figure": "Figure 40:",
+    "following": [
+      {
+        "text": "KL coefficient effects vary by domain.",
+        "font": {
+          "id": "5",
+          "size": "14",
+          "family": "HSVVHK+NimbusRomNo9L-Medi",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Circles show terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "and squares",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "show",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "pass@8",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "for Qwen2.5-0.5B at Level 1; lines connect seed means without uncertainty bands.",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "Horizontal rules mark the initial policy\u2019s reportable",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "(dotted) and Re:Dr\u2019s terminal",
+        "font": {
+          "id": "1",
+          "size": "14",
+          "family": "RRORLC+NimbusRomNo9L-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      },
+      {
+        "text": "PCMD",
+        "font": {
+          "id": "24",
+          "size": "14",
+          "family": "XRPDXB+NimbusMonL-Regu",
+          "color": "#000000"
+        },
+        "bold_tag": false
+      }
+    ]
+  }
+]

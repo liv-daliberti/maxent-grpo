@@ -1,0 +1,318 @@
+{
+  "status": "PASS",
+  "validated_at_utc": "2026-09-05T22:45:19.835395+00:00",
+  "scope": "Integrate previously reviewed theoretical results and primary-literature citations into both theory appendices; preserve experimental evidence.",
+  "new_subsections": 5,
+  "new_formal_statements": 10,
+  "new_primary_source_references": 18,
+  "build_checks": {
+    "full": {
+      "command": "make -C paper",
+      "passed": true,
+      "total_pages": 52,
+      "main_text_pages": 9,
+      "natural_prose_blocks_checked": 234,
+      "final_line_minimum_fraction": 0.5,
+      "final_diagnostics_clean": true
+    },
+    "workshop": {
+      "command": "make -C paper/mathai2026 bundle",
+      "passed": true,
+      "total_pages": 53,
+      "main_text_pages": 4,
+      "references_start_page": 5,
+      "main_figures": 6,
+      "supplementary_figures": 7,
+      "official_style_and_anonymity_checks_passed": true,
+      "final_diagnostics_clean": true
+    },
+    "source_bundle": {
+      "files": 42,
+      "all_entries_match_current": true
+    }
+  },
+  "integration_checks": {
+    "status": "PASS",
+    "new_reference_count": 18,
+    "new_reference_keys": [
+      "agarwal2021policygradient",
+      "anceaume2015coupon",
+      "berend2013missing",
+      "branicky1998multiple",
+      "clopper1934binomial",
+      "durrett2019probability",
+      "garivier2011klucb",
+      "harper2009informationgeometry",
+      "howard2020timeuniform",
+      "howard2021confidence",
+      "mcallester2003missing",
+      "mei2020softmaxpg",
+      "pereyra2017confidencepenalty",
+      "reddi2018adam",
+      "robbins1971almost",
+      "vanerven2014renyi",
+      "wang2017sqn",
+      "zhang2021reinforce"
+    ],
+    "total_bibliography_entries": 111,
+    "cited_keys": 48,
+    "theory_identical_except_two_document_crossrefs": true,
+    "workshop_main_text_unchanged": true,
+    "workshop_preamble_unchanged": true,
+    "full_main_text_only_scope_sentence_changed": true,
+    "full_post_theory_content_unchanged": true,
+    "frozen_empirical_assets_unchanged": {
+      "figures/baseline_collapse_precheck.pdf": true,
+      "figures/direct_baseline_learning_curves_static_strip.pdf": true,
+      "figures/direct_comparator_endpoint_effects.pdf": true,
+      "figures/e118_all_scale_factorial_progress.pdf": true,
+      "figures/e118_scale_extensions_appendix.pdf": true,
+      "figures/experiment1_retention_comparator_matrix.pdf": true,
+      "figures/modebench_examples.pdf": true,
+      "figures/modebench_level_admission.pdf": true,
+      "figures/modecollapse_story.pdf": true,
+      "figures/replay_mechanism_telemetry_qwen05b.pdf": true,
+      "figures/sustained_auc_effects_qwen05b.pdf": true,
+      "figures/verified_support_discovery_two_scale_effects.pdf": true,
+      "figures/verified_support_story.pdf": true,
+      "results/absolute_support_references_table_body.tex": true,
+      "results/baseline_collapse_precheck_table_body.tex": true,
+      "results/core_terminal_endpoints_table_body.tex": true,
+      "results/e120_frequency_progress_table_body.tex": true,
+      "figures/baseline_collapse_precheck.json": true,
+      "figures/direct_baseline_learning_curves_static_strip.json": true,
+      "figures/direct_comparator_endpoint_effects.json": true,
+      "figures/e118_all_scale_factorial_progress.json": true,
+      "figures/e118_scale_extensions_appendix.json": true,
+      "figures/experiment1_retention_comparator_matrix.json": true,
+      "figures/modebench_level_admission.json": true,
+      "figures/replay_mechanism_telemetry_qwen05b.json": true,
+      "figures/sustained_auc_effects_qwen05b.json": true,
+      "figures/verified_support_discovery_two_scale_effects.json": true
+    },
+    "source_bundle_files": 42,
+    "source_bundle_entries_match_current": true,
+    "pages": {
+      "paper": 52,
+      "paper/mathai2026": 53
+    },
+    "sections": {
+      "paper": {
+        "app:theory-natural-gradient": {
+          "section": "A.4",
+          "page": 18
+        },
+        "app:theory-entropy-comparison": {
+          "section": "A.6",
+          "page": 21
+        },
+        "app:theory-optimizer": {
+          "section": "A.10",
+          "page": 26
+        },
+        "app:theory-discovery-admission": {
+          "section": "A.11",
+          "page": 28
+        },
+        "app:theory-survival-certificates": {
+          "section": "A.12",
+          "page": 30
+        }
+      },
+      "paper/mathai2026": {
+        "app:theory-natural-gradient": {
+          "section": "E.4",
+          "page": 17
+        },
+        "app:theory-entropy-comparison": {
+          "section": "E.6",
+          "page": 20
+        },
+        "app:theory-optimizer": {
+          "section": "E.10",
+          "page": 25
+        },
+        "app:theory-discovery-admission": {
+          "section": "E.11",
+          "page": 26
+        },
+        "app:theory-survival-certificates": {
+          "section": "E.12",
+          "page": 29
+        }
+      }
+    }
+  },
+  "independent_final_review": "final_independent_review.json",
+  "visual_inspection": {
+    "status": "PASS",
+    "full_paper_pages": [
+      18,
+      26,
+      30
+    ],
+    "checked": "Readable theorem statements and equations, consistent proof layout, no clipping or overlap."
+  },
+  "previous_numerical_corroboration": {
+    "receipt": "paper/audits/theory_literature_extensions_20260905/validation.json",
+    "sha256": "1381680c91ef4db401e0857a787ddfe0bb84ea24b1d2de50c559b14a0ecb60f1",
+    "rerun_for_manuscript_integration": false
+  },
+  "artifacts": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+      "bytes": 188958
+    },
+    {
+      "path": "paper/main.pdf",
+      "sha256": "f80275f502bc2f4bc5ae760c5064b92802017efff996295b1b7ee32956b341cc",
+      "bytes": 984258
+    },
+    {
+      "path": "paper/example_paper.bib",
+      "sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "bytes": 49156
+    },
+    {
+      "path": "paper/README.md",
+      "sha256": "cebce9341ecb5ad806aa38150bd1c8e86365196794542358241ebffe21689e1f",
+      "bytes": 34196
+    },
+    {
+      "path": "paper/mathai2026/main.tex",
+      "sha256": "5ce26f5259c0cf685514d040f3dd028ca40898a56b23200edb32d15a6061a11e",
+      "bytes": 11060
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "sha256": "b0c2f07a13db509efaeedcd4b5faef7e2e500f134dcc44a27acf120a3dfec51b",
+      "bytes": 175999
+    },
+    {
+      "path": "paper/mathai2026/main.pdf",
+      "sha256": "99ee48654577f70cb7add1a1bb15f2b9bb7de8b5c4dad9ac953c4a3ce0616019",
+      "bytes": 1061875
+    },
+    {
+      "path": "paper/mathai2026/example_paper.bib",
+      "sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "bytes": 49156
+    },
+    {
+      "path": "paper/mathai2026/snapshot.json",
+      "sha256": "6356c6896f66083268a29a69770af4be8c5cc82dd4289bbe2f2a03aac71adaa1",
+      "bytes": 12454
+    },
+    {
+      "path": "paper/mathai2026/mathai2026-source.zip",
+      "sha256": "b2076ef6066610e2cca25593d939815dfb94f7ba13c64c0acfae9060ba24bae9",
+      "bytes": 670184
+    },
+    {
+      "path": "paper/mathai2026/README.md",
+      "sha256": "db7f29ed79c9d45a72d62fc8b0503f0c88896a427ac1eb51061ab38b798ace7d",
+      "bytes": 6964
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/optimizer_appendix.tex",
+      "sha256": "532bc878caf12fd71eadcdf0abeb3702014d79b2422a448c7b01ae5dd5ef562b",
+      "bytes": 7543
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/discovery_appendix.tex",
+      "sha256": "81c4f188064aefbdea49177d7a6d6d16e8ff95d66733cbdaa2540159c2581f46",
+      "bytes": 9362
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/entropy_appendix.tex",
+      "sha256": "fe2e3efe2326f1091be1c543bd1bffcbc7e8ae43dd6a59eee87adc378ac77f80",
+      "bytes": 3852
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/natural_gradient_appendix.tex",
+      "sha256": "369faf16719e33ba679a077e2ca90fc7bdc058df2ad254599d53401ed816ee08",
+      "bytes": 4487
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/survival_appendix.tex",
+      "sha256": "8ae4437989fa337c2661d2977cce2d9925626d980d85571b7f9cb823444a42bd",
+      "bytes": 11969
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/optimizer_admission_refs.bib",
+      "sha256": "558c097ffcbc8d4166c282ccd42b8de19559255209255b8f95032fc9d0f08f0f",
+      "bytes": 2810
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/entropy_geometry_refs.bib",
+      "sha256": "dcc0ca6781bbb0bd6d4134e25a4774a6e4d26579ed064eb8eca209ed259c7f29",
+      "bytes": 1771
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/survival_refs.bib",
+      "sha256": "c46d3ddce9fbf31b561c9bca6fc289b04d144ae25358a6d910934f57c4d4a214",
+      "bytes": 2449
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/optimizer_admission_notes.md",
+      "sha256": "4bda023f05c1359ead5ebcad76d1454f3617ab97c4dc259ee76376668c3194a4",
+      "bytes": 5429
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/entropy_geometry_notes.md",
+      "sha256": "8fac798b40e98601b80ab4e71280e099943f131c45d858df660b84b220b8aa76",
+      "bytes": 6265
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/survival_integration_notes.md",
+      "sha256": "ac5e2dcbb15a6824cd69130e7feee52244a44d4cd29aa1f6a11f864111250c0f",
+      "bytes": 8854
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/full_build.log",
+      "sha256": "752f6cbf4f7a489b46078efeb01e084d569b1c8cc322b8b03520efef7245241a",
+      "bytes": 56109
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/workshop_build.log",
+      "sha256": "9842ab5c0b73317ea9d86054e4802b40eeb79e42e87a83c36f2ea9895bdaa724",
+      "bytes": 43872
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/integration_checks.json",
+      "sha256": "33d91e519aa43bb5f417c5f16f9bf832568bef4427ebfc0ecde5967c53400e9b",
+      "bytes": 3656
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/final_independent_review.json",
+      "sha256": "ebe9b372ffddaa079e97b07585054a48aaec79ab0c84741fc82dfc63b1ad5bc7",
+      "bytes": 1017
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/integration.patch",
+      "sha256": "51d3e2fb1d115405db2f5c92cada5078bc772a6ce5c75b97f68f75ad5f8bcfb3",
+      "bytes": 111823
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905.md",
+      "sha256": "8a93d0b814756b952c53c070f6e71a83179dddc88252af9c42e39b35a2e71316",
+      "bytes": 5530
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/rendered/full_page18_natural_gradient.png",
+      "sha256": "674b0548779d365b9042c8fbcacba06c084b7ac780e68b0197caa04494f1da0c",
+      "bytes": 368471
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/rendered/full_page30_survival.png",
+      "sha256": "0664035c3741ef582585737ebeb52c1b4d2df59c3016b77558abae0d91ff533c",
+      "bytes": 323951
+    },
+    {
+      "path": "paper/audits/theory_appendix_integration_20260905/rendered/full_page26_optimizer.png",
+      "sha256": "d298e113ad34de19f36b030f4b4f0688ffb38e95c889520047bae7c319adc0a7",
+      "bytes": 317380
+    }
+  ]
+}

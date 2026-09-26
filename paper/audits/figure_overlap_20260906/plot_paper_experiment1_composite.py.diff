@@ -1,0 +1,11 @@
+--- before/ops/exp_scaling/plot_paper_experiment1_composite.py
++++ ops/exp_scaling/plot_paper_experiment1_composite.py
+@@ -428,6 +428,8 @@
+             label.set_color("#6B7280")
+             label.set_fontweight("bold")
+     axis.tick_params(axis="both", length=0, labelsize=6.6)
++    # Keep adjacent Countdown/Python labels distinct at manuscript print size.
++    axis.tick_params(axis="x", labelsize=6.0)
+     for spine in axis.spines.values():
+         spine.set_visible(False)
+     axis.set_xticks(

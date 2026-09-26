@@ -1,0 +1,191 @@
+\input{preamble}
+\title{Mode Collapse in RLVR \& ModeBench}
+\author{Anonymous Authors}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Correctness alone does not reveal how many successful solutions a model can
+produce. We introduce \mb{}, five executable domains that identify task-defined
+verified modes. Matched replay comparisons improve average held-out correctness
+and sampled breadth across three model scales, with five-seed MaxRL
+comparisons complete in every domain; harder-task coverage remains partial. Hosted evaluations also find accurate but concentrated
+outputs. Categorical analysis explains how binary rewards can amplify common
+modes and how fixed-bank replay can oppose that pressure under stated assumptions.
+\end{abstract}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
+\caption{\textbf{Correctness can rise while sampled alternatives narrow.}
+One graph admits six valid colorings. Bars pool four eight-sample draws from
+matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces 22/32 correct from one
+mode; ReplayMaxRL produces 32/32 across four. This illustration changes both
+the fresh objective and replay; Figure~\ref{fig:maxrl-factorial} separates them.}
+\label{fig:story}
+\end{figure}
+
+\section{Preserving alternatives for mathematical agents}
+\label{sec:introduction}\label{sec:collapse}
+Mathematical agents can check alternative computations only if the model
+proposes them \citep{brown2024monkeys,snell2024testtime}. In reinforcement
+learning with verifiable rewards (RLVR), binary correctness feedback rewards
+familiar and new successes equally \citep{guo2025deepseekr1}. Accuracy can
+therefore improve while sampled verified outputs narrow (Figure~\ref{fig:story}).
+
+We store verified outputs by identity and revisit them during training.
+
+\section{\mb{} makes output identity executable}
+\label{sec:modebench}
+\href{https://huggingface.co/datasets/od2961/ModeBench\#level-1}{\mb{}} assigns each accepted output a canonical key defining its verified \emph{mode}
+(Figure~\ref{fig:modebench-examples}): computation routes in Countdown/MathIR,
+tested behaviors in Python, and configurations in Graph/PantryPlan. Aliases
+merge; distinct routes can share an answer (Appendix~\ref{app:domain-overview}).
+Sampled modes do not identify total support or latent reasoning diversity.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[trim={0 9bp 0 0},clip,width=\linewidth]{figures/modebench_examples.pdf}
+\caption{\textbf{One prompt, different verified outputs.}
+Canonical keys identify valid configurations, computation routes and tested
+behaviors. They merge cosmetic aliases, without identifying latent reasoning.}
+\label{fig:modebench-examples}
+\end{figure}
+
+\section{ReplayMaxRL: fresh learning with verified memory}
+\label{sec:method}\label{sec:maxrl-method}\label{sec:replay}
+ReplayMaxRL combines MaxRL's sampling-aware learning from new samples
+\citep{tajwar2026maxrl} with replay of earlier verified successes
+(Figure~\ref{fig:verified-support-story}).
+
+\begin{figure}[!htbp]
+\centering
+% Crop only blank PDF margins; keep the figure itself unchanged.
+\includegraphics[trim={4bp 23bp 4bp 10bp},clip,width=\linewidth]{figures/verified_support_story.pdf}
+\caption{\textbf{Discovery and preservation use the same verified samples.}
+MaxRL learns from fresh rewards; replay revisits discovered modes.
+Memory cannot protect a mode before it is discovered.}
+\label{fig:verified-support-story}
+\end{figure}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
+\caption{\textbf{Replay effects on correctness and sampled breadth across scales.}
+(A) ReplayDr.GRPO minus Dr.GRPO. (B) Qwen2.5-0.5B alternatives and the initial
+model minus Dr.GRPO. Daggers indicate four pairs; otherwise five. Averages use
+shared seeds; intervals: Appendix~\ref{app:supporting}. Models: \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E78/README.md\#models}{0.5B}, \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E79/README.md\#models}{1B}, \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E80-R1/README.md\#models}{3B}.}
+\label{fig:cross-scale-terminal-effects}
+\end{figure}
+
+For bank $\mathcal B_x$ with one policy-generated exemplar $e_c$ per admitted
+key, replay averages token-normalized log likelihoods:
+\begin{equation}
+L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
+\sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+\label{eq:lm-verified-replay}
+\end{equation}
+Equal weights revisit keys regardless of discovery frequency. ReplayDr.GRPO
+uses Dr.GRPO \citep{liu2025understanding} for fresh updates. Fixed-bank replay
+bounds probabilities away from zero in categorical mean flows, not neural
+training or observable sampling (Appendices~\ref{app:theory-replay},~\ref{app:algorithm}).
+
+\section{Does memory preserve verified output support?}
+\label{sec:experiments}\label{sec:results}
+We report the chance of any correct output (\texttt{pass@8}), mean distinct
+verified modes (\texttt{distinct@8}), and their difference, \emph{extra modes}
+beyond the first success. Counts remain coupled to correctness. Saved-output collision also detects
+training-induced concentration and replay reductions in Graph/Pantry
+(Appendix~\ref{app:conditional-concentration}); finite samples do not
+identify total support.
+
+Five registered seeds train for eight passes. Each domain has 128 held-out
+prompts with four eight-sample draws; none enter the bank. Controls use the same
+bank code with zero replay gradient. Figure~\ref{fig:cross-scale-terminal-effects}
+also compares GRPO,
+\href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/EXPERIMENTS.md\#direct-comparators}{UCPO} \citep{lochab2026ucpo}, \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/EXPERIMENTS.md\#direct-comparators}{RLEP-Dr} success replay, and \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/EXPERIMENTS.md\#semantic-ablations}{semantic entropy}
+(protocols: Appendix~\ref{app:experimental-design}).
+
+
+
+\noindent\textbf{Replay improves average correctness and sampled breadth.}
+\label{sec:results-retention}
+ReplayDr.GRPO improves both domain averages at each scale
+(Figure~\ref{fig:cross-scale-terminal-effects}).
+Uniform key weighting adds $.32$ extra modes over \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E120-R1/README.md\#models}{frequency weighting},
+on average at Qwen2.5-0.5B; its correctness contrast is inconclusive
+(Appendix~\ref{app:frequency-replay-progress}).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/e118_all_scale_factorial_progress.pdf}
+\caption{\textbf{MaxRL and replay at all three model scales.}
+Tracks connect initial, trained, and replay models. Complete tracks average
+within seed. All MaxRL tracks use five paired seeds in every domain,
+including 3B; Falcon Dr.GRPO uses four common seeds.
+\href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E118/README.md\#models}{Archived models}.}
+\label{fig:maxrl-factorial}
+\end{figure}
+
+\noindent\textbf{Replay complements both fresh objectives on average.}
+\label{sec:results-maxrl}
+Adding replay improves average correctness and sampled breadth under both
+objectives at all three scales (Figure~\ref{fig:maxrl-factorial}).
+All 50 Qwen2.5-3B MaxRL endpoints are complete: mean correctness rises
+$.547\to.701$ and modes $.744\to1.107$
+(Appendix~\ref{app:maxrl-scale-extensions}).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/modebench_level_admission.pdf}
+\caption{\textbf{Replay across difficulty levels with Qwen2.5-0.5B-Instruct.}
+Open/filled markers: Level 1/2. (A) Frozen-model development admission.
+(B) Terminal means weight four complete domains equally within five paired
+seeds, shared across both levels and all methods. Pantry arm counts remain
+separate (Appendix~\ref{app:level2-interim}). \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/experiments/E119/README.md\#models}{Archived models}.}
+\label{fig:level2-admission}
+\end{figure}
+
+\noindent\textbf{Replay gains extend to the harder-level average.}
+\label{sec:results-levels}
+\href{https://huggingface.co/datasets/od2961/ModeBench\#level-2}{Level 2} retains validators and keys. Its construction reserves differ from
+the native Level-1 terminal tests. Four complete five-seed factorials (80/80) show
+positive mean replay effects on correctness and sampled breadth within Level 2 (Figure~\ref{fig:level2-admission}); PantryPlan has 10/20 endpoints.
+Benefits vary: Countdown adds $.017$ extra modes under ReplayMaxRL,
+but its correctness interval includes zero
+(Appendix~\ref{app:current-campaign-results}).
+
+\noindent\textbf{Accurate hosted outputs can remain concentrated.}
+\label{sec:hosted-concentration}
+Seven deployments vary in breadth across five domains and three levels;
+accurate Graph and MathIR outputs often revisit few modes
+(Figure~\ref{fig:hosted-verified-breadth}). A no-reasoning GPT sweep raises
+aggregate pass@8 and breadth through $T=1.5$
+(Appendix~\ref{app:gpt56-temperature}). Prompt and provider settings differ;
+these observations identify neither training causes nor model-size effects.
+
+\noindent\textbf{Conclusion and limits.}
+\label{sec:conclusion}\label{sec:discussion}\label{sec:limitations}
+Replay can improve correctness and sampled breadth; only admitted exemplars
+receive replay. Fixed-bank scores still have a declining tail
+(Appendix~\ref{app:fixed-bank-survival}). Exact mode probabilities, causal
+accuracy mechanisms and benefits under changed constraints remain unverified.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/hosted_verified_breadth.pdf}
+\caption{\textbf{High accuracy need not imply broad verified outputs.}
+Each cell uses all eight stateless draws on 128 prompts after frozen
+formatting normalization. Opus 5 Python uses revised wording without a system
+message, precluding a common-prompt ranking. Original protocols:
+Appendix~\ref{app:hosted-comparison}.}
+\label{fig:hosted-verified-breadth}\label{main:lastpage}
+\end{figure}
+
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{example_paper}
+\clearpage
+\appendix
+\input{appendix}
+\end{document}

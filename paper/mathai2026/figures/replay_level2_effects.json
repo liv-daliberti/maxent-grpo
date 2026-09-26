@@ -1,0 +1,958 @@
+{
+  "builder": {
+    "path": "ops/plot_paper_reorganized_results.py",
+    "sha256": "5c9cf567496c7c21ce35457b87745b2ef270afa2eec4961fd1f5167ddf5e26a7"
+  },
+  "cohort_rule": "all-four-arm paired seed intersection within each domain",
+  "contrast_direction": "replay minus the same base objective within Level 2",
+  "display_metrics": {
+    "breadth8": {
+      "label": "extra@8 = distinct@8 - pass@8",
+      "source_scale_multiplier": 1,
+      "unit": "expected extra verified keys"
+    },
+    "distinct8": {
+      "label": "distinct@8",
+      "source_scale_multiplier": 1,
+      "unit": "expected verified keys"
+    },
+    "pass8": {
+      "label": "pass@8",
+      "source_scale_multiplier": 100,
+      "unit": "probability points"
+    }
+  },
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "figure": "replay_level2_effects",
+  "figure_size_inches": [
+    6.7,
+    1.8
+  ],
+  "inference_note": "Intervals copied exactly from frozen summaries; unadjusted descriptive estimation intervals, not equivalence tests or simultaneous intervals.",
+  "interpretation": "A within-Level-2 replay comparison; no cross-level absolute-mean contrast or isolated difficulty intervention.",
+  "level": 2,
+  "minimum_font_pt": 9.75,
+  "outputs": {
+    "pdf": {
+      "path": "paper/figures/replay_level2_effects.pdf",
+      "sha256": "ba4d581f5a20d3d45a7a34c7ed1bfa2666dd46673d3a1904f457d058dc5ea906"
+    },
+    "png": {
+      "path": "paper/figures/replay_level2_effects.png",
+      "sha256": "a7c9fd1d4bb4ddf68017d4b1e5b017b9874746d6460842d415fff21b417f292a"
+    }
+  },
+  "paired_seed_counts": {
+    "drgrpo": 21,
+    "maxrl": 21
+  },
+  "partial_blocks": [
+    {
+      "ci95": null,
+      "domain": "pantry_plan",
+      "n": 1,
+      "seeds": [
+        43
+      ]
+    }
+  ],
+  "plotted_metrics": [
+    "pass8",
+    "distinct8"
+  ],
+  "rows": [
+    {
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "graph_coloring",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.8824502081142229,
+            1.1550497918857772
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 1.01875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.8515625,
+            "44": 1.01953125,
+            "45": 1.09375,
+            "46": 0.9921875,
+            "47": 1.13671875
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.44461489371182067,
+            0.6772601062881793
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.5609375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.400390625,
+            "44": 0.62890625,
+            "45": 0.609375,
+            "46": 0.556640625,
+            "47": 0.609375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "graph_coloring",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.5327041559096666,
+            0.8032333440903334
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.66796875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.505859375,
+            "44": 0.693359375,
+            "45": 0.62109375,
+            "46": 0.732421875,
+            "47": 0.787109375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.2498193224045962,
+            0.36033692759540376
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.305078125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.234375,
+            "44": 0.328125,
+            "45": 0.294921875,
+            "46": 0.31640625,
+            "47": 0.3515625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "countdown",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.047344490661391236,
+            0.13718824066139124
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.044921875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.07421875,
+            "44": 0.126953125,
+            "45": -0.07421875,
+            "46": 0.060546875,
+            "47": 0.037109375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.05300599182867781,
+            0.10222474182867781
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.024609375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.01171875,
+            "44": 0.091796875,
+            "45": -0.07421875,
+            "46": 0.056640625,
+            "47": 0.037109375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "countdown",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.02217423827506363,
+            0.13623673827506363
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.05703125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.01953125,
+            "44": 0.11328125,
+            "45": -0.013671875,
+            "46": 0.03125,
+            "47": 0.134765625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.03415018225949684,
+            0.11461893225949685
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.040234375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.10546875,
+            "45": -0.013671875,
+            "46": 0.00390625,
+            "47": 0.10546875
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "python_factors",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.0771226196546953,
+            0.8771226196546953
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.4,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.8125,
+            "44": 0.1875,
+            "45": 0.8125,
+            "46": 0.1875,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.05251638387342321,
+            0.2025163838734232
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.075,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.0,
+            "44": 0.1875,
+            "45": 0.0,
+            "46": 0.1875,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "python_factors",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.24233989640430614,
+            0.6665586464043061
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.212109375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.1875,
+            "44": 0.021484375,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.8515625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.06661669144491744,
+            0.14161669144491745
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.0375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.1875,
+            "44": 0.0,
+            "45": 0.0,
+            "46": 0.0,
+            "47": 0.0
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "mathir",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.492578125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.0022911965772516307,
+            0.9874474465772516
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.492578125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.890625,
+            "44": 0.046875,
+            "45": 0.640625,
+            "46": 0.796875,
+            "47": 0.087890625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "mathir",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            -0.2751274238504915,
+            0.6243461738504915
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.174609375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.162109375,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            -0.2767945280969861,
+            0.6228882780969861
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.173046875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.154296875,
+            "44": 0.12890625,
+            "45": -0.2109375,
+            "46": 0.767578125,
+            "47": 0.025390625
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_drgrpo_minus_drgrpo",
+      "domain": "pantry_plan",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "drgrpo",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.2869925230266938,
+            0.6958199769733062
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.49140625,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.501953125,
+            "44": 0.5703125,
+            "45": 0.677734375,
+            "46": 0.232421875,
+            "47": 0.474609375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.18285086282941615,
+            0.4273053871705838
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.305078125,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.3125,
+            "44": 0.353515625,
+            "45": 0.421875,
+            "46": 0.15625,
+            "47": 0.28125
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    {
+      "contrast": "replay_maxrl_minus_maxrl",
+      "domain": "pantry_plan",
+      "model": "Qwen2.5-0.5B-Instruct",
+      "objective": "maxrl",
+      "scale": "qwen05b",
+      "summaries": {
+        "distinct8": {
+          "ci95": [
+            0.18212203415342618,
+            0.6413154658465738
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.41171875,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.404296875,
+            "44": 0.650390625,
+            "45": 0.34375,
+            "46": 0.154296875,
+            "47": 0.505859375
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        "pass8": {
+          "ci95": [
+            0.1455854018159548,
+            0.3286333481840452
+          ],
+          "interval_type": "paired Student-t 95%",
+          "mean": 0.237109375,
+          "n": 5,
+          "partial": false,
+          "per_seed": {
+            "43": 0.25,
+            "44": 0.296875,
+            "45": 0.220703125,
+            "46": 0.119140625,
+            "47": 0.298828125
+          },
+          "seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        }
+      },
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    }
+  ],
+  "sample_budget_k": 8,
+  "schema": "paper-reorganized-replay-figure-v1",
+  "scope": "Exact step-3072 endpoints from the frozen source-admissible four-draw audit. All contrasts and arm means use the all-four-arm seed intersection within each domain. Five registered seeds receive unadjusted descriptive paired Student-t 95% intervals; partial blocks have exact seed sets and no interval. No completion, endpoint, or missing cell is imputed; no cross-domain pooling.",
+  "source_endpoint_snapshot": {
+    "path": "paper/audits/results_completion_20260912/latest_endpoints.json",
+    "sha256": "8be05fb5b3b7032ddf5db42d4e874a393ccdc73bede4087c9ddb9a545452cfbb"
+  },
+  "source_sha256": {
+    "paper/results/level2_factorial_contrasts_20260912.json": "09f37aaab26eeca3cd8ea995ce2421d25c13508594a6c7272b3cdf55d5a824b6"
+  },
+  "sources": [
+    {
+      "path": "paper/results/level2_factorial_contrasts_20260912.json",
+      "sha256": "09f37aaab26eeca3cd8ea995ce2421d25c13508594a6c7272b3cdf55d5a824b6"
+    }
+  ],
+  "terminal_step": 3072
+}

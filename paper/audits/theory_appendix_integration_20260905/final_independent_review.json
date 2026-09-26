@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "scope": "Human-readable independent mathematical and source-use audit, not machine-checked formal proofs.",
+  "reviewer": "/root/appendix_entropy_geometry",
+  "findings": [
+    "All five final fragments appear verbatim exactly once in both manuscripts.",
+    "Noise centering and deterministic initialization inherit unambiguously in the bounded-noise corollary; delta range is explicit.",
+    "The added infinite-horizon maximal-bound explanation is valid.",
+    "Admission concerns actual active-memory insertion by opportunity horizon N, with capacity, non-eviction, switching-energy and persistent-weight assumptions intact.",
+    "Response-to-key proof extends the target over the full normalized response alphabet before partitioning by execution key; completeness and matched-decoding conditions remain explicit.",
+    "Exact-entropy and natural-gradient scope and literature attribution survived prose reflow.",
+    "No concrete mathematical or citation-use regressions found."
+  ]
+}

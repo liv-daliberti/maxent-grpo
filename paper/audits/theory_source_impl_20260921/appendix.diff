@@ -1,0 +1,598 @@
+--- Appendix P before
++++ Appendix P after
+@@ -7,7 +7,13 @@
+ differ. The categorical specialization yields finite-step concentration and
+ sampled symmetry breaking; fixed-bank replay has an explicit restoration
+ threshold and recovery bound. Complete-response and local-update arguments
+-state conditions for neural retention. These results do not certify the implemented AdamW/PPO trajectories.
++state conditions for neural retention. We apply established replicator,
++policy-gradient, information-theoretic, and coverage results where their
++assumptions match: the sharpened replay certificate follows by KL data
++processing, and exact Dr.GRPO with reference KL inherits a published
++convergence guarantee. Our derivations address the group estimators, their
++sampling noise, and the competition with the verified bank. These results
++do not certify the implemented AdamW/PPO trajectories.
+ Table~\ref{tab:notation} lists the symbols used here.
+ 
+ \subsection{Categorical abstraction and mean updates}
+@@ -131,7 +137,8 @@
+ 
+ The next lemma specializes the practical-estimator analysis of
+ \citet[Section~4.3 and App.~D, Theorem~5]{tajwar2026maxrl}
+-to our categorical notation; we include the derivation for completeness.
++to our categorical notation. We invoke that result directly and retain the
++normalization that identifies the implemented estimator.
+ 
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \enforcehalffinalproseline
+@@ -157,23 +164,12 @@
+ 
+ \begin{proof}
+ \enforcehalffinalproseline
+-Condition on $R=r>0$. Each successful row has advantage $(G-r)/r$ and each
+-failed row has advantage $-1$. Using the same conditional score identities as
+-above, the expected unaveraged sum is
+-\[
+-  (G-r)\!\left(\nabla_z\log P-\nabla_z\log(1-P)\right)
+-  =\frac{G-r}{P(1-P)}\nabla_zP.
+-\]
+-After the outer factor $1/G$ and averaging over
+-$R\sim\operatorname{Binomial}(G,P)$,
+-\[
+- \E[(G-R)\1\{R>0\}]
+- =G(1-P)-G\Pr(R=0)
+- =G\big[(1-P)-(1-P)^G\big].
+-\]
+-Substitution gives Equation~\eqref{eq:maxrl-expected-gradient}. Its endpoint
+-values follow by continuity (or the finite geometric-series identity), which
+-also gives the stated continuous extension at both boundaries.
++Apply \citet[Theorem~5]{tajwar2026maxrl} with $N=G$ and pass rate $P$.
++Its dropped-baseline estimator is exactly $\widehat g_G^{\mathrm{MaxRL}}$,
++so its expected coefficient is $\sum_{j=0}^{G-2}(1-P)^j$.
++The finite geometric sum gives Equation~\eqref{eq:maxrl-expected-gradient}
++and its endpoint values. This application uses on-policy independent draws
++and the score identity, without making an optimizer convergence claim.
+ \end{proof}
+ 
+ The same finite-series identity gives the potential used below:
+@@ -202,7 +198,8 @@
+ expected-update model removes
+ sampling noise and retains independently trained Euclidean logits. The
+ conditional dynamics reduce to the standard frequency-dependent replicator
+-system with fitness $f_c(q)=q_c$ \citep{hofbauer1998evolutionary}. The result is
++system with fitness $f_c(q)=q_c$
++\citep{hofbauer1998evolutionary,harper2009informationgeometry}. The result is
+ a specialization to the group estimators, not a new general theorem about
+ replicator dynamics. Related correctness-indifferent collapse analyses include
+ \citet{sinha2026expected,lochab2026ucpo}.
+@@ -492,7 +489,9 @@
+ 
+ \begin{proof}
+ \enforcehalffinalproseline
+-Differentiating the correct and incorrect event probabilities gives
++The conditional-score identity
++\citep[Theorem~1]{tajwar2026maxrl} (also
++\citealp[Lemma~B.1]{avspo2026}) applied to the correct and incorrect events gives
+ \[
+  \E[s(Y)\mid Y\in\mathcal C]=v/P,
+  \qquad
+@@ -645,6 +644,50 @@
+ intervention is excluded by the mean-direction identity proved here.
+ 
+ 
++The verified-key metric also fits an existing distributional diversity
++functional. The following specialization gives its gradient for shared
++neural parameters, connecting the conditional score identities to the
++verified execution keys used by the reported diversity metric.
++
++\begin{corollary}[Verified-key specialization of SetPO]
++\enforcehalffinalproseline
++\label{cor:pcmd-setpo-neural}
++Fix a prompt, a verifier-positive response event $\mathcal C$, and a
++deterministic key map $V:\mathcal C\to\{1,\ldots,m\}$, all independent
++of $\theta$. Let $\pi_\theta$ be differentiable with common positive support,
++$P_\theta=\Pr_\theta(\mathcal C)>0$, and
++$Q_\theta=\pi_\theta(\cdot\mid\mathcal C)$. Assume the score
++$s_\theta(Y)=\nabla_\theta\log\pi_\theta(Y)$ is integrable under $Q_\theta$
++and differentiation commutes with the response sums over each key.
++Write $q_c=Q_\theta(V(Y)=c)$ and $S_2=\sum_cq_c^2$.
++For $k(y,y')=\1[V(y)=V(y')]$ and $g(u)=1-u$, the functional
++$\mathcal F(Q)=\E_{Y\sim Q}[g(\E_{Y'\sim Q}k(Y,Y'))]$ is exactly
++$\pmd(q)$. The influence formula of
++\citet[Theorem~4.2, v1]{li2026setpo} specializes, for $y\in\mathcal C$, to
++\begin{align}
++ \left.\frac{d}{d\varepsilon}
++  \mathcal F((1-\varepsilon)Q_\theta+\varepsilon\delta_y)
++  \right|_{\varepsilon=0}
++ &=2(S_2-q_{V(y)}),\label{eq:pcmd-setpo-influence}\\
++ \nabla_\theta\pmd(q)
++ &=2\E_{Y\sim Q_\theta}
++       [(S_2-q_{V(Y)})s_\theta(Y)].
++ \label{eq:pcmd-neural-gradient}
++\end{align}
++\end{corollary}
++\begin{proof}
++\enforcehalffinalproseline
++The equality kernel and $g$ satisfy SetPO's Assumption~4.1, and its local
++mass is $q_{V(y)}$. Substitution into its influence formula proves the first
++identity. The influence has mean zero under $Q_\theta$, so the
++$-\nabla_\theta\log P_\theta$ term in the conditional score cancels,
++giving the second identity.
++\end{proof}
++These identities permit shared neural parameters. Along an update, the
++sign of the diversity change depends on its alignment with this metric
++gradient; the influence formula alone supplies no monotonicity guarantee
++for a given training direction.
++
+ \subsection{Diversity at finite steps and sampling budgets}
+ \label{app:finite-time-diversity}
+ 
+@@ -680,8 +723,12 @@
+ 
+ \begin{proof}
+ \enforcehalffinalproseline
+-Equation~\eqref{eq:grpo-replicator} gives
+-$dS_2/d\tau=2(\sum_cq_c^3-S_2^2)$. The variance vanishes exactly when the
++For the replicator flow~\eqref{eq:grpo-replicator}, the potential
++$U(q)=S_2/2$ has fitness $\partial U/\partial q_c=q_c$.
++The fitness-variance identity of
++\citet[Theorems~1--2]{harper2009informationgeometry} gives
++$dU/d\tau=V(q)$, hence $dD/d\tau=-2V(q)$.
++The variance vanishes exactly when the
+ positive coordinates of $q$ are equal. Also,
+ \[
+  \dot P=c(P)\|\nabla_zP\|_2^2
+@@ -970,10 +1017,12 @@
+   =-\frac1k\sum_{b\in\mathcal B}\log p_b.
+   \label{eq:verified-replay-loss}
+ \end{equation}
+-This is ordinary cross-entropy against the distribution that assigns mass
+-$1/k$ to each banked mode and zero elsewhere. It is not conditioned on the
+-bank: decreasing~\eqref{eq:verified-replay-loss} can raise total bank mass as
+-well as redistribute mass within the bank.
++For the uniform bank target $w$, this is the established likelihood-replay
++objective $R_{\mathcal B}=H(w)+\mathrm{KL}(w\|p)$
++\citep[App.~D.1, version~4]{li2025divergence}. The target assigns mass
++$1/k$ to each banked mode and zero elsewhere. Decreasing this loss can raise
++total bank mass as well as redistribute mass within the bank; the bank is
++not the conditioning event for $p$.
+ 
+ In an averaged continuous-time model, absorb a fixed round-robin replay
+ frequency and loss scale into an effective dose $\rho>0$. This assumes a
+@@ -1050,11 +1099,59 @@
+ Equation~\eqref{eq:replay-retention-bound} for every time after $T$.
+ \end{proof}
+ 
++\paragraph{A sharper certificate from normalization.}
++Write $\operatorname{kl}(a,r)=a\log(a/r)+(1-a)\log[(1-a)/(1-r)]$
++with continuous endpoint conventions. For $0<a<1$ and $D\ge0$, let
++$\ell_-(a,D)$ be the unique $r\in(0,a]$ satisfying
++$\operatorname{kl}(a,r)=D$; set $\ell_-(1,D)=e^{-D}$.
++In particular, $\ell_-(a,0)=a$.
++
++\begin{corollary}[Replay certificate by KL data processing]
++\enforcehalffinalproseline
++\label{cor:replay-sharp-kl-certificate}
++Let $w_b>0$, $\sum_{b\in\mathcal B}w_b=1$, and suppose a probability law
++$p$ satisfies $R_w(p)=-\sum_{b\in\mathcal B}w_b\log p_b\le C<\infty$.
++With $D=C-H(w)$ and $H(w)=-\sum_bw_b\log w_b$, necessarily $D\ge0$, and
++\begin{equation}
++ p_b\ge\ell_-(w_b,D)>0,\qquad
++ p(\mathcal B)\ge e^{-D},\qquad
++ p_b\ge\max\{0,w_b-\sqrt{D/2}\}.
++ \label{eq:replay-sharp-kl-certificate}
++\end{equation}
++The binary-KL coordinate bound is sharp on the closed probability simplex
++when the alphabet has at least two categories. In
++Theorem~\ref{thm:replay-retention}, take $w_b=1/k$ and $C=C_T$ to obtain
++these bounds simultaneously for every $t\ge T$.
++\end{corollary}
++\begin{proof}
++\enforcehalffinalproseline
++Extend $w$ by zero outside $\mathcal B$. Then
++$\mathrm{KL}(\bar w\|p)=R_w(p)-H(w)\le D$.
++Data processing under the partitions $\{b\},\{b\}^{\rm c}$ and
++$\mathcal B,\mathcal B^{\rm c}$ gives
++$\operatorname{kl}(w_b,p_b)\le D$ and $-\log p(\mathcal B)\le D$
++\citep[Theorem~9]{vanerven2014renyi}. Binary inversion gives the first
++bound; Pinsker gives the third \citep[Theorem~31]{vanerven2014renyi}.
++For $w_b<1$, equality in the first is attained by
++$p_b=\ell_-(w_b,D)$ and
++$p_j=(1-p_b)w_j/(1-w_b)$ on the remaining bank, with zero mass elsewhere.
++For $w_b=1$, put the remaining probability on another category.
++For $D>0$, full-support laws approach the same bound by assigning vanishing
++mass off the bank and slightly increasing the protected coordinate while
++keeping the divergence within the allowed budget.
++\end{proof}
++
++For illustration, a uniform bank of 16 with $C=\log16+0.01$ gives
++$p_b\ge0.03397$, whereas the termwise bound $e^{-16C}$ is
++$4.62\times10^{-20}$. These are illustrative inputs, not measured training
++losses. A large excess loss $D$ can still make the sharper certificate weak.
++
++
+ 
+ For the nonnegative coefficients of the named fresh estimators,
+ $\Psi_{\max}=\Psi(1)$, recovering the simpler constant. Signed coefficients
+ also satisfy the retention bound, but need not yield $P\to1$.
+-The floor is qualitative and can be numerically vacuous. For example, at
++The elementary floor is qualitative and can be numerically vacuous. For example, at
+ $k=16$ even a hypothetical $C_T=160$ gives $e^{-2560}$, far below any useful
+ evaluation probability. The argument establishes a uniform-in-time lower
+ bound in the stated ideal flow, not practical visibility or a prediction for
+@@ -1119,6 +1216,39 @@
+ of the probability vector.
+ \end{proof}
+ 
++\begin{corollary}[Uniform allocation maximizes finite-budget coverage]
++\enforcehalffinalproseline
++\label{cor:coupon-uniform-coverage}
++Fix correctness $P\in(0,1]$ and $m\ge2$ possible correct keys.
++Let $D_K(P,q)$ count distinct verified keys in $K$ independent draws with
++key probabilities $Pq_1,\ldots,Pq_m$ and failure probability $1-P$.
++For $u=(1/m,\ldots,1/m)$, every $K\ge1$ and $r=1,\ldots,m$ satisfy
++\begin{equation}
++ \Pr[D_K(P,u)\ge r]\ge\Pr[D_K(P,q)\ge r].
++ \label{eq:coupon-uniform-coverage}
++\end{equation}
++Thus uniform conditional allocation maximizes \texttt{distinct@}$K$ at
++fixed correctness, and more strongly maximizes every coverage tail
++probability. The conclusion applies
++\citet[Theorem~3, v1]{anceaume2015coupon} to a frozen policy with a fixed
++correctness level and a finite catalogue of verified execution keys under
++independent sampling.
++\end{corollary}
++\begin{proof}
++\enforcehalffinalproseline
++Map each correct key to a coupon of mass $Pq_c$ and every failure to the
++null coupon of mass $1-P$. The cited theorem makes the time to collect $r$
++distinct non-null coupons stochastically smallest when each has mass $P/m$.
++The event that this time is at most $K$ is exactly $D_K\ge r$.
++Zero coordinates and $P=1$ follow by continuity of finite-horizon
++probabilities. Summing the tail inequalities over $r=1,\ldots,m$ gives the
++same ordering of expected distinct counts for every finite sampling budget
++at the same correctness level and over the same catalogue of possible keys.
++\end{proof}
++This sampling optimum does not assert that a training algorithm reaches the
++uniform allocation.
++
++
+ \paragraph{Positive weights and the implemented length normalization.}
+ Uniformity of the target is separate from protection against extinction.
+ For fixed weights $w_b>0$ with $\sum_{b\in\mathcal B}w_b=1$, define
+@@ -1128,6 +1258,8 @@
+  p_b(t)\ge\exp(-C_{T,w}/w_b),\qquad
+  C_{T,w}=R_w(z(T))+\frac{\Psi_{\max}-\Psi(P(T))}{\rho_w}.
+ \]
++Corollary~\ref{cor:replay-sharp-kl-certificate} sharpens this floor with
++$C=C_{T,w}$ and the same normalized target $w$.
+ For the following convergence statements assume $c_G\ge0$.
+ If $\mathcal B=\mathcal C$, then
+ $R_w=H(w)-\log P+\mathrm{KL}(w\|q)$, and the independent-logit limit is
+@@ -1427,6 +1559,86 @@
+ probability is $e^{Ls}$, not $e^s$. A change in this exemplar's likelihood
+ need not equal the change in its whole key's probability.
+ 
++\paragraph{A certificate for an execution key.}
++For one fixed prompt $x$, take distinct complete verified responses $e_j$
++with lengths $L_j$, keys $b_j$, and coefficients $\alpha_j>0$. Define
++\[
++ A_x=\sum_j\frac{\alpha_j}{L_j},\qquad
++ w_j=\frac{\alpha_j/L_j}{A_x},\qquad
++ W_b=\sum_{j:b_j=b}w_j.
++\]
++If their mean-token replay loss is at most $C_x$, namely
++$\sum_j(\alpha_j/L_j)[-\log\pi_\theta(e_j\mid x)]\le C_x$, then
++\begin{equation}
++ \operatorname{kl}\!\left(W_b,p_\theta(b\mid x)\right)
++ \le D_x:=C_x/A_x-H(w),\qquad
++ p_\theta(b\mid x)\ge\ell_-(W_b,D_x)\quad(W_b>0).
++ \label{eq:complete-exemplar-key-certificate}
++\end{equation}
++Indeed, the response-level divergence from the normalized exemplar target is
++at most $D_x$; deterministic execution followed by the indicator of key $b$
++is data processing \citep[Theorem~9]{vanerven2014renyi}, followed by
++Corollary~\ref{cor:replay-sharp-kl-certificate}. This uses the same complete
++response and decoding law as Lemma~\ref{lem:shared-exemplar-retention}.
++Normalize separately for each prompt; a bound on total replay loss also
++bounds each prompt's nonnegative summand. A checkpoint certificate supplies
++no trajectory guarantee without a uniform loss bound.
++
++\paragraph{Allowing stochastic energy excursions.}
++Exact descent is sufficient but not necessary. The following is a direct
++application of Ville's inequality \citep[Lemma~1]{howard2020timeuniform}.
++
++\begin{corollary}[Retention from a conditional energy budget]
++\enforcehalffinalproseline
++\label{cor:replay-stochastic-energy-budget}
++Use the fixed complete exemplars, weights and potential $F$ of
++Lemma~\ref{lem:shared-exemplar-retention}. Let
++$D_t=F(\theta_t)+J_{\max}\ge0$ be adapted and integrable, with deterministic
++finite $D_0$. For $N\in\mathbb N\cup\{\infty\}$, suppose deterministic
++$d_t\ge0$ satisfy $\E[D_{t+1}\mid\mathcal F_t]\le D_t+d_t$ for $t<N$,
++with finite total budget $B_N=\sum_{t<N}d_t$.
++These hypotheses control expected upward energy changes without requiring
++every realized step to decrease the joint loss.
++For every $0<\delta<1$, with probability at least $1-\delta$,
++\begin{equation}
++ p_{\theta_t}(b_j\mid x_j)\ge\pi_{\theta_t}(e_j\mid x_j)
++ \ge\exp\!\left[-\frac{L_j(D_0+B_N)}{\alpha_j\delta}\right]
++ \quad\text{for all }t\le N\text{ and all }j.
++ \label{eq:replay-stochastic-energy-budget}
++\end{equation}
++The sharper per-prompt certificate in
++Equation~\eqref{eq:complete-exemplar-key-certificate} also applies on this
++event. For $N=\infty$, every protected probability has an almost surely
++positive, potentially random, infimum over the iterations.
++\end{corollary}
++\begin{proof}
++\enforcehalffinalproseline
++$X_t=D_t+\sum_{s=t}^{N-1}d_s$ is a nonnegative supermartingale. Ville's
++inequality bounds its supremum by $(D_0+B_N)/\delta$ with probability at
++least $1-\delta$. Every replay summand is nonnegative and bounded by $D_t$,
++so exponentiation and event containment give the claim without a union
++factor over exemplars. If $D_0+B_N=0$, then $X_t=0$ almost surely.
++For $N=\infty$, Ville's inequality with thresholds tending to infinity gives
++$\sup_tX_t<\infty$ almost surely.
++\end{proof}
++
++For example, the one-step estimate underlying
++\citet[Lemma~2.1, Eq.~(2.13)]{wang2017sqn} supplies this drift for the update
++$\theta_{t+1}=\theta_t-\eta_tH_tg_t$ with an $L$-smooth $F$,
++$\E[g_t\mid\mathcal F_t]=\nabla F(\theta_t)$,
++$\E[\|g_t-\nabla F(\theta_t)\|^2\mid\mathcal F_t]\le\sigma^2/m_t$,
++and preconditioners measurable before the current gradient noise with
++$\underline\kappa I\preceq H_t\preceq\bar\kappa I$.
++Deterministic steps $\eta_t\le\underline\kappa/(L\bar\kappa^2)$ and
++batch sizes $m_t$ permit
++$d_t=L\eta_t^2\bar\kappa^2\sigma^2/(2m_t)$.
++An infinite horizon additionally needs the displayed finite budget;
++constant steps and persistent noise generally supply only a finite-horizon
++bound. The current-gradient AdamW moments, clipping, changing banks and
++cyclic replay schedule are not certified by these premises: their bias and
++energy effects require separate control. No such budget is established for
++the experimental runs.
++
+ \paragraph{Retention and finite evaluation visibility.}
+ At a fixed checkpoint, suppose $k$ distinct banked keys for one prompt have
+ probability floors $p_b\ge\delta_b>0$. For $K$ independent draws from that
+@@ -1554,13 +1766,14 @@
+ (Table~\ref{tab:run-contract}, $\beta_{\mathrm{KL}}=0$). The collapse theorem
+ therefore says nothing about the regularizer most RLVR recipes carry, and a
+ reader is entitled to ask whether that regularizer already does the work the
+-bank is introduced for. This subsection answers in the idealized flow. The
+-comparison separates stationary targets from recovery rates. For the
+-Dr.GRPO and MaxRL coefficients, the full-support stationary conditional is
+-the reference's own. Its restoring logit force vanishes as a mode vanishes,
+-whereas replay supplies a nonvanishing banked-coordinate force.
+-The recovery comparison below is proved on a specified two-mode face; it is
+-not a convergence theorem for all full-support trajectories.
++bank is introduced for. This subsection separates the categorical stationary target, exact-gradient
++convergence, and recovery rates. For Dr.GRPO and MaxRL, the full-support
++stationary conditional is the reference's own.
++Corollary~\ref{cor:kl-dr-mei-convergence} applies entropy-regularized softmax
++theory to prove convergence for exact Dr.GRPO gradient steps. The recovery
++comparison below concerns a specified two-mode face: reference KL's
++restoring logit force vanishes as a mode vanishes, whereas replay supplies
++a nonvanishing banked-coordinate force.
+ App.~\ref{app:theory-kl-measured} compares these mechanisms with measured runs.
+ 
+ Replace (A4) by
+@@ -1614,9 +1827,10 @@
+ Descent of $F_\beta$ gives
+ $D(p(t))\le [F_\beta(z(T))+\Psi_{\max}]/\beta$.
+ This yields a floor when its right side is below the displayed face
+-threshold, but need not do so for an arbitrary initial energy. The distinction
+-is which sublevels exclude the boundary, not an impossibility of retention
+-under a bounded penalty.
++threshold, but need not do so for an arbitrary initial energy. These are statements about loss sublevels. A particular optimizer can still
++admit a trajectory-dependent probability floor, as
++Corollary~\ref{cor:kl-dr-mei-convergence} establishes for exact Dr.GRPO
++gradient steps with a fixed reference.
+ 
+ \begin{proposition}[The retained conditional is the reference's]
+ \enforcehalffinalproseline
+@@ -1664,13 +1878,85 @@
+ is $P^\star/(1-P^\star)=[\mu(\mathcal C)/(1-\mu(\mathcal C))]e^\lambda$.
+ \end{proof}
+ 
+-The stationary target differs from full-coverage uniform replay:
+-Corollary~\ref{cor:replay-no-collapse} gives $q\to u$, whereas the KL
+-stationary allocation is $\mu|_{\mathcal C}$. A broader reference changes that
+-allocation; replay instead constructs its target from verified discoveries.
+-The proposition does not bound transient diversity by the reference's
+-diversity or establish convergence of every trajectory to this stationary
+-point, and it does not apply directly to neural optimizer trajectories.
++For Dr.GRPO, the constant fresh coefficient permits a stronger conclusion
++by direct application of established optimization theory. The following
++specializes \citet[Theorem~5 and Lemma~13]{mei2020softmaxpg}; its Gibbs
++target is also the standard regularized maximizer of
++\citet[Proposition~1]{geist2019regmdp}.
++
++\begin{corollary}[Exact Dr.GRPO with reference KL converges]
++\enforcehalffinalproseline
++\label{cor:kl-dr-mei-convergence}
++Fix one prompt, a finite category set
++$\mathcal A=\mathcal C\mathbin{\dot\cup}\mathcal N$ with both parts
++nonempty, and independently optimized logits $p_n=\operatorname{softmax}(z_n)$.
++Let $z_1$ be finite, let $\mu$ be a reference distribution with
++$\mu_a>0$ for every category, and take $\beta>0$ and
++$\alpha=(G-1)/G$ for $G\ge2$. Define
++\[
++ \mathcal J_\beta(p)=\alpha P(p)-\beta\mathrm{KL}(p\|\mu).
++\]
++For constant $0<\eta\le1/\beta$, consider the exact gradient updates
++\begin{equation}
++ z_{n+1}=z_n+\eta\nabla_z\mathcal J_\beta(p_n).
++ \label{eq:kl-dr-mei-update}
++\end{equation}
++Then $p_n\to p^\star$, where
++\[
++ p^\star_a=
++ \frac{\mu_a\exp(\alpha R_a/\beta)}
++      {\sum_b\mu_b\exp(\alpha R_b/\beta)},
++ \qquad R_a=\1[a\in\mathcal C],
++ \qquad q^\star=\mu|_{\mathcal C}.
++\]
++There are constants $\underline p>0$ and $C<\infty$, depending only on
++$|\mathcal A|,z_1,\mu,\alpha,\beta$, such that for every $n\ge1$,
++\begin{equation}
++ \min_a p_{n,a}\ge\underline p,
++ \qquad
++ \mathcal J_\beta(p^\star)-\mathcal J_\beta(p_n)
++ =\beta\mathrm{KL}(p_n\|p^\star)
++ \le C e^{-2\beta\eta\underline p(n-1)}.
++ \label{eq:kl-dr-mei-rate}
++\end{equation}
++\end{corollary}
++
++\begin{proof}
++\enforcehalffinalproseline
++Set $\widetilde r_a=\alpha R_a+\beta\log\mu_a$. Then
++$\mathcal J_\beta(p)=\langle p,\widetilde r\rangle+\beta H(p)$.
++For $B=\max\{1,\max_a\widetilde r_a-\min_a\widetilde r_a\}$, define
++$r'_a=(\widetilde r_a-\min_b\widetilde r_b)/B\in[0,1]$,
++$\tau=\beta/B$, and $\eta'=\eta B$. Equation~\eqref{eq:kl-dr-mei-update}
++is exactly the entropy-regularized bandit update of
++\citet{mei2020softmaxpg} with reward $r'$, temperature $\tau$, and step
++$\eta'\le1/\tau$. Their Lemma~13 supplies $\underline p$, and their
++Theorem~5 supplies the displayed rate after multiplying the objective by
++$B$. The optimum $\operatorname{softmax}(r'/\tau)$ is $p^\star$;
++substitution gives the KL gap identity. The gap tends to zero, so Pinsker's
++inequality also gives convergence of the full categorical probability law
++and its conditional allocation among the correct categories.
++\end{proof}
++
++This positive trajectory floor depends on initialization and the reference;
++it need not provide useful finite-sample visibility. It is compatible with
++the vanishing coordinate force below and with increasingly slow recovery
++as the initial probability decreases. The result concerns exact discrete
++gradients with a fixed reference and the stated step size, not sampled KL
++gradients, PPO epochs, or AdamW. For centered MaxRL with $G\ge3$,
++$c_G(P)$ is nonconstant, so its potential cannot be absorbed into the fixed
++reward vector used in this reduction; Proposition~\ref{prop:kl-stationary}
++continues to specify its stationary target without asserting convergence.
++
++
++The reference-conditional target differs from full-coverage uniform replay:
++Corollary~\ref{cor:replay-no-collapse} gives $q\to u$, whereas
++Corollary~\ref{cor:kl-dr-mei-convergence} gives $q_n\to\mu|_{\mathcal C}$
++for exact Dr.GRPO steps. A broader reference changes that allocation;
++replay constructs its target from verified discoveries. For MaxRL,
++Proposition~\ref{prop:kl-stationary} identifies the stationary conditional
++without a convergence claim. Neither result bounds transient diversity by
++the reference's diversity or certifies a neural optimizer trajectory.
+ 
+ \begin{remark}
+ The correctness prediction also depends on reference correctness
+@@ -1858,9 +2144,11 @@
+ \end{proof}
+ 
+ The first two statements are convergence results under their stated
+-hypotheses; the third identifies an interior stationary point.
+-Lemma~\ref{lem:kl-no-barrier} explains when a KL sublevel excludes a face,
+-but a general convergence proof is not supplied here.
++hypotheses. The third also holds as a limit for the exact Dr.GRPO steps of
++Corollary~\ref{cor:kl-dr-mei-convergence}; for centered MaxRL with $G\ge3$,
++it identifies the stationary value without a convergence claim.
++Lemma~\ref{lem:kl-no-barrier} separately describes which KL sublevels
++exclude a boundary face.
+ Neither the stationary value nor the two-mode recovery rate is a bound on
+ transient neural diversity. The distinction between the reference allocation
+ and the discovered-bank target remains useful without that stronger claim.
+@@ -1965,7 +2253,7 @@
+ winner-take-all limit predicts and what no reweighting of binary outcomes was
+ able to avoid.
+ 
+-\paragraph{What the flow got wrong, twice, for one reason.}
++\paragraph{Measured checkpoints differ from the stationary predictions.}
+ Proposition~\ref{prop:kl-stationary} makes the stationary conditional
+ $\beta$-free. The measured coefficients order \pmd{} monotonically instead, and
+ the ordering is stable across seeds. The same proposition puts stationary
+@@ -2037,17 +2325,15 @@
+ is a different claim and is read as one below. In \MDklMemoryNames{} no
+ coefficient reaches either memory arm at all.
+ 
+-Three of this appendix's results are strengthened rather than weakened by that.
+-The bank-capacity premise of Corollary~\ref{cor:replay-no-collapse} stops being
+-a caveat and becomes the quantity that predicts where replay attains its bound.
+-The separation between discovery and retention acquires its cases: the domains
+-where replay does least are the ones where the bank never fills, which is a
+-discovery failure and not a retention failure. And the coefficient window of
+-the preceding paragraph is the one place where the two instruments are not
+-symmetric, because the measured correctness cost at the top of the $\beta$
+-range concerns a stationary target tradeoff, whereas the replay dose also
+-controls finite-time restoration. A matched replay-dose sweep would be
+-needed to compare those sensitivities empirically.
++The bank-capacity premise of Corollary~\ref{cor:replay-no-collapse}
++helps interpret these differences. Lower replay diversity in domains whose
++banks remain small is consistent with limited discovery, but occupancy alone
++does not separate discovery from retention or bound held-out neural
++\pmd{}. The coefficient sweep measures a correctness--diversity tradeoff
++at finite checkpoints; it does not establish that the policies reached
++their stationary targets. The replay dose also controls restoration time
++in Theorem~\ref{thm:replay-finite-recovery}. A matched replay-dose sweep
++would be needed to compare those sensitivities empirically.
+ 
+ \subsection{Why a memory rather than an anchor, once the reference is collapsed}
+ \label{app:theory-kl-case}
+@@ -2098,15 +2384,15 @@
+ not a typical reference; it is higher than every cell of every frontier model
+ we measured, including their own \MDklTopFrozenDomain{} cells.
+ 
+-Read against Proposition~\ref{prop:kl-stationary}, that is the argument. An
+-anchor pointed at a deployed model inherits a macro diversity of roughly
+-\MDklHostedHi{} and typically less. \MDklTopMemoryArm{} reaches
+-\MDklTopMemoryPmd{} in \MDklTopMemoryDomain{}, past what anchoring to any
+-model in that cohort would supply on average, and it does so because
+-the categorical replay target depends on discovered bank membership,
+-whereas the analyzed KL stationary target depends on the reference. The two instruments are
+-not competing for the same resource. One spends a property of the initial
+-policy; the other spends search.
++Under Proposition~\ref{prop:kl-stationary}, a deployed model used as the
++reference would determine the categorical stationary conditional. Its
++measured diversity therefore describes a candidate target; it is not a
++ceiling on a retrained neural policy. The
++\MDklTopMemoryArm{} result of \MDklTopMemoryPmd{} in
++\MDklTopMemoryDomain{} concerns a different evaluation population from
++the hosted macro average. The structural distinction is the source of the
++target: verified replay uses discovered bank membership, whereas the
++analyzed reference-KL target uses the fixed reference distribution.
+ 
+ \paragraph{Three further asymmetries, in decreasing strength.}
+ The measured knee is the sharpest. In \MDklPricedNames{} every coefficient
+@@ -2164,10 +2450,15 @@
+ induces $\dot z=c_G(P)J_\theta J_\theta^\top\nabla_zP$. The independently
+ trained logit theorem uses $J_\theta J_\theta^\top=I$ and does not automatically
+ extend to arbitrary shared parameters or another optimization metric. Equal
+-binary reward alone does not force this winner selection: the categorical
+-natural-gradient reward flow can be represented by
+-$\dot z_a=c_G(P)(R_a-P)$, which gives identical velocities to correct logits
+-and preserves their ratios. Here $R_a=\1[a\in\mathcal C]$.
++binary reward alone does not force this winner selection. The natural policy
++gradient update of \citet[Lemma~15]{agarwal2021policygradient}, specialized to
++this bandit, is $p_a^+\propto p_a\exp(\eta c_G(P)R_a)$ and preserves
++every ratio of correct probabilities at each finite step. Its continuous
++version has $\dot z_a=c_G(P)(R_a-P)$, with
++$R_a=\1[a\in\mathcal C]$. The distinction between Euclidean and natural
++updates also underlies the tabular entropy identities of
++\citet[Theorems~1--2]{cui2025entropy}; entropy and verified-mode diversity
++remain different observables.
+ 
+ The mean-gradient identity has broader scope than the collapse conclusion.
+ For one prompt and a common autonomous preconditioner $M(\theta)$, positive
+@@ -2263,9 +2554,11 @@
+ $\epsilon_n\ge0$ and $\sum_{n\ge n_0}\epsilon_n=E<\infty$ would extend
+ Lemma~\ref{lem:shared-exemplar-retention}, using
+ $D=F(\theta_{n_0})+J_{\max}+E$ for steps $n\ge n_0$.
+-This follows by telescoping and bounds retention, not convergence. The noisy
+-optimizer would need a separate argument establishing such control of the
+-joint loss's upward drift. A positive replay coefficient or small nominal
++This follows by telescoping and bounds retention, not convergence. Corollary~\ref{cor:replay-stochastic-energy-budget} instead permits
++conditional expected drift with a controlled accumulated error budget,
++and yields a simultaneous probability statement over iterations and
++protected exemplars. An optimizer-specific argument is still needed to
++establish either form of energy control. A positive replay coefficient or small nominal
+ learning rate does not establish it. Adam moments, clipping, momentum, prompt
+ scheduling, and bank changes are not covered by the exact-flow proofs.
+ The experiments have not established the required joint-energy or

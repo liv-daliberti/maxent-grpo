@@ -1,0 +1,10 @@
+{
+  "artifacts/modebench_inference_followups_20260911/offline/results.json": "b6ff3e0ed98cd4e813dd79aa8d3428e077f8e6fd64b35c7874c50e0b6c00457e",
+  "artifacts/modebench_inference_followups_20260911/offline/independent_audit.json": "1bfd9562a5fc772073180fa467c586345255bde08d91aa07aea4998bf195cb0c",
+  "artifacts/modebench_inference_followups_20260911/local_coarse_v2/results.json": "8254dc946461cb90e218f602c5e0f36fb62a17609c2bab7c1f28c1759f9e5ffa",
+  "artifacts/modebench_inference_followups_20260911/pantry/analysis_complete/results.json": "246d791ec8dc33d3da94fa01ee346cd410f7e3a16adad0efb160bd3df2476660",
+  "artifacts/modebench_inference_followups_20260911/pantry/saved_portfolios/results.json": "c037443ab7fc55ea228df1cc15bcc32daffe54febdf5f2173968b4dcdc29bb1f",
+  "artifacts/modebench_inference_followups_20260911/CROSS_MODEL_OVERLAP.md": "fe9b330f3148dc8e00b488379100d5eed05514671b87fdbd5c978e02adaf3a2d",
+  "artifacts/modebench_inference_followups_20260911/COARSER_MODES.md": "1fd01a6db3235fa6ae42fbff67d5c03cb74cdf86cd95af224901a39dc1e0c3b7",
+  "artifacts/modebench_inference_followups_20260911/PANTRY_ADAPTATION.md": "fa7f76e40fd03e01a8bfd1fd8c59e617628486050f423d93845906829bb1c5c5"
+}

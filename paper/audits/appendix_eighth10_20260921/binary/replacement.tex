@@ -1,0 +1,151 @@
+\subsection{Conditional trajectories of outcome-binary mean flows}
+\label{app:theory-objective-inertness}
+
+Under Assumption~\ref{ass:categorical-mean-flow}, every outcome-binary
+estimator with a positive correctness coefficient induces the same
+conditional trajectory in $q$. Its advantage changes only the rate at which
+that trajectory is traversed. Conditioning on correctness averages over all
+correct modes, so a reward-dependent advantage cannot distinguish their
+identities.
+
+\begin{proof}[Proof of Theorem~\ref{thm:objective-inertness}]
+\enforcehalffinalproseline
+The score identities used in Lemma~\ref{lem:grpo-mean} give
+$\E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P$ and
+$\E[\nabla_z\log p_{Z_i}\mid R_i=0]=\nabla_z\log(1-P)$.
+Independence of the draws means that conditioning also on the other rows'
+rewards does not change either conditional mean. Since $a(R_i,R)$ depends
+only on the binary rewards, conditioning on their complete vector and
+summing the $R$ successful and $G-R$ failed rows gives
+\[
+  \E[\widehat g_a]
+  =\frac1G\Big(\E[R\,a(1,R)]\nabla_z\log P
+   +\E[(G-R)\,a(0,R)]\nabla_z\log(1-P)\Big).
+\]
+Substituting $\nabla_z\log P=\nabla_zP/P$ and
+$\nabla_z\log(1-P)=-\nabla_zP/(1-P)$ yields
+Equation~\eqref{eq:objective-inertness}. Hence
+$\frac{d}{dt}\log(q_c/q_d)=\dot z_c-\dot z_d=c_a(P)P(1-P)(q_c-q_d)$.
+For $c_a>0$, the positive time change $d\tau=c_a(P)P(1-P)\,dt$ gives
+the replicator dynamics in Equation~\eqref{eq:grpo-replicator}.
+\end{proof}
+
+For a fixed reward-dependent advantage, the binomial identities
+$R\binom GR=G\binom{G-1}{R-1}$ and
+$(G-R)\binom GR=G\binom{G-1}{R}$ give
+\begin{equation}
+ c_a(P)=\sum_{j=0}^{G-1}\binom{G-1}{j}P^j(1-P)^{G-1-j}
+ \big[a(1,j+1)-a(0,j)\big],
+ \label{eq:inertness-polynomial}
+\end{equation}
+a polynomial in $P$ of degree at most $G-1$. Finite advantage values
+therefore give a smooth, bounded coefficient on $[0,1]$.
+
+The coefficients in this Bernstein expansion are
+\begin{equation}
+ d_j:=a(1,j+1)-a(0,j),\qquad j=0,\ldots,G-1 .
+ \label{eq:leave-one-out-gap}
+\end{equation}
+With the other $G-1$ rows fixed at $j$ successes, $d_j$ is the change in a
+row's advantage when its reward changes from failure to success. The
+Bernstein basis is nonnegative on $[0,1]$ and sums to one, so $c_a(P)$ lies
+between $\min_jd_j$ and $\max_jd_j$. Each basis function is strictly positive
+on $(0,1)$; hence nonnegative gaps, with at least one positive, imply
+$c_a(P)>0$ throughout the interior. This condition is sufficient:
+mixed-sign gaps alone do not determine the sign of $c_a$.
+
+For Dr.GRPO, every $d_j=(G-1)/G$, giving the constant coefficient in
+Lemma~\ref{lem:grpo-mean}. For the centered MaxRL estimator,
+$d_0=G-1$ and $d_j=G/(j+1)$ for $1\le j\le G-1$.
+In particular, $a(1,G)=0$ and $a(0,G-1)=-1$ give $d_{G-1}=1$.
+Substitution into Equation~\eqref{eq:inertness-polynomial} gives
+$[1-(1-P)^{G-1}]/P$, as in Lemma~\ref{lem:maxrl-mean}.
+
+\begin{corollary}[Collapse for correctness-improving outcome-binary mean flows]
+\enforcehalffinalproseline
+\label{cor:class-collapse}
+Under Assumption~\ref{ass:categorical-mean-flow}, let $a(R_i,R)$ be a fixed,
+bounded advantage depending only on the binary rewards. Suppose the gaps
+in Equation~\eqref{eq:leave-one-out-gap} satisfy $d_j\ge0$ for every $j$,
+with at least one strictly positive gap. If $q(0)$ has a unique largest
+coordinate $c^\star$, then
+\[
+ P(t)\longrightarrow1,\qquad
+ q_{c^\star}(t)\longrightarrow1,\qquad
+ q_c(t)\longrightarrow0\quad(c\ne c^\star).
+\]
+The surviving correct mode is the one with the largest initial probability;
+the choice of $a$ changes the rate along the conditional trajectory.
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+By Theorem~\ref{thm:objective-inertness}, the flow is
+$\dot z=c_a(P)\nabla_zP$. Equation~\eqref{eq:inertness-polynomial} makes
+$c_a$ smooth and bounded on $[0,1]$. If $d_{j_0}>0$, the nonnegative-gap
+hypothesis gives
+\[
+ c_a(P)\ge\binom{G-1}{j_0}P^{j_0}(1-P)^{G-1-j_0}d_{j_0}>0
+ \qquad(0<P<1).
+\]
+These are the coefficient properties used in the proof of
+Theorem~\ref{thm:grpo-collapse}: the logit flow exists for all finite times,
+$P\to1$, and the effective time $\tau\to\infty$. The conditional
+replicator equation~\eqref{eq:grpo-replicator} then eliminates all coordinates
+strictly below the initial maximum. It contains neither the advantage
+coefficients nor the rollout group size, so the surviving mode depends only
+on $q(0)$.
+\end{proof}
+
+The nonnegative-gap condition is sufficient rather than necessary. An
+estimator with mixed-sign gaps also has the same limiting behavior if
+$c_a(P)>0$ throughout $(0,1)$. An interior zero of $c_a$ is a stationary
+correctness level for the mean flow, while a negative coefficient gives
+$\dot P=c_a(P)\lVert\nabla_zP\rVert_2^2<0$ at an interior policy.
+The collapse conclusion requires positivity and an initial imbalance under
+Assumption~\ref{ass:categorical-mean-flow}; it does not describe shared-prompt
+or sampled neural updates.
+
+\begin{remark}[Group size in the deterministic conditional flow]
+\label{rem:group-size-inert}
+For each $G\ge2$, group size enters the mean flow through $c_a(P)$.
+When this coefficient is positive, the time change in
+Theorem~\ref{thm:objective-inertness} gives the same conditional replicator
+equation. Increasing $G$ can change the speed of the mean flow but cannot
+change the surviving mode under the conditions of
+Corollary~\ref{cor:class-collapse}.
+Group size also changes the probability of a mixed-reward group in
+Lemma~\ref{lem:replay-gradient-availability}, which is small near both
+$P=0$ and $P=1$, and the MaxRL coefficient in
+Corollary~\ref{cor:maxrl-starvation}. These properties concern total
+correctness $P$; they do not provide a probability floor for an individual
+correct mode. Gradient covariance and finite-sample symmetry breaking can depend on $G$,
+so sampled updates need not share this equivalence.
+\end{remark}
+
+\begin{corollary}[MaxRL amplification of the correctness gradient]
+\enforcehalffinalproseline
+\label{cor:maxrl-starvation}
+For the coefficients of Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean},
+\[
+ \frac{c_G^{\mathrm{MaxRL}}(P)}{c_G^{\mathrm{Dr.GRPO}}}
+ =\frac{G\big[1-(1-P)^{G-1}\big]}{(G-1)P}.
+\]
+This ratio is nonincreasing in $P$, with limits $G$ as $P\to0$ and
+$G/(G-1)$ as $P\to1$. It is strictly decreasing for $G>2$ and constant
+at $2$ for $G=2$. At the same policy, MaxRL therefore multiplies the
+Dr.GRPO correctness-gradient coefficient by a factor approaching $G$ when
+correctness is small. The probability of a nonzero fresh task component
+remains bounded by the mixed-group probability in
+Lemma~\ref{lem:replay-gradient-availability} for both estimators.
+\end{corollary}
+
+\begin{proof}
+\enforcehalffinalproseline
+Divide $c_G^{\mathrm{MaxRL}}(P)=[1-(1-P)^{G-1}]/P$ by $(G-1)/G$.
+The finite-series identity
+$c_G^{\mathrm{MaxRL}}(P)=\sum_{j=0}^{G-2}(1-P)^j$
+gives the endpoint limits and monotonicity. For $G=2$ the sum is the
+constant $1$; for $G>2$ it contains the strictly decreasing term $1-P$.
+\end{proof}
+

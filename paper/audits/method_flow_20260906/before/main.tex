@@ -1,0 +1,216 @@
+\input{preamble}
+\title{More than One Way to Skin a Cat:\\
+Preserving Verified Modes in RLVR}
+\author{Anonymous Authors}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A language model can become more accurate on mathematical problems while
+losing alternative correct solutions. To measure this loss, we introduce \mb{},
+a benchmark of five executable domains that distinguishes different correct
+outputs for the same problem. We then show that ReplayMaxRL, which combines
+sampling-aware reinforcement learning with a memory of previously verified
+outputs, improves held-out correctness while preserving a broader repertoire.
+We find gains from replay with both Dr.GRPO and MaxRL, across three and two
+model scales, respectively, and on a harder graph-coloring task. These results
+distinguish discovering a successful behavior from keeping it available.
+\end{abstract}
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/modecollapse_story.pdf}
+\caption{\textbf{Correctness can rise while alternatives disappear.}
+One graph admits six valid colorings. Bars pool four eight-sample draws from
+matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces 22/32 correct from one
+mode; ReplayMaxRL produces 32/32 across four.}
+\label{fig:story}
+\end{figure}
+
+\section{Preserving alternatives for mathematical agents}
+\label{sec:introduction}\label{sec:collapse}
+Training a language model to solve mathematical problems more accurately may
+also change which correct solutions it can still produce. That distinction
+matters for a mathematical agent: a different computation or proof idea may
+offer a way forward when a familiar route fails or constraints change. Tools
+and verifiers can guide search and revision
+\citep{brown2024monkeys,snell2024testtime}, but a verifier cannot select an
+alternative the model never proposes.
+
+Correctness feedback can hide the loss of these options. Reinforcement learning
+with verifiable rewards (RLVR) reinforces correct outputs \citep{guo2025deepseekr1}.
+A familiar solution earns the same correctness reward as a newly discovered
+one. Accuracy can therefore improve even as the range of verified outputs shrinks. In our runs, these two trends occur together
+(Figure~\ref{fig:story}).
+
+
+The loss also appears across our datasets. Averaged over five domains, eight
+passes of Dr.GRPO reduce the initial number of verified alternatives beyond
+the first correct output in eight samples by $99.4\%$ at Qwen2.5-0.5B,
+$71.6\%$ at Falcon3-1B, and $41.5\%$ at Qwen2.5-3B
+(Appendix Figure~\ref{fig:baseline-precheck}).
+
+We therefore ask how training can keep discovered alternatives available.
+
+\section{\mb{} makes output identity executable}
+\label{sec:modebench}
+\mb{} assigns each accepted output an exact, executable identity: a canonical
+key whose distinct values define verified \emph{modes}
+(Figure~\ref{fig:modebench-examples}). Keys capture computation routes in
+Countdown and MathIR, tested program behaviors in Python, and valid
+configurations in Graph and PantryPlan. Cosmetic aliases merge; distinct routes
+can share an answer (key rules: Appendix~\ref{app:domain-overview}). This measures
+task-defined output support; it does not establish diversity of latent reasoning strategies.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[trim={0 9bp 0 0},clip,width=\linewidth]{figures/modebench_examples.pdf}
+\caption{\textbf{One prompt, different verified outputs.}
+Keys retain a color vector, normalized computation tree, tested return vector,
+algebraic state trajectory, or ingredient support. Cosmetic aliases merge;
+these keys identify task-defined outputs rather than free-form reasoning.}
+\label{fig:modebench-examples}
+\end{figure}
+
+\section{ReplayMaxRL: learn from new samples and remember successes}
+\label{sec:method}\label{sec:maxrl-method}\label{sec:replay}
+ReplayMaxRL learns from new samples and revisits earlier verified successes
+(Figure~\ref{fig:verified-support-story}).
+
+\begin{figure}[!htbp]
+\centering
+% Crop only blank PDF margins; keep the figure itself unchanged.
+\includegraphics[trim={4bp 23bp 4bp 10bp},clip,width=\linewidth]{figures/verified_support_story.pdf}
+\caption{\textbf{Discovery and preservation use the same verified samples.}
+MaxRL learns from fresh rewards; replay retains exemplars by key and revisits
+rare successes. Memory cannot protect a mode before it is discovered.}
+\label{fig:verified-support-story}
+\end{figure}
+
+MaxRL trains policy $\pi_\theta$ for success within $k$ samples across sampling
+budgets \citep{tajwar2026maxrl}. Each training prompt $x$ keeps one
+policy-generated exemplar $e_c$ per admitted key in bank $\mathcal B_x$.
+With $|e_c|$ its token length, recurrent replay minimizes
+\begin{equation}
+L_{\mathrm{replay}}(x)=-\frac{1}{|\mathcal B_x|}
+\sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+\label{eq:lm-verified-replay}
+\end{equation}
+Each retained key receives equal replay weight, independent of its frequency in
+fresh rollouts. Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
+which debiases GRPO \citep{shao2024deepseekmath}, yields ReplayDr.GRPO.
+Appendix~\ref{app:algorithm} gives the full update;
+Appendix~\ref{app:theory} analyzes collapse and retention in idealized categorical models.
+
+\noindent\textbf{Related work.} Prior work studies diversity collapse
+\citep{cui2025entropy,dang2025diversity} and success replay \citep{zhang2025rlep}.
+We focus on executable identity for measurement and memory
+(Appendix~\ref{sec:related}).
+
+\section{Does memory preserve verified output support?}
+\label{sec:experiments}\label{sec:results}
+\texttt{pass@8} is the chance that eight samples contain any correct response;
+\texttt{distinct@8} is their average number of distinct verified modes.
+\emph{Extra modes}, \texttt{distinct@8}$-$\texttt{pass@8}, counts alternatives
+beyond the first correct output. Both support measures remain coupled to correctness.
+
+We register five seeds per comparison and train for eight passes. Each domain
+has 128 held-out prompts, evaluated with four eight-sample draws and excluded
+from the replay bank. Matched Dr.GRPO/MaxRL controls run the bank code with zero
+replay gradient. Figure~\ref{fig:cross-scale-terminal-effects} also compares
+reward normalization, on-policy diversity (UCPO; \citealp{lochab2026ucpo}),
+success replay (RLEP-Dr), and semantic entropy. Full protocols are in
+Appendix~\ref{app:experimental-design}.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
+\caption{\textbf{Replay improves correctness and verified support across scales.}
+(A) ReplayDr.GRPO minus Dr.GRPO. (B) Qwen2.5-0.5B alternatives and the untrained
+reference minus Dr.GRPO. Daggers mark four admissible pairs; others use five. Average uses shared seeds.
+Left: probability differences. Right: key counts. Bold marks column maxima;
+uncertainty: Appendix~\ref{app:supporting}.}
+\label{fig:cross-scale-terminal-effects}
+\end{figure}
+
+\noindent\textbf{Replay improves held-out correctness and support.}
+\label{sec:results-retention}
+ReplayDr.GRPO improves both means in 14 complete model--domain blocks and one
+four-seed block; \texttt{distinct@8} rises in all 74 admissible seed pairs
+(one conflicting source excluded; Appendix~\ref{app:source-integrity}).
+On Qwen2.5-0.5B Countdown, \texttt{pass@8} rises from $.48$ to $.67$ and
+\texttt{distinct@8} from $.49$ to $1.64$. Across five Qwen2.5-0.5B domains, uniform versus
+frequency-weighted replay adds $.318$ extra modes on average
+(95\% paired bootstrap interval $[.272,.358]$); its correctness effect is
+inconclusive (Appendix~\ref{app:frequency-replay-progress}).
+
+\clearpage
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/e118_all_scale_factorial_progress.pdf}
+\caption{\textbf{Memory adds value beyond sampling-aware MaxRL.}
+Each track connects the untrained model, fresh-objective training, and its replay
+counterpart. Faint paths are seeds; bold paths average domains within seed.
+Falcon Dr.GRPO uses four common admissible seeds; other tracks use five. The
+Qwen2.5-3B row shows its completed Dr.GRPO/replay track.}
+\label{fig:maxrl-factorial}
+\end{figure}
+
+\noindent\textbf{Replay improves both Dr.GRPO and MaxRL.}
+\label{sec:results-maxrl}
+Adding replay improves both cross-domain averages under either objective at
+Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}); Qwen2.5-3B
+also benefits on its completed
+Dr.GRPO track. For ReplayMaxRL, both endpoints improve in all five Qwen2.5-0.5B
+domains; Falcon correctness improves in five and support in four.
+At Qwen2.5-0.5B, ReplayMaxRL minus MaxRL is $.307$ \texttt{pass@8} and $.991$
+\texttt{distinct@8}
+(unadjusted 95\% paired $t$ intervals $[.208,.406]$, $[.815,1.167]$).
+These cross-domain summaries are post-hoc; Falcon Dr.GRPO uses four common
+seeds descriptively (Appendix~\ref{app:results-maxrl}).
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\linewidth]{figures/modebench_level_admission.pdf}
+\caption{\textbf{Replay across difficulty levels with Qwen2.5-0.5B-Instruct.}
+Open/filled markers: Level 1/2. (A) Frozen-model success.
+(B) Interim means weight the five domains equally after averaging seeds.
+Checkpoints match across levels and methods; Pantry has one seed at step 0
+(Appendix~\ref{app:level2-interim}).}
+\label{fig:level2-admission}
+\end{figure}
+
+\noindent\textbf{Replaying stored solutions also helps on harder problems.}
+\label{sec:results-levels}
+Level 2 preserves validators, keys, and valid-mode-count histograms while
+increasing difficulty: Graph hides four vertices instead of three.
+Only Graph has a complete five-seed, four-method block after eight passes.
+Dr.GRPO/MaxRL reach $.20/.43$ \texttt{pass@8} and $.22/.55$
+\texttt{distinct@8}; replay raises these to $.76/.74$ and $1.24/1.21$.
+The five-domain comparison in Figure~\ref{fig:level2-admission}B remains interim
+(Appendix~\ref{app:results-levels}).
+
+\section{Conclusion and Limits}
+\label{sec:conclusion}\label{sec:discussion}\label{sec:limitations}
+\mb{} makes a missing part of evaluation measurable: the range of distinct,
+verified outcomes a model can produce for one problem. This matters because
+different approaches can have different strengths. One may succeed where
+another fails, or remain useful when constraints change. Understanding diversity
+therefore gives a fuller picture of a model's capabilities than accuracy alone.
+
+Our results show that replay can preserve alternatives while improving
+held-out correctness. These controlled tasks provide a starting point for
+studying diversity in broader mathematical reasoning. Replay retains only discovered,
+stored modes; individual-mode survival remains unmeasured
+(Appendix~\ref{app:ablations}). We have not shown that broader support causes
+accuracy gains or helps solve later problems. The next step is to test which
+alternatives help on richer mathematical tasks, and when.
+
+\label{main:lastpage}
+\clearpage
+\bibliographystyle{plainnat}
+\bibliography{example_paper}
+\clearpage
+\appendix
+\input{appendix}
+\end{document}

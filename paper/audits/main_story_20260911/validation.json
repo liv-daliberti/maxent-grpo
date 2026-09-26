@@ -1,0 +1,34 @@
+{
+  "main_pages": 7,
+  "max_pages": 9,
+  "references_page": 8,
+  "pdf_pages": 48,
+  "figure_pages": {
+    "fig:story": 1,
+    "fig:modebench-examples": 2,
+    "fig:verified-support-story": 3,
+    "fig:cross-scale-terminal-effects": 5,
+    "fig:maxrl-factorial": 6,
+    "fig:level2-admission": 7
+  },
+  "section_pages": {
+    "sec:introduction": 1,
+    "sec:related": 7,
+    "sec:collapse": 2,
+    "sec:modebench": 2,
+    "sec:method": 3,
+    "sec:experiments": 4,
+    "sec:results": 5,
+    "sec:conclusion": 7
+  },
+  "date": "2026-09-11",
+  "source_sha256": "de6ae1450e486d84c25025854eef03b0ca4e235cd5463a1665322ded980dd3b0",
+  "pdf_sha256": "08bb6a078dbe1d77de2d5a96e74318ecab19f20c6ee989a6687a22ac45bc71db",
+  "main_only_pdf_sha256": "1baaa8ed40cdb54db05bfcbcf199770c3feaab8a8666366f714b6d6d4775e74e",
+  "tests_passed": 25,
+  "line_fill": "211 natural-prose blocks passed at 50% minimum",
+  "undefined_references": 0,
+  "overfull_boxes": 0,
+  "source_binding_verified": true,
+  "short_manuscript_edited_by_this_task": false
+}

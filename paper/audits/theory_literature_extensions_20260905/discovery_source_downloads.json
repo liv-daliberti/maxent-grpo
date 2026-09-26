@@ -1,0 +1,23 @@
+[
+  {
+    "key": "durrett2019",
+    "url": "https://sites.math.duke.edu/~rtd/PTE/PTE5_011119.pdf",
+    "status": 200,
+    "bytes": 2195717,
+    "local": "paper/audits/theory_literature_extensions_20260905/discovery_sources/durrett2019.pdf"
+  },
+  {
+    "key": "anceaume2015",
+    "url": "https://arxiv.org/pdf/1504.03878",
+    "status": 200,
+    "bytes": 161357,
+    "local": "paper/audits/theory_literature_extensions_20260905/discovery_sources/anceaume2015.pdf"
+  },
+  {
+    "key": "goexplore2021",
+    "url": "https://arxiv.org/pdf/2004.12919",
+    "status": 200,
+    "bytes": 7040307,
+    "local": "paper/audits/theory_literature_extensions_20260905/discovery_sources/goexplore2021.pdf"
+  }
+]

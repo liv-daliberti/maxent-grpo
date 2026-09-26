@@ -1,0 +1,60 @@
+{
+  "iclr": {
+    "main": [
+      "figures/concentration_story.pdf",
+      "figures/hosted_verified_breadth.pdf",
+      "figures/replay_factorial_effects.pdf",
+      "figures/replay_key_weighting.pdf",
+      "figures/replay_level2_effects.pdf"
+    ],
+    "appendix": [
+      "figures/modebench_examples.pdf",
+      "figures/modebench_level_admission.pdf",
+      "figures/verified_support_story.pdf",
+      "figures/experiment1_retention_comparator_matrix.pdf",
+      "figures/e118_all_scale_factorial_progress.pdf",
+      "figures/e118_scale_extensions_appendix.pdf",
+      "figures/factorial_training_curves_pass8.pdf",
+      "figures/factorial_training_curves_distinct8.pdf",
+      "figures/level2_factorial_training_curves.pdf",
+      "figures/direct_comparator_endpoint_effects.pdf",
+      "figures/direct_baseline_learning_curves_static_strip.pdf",
+      "figures/direct_baseline_learning_curves_pass8.pdf",
+      "figures/modecollapse_story.pdf",
+      "figures/baseline_collapse_precheck.pdf",
+      "figures/e121_fixed_bank_survival.pdf",
+      "figures/gpt56_temperature_curve.pdf",
+      "figures/frontier_comparison_20260911_graph.pdf",
+      "figures/modebench_prompt_ablation_local.pdf"
+    ]
+  },
+  "workshop": {
+    "main": [
+      "figures/concentration_story.pdf",
+      "figures/replay_factorial_effects.pdf",
+      "figures/replay_key_weighting.pdf"
+    ],
+    "appendix": [
+      "figures/modebench_examples.pdf",
+      "figures/modebench_level_admission.pdf",
+      "figures/verified_support_story.pdf",
+      "figures/experiment1_retention_comparator_matrix.pdf",
+      "figures/e118_all_scale_factorial_progress.pdf",
+      "figures/e118_scale_extensions_appendix.pdf",
+      "figures/replay_level2_effects.pdf",
+      "figures/factorial_training_curves_pass8.pdf",
+      "figures/factorial_training_curves_distinct8.pdf",
+      "figures/level2_factorial_training_curves.pdf",
+      "figures/direct_comparator_endpoint_effects.pdf",
+      "figures/direct_baseline_learning_curves_static_strip.pdf",
+      "figures/direct_baseline_learning_curves_pass8.pdf",
+      "figures/modecollapse_story.pdf",
+      "figures/baseline_collapse_precheck.pdf",
+      "figures/e121_fixed_bank_survival.pdf",
+      "figures/hosted_verified_breadth.pdf",
+      "figures/gpt56_temperature_curve.pdf",
+      "figures/frontier_comparison_20260911_graph.pdf",
+      "figures/modebench_prompt_ablation_local.pdf"
+    ]
+  }
+}

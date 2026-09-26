@@ -1,0 +1,112 @@
+% Shared exact replay update; empirical comparisons are in results.tex.
+\section{Replay Algorithm}
+\label{app:algorithm}
+\label{app:replay-objective}
+
+For each prompt $x$, $\mathcal B_x$ stores at most $M$ verified policy
+exemplars, one per canonical key; the serialized cursor $\tau$ selects
+banks for replay. The same update supports either fresh objective.
+
+\subsection{Fresh task advantages}
+\label{app:binary-maxrl}
+
+For a group of $G$ fresh responses with verified binary rewards $r_i$ and
+$m=\sum_i r_i$, Dr.GRPO uses $A_i=r_i-m/G$, while MaxRL uses
+\[
+ A_i^{\mathrm{MaxRL}}=
+ \begin{cases}
+ G r_i/m-1, & m>0,\\
+ 0, & m=0.
+ \end{cases}
+\]
+The centered MaxRL estimator \citep{tajwar2026maxrl} gives failures advantage
+$-1$ in mixed groups and weights each success more strongly when successes
+are scarce. All-correct and all-failure groups have zero task advantage.
+Lemma~\ref{lem:maxrl-mean} gives its harmonic pass@\(k\) mean objective.
+These advantages apply only to fresh responses; bank exemplars enter the
+separate verified-likelihood loss.
+
+\subsection{State and optimizer update}
+\label{app:algorithm-update}
+
+\begin{algorithm}[H]
+  \caption{One ReplayMaxRL optimizer update}
+  \label{alg:verified-replay-update}
+  \small
+  \begin{algorithmic}[1]
+    \REQUIRE Policy $\pi_\theta$; prompt $x$ and verifier specification
+      $s_x$; group size $G$; fresh objective $o\in\{\mathrm{MaxRL},\mathrm{Dr.GRPO}\}$; replay weight $\lambda_{\mathrm{replay}}$;
+      states $(\mathcal B,\tau)$
+    \ENSURE Atomically updated $(\theta',\mathcal B',\tau')$
+    \STATE Draw the on-policy group
+      $\mathcal G=\{y_i\sim\pi_\theta(\cdot\mid x)\}_{i=1}^G$
+    \FOR{$i=1,\ldots,G$}
+      \STATE Execute $\widetilde c_i\gets V(y_i,s_x)$ and observe task
+        reward $r_i$
+      \STATE Set $c_i\gets\widetilde c_i$ iff
+        $r_i>0\wedge\widetilde c_i\ne\bot$; otherwise set $c_i\gets\bot$
+    \ENDFOR
+    \STATE Compute fresh task advantages $A_i^{o}$ from $\{r_j\}_{j=1}^G$; for ReplayMaxRL use the formula in Appendix~\ref{app:binary-maxrl}
+    \STATE After the full group is validated, deterministically retain one
+      policy exemplar for each new $c_i\ne\bot$ in $\mathcal B_x$, up to
+      capacity $M$
+    \STATE $(z,\tau')\gets\textsc{NextBank}
+      (\{\mathcal B_u\}_u,\tau)$ by a fixed round-robin cursor
+    \IF{a replay bank $\mathcal B_z$ exists}
+      \STATE For each retained exemplar $e_c$, compute
+        $s_c=|e_c|^{-1}\log\pi_\theta(e_c\mid z)$
+      \STATE $L_{\mathrm{replay}}\gets-|\mathcal B_z|^{-1}
+        \sum_{c\in\mathcal B_z}s_c$
+    \ELSE
+      \STATE $L_{\mathrm{replay}}\gets0$
+    \ENDIF
+    \STATE $w_{\mathrm{rep}}\gets(G-1)/G^2$ for one replay
+      pseudo-group per $G$ on-policy rows
+    \STATE $\theta'\gets\textsc{Update}
+      (\theta,L_{\mathrm{PPO}}(A^{o})
+      +w_{\mathrm{rep}}\lambda_{\mathrm{replay}}L_{\mathrm{replay}})$
+    \STATE Checkpoint $(\theta',\mathcal B',\tau')$ as one atomic state
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Admission, capacity, and deterministic scheduling}
+\label{app:algorithm-bank}
+
+A bank is keyed by the SHA-256 digest of the exact prompt-token sequence.
+Only loss-active rows with positive reward and a nonempty validator key
+qualify. The full group is validated against the pre-group bank before
+any new key is committed. For each new key, the lexicographically smallest
+normalized response-token tuple is retained; new keys are admitted in
+sorted-key order. Admission is therefore invariant to rollout-row order.
+The bank keeps one exemplar per key, up to $M=16$, with no eviction or
+replacement. Later keys may enter diagnostics but not replay support when
+capacity is full. Prompt-hash collisions or changed tokens under an
+existing hash are hard errors.
+
+\label{app:algorithm-schedule}
+At each update, the scheduler sorts nonempty prompt-bank hashes and selects
+one by a fixed round-robin cursor; singleton banks are eligible. The cursor
+is independent of reward, evaluation, desired support, or entropy, and is
+serialized with the bank. Stored prompt and response tokens are
+materialized unchanged into a right-padded teacher-forcing batch. Prompt
+and padding positions are masked. Each exemplar contributes its mean
+response-token log probability, averaged uniformly across keys in the
+selected bank before applying $\lambda_{\mathrm{replay}}$ and the exact
+$(G-1)/G^2$ rollout scaling in
+Algorithm~\ref{alg:verified-replay-update}. Neither exhaustive support nor
+evaluation outputs enter this loss.
+
+\subsection{Matched controls and recoverable state}
+\label{app:algorithm-control}
+
+Controls share validation, bank updates, scheduling, materialization, and
+the score pass, with the replay score-gradient vector replaced by exact
+zeros. Treatment activates only that derivative. Policies can subsequently
+differ in samples, bank contents, selected banks, exemplar lengths, and
+realized computation. Logs retain bank/key counts, replayed token counts,
+raw and applied losses, score-gradient summaries, cursor phase, and the
+exact-zero switch. Model and optimizer state, bank counts and exemplar
+tokens, replay and data cursors, and request-stream state are checkpointed
+atomically; the loader validates schema, capacity, scheduler and estimator
+constants, token types, prompt hashes, key/exemplar consistency, and cursor
+bounds before accepting a resume.

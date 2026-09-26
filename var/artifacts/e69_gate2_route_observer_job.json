@@ -1,0 +1,12 @@
+{
+  "schema": "e69_gate2_route_observer_job_v1",
+  "job_id": 30160639,
+  "submitted_commit": "f9d1d6ffa1235b777c707fcc01ae4e9228f9469f",
+  "slurm_sha256": "678c94e491b20c781ffd385f5581824fe90fbc29f7591bb53086c2517c448b24",
+  "monitor_sha256": "18779618b3098c22773b2d2ab4b4d1c5b5d30cb523607ced8506d28a7a4cad4e",
+  "observer_sha256": "d2bcc23e7aea7135f6810bc93cfec7fea2eb345a89aeadf90b9f3723c755d398",
+  "amendment_sha256": "6b0409633a579c2ab0b5a308a8771d5ece604995615789d74d1589283a1a7276",
+  "output": "var/artifacts/logs/e69_gate2_route_observer-30160639.out",
+  "error": "var/artifacts/logs/e69_gate2_route_observer-30160639.err",
+  "read_only_training_observer": true
+}

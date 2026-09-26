@@ -1,0 +1,1140 @@
+{
+  "amendment_binding": {
+    "path": "paper/audits/conditional_concentration_20260911/amendment_2_current_census_binding.json",
+    "sha256": "9e21edc6bec2d6e6dd0ea1f0918f8af683f9ac4dc0644bfbd54dd6b2932eb2db"
+  },
+  "completed_snapshot": {
+    "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_completed_cohort.json",
+    "sha256": "479d6bb83ae60d1f3ee9653fe2016701663b7b869fd197a0b111a7ed1e389e72"
+  },
+  "new_sample_failures": [],
+  "new_source_prefix_checks": [
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s72/debug_job31124282/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 11836612,
+      "selected_lines": [
+        72,
+        73,
+        74,
+        75
+      ],
+      "sha256_read_prefix": "23a82b97f10e265cd0c6cd3836269c075caafc060e4cb52fd13e071c589e0ef2"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s73/debug_job31151400/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 10153944,
+      "selected_lines": [
+        62,
+        63,
+        64,
+        65
+      ],
+      "sha256_read_prefix": "dbdcc029469c477cd7db26d76c8406a0feacfc39718c3881f7c8f92cb57cbb00"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s72/debug_job31124283/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 11763341,
+      "selected_lines": [
+        72,
+        73,
+        74,
+        75
+      ],
+      "sha256_read_prefix": "6dfb181b730588fae22f7ace43af568fad56cb3ff44cabec7171b32c573df6c1"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s73/debug_job31158505/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 69459191,
+      "selected_lines": [
+        276,
+        277,
+        278,
+        279
+      ],
+      "sha256_read_prefix": "d74d67a4456c72467467167fe01d863b1284978d12021d8e06e4b722f90fc3ab"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s72/debug_job31193187/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 12504620,
+      "selected_lines": [
+        42,
+        43,
+        44,
+        45
+      ],
+      "sha256_read_prefix": "247e62c540543e59608c972e576f4b9e9a6cc5966b2048d737bad0e2a8e77291"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s73/debug_job31158506/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 33954194,
+      "selected_lines": [
+        122,
+        123,
+        124,
+        125
+      ],
+      "sha256_read_prefix": "c5b22f440a55aa888976630431cae664fc019691299331a75cf1e949c43b9cfa"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s70/debug_job31048143/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 84124033,
+      "selected_lines": [
+        152,
+        153,
+        154,
+        155
+      ],
+      "sha256_read_prefix": "624af4c3d913096c249047042101b176e892fff13cb9f0fb343946fd8cafd711"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s71/debug_job31048145/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 97098232,
+      "selected_lines": [
+        177,
+        178,
+        179,
+        180
+      ],
+      "sha256_read_prefix": "aa886c0236cb3a1d62770494ecf37ad9e8999f4dcae08f16f4e9cc098d9b75bf"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s74/debug_job31124285/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 35307667,
+      "selected_lines": [
+        62,
+        63,
+        64,
+        65
+      ],
+      "sha256_read_prefix": "115b7a6cffcb645cd41c9bb345fcde67ba808a90f7b7da97a8fab34f0e018a97"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s71/debug_job31048146/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 99565976,
+      "selected_lines": [
+        182,
+        183,
+        184,
+        185
+      ],
+      "sha256_read_prefix": "1a4097ed1a6b8a6953ea9cbd54e0287072890cd5ff5b99c0114a09bc5f16b8aa"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s73/debug_job31124284/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 35354866,
+      "selected_lines": [
+        62,
+        63,
+        64,
+        65
+      ],
+      "sha256_read_prefix": "6a1bdeac34002d73b655d736e31a65706c9e125df2e6a724b829f204524cb9fd"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s44/debug_job31037832/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 47060487,
+      "selected_lines": [
+        87,
+        88,
+        89,
+        90
+      ],
+      "sha256_read_prefix": "7c2d0a01d1e58d5fb236c35e22866b4597741cc4a5533665fade52aadc63f914"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s43/debug_job31048179/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 91489867,
+      "selected_lines": [
+        172,
+        173,
+        174,
+        175
+      ],
+      "sha256_read_prefix": "53ed9d0ee422db44be52dd7688a998dd1b0f3efdd18549bdd72bb19a378f7fb1"
+    }
+  ],
+  "newly_loaded_checkpoint_metadata": [
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "countdown",
+        "maxrl",
+        72
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610200,
+            610201,
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207
+          ],
+          "parent_seed": 610200
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610201,
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208
+          ],
+          "parent_seed": 610201
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208,
+            610209
+          ],
+          "parent_seed": 610202
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208,
+            610209,
+            610210
+          ],
+          "parent_seed": 610203
+        }
+      ],
+      "source_bound_fingerprint": "41ca2e8a95a4ca4b7edd87e4bcf4c64dbd7213de909b32f64149ccf91ba56721",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "countdown",
+        "maxrl",
+        73
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610200,
+            610201,
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207
+          ],
+          "parent_seed": 610200
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610201,
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208
+          ],
+          "parent_seed": 610201
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208,
+            610209
+          ],
+          "parent_seed": 610202
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208,
+            610209,
+            610210
+          ],
+          "parent_seed": 610203
+        }
+      ],
+      "source_bound_fingerprint": "4e81d506aab390ba0aca67dda58650452102775487d064f5663aa3bc515a2fea",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "countdown",
+        "replay_maxrl",
+        72
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610200,
+            610201,
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207
+          ],
+          "parent_seed": 610200
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610201,
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208
+          ],
+          "parent_seed": 610201
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610202,
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208,
+            610209
+          ],
+          "parent_seed": 610202
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610203,
+            610204,
+            610205,
+            610206,
+            610207,
+            610208,
+            610209,
+            610210
+          ],
+          "parent_seed": 610203
+        }
+      ],
+      "source_bound_fingerprint": "455ef4b042221f74787b8495a098aba8ccfc99045e6e31b7807d6c1f09917d7f",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "mathir",
+        "maxrl",
+        73
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610400,
+            610401,
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407
+          ],
+          "parent_seed": 610400
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610401,
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408
+          ],
+          "parent_seed": 610401
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408,
+            610409
+          ],
+          "parent_seed": 610402
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408,
+            610409,
+            610410
+          ],
+          "parent_seed": 610403
+        }
+      ],
+      "source_bound_fingerprint": "fc04775c9dd0caa5715e60c7832f351f8e382b0cfac7a27f55460e30f0b176ec",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "mathir",
+        "replay_maxrl",
+        72
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610400,
+            610401,
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407
+          ],
+          "parent_seed": 610400
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610401,
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408
+          ],
+          "parent_seed": 610401
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408,
+            610409
+          ],
+          "parent_seed": 610402
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408,
+            610409,
+            610410
+          ],
+          "parent_seed": 610403
+        }
+      ],
+      "source_bound_fingerprint": "2699f3ef5e6b9a8bbbab8bdb2be34ffd12a3a4f9fc4cb8cee0464c6da9e2240a",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "mathir",
+        "replay_maxrl",
+        73
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610400,
+            610401,
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407
+          ],
+          "parent_seed": 610400
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610401,
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408
+          ],
+          "parent_seed": 610401
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610402,
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408,
+            610409
+          ],
+          "parent_seed": 610402
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            610403,
+            610404,
+            610405,
+            610406,
+            610407,
+            610408,
+            610409,
+            610410
+          ],
+          "parent_seed": 610403
+        }
+      ],
+      "source_bound_fingerprint": "d761920887686437d9a26fdf342a8b23359a1e276814241e1448b2ed19b464de",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "pantry_plan",
+        "maxrl",
+        70
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "a94b30271d27b094448b4f6fc65c919fb89f33bc7cc4a49cf2cd4b53bd8da8d9",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "pantry_plan",
+        "maxrl",
+        71
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "176d7e23d1a717a0be7dd7e530dfc4f420f117d94bd53d7b94768ca4f918c1b9",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "pantry_plan",
+        "maxrl",
+        74
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "c09d70a08300524be09ae8ab34777980ca0ea64c26311c259e2751b1599b77fe",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "pantry_plan",
+        "replay_maxrl",
+        71
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "5ee96a8ff710e30e484f2270b9ffa8c7327ab6f8e817fe4654e62f58a09b51e1",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level1",
+        "qwen3b",
+        "pantry_plan",
+        "replay_maxrl",
+        73
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "c34921a4d3af282921bf811b8b43e2e8f3623ff5104d3a7fc03f105e4e489b9a",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "replay_drgrpo",
+        44
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "675d00e1503e716a36e4fa434188de275ee403f1d47fc9811e3baae5c9dc62c7",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "replay_maxrl",
+        43
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "f4ef65715c3e33ddc5e98132c55f0838ee85ab5a69189709b9f500d70f06b18a",
+      "step": 3072
+    }
+  ],
+  "no_collision_effects_computed": true,
+  "retained_source_certificates": {
+    "paper/audits/conditional_concentration_20260911/stream_source_audit.json": "5aeee0c9a977f3e601478fba9241a32069a47df68df095dd9bb829db994acb6c",
+    "paper/audits/conditional_concentration_20260911/stream_source_audit_grpo_extension.json": "1ca8849a9cfb59e9fcb1efa91293001dcbec09101516c124fb2efd4520236483"
+  },
+  "schema": "collision-completed-census-stream-source-extension-v1",
+  "scope": "The same neutral n8 parent-plus-output-index mapping is used. Empty request lists and exact [parent] lists are accepted; option IDs must be null. Parent seeds are shared across prompts. Archived dependency identity and iid sampling are assumptions, not established by this certificate. Unchanged checkpoints inherit the source mapping audit through exact frozen metadata/origin equality."
+}

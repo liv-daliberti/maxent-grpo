@@ -1,0 +1,227 @@
+{
+  "audit_status": {
+    "e66": {
+      "campaign_status": "in_progress",
+      "campaign_violations": [],
+      "entropy_gated_interventions": 0,
+      "mathir_terminal_runs": 3
+    },
+    "e68": {
+      "campaign_status": "in_progress",
+      "campaign_violations": [],
+      "entropy_gated_interventions": 327,
+      "mathir_terminal_runs": 3
+    }
+  },
+  "created_at": "2026-07-28",
+  "decision": {
+    "choice": "successor_first",
+    "finish_entire_frozen_54_run_campaign_now": false,
+    "outcome_tuning": false,
+    "rationale": "The paired MathIR causal result is terminal and positive, while terminal E64 MATH-500 failed the frozen directional transfer gate. Preserve the incomplete cells and prioritize the preregistered verified-route successor."
+  },
+  "e68_minus_e66": {
+    "distinct8": 0.13671875,
+    "greedy": 0.02604166666666663,
+    "mean8": 0.03011067708333337,
+    "online_canonical_mean_support_per_prompt": 0.12651352087656642,
+    "online_canonical_tracked_outcomes": 48.0,
+    "pass8": 0.02669270833333337
+  },
+  "input_sha256": {
+    "e66_audit": "e5ca28a0fa2c278da6017024dc8f42f930e752215f6798b612837a9d99fac7e6",
+    "e66_curve": "b6d7e24efa76fc9304533e7d16d24da13dce8aa58c5882b2fd4aa02f5db1c997",
+    "e68_audit": "407eb1b2105ef4dff101c9e43cf7a44edc6bd78d0eb396d89be09856acfa2b73",
+    "e68_curve": "0a88b8a63d63130bbd7f040856677a2d69f3ce92f03f4cdf645f8ab13a623666",
+    "figure_current": "0792641600a2ab5a17964863330db3eefadea2a07e4bbba21cd0d8859efcc91c",
+    "figure_e68_provenance": "0792641600a2ab5a17964863330db3eefadea2a07e4bbba21cd0d8859efcc91c",
+    "recovery_manifest": "9a7efa38d2126df02625ac68f02fc1f283d82e9bd5a9129162f904112c0009d3",
+    "scheduler_accounting": "1f0d73c6893b1471d67e49dfa60d918dab65f3c5a44d79f603440245e790aa54"
+  },
+  "paired_seed_deltas": {
+    "distinct8": [
+      0.140625,
+      0.16796875,
+      0.1015625
+    ],
+    "greedy": [
+      0.0078125,
+      0.0546875,
+      0.015625
+    ],
+    "mean8": [
+      0.00390625,
+      0.092041015625,
+      -0.005615234375
+    ],
+    "online_canonical_mean_support_per_prompt": [
+      0.17213869094848633,
+      0.07552087306976318,
+      0.1318809986114502
+    ],
+    "online_canonical_tracked_outcomes": [
+      63.0,
+      29.0,
+      52.0
+    ],
+    "pass8": [
+      0.009765625,
+      0.05859375,
+      0.01171875
+    ]
+  },
+  "schema": "e66_e68_mathir_terminal_recovery_summary_v1",
+  "scope": "Paired terminal MathIR causal result only; the broader frozen E66/E68 campaign remains incomplete and is not claimed.",
+  "status": "pass",
+  "terminal_contract": {
+    "fixed_evaluations_per_seed": 49,
+    "primary_split": "multi_answer",
+    "recovery_jobs": [
+      {
+        "cohort": "e66",
+        "elapsed": "00:40:02",
+        "exit_code": "0:0",
+        "job_id": 30156845,
+        "node": "node302",
+        "seed": 43,
+        "state": "COMPLETED"
+      },
+      {
+        "cohort": "e66",
+        "elapsed": "00:41:02",
+        "exit_code": "0:0",
+        "job_id": 30156846,
+        "node": "node302",
+        "seed": 44,
+        "state": "COMPLETED"
+      },
+      {
+        "cohort": "e66",
+        "elapsed": "00:39:03",
+        "exit_code": "0:0",
+        "job_id": 30156847,
+        "node": "node302",
+        "seed": 45,
+        "state": "COMPLETED"
+      },
+      {
+        "cohort": "e68",
+        "elapsed": "00:44:03",
+        "exit_code": "0:0",
+        "job_id": 30156848,
+        "node": "node302",
+        "seed": 43,
+        "state": "COMPLETED"
+      },
+      {
+        "cohort": "e68",
+        "elapsed": "00:45:04",
+        "exit_code": "0:0",
+        "job_id": 30156849,
+        "node": "node302",
+        "seed": 44,
+        "state": "COMPLETED"
+      },
+      {
+        "cohort": "e68",
+        "elapsed": "00:45:03",
+        "exit_code": "0:0",
+        "job_id": 30156874,
+        "node": "node302",
+        "seed": 45,
+        "state": "COMPLETED"
+      }
+    ],
+    "seeds": [
+      43,
+      44,
+      45
+    ],
+    "step": 4608,
+    "training_passes": 12
+  },
+  "terminal_seed_rows": {
+    "e66": [
+      {
+        "distinct8": 0.841796875,
+        "greedy": 0.75,
+        "mean8": 0.720703125,
+        "online_canonical_mean_support_per_prompt": 1.2924282550811768,
+        "online_canonical_tracked_outcomes": 495.0,
+        "pass8": 0.837890625,
+        "seed": 43,
+        "step": 4608
+      },
+      {
+        "distinct8": 0.935546875,
+        "greedy": 0.7578125,
+        "mean8": 0.697998046875,
+        "online_canonical_mean_support_per_prompt": 1.4166666269302368,
+        "online_canonical_tracked_outcomes": 544.0,
+        "pass8": 0.84375,
+        "seed": 44,
+        "step": 4608
+      },
+      {
+        "distinct8": 0.953125,
+        "greedy": 0.8046875,
+        "mean8": 0.800537109375,
+        "online_canonical_mean_support_per_prompt": 1.357702374458313,
+        "online_canonical_tracked_outcomes": 520.0,
+        "pass8": 0.884765625,
+        "seed": 45,
+        "step": 4608
+      }
+    ],
+    "e68": [
+      {
+        "distinct8": 0.982421875,
+        "greedy": 0.7578125,
+        "mean8": 0.724609375,
+        "online_canonical_mean_support_per_prompt": 1.464566946029663,
+        "online_canonical_tracked_outcomes": 558.0,
+        "pass8": 0.84765625,
+        "seed": 43,
+        "step": 4608
+      },
+      {
+        "distinct8": 1.103515625,
+        "greedy": 0.8125,
+        "mean8": 0.7900390625,
+        "online_canonical_mean_support_per_prompt": 1.4921875,
+        "online_canonical_tracked_outcomes": 573.0,
+        "pass8": 0.90234375,
+        "seed": 44,
+        "step": 4608
+      },
+      {
+        "distinct8": 1.0546875,
+        "greedy": 0.8203125,
+        "mean8": 0.794921875,
+        "online_canonical_mean_support_per_prompt": 1.4895833730697632,
+        "online_canonical_tracked_outcomes": 572.0,
+        "pass8": 0.896484375,
+        "seed": 45,
+        "step": 4608
+      }
+    ]
+  },
+  "three_seed_means": {
+    "e66": {
+      "distinct8": 0.91015625,
+      "greedy": 0.7708333333333334,
+      "mean8": 0.73974609375,
+      "online_canonical_mean_support_per_prompt": 1.355599085489909,
+      "online_canonical_tracked_outcomes": 519.6666666666666,
+      "pass8": 0.85546875
+    },
+    "e68": {
+      "distinct8": 1.046875,
+      "greedy": 0.796875,
+      "mean8": 0.7698567708333334,
+      "online_canonical_mean_support_per_prompt": 1.4821126063664753,
+      "online_canonical_tracked_outcomes": 567.6666666666666,
+      "pass8": 0.8821614583333334
+    }
+  }
+}

@@ -1,0 +1,6450 @@
+{
+  "source": "artifacts/modebench_discovery_curves_20260911/analysis_complete/analysis.json",
+  "source_sha256": "a038ad0c5035eee90930aebf7404b3e865ca7360d0d888d4820054f5a2f45c56",
+  "rows": [
+    {
+      "model": "gpt56sol",
+      "grading": "strict",
+      "cell": "level2/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.918136480861711,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9726013805168113
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.918136480861711,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9726013805168113
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.081863519138289
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.027398619483188724
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.805130957236526,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.933815478618263
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.4041145933718617,
+              2.06198047571563
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7514901528217142
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.9375,
+              2.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.47461192887861103,
+              0.8972961329798957
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6860098471782856
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6064352163709459,
+              2.1226720762141205
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.872186319150348
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.11300552362518501,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.03878590189854836
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              -0.1875,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0625
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.4703438290013128,
+              1.0660565626261522
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7788887723049028
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.9375,
+              1.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.415829702686605,
+              0.8884404628581903
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6586112276950968
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.6064352163709459,
+              1.1226720762141207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.872186319150348
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 15,
+        "neutral": 15
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "strict",
+      "cell": "level2/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.7999454306761087,
+              0.9965820541184477
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9143612166124788
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1588412320607655,
+              1.919838617352581
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5204553124369389
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.875,
+              3.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6116688017391197,
+              1.2179047900944804
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9170446875630608
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6171717443613969,
+              2.447805087813367
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.021101281197822
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.6866120756488419,
+              0.9548726711856471
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8368900266425835
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0714519781743304,
+              1.70867338251774
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.3985979612437516
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.375,
+              4.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.1875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1437633030466507,
+              2.478307421660115
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7889020387562484
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.0413969692547305,
+              3.0851751765703797
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.5620791696732685
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.17730925147006657,
+              0.004550672621016728
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.07747118996989533
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              -0.1875,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0625
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.3675426405672843,
+              0.11009372549576095
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.1218573511931873
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.0625,
+              1.4375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.75
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.24534290249143428,
+              1.5752630056176065
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8718573511931876
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.22857888518432204,
+              0.8673361561223172
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5409778884754464
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 12,
+        "neutral": 12
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "strict",
+      "cell": "level2/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.3749999930103154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.18749999534021025
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.1875
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.0,
+              0.3749999930103154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.18749999534021025
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.0,
+              0.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.1875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              1.1649474371266955e-08
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.659789748506782e-09
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 19281,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.3742907603979829,
+              0.6915740597021764
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5327489569013772
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.397201747886236,
+              0.7453931492669176
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5710859191230742
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0625,
+              1.8125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5453368167940223,
+              1.230526919436147
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8664140808769258
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.126984126984127
+            ],
+            "defined_bootstrap_replicates": 19281,
+            "degenerate_ci": false,
+            "estimate": 1.0846560846560847
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.20755635770127986,
+              0.4893265525329244
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.345248961561167
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.5,
+              0.9375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.75
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.2419246743201722,
+              0.5324335608885059
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.38358592378286394
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              1.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5453368121342326,
+              1.2305269125047096
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8664140762171361
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.0,
+              0.12698412698412698
+            ],
+            "defined_bootstrap_replicates": 19281,
+            "degenerate_ci": false,
+            "estimate": 0.08465608465608465
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 3,
+        "neutral": 3
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "strict",
+      "cell": "level3/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.5626371269526296,
+              2.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8597468983139223
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.9375,
+              2.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.31752320632672926,
+              0.7139279210652364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5152531016860777
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.5626371269526296,
+              2.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8597468983139223
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.5626371269526297,
+              1.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8597468983139223
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.9375,
+              1.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.31752320632672926,
+              0.7139279210652364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5152531016860777
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.5626371269526297,
+              1.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8597468983139223
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "strict",
+      "cell": "level3/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9045340984492677,
+              0.9997637961727417
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9676580831039567
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.6045042070343944,
+              2.4214806439469463
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0001612195892315
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.9375,
+              4.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1348249591121158,
+              2.1362974803989516
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.6248387804107685
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.0337105669437143,
+              3.0306189160273633
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.5111712628268625
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.7451322379180311,
+              0.981842289945664
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8713237558592728
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0961799206743823,
+              1.7136285652333907
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4080420885440357
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.4375,
+              4.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.2202415282010197,
+              2.586006311259574
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8419579114559643
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.8480521672937054,
+              3.1213346698437334
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.4493266651547505
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.19295954870679788,
+              -0.017264184784168073
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.09633432724468394
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.9574284204365051,
+              -0.23799336603004653
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.5921191310451959
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -1.3125,
+              0.5625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.4890943351208462,
+              0.9212396123727622
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.21711913104519587
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.6868921537394084,
+              0.5810588741297744
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.061844597672112034
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 13,
+        "neutral": 13
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "strict",
+      "cell": "level3/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0625
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0625
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.0,
+              0.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0625
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.0,
+              0.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 12815,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.23529062417371766,
+              0.4817198004078984
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.35185424168385937
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.2406944950621872,
+              0.5105106893953064
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.3658051017520184
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              1.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5805610617187997,
+              0.9515697529232036
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7591948982479815
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.125,
+              1.125
+            ],
+            "defined_bootstrap_replicates": 12815,
+            "degenerate_ci": true,
+            "estimate": 1.125
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.19308153754627183,
+              0.3895049804153918
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.28935424168385937
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.6875,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.875
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.20915087051261755,
+              0.40129766274153744
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.3033051017520184
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              1.25
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5805610617187997,
+              0.9515697529232036
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7591948982479815
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.125,
+              0.125
+            ],
+            "defined_bootstrap_replicates": 12815,
+            "degenerate_ci": true,
+            "estimate": 0.125
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 1,
+        "neutral": 1
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "normalized_secondary",
+      "cell": "level2/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.918136480861711,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9726013805168113
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.918136480861711,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9726013805168113
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.081863519138289
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.027398619483188724
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.805130957236526,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.933815478618263
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.4041145933718617,
+              2.06198047571563
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7514901528217142
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.9375,
+              2.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.47461192887861103,
+              0.8972961329798957
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6860098471782856
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6064352163709459,
+              2.1226720762141205
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.872186319150348
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.11300552362518501,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.03878590189854836
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              -0.1875,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0625
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.4703438290013128,
+              1.0660565626261522
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7788887723049028
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.9375,
+              1.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.415829702686605,
+              0.8884404628581903
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6586112276950968
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.6064352163709459,
+              1.1226720762141207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.872186319150348
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 15,
+        "neutral": 15
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "normalized_secondary",
+      "cell": "level2/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9895856217412515,
+              0.9998671297236481
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9956688488299383
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.3744573232763335,
+              2.0239775573623
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.6711520418530597
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.125,
+              3.1265624999998636
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6735299216372389,
+              1.2196131710548614
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.95384795814694
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.5395268579760415,
+              2.1903460576244727
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8460669092376523
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9908521659055786,
+              0.999131603889359
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9960797852102528
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.71667729060674,
+              2.369991655198605
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0411102575952147
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.9375,
+              4.8125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1719554417569495,
+              2.5082843365761005
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.833889742404785
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.1289868167931005,
+              3.113023174140969
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.6234370599964905
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.006857036323004773,
+              0.00755170126975858
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0004109363803144195
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.010109856403952169,
+              0.7609643456004925
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.36995821574215504
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.375,
+              2.25
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.23660149682612353,
+              1.546516834177187
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8800417842578451
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.3411423674324877,
+              1.2602341295830841
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7773701507588382
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "normalized_secondary",
+      "cell": "level2/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9811352953258546,
+              0.998794852432861
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9923031348288974
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.993828258648277,
+              1.178135605184773
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.07468933646889
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.012111047811567013,
+              0.2357926133077828
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.11281066353111008
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.2869301704372327
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1322568447112753
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9829500655807569,
+              0.9962968079788654
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9902587428868518
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0467536377621003,
+              1.2702538173953286
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1435115670677083
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.4375,
+              2.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.9375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.40073705540003607,
+              1.2621890113874834
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7939884329322916
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1043551348401965,
+              1.5634323610509835
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.3038320877021998
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.011890215193915133,
+              0.011550248266800098
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0020443919420456425
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.006581851722527488,
+              0.13003156029082394
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0688222305988182
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.375,
+              1.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.75
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.35134213554824695,
+              1.066100550462773
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6811777694011816
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.04670862537209808,
+              0.318481139278807
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.17157524299092453
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "normalized_secondary",
+      "cell": "level3/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.5626371269526296,
+              2.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8597468983139223
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.9375,
+              2.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.31752320632672926,
+              0.7139279210652364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5152531016860777
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.5626371269526296,
+              2.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8597468983139223
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.5626371269526297,
+              1.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8597468983139223
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.9375,
+              1.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.31752320632672926,
+              0.7139279210652364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5152531016860777
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.5626371269526297,
+              1.141007284982444
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8597468983139223
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "normalized_secondary",
+      "cell": "level3/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.99824195493413,
+              0.9999986657454571
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9993831050501998
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.8573978848462953,
+              2.6251474079378267
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2269941399250044
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.0,
+              4.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.020571432570936,
+              2.204056512195662
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.585505860074996
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.0042411399468323,
+              2.8770075701249214
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.4254272599430373
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9500399918371,
+              0.9975140442758051
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9803916911487387
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.650737202515247,
+              2.3162173541007314
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.9750454751733764
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.6875,
+              5.3125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.9211270798825526,
+              3.070954480417091
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.462454524826624
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.241848732308626,
+              3.3016644141949154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.7514750637025203
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.049605154566648824,
+              -0.0016443387523841207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.018991413901461085
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.6745983482048641,
+              0.16011668904094795
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.251948664751628
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -0.1875,
+              1.4375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.27176029533468027,
+              1.4364663481067426
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.876948664751628
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.22443161262648026,
+              0.8760991830392811
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.32604780375948295
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt56sol",
+      "grading": "normalized_secondary",
+      "cell": "level3/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9768205675265085,
+              0.9975840682901422
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9890043354509841
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0012919598419703,
+              1.2713723422803607
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1300179318249322
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0625,
+              1.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.025292543291956814,
+              0.2517570587126417
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.11998206817506782
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0476190476190477,
+              1.3949598073091616
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.20196936731961
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9879547229842679,
+              0.9974372319041226
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9931772318301009
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0818978571359943,
+              1.3305684176042938
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1979560971297176
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.375,
+              2.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.6875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.24164978476522664,
+              0.7718070459970017
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.4895439028702825
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.153921340857365,
+              1.5119896007884248
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.3272906013324488
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.00680328435023958,
+              0.017928999955506605
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.004172896379116775
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.03261666310208842,
+              0.17398422912888256
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.06793816530478547
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.125,
+              0.8125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.11188542570421595,
+              0.6739741994726235
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.36956183469521464
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.002976677265758481,
+              0.2859455537462761
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.1253212340128389
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "strict",
+      "cell": "level2/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.8730801393856779,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9573314003380002
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.8730801393856779,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9573314003380002
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.12691986061432214
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.04266859966199979
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.7295866935483872,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8959173387096774
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2627501457293187,
+              1.8792172842964594
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5907535112880355
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.0625,
+              2.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6963452943560327,
+              1.1169520801124697
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9092464887119645
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6234589984441021,
+              1.9901227633878127
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7940984829466948
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.16198689167458147,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.06141406162832286
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              -0.1875,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0625
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.36130074165906384,
+              0.8883150376885381
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6334221109500353
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0625,
+              1.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5867527238192511,
+              1.1107786366486334
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8665778890499647
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.623458998444102,
+              0.9901227633878127
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7940984829466948
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 14,
+        "neutral": 14
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "strict",
+      "cell": "level2/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9960727507164586,
+              0.9999905760853427
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9985661828643181
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.3805154928596453,
+              2.091811759958428
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7173274592024916
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.125,
+              3.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6768015718120588,
+              1.670439163788364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1576725407975086
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.4556392659732724,
+              2.173841647728891
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.798367078739224
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9550484613044625,
+              0.9999251179472791
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9847641912878932
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.9819379731398996,
+              2.8461977463022117
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.416805690900702
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.8125,
+              6.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 5.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.6990820455194409,
+              3.6140055008764014
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.5831943090992975
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.2774641900403223,
+              3.389083367434268
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.829632085949095
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.043574148200041816,
+              0.0023605402013670775
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.013801991576424921
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.2257826319838514,
+              1.1928309216837047
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6994782316982104
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              3.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.4231003428826813,
+              2.641052642633803
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.425521768301789
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.4174765825170054,
+              1.7062423739096408
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.031265007209871
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "strict",
+      "cell": "level2/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.975609553745468,
+              0.9933450413628304
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9855208009396047
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.3265882691474062,
+              1.6491336981559623
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4826590790377128
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.8125,
+              4.125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.4826768128066128,
+              2.535491197671303
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0173409209622872
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6473294827004825,
+              2.3032195815125096
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.961673415013292
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999715172162684,
+              0.9999985273486425
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999874058450452
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.7809418282946343,
+              2.4293024238568024
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0742206618058288
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.8125,
+              6.751562499999864
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 5.125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.9536794084623852,
+              4.40097064248706
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.0507793381941704
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.9048481468697163,
+              2.6341759882742664
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.240691594852768
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0066466710214201615,
+              0.024383395408759112
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.014466604905440494
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.29898347970125205,
+              0.9605906340077607
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.591561582768116
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.3125,
+              3.3125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.04428052346142577,
+              2.3714055741085813
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0334384172318831
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.1131256509646048,
+              0.7332988451267681
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.27901817983947597
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "strict",
+      "cell": "level3/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0,
+              1.0234375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0078125
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.1640625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0546875
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0234375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0078125
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1136533065985075,
+              1.3259327695333154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2115338004583112
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.5625,
+              2.25
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.4097222222222222,
+              0.9252898415006757
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6634661995416888
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1136533065985075,
+              1.3259327695333154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2115338004583112
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.10584080659850748,
+              0.32009812562430207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.20372130045831116
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.4375,
+              1.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.34228564398613315,
+              0.8880291191095244
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6087786995416888
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.10584080659850748,
+              0.32009812562430207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.20372130045831116
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "strict",
+      "cell": "level3/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9986733714991729,
+              0.9999986873238138
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9995479011410267
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.8707431504896075,
+              2.5322450125258875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2086916127762946
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.0625,
+              4.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1622675598651515,
+              2.1772245281037863
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.6663083872237057
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.9641128856573755,
+              2.726203973299101
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.3505564563306067
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9949320349895193,
+              0.9999958984350611
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9982863182361332
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              2.498578416693618,
+              3.278192501146626
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.9056201814763516
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              4.75,
+              7.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 6.125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              2.1597549568575842,
+              4.304611876593791
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.2193798185236484
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.8025871764417247,
+              3.718258318224969
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.284838035329059
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.004955221921073993,
+              0.0011725612977170868
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0012615829048934213
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.43097662371071516,
+              0.9442380072640715
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.696928568700057
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.375,
+              3.125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.7761671709782576,
+              2.367045334059466
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5530714312999427
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.6701145379730495,
+              1.184270927228883
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9342815789984522
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "strict",
+      "cell": "level3/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9646025276988561,
+              0.9852552974508804
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9754484235302977
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2786704025559328,
+              1.8126182259138115
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5248917644342972
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.5625,
+              4.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.2772184318851345,
+              3.062585536434989
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.1001082355657026
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.732803957103347,
+              2.811487026760925
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2499617497126745
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999439676348617,
+              0.9999935340863376
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999755885052825
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.766502333868022,
+              2.447049047810719
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.097732346548196
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.3125,
+              5.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.5006212978594595,
+              3.2765051198362145
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.339767653451804
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.9381598738002974,
+              2.7857855656316426
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.347541317815428
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.014710745229407716,
+              0.035381346274789095
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.02452716497498475
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.37350209106592125,
+              0.7797401887527737
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5728405821138989
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.125,
+              1.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.37882614122244745,
+              0.9303765739703942
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.23965941788610134
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.19769974302899163,
+              0.3837396572362038
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09757956810275337
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "normalized_secondary",
+      "cell": "level2/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.8730801393856779,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9573314003380002
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.8730801393856779,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9573314003380002
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.12691986061432214
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.04266859966199979
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.7295866935483872,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8959173387096774
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.8125,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9375
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2627501457293187,
+              1.8792172842964594
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5907535112880355
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.0625,
+              2.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6963452943560327,
+              1.1169520801124697
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9092464887119645
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6234589984441021,
+              1.9901227633878127
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7940984829466948
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.16198689167458147,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.06141406162832286
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              -0.1875,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0625
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.36130074165906384,
+              0.8883150376885381
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6334221109500353
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0625,
+              1.875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5867527238192511,
+              1.1107786366486334
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8665778890499647
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.623458998444102,
+              0.9901227633878127
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.7940984829466948
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 14,
+        "neutral": 14
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "normalized_secondary",
+      "cell": "level2/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9960727507164586,
+              0.9999905760853427
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9985661828643181
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.3805154928596453,
+              2.091811759958428
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7173274592024916
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.125,
+              3.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6768015718120588,
+              1.670439163788364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1576725407975086
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.4556392659732724,
+              2.173841647728891
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.798367078739224
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9550484613044625,
+              0.9999251179472791
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9847641912878932
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.9819379731398996,
+              2.8461977463022117
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.416805690900702
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.8125,
+              6.375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 5.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.6990820455194409,
+              3.6140055008764014
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.5831943090992975
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.2774641900403223,
+              3.389083367434268
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.829632085949095
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.043574148200041816,
+              0.0023605402013670775
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.013801991576424921
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.2257826319838514,
+              1.1928309216837047
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6994782316982104
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              3.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.4231003428826813,
+              2.641052642633803
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.425521768301789
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.4174765825170054,
+              1.7062423739096408
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.031265007209871
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "normalized_secondary",
+      "cell": "level2/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999994501306892,
+              0.9999999999717588
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999998152887586
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.4572910142357365,
+              1.8888473228611418
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.6564261955604143
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.0625,
+              4.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.4975000319290208,
+              2.8412169420687055
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.156073804439586
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.499351273967861,
+              1.9627716719622854
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7161484867149663
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.8524307337879242,
+              2.5268245949428962
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.1593485062796467
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              4.0,
+              7.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 5.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              2.0936246150482165,
+              4.549307486983685
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.215651493720353
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.8648709556346945,
+              2.565888742796518
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.1811853761848083
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              2.8241187166599957e-11,
+              5.498693107508501e-07
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8471124141328232e-07
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.19110375461716175,
+              0.8870057049402589
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5029223107192324
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.1875,
+              3.25
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.07136584540204262,
+              2.3864222156641364
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0595776892807667
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.14800662244544366,
+              0.8564189409193265
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.465036889469842
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "normalized_secondary",
+      "cell": "level3/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0,
+              1.0234375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0078125
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0,
+              1.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0,
+              0.1640625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0546875
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0,
+              1.0234375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0078125
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1136533065985075,
+              1.3259327695333154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2115338004583112
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.5625,
+              2.25
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.4097222222222222,
+              0.9252898415006757
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6634661995416888
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1136533065985075,
+              1.3259327695333154
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2115338004583112
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.10584080659850748,
+              0.32009812562430207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.20372130045831116
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.4375,
+              1.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.34228564398613315,
+              0.8880291191095244
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6087786995416888
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.10584080659850748,
+              0.32009812562430207
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.20372130045831116
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "normalized_secondary",
+      "cell": "level3/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9986733714991729,
+              0.9999986873238138
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9995479011410267
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.8707431504896075,
+              2.5322450125258875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2086916127762946
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.0625,
+              4.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1622675598651515,
+              2.1772245281037863
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.6663083872237057
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.9641128856573755,
+              2.726203973299101
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.3505564563306067
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9949320349895193,
+              0.9999958984350611
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9982863182361332
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              2.498578416693618,
+              3.278192501146626
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.9056201814763516
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              4.75,
+              7.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 6.125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              2.1597549568575842,
+              4.304611876593791
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.2193798185236484
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.8025871764417247,
+              3.718258318224969
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.284838035329059
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.004955221921073993,
+              0.0011725612977170868
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0012615829048934213
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.43097662371071516,
+              0.9442380072640715
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.696928568700057
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.375,
+              3.125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.7761671709782576,
+              2.367045334059466
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5530714312999427
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.6701145379730495,
+              1.184270927228883
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9342815789984522
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "gpt54",
+      "grading": "normalized_secondary",
+      "cell": "level3/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999999450850838,
+              0.9999999999576382
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999999815444085
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.5680689779418928,
+              2.356630024661055
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.9437526266698217
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.125,
+              5.8125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.4983311099256698,
+              3.476736801027932
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.431247373330178
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6137726264876842,
+              2.45017028674226
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0112131789368046
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.8674894870068373,
+              2.7142101205026075
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2709428446195594
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.4375,
+              6.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.875
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.5036491089102961,
+              4.057242230628934
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.6040571553804406
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.8819204787354258,
+              2.752916533200054
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2959615432742635
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              4.2361780749899935e-11,
+              5.491491616993471e-08
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8455591499488833e-08
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.15106147644956192,
+              0.4980908078433348
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.3271902179497377
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -0.3765624999999986,
+              1.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.6568262936686835,
+              1.0751464925447212
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.17280978205026276
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.1154527194777201,
+              0.44588465757403517
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.28474836433745887
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "strict",
+      "cell": "level2/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999999996187443,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999999998729148
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0156249997458295,
+              1.2132383361704302
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0893086119720865
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.125,
+              1.5625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.3125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.05912888790082821,
+              0.4375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.22319138802791338
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.015625,
+              1.2146075742119675
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0897650247373225
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9979280002581232,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9993092728421077
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0142439091478157,
+              1.0993133535922601
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0531287172865522
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.125,
+              1.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.10312128271344786,
+              0.5953087827134479
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.32187128271344784
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.015625,
+              1.0998263888888888
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0538194444444444
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.0020719993606210796,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0006907270308070812
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.17573498234747809,
+              0.06770833333333326
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.036179894685534286
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -0.3125,
+              0.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.22569444444444445,
+              0.4375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09867989468553445
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.1764131297675231,
+              0.06770833333333348
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.03594558029287809
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "strict",
+      "cell": "level2/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.6072508296591423,
+              2.227240276872505
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.915041258251176
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.25,
+              3.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.9375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6069063483196008,
+              1.4808006062668817
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.022458741748824
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.608743164313071,
+              2.228965818632408
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.916661535152558
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              2.779965841229246,
+              3.921815060401159
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.373383664731729
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              5.25,
+              8.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 6.75
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              2.4306370604181184,
+              4.335956056817679
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.376616335268271
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.780812594395352,
+              3.929792456552347
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.376579598597398
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.9394311692007122,
+              1.986956537367491
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4583424064805528
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.625,
+              5.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.5915875631250815,
+              3.123222582063356
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.354157593519447
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.9404080205634876,
+              1.9901545655965283
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4599180634448399
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "strict",
+      "cell": "level2/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0311880288207298,
+              1.2854663354192373
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.145771362154063
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.125,
+              2.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.08599947117927023,
+              1.4384300267348258
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6667286378459369
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0311880288207298,
+              1.2854663354192373
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.145771362154063
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1494735663082438,
+              1.3252191702369533
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2370746248460096
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.75,
+              2.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6038306451612904,
+              1.443480930709546
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0129253751539906
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1494735663082438,
+              1.3252191702369533
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2370746248460096
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.008814494219322006,
+              0.1885980374875138
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09130326269194655
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -0.5625,
+              1.3125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.5825024019375529,
+              1.1278935146931366
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.34619673730805367
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.008814494219322006,
+              0.1885980374875138
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09130326269194655
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "strict",
+      "cell": "level3/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999999930103154,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999999976701051
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0078124953402103,
+              1.2096155930526677
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0828926953543276
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0625,
+              1.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0030448093054619985,
+              0.3342146046315547
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.16710730464567225
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0078125,
+              1.2104237827078403
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.083700887339395
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1201208024854574,
+              1.2781844923320993
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1952707268347142
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.6875,
+              2.3125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5567945200951877,
+              1.046503631970151
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8047292731652859
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1203688183584732,
+              1.2781988457097315
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1953947347712222
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              6.989684608882385e-09
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.32989494364233e-09
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.046008005083193484,
+              0.24239845675634097
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.11237803148038661
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.375,
+              1.125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.75
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.3481045564890877,
+              0.9349342312731116
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6376219685196136
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.046794944944981924,
+              0.24179128442173922
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.1116938474318272
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "strict",
+      "cell": "level3/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.6603002276646692,
+              2.747917485860174
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.190041550007672
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.875,
+              5.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1288273464449414,
+              2.521404868779506
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8099584499923276
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6659721721764746,
+              2.7656423365816947
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2010145310056286
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              3.4217027982154686,
+              4.464401914934776
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.971980347687836
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              6.75,
+              10.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 8.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              3.2373412488306013,
+              5.6740007541677375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.465519652312164
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              3.430299603832352,
+              4.475791470270858
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.9816134761591
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2277078943602413,
+              2.3385418952890134
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.781938797680164
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.125,
+              5.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.6983767253378896,
+              3.640120092060829
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.655561202319836
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.2260475706387337,
+              2.3380260907453017
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7805989451534714
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "strict",
+      "cell": "level3/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.03125,
+              1.1224175347222205
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0763888888888888
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.1875,
+              1.8125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.1640625,
+              0.6970486111111112
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.42361111111111116
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.03125,
+              1.1233909970238092
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0766369047619047
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2231947776154575,
+              1.5233572634933739
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.36172393923647
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.375,
+              3.5625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.9375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.0798611111111112,
+              2.1058213577791642
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.57577606076353
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.2231947776154575,
+              1.5233572634933739
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.36172393923647
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.15829699812820855,
+              0.4337590360571278
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.2853350503475811
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              2.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.639928166498297,
+              1.6893028333272837
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.152164949652419
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.15783898251582906,
+              0.43375544815624467
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.2850870344745653
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "normalized_secondary",
+      "cell": "level2/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999999996187443,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999999998729148
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0156249997458295,
+              1.2132383361704302
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0893086119720865
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.125,
+              1.5625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.3125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.05912888790082821,
+              0.4375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.22319138802791338
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.015625,
+              1.2146075742119675
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0897650247373225
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9979280002581232,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9993092728421077
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0142439091478157,
+              1.0993133535922601
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0531287172865522
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.125,
+              1.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.10312128271344786,
+              0.5953087827134479
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.32187128271344784
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.015625,
+              1.0998263888888888
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0538194444444444
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              -0.0020719993606210796,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.0006907270308070812
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.17573498234747809,
+              0.06770833333333326
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.036179894685534286
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -0.3125,
+              0.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.0625
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.22569444444444445,
+              0.4375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09867989468553445
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.1764131297675231,
+              0.06770833333333348
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": -0.03594558029287809
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "normalized_secondary",
+      "cell": "level2/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.6072508296591423,
+              2.227240276872505
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.915041258251176
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.25,
+              3.625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.9375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6069063483196008,
+              1.4808006062668817
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.022458741748824
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.608743164313071,
+              2.228965818632408
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.916661535152558
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              2.779965841229246,
+              3.921815060401159
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.373383664731729
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              5.25,
+              8.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 6.75
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              2.4306370604181184,
+              4.335956056817679
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.376616335268271
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              2.780812594395352,
+              3.929792456552347
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.376579598597398
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.9394311692007122,
+              1.986956537367491
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4583424064805528
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.625,
+              5.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.5915875631250815,
+              3.123222582063356
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.354157593519447
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.9404080205634876,
+              1.9901545655965283
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4599180634448399
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "normalized_secondary",
+      "cell": "level2/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0311880288207298,
+              1.2854663354192373
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.145771362154063
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.125,
+              2.6875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8125
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.08599947117927023,
+              1.4384300267348258
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6667286378459369
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0311880288207298,
+              1.2854663354192373
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.145771362154063
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1494735663082438,
+              1.3252191702369533
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2370746248460096
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.75,
+              2.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.6038306451612904,
+              1.443480930709546
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0129253751539906
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1494735663082438,
+              1.3252191702369533
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.2370746248460096
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.008814494219322006,
+              0.1885980374875138
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09130326269194655
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              -0.5625,
+              1.3125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              -0.5825024019375529,
+              1.1278935146931366
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.34619673730805367
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.008814494219322006,
+              0.1885980374875138
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.09130326269194655
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "normalized_secondary",
+      "cell": "level3/mathir",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.9999999930103154,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.9999999976701051
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.0078124953402103,
+              1.2096155930526677
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0828926953543276
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.0625,
+              1.5
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.25
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.0030448093054619985,
+              0.3342146046315547
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.16710730464567225
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.0078125,
+              1.2104237827078403
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.083700887339395
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.1201208024854574,
+              1.2781844923320993
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1952707268347142
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.6875,
+              2.3125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.5567945200951877,
+              1.046503631970151
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.8047292731652859
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.1203688183584732,
+              1.2781988457097315
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.1953947347712222
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              6.989684608882385e-09
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.32989494364233e-09
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              -0.046008005083193484,
+              0.24239845675634097
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.11237803148038661
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.375,
+              1.125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.75
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.3481045564890877,
+              0.9349342312731116
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.6376219685196136
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              -0.046794944944981924,
+              0.24179128442173922
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.1116938474318272
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "normalized_secondary",
+      "cell": "level3/pantry_plan",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.6603002276646692,
+              2.747917485860174
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.190041550007672
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.875,
+              5.1875
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.0
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.1288273464449414,
+              2.521404868779506
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.8099584499923276
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.6659721721764746,
+              2.7656423365816947
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.2010145310056286
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              3.4217027982154686,
+              4.464401914934776
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.971980347687836
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              6.75,
+              10.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 8.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              3.2373412488306013,
+              5.6740007541677375
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.465519652312164
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              3.430299603832352,
+              4.475791470270858
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 3.9816134761591
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2277078943602413,
+              2.3385418952890134
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.781938797680164
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              3.125,
+              5.75
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 4.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.6983767253378896,
+              3.640120092060829
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.655561202319836
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.2260475706387337,
+              2.3380260907453017
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.7805989451534714
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    },
+    {
+      "model": "grok43",
+      "grading": "normalized_secondary",
+      "cell": "level3/python_factors",
+      "metrics": {
+        "original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.03125,
+              1.1224175347222205
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0763888888888888
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              1.1875,
+              1.8125
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.5
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.1640625,
+              0.6970486111111112
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.42361111111111116
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.03125,
+              1.1233909970238092
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.0766369047619047
+          }
+        },
+        "neutral": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              1.0,
+              1.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 1.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              1.2231947776154575,
+              1.5233572634933739
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.36172393923647
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              2.375,
+              3.5625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 2.9375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              1.0798611111111112,
+              2.1058213577791642
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.57577606076353
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              1.2231947776154575,
+              1.5233572634933739
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.36172393923647
+          }
+        },
+        "neutral_minus_original": {
+          "rarefaction/pass/k8": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/pass/k64": {
+            "ci95": [
+              0.0,
+              0.0
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": true,
+            "estimate": 0.0
+          },
+          "rarefaction/distinct/k8": {
+            "ci95": [
+              0.15829699812820855,
+              0.4337590360571278
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.2853350503475811
+          },
+          "rarefaction/distinct/k64": {
+            "ci95": [
+              0.875,
+              2.0625
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.4375
+          },
+          "gain8to64/rarefaction/distinct": {
+            "ci95": [
+              0.639928166498297,
+              1.6893028333272837
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 1.152164949652419
+          },
+          "conditional_joint/distinct/m8": {
+            "ci95": [
+              0.15783898251582906,
+              0.43375544815624467
+            ],
+            "defined_bootstrap_replicates": 20000,
+            "degenerate_ci": false,
+            "estimate": 0.2850870344745653
+          }
+        }
+      },
+      "joint_eligible_at_m8": {
+        "original": 16,
+        "neutral": 16
+      }
+    }
+  ]
+}

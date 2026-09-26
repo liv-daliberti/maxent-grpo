@@ -1,0 +1,91 @@
+{
+  "captured_at_utc": "2026-09-11T21:10:38.444075+00:00",
+  "scope": "Current combined papers before second ablation results integration; concurrent earlier updates preserved.",
+  "files": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "05c1146a68ef0ba72e71497125437e39cf29598f01daaa3d12ff76339c1d5b06",
+      "bytes": 145953
+    },
+    {
+      "path": "paper/main.pdf",
+      "sha256": "6b2dd83705ebe7ebb6b738fe6d68a3c03a3881615929819432640a11e8039f2e",
+      "bytes": 1344918
+    },
+    {
+      "path": "paper/main-body.pdf",
+      "sha256": "8cfe0ebc93878e16101409bec12636e83d227fa279c2858111c69e053bbc5ac0",
+      "bytes": 1104015
+    },
+    {
+      "path": "paper/example_paper.bib",
+      "sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "bytes": 49156
+    },
+    {
+      "path": "paper/Makefile",
+      "sha256": "d684c56c6a6b4834f6911e8532b86c681d7d90fa92d389de32173032e0d5de75",
+      "bytes": 8620
+    },
+    {
+      "path": "paper/README.md",
+      "sha256": "54aaf8409f82327a8f93a0e3a577a551d4c0481cb180870ad0ca2d6f3c04339a",
+      "bytes": 18132
+    },
+    {
+      "path": "paper/FIGURE_MANIFEST.md",
+      "sha256": "61c093d11b84f722bb4622bf4e9e6c8162eb8b05d1e704ef6566052a6104092a",
+      "bytes": 14085
+    },
+    {
+      "path": "paper/FIGURE_DATA_AUDIT.md",
+      "sha256": "7e07f2b46a9c64df9d827650ae04828bb586bcb68b77bdc73e6b701d80ffac6b",
+      "bytes": 9176
+    },
+    {
+      "path": "paper/mathai2026/main.tex",
+      "sha256": "b5f42961d8a9a73b087b8ee0c1ce684336267e4264c952af0baa7e251596336b",
+      "bytes": 10331
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "sha256": "f377f29e5a91bfd5539e61ac35da01d49c2cbbcee2047a8a07eb793869220ffc",
+      "bytes": 113563
+    },
+    {
+      "path": "paper/mathai2026/main.pdf",
+      "sha256": "1cc4f8ab9f96dc0a7c5f64aad4fbf63953a04c029c1046feff5cdbfabe0cf74a",
+      "bytes": 1389375
+    },
+    {
+      "path": "paper/mathai2026/example_paper.bib",
+      "sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "bytes": 49156
+    },
+    {
+      "path": "paper/mathai2026/Makefile",
+      "sha256": "e739489c95a5bdc21c96b6d0fc2fc52abc54302b96d2d1d052d7e80f9b76936d",
+      "bytes": 1950
+    },
+    {
+      "path": "paper/mathai2026/README.md",
+      "sha256": "558e6c722be02d49b8ad34273322a7dcb32940ee93d713979285bdd13604be7f",
+      "bytes": 6636
+    },
+    {
+      "path": "paper/mathai2026/snapshot.json",
+      "sha256": "b77e77e5dfa8560bd22bad9b9f3ce2906954e9c23395c83eecdf3a3eb9f7ca73",
+      "bytes": 1064235
+    },
+    {
+      "path": "paper/mathai2026/build_receipt.json",
+      "sha256": "41107246a07120c0c81b032d3280499eb3f235ebca6ff8c7f3dcd498b632d58b",
+      "bytes": 14339
+    },
+    {
+      "path": "paper/mathai2026/mathai2026-source.zip",
+      "sha256": "8bf6c206e4bb4a63e8ebf317ae1c2a62d11f675de7a4645d1c395226e2e7301e",
+      "bytes": 10830162
+    }
+  ]
+}

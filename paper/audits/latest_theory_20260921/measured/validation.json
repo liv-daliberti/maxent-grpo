@@ -1,0 +1,69 @@
+{
+  "checks": 43,
+  "passed": [
+    "latest_comparison.json_unchanged",
+    "latest_macros.tex_unchanged",
+    "latest_table.tex_unchanged",
+    "builder_algorithm_AST_unchanged",
+    "plane_all_plot_coordinates_and_geometry_unchanged",
+    "knee_all_plot_coordinates_and_geometry_unchanged",
+    "graph_coloring_all_14_numerical_table_entries",
+    "graph_coloring_occupancy_transforms",
+    "graph_coloring_beta_star_formula",
+    "countdown_all_14_numerical_table_entries",
+    "countdown_occupancy_transforms",
+    "countdown_beta_star_formula",
+    "python_factors_all_14_numerical_table_entries",
+    "python_factors_occupancy_transforms",
+    "mathir_all_14_numerical_table_entries",
+    "mathir_occupancy_transforms",
+    "mathir_beta_star_formula",
+    "pantry_plan_all_14_numerical_table_entries",
+    "pantry_plan_occupancy_transforms",
+    "pantry_plan_beta_star_formula",
+    "all_five_domains_present",
+    "six_latest_coefficients",
+    "27_coefficient_cells",
+    "two_reduced_seed_cells",
+    "three_missing_cells",
+    "Graph_MathIR_decrease_beta_point2_to_point3",
+    "Python_decreases_at_point1",
+    "python_factors_some_KL_cells_no_lower_than_both_replay_arms",
+    "pantry_plan_some_KL_cells_no_lower_than_both_replay_arms",
+    "countdown_every_larger_PCMD_has_lower_pass8_than_both",
+    "mathir_every_larger_PCMD_has_lower_pass8_than_both",
+    "graph_every_KL_cell_below_both_replay_arms",
+    "Countdown_occupancy_does_not_order_PCMD",
+    "plane_three_domains",
+    "plane_common_coefficients_exclude_point3",
+    "main_paragraph_numbers",
+    "15_column_tabular",
+    "six_beta_header",
+    "latest_beta_heading",
+    "replacement_removes_process_claims",
+    "zero_initial_success_not_zero_population",
+    "compute_limitation_explicit",
+    "no_numbered_equation_changed"
+  ],
+  "latest_coefficient_cells": 27,
+  "betas": [
+    0.001,
+    0.01,
+    0.04,
+    0.1,
+    0.2,
+    0.3
+  ],
+  "measured_seed_runs": 132,
+  "main_means": {
+    "KLpoint04": {
+      "pmd": 0.4317861179381998,
+      "pass8": 0.6138541666666667
+    },
+    "ReDr": {
+      "pmd": 0.4274176472729163,
+      "pass8": 0.8463541666666666
+    }
+  },
+  "data_sha256": "1693939668df814d0f9d7132c620a9d259038312cfd0fe65d945470eee1de16b"
+}

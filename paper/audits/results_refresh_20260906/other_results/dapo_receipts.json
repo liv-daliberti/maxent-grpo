@@ -1,0 +1,578 @@
+[
+  {
+    "job_id": 30869111,
+    "family": "qwen05b",
+    "domain": "graph_coloring",
+    "seed": 43,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_graph_official_dapo_s43/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-25T00:09:13.755525+00:00",
+      "domain": "graph_coloring",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 43,
+      "slurm_job_id": "30869111",
+      "total_training_steps": 24
+    },
+    "log_exists": false
+  },
+  {
+    "job_id": 30869112,
+    "family": "qwen05b",
+    "domain": "graph_coloring",
+    "seed": 44,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_graph_official_dapo_s44/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-25T00:13:58.942252+00:00",
+      "domain": "graph_coloring",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 44,
+      "slurm_job_id": "30869112",
+      "total_training_steps": 24
+    },
+    "log_exists": false
+  },
+  {
+    "job_id": 30869113,
+    "family": "qwen05b",
+    "domain": "graph_coloring",
+    "seed": 45,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_graph_official_dapo_s45/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-25T02:19:30.305557+00:00",
+      "domain": "graph_coloring",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 45,
+      "slurm_job_id": "30869113",
+      "total_training_steps": 24
+    },
+    "log_exists": false
+  },
+  {
+    "job_id": 30869114,
+    "family": "qwen05b",
+    "domain": "graph_coloring",
+    "seed": 46,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_graph_official_dapo_s46/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-25T02:24:17.800399+00:00",
+      "domain": "graph_coloring",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 46,
+      "slurm_job_id": "30869114",
+      "total_training_steps": 24
+    },
+    "log_exists": false
+  },
+  {
+    "job_id": 30869115,
+    "family": "qwen05b",
+    "domain": "graph_coloring",
+    "seed": 47,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_graph_official_dapo_s47/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T05:41:59.837769+00:00",
+      "domain": "graph_coloring",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 47,
+      "slurm_job_id": "30869115",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869116,
+    "family": "qwen05b",
+    "domain": "countdown",
+    "seed": 43,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_countdown_official_dapo_s43/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T00:41:20.292898+00:00",
+      "domain": "countdown",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 43,
+      "slurm_job_id": "30869116",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869117,
+    "family": "qwen05b",
+    "domain": "countdown",
+    "seed": 44,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_countdown_official_dapo_s44/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T00:40:43.198835+00:00",
+      "domain": "countdown",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 44,
+      "slurm_job_id": "30869117",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869118,
+    "family": "qwen05b",
+    "domain": "countdown",
+    "seed": 45,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_countdown_official_dapo_s45/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T00:59:36.227581+00:00",
+      "domain": "countdown",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 45,
+      "slurm_job_id": "30869118",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869119,
+    "family": "qwen05b",
+    "domain": "countdown",
+    "seed": 46,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_countdown_official_dapo_s46/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T01:03:58.324359+00:00",
+      "domain": "countdown",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 46,
+      "slurm_job_id": "30869119",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869120,
+    "family": "qwen05b",
+    "domain": "countdown",
+    "seed": 47,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_countdown_official_dapo_s47/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T01:11:11.611643+00:00",
+      "domain": "countdown",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 47,
+      "slurm_job_id": "30869120",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869126,
+    "family": "qwen05b",
+    "domain": "mathir",
+    "seed": 43,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_mathir_official_dapo_s43/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T04:31:23.046991+00:00",
+      "domain": "mathir",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 43,
+      "slurm_job_id": "30869126",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869127,
+    "family": "qwen05b",
+    "domain": "mathir",
+    "seed": 44,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_mathir_official_dapo_s44/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T04:53:07.120517+00:00",
+      "domain": "mathir",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 44,
+      "slurm_job_id": "30869127",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869128,
+    "family": "qwen05b",
+    "domain": "mathir",
+    "seed": 45,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_mathir_official_dapo_s45/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T06:11:19.685828+00:00",
+      "domain": "mathir",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 45,
+      "slurm_job_id": "30869128",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869129,
+    "family": "qwen05b",
+    "domain": "mathir",
+    "seed": 46,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_mathir_official_dapo_s46/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T06:16:40.969600+00:00",
+      "domain": "mathir",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 46,
+      "slurm_job_id": "30869129",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869130,
+    "family": "qwen05b",
+    "domain": "mathir",
+    "seed": 47,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_mathir_official_dapo_s47/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T06:39:14.316781+00:00",
+      "domain": "mathir",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 47,
+      "slurm_job_id": "30869130",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869131,
+    "family": "qwen05b",
+    "domain": "pantry_plan",
+    "seed": 43,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_pantry_official_dapo_s43/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T08:10:08.575030+00:00",
+      "domain": "pantry_plan",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 43,
+      "slurm_job_id": "30869131",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869132,
+    "family": "qwen05b",
+    "domain": "pantry_plan",
+    "seed": 44,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_pantry_official_dapo_s44/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T09:36:39.372030+00:00",
+      "domain": "pantry_plan",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 44,
+      "slurm_job_id": "30869132",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869133,
+    "family": "qwen05b",
+    "domain": "pantry_plan",
+    "seed": 45,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_pantry_official_dapo_s45/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T09:54:22.111280+00:00",
+      "domain": "pantry_plan",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 45,
+      "slurm_job_id": "30869133",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977240,
+    "family": "qwen05b",
+    "domain": "pantry_plan",
+    "seed": 46,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_pantry_official_dapo_s46/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T14:15:50.593056+00:00",
+      "domain": "pantry_plan",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 46,
+      "slurm_job_id": "30977240",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869135,
+    "family": "qwen05b",
+    "domain": "pantry_plan",
+    "seed": 47,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_qwen05b_pantry_official_dapo_s47/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T11:19:10.049153+00:00",
+      "domain": "pantry_plan",
+      "family": "qwen05b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 47,
+      "slurm_job_id": "30869135",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869136,
+    "family": "falcon1b",
+    "domain": "graph_coloring",
+    "seed": 55,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_graph_official_dapo_s55/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T09:13:17.679671+00:00",
+      "domain": "graph_coloring",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 55,
+      "slurm_job_id": "30869136",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869137,
+    "family": "falcon1b",
+    "domain": "graph_coloring",
+    "seed": 56,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_graph_official_dapo_s56/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T09:43:28.160899+00:00",
+      "domain": "graph_coloring",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 56,
+      "slurm_job_id": "30869137",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869138,
+    "family": "falcon1b",
+    "domain": "graph_coloring",
+    "seed": 57,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_graph_official_dapo_s57/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T11:13:36.833211+00:00",
+      "domain": "graph_coloring",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 57,
+      "slurm_job_id": "30869138",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977241,
+    "family": "falcon1b",
+    "domain": "graph_coloring",
+    "seed": 58,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_graph_official_dapo_s58/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T14:10:53.540767+00:00",
+      "domain": "graph_coloring",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 58,
+      "slurm_job_id": "30977241",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977242,
+    "family": "falcon1b",
+    "domain": "graph_coloring",
+    "seed": 59,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_graph_official_dapo_s59/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T14:13:06.696348+00:00",
+      "domain": "graph_coloring",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 59,
+      "slurm_job_id": "30977242",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30869141,
+    "family": "falcon1b",
+    "domain": "countdown",
+    "seed": 55,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_countdown_official_dapo_s55/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T11:18:14.676347+00:00",
+      "domain": "countdown",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 55,
+      "slurm_job_id": "30869141",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977243,
+    "family": "falcon1b",
+    "domain": "countdown",
+    "seed": 56,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_countdown_official_dapo_s56/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T14:22:49.520015+00:00",
+      "domain": "countdown",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 56,
+      "slurm_job_id": "30977243",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977244,
+    "family": "falcon1b",
+    "domain": "countdown",
+    "seed": 57,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_countdown_official_dapo_s57/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T14:57:29.237592+00:00",
+      "domain": "countdown",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 57,
+      "slurm_job_id": "30977244",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977245,
+    "family": "falcon1b",
+    "domain": "countdown",
+    "seed": 58,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_countdown_official_dapo_s58/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T14:56:28.510679+00:00",
+      "domain": "countdown",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 58,
+      "slurm_job_id": "30977245",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977246,
+    "family": "falcon1b",
+    "domain": "countdown",
+    "seed": 59,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_countdown_official_dapo_s59/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T15:57:54.353041+00:00",
+      "domain": "countdown",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 59,
+      "slurm_job_id": "30977246",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977252,
+    "family": "falcon1b",
+    "domain": "mathir",
+    "seed": 55,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_mathir_official_dapo_s55/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T19:40:30.526359+00:00",
+      "domain": "mathir",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 55,
+      "slurm_job_id": "30977252",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  },
+  {
+    "job_id": 30977254,
+    "family": "falcon1b",
+    "domain": "mathir",
+    "seed": 57,
+    "receipt": "/n/fs/similarity/maxent-grpo/var/data/e113r4_falcon1b_mathir_official_dapo_s57/TRAINING_COMPLETE.json",
+    "receipt_payload": {
+      "completed_at": "2026-08-30T19:42:38.549741+00:00",
+      "domain": "mathir",
+      "family": "falcon1b",
+      "runtime_snapshot": "/n/fs/similarity/maxent-grpo/var/artifacts/source_snapshots/e113r4_official_verl_dapo_vllmsched_d2b6f70532c0c34d",
+      "schema": "e113r4_official_verl_dapo_training_complete_v1",
+      "seed": 57,
+      "slurm_job_id": "30977254",
+      "total_training_steps": 24
+    },
+    "log_exists": true
+  }
+]

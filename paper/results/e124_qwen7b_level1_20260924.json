@@ -1,0 +1,201 @@
+{
+ "cohort": "e124",
+ "control_collapse": {
+  "domains": [
+   "mathir"
+  ],
+  "reading": "the control's sampled accuracy reaches zero and does not recover, so it ends with no verified response and its PCMD is undefined rather than zero",
+  "steps": {
+   "mathir": 960
+  }
+ },
+ "domains": [
+  {
+   "control": {
+    "arm": "maxrl",
+    "cell_id": "l1-countdown-maxrl-s70",
+    "collapse_step": null,
+    "collapsed": false,
+    "defined_prompts": 81,
+    "domain": "countdown",
+    "pass8": 0.630859375,
+    "pmd": 0.0007716049382716049,
+    "prompts": 128,
+    "reportable": true,
+    "seed": 70,
+    "terminal_attempt": "debug_job31343988",
+    "terminal_step": 3072
+   },
+   "control_collapsed": false,
+   "domain": "countdown",
+   "pass8_gain": 0.173828125,
+   "pmd_defined": true,
+   "pmd_gain": 0.13715226020620053,
+   "treatment": {
+    "arm": "replay_maxrl",
+    "cell_id": "l1-countdown-replay_maxrl-s70",
+    "collapse_step": null,
+    "collapsed": false,
+    "defined_prompts": 104,
+    "domain": "countdown",
+    "pass8": 0.8046875,
+    "pmd": 0.13792386514447214,
+    "prompts": 128,
+    "reportable": true,
+    "seed": 70,
+    "terminal_attempt": "debug_job31343989",
+    "terminal_step": 3072
+   },
+   "treatment_collapsed": false
+  },
+  {
+   "control": {
+    "arm": "maxrl",
+    "cell_id": "l1-graph_coloring-maxrl-s70",
+    "collapse_step": null,
+    "collapsed": false,
+    "defined_prompts": 51,
+    "domain": "graph_coloring",
+    "pass8": 0.396484375,
+    "pmd": 0.055308099470688106,
+    "prompts": 128,
+    "reportable": true,
+    "seed": 70,
+    "terminal_attempt": "debug_job31341051",
+    "terminal_step": 3072
+   },
+   "control_collapsed": false,
+   "domain": "graph_coloring",
+   "pass8_gain": 0.421875,
+   "pmd_defined": true,
+   "pmd_gain": 0.29774428440808315,
+   "treatment": {
+    "arm": "replay_maxrl",
+    "cell_id": "l1-graph_coloring-replay_maxrl-s70",
+    "collapse_step": null,
+    "collapsed": false,
+    "defined_prompts": 104,
+    "domain": "graph_coloring",
+    "pass8": 0.818359375,
+    "pmd": 0.35305238387877125,
+    "prompts": 128,
+    "reportable": true,
+    "seed": 70,
+    "terminal_attempt": "debug_job31343990",
+    "terminal_step": 3072
+   },
+   "treatment_collapsed": false
+  },
+  {
+   "control": {
+    "arm": "maxrl",
+    "cell_id": "l1-mathir-maxrl-s70",
+    "collapse_step": 960,
+    "collapsed": true,
+    "defined_prompts": 0,
+    "domain": "mathir",
+    "pass8": 0.0,
+    "pmd": null,
+    "prompts": 128,
+    "reportable": false,
+    "seed": 70,
+    "terminal_attempt": "debug_job31343991",
+    "terminal_step": 3072
+   },
+   "control_collapsed": true,
+   "domain": "mathir",
+   "pass8_gain": 0.744140625,
+   "pmd_defined": false,
+   "pmd_gain": null,
+   "treatment": {
+    "arm": "replay_maxrl",
+    "cell_id": "l1-mathir-replay_maxrl-s70",
+    "collapse_step": null,
+    "collapsed": false,
+    "defined_prompts": 96,
+    "domain": "mathir",
+    "pass8": 0.744140625,
+    "pmd": 0.016544363454645713,
+    "prompts": 128,
+    "reportable": true,
+    "seed": 70,
+    "terminal_attempt": "debug_job31343992",
+    "terminal_step": 3072
+   },
+   "treatment_collapsed": false
+  }
+ ],
+ "domains_pending": [
+  "pantry_plan",
+  "python_factors"
+ ],
+ "domains_reported": [
+  "countdown",
+  "graph_coloring",
+  "mathir"
+ ],
+ "estimator": "pooled per-prompt PCMD over verified responses, ops/mode_diversity.py, via extract_diversity_comparator_mode_diversity.cell_pcmd",
+ "generated_at": "2026-09-24T17:15:02.717922+00:00",
+ "level": 1,
+ "means": {
+  "control_pass8": 0.3424479166666667,
+  "control_pmd": 0.028039852204479854,
+  "pass8_gain": 0.4466145833333333,
+  "pmd_gain": 0.21744827230714184,
+  "treatment_pass8": 0.7890625,
+  "treatment_pmd": 0.2454881245116217
+ },
+ "model_size": "7b",
+ "pmd_defined_domains": [
+  "countdown",
+  "graph_coloring"
+ ],
+ "pmd_undefined_domains": [
+  "mathir"
+ ],
+ "provenance": "terminal attempt from each cell's TRAINING_COMPLETE.json",
+ "schema": 1,
+ "seeds": [
+  70
+ ],
+ "seeds_per_cell": 1,
+ "sources": {
+  "extractor": {
+   "path": "ops/extract_diversity_comparator_mode_diversity.py",
+   "sha256": "c9b7e90c732b16de4a399a4c8f75023cb3d91d92742ace98af7214ecd1a5392f"
+  },
+  "ledger": {
+   "path": "var/artifacts/e124_qwen7b_three_level_jobs.json",
+   "sha256": "70e85b81fa212d336f60a0cfa672616e4df9ffaba64d3a51406516b4f5e4279d"
+  },
+  "plan": {
+   "amended_after_launch": true,
+   "amendment": {
+    "at": "2026-09-17T20:16:16.598053+00:00",
+    "cells": [
+     "l1-countdown-maxrl-s70",
+     "l1-countdown-replay_maxrl-s70",
+     "l1-python_factors-maxrl-s70",
+     "l1-python_factors-replay_maxrl-s70",
+     "l1-mathir-maxrl-s70",
+     "l1-mathir-replay_maxrl-s70",
+     "l1-pantry_plan-maxrl-s70",
+     "l1-pantry_plan-replay_maxrl-s70"
+    ],
+    "change": "OAT_ZERO_MODEBENCH_DOMAIN set to 'none' on Level-1 cells that named a domain",
+    "schema": "e124_level1_modebench_domain_correction_v1",
+    "scientifically_inert": "modebench_domain is consumed only by guided_sampling_params, which returns its input unchanged when the syntax profile is \"none\". Level 1 always has profile \"none\".",
+    "untouched": "Level-1 Graph Coloring, already contract-satisfying and training",
+    "why": "Level 1 runs no guided syntax, but naming a domain makes validate_zero_math_args demand the Level-2 prompt/syntax contract, which Level 1 does not satisfy. These cells failed at startup and never trained."
+   },
+   "ledger_pinned_sha256": "f34179138969e0ae4c0d5d8766554305da770bed534b1d2ad55e450d2ba803ba",
+   "path": "var/artifacts/e124_qwen7b_three_level/plan.json",
+   "sha256": "80dd34d10e9f0b5c9c82d53e2b71e92bcbb7cd9a4248766b517e21c14be989a0"
+  }
+ },
+ "target_steps": 3072,
+ "terminal_step": 3072,
+ "treatment_collapse": {
+  "domains": []
+ }
+}

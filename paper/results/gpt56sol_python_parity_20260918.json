@@ -1,0 +1,438 @@
+{
+  "schema": "paper-gpt56sol-python-parity-v1",
+  "source": {
+    "path": "artifacts/frontier_modebench_gpt56sol_python_parity_20260918/paired_wording_comparison.json",
+    "sha256": "c927dc8c760f45489d07dfbb763d97166321ade29e27e5f547d3cfefcf5c541c"
+  },
+  "renderer": {
+    "path": "ops/build_paper_gpt56sol_python_parity.py",
+    "sha256": "c804fefc3bb83b0711f613227d09a0cf0fd4cd6c6d389058b25e5b12fc5de206"
+  },
+  "analysis": {
+    "analysis_source": {
+      "path": "ops/analyze_gpt56sol_python_parity.py",
+      "sha256": "6359138daae3159f234531d7acb95f79dc451bdb0fd4bd961fb09e8be5723e86"
+    },
+    "bootstrap": {
+      "interval": "Pointwise percentile; no multiplicity adjustment; draws are not separately resampled.",
+      "replicates": 20000,
+      "seed": 20260918,
+      "unit": "Whole eight-draw prompt groups, paired across arms by frozen row."
+    },
+    "cells": {
+      "normalized/original/level1": {
+        "accuracy": 0.8984375,
+        "colliding_correct_pairs": 2576,
+        "collision_eligible_prompts": 128,
+        "correct_pairs": 2909,
+        "correct_responses": 920,
+        "distinct8": 1.359375,
+        "distinct_correct_modes": 174,
+        "pcmd": 0.11447232726022694,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "normalized/original/level2": {
+        "accuracy": 0.5869140625,
+        "colliding_correct_pairs": 1254,
+        "collision_eligible_prompts": 123,
+        "correct_pairs": 1324,
+        "correct_responses": 601,
+        "distinct8": 1.1484375,
+        "distinct_correct_modes": 147,
+        "pcmd": 0.052870090634441036,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "normalized/original/level3": {
+        "accuracy": 0.5634765625,
+        "colliding_correct_pairs": 1214,
+        "collision_eligible_prompts": 118,
+        "correct_pairs": 1275,
+        "correct_responses": 577,
+        "distinct8": 1.1328125,
+        "distinct_correct_modes": 145,
+        "pcmd": 0.04784313725490197,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "normalized/revised/level1": {
+        "accuracy": 0.208984375,
+        "colliding_correct_pairs": 596,
+        "collision_eligible_prompts": 28,
+        "correct_pairs": 603,
+        "correct_responses": 214,
+        "distinct8": 0.4140625,
+        "distinct_correct_modes": 53,
+        "pcmd": 0.011608623548922004,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "normalized/revised/level2": {
+        "accuracy": 0.1669921875,
+        "colliding_correct_pairs": 411,
+        "collision_eligible_prompts": 26,
+        "correct_pairs": 414,
+        "correct_responses": 171,
+        "distinct8": 0.4453125,
+        "distinct_correct_modes": 57,
+        "pcmd": 0.007246376811594235,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "normalized/revised/level3": {
+        "accuracy": 0.193359375,
+        "colliding_correct_pairs": 519,
+        "collision_eligible_prompts": 25,
+        "correct_pairs": 526,
+        "correct_responses": 198,
+        "distinct8": 0.4765625,
+        "distinct_correct_modes": 61,
+        "pcmd": 0.013307984790874472,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "strict/original/level1": {
+        "accuracy": 0.3701171875,
+        "colliding_correct_pairs": 751,
+        "collision_eligible_prompts": 77,
+        "correct_pairs": 840,
+        "correct_responses": 379,
+        "distinct8": 1.015625,
+        "distinct_correct_modes": 130,
+        "pcmd": 0.10595238095238091,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "strict/original/level2": {
+        "accuracy": 0.103515625,
+        "colliding_correct_pairs": 308,
+        "collision_eligible_prompts": 15,
+        "correct_pairs": 320,
+        "correct_responses": 106,
+        "distinct8": 0.140625,
+        "distinct_correct_modes": 18,
+        "pcmd": 0.03749999999999998,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "strict/original/level3": {
+        "accuracy": 0.1298828125,
+        "colliding_correct_pairs": 420,
+        "collision_eligible_prompts": 19,
+        "correct_pairs": 420,
+        "correct_responses": 133,
+        "distinct8": 0.15625,
+        "distinct_correct_modes": 20,
+        "pcmd": 0.0,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "strict/revised/level1": {
+        "accuracy": 0.1865234375,
+        "colliding_correct_pairs": 586,
+        "collision_eligible_prompts": 25,
+        "correct_pairs": 593,
+        "correct_responses": 191,
+        "distinct8": 0.265625,
+        "distinct_correct_modes": 34,
+        "pcmd": 0.01180438448566612,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "strict/revised/level2": {
+        "accuracy": 0.1337890625,
+        "colliding_correct_pairs": 395,
+        "collision_eligible_prompts": 17,
+        "correct_pairs": 396,
+        "correct_responses": 137,
+        "distinct8": 0.2578125,
+        "distinct_correct_modes": 33,
+        "pcmd": 0.002525252525252486,
+        "prompts": 128,
+        "responses": 1024
+      },
+      "strict/revised/level3": {
+        "accuracy": 0.1552734375,
+        "colliding_correct_pairs": 490,
+        "collision_eligible_prompts": 19,
+        "correct_pairs": 497,
+        "correct_responses": 159,
+        "distinct8": 0.25,
+        "distinct_correct_modes": 32,
+        "pcmd": 0.014084507042253502,
+        "prompts": 128,
+        "responses": 1024
+      }
+    },
+    "created_at_utc": "2026-09-18T16:27:13.256090+00:00",
+    "deployment": {
+      "build_equality_with_published_cells": "not established",
+      "endpoint": "https://api.openai.com/v1/responses",
+      "model": "gpt-5.6-sol",
+      "published_cells_provider": "https://liv.services.ai.azure.com/openai/v1/responses",
+      "served_model": "gpt-5.6-sol"
+    },
+    "differences": {
+      "normalized/level1": {
+        "all_prompts": {
+          "accuracy": {
+            "ci95": [
+              -0.7451171875,
+              -0.630859375
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.689453125
+          },
+          "distinct8": {
+            "ci95": [
+              -1.078125,
+              -0.8203125
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.9453125
+          },
+          "pcmd": {
+            "ci95": [
+              -0.14151301313630485,
+              -0.06184723215432457
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.10286370371130493
+          }
+        },
+        "jointly_eligible": null,
+        "jointly_eligible_prompts": 28
+      },
+      "normalized/level2": {
+        "all_prompts": {
+          "accuracy": {
+            "ci95": [
+              -0.466796875,
+              -0.3740234375
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.419921875
+          },
+          "distinct8": {
+            "ci95": [
+              -0.8125,
+              -0.59375
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.703125
+          },
+          "pcmd": {
+            "ci95": [
+              -0.07514537277267244,
+              -0.019386774181243488
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.0456237138228468
+          }
+        },
+        "jointly_eligible": null,
+        "jointly_eligible_prompts": 26
+      },
+      "normalized/level3": {
+        "all_prompts": {
+          "accuracy": {
+            "ci95": [
+              -0.41796875,
+              -0.3203125
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.3701171875
+          },
+          "distinct8": {
+            "ci95": [
+              -0.765625,
+              -0.546875
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.65625
+          },
+          "pcmd": {
+            "ci95": [
+              -0.06982570317563418,
+              0.002779480693366995
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.034535152464027496
+          }
+        },
+        "jointly_eligible": null,
+        "jointly_eligible_prompts": 24
+      },
+      "strict/level1": {
+        "all_prompts": {
+          "accuracy": {
+            "ci95": [
+              -0.212890625,
+              -0.1552734375
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.18359375
+          },
+          "distinct8": {
+            "ci95": [
+              -0.859375,
+              -0.640625
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.75
+          },
+          "pcmd": {
+            "ci95": [
+              -0.15720461004131417,
+              -0.034200580801806914
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.09414799646671479
+          }
+        },
+        "jointly_eligible": null,
+        "jointly_eligible_prompts": 25
+      },
+      "strict/level2": {
+        "all_prompts": {
+          "accuracy": {
+            "ci95": [
+              0.0166015625,
+              0.0458984375
+            ],
+            "defined_replicates": 20000,
+            "estimate": 0.0302734375
+          },
+          "distinct8": {
+            "ci95": [
+              0.0546875,
+              0.1875
+            ],
+            "defined_replicates": 20000,
+            "estimate": 0.1171875
+          },
+          "pcmd": {
+            "ci95": [
+              -0.11757396618870036,
+              0.008174386920980936
+            ],
+            "defined_replicates": 20000,
+            "estimate": -0.03497474747474749
+          }
+        },
+        "jointly_eligible": null,
+        "jointly_eligible_prompts": 15
+      },
+      "strict/level3": {
+        "all_prompts": {
+          "accuracy": {
+            "ci95": [
+              0.0087890625,
+              0.044921875
+            ],
+            "defined_replicates": 20000,
+            "estimate": 0.025390625
+          },
+          "distinct8": {
+            "ci95": [
+              0.0390625,
+              0.1484375
+            ],
+            "defined_replicates": 20000,
+            "estimate": 0.09375
+          },
+          "pcmd": {
+            "ci95": [
+              0.0,
+              0.04761904761904767
+            ],
+            "defined_replicates": 20000,
+            "estimate": 0.014084507042253502
+          }
+        },
+        "jointly_eligible": null,
+        "jointly_eligible_prompts": 19
+      }
+    },
+    "limitations": [
+      "Task wording and system-message presence change together; neither is isolated.",
+      "Both arms were collected here, after the published Azure cells, and replace none of them.",
+      "Unrestricted PCMD differences compare different correct-pair populations; the jointly eligible reading is the matched-population contrast.",
+      "A single deployment answers this condition; it does not generalize to the cohort.",
+      "Most of the measured arm difference is a surface the frozen grader cannot parse; the reported drop is in scoreable breadth, not in demonstrated capability."
+    ],
+    "native_refusals": {
+      "original/level1": 0,
+      "original/level2": 0,
+      "original/level3": 0,
+      "revised/level1": 0,
+      "revised/level2": 0,
+      "revised/level3": 0
+    },
+    "population": {
+      "arms": [
+        "original",
+        "revised"
+      ],
+      "domain": "python_factors",
+      "draws_per_prompt": 8,
+      "levels": [
+        1,
+        2,
+        3
+      ],
+      "prompts_per_cell": 128
+    },
+    "run": {
+      "directory": "artifacts/frontier_modebench_gpt56sol_python_parity_20260918",
+      "sha256": {
+        "audited_primary_samples.jsonl": "bdd4cbcf1115fb4ec996b14183cb9d33fc04f27baa8699923b308687565a3cd2",
+        "manifest.json": "b21b1c94b2376d7870cc8cc83185580baff89f33f671656b972b91f4fe1ffa9c",
+        "normalized_samples.jsonl": "607bb6cc65a122db1669dabad2b4616a3c0279eeead5fbd409797a0ba9da61b2",
+        "raw_responses.jsonl": "906616b2c5dac32997135bb551a69ddd9f9aaee1bd717a5ca72463cca81dfba9",
+        "requests.jsonl": "119f816d1c576255e91088e32b5c7b69b981a7034ff7dbfc423951882b670c54"
+      }
+    },
+    "schema": "gpt56sol-python-wording-parity-analysis-v1",
+    "surface_taxonomy": {
+      "buckets": {
+        "original/parseable_surface": {
+          "rate": 0.9493212669683257,
+          "responses": 2210,
+          "verified": 2098
+        },
+        "original/unscoreable_surface": {
+          "rate": 0.0,
+          "responses": 862,
+          "verified": 0
+        },
+        "revised/parseable_surface": {
+          "rate": 0.5930824008138352,
+          "responses": 983,
+          "verified": 583
+        },
+        "revised/unscoreable_surface": {
+          "rate": 0.0,
+          "responses": 2089,
+          "verified": 0
+        }
+      },
+      "definition": "A response whose text contains the LaTeX \\text{} macro. No rule in the frozen normalizer removes it, so the frozen grader rejects the response regardless of the expression inside it.",
+      "marker": "\\text{",
+      "reading": "The parseable-surface rows are the arm comparison that is not confounded by an unparseable surface. They are not a random subset of each arm, so they bound rather than identify a content effect."
+    }
+  },
+  "headline": {
+    "native_refusals_total": 0,
+    "unscoreable_rate": {
+      "original": 0.2805989583333333,
+      "revised": 0.6800130208333334
+    },
+    "parseable_rate": {
+      "original": 0.9493212669683257,
+      "revised": 0.5930824008138352
+    },
+    "reportable_revised_cells": 0
+  }
+}

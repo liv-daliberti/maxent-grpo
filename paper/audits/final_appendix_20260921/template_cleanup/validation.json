@@ -1,0 +1,238 @@
+{
+  "files": [
+    {
+      "path": "ops/build_paper_semantic_current_summary.py",
+      "before_sha256": "6f75612e3c8bdb74ad61de8b3def1965e4002f6188bb283d161b33a3f9e1e952",
+      "after_sha256": "14db734cba9b317578a6db972530457116c2fd4da5655865264933304fe17345",
+      "changed_functions": [
+        "render"
+      ],
+      "other_top_level_nodes_unchanged": 20,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/analyze_modebench_prompt_ablation.py",
+      "before_sha256": "c4534f792532c9f429ccc61e91467765cb9514b21d42bfb0a5fecba00f4d14b7",
+      "after_sha256": "863ae2c61c70e98d492c9764f75161104db200f5ffe0d3f8cf98f4c9595eb6b7",
+      "changed_functions": [
+        "pmd_seed_gaps",
+        "render_seed_ranges",
+        "render_appendix"
+      ],
+      "other_top_level_nodes_unchanged": 85,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/analyze_modebench_discovery_curves.py",
+      "before_sha256": "d74090435e835d03bd2d11e74bf720573511e28ea2a3dfceeeab2ef9d740d4a2",
+      "after_sha256": "d3f2aad02b29f74ec6b26903a3608c68048fa4083829f597bbaad5a9663e0861",
+      "changed_functions": [
+        "render_appendix"
+      ],
+      "other_top_level_nodes_unchanged": 87,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/build_paper_gpt56_all_levels32_discovery.py",
+      "before_sha256": "5b3177c8146d17c1311d342e5261551fe59f53bd2fdf438911f4272538d2cbdd",
+      "after_sha256": "2166215e74f2b926ee460233295c332b883378c7cb3ba99f8a066203e6418d63",
+      "changed_functions": [
+        "render_tex"
+      ],
+      "other_top_level_nodes_unchanged": 32,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/build_paper_inference_followups.py",
+      "before_sha256": "fd846f1b2c05eb7a16a237c99043e70833376a0c034db9b170e8643ad097c957",
+      "after_sha256": "21e2f3eefa09187bc6f44fc970cb7f728388751583ff634569dfa574a778c6da",
+      "changed_functions": [
+        "build"
+      ],
+      "other_top_level_nodes_unchanged": 24,
+      "exact_source_substitutions_only": true,
+      "parses": true,
+      "all_ast_outside_tex_values_and_visible_checkpoint_label_identical": true
+    },
+    {
+      "path": "ops/build_paper_portfolio_withdrawals.py",
+      "before_sha256": "5b1d23cd3a1fc6f5b19b20ac1acc1af208fd9dcf2393e8b129d8d79dd2766af5",
+      "after_sha256": "ca43020cab01be61107093f758e9b321ba883df230c15dabc54df2d966530980",
+      "changed_functions": [
+        "build"
+      ],
+      "other_top_level_nodes_unchanged": 30,
+      "exact_source_substitutions_only": true,
+      "parses": true,
+      "all_ast_outside_tex_values_and_visible_checkpoint_label_identical": true
+    },
+    {
+      "path": "ops/build_frontier_paper_comparison.py",
+      "before_sha256": "41f04dbaebfa570808af609b74f449a8a77fb109a05e173b519bafa34f12db60",
+      "after_sha256": "f0c15f3204157364ec956d09801669a1cc41e94b6134bbd367b191f94e4b030c",
+      "changed_functions": [
+        "python_sensitivity_tex"
+      ],
+      "other_top_level_nodes_unchanged": 32,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/build_frontier_temperature_paper.py",
+      "before_sha256": "656ef1e2495ebb4abfc5e7118828fc553e5c1e17433650e2d8cd81d15744f9b9",
+      "after_sha256": "341543022efa9dfec18767593c05498dfbf41cd3cd19de918ee880c3d5f7e80f",
+      "changed_functions": [
+        "render"
+      ],
+      "other_top_level_nodes_unchanged": 17,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/plot_paper_gpt56_temperature_curve.py",
+      "before_sha256": "c5a0a893368847df11698b01e5cff7b3719c41082e11bdff767e76dc36c9f102",
+      "after_sha256": "9ec2b7bc10187c7453502a0ecb2d9c95c9cb4b7e4a5770d803a2e0a0287b3dd4",
+      "changed_functions": [
+        "render_appendix_expanded",
+        "render_cohort_sensitivity"
+      ],
+      "other_top_level_nodes_unchanged": 29,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    },
+    {
+      "path": "ops/build_paper_hosted_reasoning_off.py",
+      "before_sha256": "6e29006bb6fbcf4bf75a02a7f778adfd29177de44faec017c7ca25b57626c4fe",
+      "after_sha256": "3b237d8153ceffec4a1f223e9632b85f9dca64e4df9c8f52fc6697f42cb8dedc",
+      "changed_functions": [
+        "render_appendix"
+      ],
+      "other_top_level_nodes_unchanged": 38,
+      "exact_source_substitutions_only": true,
+      "parses": true
+    }
+  ],
+  "isolated_render_comparisons": [
+    {
+      "renderer": "ops/build_paper_semantic_current_summary.py",
+      "function": "render",
+      "numerical_record": "paper/results/semantic_current_summary_20260912.json",
+      "manuscript_target": "paper/results/semantic_current_summary_20260912.tex",
+      "applied_manuscript_edit_indices": [
+        21,
+        22
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/analyze_modebench_prompt_ablation.py",
+      "function": "render_appendix",
+      "numerical_record": "paper/results/modebench_prompt_ablation_20260911.json",
+      "manuscript_target": "paper/results/modebench_prompt_ablation_20260911.tex",
+      "applied_manuscript_edit_indices": [
+        23,
+        24,
+        25,
+        26,
+        27
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/analyze_modebench_discovery_curves.py",
+      "function": "render_appendix",
+      "numerical_record": "paper/results/modebench_discovery_curves_20260911.json",
+      "manuscript_target": "paper/results/modebench_discovery_curves_20260911.tex",
+      "applied_manuscript_edit_indices": [
+        28,
+        29,
+        30
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/build_paper_gpt56_all_levels32_discovery.py",
+      "function": "render_tex",
+      "numerical_record": "paper/results/gpt56_all_levels32_sampling_20260913.json",
+      "manuscript_target": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+      "applied_manuscript_edit_indices": [
+        31,
+        32,
+        33
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/build_frontier_paper_comparison.py",
+      "function": "python_sensitivity_tex",
+      "numerical_record": "paper/results/frontier_comparison_20260911.json",
+      "manuscript_target": "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+      "applied_manuscript_edit_indices": [
+        48,
+        49
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/build_frontier_temperature_paper.py",
+      "function": "render",
+      "numerical_record": "paper/results/frontier_temperature_20260911.json",
+      "manuscript_target": "paper/results/frontier_temperature_20260911.tex",
+      "applied_manuscript_edit_indices": [
+        50
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/plot_paper_gpt56_temperature_curve.py",
+      "function": "render_appendix",
+      "numerical_record": "paper/figures/gpt56_temperature_curve.json",
+      "manuscript_target": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+      "applied_manuscript_edit_indices": [
+        51,
+        52,
+        53,
+        54,
+        55
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    },
+    {
+      "renderer": "ops/build_paper_hosted_reasoning_off.py",
+      "function": "render_appendix",
+      "numerical_record": "paper/results/hosted_reasoning_off_20260912.json",
+      "manuscript_target": "paper/results/hosted_reasoning_off_20260912_appendix.tex",
+      "applied_manuscript_edit_indices": [
+        56,
+        57
+      ],
+      "only_expected_prose_and_label_changes": true,
+      "record_not_mutated": true,
+      "active_tex_matches_ignoring_whitespace": true
+    }
+  ],
+  "limitations": [
+    "No full builders, experiment code, model calls, bootstraps, or figure renderers were invoked.",
+    "The monolithic inference-followups and portfolio-withdrawals builders were not executed. Their ASTs are identical after masking only TeX string values and the cost-table checkpoint display-label expression.",
+    "The conditional-concentration and frontier-hosted appendix narrative inputs have no prose-generation references in ops; their numerical table generators were left unchanged.",
+    "A concurrent external edit had already synchronized the frontier-comparison protocol paragraph before the saved source baseline; it was preserved."
+  ]
+}

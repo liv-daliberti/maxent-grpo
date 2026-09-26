@@ -1,0 +1,25 @@
+{
+  "reason": "Concurrent reference-KL table emitter produces fifteen columns while current manuscript table has fourteen; retain coherent incoming figure/macros/table file set only in release snapshot and preserve all live edits.",
+  "files": [
+    {
+      "path": "figures/reference_kl_plane.pdf",
+      "live_sha256": "7cc201927b6fca78d63d247f58ad1a8d3cdfc049f062ef49b1195388d697bed6",
+      "release_sha256": "774dcf483c71b38d804f64d8fcdf15018323ac6968bfa20c53b430121d3d09e3"
+    },
+    {
+      "path": "results/reference_kl_macros.tex",
+      "live_sha256": "21aef9ee1794d203706f623462bbe8416e51cf6384d929096f0ea047838b59bb",
+      "release_sha256": "f39ad4c8d6b6b359630ca03dfed4417de3c5912c2c1e0a50420b0cfc3de077b4"
+    },
+    {
+      "path": "results/reference_kl_table_body.tex",
+      "live_sha256": "1bad327fc9c145584fed3749e862115d86c314622b6ee147f43f7ad54443d6b8",
+      "release_sha256": "40f44b17da5134afa4265f0bb68f1e3fd9aba65195074d814d39d6e72589162d"
+    },
+    {
+      "path": "figures/reference_kl_knee.pdf",
+      "live_sha256": "81dba9e2b9b17509a37bf41c43eb8471ba703a254db865d17c651c173a190763",
+      "release_sha256": "4eb6dae9ca000822bf6d21ef87387395486a8ec7ff5cedd1a04615e574721f00"
+    }
+  ]
+}

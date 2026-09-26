@@ -1,0 +1,1192 @@
+{
+  "aggregate": {
+    "control": {
+      "pass0_mean_unique_raw_completions_within_k8": {
+        "max": 7.994140625,
+        "mean": 7.991796875,
+        "min": 7.990234375,
+        "seed_sd": 0.002139541240254555
+      },
+      "terminal_mean_unique_raw_completions_across_4xk8": {
+        "max": 1,
+        "mean": 1,
+        "min": 1,
+        "seed_sd": 0.0
+      },
+      "terminal_mean_unique_raw_completions_within_k8": {
+        "max": 1,
+        "mean": 1,
+        "min": 1,
+        "seed_sd": 0.0
+      },
+      "token_entropy_by_pass": [
+        {
+          "max": 0.8467142934678122,
+          "mean": 0.6786292354692705,
+          "min": 0.4691564474099626,
+          "seed_sd": 0.1435312083562584
+        },
+        {
+          "max": 0.006848586723208427,
+          "mean": 0.0054438970973327136,
+          "min": 0.0034333039075136185,
+          "seed_sd": 0.0012662638927390258
+        },
+        {
+          "max": 0.004166954507430394,
+          "mean": 0.003357700138197591,
+          "min": 0.0022838020619625845,
+          "seed_sd": 0.0007882047520772486
+        },
+        {
+          "max": 0.0033417909095684686,
+          "mean": 0.0024525287832754352,
+          "min": 0.001706101621190707,
+          "seed_sd": 0.0006582773528818588
+        },
+        {
+          "max": 0.005245775915682316,
+          "mean": 0.0024817129597067833,
+          "min": 0.0014989376068115234,
+          "seed_sd": 0.0015845977833631013
+        },
+        {
+          "max": 0.0033358271187656405,
+          "mean": 0.001931790395489467,
+          "min": 0.0014850025375684102,
+          "seed_sd": 0.0007901648035770872
+        },
+        {
+          "max": 0.002393324673297078,
+          "mean": 0.0017173431369277145,
+          "min": 0.0012826162079970043,
+          "seed_sd": 0.0004183411927046332
+        },
+        {
+          "max": 0.0046920037517944975,
+          "mean": 0.0022926924484030073,
+          "min": 0.0012852984170118968,
+          "seed_sd": 0.0014076681472804443
+        }
+      ]
+    },
+    "replay": {
+      "pass0_mean_unique_raw_completions_within_k8": {
+        "max": 7.994140625,
+        "mean": 7.991796875,
+        "min": 7.990234375,
+        "seed_sd": 0.002139541240254555
+      },
+      "terminal_mean_unique_raw_completions_across_4xk8": {
+        "max": 3.2890625,
+        "mean": 2.0796875,
+        "min": 1.1328125,
+        "seed_sd": 1.0352874327255088
+      },
+      "terminal_mean_unique_raw_completions_within_k8": {
+        "max": 3.15234375,
+        "mean": 1.971875,
+        "min": 1.126953125,
+        "seed_sd": 0.9461299167968465
+      },
+      "token_entropy_by_pass": [
+        {
+          "max": 0.37506976078050985,
+          "mean": 0.3247594604666422,
+          "min": 0.2550073286208014,
+          "seed_sd": 0.05496130059046428
+        },
+        {
+          "max": 0.15875109878834337,
+          "mean": 0.08243016344640637,
+          "min": 0.05024353877039781,
+          "seed_sd": 0.044311086062472055
+        },
+        {
+          "max": 0.15480014204513282,
+          "mean": 0.08827665974774088,
+          "min": 0.027408951937104575,
+          "seed_sd": 0.04750178171103376
+        },
+        {
+          "max": 0.16518812931220359,
+          "mean": 0.09758219250943512,
+          "min": 0.023766003835286636,
+          "seed_sd": 0.05654852034844668
+        },
+        {
+          "max": 0.1593158982383708,
+          "mean": 0.08736878032796085,
+          "min": 0.026071009483227197,
+          "seed_sd": 0.05217704190313871
+        },
+        {
+          "max": 0.15549286879831925,
+          "mean": 0.07967139276685581,
+          "min": 0.026875486604694743,
+          "seed_sd": 0.04863266598051109
+        },
+        {
+          "max": 0.15134557322987044,
+          "mean": 0.07244055110859335,
+          "min": 0.02793300558065918,
+          "seed_sd": 0.04752968303945112
+        },
+        {
+          "max": 0.14537094678962603,
+          "mean": 0.06211897108775399,
+          "min": 0.029574110090228107,
+          "seed_sd": 0.04797625268622952
+        }
+      ]
+    }
+  },
+  "arms": {
+    "control": {
+      "43": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": 1.25,
+          "first_persistent_raw_point_mass_step": 480,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 14.109375,
+            "mean_unique_raw_completions_within_k8": 7.994140625,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s43/debug_job30263999/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 128,
+            "mean_unique_raw_completions_across_4xk8": 1,
+            "mean_unique_raw_completions_within_k8": 1,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.7357067717045235,
+            0.006021194598967365,
+            0.004166954507430394,
+            0.0027921654012364647,
+            0.0023895160605510077,
+            0.0033358271187656405,
+            0.002393324673297078,
+            0.0023895160605510077
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s43/debug_job30263999/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "44": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": 0.75,
+          "first_persistent_raw_point_mass_step": 288,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 14.109375,
+            "mean_unique_raw_completions_within_k8": 7.994140625,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s44/debug_job30264001/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 128,
+            "mean_unique_raw_completions_across_4xk8": 1,
+            "mean_unique_raw_completions_within_k8": 1,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.4691564474099626,
+            0.006848586723208427,
+            0.0033652614802122116,
+            0.0024884510785341263,
+            0.0014989376068115234,
+            0.0014850025375684102,
+            0.0014850025375684102,
+            0.0016843945319730362
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s44/debug_job30264001/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "45": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": 1.25,
+          "first_persistent_raw_point_mass_step": 480,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 13.671875,
+            "mean_unique_raw_completions_within_k8": 7.990234375,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s45/debug_job30264003/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 128,
+            "mean_unique_raw_completions_across_4xk8": 1,
+            "mean_unique_raw_completions_within_k8": 1,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.8467142934678122,
+            0.005278787886102994,
+            0.004053609969560057,
+            0.0033417909095684686,
+            0.0016752146184444427,
+            0.0015294328331947327,
+            0.001719090563710779,
+            0.0014122494806845982
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s45/debug_job30264003/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "46": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": 1.0,
+          "first_persistent_raw_point_mass_step": 384,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 13.671875,
+            "mean_unique_raw_completions_within_k8": 7.990234375,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s46/debug_job30264005/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 128,
+            "mean_unique_raw_completions_across_4xk8": 1,
+            "mean_unique_raw_completions_within_k8": 1,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.729488954336072,
+            0.005637612370871163,
+            0.0022838020619625845,
+            0.0019341349058474104,
+            0.001599120597044627,
+            0.0015813400526288508,
+            0.0012826162079970043,
+            0.0012852984170118968
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s46/debug_job30264005/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "47": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": 1.0,
+          "first_persistent_raw_point_mass_step": 384,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 13.671875,
+            "mean_unique_raw_completions_within_k8": 7.990234375,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s47/debug_job30264007/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 128,
+            "mean_unique_raw_completions_across_4xk8": 1,
+            "mean_unique_raw_completions_within_k8": 1,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.6120797104279821,
+            0.0034333039075136185,
+            0.0029188726718227067,
+            0.001706101621190707,
+            0.005245775915682316,
+            0.0017273494352897008,
+            0.001706681702065301,
+            0.0046920037517944975
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e78_replay_only_python_control_s47/debug_job30264007/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      }
+    },
+    "replay": {
+      "43": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": null,
+          "first_persistent_raw_point_mass_step": null,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 14.109375,
+            "mean_unique_raw_completions_within_k8": 7.994140625,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s43/debug_job30264000/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0008457279333832408,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 3.2890625,
+            "mean_unique_raw_completions_within_k8": 3.15234375,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.2550073286208014,
+            0.08275317336907999,
+            0.07406023131625261,
+            0.07805820023349952,
+            0.06140089002534902,
+            0.05998570559313521,
+            0.06362735385967729,
+            0.05240418871107977
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s43/debug_job30264000/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "44": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": null,
+          "first_persistent_raw_point_mass_step": null,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 14.109375,
+            "mean_unique_raw_completions_within_k8": 7.994140625,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s44/debug_job30264002/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0033829117335329633,
+              "mean8": 0.003452669830012439,
+              "pass8": 0.0033829117335329633
+            },
+            "greedy_match_prompt_count": 57,
+            "mean_unique_raw_completions_across_4xk8": 1.609375,
+            "mean_unique_raw_completions_within_k8": 1.521484375,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.2790696235606447,
+            0.05024353877039781,
+            0.027408951937104575,
+            0.023766003835286636,
+            0.026071009483227197,
+            0.026875486604694743,
+            0.02793300558065918,
+            0.029574110090228107
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s44/debug_job30264002/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "45": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": null,
+          "first_persistent_raw_point_mass_step": null,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 13.671875,
+            "mean_unique_raw_completions_within_k8": 7.990234375,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s45/debug_job30264004/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0008097228492078613,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 112,
+            "mean_unique_raw_completions_across_4xk8": 1.1328125,
+            "mean_unique_raw_completions_within_k8": 1.126953125,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.37278271559625864,
+            0.061733560636639595,
+            0.07443688356822047,
+            0.0783616512392958,
+            0.07090016237149636,
+            0.061705176097651325,
+            0.04508117364215044,
+            0.029742964853843052
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s45/debug_job30264004/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "46": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": null,
+          "first_persistent_raw_point_mass_step": null,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 13.671875,
+            "mean_unique_raw_completions_within_k8": 7.990234375,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s46/debug_job30264006/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.01014873520059889,
+              "mean8": 0.0004228639666916204,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 3.1015625,
+            "mean_unique_raw_completions_within_k8": 2.82421875,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.37506976078050985,
+            0.058669445667571075,
+            0.11067708987199391,
+            0.16518812931220359,
+            0.1593158982383708,
+            0.15549286879831925,
+            0.15134557322987044,
+            0.14537094678962603
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s46/debug_job30264006/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      },
+      "47": {
+        "raw_output": {
+          "checkpoint_steps": [
+            0,
+            96,
+            192,
+            288,
+            384,
+            480,
+            576,
+            672,
+            768,
+            864,
+            960,
+            1056,
+            1152,
+            1248,
+            1344,
+            1440,
+            1536,
+            1632,
+            1728,
+            1824,
+            1920,
+            2016,
+            2112,
+            2208,
+            2304,
+            2400,
+            2496,
+            2592,
+            2688,
+            2784,
+            2880,
+            2976,
+            3072
+          ],
+          "first_persistent_raw_point_mass_pass": null,
+          "first_persistent_raw_point_mass_step": null,
+          "pass0": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 0,
+            "mean_unique_raw_completions_across_4xk8": 13.671875,
+            "mean_unique_raw_completions_within_k8": 7.990234375,
+            "prompt_count": 128
+          },
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s47/debug_job30264008/eval_mode_coverage_draws.jsonl",
+          "terminal": {
+            "endpoint_draw_population_std": {
+              "distinct8": 0.0,
+              "mean8": 0.0,
+              "pass8": 0.0
+            },
+            "greedy_match_prompt_count": 100,
+            "mean_unique_raw_completions_across_4xk8": 1.265625,
+            "mean_unique_raw_completions_within_k8": 1.234375,
+            "prompt_count": 128
+          }
+        },
+        "token_entropy": {
+          "pass_means": [
+            0.34186787377499667,
+            0.15875109878834337,
+            0.15480014204513282,
+            0.14253697792689005,
+            0.11915594152136084,
+            0.09429772674047854,
+            0.07421564923060942,
+            0.053502644993992966
+          ],
+          "source": "var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e78_replay_only_python_replay_s47/debug_job30264008/train_metrics.jsonl",
+          "units": "masked-mean policy token entropy in nats over sampled response tokens"
+        }
+      }
+    }
+  },
+  "control_persistent_raw_point_mass_pass_range": [
+    0.75,
+    1.25
+  ],
+  "control_persistent_raw_point_mass_step_range": [
+    288,
+    480
+  ],
+  "criterion": "raw point mass means that, for every prompt, all 32 temperature-1 sampled strings are byte-identical to the separately logged temperature-0 greedy string; aggregate endpoint equality or zero draw SD is not used as the criterion",
+  "generated_at": "2026-09-04T15:12:37.352804+00:00",
+  "limitations": [
+    "The raw point-mass timing audit is specific to the five E78 Qwen2.5-0.5B Python control seeds.",
+    "Masked-mean token entropy is response-length dependent and is not canonical-key entropy.",
+    "No decoding temperature or top-p sweep of the current arms is included."
+  ],
+  "post_hoc_descriptive": true,
+  "question": "does metric equality reflect raw output collapse in the E78 Python control, and how does masked-mean token entropy evolve?",
+  "registered_evaluation": {
+    "greedy_temperature": 0.0,
+    "prompt_count": 128,
+    "sample_temperature": 1.0,
+    "sample_top_p": 1.0,
+    "sampled_draws": 4,
+    "samples_per_draw": 8
+  },
+  "schema": "e78-python-collapse-diagnostics-v1",
+  "sources": {
+    "ledger": "var/artifacts/e78_verified_replay_only_05b_jobs.json",
+    "ledger_sha256": "4a6a70d07c5f1fc30334bea848776900c85425f771ebadc39e802fb2e2d83ce2",
+    "terminal_endpoints": "paper/results/core_terminal_endpoints.json",
+    "terminal_endpoints_sha256": "d080db315d326f7eeb4350ce480889d4eae8af057123c224bf12ce187888af47"
+  },
+  "terminal_endpoint_equality": {
+    "pantry_plan": {
+      "equal_cells": [
+        {
+          "distinct8": 0.53125,
+          "mean8": 0.53125,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.53125,
+          "seed": 43
+        },
+        {
+          "distinct8": 0.53125,
+          "mean8": 0.53125,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.53125,
+          "seed": 44
+        },
+        {
+          "distinct8": 0.53125,
+          "mean8": 0.53125,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.53125,
+          "seed": 45
+        },
+        {
+          "distinct8": 0.484375,
+          "mean8": 0.484375,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.484375,
+          "seed": 46
+        },
+        {
+          "distinct8": 0.53125,
+          "mean8": 0.53125,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.53125,
+          "seed": 47
+        },
+        {
+          "distinct8": 0.6328125,
+          "mean8": 0.6328125,
+          "model": "Falcon3-1B",
+          "pass8": 0.6328125,
+          "seed": 55
+        },
+        {
+          "distinct8": 0.6328125,
+          "mean8": 0.6328125,
+          "model": "Falcon3-1B",
+          "pass8": 0.6328125,
+          "seed": 56
+        },
+        {
+          "distinct8": 0.6328125,
+          "mean8": 0.6328125,
+          "model": "Falcon3-1B",
+          "pass8": 0.6328125,
+          "seed": 57
+        },
+        {
+          "distinct8": 0.6328125,
+          "mean8": 0.6328125,
+          "model": "Falcon3-1B",
+          "pass8": 0.6328125,
+          "seed": 58
+        },
+        {
+          "distinct8": 0.6328125,
+          "mean8": 0.6328125,
+          "model": "Falcon3-1B",
+          "pass8": 0.6328125,
+          "seed": 59
+        },
+        {
+          "distinct8": 0.5546875,
+          "mean8": 0.5546875,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.5546875,
+          "seed": 71
+        },
+        {
+          "distinct8": 0.5546875,
+          "mean8": 0.5546875,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.5546875,
+          "seed": 72
+        }
+      ],
+      "equal_count": 12,
+      "interpretation": "screening signature only; metric equality is not sufficient to prove raw-output collapse",
+      "total_count": 15,
+      "unequal_cells": [
+        {
+          "distinct8": 0.734375,
+          "mean8": 0.5986328125,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.6484375,
+          "seed": 70
+        },
+        {
+          "distinct8": 1.28125,
+          "mean8": 0.521484375,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.716796875,
+          "seed": 73
+        },
+        {
+          "distinct8": 1.078125,
+          "mean8": 0.560546875,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.71484375,
+          "seed": 74
+        }
+      ]
+    },
+    "python_factors": {
+      "equal_cells": [
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.171875,
+          "seed": 43
+        },
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.171875,
+          "seed": 44
+        },
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.171875,
+          "seed": 45
+        },
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.171875,
+          "seed": 46
+        },
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-0.5B",
+          "pass8": 0.171875,
+          "seed": 47
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Falcon3-1B",
+          "pass8": 0.0,
+          "seed": 55
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Falcon3-1B",
+          "pass8": 0.0,
+          "seed": 56
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Falcon3-1B",
+          "pass8": 0.0,
+          "seed": 58
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Falcon3-1B",
+          "pass8": 0.0,
+          "seed": 59
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.0,
+          "seed": 70
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.0,
+          "seed": 71
+        },
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.171875,
+          "seed": 72
+        },
+        {
+          "distinct8": 0.0,
+          "mean8": 0.0,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.0,
+          "seed": 73
+        },
+        {
+          "distinct8": 0.171875,
+          "mean8": 0.171875,
+          "model": "Qwen2.5-3B",
+          "pass8": 0.171875,
+          "seed": 74
+        }
+      ],
+      "equal_count": 14,
+      "interpretation": "screening signature only; metric equality is not sufficient to prove raw-output collapse",
+      "total_count": 15,
+      "unequal_cells": [
+        {
+          "distinct8": 0.001953125,
+          "mean8": 0.000244140625,
+          "model": "Falcon3-1B",
+          "pass8": 0.001953125,
+          "seed": 57
+        }
+      ]
+    }
+  }
+}

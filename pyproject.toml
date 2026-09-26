@@ -3,9 +3,9 @@ requires = ["setuptools>=65", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "oat-drgrpo-1p5b"
-version = "0.1.0"
-description = "Minimal 1.5B OAT Dr.GRPO and Dr.X-GRPO training tree"
+name = "maxent-grpo"
+version = "0.2.0"
+description = "Candidate-level maximum-entropy learning and xDr.GRPO"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
@@ -63,4 +63,4 @@ line-ending = "lf"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "ops"]

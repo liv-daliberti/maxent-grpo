@@ -1,0 +1,84 @@
+{
+  "latest_common_metrics": {
+    "all_correct_fraction": {
+      "grpo": 0.34615384615384615,
+      "xdr_tau0p05": 0.057692307692307696
+    },
+    "all_zero_fraction": {
+      "grpo": 0.34615384615384615,
+      "xdr_tau0p05": 0.038461538461538464
+    },
+    "effective_rollouts": {
+      "grpo": 32.0,
+      "xdr_tau0p05": 30.656508665818436
+    },
+    "informative_fraction": {
+      "grpo": 0.3076923076923077,
+      "xdr_tau0p05": 0.9038461538461539
+    },
+    "rollout_reward": {
+      "grpo": 0.4981971153846154,
+      "xdr_tau0p05": 0.6129807692307692
+    },
+    "token_entropy": {
+      "grpo": 0.04624646414931004,
+      "xdr_tau0p05": 0.14582690653892666
+    }
+  },
+  "latest_common_pass": 2.142578125,
+  "latest_common_seed_count": {
+    "grpo": 2,
+    "xdr_tau0p05": 2
+  },
+  "latest_common_step": 2194,
+  "phase_overlap": {
+    "coverage_delta_xdr_minus_grpo": 0.05492057651281357,
+    "grpo": {
+      "mean_coverage_at_8": 0.22316352277994156,
+      "observations": 4
+    },
+    "interpretation": "descriptive; observations occur at different steps",
+    "token_entropy_high": 0.21815533076341337,
+    "token_entropy_low": 0.1613013818860054,
+    "xdr_tau0p05": {
+      "mean_coverage_at_8": 0.2780840992927551,
+      "observations": 13
+    }
+  },
+  "runs": {
+    "grpo": {
+      "43": {
+        "log": "var/data/oat_zero_tiny_qwen25_3b_instruct_grpo_single_gpu_gce1_3b_grpo_s43/debug_0716T11:20:14/train_metrics.jsonl",
+        "max_step": 2194
+      },
+      "44": {
+        "log": "var/data/oat_zero_tiny_qwen25_3b_instruct_grpo_single_gpu_gce1_3b_grpo_s44/debug_0716T11:20:14/train_metrics.jsonl",
+        "max_step": 2214
+      },
+      "45": {
+        "log": "var/data/oat_zero_tiny_qwen25_3b_instruct_grpo_single_gpu_gce1_3b_grpo_s45/debug_0716T13:11:21/train_metrics.jsonl",
+        "max_step": 1274
+      }
+    },
+    "xdr_tau0p05": {
+      "43": {
+        "log": "var/data/oat_zero_tiny_qwen25_3b_instruct_xdr_single_gpu_gce1_3b_xdr_tau0p05_s43/debug_0716T11:20:14/train_metrics.jsonl",
+        "max_step": 2194
+      },
+      "44": {
+        "log": "var/data/oat_zero_tiny_qwen25_3b_instruct_xdr_single_gpu_gce1_3b_xdr_tau0p05_s44/debug_0716T11:20:14/train_metrics.jsonl",
+        "max_step": 2204
+      },
+      "45": {
+        "log": "var/data/oat_zero_tiny_qwen25_3b_instruct_xdr_single_gpu_gce1_3b_xdr_tau0p05_s45/debug_0716T03:22:58/train_metrics.jsonl",
+        "max_step": 1025
+      }
+    }
+  },
+  "stamp_prefix": "gce1_3b",
+  "steps_per_pass": 1024,
+  "token_entropy_below_0p20_persistent_step": {
+    "grpo": 208,
+    "xdr_tau0p05": 872
+  }
+}

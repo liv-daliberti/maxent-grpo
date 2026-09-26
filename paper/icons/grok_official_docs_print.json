@@ -1,0 +1,12 @@
+{
+  "role": "Official xAI documentation identity mark used beside Grok deployment",
+  "page_url": "https://docs.x.ai/overview",
+  "asset_url": "https://docs.x.ai/_next/static/media/favicon-light.1u6watcuoe8mg.svg?dpl=f850a0bd8e76d6be0d3d2fada946ae1f9f50eb34",
+  "retrieved_date": "2026-09-11",
+  "png_sha256": "f2c371eaf8016c0d212451485b638e487939c0a75d2dc68fcaab517a5511decb",
+  "conversion": "Original mask declares alpha semantics; ImageMagick interprets its dark fill as luminance and renders maximum alpha10/255. Print SVG changes only that opaque mask fill to white, equivalent under the declared alpha mask, retaining all visible paths, geometry, colors and aspect ratio.",
+  "archive_download": "Current official brand archive returned HTTP403; public official documentation favicon was accessible.",
+  "scientific_figure": false,
+  "original_source_svg_sha256": "f441eef32955dabf2ded0bb66bf5674a53afb81557d9281c00735dd245dfdc86",
+  "print_svg_sha256": "658abda08e87490213edb766f8816ac6babdbc2764ba88f90f5de9af4c8a43e2"
+}

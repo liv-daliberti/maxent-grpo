@@ -1,0 +1,32 @@
+{
+  "status": "pass",
+  "fragment": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+  "generator": "ops/build_paper_gpt56_all_levels32_discovery.py",
+  "metadata_record": "paper/results/gpt56_all_levels32_sampling_20260913.json",
+  "generator_change": "render_tex only; all other AST nodes unchanged",
+  "record_change": "builder.sha256 only",
+  "table_environments_identical": 1,
+  "display_equations_identical": 1,
+  "labels_identical": 2,
+  "finite_pool_validation": "All 15 cells under both grading conventions; all 32 prompts per cell, all ten budgets, endpoint and tail means, prefix endpoints, support means and ranges",
+  "source_sha256": "3ff79d83a7a39b445f367727fb4c2ce6656fb0857eee3607b7f161ddc9c6afca",
+  "new_bootstrap_replicates": 0,
+  "new_api_calls": 0,
+  "rendered_process_scan": "pass",
+  "strict_prefix_pass64": 418,
+  "normalized_prefix_pass64": 474,
+  "strict_prefix_pass512": 436,
+  "normalized_prefix_pass512": 477,
+  "total_problems": 480,
+  "total_responses": 245760,
+  "python_figure_mean_enumerated_support": [
+    222,
+    335.75,
+    354.75
+  ],
+  "python_table_certified_support": [
+    2,
+    2,
+    2
+  ]
+}

@@ -1,0 +1,47 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -6,17 +6,15 @@
+ \maketitle
+ 
+ \begin{abstract}
+-When a mathematical agent reaches a dead end, a different route may offer a
+-way forward. Yet learning to produce correct answers can quietly narrow the
+-alternatives it has left to try. We introduce \mb{} to make this loss visible.
+-Across five executable domains, it gives verified outputs exact identities,
+-so we can measure how many distinct successes the model still produces.
+-ReplayMaxRL turns these identities into memory, giving each stored mode equal
+-replay weight even when fresh samples rarely produce it. Across model scales, this replay
+-mechanism improves held-out correctness and output support under both Dr.GRPO
+-and MaxRL, including a complete harder graph-coloring demonstration.
+-The results motivate learning to preserve successful solutions alongside
+-learning to find them.
++A mathematical reasoning model can become more accurate while losing
++alternative correct solutions. To measure this loss, we introduce \mb{},
++a benchmark of five executable domains that distinguishes different correct
++outputs for the same problem. We then show that ReplayMaxRL, which combines
++sampling-aware reinforcement learning with a memory of previously verified
++outputs, improves held-out correctness while preserving a broader repertoire.
++We find gains from replay with both Dr.GRPO and MaxRL, across three and two
++model scales, respectively, and on a harder graph-coloring task. These results
++distinguish discovering a successful behavior from keeping it available.
+ \end{abstract}
+ 
+ \begin{figure}[!htbp]
+@@ -31,11 +29,12 @@
+ 
+ \section{Preserving alternatives for mathematical agents}
+ \label{sec:introduction}\label{sec:collapse}
+-Consider a mathematical agent whose first attempt fails a check. It may repair
+-that attempt or try a different route. A proof idea that is hard to complete
+-may give way to another; a different computation may succeed under constraints
+-that defeated the first. Tools can help it explore these routes, while verifiers check the results
+-\citep{brown2024monkeys,snell2024testtime}. Yet a verifier cannot select an
++When we train a mathematical reasoning model to be correct more often, we may
++also change which correct solutions it can still produce. That distinction
++matters for a mathematical agent: a different computation or proof idea may
++offer a way forward when a familiar route fails or constraints change. Tools
++and verifiers can guide search and revision
++\citep{brown2024monkeys,snell2024testtime}, but a verifier cannot select an
+ alternative the model never proposes.
+ 
+ Correctness feedback can hide the loss of these options. Reinforcement learning

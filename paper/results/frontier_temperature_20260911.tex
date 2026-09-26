@@ -1,0 +1,124 @@
+\subsection{Requested-temperature sensitivity}
+\label{app:hosted-temperature}
+Grok 4.3 and Kimi K3 each receive requested temperatures $T=1.0$ and
+$T=1.5$ on the same 120 tasks: eight prompts in each of five domains and
+three levels. Eight responses from separate requests per prompt give 960
+responses per deployment--temperature condition and 3,840 in total.
+Within each deployment, the two conditions share all non-temperature
+request settings and run concurrently. Accuracy and mode counts include
+all responses, including verification failures and truncated outputs.
+
+The providers accept both requested temperature settings, but their responses
+do not report effective sampling temperatures. DeepSeek is outside this
+comparison because its thinking-mode interface ignores the temperature setting.
+The results concern these requested settings on this 120-task subset and
+do not establish a general temperature response for all hosted deployments.
+
+Each level summary averages five domains equally; All averages the 15
+domain--level cells equally. Collision pools correct pairs within each cell,
+so tasks with more correct responses receive more weight. Eligible tasks
+and pair weights can differ between temperatures; the contrast does not
+hold accuracy or the correct-pair population fixed. An undefined cell makes
+the corresponding average undefined. Pointwise 95\% intervals use 20,000
+paired whole-prompt bootstrap resamples, stratified by domain and level.
+Each resampled prompt includes all eight responses. Prompts are paired
+across conditions; output draws are not. Intervals have no multiplicity adjustment.
+
+\paragraph{Observed sensitivity.}
+For Grok, the observed diversity change is +0.050 [$-$0.058, +0.158] modes, and the collision change is $-$0.78 [$-$3.86, +2.12] percentage points. Both intervals include zero, so neither shows a clear diversity gain.
+The per-response accuracy change is $-$2.29 [$-$3.85, $-$0.94] percentage points. These results do not establish invariance to temperature in general.
+
+At $T=1.5$, 696 of Kimi's 960 outputs reach the token limit,
+compared with 0 at $T=1.0$. Strict accuracy falls from 96.56\% to 21.25\%, while raw diversity falls from 1.933 to 0.983 modes.
+The large increase in truncation accompanies losses in accuracy and distinct modes.
+These results do not isolate correct-output concentration at matched accuracy.
+The five-domain collision mean is undefined at
+$T=1.5$ because some cells have no eligible correct pairs. Neither model
+has provider-declared refusals in this experiment.
+
+$\dagger$ marks a defined contrast whose interval is omitted because some
+bootstrap resamples have undefined cells. Five-domain averages require all
+five cell estimates; conditioning on only the estimable resamples would
+change the uncertainty calculation.
+
+\begin{table}[!htbp]
+  \centering
+  \setlength{\parfillskip}{0pt plus .20\linewidth}
+  \caption{\textbf{Higher requested temperature yields no clear Grok diversity gain and much lower Kimi accuracy.} Strict executable grades compare $T=1.5$ with $T=1.0$.
+  Each condition contains eight responses on each of 120 tasks.
+  Level summaries average five domains equally; All averages 15 domain--level cells.
+  A is per-response accuracy (\%); D is mean \texttt{distinct@8};
+  C is correct-pair collision (\%), pooling pairs within each cell.
+  Differences subtract $T=1.0$ from $T=1.5$: mode counts for D and percentage points for A/C.
+  Brackets give pointwise 95\% intervals from paired whole-prompt bootstrap resampling.
+  $\dagger$ marks an omitted interval when some resamples have undefined cells;
+  -- denotes an undefined estimate or omitted interval.}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    Deployment & Level & Metric & $T=1.0$ & $T=1.5$ & Difference [95\% interval] \\
+    \midrule
+    Grok 4.3 & 1 & A & 98.12 & 95.62 & $-$2.50 [$-$4.06, $-$0.94] \\
+     &  & D & 1.900 & 2.000 & +0.100 [$-$0.100, +0.300] \\
+     &  & C & 72.89 & 73.16 & +0.27 [$-$6.31, +6.37] \\
+     & 2 & A & 99.06 & 99.38 & +0.31 [$-$0.94, +1.56] \\
+     &  & D & 1.425 & 1.425 & +0.000 [$-$0.175, +0.200] \\
+     &  & C & 86.61 & 85.20 & $-$1.41 [$-$6.26, +3.30] \\
+     & 3 & A & 98.75 & 94.06 & $-$4.69 [$-$9.06, $-$0.94] \\
+     &  & D & 1.500 & 1.550 & +0.050 [$-$0.125, +0.225] \\
+     &  & C & 84.04 & 82.85 & $-$1.20 [$-$5.48, +2.79] \\
+     & All & A & 98.65 & 96.35 & $-$2.29 [$-$3.85, $-$0.94] \\
+     &  & D & 1.608 & 1.658 & +0.050 [$-$0.058, +0.158] \\
+     &  & C & 81.18 & 80.40 & $-$0.78 [$-$3.86, +2.12] \\
+    \midrule
+    Kimi K3 & 1 & A & 92.50 & 22.50 & $-$70.00 [$-$75.62, $-$63.75] \\
+     &  & D & 2.200 & 1.075 & $-$1.125 [$-$1.475, $-$0.775] \\
+     &  & C & 66.23 & 53.12 & $-$13.11 [--]$^\dagger$ \\
+     & 2 & A & 98.12 & 20.31 & $-$77.81 [$-$82.50, $-$72.81] \\
+     &  & D & 1.850 & 0.900 & $-$0.950 [$-$1.300, $-$0.625] \\
+     &  & C & 72.18 & 66.55 & $-$5.63 [--]$^\dagger$ \\
+     & 3 & A & 99.06 & 20.94 & $-$78.12 [$-$83.75, $-$72.81] \\
+     &  & D & 1.750 & 0.975 & $-$0.775 [$-$1.025, $-$0.525] \\
+     &  & C & 78.33 & -- & -- \\
+     & All & A & 96.56 & 21.25 & $-$75.31 [$-$78.44, $-$72.19] \\
+     &  & D & 1.933 & 0.983 & $-$0.950 [$-$1.133, $-$0.767] \\
+     &  & C & 72.25 & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[!htbp]
+  \centering
+  \setlength{\parfillskip}{0pt plus .20\linewidth}
+  \caption{\textbf{Formatting normalization leaves the temperature sensitivity largely unchanged.} Only rows differing from strict grading appear; all other rows are identical.
+  Each condition contains eight responses on each of 120 tasks.
+  Level summaries average five domains equally; All averages 15 domain--level cells.
+  A is per-response accuracy (\%); D is mean \texttt{distinct@8};
+  C is correct-pair collision (\%), pooling pairs within each cell.
+  Differences subtract $T=1.0$ from $T=1.5$: mode counts for D and percentage points for A/C.
+  Brackets give pointwise 95\% intervals from paired whole-prompt bootstrap resampling.
+  $\dagger$ marks an omitted interval when some resamples have undefined cells;
+  -- denotes an undefined estimate or omitted interval.}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    Deployment & Level & Metric & $T=1.0$ & $T=1.5$ & Difference [95\% interval] \\
+    \midrule
+    Kimi K3 & 1 & A & 92.50 & 22.81 & $-$69.69 [$-$75.31, $-$63.44] \\
+     & 1 & C & 66.23 & 53.61 & $-$12.62 [--]$^\dagger$ \\
+     & 3 & A & 99.38 & 20.94 & $-$78.44 [$-$84.06, $-$73.12] \\
+     & 3 & C & 78.18 & -- & -- \\
+     & All & A & 96.67 & 21.35 & $-$75.31 [$-$78.44, $-$72.19] \\
+     & All & C & 72.20 & -- & -- \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Across the hosted comparisons, \texttt{Countdown} has no uniform reference because its
+total support is not certified, so uniform-reference comparisons use the other
+four domains. Cross-level differences
+also reflect different task populations and do not establish a common ordering
+of model difficulty. These inference-only results do not identify a training
+or parameter-scale cause of concentration.

@@ -1,0 +1,245 @@
+{
+  "schema": "paper-admission-retention-funnel-v1",
+  "generated_at": "2026-09-04T15:38:05.943420+00:00",
+  "status": "terminal; all 10 mechanism cells passed the outcome-blind gate",
+  "model": "Qwen2.5-0.5B",
+  "seed": 43,
+  "target_steps": 64,
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "arm_order": [
+    "retention_tracking",
+    "adaptive_retention"
+  ],
+  "stage_order": [
+    "tracked_admissions",
+    "score_observed_admissions",
+    "score_followup_admissions",
+    "score_retained_admissions",
+    "rollout_eligible_admissions",
+    "rollout_converted_admissions"
+  ],
+  "action_order": [
+    "refresh_requests_cumulative",
+    "priority_visits_added_cumulative"
+  ],
+  "cells": {
+    "retention_tracking": {
+      "countdown": {
+        "seed": 43,
+        "job_id": 30644572,
+        "stages": {
+          "tracked_admissions": 0,
+          "score_observed_admissions": 0,
+          "score_followup_admissions": 0,
+          "score_retained_admissions": 0,
+          "rollout_eligible_admissions": 0,
+          "rollout_converted_admissions": 0
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.0
+      },
+      "graph_coloring": {
+        "seed": 43,
+        "job_id": 30644573,
+        "stages": {
+          "tracked_admissions": 16,
+          "score_observed_admissions": 16,
+          "score_followup_admissions": 15,
+          "score_retained_admissions": 15,
+          "rollout_eligible_admissions": 14,
+          "rollout_converted_admissions": 8
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.11488008499145508
+      },
+      "mathir": {
+        "seed": 43,
+        "job_id": 30644574,
+        "stages": {
+          "tracked_admissions": 0,
+          "score_observed_admissions": 0,
+          "score_followup_admissions": 0,
+          "score_retained_admissions": 0,
+          "rollout_eligible_admissions": 0,
+          "rollout_converted_admissions": 0
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.0
+      },
+      "pantry_plan": {
+        "seed": 43,
+        "job_id": 30644575,
+        "stages": {
+          "tracked_admissions": 52,
+          "score_observed_admissions": 52,
+          "score_followup_admissions": 52,
+          "score_retained_admissions": 52,
+          "rollout_eligible_admissions": 51,
+          "rollout_converted_admissions": 38
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.19160479307174683
+      },
+      "python_factors": {
+        "seed": 43,
+        "job_id": 30644576,
+        "stages": {
+          "tracked_admissions": 0,
+          "score_observed_admissions": 0,
+          "score_followup_admissions": 0,
+          "score_retained_admissions": 0,
+          "rollout_eligible_admissions": 0,
+          "rollout_converted_admissions": 0
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.0
+      }
+    },
+    "adaptive_retention": {
+      "countdown": {
+        "seed": 43,
+        "job_id": 30644577,
+        "stages": {
+          "tracked_admissions": 2,
+          "score_observed_admissions": 2,
+          "score_followup_admissions": 2,
+          "score_retained_admissions": 2,
+          "rollout_eligible_admissions": 1,
+          "rollout_converted_admissions": 1
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": -0.023254036903381348
+      },
+      "graph_coloring": {
+        "seed": 43,
+        "job_id": 30644578,
+        "stages": {
+          "tracked_admissions": 11,
+          "score_observed_admissions": 10,
+          "score_followup_admissions": 10,
+          "score_retained_admissions": 10,
+          "rollout_eligible_admissions": 10,
+          "rollout_converted_admissions": 8
+        },
+        "actions": {
+          "refresh_requests_cumulative": 7,
+          "priority_visits_added_cumulative": 26
+        },
+        "largest_mean_token_logprob_drop": -0.07678031921386719
+      },
+      "mathir": {
+        "seed": 43,
+        "job_id": 30644579,
+        "stages": {
+          "tracked_admissions": 0,
+          "score_observed_admissions": 0,
+          "score_followup_admissions": 0,
+          "score_retained_admissions": 0,
+          "rollout_eligible_admissions": 0,
+          "rollout_converted_admissions": 0
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.0
+      },
+      "pantry_plan": {
+        "seed": 43,
+        "job_id": 30644580,
+        "stages": {
+          "tracked_admissions": 51,
+          "score_observed_admissions": 51,
+          "score_followup_admissions": 50,
+          "score_retained_admissions": 50,
+          "rollout_eligible_admissions": 50,
+          "rollout_converted_admissions": 34
+        },
+        "actions": {
+          "refresh_requests_cumulative": 82,
+          "priority_visits_added_cumulative": 194
+        },
+        "largest_mean_token_logprob_drop": 0.15921425819396973
+      },
+      "python_factors": {
+        "seed": 43,
+        "job_id": 30644581,
+        "stages": {
+          "tracked_admissions": 0,
+          "score_observed_admissions": 0,
+          "score_followup_admissions": 0,
+          "score_retained_admissions": 0,
+          "rollout_eligible_admissions": 0,
+          "rollout_converted_admissions": 0
+        },
+        "actions": {
+          "refresh_requests_cumulative": 0,
+          "priority_visits_added_cumulative": 0
+        },
+        "largest_mean_token_logprob_drop": 0.0
+      }
+    }
+  },
+  "arm_totals": {
+    "adaptive_retention": {
+      "priority_visits_added_cumulative": 220.0,
+      "refresh_requests_cumulative": 89.0,
+      "rollout_converted_admissions": 43.0,
+      "score_followup_admissions": 62.0,
+      "score_observed_admissions": 63.0,
+      "tracked_admissions": 64.0
+    },
+    "retention_tracking": {
+      "priority_visits_added_cumulative": 0.0,
+      "refresh_requests_cumulative": 0.0,
+      "rollout_converted_admissions": 46.0,
+      "score_followup_admissions": 67.0,
+      "score_observed_admissions": 68.0,
+      "tracked_admissions": 68.0
+    }
+  },
+  "outcomes_used_for_gate": false,
+  "audit_violations": [],
+  "input_sha256": {
+    "var/artifacts/e108_admission_retention_mechanism_gate_audit_latest.json": {
+      "byte_length": 38916,
+      "sha256": "b64622fa54b5c48ed94e7ca6cff3f3fedd0bcde2b9111ca40304ec579f165f5b"
+    },
+    "var/artifacts/e108_admission_retention_mechanism_gate_jobs.json": {
+      "byte_length": 99802,
+      "sha256": "ca9cf76561cdb5488d26c5731270417a18c962261b4580ae31319a31022ad261"
+    },
+    "paper/preregistration/e108_admission_retention_mechanism_gate_20260817.md": {
+      "byte_length": 4505,
+      "sha256": "e90751542eaa9bfd4622e653cdd5a88921eab5a97c820223c91efc9a64368313"
+    },
+    "paper/../ops/exp_scaling/plot_paper_admission_retention_funnel.py": {
+      "byte_length": 8484,
+      "sha256": "133f75c65502bd13abaaca11bf5dc079314c0f81e2c324bf55d2859208fda2b2"
+    }
+  }
+}

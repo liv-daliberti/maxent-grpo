@@ -1,0 +1,195 @@
+{
+  "source": "paper/main.tex",
+  "source_sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
+  "snapshot_date": "2026-09-05",
+  "template_url": "https://mathai-2026.github.io/files/mathai_neurips2026_template.zip",
+  "style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+  "copied_files": {
+    "example_paper.bib": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+    "figures/baseline_collapse_precheck.pdf": "51eb5de985ae8f71415a853275e15933c9aa9b31f3105f9f369a185c674dba84",
+    "figures/direct_baseline_learning_curves_static_strip.pdf": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d",
+    "figures/direct_comparator_endpoint_effects.pdf": "b643b65fc86c6bc87f0d42c6e58b941ac68f8b5fb84a13f62ad8266c30b5c633",
+    "figures/e118_all_scale_factorial_progress.pdf": "243da8937637b24271f184ecc0312e3b5431494f7061a38b45f38a2eea0122d6",
+    "figures/e118_scale_extensions_appendix.pdf": "615bec3c98d0c1bfb36b1896661052e765ea6cd4af7dc6b0ef825440fd1fa964",
+    "figures/experiment1_retention_comparator_matrix.pdf": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb",
+    "figures/modebench_examples.pdf": "685e6bd376c9016bf1b944c183d52bdffbfa792401a92cd6eb19ec38679468e6",
+    "figures/modebench_level_admission.pdf": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+    "figures/modecollapse_story.pdf": "f0d2f1b1df570c5cd04f609adc9a85c2a6832a5c3d15425ae8d25cdb41b71965",
+    "figures/replay_mechanism_telemetry_qwen05b.pdf": "2c819e5ddd5b6c3c817dd6510a28162b464f718f315d1b722d58f8b5c69fda14",
+    "figures/sustained_auc_effects_qwen05b.pdf": "e4ff207bbeff0e2dcc93d2293abacdb5b9fac22d2fc1e5dffc0d1d395df0aeba",
+    "figures/verified_support_discovery_two_scale_effects.pdf": "c10b174b55122c72c977692fd9b24e7c55412f6f350e0fd322e6676f9582468a",
+    "figures/verified_support_story.pdf": "073a6b70d658a895887a89462748ea4380a184a296f6047ede49c777b3738c09",
+    "results/absolute_support_references_table_body.tex": "c42b4c64d6d2c743bd99a2e87eddc8a280ce4760420b72a660f09e04dd518f31",
+    "results/baseline_collapse_precheck_table_body.tex": "1e5b8fce5f904a2bb50082e2fa86e5239af40f2f256674e854324c9fe1b693a9",
+    "results/core_terminal_endpoints_table_body.tex": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189",
+    "results/e120_frequency_progress_table_body.tex": "d353706bda93667ceeac8749cee16ced53a4f182e3d7e425c57749acc93679bd",
+    "figures/baseline_collapse_precheck.json": "3a6d185553a3846215d6d54c7956417df44f67780937b7ad2fd8fbdf6e17398c",
+    "figures/direct_baseline_learning_curves_static_strip.json": "05206086602080a88d4f470d167984589e745ad918e1c7d5b14991d988d873d5",
+    "figures/direct_comparator_endpoint_effects.json": "00a2994663c3118d89cdf6a07a7b386f0672af7294d98726145f4d1f449ff8b2",
+    "figures/e118_all_scale_factorial_progress.json": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d",
+    "figures/e118_scale_extensions_appendix.json": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d",
+    "figures/experiment1_retention_comparator_matrix.json": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+    "figures/modebench_level_admission.json": "33316b0553134d08c9952253e258b5ad74d96846381f19d049e707b43ff8e611",
+    "figures/replay_mechanism_telemetry_qwen05b.json": "5833bc86fd3590ed9b7e37efd073a5cdf1b0340e6935ecb46b084da55d751caf",
+    "figures/sustained_auc_effects_qwen05b.json": "937bea939e93ab33731322c0ca752a62d14e90d8b061d69424f66e0810031cf7",
+    "figures/verified_support_discovery_two_scale_effects.json": "595bebe294aa8f528adb024c9f05f9fe64716aada4055e0fc9f9538c6165fd2c"
+  },
+  "correction_history": [
+    {
+      "date": "2026-09-04",
+      "reason": "Enforce existing source-integrity exclusion for Falcon Countdown ReplayDr.GRPO seed59 job30269051; use74admissible pairs, complete-five-seed inference and descriptive n4 tracks; bind RLEP trajectories to recovery-authorized sources; omit ambiguous nonterminal checkpoints; refresh linked provenance without selecting conflicting retry outcomes.",
+      "superseded_source_sha256": "6cf983c0a7ab5e88f1a409b0608b2bcba508d0e162298b42babef97db7d63094",
+      "corrected_source_sha256": "133fbc7a81d653bc41aba6debdfab5ad5a57514267700a8641078522bc491ef2",
+      "audit": "paper/audits/story_evidence_audit_20260904.md",
+      "exclusion_authority": "paper/preregistration/e112r1_two_scale_49pair_terminal_integrity_amendment_20260828.md",
+      "changed_files": {
+        "figures/direct_baseline_learning_curves_static_strip.json": {
+          "superseded_sha256": "5434797dd72365e8c9fce028d6e6a6705819ab28d4cedaccec841d911e7d307f",
+          "corrected_sha256": "05206086602080a88d4f470d167984589e745ad918e1c7d5b14991d988d873d5"
+        },
+        "figures/direct_baseline_learning_curves_static_strip.pdf": {
+          "superseded_sha256": "e8ba59a683900fdd3d89c4f35429fcadb5c3c5c2d5fbd591084a30ee59334237",
+          "corrected_sha256": "3e086337712f338652465446b45a49035f9e083783c9f8b7190d05952b21db1d"
+        },
+        "figures/e118_all_scale_factorial_progress.json": {
+          "superseded_sha256": "769d03d6519078f2c985b42106f2f3adaefaedc8a6e9a9d970dbef9483794feb",
+          "corrected_sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d"
+        },
+        "figures/e118_all_scale_factorial_progress.pdf": {
+          "superseded_sha256": "863ee04b5000a0d63fd4ce83f4d0ab203aae583dbc25dd9c37bf0c5986dda071",
+          "corrected_sha256": "243da8937637b24271f184ecc0312e3b5431494f7061a38b45f38a2eea0122d6"
+        },
+        "figures/e118_scale_extensions_appendix.json": {
+          "superseded_sha256": "769d03d6519078f2c985b42106f2f3adaefaedc8a6e9a9d970dbef9483794feb",
+          "corrected_sha256": "5c374f1096c3b58b685fe845a92f1992e333810ba81aa3ae6d72d06adc2e8d5d"
+        },
+        "figures/e118_scale_extensions_appendix.pdf": {
+          "superseded_sha256": "5cdcea7f45beed052560e7bea0c36d5348849867e107cfe41d03c7b5e1b14609",
+          "corrected_sha256": "615bec3c98d0c1bfb36b1896661052e765ea6cd4af7dc6b0ef825440fd1fa964"
+        },
+        "figures/experiment1_retention_comparator_matrix.json": {
+          "superseded_sha256": "2e97667ffd98f78d34a109354d57eb30a7b973cde194999ed0adddc373143d4d",
+          "corrected_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221"
+        },
+        "figures/experiment1_retention_comparator_matrix.pdf": {
+          "superseded_sha256": "147c043199fa6cccfbbae4f74e0989f1fb9316e55993e1b69665569a58a90f26",
+          "corrected_sha256": "b2774ba4595e05bf42c6154fa0797dc8eae12beb651765859a801fd1f5efea1c"
+        },
+        "results/core_terminal_endpoints_table_body.tex": {
+          "superseded_sha256": "733cd168b4e10d2ec663789071d7f4b0177fd12c84116666a4c3999a9a19054c",
+          "corrected_sha256": "ad1fc72065deca2804d1344720de790de5e639a7d0619eedc9577b9e5fd06189"
+        }
+      },
+      "final_editorial_source_sha256": "10278cfdb5c84ed57c69a5a1d1327f0e624a4692be15ed1dcd0a3dc07bd21489"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "mathematical clarity and proof review",
+      "previous_source_sha256": "10278cfdb5c84ed57c69a5a1d1327f0e624a4692be15ed1dcd0a3dc07bd21489",
+      "source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
+      "source_assets_changed": false,
+      "experimental_results_changed": false,
+      "changes": [
+        "finite-group MaxRL budget G-1",
+        "explicit Euclidean categorical mean-flow assumptions and direct ratio proof",
+        "conditional metric and action-alias definitions",
+        "weighted replay, inverse-length target, relative prompt-frequency dose",
+        "pointwise training-seed uncertainty and factorial interaction scope",
+        "global smoothness, deterministic finite-step retention and fixed incomplete-bank probability limit"
+      ],
+      "audit": "../audits/mathematical_review_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "reference authenticity and citation usage audit",
+      "previous_source_sha256": "266b9ebf62725aac390b9defa1845139952140341ffafa311a58609158126aa0",
+      "source_sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
+      "previous_bibliography_sha256": "96ecce3e3ada4e1545447850e285e2c43a9b7ee887f4c1ef50d4131989c3b1cf",
+      "bibliography_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+      "experimental_results_changed": false,
+      "figures_changed": false,
+      "bibliography_entries_checked": 93,
+      "original_cited_sources": 28,
+      "final_cited_sources": 29,
+      "changes": [
+        "correct GRPO/Dr.GRPO attribution and distinguish our replay variants",
+        "separate literature diversity metrics and candidate breadth from fixed-correctness pass@K",
+        "remove ArgMaxRL misattribution; credit MaxRL version3 Theorem5",
+        "credit prior outcome-collapse analysis and distinguish replay/archive methods",
+        "repair FlowRL author list, four arXiv categories, two undated web citations, and two version links"
+      ],
+      "audit": "../audits/reference_audit_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "second proof and theoretical scope review",
+      "previous_source_sha256": "8b67be0a4cd7325ec7b2a2f59fa1d8f05a613b49e455b7ebbe5e30f0af87afac",
+      "source_sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
+      "source_assets_changed": false,
+      "experimental_results_changed": false,
+      "bibliography_changed": false,
+      "changes": [
+        "proof roadmap, endpoint regularity, tie cases, and explicit convergence steps",
+        "compact full-paper conclusion and limitations preserving the nine-page main text",
+        "matched-correctness logarithmic collapse exponent and pure-shared-geometry counterexample",
+        "exact categorical entropy nonextinction theorem and bounded sampled-score distinction",
+        "fresh-group starvation probability and persistent fixed-bank replay signal",
+        "shared-parameter complete-exemplar retention from joint energy descent",
+        "finite evaluation visibility bounds and incomplete-bank support ceiling",
+        "historical semantic predictor decomposition and code-matched entropy-gradient counterexample"
+      ],
+      "audit": "../audits/theory_second_review_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "integrate attributed theoretical extensions into both appendices",
+      "previous_source_sha256": "4524611700f73c03307c2ab3689a35c4e2ce7e0fdb7ee956cced6c174fae1a75",
+      "source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+      "previous_bibliography_sha256": "897f4a3238e37271486ca3af63473727a10d48156a6264f0fd09ce92d7abfe6d",
+      "bibliography_sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "experimental_results_changed": false,
+      "figures_changed": false,
+      "workshop_main_text_changed": false,
+      "changes": [
+        "conditional stochastic retention and sharper bounded-noise finite-horizon bound",
+        "adaptive admission hazards and retention with controlled bank changes",
+        "exact conditional-entropy and full-support replay objective comparison",
+        "exact categorical Fisher natural-gradient comparison",
+        "sharp per-mode KL certificates, entropy threshold, complete-response mapping and sampling inference",
+        "primary-source attribution and theory roadmap/scope cross-references"
+      ],
+      "audit": "../audits/theory_appendix_integration_20260905.md"
+    },
+    {
+      "date": "2026-09-05",
+      "kind": "worked examples and reader progression throughout the theory appendix",
+      "previous_source_sha256": "9720b20b9fffcc03fb688c9277f1b549d44deb31a5e10422e024be94e5bc0384",
+      "source_sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
+      "experimental_results_changed": false,
+      "figures_changed": false,
+      "bibliography_changed": false,
+      "main_text_changed": false,
+      "formal_statements_and_proofs_unchanged": true,
+      "changes": [
+        "recurring three-correct-mode categorical example",
+        "worked illustrations throughout all twelve theory subsections",
+        "illustrations in all four survival-certificate subsubsections",
+        "explicit distinction between illustrative values, guaranteed floors and measured training results",
+        "reader roadmap and transitions following the proof chain"
+      ],
+      "audit": "../audits/theory_examples_20260905.md"
+    }
+  ],
+  "workshop_title": "More than One Way to Skin a Cat: Preserving Verified Modes in RLVR",
+  "presentation_history": [
+    {
+      "date": "2026-09-05",
+      "reason": "Remove the Figure 4 in-graphic paired-seed footnote and add 5pt below the panel B heading; the caption retains the paired-seed explanation.",
+      "file": "figures/experiment1_retention_comparator_matrix.pdf",
+      "superseded_sha256": "b2774ba4595e05bf42c6154fa0797dc8eae12beb651765859a801fd1f5efea1c",
+      "updated_sha256": "1a344262322ab37cb73d43b446db54b5b3e9e52e10850416ccbf8058a815b0fb",
+      "unchanged_data_sha256": "8851be72b8f6851acb792a295077782ecc2dac4f760f2ac14ea84a01dc07c221",
+      "renderer": "ops/exp_scaling/plot_paper_experiment1_composite.py"
+    }
+  ]
+}

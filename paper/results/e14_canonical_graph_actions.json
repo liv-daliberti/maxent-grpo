@@ -1,0 +1,98 @@
+{
+  "protocol": "E14",
+  "record_type": "retrospective_single_seed_engineering_outcome",
+  "recorded_after_outcomes": true,
+  "scope": {
+    "environment": "graph_coloring",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "optimizer_updates": 128,
+    "seed": 9005
+  },
+  "decision": {
+    "status": "no_viable_dose",
+    "selected_arm": null,
+    "summary": "Both fixed-alpha treatments were runtime-valid and behaviorally safe, but neither passed both frozen diversity gates.",
+    "m05_near_miss": "M05 passed the entropy-gain gate and all safety gates, but increased mean valid-mode effective support by 19.28149349196162%, short of the required 25% by 5.71850650803838 percentage points."
+  },
+  "frozen_thresholds": {
+    "behavioral_safety": {
+      "endpoint_p_valid_strict_min": 0.05,
+      "final_32_mean_rollout_reward_strict_min": 0.0,
+      "p_valid_retention_vs_c0_min": 0.8
+    },
+    "diversity_effectiveness": {
+      "exact_action_entropy_gain_min_nats": 0.22314355131420976,
+      "n_eff_valid_ratio_vs_c0_min": 1.25
+    }
+  },
+  "arms": {
+    "C0": {
+      "alpha": 0.0,
+      "audit_job_id": "30010861",
+      "exact_action_entropy_mean_nats": 1.345020968071439,
+      "final_32_mean_rollout_reward": 0.330078125,
+      "h_valid_mean_nats": 0.7472495016539485,
+      "n_eff_valid_mean": 2.3263799784010906,
+      "p_valid_mean": 0.31407401670345525,
+      "runtime_valid": true,
+      "training_job_id": "30010773"
+    },
+    "M01": {
+      "alpha": 0.01,
+      "audit_job_id": "30010874",
+      "behaviorally_safe": true,
+      "diversity_effective": false,
+      "exact_action_entropy_gain_vs_c0_nats": 0.08323253601091474,
+      "exact_action_entropy_mean_nats": 1.4282535040823536,
+      "failed_gates": [
+        "exact_action_entropy_gain_below_log_1p25",
+        "n_eff_valid_ratio_below_1p25"
+      ],
+      "final_32_mean_rollout_reward": 0.318359375,
+      "h_valid_mean_nats": 0.7946474625766564,
+      "n_eff_valid_mean": 2.4422400374465374,
+      "n_eff_valid_ratio_vs_c0": 1.0498027235968033,
+      "p_valid_mean": 0.3100185289135365,
+      "p_valid_retention_vs_c0": 0.9870874775554964,
+      "runtime_valid": true,
+      "training_job_id": "30010871",
+      "viable": false
+    },
+    "M05": {
+      "alpha": 0.05,
+      "audit_job_id": "30010875",
+      "behaviorally_safe": true,
+      "diversity_effective": false,
+      "exact_action_entropy_gain_vs_c0_nats": 0.47201780025048823,
+      "exact_action_entropy_mean_nats": 1.8170387683219271,
+      "failed_gates": [
+        "n_eff_valid_ratio_below_1p25"
+      ],
+      "final_32_mean_rollout_reward": 0.29296875,
+      "h_valid_mean_nats": 0.9317972902974684,
+      "n_eff_valid_mean": 2.774940782534795,
+      "n_eff_valid_ratio_vs_c0": 1.1928149349196162,
+      "p_valid_mean": 0.295782429693584,
+      "p_valid_retention_vs_c0": 0.9417602665707239,
+      "runtime_valid": true,
+      "training_job_id": "30010870",
+      "viable": false
+    }
+  },
+  "evidence": {
+    "c0_approval": "var/artifacts/e14_c0_20260718_1349_fixed_shape_e14_c0_approval.json",
+    "c0_endpoint_audit": "var/artifacts/e14_c0_20260718_1349_fixed_shape_step00128_exact_audit.json",
+    "final_comparison": "var/artifacts/e14_canonical_smoke_decision_20260718_1425.json",
+    "m01_endpoint_audit": "var/artifacts/e14_m01_20260718_1425_fixed_shape_step00128_exact_audit.json",
+    "m01_treatment_result": "var/artifacts/e14_m01_20260718_1425_fixed_shape_treatment_result.json",
+    "m05_endpoint_audit": "var/artifacts/e14_m05_20260718_1425_fixed_shape_step00128_exact_audit.json",
+    "m05_treatment_result": "var/artifacts/e14_m05_20260718_1425_fixed_shape_treatment_result.json"
+  },
+  "scope_firewall": {
+    "authorizes_additional_seeds": false,
+    "authorizes_countdown": false,
+    "authorizes_larger_models": false,
+    "authorizes_main_paper_claim": false,
+    "reason": "This was one seed of a 0.5B engineering calibration, and no fixed coefficient was viable under the frozen rule."
+  }
+}

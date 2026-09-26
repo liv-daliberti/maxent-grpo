@@ -1,0 +1,52 @@
+{
+  "tex": [
+    "paper/results/discovery_hosted_interpretation_20260912.tex",
+    "paper/results/frontier_comparison_20260911_appendix.tex",
+    "paper/results/frontier_comparison_20260911_graph_figure.tex",
+    "paper/results/frontier_comparison_20260911_normalized_cells.tex",
+    "paper/results/frontier_comparison_20260911_protocol.tex",
+    "paper/results/frontier_comparison_20260911_provider_outcomes.tex",
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+    "paper/results/frontier_comparison_20260911_strict_cells.tex",
+    "paper/results/frontier_hosted_20260911_appendix.tex",
+    "paper/results/frontier_hosted_20260911_normalized_rows.tex",
+    "paper/results/frontier_hosted_20260911_strict_rows.tex",
+    "paper/results/frontier_temperature_20260911.tex",
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+    "paper/results/gpt56sol_python_parity_20260918.tex",
+    "paper/results/hosted_level_averages_20260911.tex",
+    "paper/results/hosted_level_averages_20260911_parity.tex",
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex"
+  ],
+  "emitters": {
+    "ops/build_frontier_paper_comparison.py": [
+      "cell_tables",
+      "python_sensitivity_tex"
+    ],
+    "ops/build_frontier_temperature_paper.py": [
+      "render"
+    ],
+    "ops/build_paper_gpt56_all_levels32_discovery.py": [
+      "render_tex"
+    ],
+    "ops/build_paper_gpt56sol_python_parity.py": [
+      "render"
+    ],
+    "ops/build_paper_hosted_level_averages.py": [
+      "render_table",
+      "render_parity_table"
+    ],
+    "ops/build_paper_hosted_reasoning_off.py": [
+      "render_main_table",
+      "render_appendix"
+    ]
+  },
+  "sidecars": [
+    "frontier_comparison_20260911",
+    "frontier_temperature_20260911",
+    "gpt56_all_levels32_sampling_20260913",
+    "gpt56sol_python_parity_20260918",
+    "hosted_level_averages_20260911",
+    "hosted_reasoning_off_20260912"
+  ]
+}

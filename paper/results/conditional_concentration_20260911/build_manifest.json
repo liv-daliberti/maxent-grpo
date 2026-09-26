@@ -1,0 +1,198 @@
+{
+  "block_count": 135,
+  "cohort_extension": {
+    "after_initial_result_blocks": 135,
+    "amendment_path": "paper/audits/conditional_concentration_20260911/amendment_2_current_census.md",
+    "amendment_sha256": "cfb9c95d6786caa068ba1621f0aa2720902079e29dbb8f1f3ebe3824b6130d41",
+    "completed_snapshot": {
+      "byte_length": 35966847,
+      "original_path": "paper/results/training_curve_snapshot_20260911.json",
+      "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_completed_cohort.json",
+      "sha256": "479d6bb83ae60d1f3ee9653fe2016701663b7b869fd197a0b111a7ed1e389e72"
+    },
+    "created_at_utc": "2026-09-11T20:25:39.921795+00:00",
+    "expected_primary_level1_pairs": {
+      "drgrpo": 74,
+      "maxrl": 75
+    },
+    "implementation_binding_policy": "Completed collection receipt will hash the exact extension and loader source bytes and all new source prefixes before subsequent effects are calculated.",
+    "new_source_certificate": {
+      "hash_binding": "The completed collection receipt binds the written source certificate before subsequent effect calculation.",
+      "path": "paper/audits/conditional_concentration_20260911/stream_source_audit_completed_cohort.json"
+    },
+    "original_cache": {
+      "path": "paper/audits/conditional_concentration_20260911/verified_samples.jsonl.gz",
+      "sha256": "c73f3e2cbc72e5fdb52ff1d6c70b458f66fa8e241d75804fccdb46caf642797c"
+    },
+    "original_collection_receipt": {
+      "path": "paper/audits/conditional_concentration_20260911/collection_receipt.json",
+      "sha256": "c22d5a3a6772ef98db56660e48cdbbabae128e47d43afc26701e30dfbb938ec5"
+    },
+    "original_snapshot": {
+      "byte_length": 35385643,
+      "original_path": "paper/audits/results_completion_20260911/before/paper/results/training_curve_snapshot_20260911.json",
+      "path": "paper/audits/conditional_concentration_20260911/source/training_curve_snapshot_initial.json",
+      "sha256": "6b9e4d90d337152cc30b904bd41ffe660939d80f2f3611984368c788b25d33f1"
+    },
+    "phase": "after_initial_135_block_effects_before_newly_admitted_source_ingestion_or_extended_effects",
+    "preserved_initial_results": {
+      "byte_length": 36417387,
+      "original_path": "paper/results/conditional_concentration_20260911.json",
+      "path": "paper/results/conditional_concentration_20260911_initial.json",
+      "sha256": "50397987fa4960fe3003e377cbaecc245dd976b3d04c4411e87e01fa03ea2c32"
+    },
+    "reason": "Parallel completion census refresh; all newly admitted cells included by frozen source availability, not effect values.",
+    "retrospective": true,
+    "status": "frozen_after_initial_results_before_new_source_effects"
+  },
+  "created_at_utc": "2026-09-11T20:39:37.420098+00:00",
+  "figure_designs": [
+    {
+      "all_before_after": false,
+      "contrasts": [
+        [
+          "before_after",
+          "drgrpo"
+        ],
+        [
+          "before_after",
+          "grpo"
+        ],
+        [
+          "before_after",
+          "maxrl"
+        ],
+        [
+          "replay_effect",
+          "drgrpo"
+        ],
+        [
+          "replay_effect",
+          "maxrl"
+        ]
+      ],
+      "domain_order": [
+        "graph_coloring",
+        "countdown",
+        "python_factors",
+        "mathir",
+        "pantry_plan"
+      ],
+      "level": "level1",
+      "not_registered": 0,
+      "scales": [
+        "qwen05b",
+        "falcon1b",
+        "qwen3b"
+      ],
+      "shown_defined": 66,
+      "shown_undefined": 9,
+      "x_limit_percentage_points": 120
+    },
+    {
+      "all_before_after": true,
+      "contrasts": [
+        [
+          "before_after",
+          "drgrpo"
+        ],
+        [
+          "before_after",
+          "grpo"
+        ],
+        [
+          "before_after",
+          "maxrl"
+        ],
+        [
+          "before_after",
+          "replay_drgrpo"
+        ],
+        [
+          "before_after",
+          "replay_maxrl"
+        ]
+      ],
+      "domain_order": [
+        "graph_coloring",
+        "countdown",
+        "python_factors",
+        "mathir",
+        "pantry_plan"
+      ],
+      "level": "level1",
+      "not_registered": 0,
+      "scales": [
+        "qwen05b",
+        "falcon1b",
+        "qwen3b"
+      ],
+      "shown_defined": 62,
+      "shown_undefined": 13,
+      "x_limit_percentage_points": 120
+    },
+    {
+      "all_before_after": false,
+      "contrasts": [
+        [
+          "before_after",
+          "drgrpo"
+        ],
+        [
+          "before_after",
+          "maxrl"
+        ],
+        [
+          "replay_effect",
+          "drgrpo"
+        ],
+        [
+          "replay_effect",
+          "maxrl"
+        ]
+      ],
+      "domain_order": [
+        "graph_coloring",
+        "countdown",
+        "python_factors",
+        "mathir",
+        "pantry_plan"
+      ],
+      "level": "level2",
+      "not_registered": 0,
+      "scales": [
+        "qwen05b"
+      ],
+      "shown_defined": 20,
+      "shown_undefined": 0,
+      "x_limit_percentage_points": 120
+    }
+  ],
+  "numeric_scalar_rows": 356429,
+  "outputs": {
+    "all_before_after_level1.pdf": "ee625b5bebd805fcc76ebde289585fcf0e30384db8edb6dcf5ea9693c19bfb6c",
+    "all_before_after_level1.png": "653edb2033aff359545e524053e43f32a9b0b5aa2559baf2dad0f53eb878307c",
+    "all_numeric_scalars.csv": "201a86091a31f32e1886eed3f8488dbb89497d161657425a7172e5555af05ccd",
+    "block_summaries.csv": "20acfc565b07fd21a2938b05b6a491d61d22bd05db665e08b860e789d6246015",
+    "conditional_concentration_level2.pdf": "676ef7ee6683a3ce940500e6c4bd783b089234e1726e134089176ece27b7203f",
+    "conditional_concentration_level2.png": "e4873c13bc5cf4b37a91b9755ceee189b7d9e87ee6fab4900919b23a6b4fb49a",
+    "conditional_concentration_overview.pdf": "696468e288bfd7d9175b16b6f7e30d74cf46a49640b59b7e42de6729375ff9d4",
+    "conditional_concentration_overview.png": "706fa0219fb3e63746e79e3df890bf352e028de985739ae6786e546a8886b765",
+    "figure_caption.txt": "696eaddda1661d0747eeff9b2fde6fa3b16f32d1d20a5650d82179385f75247a",
+    "metric_tradeoffs.md": "c7c25121704afd5e466d13da182325344ea0dda017b4271415f6f000c20d3afd",
+    "report.md": "024a19160237807b4a68d53f75c0f7b2c084b69b753f6254967327278de3cde0",
+    "seed_metrics.csv": "966d6657bab093eab7c1a51888748691d816560db22e3b1c2112554215a3fe1f",
+    "source_availability.csv": "3a19bbccb2191159fd90f3659439484209c9040b3101b25753b7a69c80698bf8"
+  },
+  "renderer": {
+    "path": "/n/fs/similarity/maxent-grpo/ops/exp_scaling/report_paper_conditional_concentration.py",
+    "sha256": "bb29d111837870c0bee3b2d8e9b4598f4c070b865118e4f63c8195ea075cd850"
+  },
+  "schema": "paper-conditional-concentration-report-v1",
+  "seed_metric_rows": 39522,
+  "source": {
+    "path": "/n/fs/similarity/maxent-grpo/paper/results/conditional_concentration_20260911.json",
+    "sha256": "5c9f69d6961ba7f6938a9a535bf7414c352fe645f668a241bbcdae6637e262d4"
+  },
+  "summary_rows": 3645
+}

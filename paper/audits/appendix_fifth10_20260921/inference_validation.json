@@ -1,0 +1,22 @@
+{
+  "status": "pass",
+  "table_blocks": 7,
+  "numeric_table_columns_unchanged": true,
+  "saved_results_and_figure_unchanged": {
+    "paper/results/inference_followups_20260912.json": "97d080d409d824b3c3874311869c9b7805fe06b0b26d2564f2cc52cbceffa301",
+    "paper/figures/pantry_adaptation_recovery_20260912.pdf": "3d328babb254963b5d018357466d7422a903f9da4caa1a8c6ed3dd80ad6e6840",
+    "paper/figures/pantry_adaptation_recovery_20260912.png": "e1b0081b2432930200df255a306357c09723b1e356cfc7ca3b2e7b91b66c86f3"
+  },
+  "hosted_pairs_reconstructed": 21,
+  "hosted_pair_metrics_each": 7,
+  "hosted_prompt_model_coarsening_checks": 13440,
+  "pantry_equal_observed_correctness_problems": 19,
+  "pantry_subset_seed_contributions": {
+    "1": 11,
+    "2": 8
+  },
+  "process_language_scan_hits": [],
+  "generator_render_matches": true,
+  "source_hash_checks_and_pantry_means_and_stopping_identities": "passed via build()",
+  "new_experiments_or_resampling": false
+}

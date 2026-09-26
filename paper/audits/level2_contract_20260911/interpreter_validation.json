@@ -1,0 +1,54 @@
+{
+  "created_at_utc": "2026-09-11T20:29:27.526933+00:00",
+  "status": "passed",
+  "scope": "Read-only validation of current Level-2 derived results and full paper contract. The only file written by this task is this receipt. No manuscripts, frozen source inputs, derived result files, or concentration results were modified.",
+  "python_executable": "/n/fs/similarity/maxent-grpo/var/seed_paper_eval/paper310/bin/python",
+  "python_version": "3.10.19 (main, Oct 21 2025, 16:43:05) [GCC 11.2.0]",
+  "command": [
+    "/n/fs/similarity/maxent-grpo/var/seed_paper_eval/paper310/bin/python",
+    "ops/check_paper_current_contract.py"
+  ],
+  "returncode": 0,
+  "stdout": "Main-length contract passed: 9/9 main pages, all 8 figures included; References starts on page 10 (73 total PDF pages).\nCurrent paper contract passed: three training experiments, eight main figures, proof chain, and evidence gates.\n",
+  "stderr": "",
+  "sha256_before": {
+    "paper/Makefile": "d684c56c6a6b4834f6911e8532b86c681d7d90fa92d389de32173032e0d5de75",
+    "ops/check_paper_current_contract.py": "649ece2ed91d9d2e29f7b99a9fc4596c8400aff23fcfaf0d38e9530283864429",
+    "ops/exp_scaling/build_paper_level2_factorial_contrasts.py": "088088ebf0c6e45dd1ef3f190554b8ebe2d9a4d9943c3180ab4fe8dfe69f6282",
+    "paper/results/latest_results_20260911.json": "a7dc2ea998888cb4586b236d9df4e6d039f75688a515b4e18728895c8d146f81",
+    "paper/audits/results_completion_20260911/latest_endpoints.json": "59d5d918212e53e012360ea3134538d922087f52959c9f596982155feae62587",
+    "paper/results/level2_factorial_contrasts_20260911.json": "2af73fd8d41837e1c123474727f49ac3428c0377ab59471aa3ec6543572abc9c",
+    "paper/results/level2_factorial_contrasts_20260911_table_body.tex": "79aaf3ca8b774cd1e10e97fbe5bfd755aab776447e98d8e3c5b768a1dc4ce8ba"
+  },
+  "sha256_after": {
+    "paper/Makefile": "d684c56c6a6b4834f6911e8532b86c681d7d90fa92d389de32173032e0d5de75",
+    "ops/check_paper_current_contract.py": "649ece2ed91d9d2e29f7b99a9fc4596c8400aff23fcfaf0d38e9530283864429",
+    "ops/exp_scaling/build_paper_level2_factorial_contrasts.py": "088088ebf0c6e45dd1ef3f190554b8ebe2d9a4d9943c3180ab4fe8dfe69f6282",
+    "paper/results/latest_results_20260911.json": "a7dc2ea998888cb4586b236d9df4e6d039f75688a515b4e18728895c8d146f81",
+    "paper/audits/results_completion_20260911/latest_endpoints.json": "59d5d918212e53e012360ea3134538d922087f52959c9f596982155feae62587",
+    "paper/results/level2_factorial_contrasts_20260911.json": "2af73fd8d41837e1c123474727f49ac3428c0377ab59471aa3ec6543572abc9c",
+    "paper/results/level2_factorial_contrasts_20260911_table_body.tex": "79aaf3ca8b774cd1e10e97fbe5bfd755aab776447e98d8e3c5b768a1dc4ce8ba"
+  },
+  "source_audit": {
+    "path": "paper/audits/results_completion_20260911/latest_endpoints.json",
+    "sha256": "59d5d918212e53e012360ea3134538d922087f52959c9f596982155feae62587"
+  },
+  "other_interpreter_observation": {
+    "python_executable": "/usr/local/anaconda3/2024.02/bin/python",
+    "python_version": "3.11.7",
+    "command": [
+      "/usr/local/anaconda3/2024.02/bin/python",
+      "ops/check_paper_current_contract.py"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": "Current paper contract failed: Level-2 factorial contrasts differ from the common four-arm audited seeds\n",
+    "diagnosis": "25 last-bit Student-t interval endpoint differences; all reconstructed non-CI fields and the rendered TeX agree. The current Makefile uses DATA_PYTHON (paper310) for the numerical contract.",
+    "example": {
+      "path": "/blocks/0/contrasts/factorial_interaction/summaries/breadth8/student_t_95/1",
+      "stored": -0.0034300369151455817,
+      "python311_reconstructed": -0.003430036915145568
+    }
+  },
+  "action": "No regeneration: current canonical Python 3.10 full contract passes."
+}

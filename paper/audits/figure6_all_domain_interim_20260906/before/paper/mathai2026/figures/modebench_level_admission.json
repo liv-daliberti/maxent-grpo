@@ -1,0 +1,351 @@
+{
+  "admission_rows": [
+    {
+      "domain": "Graph coloring",
+      "level1_pass8": 0.4375,
+      "level2_pass8": 0.1484375
+    },
+    {
+      "domain": "Countdown",
+      "level1_pass8": 0.1484375,
+      "level2_pass8": 0.109375
+    },
+    {
+      "domain": "Python factors",
+      "level1_pass8": 0.90625,
+      "level2_pass8": 0.734375
+    },
+    {
+      "domain": "MathIR",
+      "level1_pass8": 0.265625,
+      "level2_pass8": 0.1875
+    },
+    {
+      "domain": "PantryPlan",
+      "level1_pass8": 0.265625,
+      "level2_pass8": 0.25
+    }
+  ],
+  "partial_treatment": {
+    "complete_block": true,
+    "domain": "graph_coloring",
+    "matched_seeds": [
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "methods": {
+      "drgrpo": {
+        "label": "Dr.GRPO",
+        "means": {
+          "distinct8": 0.22421875,
+          "pass8": 0.2015625
+        },
+        "per_seed": {
+          "43": {
+            "distinct8": 0.484375,
+            "pass8": 0.375
+          },
+          "44": {
+            "distinct8": 0.109375,
+            "pass8": 0.109375
+          },
+          "45": {
+            "distinct8": 0.203125,
+            "pass8": 0.203125
+          },
+          "46": {
+            "distinct8": 0.18359375,
+            "pass8": 0.1796875
+          },
+          "47": {
+            "distinct8": 0.140625,
+            "pass8": 0.140625
+          }
+        }
+      },
+      "maxrl": {
+        "label": "MaxRL",
+        "means": {
+          "distinct8": 0.54609375,
+          "pass8": 0.434375
+        },
+        "per_seed": {
+          "43": {
+            "distinct8": 0.583984375,
+            "pass8": 0.4765625
+          },
+          "44": {
+            "distinct8": 0.517578125,
+            "pass8": 0.39453125
+          },
+          "45": {
+            "distinct8": 0.619140625,
+            "pass8": 0.47265625
+          },
+          "46": {
+            "distinct8": 0.529296875,
+            "pass8": 0.43359375
+          },
+          "47": {
+            "distinct8": 0.48046875,
+            "pass8": 0.39453125
+          }
+        }
+      },
+      "replay_drgrpo": {
+        "label": "ReplayDr.GRPO (ours)",
+        "means": {
+          "distinct8": 1.24296875,
+          "pass8": 0.7625
+        },
+        "per_seed": {
+          "43": {
+            "distinct8": 1.3359375,
+            "pass8": 0.775390625
+          },
+          "44": {
+            "distinct8": 1.12890625,
+            "pass8": 0.73828125
+          },
+          "45": {
+            "distinct8": 1.296875,
+            "pass8": 0.8125
+          },
+          "46": {
+            "distinct8": 1.17578125,
+            "pass8": 0.736328125
+          },
+          "47": {
+            "distinct8": 1.27734375,
+            "pass8": 0.75
+          }
+        }
+      },
+      "replay_maxrl": {
+        "label": "ReplayMaxRL",
+        "means": {
+          "distinct8": 1.2140625,
+          "pass8": 0.739453125
+        },
+        "per_seed": {
+          "43": {
+            "distinct8": 1.08984375,
+            "pass8": 0.7109375
+          },
+          "44": {
+            "distinct8": 1.2109375,
+            "pass8": 0.72265625
+          },
+          "45": {
+            "distinct8": 1.240234375,
+            "pass8": 0.767578125
+          },
+          "46": {
+            "distinct8": 1.26171875,
+            "pass8": 0.75
+          },
+          "47": {
+            "distinct8": 1.267578125,
+            "pass8": 0.74609375
+          }
+        }
+      }
+    },
+    "n": 5
+  },
+  "schema": "modebench-level-admission-and-e119-progress-v2",
+  "sources": {
+    "/n/fs/similarity/maxent-grpo/var/artifacts/e119_level2_qwen05b_factorial_jobs.json": "341f77f6f41ab5954718d3216d6260ee87d2486cd38d91fbab5dd38c4efb760e",
+    "/n/fs/similarity/maxent-grpo/var/results/modebench_level2_r5_frozen_repeat1/admission_fairness_report.json": "1a73becd7a959d12ab375e3cc41f2ff2b14886a5071dc1f3dd7291963f8585f9"
+  },
+  "target_step": 3072,
+  "terminal_progress_by_domain": {
+    "countdown": {
+      "complete_block": false,
+      "contrasts": {
+        "replay_drgrpo_minus_drgrpo": {
+          "matched_seeds": [],
+          "mean_effects": {},
+          "n": 0
+        },
+        "replay_maxrl_minus_maxrl": {
+          "matched_seeds": [],
+          "mean_effects": {},
+          "n": 0
+        }
+      },
+      "four_arm_matched_seeds": [],
+      "four_arm_n": 0,
+      "terminal_seeds_by_arm": {
+        "drgrpo": [],
+        "maxrl": [],
+        "replay_drgrpo": [],
+        "replay_maxrl": []
+      }
+    },
+    "graph_coloring": {
+      "complete_block": true,
+      "contrasts": {
+        "replay_drgrpo_minus_drgrpo": {
+          "matched_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "mean_effects": {
+            "distinct8": 1.01875,
+            "pass8": 0.5609375
+          },
+          "n": 5
+        },
+        "replay_maxrl_minus_maxrl": {
+          "matched_seeds": [
+            43,
+            44,
+            45,
+            46,
+            47
+          ],
+          "mean_effects": {
+            "distinct8": 0.66796875,
+            "pass8": 0.305078125
+          },
+          "n": 5
+        }
+      },
+      "four_arm_matched_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "four_arm_n": 5,
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_drgrpo": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "replay_maxrl": [
+          43,
+          44,
+          45,
+          46,
+          47
+        ]
+      }
+    },
+    "mathir": {
+      "complete_block": false,
+      "contrasts": {
+        "replay_drgrpo_minus_drgrpo": {
+          "matched_seeds": [
+            43
+          ],
+          "mean_effects": {
+            "distinct8": 0.890625,
+            "pass8": 0.890625
+          },
+          "n": 1
+        },
+        "replay_maxrl_minus_maxrl": {
+          "matched_seeds": [
+            43
+          ],
+          "mean_effects": {
+            "distinct8": 0.162109375,
+            "pass8": 0.154296875
+          },
+          "n": 1
+        }
+      },
+      "four_arm_matched_seeds": [
+        43
+      ],
+      "four_arm_n": 1,
+      "terminal_seeds_by_arm": {
+        "drgrpo": [
+          43
+        ],
+        "maxrl": [
+          43
+        ],
+        "replay_drgrpo": [
+          43,
+          44
+        ],
+        "replay_maxrl": [
+          43
+        ]
+      }
+    },
+    "pantry_plan": {
+      "complete_block": false,
+      "contrasts": {
+        "replay_drgrpo_minus_drgrpo": {
+          "matched_seeds": [],
+          "mean_effects": {},
+          "n": 0
+        },
+        "replay_maxrl_minus_maxrl": {
+          "matched_seeds": [],
+          "mean_effects": {},
+          "n": 0
+        }
+      },
+      "four_arm_matched_seeds": [],
+      "four_arm_n": 0,
+      "terminal_seeds_by_arm": {
+        "drgrpo": [],
+        "maxrl": [],
+        "replay_drgrpo": [],
+        "replay_maxrl": []
+      }
+    },
+    "python_factors": {
+      "complete_block": false,
+      "contrasts": {
+        "replay_drgrpo_minus_drgrpo": {
+          "matched_seeds": [],
+          "mean_effects": {},
+          "n": 0
+        },
+        "replay_maxrl_minus_maxrl": {
+          "matched_seeds": [],
+          "mean_effects": {},
+          "n": 0
+        }
+      },
+      "four_arm_matched_seeds": [],
+      "four_arm_n": 0,
+      "terminal_seeds_by_arm": {
+        "drgrpo": [],
+        "maxrl": [],
+        "replay_drgrpo": [],
+        "replay_maxrl": []
+      }
+    }
+  }
+}

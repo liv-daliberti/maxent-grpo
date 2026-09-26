@@ -1,0 +1,685 @@
+[
+  {
+    "number": 1,
+    "page": 1,
+    "label": "fig:story",
+    "assets": [
+      "figures/modecollapse_story.pdf"
+    ],
+    "records": [
+      "../var/artifacts/paper_graph_collapse_toy.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_collapse_toy.py",
+      "ops/plot_paper_modecollapse.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_collapse_toy.py"
+    ]
+  },
+  {
+    "number": 2,
+    "page": 2,
+    "label": "fig:modebench-examples",
+    "assets": [
+      "figures/modebench_examples.pdf"
+    ],
+    "records": [],
+    "candidate_builders": [
+      "ops/plot_paper_modebench_level_construction.py",
+      "ops/plot_paper_modebench_base_levels_appendix.py",
+      "ops/plot_paper_gpt56_all_levels_sampling.py",
+      "ops/plot_paper_gpt56_all_levels32_sampling.py",
+      "ops/plot_paper_mode_diversity_levels.py",
+      "ops/plot_paper_modebench_examples.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_modebench_examples.py"
+    ]
+  },
+  {
+    "number": 3,
+    "page": 3,
+    "label": "fig:base-levels-all-scales",
+    "assets": [
+      "figures/mode_diversity_levels_appendix.pdf"
+    ],
+    "records": [
+      "figures/mode_diversity_levels_appendix.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_mode_diversity_levels.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_mode_diversity_levels.py"
+    ]
+  },
+  {
+    "number": 4,
+    "page": 4,
+    "label": "fig:levels",
+    "assets": [
+      "figures/qwen_level_trends.pdf"
+    ],
+    "records": [
+      "figures/qwen_level_trends.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_qwen_level_trends.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_qwen_level_trends.py"
+    ]
+  },
+  {
+    "number": 5,
+    "page": 4,
+    "label": "fig:gpt56-sampling-budget",
+    "assets": [
+      "figures/gpt56_all_levels32_sampling_budget.pdf"
+    ],
+    "records": [
+      "figures/gpt56_all_levels32_sampling_budget.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_gpt56_all_levels32_sampling.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_gpt56_all_levels32_sampling.py"
+    ]
+  },
+  {
+    "number": 6,
+    "page": 5,
+    "label": "fig:replay-bank-balance",
+    "assets": [
+      "figures/replay_bank_balance.pdf"
+    ],
+    "records": [
+      "figures/replay_bank_balance.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_replay_bank_balance.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_replay_bank_balance.py"
+    ]
+  },
+  {
+    "number": 7,
+    "page": 6,
+    "label": "fig:verified-support-story",
+    "assets": [
+      "figures/verified_support_story.pdf"
+    ],
+    "records": [],
+    "candidate_builders": [
+      "ops/plot_paper_support_story.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_support_story.py"
+    ]
+  },
+  {
+    "number": 8,
+    "page": 7,
+    "label": "fig:concentration-story",
+    "assets": [
+      "figures/concentration_story_resampled.pdf"
+    ],
+    "records": [
+      "figures/concentration_story_resampled.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/plot_paper_concentration_levels.py"
+    ]
+  },
+  {
+    "number": 9,
+    "page": 8,
+    "label": "fig:maxrl-factorial",
+    "assets": [
+      "figures/e118_all_scale_factorial_progress.pdf"
+    ],
+    "records": [
+      "figures/e118_all_scale_factorial_progress.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_reorganized_results.py",
+      "ops/exp_scaling/build_paper_training_curve_snapshot.py",
+      "ops/exp_scaling/plot_e118_cross_domain_only_preview.py",
+      "ops/exp_scaling/plot_paper_e118_all_scale_progress.py",
+      "ops/exp_scaling/plot_paper_experiment1_composite.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_e118_all_scale_progress.py"
+    ]
+  },
+  {
+    "number": 10,
+    "page": 8,
+    "label": "fig:replay-key-weighting",
+    "assets": [
+      "figures/replay_key_weighting.pdf"
+    ],
+    "records": [
+      "figures/replay_key_weighting.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_reorganized_results.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_reorganized_results.py"
+    ]
+  },
+  {
+    "number": 11,
+    "page": 9,
+    "label": "fig:level2-admission",
+    "assets": [
+      "figures/modebench_level_admission.pdf"
+    ],
+    "records": [
+      "figures/modebench_level_admission.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/plot_paper_modebench_levels.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_modebench_levels.py"
+    ]
+  },
+  {
+    "number": 12,
+    "page": 9,
+    "label": "fig:reference-kl-plane",
+    "assets": [
+      "figures/reference_kl_plane.pdf"
+    ],
+    "records": [
+      "results/reference_kl_comparison.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_reference_kl_plane.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_reference_kl_plane.py"
+    ]
+  },
+  {
+    "number": 13,
+    "page": 20,
+    "label": "fig:replay-bank-decomposition",
+    "assets": [
+      "figures/replay_bank_decomposition.pdf"
+    ],
+    "records": [
+      "figures/replay_bank_decomposition.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_replay_bank_decomposition.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_replay_bank_decomposition.py"
+    ]
+  },
+  {
+    "number": 14,
+    "page": 24,
+    "label": "fig:qwen-level-trends",
+    "assets": [
+      "figures/qwen_level_trends.pdf"
+    ],
+    "records": [
+      "figures/qwen_level_trends.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_qwen_level_trends.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_qwen_level_trends.py"
+    ]
+  },
+  {
+    "number": 15,
+    "page": 25,
+    "label": "fig:level-construction",
+    "assets": [
+      "figures/mode_diversity_level_construction.pdf"
+    ],
+    "records": [
+      "figures/mode_diversity_level_construction.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_mode_diversity_levels.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_mode_diversity_levels.py"
+    ]
+  },
+  {
+    "number": 16,
+    "page": 26,
+    "label": "fig:frontier-level-grid",
+    "assets": [
+      "figures/frontier_level_grid.pdf"
+    ],
+    "records": [
+      "figures/frontier_level_grid.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_frontier_level_grid.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_frontier_level_grid.py"
+    ]
+  },
+  {
+    "number": 17,
+    "page": 26,
+    "label": "fig:families-appendix",
+    "assets": [
+      "figures/mode_diversity_families_appendix.pdf"
+    ],
+    "records": [
+      "figures/mode_diversity_families_appendix.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_mode_diversity_levels.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_mode_diversity_levels.py"
+    ]
+  },
+  {
+    "number": 18,
+    "page": 33,
+    "label": "fig:replay-factorial-effects",
+    "assets": [
+      "figures/replay_factorial_effects.pdf"
+    ],
+    "records": [
+      "figures/replay_factorial_effects.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_reorganized_results.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_reorganized_results.py"
+    ]
+  },
+  {
+    "number": 19,
+    "page": 35,
+    "label": "fig:maxrl-factorial-scale-extensions",
+    "assets": [
+      "figures/e118_scale_extensions_appendix.pdf"
+    ],
+    "records": [
+      "figures/e118_scale_extensions_appendix.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/plot_paper_e118_all_scale_progress.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_e118_all_scale_progress.py"
+    ]
+  },
+  {
+    "number": 20,
+    "page": 36,
+    "label": "fig:replay-level2-effects",
+    "assets": [
+      "figures/replay_level2_effects.pdf"
+    ],
+    "records": [
+      "figures/replay_level2_effects.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_reorganized_results.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_reorganized_results.py"
+    ]
+  },
+  {
+    "number": 21,
+    "page": 37,
+    "label": "fig:factorial-training-accuracy",
+    "assets": [
+      "figures/factorial_training_curves_pass8.pdf"
+    ],
+    "records": [
+      "figures/factorial_training_curves_pass8.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_training_curves.py"
+    ]
+  },
+  {
+    "number": 22,
+    "page": 38,
+    "label": "fig:factorial-training-modes",
+    "assets": [
+      "figures/factorial_training_curves_pmd.pdf"
+    ],
+    "records": [
+      "figures/factorial_training_curves_pmd.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/plot_paper_mode_diversity_curves.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_mode_diversity_curves.py"
+    ]
+  },
+  {
+    "number": 23,
+    "page": 39,
+    "label": "fig:level2-training-curves",
+    "assets": [
+      "figures/level2_factorial_training_curves.pdf"
+    ],
+    "records": [
+      "figures/level2_factorial_training_curves.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/plot_paper_training_curves.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_training_curves.py"
+    ]
+  },
+  {
+    "number": 24,
+    "page": 39,
+    "label": "fig:level2-training-pmd",
+    "assets": [
+      "figures/level2_training_curves_pmd.pdf"
+    ],
+    "records": [
+      "figures/level2_training_curves_pmd.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_mode_diversity_curves.py"
+    ]
+  },
+  {
+    "number": 25,
+    "page": 40,
+    "label": "fig:direct-baseline-accuracy-curves",
+    "assets": [
+      "figures/direct_baseline_learning_curves_pass8.pdf"
+    ],
+    "records": [
+      "figures/direct_baseline_learning_curves_pass8.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/plot_paper_aligned_domain_strips.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_aligned_domain_strips.py"
+    ]
+  },
+  {
+    "number": 26,
+    "page": 48,
+    "label": "fig:concentration-all-scales",
+    "assets": [
+      "figures/concentration_story_all_scales.pdf",
+      "figures/concentration_levels.pdf"
+    ],
+    "records": [
+      "figures/concentration_story_all_scales.json",
+      "figures/concentration_levels.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_concentration_levels.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_concentration_story.py",
+      "ops/plot_paper_concentration_levels.py"
+    ]
+  },
+  {
+    "number": 27,
+    "page": 49,
+    "label": "fig:baseline-precheck",
+    "assets": [
+      "figures/baseline_collapse_precheck.pdf"
+    ],
+    "records": [
+      "figures/baseline_collapse_precheck.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/plot_paper_e118_all_scale_progress.py",
+      "ops/exp_scaling/plot_paper_baseline_collapse_precheck.py",
+      "ops/exp_scaling/build_paper_baseline_collapse_precheck.py",
+      "ops/exp_scaling/build_paper_absolute_support_references.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/plot_paper_baseline_collapse_precheck.py"
+    ]
+  },
+  {
+    "number": 28,
+    "page": 51,
+    "label": "fig:e121-fixed-bank-survival",
+    "assets": [
+      "figures/e121_fixed_bank_survival.pdf"
+    ],
+    "records": [
+      "results/e121_fixed_bank_survival.json"
+    ],
+    "candidate_builders": [
+      "ops/exp_scaling/build_paper_e121_survival.py"
+    ],
+    "renderers": [
+      "ops/exp_scaling/build_paper_e121_survival.py"
+    ]
+  },
+  {
+    "number": 29,
+    "page": 54,
+    "label": "fig:prompt-hints-local",
+    "assets": [
+      "figures/modebench_prompt_ablation_local.pdf"
+    ],
+    "records": [
+      "figures/modebench_prompt_ablation_local.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/analyze_modebench_prompt_ablation.py"
+    ]
+  },
+  {
+    "number": 30,
+    "page": 55,
+    "label": "fig:decoding-objection",
+    "assets": [
+      "figures/decoding_objection.pdf"
+    ],
+    "records": [
+      "figures/decoding_objection.json"
+    ],
+    "candidate_builders": [
+      "ops/build_paper_decoding_objection.py",
+      "ops/build_paper_decoding_objection_e125.py",
+      "ops/plot_paper_decoding_objection.py",
+      "ops/analyze_portfolio_withdrawal_controls.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_decoding_objection.py"
+    ]
+  },
+  {
+    "number": 31,
+    "page": 58,
+    "label": "fig:discovery-curves-frontier",
+    "assets": [
+      "figures/modebench_discovery_curves_frontier.pdf"
+    ],
+    "records": [
+      "figures/modebench_discovery_curves_frontier.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/analyze_modebench_discovery_curves.py"
+    ]
+  },
+  {
+    "number": 32,
+    "page": 60,
+    "label": "fig:discovery-correct-budget-frontier",
+    "assets": [
+      "figures/modebench_discovery_correct_budget_frontier.pdf"
+    ],
+    "records": [
+      "figures/modebench_discovery_correct_budget_frontier.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/analyze_modebench_discovery_curves.py"
+    ]
+  },
+  {
+    "number": 33,
+    "page": 61,
+    "label": "fig:discovery-curves-local",
+    "assets": [
+      "figures/modebench_discovery_curves_local.pdf"
+    ],
+    "records": [
+      "figures/modebench_discovery_curves_local.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/analyze_modebench_discovery_curves.py"
+    ]
+  },
+  {
+    "number": 34,
+    "page": 63,
+    "label": "fig:discovery-correct-budget-local",
+    "assets": [
+      "figures/modebench_discovery_correct_budget_local.pdf"
+    ],
+    "records": [
+      "figures/modebench_discovery_correct_budget_local.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/analyze_modebench_discovery_curves.py"
+    ]
+  },
+  {
+    "number": 35,
+    "page": 65,
+    "label": "fig:pantry-adaptation-recovery",
+    "assets": [
+      "figures/pantry_adaptation_recovery_20260912.pdf"
+    ],
+    "records": [
+      "results/inference_followups_20260912.json"
+    ],
+    "candidate_builders": [
+      "ops/build_paper_inference_followups.py"
+    ],
+    "renderers": [
+      "ops/build_paper_inference_followups.py"
+    ]
+  },
+  {
+    "number": 36,
+    "page": 70,
+    "label": "fig:withdrawal-pmd-agreement",
+    "assets": [
+      "figures/withdrawal_pmd_agreement.pdf"
+    ],
+    "records": [
+      "results/portfolio_withdrawals_20260917.json"
+    ],
+    "candidate_builders": [
+      "ops/build_paper_portfolio_withdrawals.py"
+    ],
+    "renderers": [
+      "ops/build_paper_portfolio_withdrawals.py"
+    ]
+  },
+  {
+    "number": 37,
+    "page": 77,
+    "label": "fig:hosted-graph-comparison",
+    "assets": [
+      "figures/frontier_comparison_20260911_graph.pdf"
+    ],
+    "records": [
+      "figures/frontier_comparison_20260911_graph.json"
+    ],
+    "candidate_builders": [],
+    "renderers": [
+      "ops/build_frontier_paper_comparison.py"
+    ]
+  },
+  {
+    "number": 38,
+    "page": 82,
+    "label": "fig:gpt56-temperature-curve",
+    "assets": [
+      "figures/gpt56_temperature_curve.pdf"
+    ],
+    "records": [
+      "figures/gpt56_temperature_curve.json"
+    ],
+    "candidate_builders": [
+      "ops/analyze_gpt56_pass8_frontier_expanded480.py",
+      "ops/plot_paper_gpt56_temperature_curve.py",
+      "ops/analyze_gpt56_temperature_curve_expanded480.py",
+      "ops/analyze_gpt56_temperature_curve.py",
+      "ops/build_frontier_paper_comparison.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_gpt56_temperature_curve.py"
+    ]
+  },
+  {
+    "number": 39,
+    "page": 87,
+    "label": "fig:hosted-verified-breadth",
+    "assets": [
+      "figures/hosted_verified_breadth.pdf"
+    ],
+    "records": [
+      "figures/hosted_verified_breadth.json"
+    ],
+    "candidate_builders": [
+      "ops/plot_paper_hosted_breadth.py",
+      "ops/build_frontier_paper_comparison.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_hosted_breadth.py"
+    ]
+  },
+  {
+    "number": 40,
+    "page": 113,
+    "label": "fig:reference-kl-knee",
+    "assets": [
+      "figures/reference_kl_knee.pdf"
+    ],
+    "records": [
+      "results/reference_kl_comparison.json"
+    ],
+    "candidate_builders": [
+      "ops/build_reference_kl_comparison.py",
+      "ops/plot_paper_reference_kl_knee.py"
+    ],
+    "renderers": [
+      "ops/plot_paper_reference_kl_knee.py"
+    ]
+  }
+]

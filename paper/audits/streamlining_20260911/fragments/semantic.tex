@@ -1,0 +1,53 @@
+\section{Fixed Semantic MaxEnt Comparator}
+\label{app:semantic-maxent}
+\label{app:semantic-score}
+
+Fixed Semantic MaxEnt is an entropy-inspired fresh-rollout comparator.
+For validator-positive canonical outcomes, an empirical predictor combines
+successful policy history and successful leave-one-out peers. If $K$ keys
+have total count $N$, unit pseudocounts and one reserved unseen bucket give
+\begin{equation}
+  \hat p(a)=\frac{n(a)+1}{N+K+1},\qquad
+  \hat p(\textsc{unseen})=\frac{1}{N+K+1}.
+  \label{eq:open-set-predictor}
+\end{equation}
+The added detached advantage on an eligible successful row is
+\begin{equation}
+  A^{\rm sem}_{i,t}=\eta\,
+  \frac{\min\{-\log\hat p(a_i),C\}
+    -\E_{\hat p}[\min\{-\log\hat p(a),C\}]}{C},
+  \qquad \eta=.10,\ C=5.
+  \label{eq:legacy-semantic-advantage}
+\end{equation}
+\label{app:legacy-semantic-estimator}
+\label{app:semantic-estimator}
+Invalid and unsuccessful rows receive zero. The centered score is bounded
+by $\eta$ in magnitude. It can favor an underrepresented verified outcome
+present in a fresh rollout, but supplies no direct reinforcement to an
+absent remembered exemplar. Its heterogeneous empirical effects therefore
+remain a comparison with exploration rather than a retention guarantee.
+
+For the true conditional distribution $q_\theta=p_\theta(\cdot\mid\mathcal C)$,
+\begin{equation}
+ \nabla_\theta H(q_\theta)
+ =\E_{a\sim q_\theta}[(-\log q_\theta(a))\nabla_\theta\log q_\theta(a)].
+ \label{eq:entropy-score-function}
+\end{equation}
+This motivates the direction of redistribution, not an unbiased-gradient
+claim for the empirical estimator. Hold a detached predictor score vector
+$s$ and baseline $b$ fixed independently of the scored action, for example
+conditional on its leave-one-out peers. Averaging successful rows under the
+unconditional policy then gives
+\[
+ \E_{A\sim p}[\1\{A\in\mathcal C\}(s_A-b)\nabla_z\log p_A]
+ =P\E_{c\sim q}[s_c\nabla_z\log q_c]
+   +(\E_q[s]-b)\nabla_zP.
+\]
+A historical baseline need not equal the current conditional mean, so this
+bonus can change correctness as well as diversity. Even with the exact
+unclipped score $s_c=-\log q_c$ and baseline $b=H(q)$, averaging over
+unconditional rollout rows gives $P\nabla H(q)$.
+For a single correct key, conditional entropy is zero, yet the implemented
+unseen bucket can give that key negative semantic advantage. The comparator
+thus carries neither an exact entropy-gradient interpretation nor an
+individual-mode preservation guarantee.

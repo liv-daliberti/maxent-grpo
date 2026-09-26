@@ -1,0 +1,65 @@
+{
+  "byte_identical_reproduced_outputs": {
+    "paper/figures/current_campaign_results_20260910.pdf": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/figures/current_campaign_results_20260910.pdf",
+      "sha256": "9a3c72b863170a73e807f7221628a8af4aa51800c694fe0a2c270bc8a92e529f"
+    },
+    "paper/figures/current_campaign_results_20260910.png": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/figures/current_campaign_results_20260910.png",
+      "sha256": "9dc28c64e518cad2ff3052bb3dc87a9282b4144b71c9a9853222682b8fb4a048"
+    },
+    "paper/results/current_campaign_results_20260910.csv": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910.csv",
+      "sha256": "618b7d302fb9cf25bce68372e919e7f7eadd33a5260531a7975af6af0512e461"
+    },
+    "paper/results/current_campaign_results_20260910.json": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910.json",
+      "sha256": "e24e037e270f78f7c6daa7deda57d899812c7fdb983bccf1f71b78721e2cc5c3"
+    },
+    "paper/results/current_campaign_results_20260910.md": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910.md",
+      "sha256": "87278cd699dba4d1fbc530c4c0bb81d397c23eb0a83871ee6fe5a8cc9a8d76c8"
+    },
+    "paper/results/current_campaign_results_20260910_coverage_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_coverage_table_body.tex",
+      "sha256": "eb64427683467a78b63157a634365ba8d91c54118c047a45c8c6bb1f02802d12"
+    },
+    "paper/results/current_campaign_results_20260910_e118_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_e118_table_body.tex",
+      "sha256": "eede14237559cc7fc05d60e4dcaa9b05069856547403cefdbfea1504fb9f1aa3"
+    },
+    "paper/results/current_campaign_results_20260910_e119_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_e119_table_body.tex",
+      "sha256": "33642ed6388044a37078b2bc397f2dad1b3fc6b1a1afeaf26a82e796aa10d744"
+    },
+    "paper/results/current_campaign_results_20260910_e120_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/current_campaign_results_20260910_e120_table_body.tex",
+      "sha256": "ebf39020cad6abba18cd6dcd3e947252626cd05bedf913b6bf6fd77d8565670f"
+    },
+    "paper/results/latest_results_20260910.json": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/latest_results_20260910.json",
+      "sha256": "dbaaf327e1765cbf2dc2d39d64599b69b17333487efb44762ffc09709f4b9d60"
+    },
+    "paper/results/latest_results_20260910_effects_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/latest_results_20260910_effects_table_body.tex",
+      "sha256": "6e4d461e9c4b753aac6bce0290639d5920ec1aaf7322b528ecc309e27c2c1795"
+    },
+    "paper/results/latest_results_20260910_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/latest_results_20260910_table_body.tex",
+      "sha256": "5079b6a2833f43a6da8aac5d60e3a9a81824a37ba751d6ca84476466216eeeb3"
+    },
+    "paper/results/level2_factorial_contrasts_20260910.json": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/level2_factorial_contrasts_20260910.json",
+      "sha256": "dc70a9901a84cadd7ccacfd3536efae7b6cd95ff77292223bfa92f886b5ec206"
+    },
+    "paper/results/level2_factorial_contrasts_20260910_table_body.tex": {
+      "reproduced_path": "paper/audits/results_refresh_20260910/reproduced/level2_factorial_contrasts_20260910_table_body.tex",
+      "sha256": "5f1f89a083c65ade536aefb62355f479e747bf19810a1884a91b221a2b1ce20f"
+    }
+  },
+  "count": 14,
+  "e120_mechanism_seed_sets_independently_reconciled": true,
+  "level2_four_arm_numeric_summaries_unchanged_from_sep9": true,
+  "observed_at_utc": "2026-09-10T16:57:26.290010+00:00",
+  "overview_visual_inspection": "Full standalone forest plot inspected: all 34 planned contrast rows readable, seed denominators visible, full/partial points and intervals distinguished, axes and source footer unclipped."
+}

@@ -1,0 +1,24 @@
+--- reviewed/binary
++++ final/binary
+@@ -8,9 +8,7 @@
+ correct modes, so a reward-dependent advantage cannot distinguish their
+ identities.
+ 
+-\paragraph{Proof of Theorem~\ref{thm:objective-inertness}.}
+-
+-\begin{proof}
++\begin{proof}[Proof of Theorem~\ref{thm:objective-inertness}]
+ \enforcehalffinalproseline
+ The score identities used in Lemma~\ref{lem:grpo-mean} give
+ $\E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P$ and
+--- reviewed/neural
++++ final/neural
+@@ -164,7 +164,7 @@
+ \label{prop:neural-binary-length-residual}
+ Under Theorem~\ref{thm:neural-binary-moments}, multiply each response's score
+ by a detached function $\omega(Y)$ with finite conditional second moments;
+-inverse response length is the case $\omega(Y)=1/L(Y)$. Define
++inverse response length is the case $\omega(Y)=1/L(Y)$ with $L(Y)>0$. Define
+ \[
+  \widehat g_{a,\omega}
+  =\frac1G\sum_i a(R_i,R)\omega(Y_i)s(Y_i),\qquad

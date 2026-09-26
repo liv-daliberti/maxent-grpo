@@ -1,0 +1,10 @@
+{
+  "status": "frozen_before_collision_contrasts",
+  "created_at_utc": "2026-09-11T20:07:10.117357+00:00",
+  "sha256": "f6252f80780b8f0890f777f612e75da05e18bdf4237f50c629e19ec08b1a4588",
+  "supersedes": [
+    "32-iid pooling assumption",
+    "disjoint16-draw halves assumption"
+  ],
+  "reason": "source/runtime child-seed reuse discovered before new empirical contrasts"
+}

@@ -1,0 +1,66 @@
+\section{An exact optimizer comparison from information geometry}
+\label{sec:natural-gradient}
+Natural gradient on the categorical simplex uses the Fisher metric, also
+called the Shahshahani metric in evolutionary dynamics
+\cite[Sections~2.3 and 3.1]{harper2009}. This gives a useful comparison with
+the paper's Euclidean-logit collapse result.
+
+\begin{proposition}[Natural-gradient selection and replay]
+\label{prop:natural-replay}
+Start from an interior categorical distribution $p(0)$ with
+$0<P(0)<1$. Let $\Psi\in C^2([0,1])$ satisfy
+$c(P)=\Psi'(P)>0$, let $w$ be a fixed probability vector supported on a
+nonempty correct-mode bank, and extend it by zero to $\bar w$ outside that
+bank. Exact Fisher natural-gradient ascent of
+\[
+ \mathcal J(p)=\Psi(P)+\rho\sum_b w_b\log p_b
+\]
+with $\rho\ge0$ induces
+\begin{align}
+ \dot p_i&=c(P)p_i(\mathbf1\{i\in\mathcal C\}-P)
+             +\rho(\bar w_i-p_i),\label{eq:natural-p}\\
+ \dot P&=(1-P)(c(P)P+\rho),&
+ \dot q_c&=\frac{\rho}{P}(w_c-q_c),\label{eq:natural-Pq}
+\end{align}
+where $w_c=0$ for unbanked correct modes. With $\rho=0$, correctness tends
+to one and $q(t)=q(0)$: there is no within-correct-mode collapse.
+With $\rho>0$, define $A(t)=\int_0^t\rho/P(s)\,ds$. Then
+\[
+ q(t)=w+(q(0)-w)e^{-A(t)},\qquad A(t)\ge\rho t,
+\]
+and
+\[
+ 1-P(t)\le(1-P(0))e^{-\rho t},\qquad
+ p_b(t)\ge P(0)\min\{q_b(0),w_b\}>0
+\]
+for every banked mode and all $t\ge0$.
+\end{proposition}
+\begin{proof}
+For a smooth objective on the interior simplex, the Fisher natural-gradient
+vector is $\dot p_i=p_i(\partial_i\mathcal J-
+\sum_jp_j\partial_j\mathcal J)$. Here
+$\partial_i\mathcal J=c(P)\mathbf1\{i\in\mathcal C\}+
+\rho\bar w_i/p_i$, whose $p$-weighted mean is $c(P)P+\rho$.
+This proves~\eqref{eq:natural-p}. Summing over correct categories and
+differentiating $q_c=p_c/P$ proves~\eqref{eq:natural-Pq}.
+Incorrect coordinates obey $\dot p_i=-(c(P)P+\rho)p_i$, so remain positive
+at finite times. Correct coordinates stay positive by the explicit
+$q$ formula (or are constant in $q$ when $\rho=0$). Thus the interior
+calculation applies for all finite times.
+
+For $\rho=0$, $P$ increases and cannot have a limit below one because
+$c>0$ on the compact interval $[P(0),1]$. For $\rho>0$, solve the linear
+$q$ equation and use $P\le1$ to obtain $A(t)\ge\rho t$.
+The differential inequality $\dot P\ge\rho(1-P)$ gives the correctness
+bound. Each $q_b(t)$ is between $q_b(0)$ and $w_b$, and $P(t)\ge P(0)$,
+which gives the probability floor.
+\end{proof}
+
+The term $\rho(\bar w-p)$ has the form of replenishment from a fixed
+population distribution. The result is an elementary specialization of the
+Fisher-gradient formula, not a claim of a new general evolutionary-dynamics
+theorem. It shows that the update geometry changes both collapse and the
+strength of retention guarantees. For an incomplete bank it still sends
+unbanked correct mass to zero. It supplies no guarantee for approximate
+natural gradient, neural Fisher matrices, PPO, or AdamW, and the time variable
+is an idealized optimization clock rather than elapsed compute time.

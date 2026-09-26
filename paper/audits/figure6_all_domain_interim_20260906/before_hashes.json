@@ -1,0 +1,9 @@
+{
+  "ops/exp_scaling/plot_paper_modebench_levels.py": "875b783d2179f5d58b0b10884596652d18d670561400ccf271964fd034dcb559",
+  "ops/check_paper_current_contract.py": "594c0cea081cea7f43c3ddddf0e795a854113b3597eea487b03168d60ace2f51",
+  "paper/figures/modebench_level_admission.pdf": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+  "paper/figures/modebench_level_admission.png": "ac75f348e664cf3047a90aafcca19653e8a3fbbe70c9806b7a86ad83324f0a8e",
+  "paper/figures/modebench_level_admission.json": "33316b0553134d08c9952253e258b5ad74d96846381f19d049e707b43ff8e611",
+  "paper/mathai2026/figures/modebench_level_admission.pdf": "86b2b3042c0ba6b62a5fe2f06500cdd799abcb20e8108816d1a15113b8ad22b7",
+  "paper/mathai2026/figures/modebench_level_admission.json": "33316b0553134d08c9952253e258b5ad74d96846381f19d049e707b43ff8e611"
+}

@@ -1,0 +1,49 @@
+{
+  "arms": "RLVR-only (Dr.GRPO, GRPO, MaxRL)",
+  "by_domain": {
+    "countdown": {
+      "concentrated": 40,
+      "mean": 0.3833610669084977,
+      "n": 46
+    },
+    "graph_coloring": {
+      "concentrated": 49,
+      "mean": 0.2304653196684342,
+      "n": 55
+    },
+    "mathir": {
+      "concentrated": 14,
+      "mean": 0.04209124209124209,
+      "n": 52
+    },
+    "pantry_plan": {
+      "concentrated": 45,
+      "mean": 0.5915378187186071,
+      "n": 51
+    },
+    "python_factors": {
+      "concentrated": 10,
+      "mean": 0.20138888888888892,
+      "n": 15
+    }
+  },
+  "by_keying": {
+    "answer": {
+      "concentrated": 94,
+      "mean": 0.40418888053219665,
+      "n": 106
+    },
+    "behaviour": {
+      "concentrated": 10,
+      "mean": 0.20138888888888892,
+      "n": 15
+    },
+    "route": {
+      "concentrated": 54,
+      "mean": 0.20227911904628046,
+      "n": 98
+    }
+  },
+  "generator": "ops/build_paper_mode_keying_comparison.py",
+  "statistic": "change in conditional collision, frozen to terminal; positive is concentration onto fewer verified modes"
+}

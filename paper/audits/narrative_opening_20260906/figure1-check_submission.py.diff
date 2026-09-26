@@ -1,0 +1,20 @@
+--- before/check_submission.py
++++ paper/mathai2026/check_submission.py
+@@ -94,6 +94,7 @@
+     labels = dict((name, int(page)) for name, page in
+                   re.findall(r'\\newlabel\{([^}]+)\}\{\{[^}]*\}\{(\d+)\}', aux))
+     require(labels.get('main:lastpage') == 4, 'main text must end on page 4')
++    require(labels.get('fig:story') == 1, 'Figure 1 must be on page 1')
+     main_figures = ['fig:story', 'fig:modebench-examples', 'fig:verified-support-story',
+                     'fig:cross-scale-terminal-effects', 'fig:maxrl-factorial',
+                     'fig:level2-admission']
+@@ -144,7 +145,8 @@
+             'artifact_sha256': artifacts,
+         }, indent=2, sort_keys=True) + '\n')
+     print('PASS: 4 content pages; all 6 main figures; 7 supplementary figures;')
+-    print('      references start on page 5; anonymous template unchanged;')
++    print('      Figure 1 is on page 1; references start on page 5;')
++    print('      anonymous template unchanged;')
+     print('      referenced inputs and source hashes complete; compiled artifact current;')
+     print('      snapshot assets intact; no unresolved references or overfull boxes.')
+ 

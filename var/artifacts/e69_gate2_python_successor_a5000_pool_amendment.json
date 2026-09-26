@@ -1,0 +1,25 @@
+{
+  "amendment_commit": "140e57dda8e9855b791d646d4e8307b3c0e305e7",
+  "amendment_protocol": "paper/preregistration/e69_gate2_python_successor_a5000_pool_amendment_20260728.md",
+  "amendment_protocol_sha256": "6a55575d2086508a42e283011d85bed60e6e7179b2a3056e2a30f729976d6519",
+  "created_at": "2026-07-28T17:36:15Z",
+  "gate2_identity_sha256": "733c5d6c348d9ca69a0161ade6a49cea5a1259513d3461a5fb8380588769a904",
+  "job": {
+    "account": "mltheory",
+    "arm": "verified_route_successor",
+    "domain": "python_factor",
+    "job_id": 30160205,
+    "partition": "lowprio",
+    "post_update_node": "node202",
+    "post_update_state": "RUNNING",
+    "pre_update_node": "node105",
+    "pre_update_runtime": "00:00:00",
+    "pre_update_state": "PENDING",
+    "requested_resources": "cpu=8,mem=64G,node=1,billing=2,gres/gpu=1,gres/gpu:a5000=1",
+    "run_stamp": "pye69_gate2_placement_repair_verified_route_successor_s43",
+    "seed": 43,
+    "start_time": "2026-07-28T13:35:48"
+  },
+  "placement_repair_identity_sha256": "04871ee58df12f0b01ba1ee55cd84d59df6d60ad50214279b7e5b4f6c2bc7b03",
+  "schema": "e69_gate2_python_successor_a5000_pool_amendment_v1"
+}

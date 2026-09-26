@@ -1,0 +1,135 @@
+# MATH-AI NeurIPS 2026 workshop version
+
+**Mode Collapse in RLVR & ModeBench**
+
+[main.pdf](main.pdf) is the anonymous submission: four pages of main content,
+then references and supplementary material. The official workshop style remains
+unchanged. [main.tex](main.tex), [preamble.tex](preamble.tex), and
+[appendix.tex](appendix.tex) are the three manuscript roots.
+
+## Scientific scope and organization
+
+The four-page main restores the original seven figures in their original order:
+the graph-collapse illustration, domain examples, verified-memory schematic,
+cross-scale replay comparisons, MaxRL factorial, level comparison, and hosted
+overview. Their artwork and original roles are preserved. The conditional
+concentration, paired-factorial, key-weighting and within-Level-2 effect figures
+support these displays from the appendix, with explicit main-text references.
+
+The supplement retains the current scientific record, including the
+claim/evidence map, measurement identities, complete conditional theory,
+benchmark construction, prompts, algorithm, controlled results, longitudinal
+diagnostics, hosted observations, prompt interventions and later discovery
+curves. All formal statement/proof blocks from the corrected manuscript are
+preserved exactly; restoring the figures does not roll back the theory or
+interpretive corrections.
+
+Level-1 primary comparisons cover Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B.
+All five accuracy (`pass@8`) and verified-mode (`distinct@8`) trajectory figures
+remain: the four primary methods across all three scales, the Level-2
+Qwen2.5-0.5B factorial, and UCPO/RLEP comparisons at 0.5B and 1B only.
+Fixed terminal cohorts, unavailable checkpoints, and partial histories remain
+explicit. The 3B MaxRL comparison is complete, with five paired seeds in all five domains.
+
+Results use the frozen September 11 endpoint census: 74 core replay pairs,
+75 MaxRL replay pairs (including all 50 Qwen2.5-3B endpoints), four complete
+Level-2 domains (80/80 endpoints; PantryPlan remains at 10/20), and eight
+complete weighting-ablation blocks. The original Qwen-0.5B weighting analysis remains
+frozen. The [figure manifest](../FIGURE_MANIFEST.md) and
+[evidence audit](../FIGURE_DATA_AUDIT.md) give exact populations.
+
+Duplicate completion updates and seed tables, the old bundled semantic
+experiment, AUC sensitivity figure, telemetry figure, and extended theoretical
+arguments are preserved in the [streamlining archive](../audits/streamlining_20260911/README.md).
+The fixed-semantic baseline, weighting control, source exclusion, and
+fixed-bank score deterioration remain in the active paper.
+
+## Build and source bundle
+
+```sh
+make -C paper/mathai2026 bundle
+```
+
+The build runs in a temporary directory and promotes a PDF only after checking
+four content pages, every referenced figure, references on page five, anonymous official
+style, source hashes, and absence of unresolved references or overfull boxes.
+A failed build preserves the last validated PDF and saves `main.failed.log`.
+The source ZIP is independently checked before replacement.
+
+Before rebuilding after intentional edits, synchronize figures, nested inputs,
+and required numerical provenance from the parent:
+
+```sh
+python ops/sync_paper_workshop_assets.py --date 2026-09-11 \
+  --audit-directory paper/audits/narrative_reorganization_20260911/workshop_next \
+  --reason 'Synchronize the reorganized papers while preserving frozen numerical evidence' --apply
+```
+
+Choose a new audit directory for each later synchronization. The updater
+preserves prior bindings and replaced assets; the current source package binds
+active referenced assets and scientific snapshots. Archived experiments remain
+available in the research archive without entering the active submission ZIP.
+
+Upload `mathai2026-source.zip` to Overleaf and select `main.tex` as the main
+document. Earlier editorial history, template notes, and revision records are
+preserved in [the previous README](../audits/streamlining_20260911/before/paper/mathai2026/README.md).
+
+## Hosted deployment comparison
+
+The main hosted overview shows all seven deployments, five domains
+and three levels, following the controlled replay results. Frozen formatting normalization applies to every cell; only
+Opus 5 Python uses the separately evaluated revised task wording. All eight
+responses per prompt count, so the display does not select successful draws.
+The original cohorts, native refusal counts, strict/normalized results and
+prompt comparisons remain in the appendix. The source record and figure
+sidecar bind both evidence sets and each displayed denominator.
+
+The GPT-5.6 Sol temperature curve is a supplementary figure here,
+and is restored to Figure 8 in the long paper.
+All five temperatures (0, 0.5, 1.0, 1.5, 2.0) use reasoning `none` and retain
+960 draws each.
+Its two panels plot empirical `pass@8` against mean `distinct@8`, overall and
+by level. `pass@8` is the fraction of prompts with at least one correct answer
+in their eight saved draws; failures remain included. The normalized aggregate
+peaks among sampled temperatures at 1.5 (72.50% `pass@8`, 1.050 modes), an
+observed result rather than an established optimum. The original
+medium-reasoning reference is retained only in the appendix tables and source
+records (97.50%, 1.550 modes), and is omitted from the figure.
+The source is `GPT56_PASS8_FRONTIER_WITH_ZERO.{json,md}` in
+`artifacts/frontier_temperature_20260911/`; the per-response report is preserved.
+The appendices also include Grok/Kimi temperature sensitivity and the separate
+three-request Python retry diagnostic, without changing the fixed-draw main
+comparison.
+
+## Claim and theory alignment
+
+Both papers share a claim-by-claim evidence map, the success–breadth lemma, and the complete conditional theory. The [correction and verification record](../audits/claim_theory_alignment_20260911/README.md) explains the assumptions and the construction-reserve versus terminal-test distinction in the Level-2 comparison.
+
+## Matched prompt-hint control
+
+The supplement includes the completed 27,648-response local prompt ablation:
+initial Qwen2.5-0.5B-Instruct plus 24 archived Dr.GRPO/ReplayDr.GRPO checkpoints,
+Python factors/MathIR/Pantry, and Levels 2 and 3. Original and neutral wording
+use identical problems and within-model sampling settings. The new figure and
+tables report all cells, paired pass@8 and distinct@8 effects, additional-mode
+effects, and the smaller two-seed Pantry scope. Level 3 is transfer evaluation.
+
+The frontier panel remains uncollected pending an API credential; its omission
+and the incomplete overall experiment are explicit in the appendix and result
+JSON. The copied local result and PDF/PNG/JSON figure companions are bound by
+`snapshot.json`. Standalone source builds validate these files and exactly
+twenty-five figures, with eighteen in the supplement; they require no repository
+inputs or model calls. The parent build additionally reconstructs the statistics.
+
+The [figure restoration record](../audits/figure_restoration_20260911/README.md) records figure placement, source preservation, both builds, and visual review.
+
+## Sampling-budget ablation
+
+The supplement adds pass@k/distinct@k curves through 64 and a companion figure
+conditioning on fixed numbers of correct outputs. All 110,592 fresh local draws
+from 25 checkpoints are complete; no earlier n8 responses enter these curves.
+Both prompt wordings and all domain/level cells remain visible. The appendix
+reports the MathIR exception, rare neutral Python successes, and substantial
+late Pantry discovery, with the smaller two-seed Pantry scope explicit.
+The registered hosted panel is collecting and remains outside this local-only
+report. The exact source report and figure companions are included in the bundle.

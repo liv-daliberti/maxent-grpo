@@ -1,0 +1,32 @@
+{
+  "section_3_1_unchanged": true,
+  "main_body_source_unchanged": true,
+  "all_existing_appendix_labels_retained": true,
+  "duplicate_labels": [],
+  "new_attributed_corollaries": 5,
+  "formal_blocks": 68,
+  "proof_preservation_passed": true,
+  "new_mathematical_checks_passed": true,
+  "independent_review_reports": [
+    "review_attribution.md",
+    "review_optimization.md",
+    "review_probability.md"
+  ],
+  "unresolved_references_or_citations": false,
+  "overfull_boxes": false,
+  "appendix_pages": [
+    94,
+    120
+  ],
+  "appendix_line_fill_violations": 0,
+  "document_line_fill_violations_outside_appendix": 26,
+  "main_tex_sha256": "431330d89e60a44b4bcfd353eb30b0f64f7e612de8db04f07aa4c59a1a4d1c89",
+  "main_pdf_sha256": "a4233e33410ad02e985cc6338541b80f0f6d8cb720edf05930e39051f9a17892",
+  "new_training_experiments": false,
+  "concurrent_edits": "Other appendices changed concurrently; retained. Main body and Section 3.1 match the initial snapshot.",
+  "global_contract": {
+    "exit_code": 1,
+    "output": "Expanded GPT contract passed: 480 prompts, 19,200 authenticated responses, old/new cohort sensitivity.\nCurrent paper contract failed: main role label sec:results-maxrl missing or duplicated\n"
+  },
+  "global_contract_failure_preexisting": true
+}

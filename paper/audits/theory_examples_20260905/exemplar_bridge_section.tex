@@ -1,0 +1,90 @@
+\subsection{From categorical modes to complete replayed responses}
+\label{app:theory-exemplar-bridge}
+
+The categorical analysis protects an execution key, whereas the learner
+scores a particular response string. The bridge is event containment: one
+complete verified response is one way to produce its key. A bound on its
+sequence surprisal therefore protects the key even when many other strings
+realize the same behavior. Length normalization changes the numerical loss
+scale, so its factor must remain explicit in that bound.
+
+\begin{lemma}[Retention from a joint exemplar potential]
+\label{lem:shared-exemplar-retention}
+Fix finitely many verified complete-response exemplars $(x_j,e_j)$, each
+realizing key $b_j$, with lengths $L_j>0$ and fixed weights $\alpha_j>0$.
+Let
+\[
+ F(\theta)=\sum_j\alpha_j
+ \frac{-\log\pi_\theta(e_j\mid x_j)}{L_j}-J(\theta),
+ \qquad J(\theta)\le J_{\max}<\infty.
+\]
+Suppose $F(\theta(T))$ is finite and
+$F(\theta(t))\le F(\theta(T))$ for every $t\ge T$. With
+$D=F(\theta(T))+J_{\max}$, every protected exemplar satisfies
+\[
+ p_\theta(b_j\mid x_j)\ge\pi_\theta(e_j\mid x_j)
+ \ge\exp\!\left(-\frac{L_jD}{\alpha_j}\right)>0
+ \qquad(t\ge T).
+\]
+\end{lemma}
+\begin{proof}
+The weighted exemplar loss equals $F(\theta(t))+J(\theta(t))\le D$.
+Each summand is nonnegative, so
+$-\log\pi_\theta(e_j\mid x_j)\le L_jD/\alpha_j$.
+The complete-response event is a subset of the event producing key $b_j$,
+which proves the stated lower bound on every protected key's probability.
+\end{proof}
+
+\paragraph{Example: a token average is not a response probability.}
+Suppose a complete response has four scored tokens, including termination,
+and each token has conditional probability $1/2$ along that response. Its
+mean log likelihood is $-\log2$, but its complete-response probability is
+$(1/2)^4=1/16$; exponentiating the mean gives $1/2$, the geometric mean of
+token probabilities. For a single protected exemplar with $L=4$, $\alpha=1$,
+and joint energy ceiling $D=\log2$, the lemma gives exactly the $1/16$ floor.
+If a different complete response with the same key has probability $1/32$,
+the two disjoint response events together give key probability at least
+$1/16+1/32=3/32$. The exemplar bound can thus be conservative even when its
+sequence probability is known exactly.
+
+Exact gradient flow of a smooth joint potential is one sufficient condition
+for this monotonicity; the lemma requires only the stated energy inequality.
+Shared parameters and multiple prompts therefore need not invalidate
+retention. For example, the exact categorical mean model admits
+$J(\theta)=\sum_x\nu_x\Psi_x(P_x(\theta))$ with fixed nonnegative prompt
+weights and $J_{\max}=\sum_x\nu_x\Psi_x(1)$. The bound does not require
+uniform key weights or imply convergence to a uniform policy. It does not
+establish joint energy descent for the implemented stochastic, clipped,
+alternating optimizer. The likelihood must describe the complete response
+under the sampling law being bounded, including its termination event or a
+fixed deterministic horizon. A prefix likelihood alone, or a score under a
+different temperature or token-truncation rule, is insufficient.
+
+\paragraph{Retention and finite evaluation visibility.}
+At a fixed checkpoint, suppose $k$ distinct banked keys for one prompt have
+probability floors $p_b\ge\delta_b>0$. For $K$ independent draws from that
+same policy, the banked distinct count $D_{\mathcal B,K}$ satisfies
+\[
+ \begin{aligned}
+ \mathbb E[D_{\mathcal B,K}]
+ &\ge\sum_{b\in\mathcal B}\left[1-(1-\delta_b)^K\right],\\
+ \Pr(\text{some banked key is unseen})
+ &\le\sum_{b\in\mathcal B}(1-\delta_b)^K
+ \le k e^{-K\delta_{\min}},
+ \end{aligned}
+\]
+where $\delta_{\min}=\min_b\delta_b$. The first statement follows from
+indicator expectations and the second from the union bound. Thus
+$K\ge\log(k/\varepsilon)/\delta_{\min}$ suffices to observe all banked keys
+with probability at least $1-\varepsilon$, for $0<\varepsilon<1$.
+The energy floors can make this budget impractically large; asymptotic
+retention does not imply visibility in an eight-draw evaluation.
+
+\paragraph{Example: protection can still be hard to observe.}
+A key with probability exactly $1/16$ appears in eight independent draws
+with probability $1-(15/16)^8\approx0.403$. If four keys each have a $1/16$
+floor, the sufficient budget above is
+$\lceil16\log(4/0.05)\rceil=71$ draws for at least $95\%$ probability of
+seeing all four. These hypothetical probabilities distinguish retaining a
+mode from reliably observing it in a short evaluation.
+

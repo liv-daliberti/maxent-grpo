@@ -1,0 +1,442 @@
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+4860
+                                         Part VI. Idealized analysis
+4861
+4862
+4863   P     M ODE C OLLAPSE AND V ERIFIED R EPLAY
+4864
+4865   For a fixed prompt, the binary-reward score estimators defined below have mean updates along the
+4866   correctness gradient, while their sampling covariances can differ. With independently optimized
+4867   categorical logits, these updates amplify differences among equally rewarded modes, and sampling
+4868   can break an initially exact symmetry. Fixed-bank replay supplies probability floors, restoration
+4869   thresholds, and recovery bounds under the stated update assumptions. Neural retention requires
+4870   additional conditions on complete-response likelihoods and local updates. These results do not
+4871   certify the implemented AdamW/PPO trajectories. Table 2 defines the notation.
+4872
+4873   P.1   C ATEGORICAL ABSTRACTION AND MEAN UPDATES
+4874
+       The categorical model assigns one independent logit to each outcome category. Its Euclidean
+4875
+       mean flow and the subsequent finite-step, sampled, and neural updates have different assump-
+4876
+       tions; a neural solution mode need not have an independently optimized logit.
+4877
+4878
+       Assumption P.1 (Categorical mean-flow model). Fix one isolated prompt and a finite category
+       set A = C ∪˙ N with mP≥ 2 correct solution modes and n ≥ 1 incorrect categories, and set
+4879
+       pa = softmax(z)a , P = c∈C pc , and qc = pc /P , so that P measures correctness while q describes
+4880
+       how that correct probability is allocated among the individual correct modes.
+4881
+4882       (A1) Independent logits. The policy carries one independently optimized logit for every category
+4883            in A, including one separate logit for each canonical correct mode.
+4884
+4885
+           (A2) Common length normalization. Every response uses the same fixed length-normalization
+                factor, absorbed into the positive coefficient of the group estimator.
+4886
+4887       (A3) Euclidean mean flow. Updates are the infinitesimal expected updates in these logits, taken
+4888            without optimizer preconditioning and without momentum carried between steps.
+4889
+4890
+           (A4) No competing regularizer. Explicit reference KL is zero and no entropy term is present.
+4891       (A5) Nondegenerate start. Logits are finite initially, 0 < P (0) < 1, and the group size is G ≥ 2.
+4892
+4893   Assumption P.1 includes all five conditions. AdamW’s preconditioning and momentum violate (A3);
+4894   finite, repeated PPO updates are outside its infinitesimal on-policy limit. Response-specific length
+4895   normalization violates (A2), while reference KL and entropy regularization violate (A4).
+4896   A language model induces probabilities over canonical outcomes, but those probabilities alone do not
+4897   determine its update geometry. Aggregating several response strings into a mode does not generally
+4898   commute with gradient flow in response logits. The independent-category model therefore requires
+4899   an additional assumption beyond a neural policy and its validator equivalence classes.
+4900                                iid                                                     P
+4901
+       Draw a group Z1 , . . . , ZG ∼ p with G ≥ 2, write Ri = 1[Zi ∈ C], and let R = i Ri . At the
+       on-policy point where the PPO ratio equals one, consider the common-length estimator
+4902
+4903                                          G                
+                                           1 X                R
+4904                                 gbG =       w(R) Ri −        ∇z log pZi .                         (14)
+                                           G i=1              G
+4905
+4906   For the Dr.GRPO abstraction (Liu et al., 2025), w(R) = 1 after absorbing the fixed positive
+4907   length-normalization factor. Reward-standardized GRPO (Shao et al., 2024) with fixed common
+4908   response-length normalization takes w(R) to be the reciprocal group reward standard deviation
+4909   on mixed groups (with a fixed numerical stabilizer if used). Standard variable-length GRPO also
+4910   weights each response by its own inverse length; that response-specific factor cannot generally be
+4911   absorbed into w(R) and is outside this equivalence. In either included case, 0 < w(`) < ∞ for
+4912   ` ∈ {1, . . . , G − 1}. The entire update is zero on all-equal groups, without evaluating an undefined
+4913   reciprocal standard deviation; likewise, w(R)R(G − R) below is defined as zero when R = 0 or
+       R = G. All advantages and normalization weights are detached in the score estimator.
+
+
+                                                        91
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+4914
+       Lemma P.2 (A group baseline does not remove frequency amplification). For 0 < P <
+4915   1, the expected update in Equation (14) is
+4916                                                                   
+4917                                                   E w(R)R(G − R)
+                         gG ] = cG (P )∇z P,
+                       E[b                   cG (P ) =                    > 0.        (15)
+4918                                                      G2 P (1 − P )
+4919
+       For the Dr.GRPO abstraction, cG (P ) = (G − 1)/G. Group centering and reward standardization
+4920
+       rescale the expected gradient without changing its direction under these assumptions.
+4921
+4922
+       Proof. Condition on the complete binary reward vector, whose sum is R. The score identities give
+4923
+4924          E[∇z log pZi | Ri = 1] = ∇z log P,        E[∇z log pZi | Ri = 0] = ∇z log(1 − P ).
+4925
+       There are R correct rows with centered reward (G − R)/G and G − R incorrect rows with centered
+4926
+       reward −R/G. Therefore the conditional expectation of the unaveraged sum in (14) is
+4927
+4928                      R(G − R)                                    R(G − R)
+                   w(R)            (∇z log P − ∇z log(1 − P )) = w(R)             ∇z P.
+4929                         G                                        GP (1 − P )
+4930
+       The outer factor 1/G and expectation over R ∼ Binomial(G, P ) yield (15). For w ≡ 1, E[R(G −
+4931
+       R)] = G(G − 1)P (1 − P ), proving the Dr.GRPO value.
+4932
+4933
+       The binomial identity also gives the denominator-free expression
+4934
+4935                                     G−2      
+                                  G−1 X G−2
+4936                    cG (P ) =                    w(j + 1)P j (1 − P )G−2−j .
+                                     G j=0      j
+4937
+4938   The binomial weights sum to one, so cG lies between (G − 1) minj w(j + 1)/G and (G −
+4939   1) maxj w(j + 1)/G. Thus cG extends smoothly and positively to P = 0, 1.
+4940
+4941
+       The practical MaxRL estimator has the same mean-gradient direction (Tajwar et al., 2026, Section 4.3
+       and App. D, Theorem 5). Its all-failure convention determines the finite-group coefficient.
+4942
+4943   Lemma P.3 (Binary MaxRL has the same correctness-gradient direction). Under Assumption P.1,
+4944   let MaxRL assign AMaxRL
+                         iP     = GRi /R − 1 when R > 0 and zero when R = 0, as in Section 3.
+4945
+             MaxRL
+       For gbG     = G−1 i AMaxRL
+                              i    ∇z log pZi at the on-policy point, the expected update is
+4946                                                                     1 − (1 − P )G−1
+                      MaxRL
+4947                 gG
+                   E[b      ] = cMaxRL
+                                 G     (P )∇z P,         cMaxRL
+                                                          G     (P ) =                   > 0,          (16)
+                                                                                P
+4948
+4949   with continuous endpoint values cMaxRL
+                                        G     (0) = G − 1 and cMaxRL
+                                                               G     (1) = 1.
+4950
+                                                                                                     MaxRL
+4951   Proof. With N = G and pass rate P , the estimator in Tajwar et al. (2026, Theorem 5) equals gbG     .
+                                  PG−2          j
+4952   Its expected coefficient is j=0 (1 − P ) , whose geometric sum gives Equation (16) and its endpoint
+4953   values. The identity requires on-policy independent draws and the score identity.
+4954
+4955   Integrating this coefficient gives the potential
+4956                                      Z P                  G−1
+                                                               X 1 − (1 − P )k
+4957
+                          ΨMaxRL (P ) :=      cMaxRL
+                                               G      (s) ds =                 .                       (17)
+4958                                        0                          k
+                                                                  k=1
+4959
+                                   PG−1
+4960   In particular, ΨMaxRL (1) =    k=1 1/k. For binary rewards, best@k equals pass@k, so this
+4961   is a harmonic mixture of sampling objectives for k = 1, . . . , G − 1. The upper limit is G − 1
+4962   because the implemented centered estimator sets the entire update to zero on all-failure groups.
+4963   Subtracting an unconditional score baseline even on those groups instead gives the order-G
+4964
+       estimator. These are exact finite-group expectations at the on-policy point; subsequent clip-
+       ping and adaptive optimization can alter the expected update.
+4965
+4966
+4967
+
+
+
+                                                        92
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+4968
+       P.2   W INNER - TAKE - ALL COLLAPSE IN THE CATEGORICAL MEAN FLOW
+4969
+4970   Consider ż = cG (P )∇z P , with any of the smooth positive coefficients established above: Dr.GRPO,
+4971   common-length reward-standardized GRPO, or the specified centered binary MaxRL estimator.
+4972   This infinitesimal expected-update model has no sampling noise and uses independently optimized
+4973   Euclidean logits. The conditional dynamics follow the frequency-dependent replicator system with
+4974   fitness fc (q) = qc (Hofbauer & Sigmund, 1998; Harper, 2009). Related analyses of collapse among
+4975   equally rewarded outcomes include Sinha et al. (2026); Lochab et al. (2026).
+4976   Theorem P.4 (Winner-take-all collapse in the categorical mean flow). Under Assumption P.1, if
+4977   the conditional correct-mode distribution q(0) has a unique largest coordinate c? , then
+4978
+                           P (t) −→ 1,       qc? (t) −→ 1,           qc (t) −→ 0         (c 6= c? ).
+4979
+4980   Thus these categorical mean flows converge to a single correct solution mode for generic ini-
+4981   tial conditions, even though every mode in C has exactly the same reward.
+4982   Remark P.5. Theorem P.4 is asymptotic and requires (A1)–(A5). Finite-time support loss and
+4983   convergence of the stochastic neural optimizers used in the experiments are outside its scope.
+4984
+4985   Proof. The coefficient cG is smooth and bounded on [0, 1], and the softmax reward gradient
+4986   is bounded. Thus the logit flow exists for all finite times and cannot develop infinite logits
+4987   at finite time. For a correct mode c and incorrect category a,
+4988                             żc = cG (P )pc (1 − P ),       ża = −cG (P )pa P.
+4989
+4990   Also Ṗ = cG (P )k∇z P k22 > 0.             If P converged to an interior value, continuity and
+4991   positivity of cG , together with
+4992                                                                 
+                                                                         1   1
+                                                                                 
+4993                                  k∇z P k22         2
+                                                  ≥ P (1 − P )   2
+                                                                           +         ,
+                                                                         m n
+4994
+4995   would keep Ṗ bounded away from zero, a contradiction. Hence P → 1.
+4996
+       Define the effective optimization time
+4997
+                                         Z t
+4998
+4999
+                                 τ (t) =     cG (P (s))P (s)(1 − P (s)) ds.
+                                              0
+5000
+5001   If τ (∞) < ∞, every correct and incorrect logit would have finite total variation, because the absolute
+5002
+       velocity of each is at most τ̇ . All logits would then converge to finite values, contradicting P → 1.
+       Therefore τ (t) → ∞, leaving infinite effective time for the correct-simplex dynamics below.
+5003
+5004   On the correct simplex, changing from t to τ gives the replicator flow
+5005                                             !
+5006                        dqc            X              d     qc
+                                = qc qc −     qd2 ,         log    = qc − qd .                           (18)
+5007                        dτ                           dτ     qd
+                                                  d∈C
+5008
+5009   The initially unique maximum remains the unique maximum. For c 6= c? , set ξc = qc /qc? ,
+5010
+       so ξc (0) < 1 and ξc is nonincreasing. Since qc? ≥ 1/m,
+5011                                 d log ξc                      1 − ξc (0)
+5012                                          = −qc? (1 − ξc ) ≤ −            .
+                                        dτ                            m
+5013
+       Hence ξc (τ ) ≤ ξc (0) exp[−(1 − ξc (0))τ /m] → 0. Every competing mode vanishes relative to c? ;
+5014
+       normalization then yields qc? → 1, establishing the claimed single-mode limit.
+5015
+5016
+       If several modes tie for the largest initial probability, symmetry preserves the tie; the same ra-
+5017
+       tio argument eliminates strictly smaller coordinates and leaves the tied maxima uniform. An
+5018   exactly uniform correct distribution is therefore a special initial condition. The theorem con-
+5019   cerns limiting concentration: finite softmax logits already give positive probabilities at every
+5020   finite time, so finite-time positivity alone is not a retention result.
+5021
+
+
+
+                                                            93
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5022
+       P.3   C ONDITIONAL TRAJECTORIES OF OUTCOME - BINARY MEAN FLOWS
+5023
+5024   Under Assumption P.1, every outcome-binary estimator with a positive correctness coefficient
+5025   induces the same conditional trajectory in q. Its advantage changes only the rate at which
+5026   that trajectory is traversed. Conditioning on correctness averages over all correct modes, so
+5027   a reward-dependent advantage cannot distinguish their identities.
+5028
+5029   Proof of Theorem 3.1.
+5030
+5031   Proof. The score identities used in Lemma P.2 give E[∇z log pZi | Ri = 1] = ∇z log P
+5032
+       and E[∇z log pZi | Ri = 0] = ∇z log(1 − P ). Independence of the draws means that con-
+       ditioning also on the other rows’ rewards does not change either conditional mean. Since
+5033
+       a(Ri , R) depends only on the binary rewards, conditioning on their complete vector and sum-
+5034
+       ming the R successful and G − R failed rows gives
+5035
+5036                        1                                                        
+                     ga ] =
+                   E[b         E[R a(1, R)]∇z log P + E[(G − R) a(0, R)]∇z log(1 − P ) .
+5037                        G
+5038   Substituting ∇z log P = ∇z P/P and ∇z log(1 − P ) = −∇z P/(1 − P ) yields Equation (3).
+5039                                                                                      d
+       The flow ż = ca (P )∇z P has correct-coordinate velocities ca (P )pc (1 − P ), so dt log(qc /qd ) =
+5040   ca (P )P (1 − P )(qc − qd ). When ca (P ) > 0, the time change dτ = ca (P )P (1 − P ) dt gives
+5041   Equation (18).
+5042
+                                                                                         G             G−1
+                                                                                                        
+5043   For a fixed reward-dependent advantage, the binomial identities R                         = G         and
+                                                                                         R             R−1
+5044   (G − R) G     = G G−1
+                               
+                 R           R    give
+5045
+5046                                G−1
+                                    X       
+                                          G−1
+                                               P j (1 − P )G−1−j a(1, j + 1) − a(0, j) ,
+                                                                                     
+5047                    ca (P ) =                                                                            (19)
+                                    j=0
+                                           j
+5048
+5049   a polynomial in P of degree at most G − 1.              Finite advantage values therefore give a
+5050   smooth, bounded coefficient on [0, 1].
+5051
+       The coefficients in this Bernstein expansion are
+5052
+5053                           dj := a(1, j + 1) − a(0, j),      j = 0, . . . , G − 1.                       (20)
+5054
+       With the other G − 1 rows fixed at j successes, dj is the change in a row’s advantage when its
+5055
+       reward changes from failure to success. The Bernstein basis is nonnegative on [0, 1] and sums
+5056
+       to one, so ca (P ) lies between minj dj and maxj dj . Each basis function is strictly positive on
+5057   (0, 1); hence nonnegative gaps, with at least one positive, imply ca (P ) > 0 throughout the interior.
+5058   This condition is sufficient: mixed-sign gaps alone do not determine the sign of ca .
+5059
+5060
+       For Dr.GRPO, every dj = (G − 1)/G, giving the constant coefficient in Lemma P.2. For
+       the centered MaxRL estimator, d0 = G − 1 and dj = G/(j + 1) for 1 ≤ j ≤ G − 1.
+5061
+       In particular, a(1, G) = 0 and a(0, G − 1) = −1 give dG−1 = 1. Substitution into Equa-
+5062
+       tion (19) gives [1 − (1 − P )G−1 ]/P , as in Lemma P.3.
+5063
+5064
+       Corollary P.6 (Collapse for correctness-improving outcome-binary mean flows). Under Assump-
+       tion P.1, let a(Ri , R) be a fixed, bounded advantage depending only on the binary rewards.
+5065
+       Suppose the gaps in Equation (20) satisfy dj ≥ 0 for every j, with at least one strictly pos-
+5066
+       itive gap. If q(0) has a unique largest coordinate c? , then
+5067
+5068                       P (t) −→ 1,        qc? (t) −→ 1,     qc (t) −→ 0    (c 6= c? ).
+5069
+       The surviving correct mode is the one with the largest initial probability; the choice of a
+5070   changes the rate along the conditional trajectory.
+5071
+5072   Proof. By Theorem 3.1, the flow is ż = ca (P )∇z P . Equation (19) makes ca smooth and
+5073   bounded on [0, 1]. If dj0 > 0, the nonnegative-gap hypothesis gives
+5074                                 
+5075                              G−1
+                      ca (P ) ≥         P j0 (1 − P )G−1−j0 dj0 > 0 (0 < P < 1).
+                                   j0
+
+                                                        94
+       Under review as a conference paper at ICLR 2027
+
+
+
+
+5076
+       These are the coefficient properties used in the proof of Theorem P.4: the logit flow exists for all
+5077   finite times, P → 1, and the effective time τ → ∞. The conditional replicator equation (18) then
+5078   eliminates all coordinates strictly below the initial maximum. It contains neither the advantage
+5079   coefficients nor the rollout group size, so the surviving mode depends only on q(0).
+5080
+5081   The nonnegative-gap condition is sufficient rather than necessary. An estimator with mixed-sign
+5082   gaps also has the same limiting behavior if ca (P ) > 0 throughout (0, 1). An interior zero of
+5083   ca is a stationary correctness level for the mean flow, while a negative coefficient gives Ṗ =
+5084   ca (P )k∇z P k22 < 0 at an interior policy. The collapse conclusion requires positivity and an initial
+5085   imbalance under Assumption P.1; it does not describe shared-prompt or sampled neural updates.
+5086   Remark P.7 (Group size in the deterministic conditional flow). For each G ≥ 2, group size enters the
+5087   mean flow through ca (P ). When this coefficient is positive, the time change in Theorem 3.1 gives
+5088   the same conditional replicator equation. Increasing G can change the speed of the mean flow but
+5089   cannot change the surviving mode under the conditions of Corollary P.6. Group size also changes the
+5090   probability of a mixed-reward group in Lemma P.18, which is small near both P = 0 and P = 1,
+5091
+       and the MaxRL coefficient in Corollary P.8. These properties concern total correctness P ; they do
+       not provide a probability floor for an individual correct mode. Gradient covariance and finite-sample
+5092
+       symmetry breaking can also depend on G, so the deterministic conditional equivalence does not
+5093
+       imply equivalent sampled updates.
+5094
+5095
+       Corollary P.8 (MaxRL amplification of the correctness gradient). For the coefficients of
+       Lemmas P.2 and P.3,
+5096
+                                                                
+5097                           cMaxRL
+                                G       (P )   G 1 − (1 − P )G−1
+5098                             Dr.GRPO
+                                             =                     .
+                                cG                 (G − 1)P
+5099
+5100   This ratio is nonincreasing in P , with limits G as P → 0 and G/(G − 1) as P → 1. It is
+5101   strictly decreasing for G > 2 and constant at 2 for G = 2. At the same policy, MaxRL there-
+5102
+       fore multiplies the Dr.GRPO correctness-gradient coefficient by a factor approaching G when
+       correctness is small. The probability of a nonzero fresh task component remains bounded by
+5103
+       the mixed-group probability in Lemma P.18 for both estimators.
+5104
+5105
+       Proof. Divide cMaxRL
+                        G     (P ) = [1 − (1 − P )G−1 ]/P by (G − 1)/G. The finite-series identity
+5106                     G−2
+       cMaxRL (P ) = j=0 (1 − P )j gives the endpoint limits and monotonicity. For G = 2 the sum is the
+                       P
+5107    G
+       constant 1; for G > 2 it contains the strictly decreasing term 1 − P .
+5108
+5109
+5110   P.4    N EURAL SCORE IDENTITIES AND THE LIMITS OF CONDITIONAL INERTNESS
+5111
+       Expected binary reward equals the total correct mass; conditional diversity depends on its al-
+5112   location among solution modes. Sinha et al. (2026, Theorem 3.1, v1) derive the expected-
+5113   return log-ratio dynamics for softmax outcome logits, and Lochab et al. (2026, Section 4.1,
+5114   v1) identify binary reward’s indifference to allocation within the correct set. For differentiable
+5115   neural policies, outcome-binary group estimators have per-prompt means proportional to the
+5116   correctness gradient but can differ in covariance. Finite steps, shared prompts, and response-
+5117   dependent weighting limit the resulting trajectory equivalence.
+5118   Theorem P.9 (Per-prompt neural mean and covariance). Fix a prompt and a differentiable policy πθ
+5119   on a finite or countable response space with common positive support, where θ lies in an open subset
+5120   of Rd . Let C be a fixed verifier-positive event, P = Prθ (Y ∈ C) ∈ (0, 1), and s(Y ) = ∇θ log πθ (Y ).
+5121   Assume differentiation may be interchanged with the probability sums over the full support and Pover
+5122   C, and that Eks(Y )k22 < ∞. For G independent responses, write Ri = 1[Yi ∈ C], R = i Ri ,
+5123   and let a : {0, 1} × {0, . . . , G} → R be any finite, detached advantage. Define
+5124                   1 X
+5125            gba =         a(Ri , R)s(Yi ),      v = ∇θ P,      Σr = Cov(s(Y ) | 1[Y ∈ C] = r) .
+                       G i
+5126
+5127   With                                                     
+5128                          1       r a(1, r) (G − r)a(0, r)
+                         βr =                  −                     ,    ca (P ) = E[βR ],
+5129                          G          P         1−P
+
+
+
+                                                         95
+

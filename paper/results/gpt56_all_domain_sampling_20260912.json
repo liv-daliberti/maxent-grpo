@@ -1,0 +1,824 @@
+{
+  "analysis_provenance": {
+    "analyzer": {
+      "path": "ops/analyze_gpt56_all_domain_discovery.py",
+      "sha256": "bdcc074304ac1bfa74d802a5a39fac4a20675e95639953a1195da47b12de4f0f"
+    },
+    "new_support": {
+      "path": "artifacts/modebench_discovery_five_domains_sol_20260912/support_reference.json",
+      "sha256": "503d56f01e50c691c7c80ee0f110b4c838597dc7959848eb5549e22ab9558a01"
+    },
+    "prior_analysis": {
+      "path": "paper/results/modebench_discovery_curves_20260911.json",
+      "sha256": "389f94cb5363907ad9ebaafc0e4ec6429fa0757826d4b98758b16911297d0716"
+    },
+    "sources": [
+      {
+        "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_curves_20260911/hosted/gpt56sol/original",
+        "grades": {
+          "path": "artifacts/modebench_discovery_curves_20260911/hosted/gpt56sol/original/discovery_hosted_grades.jsonl",
+          "sha256": "a677f221b08c50be7152e1cdcb0d51c80324918dd330b7a9286308b51125a190"
+        },
+        "grading_audit": {
+          "path": "artifacts/modebench_discovery_curves_20260911/hosted/gpt56sol/original/discovery_hosted_grading_audit.json",
+          "sha256": "4ffa8f60bdb951d6a8256d309919a32b3fd6a3951f2d24f1c062a14680620d9c"
+        },
+        "manifest": {
+          "path": "artifacts/modebench_discovery_curves_20260911/hosted/gpt56sol/original/manifest.json",
+          "sha256": "ab9929dbf7f21d7388bb814e84381236717ec97ab31f6202d5c51d13a419371f"
+        },
+        "native_receipts_authenticated": true,
+        "request_controls_sha256": "df636289adf1f7791129ad5f9d50a93a2e171710c41ba91c7528bf425d6f97bd",
+        "responses": 6144,
+        "samples": {
+          "path": "artifacts/modebench_discovery_curves_20260911/hosted/gpt56sol/original/samples.jsonl",
+          "sha256": "7b5c4883ab80145a5d73b28cad7825fd829060ffd77d5222f056be161de9f666"
+        },
+        "served_models": [
+          "gpt-5.6-sol"
+        ],
+        "served_snapshots": [
+          "gpt-5.6-sol-2026-07-09"
+        ]
+      },
+      {
+        "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/original",
+        "grades": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/original/discovery_hosted_grades.jsonl",
+          "sha256": "f84a4b2a67504ffa21cf32dd9cfcff4e366579f548913e40dab1e877646e2380"
+        },
+        "grading_audit": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/original/all_domain_grading_audit.json",
+          "sha256": "b7e6affc34a350e495b64f8e46aa184e0150b7c0c90ab3f1beea1fcea39a1f9c"
+        },
+        "manifest": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/original/manifest.json",
+          "sha256": "bcda80df7102dfd3541ae2dfb98c5196a95b811942702370abef029bce216274"
+        },
+        "native_receipts_authenticated": true,
+        "request_controls_sha256": "df636289adf1f7791129ad5f9d50a93a2e171710c41ba91c7528bf425d6f97bd",
+        "responses": 4096,
+        "samples": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/original/samples.jsonl",
+          "sha256": "bd869a25a89f50a3c50bdf0cf51369ea24a806d58c8afe37205eaea53889c793"
+        },
+        "served_models": [
+          "gpt-5.6-sol"
+        ],
+        "served_snapshots": [
+          "gpt-5.6-sol-2026-07-09"
+        ]
+      },
+      {
+        "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/pantry_extension",
+        "grades": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/pantry_extension/discovery_hosted_grades.jsonl",
+          "sha256": "bd4b74ecaff9c9f730b2dd919aa6a7d93f511378c7768396c6168404e61fca33"
+        },
+        "grading_audit": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/pantry_extension/all_domain_grading_audit.json",
+          "sha256": "94e1217633c522de49c352f413b15de16dcc09dd0b8cd6843be13288c1c9ab00"
+        },
+        "manifest": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/pantry_extension/manifest.json",
+          "sha256": "54a3166b0d3b64089a9301b97bbafba29c878e461f3e2db030b61cd796a22756"
+        },
+        "native_receipts_authenticated": true,
+        "request_controls_sha256": "df636289adf1f7791129ad5f9d50a93a2e171710c41ba91c7528bf425d6f97bd",
+        "responses": 2048,
+        "samples": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/hosted/gpt56sol/pantry_extension/samples.jsonl",
+          "sha256": "922ba34bb2d933620b5ca5a9f17e84dbc39b2fd52cf74c55319a22f4c612d392"
+        },
+        "served_models": [
+          "gpt-5.6-sol"
+        ],
+        "served_snapshots": [
+          "gpt-5.6-sol-2026-07-09"
+        ]
+      },
+      {
+        "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_five_domains_sol_20260912/pantry256_prospective/hosted/gpt56sol/pantry_extension256",
+        "grades": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/pantry256_prospective/hosted/gpt56sol/pantry_extension256/discovery_hosted_grades.jsonl",
+          "sha256": "36ba7899a036668e4e5f23c25cd0cc654b32028f2cd7d5e090bcf6ef4f8d6356"
+        },
+        "grading_audit": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/pantry256_prospective/hosted/gpt56sol/pantry_extension256/all_domain_grading_audit.json",
+          "sha256": "94407129c7d80e07edb29c6f799ac8f619db8ec9a6f8f5d7cc8cbf0342844d0c"
+        },
+        "manifest": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/pantry256_prospective/hosted/gpt56sol/pantry_extension256/manifest.json",
+          "sha256": "75ee4665686b32b53ce6b35eb084fd5e777548e7c1779b84e080f602badab72b"
+        },
+        "native_receipts_authenticated": true,
+        "request_controls_sha256": "df636289adf1f7791129ad5f9d50a93a2e171710c41ba91c7528bf425d6f97bd",
+        "responses": 4096,
+        "samples": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/pantry256_prospective/hosted/gpt56sol/pantry_extension256/samples.jsonl",
+          "sha256": "b1b44c8914c5666e80e29205c47cf9b3c813832989eee080f3f49a4a2e168559"
+        },
+        "served_models": [
+          "gpt-5.6-sol"
+        ],
+        "served_snapshots": [
+          "gpt-5.6-sol-2026-07-09"
+        ]
+      },
+      {
+        "directory": "/n/fs/similarity/maxent-grpo/artifacts/modebench_discovery_five_domains_sol_20260912/graph_countdown128/hosted/gpt56sol/extension",
+        "grades": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/graph_countdown128/hosted/gpt56sol/extension/discovery_hosted_grades.jsonl",
+          "sha256": "6f63be22c20ded0f2f2a06010304013689d10d3271cba686ffaa5ee36a33089c"
+        },
+        "grading_audit": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/graph_countdown128/hosted/gpt56sol/extension/all_domain_grading_audit.json",
+          "sha256": "079fa108c48e79941400c9383868fb19964f7c3ca9dd837f20f7c7f83f49c4d1"
+        },
+        "manifest": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/graph_countdown128/hosted/gpt56sol/extension/manifest.json",
+          "sha256": "cdbe62ad5e757a6664c4440e50434e68b82a0a9d48d39b303b542b4da6923511"
+        },
+        "native_receipts_authenticated": true,
+        "request_controls_sha256": "df636289adf1f7791129ad5f9d50a93a2e171710c41ba91c7528bf425d6f97bd",
+        "responses": 4096,
+        "samples": {
+          "path": "artifacts/modebench_discovery_five_domains_sol_20260912/graph_countdown128/hosted/gpt56sol/extension/samples.jsonl",
+          "sha256": "4da1ccaf36f6c41524c93a4726b037c19250d40881b42a8edd557972f31f3593"
+        },
+        "served_models": [
+          "gpt-5.6-sol"
+        ],
+        "served_snapshots": [
+          "gpt-5.6-sol-2026-07-09"
+        ]
+      }
+    ],
+    "support_certificate": {
+      "path": "artifacts/modebench_discovery_five_domains_sol_20260912/support_certificate_manifest.json",
+      "sha256": "49e0c52d3094852f045adc63dae778da8f41977354e34cc2f843a02ac6304414"
+    }
+  },
+  "builder": {
+    "path": "ops/build_paper_gpt56_all_domain_discovery.py",
+    "sha256": "4664bd2e66048a2e78406c07321c2a039d20757498f43b91265e9b94ec13d569"
+  },
+  "first64_prefix_successes": {
+    "normalized": 160,
+    "strict": 131
+  },
+  "interpretation": {
+    "extension": "Exploratory staged collection informed by earlier results; no asymptotic saturation claim.",
+    "last_doubling": "Paired rarefaction difference within each final full pool; not the literal new-key count in the last chronological block.",
+    "main_display": "Frozen formatting normalization, a separately labeled sensitivity.",
+    "strict": "Frozen verifier primary; identical response pools and failures retained.",
+    "varying_budgets": "Compare domains at a common k; domain endpoints have different measured budgets."
+  },
+  "model": "gpt-5.6-sol",
+  "prompts": 160,
+  "protocol": {
+    "bootstrap": {
+      "pointwise": true,
+      "replicates": 20000,
+      "seed": 20260911,
+      "strata": "domain and level",
+      "unit": "whole prompt"
+    },
+    "estimator": "Exact rarefaction within each complete observed response pool; average all prompts equally.",
+    "extension": "Exploratory additional collection after examining the original 64-draw results; no population or failure exclusions.",
+    "max_output_tokens": 8192,
+    "reasoning": "medium",
+    "selection": "Fixed outcome-independent selection; retain all 16 problems per domain and level.",
+    "temperature_and_top_p": "omitted"
+  },
+  "responses": 20480,
+  "rows": [
+    {
+      "domain": "graph_coloring",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "Graph",
+      "level": 2,
+      "max_draws": 128,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.5,
+            2.375
+          ],
+          "estimate": 1.9375
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.03946929823526104,
+            0.2409465345874745
+          ],
+          "estimate": 0.13139824251216528
+        },
+        "from_k": 64,
+        "to_k": 128
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            1.5,
+            2.375
+          ],
+          "estimate": 1.9375
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "exact",
+        "mean": 6.25,
+        "range": [
+          4,
+          9
+        ]
+      }
+    },
+    {
+      "domain": "graph_coloring",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "Graph",
+      "level": 3,
+      "max_draws": 128,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.25,
+            2.0625
+          ],
+          "estimate": 1.625
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.0004772790797211088,
+            0.187050404108031
+          ],
+          "estimate": 0.07808530474896443
+        },
+        "from_k": 64,
+        "to_k": 128
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            1.25,
+            2.0625
+          ],
+          "estimate": 1.625
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "exact",
+        "mean": 7.0,
+        "range": [
+          4,
+          12
+        ]
+      }
+    },
+    {
+      "domain": "countdown",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 15
+      },
+      "label": "Countdown",
+      "level": 2,
+      "max_draws": 128,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            2.4375,
+            3.5
+          ],
+          "estimate": 2.9375
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.06202339576619027,
+            0.2459655068310535
+          ],
+          "estimate": 0.14694495952752445
+        },
+        "from_k": 64,
+        "to_k": 128
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            2.4375,
+            3.375
+          ],
+          "estimate": 2.875
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 4.3125,
+        "range": [
+          3,
+          6
+        ]
+      }
+    },
+    {
+      "domain": "countdown",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "Countdown",
+      "level": 3,
+      "max_draws": 128,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.9375,
+            3.0625
+          ],
+          "estimate": 2.5
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.09060302869859838,
+            0.3059353107231595
+          ],
+          "estimate": 0.19404549805486687
+        },
+        "from_k": 64,
+        "to_k": 128
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            1.5625,
+            2.4375
+          ],
+          "estimate": 2.0
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 4.3125,
+        "range": [
+          2,
+          8
+        ]
+      }
+    },
+    {
+      "domain": "python_factors",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 3
+      },
+      "label": "Python",
+      "level": 2,
+      "max_draws": 64,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.0,
+            1.375
+          ],
+          "estimate": 1.1875
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            1.5379971769757805e-07,
+            0.037350905448065366
+          ],
+          "estimate": 0.015029553775706798
+        },
+        "from_k": 32,
+        "to_k": 64
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            0.0,
+            0.375
+          ],
+          "estimate": 0.1875
+        },
+        "pass": {
+          "ci95": [
+            0.0,
+            0.375
+          ],
+          "estimate": 0.1875
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 2.0,
+        "range": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "domain": "python_factors",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 1
+      },
+      "label": "Python",
+      "level": 3,
+      "max_draws": 64,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.0625,
+            1.5
+          ],
+          "estimate": 1.25
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            3.8255367193863046e-06,
+            0.09405080165421086
+          ],
+          "estimate": 0.03140642603190988
+        },
+        "from_k": 32,
+        "to_k": 64
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            0.0,
+            0.1875
+          ],
+          "estimate": 0.0625
+        },
+        "pass": {
+          "ci95": [
+            0.0,
+            0.1875
+          ],
+          "estimate": 0.0625
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 2.0,
+        "range": [
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "domain": "mathir",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "MathIR",
+      "level": 2,
+      "max_draws": 64,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.0,
+            0.002266254515143541
+          ],
+          "estimate": 0.0007554181717145877
+        },
+        "from_k": 32,
+        "to_k": 64
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 5.0,
+        "range": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "domain": "mathir",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "MathIR",
+      "level": 3,
+      "max_draws": 64,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "estimate": 0.0
+        },
+        "from_k": 32,
+        "to_k": 64
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 5.0,
+        "range": [
+          5,
+          5
+        ]
+      }
+    },
+    {
+      "domain": "pantry_plan",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "PantryPlan",
+      "level": 2,
+      "max_draws": 256,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            2.8125,
+            4.4375
+          ],
+          "estimate": 3.625
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.2576123419773106,
+            0.7495125889392118
+          ],
+          "estimate": 0.47707146851710525
+        },
+        "from_k": 128,
+        "to_k": 256
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            2.625,
+            4.0625
+          ],
+          "estimate": 3.3125
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 17.0,
+        "range": [
+          10,
+          31
+        ]
+      }
+    },
+    {
+      "domain": "pantry_plan",
+      "first64_prefix_successes": {
+        "normalized": 16,
+        "strict": 16
+      },
+      "label": "PantryPlan",
+      "level": 3,
+      "max_draws": 256,
+      "n_prompts": 16,
+      "normalized": {
+        "distinct": {
+          "ci95": [
+            3.6875,
+            5.75
+          ],
+          "estimate": 4.6875
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "normalized_last_doubling": {
+        "distinct": {
+          "ci95": [
+            0.3275584550143006,
+            0.7169371240910001
+          ],
+          "estimate": 0.5236376879497269
+        },
+        "from_k": 128,
+        "to_k": 256
+      },
+      "strict": {
+        "distinct": {
+          "ci95": [
+            3.4375,
+            5.5625
+          ],
+          "estimate": 4.4375
+        },
+        "pass": {
+          "ci95": [
+            1.0,
+            1.0
+          ],
+          "estimate": 1.0
+        }
+      },
+      "support": {
+        "kind": "certified_lower_bound",
+        "mean": 16.8125,
+        "range": [
+          8,
+          23
+        ]
+      }
+    }
+  ],
+  "schema": "paper-gpt56-five-domain-discovery-v1",
+  "served_snapshot_header": "gpt-5.6-sol-2026-07-09",
+  "source": {
+    "path": "artifacts/modebench_discovery_five_domains_sol_20260912/analysis/analysis.json",
+    "sha256": "4af29a6ca79428290a1bf0ea3d058a97fc57c65cb7201c378145e52eb15236a0"
+  },
+  "status": "complete"
+}

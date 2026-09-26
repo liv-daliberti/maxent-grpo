@@ -1,0 +1,149 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs,array,microtype}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}[proposition]{Theorem}
+\newtheorem{lemma}[proposition]{Lemma}
+\newtheorem{corollary}[proposition]{Corollary}
+\DeclareMathOperator{\KL}{KL}
+\DeclareMathOperator{\kl}{kl}
+\newcommand{\E}{\mathbb E}
+\newcommand{\Prb}{\mathbb P}
+\title{Theoretical extensions for verified replay:\\optimization, admission, entropy, and survival}
+\author{Companion research note for the ModeBench / ReplayMaxRL manuscript}
+\date{September 5, 2026}
+\begin{document}
+\maketitle
+
+The four follow-up questions admit useful theoretical answers with distinct
+premises. This note gives complete derivations, identifies their literature
+basis, and states what evidence would be needed to apply them to the runs.
+These are applications and specializations of established mathematical tools;
+no foundational novelty is claimed. The note contains no new training results.
+
+\begin{center}
+\small
+\begin{tabular}{@{}p{.19\textwidth}p{.36\textwidth}p{.37\textwidth}@{}}
+\toprule
+Question & Available theoretical result & Required application evidence \\
+\midrule
+Optimizer & Simultaneous high-probability retention from a controlled stochastic energy budget & Bounds on update bias, noise, smoothness, and preconditioner dependence \\
+Admission & Adaptive hazard bounds plus retention across changes in the bank & Actual insertion opportunities, capacity, persistent coefficients, and switching costs \\
+Exact entropy & Same full-support optimum as replay under conditional entropy, but different KL geometry & An exact estimator and explicit output alphabet; no transfer from a historical score \\
+Per-mode survival & Sharp probability certificates and valid finite-count intervals & Complete-response likelihoods or per-key sampling counts under a specified decoding law \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{An optimizer-aware conditional guarantee}
+\label{sec:optimizer}
+\input{optimizer.tex}
+
+\section{From actual admission to persistent protection}
+\label{sec:discovery}
+Conditional Borel--Cantelli supplies the standard probability background
+\cite[Theorem~4.3.4]{durrett2019}. Controlling energy across switches has a
+long history in hybrid-system analysis \cite{branicky1998}; the elementary
+positive-jump accounting below is proved directly.
+Archive methods such as Go-Explore separate discovery, return, and policy
+learning \cite{ecoffet2021}. That is a conceptual precedent, not a theorem
+about the present response bank.
+\input{discovery.tex}
+
+\input{entropy_geometry.tex}
+
+\section{Sharper per-mode certificates and measurement limits}
+\label{sec:survival}
+\input{survival_body.tex}
+
+\input{natural_gradient.tex}
+
+\section{What is ready to use in the paper}
+The sharp KL certificate and the exact-entropy distinction directly strengthen
+the existing retention discussion. The optimizer theorem extends the fixed
+joint-potential argument to controlled stochastic updates. The admission
+propositions identify sufficient conditions for a discovery-to-retention
+claim, including the effects of finite capacity and bank changes.
+The natural-gradient calculation is an optional mechanism comparison that
+makes the role of optimizer geometry particularly explicit.
+
+Applying these statements to the released neural runs still requires their
+premises to be measured or established. In particular, exact complete-response
+likelihood and finite categorical replay cross entropy must not be confused
+with mean-token scores. A theorem about probability retention cannot substitute
+for observations that individual stored modes survived the actual training
+trajectory. The registered E121 study remains prospective at this audit:
+no per-mode telemetry was available in its five registered run directories.
+The accompanying survival audit identifies analysis work needed before those
+records can support the registered claims.
+
+\begin{thebibliography}{99}
+\bibitem{pereyra2017} Gabriel Pereyra, George Tucker, Jan Chorowski,
+\L ukasz Kaiser, and Geoffrey Hinton (2017).
+\emph{Regularizing Neural Networks by Penalizing Confident Output Distributions}.
+\url{https://arxiv.org/abs/1701.06548}, Section~3.2.
+\bibitem{agarwal2021} Alekh Agarwal, Sham M. Kakade, Jason D. Lee,
+and Gaurav Mahajan (2021).
+\emph{On the Theory of Policy Gradient Methods: Optimality, Approximation,
+and Distribution Shift}. JMLR 22(98):1--76.
+\url{https://jmlr.org/papers/v22/19-736.html}, Section~5.2.
+\bibitem{geist2019} Matthieu Geist, Bruno Scherrer, and Olivier Pietquin (2019).
+\emph{A Theory of Regularized Markov Decision Processes}.
+ICML, PMLR 97:2160--2169.
+\url{https://proceedings.mlr.press/v97/geist19a.html}.
+\bibitem{mei2020} Jincheng Mei, Chenjun Xiao, Csaba Szepesv\'ari,
+and Dale Schuurmans (2020).
+\emph{On the Global Convergence Rates of Softmax Policy Gradient Methods}.
+ICML, PMLR 119:6820--6829.
+\url{https://proceedings.mlr.press/v119/mei20b.html}.
+\bibitem{harper2009} Marc Harper (2009).
+\emph{Information Geometry and Evolutionary Game Theory}.
+\url{https://arxiv.org/abs/0911.1383}, Sections~2.3 and~3.1.
+\bibitem{durrett2019} Rick Durrett (2019).
+\emph{Probability: Theory and Examples}, fifth edition.
+Cambridge University Press. Author-hosted manuscript:
+\url{https://sites.math.duke.edu/~rtd/PTE/PTE5_011119.pdf}, Theorem~4.3.4.
+\bibitem{branicky1998} Michael S. Branicky (1998).
+\emph{Multiple Lyapunov Functions and Other Analysis Tools for Switched and Hybrid Systems}.
+IEEE Transactions on Automatic Control 43(4):475--482.
+\url{https://people.ece.ubc.ca/moishi/eece571m/articles/Branicky98.pdf}.
+\bibitem{ecoffet2021} Adrien Ecoffet, Joost Huizinga, Joel Lehman,
+Kenneth O. Stanley, and Jeff Clune (2021).
+\emph{First return, then explore}. Nature 590:580--586.
+\url{https://doi.org/10.1038/s41586-020-03157-9}.
+
+\bibitem{vanerven2014} Tim van Erven and Peter Harremo\"es (2014).
+\emph{R\'enyi Divergence and Kullback--Leibler Divergence}.
+IEEE Transactions on Information Theory, DOI
+\href{https://doi.org/10.1109/TIT.2014.2320500}{10.1109/TIT.2014.2320500}.
+Verified author version: \href{https://arxiv.org/abs/1206.2459v2}{arXiv:1206.2459v2};
+Theorems 9 and 31, and Equation (2).
+\bibitem{garivier2011} Aur\'elien Garivier and Olivier Capp\'e (2011).
+\emph{The KL-UCB Algorithm for Bounded Stochastic Bandits and Beyond}.
+Proceedings of COLT, PMLR 19:359--376.
+\url{https://proceedings.mlr.press/v19/garivier11a.html}.
+\bibitem{clopper1934} C. J. Clopper and E. S. Pearson (1934).
+\emph{The Use of Confidence or Fiducial Limits Illustrated in the Case of the Binomial}.
+Biometrika 26(4):404--413.
+\href{https://doi.org/10.1093/biomet/26.4.404}{doi:10.1093/biomet/26.4.404}.
+\bibitem{howard2021} Steven R. Howard, Aaditya Ramdas, Jon McAuliffe, and Jasjeet Sekhon (2021).
+\emph{Time-uniform, nonparametric, nonasymptotic confidence sequences}.
+Annals of Statistics 49(2):1055--1080.
+\href{https://doi.org/10.1214/20-AOS1991}{doi:10.1214/20-AOS1991};
+\href{https://arxiv.org/abs/1810.08240}{arXiv:1810.08240}, Proposition 7.
+\bibitem{mcallester2003} David McAllester and Luis Ortiz (2003).
+\emph{Concentration Inequalities for the Missing Mass and for Histogram Rule Error}.
+Journal of Machine Learning Research 4:895--911.
+\url{https://jmlr.org/papers/volume4/mcallester03a/mcallester03a.pdf}.
+\bibitem{berend2013} Daniel Berend and Aryeh Kontorovich (2013).
+\emph{On the concentration of the missing mass}.
+Electronic Communications in Probability 18, paper 3:1--7.
+\href{https://doi.org/10.1214/ECP.v18-2359}{doi:10.1214/ECP.v18-2359};
+\href{https://arxiv.org/abs/1210.3248}{arXiv:1210.3248}.
+
+\end{thebibliography}
+\end{document}

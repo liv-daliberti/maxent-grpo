@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+#SBATCH --job-name=e50-terminal-probes
+#SBATCH --partition=lowprio
+#SBATCH --account=allcs
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=8G
+#SBATCH --time=01:00:00
+#SBATCH --output=var/artifacts/e50-terminal-probes-%j.out
+#SBATCH --error=var/artifacts/e50-terminal-probes-%j.err
+
+set -euo pipefail
+
+ROOT_DIR=/n/fs/similarity/maxent-grpo
+cd "$ROOT_DIR"
+
+exec bash \
+  "$ROOT_DIR/ops/math_strategy_calibration/run_e50_terminal_probes_after_training.sh"

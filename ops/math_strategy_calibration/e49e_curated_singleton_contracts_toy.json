@@ -1,0 +1,262 @@
+{
+  "eval:0000:633e012b858efb060033": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Expand $(z+i)^4$ and rewrite the given equation exactly as $(z+i)^4=1+i$."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Put $1+i$ in polar form and show that its four fourth roots, after translation by $-i$, are the vertices of a square."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Compute the square's area from its circumradius, express that area as $p^{a/b}$ in lowest terms, and evaluate the requested sum."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Use the exact fourth-power translation, root geometry, and circumradius-area calculation in order.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "eval:0012:6383ddee9669e046995c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Compare the exponents of $2$ and $5$ in the denominator and multiply numerator and denominator by the missing factor needed for a decimal-base power."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Write the resulting integer numerator over the corresponding power of the decimal base, preserving all leading and internal zero positions."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Read the terminating decimal digits and add them."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Balance the prime-power denominator, form the exact terminating decimal, and sum its digits.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "eval:0039:e4f25f1d94103f999423": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Recenter at $x=1$ and rewrite both bounding quadratics as a common constant plus lower and upper scalar multiples of $(x-1)^2$."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Use the bounds on both sides of $x=1$ to force the recentered quadratic's constant and linear terms, leaving only a constrained scalar multiple of $(x-1)^2$."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Use $P(11)=181$ to determine that scalar exactly, then evaluate the resulting polynomial at $16$."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Apply the quadratic squeeze at the shared center, determine the remaining coefficient, and evaluate the target.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "eval:0042:16bb39553cd3d55f4945": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Use the complementary-angle identity to rewrite the reciprocal $\\cos^2 10^\\circ$ term as a reciprocal sine-square term."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Recognize the resulting angles as the cyclic equally spaced instance of the standard reciprocal-sine-square sum identity."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Evaluate that identity from the base angle $20^\\circ$ and simplify its exact special-angle value."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Convert the cosine term, apply the equally spaced reciprocal-sine-square identity, and simplify.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "eval:0046:7d6034fbace18cb8a496": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Translate the geometric triples to $a_{2k}^2=a_{2k-1}a_{2k+1}$ and the arithmetic triples to $2a_{2k+1}=a_{2k}+a_{2k+2}$."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Set $r_k=a_{2k}/a_{2k-1}$, derive $r_{k+1}=2-1/r_k$, solve this recurrence symbolically, and obtain the induced formula for odd-indexed terms."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Impose strict increase and positive integrality, factor $a_{13}=2016$ to select the admissible square divisor, and back-calculate $a_1$."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Derive and solve the ratio recurrence, enforce the integer constraints, and propagate from $a_{13}$ back to $a_1$.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "eval:0048:bb835aabaedccfa0c71d": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Condition on the color Alice transfers; by color symmetry its name does not affect the probability."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Describe Bob's post-transfer bag and prove that equality of the final bag contents occurs exactly when Bob returns either copy of the duplicated color."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Count the favorable balls among all balls in Bob's post-transfer bag and reduce the resulting probability."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Condition by symmetry, characterize the exact return event, and count it.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "train:0001:train/number_theory/746.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Compute the least nonnegative residue of $-3737$ modulo $8$ by reducing the magnitude and then applying the negative sign."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Use uniqueness of the representative in $0\\le n\\le7$ to select $n$ and verify the stated congruence."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "Reduce the signed residue, choose its unique interval representative, and verify it.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "train:0011:test/number_theory/382.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Within the first $100$ primes, identify the pair of prime factors whose product is divisible by the decimal base."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Use the presence of both factors to prove the full product is divisible by the decimal base and infer its units digit."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "Find the decisive prime-factor pair and use decimal-base divisibility to determine the units digit.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "train:0016:train/precalculus/539.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Encode the angles as unit complex numbers $a=e^{ix}$, $b=e^{iy}$, and $c=e^{iz}$, and combine the givens into a vanishing complex-sum relation."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Conjugate that relation, use unit modulus to replace conjugates by reciprocals, and multiply by $abc$ to obtain the pairwise-product relation."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Square the vanishing complex-sum relation and substitute the pairwise-product relation to determine $a^2+b^2+c^2$."
+      },
+      {
+        "action_id": "A4",
+        "operation": "Take real parts, identify the requested double-angle cosine sum, and sum all values it can take."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3", "A4"],
+        "plan": "Use the unit-complex encoding, its conjugate relation, the squared sum, and real parts in order.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "train:0029:train/algebra/1013.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Substitute $x=2$ into both displayed functions while keeping $k$ symbolic."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Form the exact equation $f(2)-g(2)=2$ and isolate $k$ using rational arithmetic."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Substitute the solved value of $k$ back into the original difference as a check."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Evaluate both functions at the specified input, solve the resulting linear equation, and verify.",
+        "strategy_id": "S1"
+      }
+    ]
+  },
+  "train:0044:train/intermediate_algebra/853.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Use the positive leading coefficient to reduce positivity for every real $x$ to the discriminant being strictly negative."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Compute the discriminant of $x^2-(k-3)x-k+6$, simplify it, and factor the resulting strict inequality in $k$."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Use a sign chart to select the open interval where that product is negative and verify that both endpoints are excluded."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Apply the discriminant criterion, factor its parameter inequality, and read the strict sign interval.",
+        "strategy_id": "S1"
+      }
+    ]
+  }
+}

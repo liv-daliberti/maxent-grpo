@@ -1,0 +1,163 @@
+{
+  "input_sha256": "4435fc13c087a72c1f55be65fea55308f3b2f0935ab69e8dc39af647696f0080",
+  "summaries": {
+    "breadth8": {
+      "mean": 0.2328125,
+      "ci95": [
+        0.181640625,
+        0.319921875
+      ],
+      "ordered_resamples": 3125,
+      "all_seed_effects_positive": true,
+      "all_seed_effects_negative": false,
+      "per_seed": [
+        0.18359375,
+        0.173828125,
+        0.404296875,
+        0.203125,
+        0.19921875
+      ]
+    },
+    "pass8": {
+      "mean": 0.0453125,
+      "ci95": [
+        -0.000390625,
+        0.091015625
+      ],
+      "ordered_resamples": 3125,
+      "all_seed_effects_positive": false,
+      "all_seed_effects_negative": false,
+      "per_seed": [
+        0.08203125,
+        -0.025390625,
+        0.115234375,
+        0.060546875,
+        -0.005859375
+      ]
+    },
+    "mean8": {
+      "mean": -0.015185546875,
+      "ci95": [
+        -0.02138671875,
+        -0.008984375
+      ],
+      "ordered_resamples": 3125,
+      "all_seed_effects_positive": false,
+      "all_seed_effects_negative": true,
+      "per_seed": [
+        -0.005615234375,
+        -0.02001953125,
+        -0.01611328125,
+        -0.025390625,
+        -0.0087890625
+      ]
+    },
+    "distinct8": {
+      "mean": 0.278125,
+      "ci95": [
+        0.184375,
+        0.403515625
+      ],
+      "ordered_resamples": 3125,
+      "all_seed_effects_positive": true,
+      "all_seed_effects_negative": false,
+      "per_seed": [
+        0.265625,
+        0.1484375,
+        0.51953125,
+        0.263671875,
+        0.193359375
+      ]
+    }
+  },
+  "endpoint_checks": [
+    {
+      "seed": 55,
+      "arm": "frequency",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    },
+    {
+      "seed": 55,
+      "arm": "uniform",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    },
+    {
+      "seed": 56,
+      "arm": "frequency",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 3
+    },
+    {
+      "seed": 56,
+      "arm": "uniform",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    },
+    {
+      "seed": 57,
+      "arm": "frequency",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 2
+    },
+    {
+      "seed": 57,
+      "arm": "uniform",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    },
+    {
+      "seed": 58,
+      "arm": "frequency",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    },
+    {
+      "seed": 58,
+      "arm": "uniform",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    },
+    {
+      "seed": 59,
+      "arm": "frequency",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 2
+    },
+    {
+      "seed": 59,
+      "arm": "uniform",
+      "step": 3072,
+      "draws": 4,
+      "raw_metrics_match": true,
+      "source_files": 1
+    }
+  ],
+  "source_gate": "preregistered source gate and protocol/amendment hashes verified",
+  "counts": {
+    "source_files": 14,
+    "terminal_draws": 40,
+    "prompts_recomputed": 5120,
+    "responses_recomputed": 40960
+  },
+  "scope": "Independent source hashes, complete terminal draws across every visible attempt, prompt/reward/key aggregates, matched prompt identities, endpoint subtraction, and exhaustive bootstrap checked. Full telemetry vectors are not independently replayed; visible audit reports five passing runs and zero violations."
+}

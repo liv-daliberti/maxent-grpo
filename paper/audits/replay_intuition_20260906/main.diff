@@ -1,0 +1,74 @@
+--- before/main.tex
++++ main.tex
+@@ -95,7 +95,10 @@
+ \label{eq:lm-verified-replay}
+ \end{equation}
+ Each retained key receives equal replay weight, independent of its frequency in
+-fresh rollouts. Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
++fresh rollouts. A solution seen once gets the same share of replay as one seen
++repeatedly. This keeps common solutions from absorbing the replay budget and
++gives rare successes a continuing training signal.
++Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
+ which debiases GRPO \citep{shao2024deepseekmath}, yields ReplayDr.GRPO.
+ Appendix~\ref{app:algorithm} gives the full update and
+ Appendix~\ref{app:theory-replay} the idealized retention guarantee.
+@@ -133,14 +136,14 @@
+ 
+ \noindent\textbf{Replay improves held-out correctness and support.}
+ \label{sec:results-retention}
+-ReplayDr.GRPO improves both means in 14 complete model--domain blocks and one
+-four-seed block; \texttt{distinct@8} rises in all 74 admissible seed pairs
+-(one conflicting source excluded; Appendix~\ref{app:source-integrity}).
++ReplayDr.GRPO improves average held-out correctness and verified support across
++all five domains at each of the three model scales
++(Figure~\ref{fig:cross-scale-terminal-effects}).
+ On Qwen2.5-0.5B Countdown, \texttt{pass@8} rises $.48\to.67$ and
+-\texttt{distinct@8} $.49\to1.64$. Across five Qwen2.5-0.5B domains, uniform versus
+-frequency-weighted replay adds $.318$ extra modes on average
+-(95\% paired bootstrap interval $[.272,.358]$;
+-Appendix~\ref{app:frequency-replay-progress}).
++\texttt{distinct@8} $.49\to1.64$. The weighting rule matters: across five
++Qwen2.5-0.5B domains, uniform replay adds $.32$ extra modes per eight samples
++on average over frequency-weighted replay
++(Appendix~\ref{app:frequency-replay-progress}).
+ 
+ \clearpage
+ \begin{figure}[!htbp]
+@@ -156,16 +159,13 @@
+ 
+ \noindent\textbf{Replay improves both Dr.GRPO and MaxRL.}
+ \label{sec:results-maxrl}
+-Adding replay improves both cross-domain averages under either objective at
+-Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}); Qwen2.5-3B
+-also benefits on its completed
+-Dr.GRPO track. For ReplayMaxRL, both endpoints improve in all five Qwen2.5-0.5B
+-domains; Falcon correctness improves in five and support in four.
+-At Qwen2.5-0.5B, ReplayMaxRL minus MaxRL is $.307$ \texttt{pass@8} and $.991$
+-\texttt{distinct@8}
+-(unadjusted 95\% paired $t$ intervals $[.208,.406]$, $[.815,1.167]$).
+-These cross-domain summaries are post-hoc; Falcon Dr.GRPO uses four common
+-seeds descriptively (Appendix~\ref{app:results-maxrl}).
++Adding replay improves average correctness and verified support under either
++objective at Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}).
++Qwen2.5-3B also benefits in its completed Dr.GRPO comparison.
++MaxRL comparisons use five paired seeds per domain.
++At Qwen2.5-0.5B, replay raises MaxRL's \texttt{pass@8} by $.31$ and
++\texttt{distinct@8} by $.99$ on average across domains
++(paired estimates and intervals: Appendix~\ref{app:results-maxrl}).
+ 
+ \begin{figure}[!htbp]
+ \centering
+@@ -200,9 +200,10 @@
+ held-out correctness. These controlled tasks provide a starting point for
+ studying diversity in broader mathematical reasoning. Replay retains only discovered,
+ stored modes; individual-mode survival remains unmeasured
+-(Appendix~\ref{app:ablations}). We have not shown that broader support causes
+-accuracy gains or helps solve later problems. The next step is to test which
+-alternatives help on richer mathematical tasks, and when.
++(Appendix~\ref{app:ablations}). Whether broader support causes accuracy gains or
++helps on later tasks remains open. Adding an edge can invalidate one graph
++coloring while leaving another valid. A natural next step is to test whether
++retained alternatives help a model respond to such changes.
+ 
+ \label{main:lastpage}
+ \clearpage

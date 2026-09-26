@@ -1,0 +1,608 @@
+--- 
++++ 
+@@ -22,6 +22,7 @@
+ \usepackage{xcolor}
+ \usepackage{array}
+ \usepackage{float}
++\usepackage{placeins}
+ \usepackage{algorithm}
+ \usepackage{algorithmic}
+ \usepackage{paralist}
+@@ -443,7 +444,7 @@
+ 
+ We compare Dr.GRPO \citep{liu2025understanding} and MaxRL \citep{tajwar2026maxrl}, each with and without replay, on all five \mb{} domains. Level 1 uses Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B with five seeds, eight training epochs, and $G=16$ fresh rollouts per prompt. Replay contributes a likelihood gradient on at most $M=16$ stored exemplars within the same optimizer step (Table~\ref{tab:run-contract}). Optimizer updates and fresh-rollout counts are matched; total FLOPs and wall-clock time are not. The zero-derivative control retains replay computation but does not redirect that work to extra task-gradient updates, fresh rollouts, or longer training. These comparisons test the replay mechanism, not superiority at equal total compute (App.~\ref{app:compute-matching}). We repeat the comparison at Levels 2 and 3 with Qwen2.5-0.5B. At Level 1 and 0.5B, we also test frequency-weighted replay, UCPO \citep{lochab2026ucpo}, RLEP \citep{zhang2025rlep}, GAPO \citep{anschel2025groupaware}, SetPO \citep{li2026setpo}, and fixed Semantic-MaxEnt.
+ 
+-Our separate inference-only studies evaluate GPT-5.6 Sol, GPT-5.4, Grok 4.3, Kimi K3, and Claude Opus 4.8 on Levels 1--3, with eight responses per prompt and a fixed formatting normalizer (App.~\ref{app:hosted-reasoning-control}). Open-weight evaluations span the available scales of SmolLM2, Qwen2.5, Falcon3, and OLMo-2 across Levels 1--5 (App.~\ref{sec:families-appendix}). Deployment identifiers and protocols are recorded with these results; no training or replay is applied in these studies.
++Our separate inference-only studies evaluate GPT-5.6 Sol, GPT-5.4, Grok 4.3, Kimi K3, and Claude Opus 4.8 on Levels 1--3, with eight responses per prompt and a fixed formatting normalizer (App.~\ref{app:hosted-reasoning-control}). Open-weight evaluations span the available scales of SmolLM2, Qwen2.5, Falcon3, and OLMo-2 across Levels 1--5 (App.~\ref{sec:families-appendix}). These studies apply no training or replay.
+ 
+ \section{Results}
+ \label{sec:results}
+@@ -503,7 +504,7 @@
+ 
+ 
+ \textbf{As outputs concentrate, rollouts under RLVR lose training signal.}
+-A group containing only successes or only failures gives zero fresh task advantage under Dr.GRPO and MaxRL. Across all 3,072 Qwen2.5-0.5B \texttt{Python} updates, the five-seed mean mixed-group fraction is 1.5\% under Dr.GRPO versus 18.5\% under Re:Dr. Saved control completions also become byte-identical within each prompt by steps 288--480 and remain so through training. Replay supplies a separate likelihood gradient even when the fresh task gradient vanishes; the complete audit is in App.~\ref{app:degenerate-groups}.
++A group containing only successes or only failures gives zero fresh task advantage under Dr.GRPO and MaxRL. Across all 3,072 Qwen2.5-0.5B \texttt{Python} updates, the five-seed mean mixed-group fraction is 1.5\% under Dr.GRPO versus 18.5\% under Re:Dr. Control completions also become byte-identical within each prompt by steps 288--480 and remain so through training. Replay supplies a separate likelihood gradient even when the fresh task gradient vanishes (App.~\ref{app:degenerate-groups}).
+ 
+ \subsection{Reuse raises accuracy; equal weighting preserves diversity}
+ \label{sec:results-retention}
+@@ -557,13 +558,13 @@
+ \begin{minipage}[t]{.56\linewidth}
+   \centering
+   \includegraphics[height=1.35in]{figures/reference_kl_plane.pdf}
+-  \caption{\textbf{Reference KL trades correctness for diversity.} Means over \texttt{Graph}, \texttt{MathIR}, and \texttt{Pantry} at Qwen2.5-0.5B, Level~1, across KL coefficients $\beta$. Rules mark initial means; shading marks either side of the interpolated KL curve, without uncertainty estimates (App.~\ref{app:theory-kl-measured}).}
++  \caption{\textbf{Reference KL trades correctness for diversity.} Means over \texttt{Graph}, \texttt{MathIR}, and \texttt{Pantry} at Qwen2.5-0.5B, Level~1, across KL coefficients $\beta$. Rules mark initial means; the curve connects measured means without uncertainty bands (App.~\ref{app:theory-kl-measured}).}
+   \label{fig:reference-kl-plane}
+ \end{minipage}
+ \end{figure}
+ 
+ \textbf{Reference KL and replay preserve different sources of diversity.}
+-A KL penalty anchors the policy to its initial distribution; replay rehearses modes discovered during training. Beyond $\beta=.01$, the three-domain mean gains diversity while losing correctness (Fig.~\ref{fig:reference-kl-plane}). At $\beta=.04$, KL reaches $.432$ \pmd{} against Re:Dr's $.427$, with \texttt{pass@8} of $.614$ against $.846$. App.~\ref{app:theory-kl-measured} gives the domain-level comparisons and distinguishes the reference's initial diversity from the modes the bank discovers.
++A KL penalty anchors the policy to its initial distribution; replay rehearses modes discovered during training. From $\beta=.01$ to $.2$, the three-domain mean gains diversity while losing correctness (Fig.~\ref{fig:reference-kl-plane}). At $\beta=.04$, KL reaches $.432$ \pmd{} against Re:Dr's $.427$, with \texttt{pass@8} of $.614$ against $.846$. App.~\ref{app:theory-kl-measured} gives the domain-level comparisons and distinguishes the reference's initial diversity from the modes the bank discovers.
+ 
+ \section{Related Work}
+ \label{sec:related}
+@@ -619,11 +620,10 @@
+ 
+ \subsubsection*{Reproducibility Statement}
+ 
+-Every reported number is computed from a versioned result file.
+-App.~\ref{app:reproducibility} records protocols, hashes, validations,
+-and regeneration commands, and links the public dataset and model archive;
+-App.~\ref{app:data} records split identities.
+-The AI Use Statement above discloses generative-AI assistance.
++The public dataset, model weights, and analysis resources are linked in
++App.~\ref{app:reproducibility}. App.~\ref{app:data} describes the dataset
++splits and evaluation protocol. The AI Use Statement above discloses
++generative-AI assistance.
+ 
+ 
+ 
+@@ -783,12 +783,10 @@
+ \apxpart{Part VII. Extended comparison}
+ \apxsec{\ref{app:related-extended}}{Diversity-Preserving RLVR: Extended Comparison}{\pageref{app:related-extended}}
+ \apxpart{Part VIII. Records}
+-\apxsec{\ref{app:reproducibility}}{Evaluation Records and Reproducibility}{\pageref{app:reproducibility}}
+-\apxsub{\ref{app:source-integrity}}{Evaluation sources and missing checkpoints}{\pageref{app:source-integrity}}
+-\apxsub{\ref{app:initial-provenance}}{Initial checkpoints and paired contrasts}{\pageref{app:initial-provenance}}
+-\apxsub{\ref{app:scheduled-provenance}}{Repeated scheduled checkpoints}{\pageref{app:scheduled-provenance}}
+-\apxsub{\ref{app:repro-artifacts}}{Data, models, and analysis inputs}{\pageref{app:repro-artifacts}}
+-\apxsub{\ref{app:repro-recovery}}{Training state and reproducibility checks}{\pageref{app:repro-recovery}}
++\apxsec{\ref{app:reproducibility}}{Data and Reproducibility}{\pageref{app:reproducibility}}
++\apxsub{\ref{app:source-integrity}}{Evaluation comparisons}{\pageref{app:source-integrity}}
++\apxsub{\ref{app:repro-artifacts}}{Datasets and models}{\pageref{app:repro-artifacts}}
++\apxsub{\ref{app:repro-recovery}}{Analysis resources}{\pageref{app:repro-recovery}}
+ \par\endgroup
+ 
+ \clearpage
+@@ -1085,7 +1083,7 @@
+   \includegraphics[width=.86\linewidth]{figures/replay_bank_decomposition.pdf}
+   \caption{\textbf{Balanced mode probabilities maximize expected coverage at fixed accuracy and mode count.}
+   Points show held-out Level-1 prompts from terminal Re:Dr and Re:Max
+-  checkpoints of Qwen2.5-0.5B (seed 43), grouped by their verified response
++  checkpoints of Qwen2.5-0.5B from one matched seed, grouped by their verified response
+   fraction $P$. Bands show $\sum_c[1-(1-Pq_c)^8]$ for
+   $P\in\{.25,.50,.75\}$ as allocations vary from a point mass to uniform over
+   domain-specific mode-count ranges. They are analytic ranges, not confidence
+@@ -1528,8 +1526,8 @@
+     Replay & Capacity $M=16$ per prompt; one round-robin bank per update;
+       $\lambda_{\mathrm{replay}}=.10$. Controls execute the same code with
+       an exact-zero replay derivative; realized banks and workloads can differ. \\
+-    Training seeds & Qwen2.5-0.5B: 43--47; Falcon3-1B: 55--59;
+-      Qwen2.5-3B: 70--74. \\
++    Training seeds & Five per model--domain cell; paired comparisons use
++      common seeds, with sample sizes reported alongside the results. \\
+     Learning rate & Qwen-0.5B and Falcon-1B: constant $2\times10^{-7}$,
+       with optimizer-state offload for Falcon. Qwen-3B: cosine decay with
+       $10^{-7}$ peak, $10^{-8}$ floor, and 10\% warmup. \\
+@@ -1553,28 +1551,11 @@
+     % whether it was chosen or inherited; the ledgers are what distinguish them.
+     Response tokens & \texttt{Graph} and \texttt{Countdown}: 192; \texttt{Python}: 192/512/192
+       at 0.5B/1B/3B; \texttt{MathIR}: 64/128/64; \texttt{PantryPlan}: 8. \\
+-    Evaluation seeds & Base 610100/610200/610300/610400/76299 for
+-      \texttt{Graph}/\texttt{Countdown}/\texttt{Python}/\texttt{MathIR}/\texttt{PantryPlan}; draw $d$ uses base plus $d$. \\
+     \bottomrule
+   \end{tabularx}
+ \end{table}
+ 
+-\begin{table}[!htbp]
+-\centering
+-\caption{\textbf{Base-model revisions.} Both arms of each paired training
+-comparison use the same initialization from the model revisions below.}
+-\label{tab:pinned-revisions}
+-\small
+-\begin{tabular}{@{}ll@{}}
+-\toprule
+-\textbf{Base model} & \textbf{Revision} \\
+-\midrule
+-Qwen2.5-0.5B-Instruct & {\scriptsize\texttt{7ae557604adf67be50417f59c2c2f167def9a775}} \\
+-Falcon3-1B-Instruct & {\scriptsize\texttt{28ba2251970a01dd1edc7ba7dad2eb71216ccfdf}} \\
+-Qwen2.5-3B-Instruct & {\scriptsize\texttt{aa8e72537993ba99e69dfaafa59ed015b17504d1}} \\
+-\bottomrule
+-\end{tabular}
+-\end{table}
++
+ 
+ Responses are independent within each evaluation draw. For each training
+ seed, \texttt{pass@8} and raw \texttt{distinct@8} average over all 128 prompts
+@@ -1584,16 +1565,12 @@
+ Student-$t$ intervals. Incomplete primary endpoint blocks give exact seed
+ counts and descriptive means without intervals. Support-filtered diversity
+ comparisons specify their eligible seed sets and interval rules separately.
+-Intervals condition on the fixed prompts and evaluation requests. Terminal comparisons use only terminal checkpoints;
+-missing endpoints are not replaced by earlier checkpoints. Each comparison
+-specifies its seed intersection and averaging rule; the replay-weighting
+-comparison uses a paired-seed bootstrap.
+-
+-% Appendix B ends with four heavy floats (the run contract, the pinned
+-% revisions, the frontier grid and the families scatter). Left to drift they
+-% placed inside Appendix C, which split C's opening paragraph across four
+-% pages with B's tables sitting in the middle of it. Flush them before C.
+-
++Intervals condition on the fixed prompts and evaluation requests. Terminal
++comparisons use paired final checkpoints; the replay-weighting comparison
++uses a paired-seed bootstrap.
++
++% Finish benchmark floats before beginning the prompt examples.
++\FloatBarrier
+ \section{Exact Domain Prompts}
+ \label{app:prompts}
+ 
+@@ -2058,9 +2035,8 @@
+ 
+ \label{tab:cross-scale-terminal-effects}
+   \scriptsize
+-  % Thirteen columns with the domains spelled out: the two widest headers,
+-  % Countdown and PantryPlan, set the measure rather than the digits do, so the
+-  % padding comes down to keep the names at full size inside \linewidth.
++  % Keep the two longest domain headers on two lines, as in the main table,
++  % so typewriter labels retain their size within the thirteen-column layout.
+   \setlength{\tabcolsep}{1.4pt}
+   \renewcommand{\arraystretch}{0.92}
+   \begin{tabular}{@{}l*{12}{r}@{}}
+@@ -2093,9 +2069,8 @@
+ previously discovered routes survived training.
+ 
+ Fig.~\ref{fig:maxrl-factorial-scale-extensions} gives the absolute results
+-by domain. All MaxRL/Re:Max correctness comparisons use five paired seeds,
+-including seeds 70--74 in every Qwen2.5-3B domain. Dr.GRPO/Re:Dr also uses
+-five except Falcon \texttt{Countdown}, which uses four. Diversity has separate
++by domain. MaxRL/Re:Max correctness comparisons use five paired seeds.
++Dr.GRPO/Re:Dr also uses five except Falcon \texttt{Countdown}, which uses four. Diversity has separate
+ support requirements and seed populations. A factorial interaction requires
+ the common four-arm seed intersection.
+ 
+@@ -2274,16 +2249,11 @@
+ \label{app:factorial-training-curves}
+ 
+ Figs.~\ref{fig:factorial-training-accuracy}--\ref{fig:level2-training-pmd}
+-show accuracy and diversity during training. Accuracy and raw distinct-mode
+-counts use terminal paired-seed cohorts, averaging the available members at
+-each checkpoint; ringed points identify partial cohorts. Evaluations use
+-four groups of eight responses to each of 128 held-out prompts.
+-The \pmd{} curves use method-specific cohorts and evaluation grids, with
+-at least five defining prompts per contributing seed. Their seed populations
+-can therefore differ from the accuracy curves and change over training.
+-Bands show seed ranges, not confidence intervals. Lines connect observed
+-means without smoothing and break where neither a value nor an eligible
+-seed is available.
++show accuracy and diversity during training, evaluated with four groups of
++eight responses to each of 128 held-out prompts. Lines show seed means and
++bands show seed ranges, not confidence intervals. Conditional diversity
++requires at least five prompts with two correct responses per seed, so its
++contributing seed and prompt populations can differ across methods and time.
+ 
+ \begin{figure}[!htbp]
+   \centering
+@@ -2292,10 +2262,8 @@
+ \texttt{pass@8} over eight training passes for the four primary methods.
+ Rows show Qwen2.5-0.5B, Falcon3-1B, and Qwen2.5-3B; columns show domains.
+ Each objective pair uses five terminal training seeds except Falcon \texttt{Countdown}
+-Dr.GRPO/Re:Dr ($n=4$). Lines average available seeds within these fixed
+-cohorts; bands span their minimum and maximum. Ringed points use fewer than
+-the full cohort. Both paired curves omit a checkpoint when either arm has
+-no observation; the only such gap is Falcon \texttt{MathIR} Dr.GRPO/Re:Dr at pass~6.5.}
++Dr.GRPO/Re:Dr ($n=4$). Lines show seed means and bands their ranges;
++ringed points use fewer seeds and gaps indicate unavailable estimates.}
+   \label{fig:factorial-training-accuracy}
+ \end{figure}
+ 
+@@ -2308,11 +2276,10 @@
+ terminal \texttt{PantryPlan} diversity at 0.5B and 1B, whereas both replay variants
+ retain multiple solution modes. Lines average one to five eligible seeds
+ per checkpoint; bands show seed ranges and are absent for a single seed.
+-Each method has its own cohort and evaluation grid. A seed contributes when
+-at least five prompts yield two correct responses. Fine dotted segments use
+-incomplete cohorts, whose changing membership can affect the mean. Gaps mark
+-checkpoints with no eligible seed. Vertical scales are shared within each
+-domain.}
++A seed contributes when at least five prompts yield two correct responses.
++Fine dotted segments use fewer seeds, so changes can reflect sample
++composition. Gaps indicate undefined estimates. Vertical scales are shared
++within each domain.}
+   \label{fig:factorial-training-modes}
+ \end{figure}
+ 
+@@ -2323,9 +2290,8 @@
+ Qwen2.5-0.5B trajectories for Dr.GRPO, Re:Dr, MaxRL, and Re:Max across five
+ domains. Rows show \texttt{pass@8} and \distk{}; the latter depends on both
+ correctness and solution diversity. Each objective pair has five terminal
+-seeds. Lines average available seeds within these cohorts; bands show seed
+-ranges, and ringed points use fewer than five seeds. Both metrics use the same
+-checkpoints and contributing seeds. Fig.~\ref{fig:level2-training-pmd} shows
++seeds. Lines show seed means and bands their ranges; ringed points use
++fewer than five seeds. Fig.~\ref{fig:level2-training-pmd} shows
+ success-conditional diversity.}
+   \label{fig:level2-training-curves}
+ \end{figure}
+@@ -2337,11 +2303,9 @@
+ \pmd{} during Qwen2.5-0.5B training for the four primary methods. At the
+ terminal checkpoint, Re:Dr and Re:Max reach $.346$ and $.325$, compared with
+ $.023$ for Dr.GRPO and $.112$ for MaxRL. \texttt{MathIR} remains near zero under all
+-four methods. Lines average eligible seeds on each method's evaluation grid;
+-bands show seed ranges. Each seed requires at least five prompts with two
+-correct responses, so cohorts can differ from those in
+-Fig.~\ref{fig:level2-training-curves}. Fine dotted segments use incomplete
+-cohorts; gaps have no eligible seed.}
++four methods. Lines average eligible seeds and bands show seed ranges.
++Each seed requires at least five prompts with two correct responses.
++Fine dotted segments use fewer seeds; gaps indicate undefined estimates.}
+   \label{fig:level2-training-pmd}
+ \end{figure}
+ 
+@@ -2398,11 +2362,10 @@
+   \caption{\textbf{Re:Dr has the highest terminal mean accuracy in every
+   displayed comparison.} \texttt{pass@8} during Level-1 training for Dr.GRPO,
+   Re:Dr, UCPO, and sparse RLEP-Dr. Rows show Qwen2.5-0.5B and Falcon3-1B;
+-  columns show the five domains. Lines average available members of each
+-  method's terminal cohort; bands span the seed range, and missing checkpoints
+-  leave gaps. Panel labels give cohort sizes: five except Falcon \texttt{Countdown}
+-  Dr.GRPO/Re:Dr ($n=4$) and Falcon \texttt{Python} RLEP-Dr ($n=2$).
+-  Dr.GRPO/Re:Dr use paired cohorts; comparator cohorts are method-specific.}
++  columns show the five domains. Lines show seed means and bands their ranges;
++  gaps indicate unavailable estimates. Panel labels give sample sizes: five
++  except Falcon \texttt{Countdown} Dr.GRPO/Re:Dr ($n=4$) and Falcon
++  \texttt{Python} RLEP-Dr ($n=2$). Dr.GRPO/Re:Dr use paired seeds.}
+   \label{fig:direct-baseline-accuracy-curves}
+ \end{figure}
+ 
+@@ -2564,11 +2527,8 @@
+ prompts. Falcon3-1B \texttt{Countdown} is an exception to the Dr.GRPO decline:
+ its \pmd{} rises from $.033$.
+ 
+-Each method uses its own initial evaluation. For Qwen2.5-3B \texttt{MathIR} and
+-\texttt{Pantry}, Dr.GRPO control seeds 71--74 use different initial sampling requests
+-from plain GRPO: initial \texttt{pass@8} averages are $.154$ versus $.162$
+-and $.832$ versus $.828$, respectively. Those cells therefore have separate
+-initial references.
++Each method uses its own initial evaluation, so finite-sample initial
++estimates can differ despite shared model weights.
+ 
+ \begin{figure}[t]
+   \centering
+@@ -2757,8 +2717,8 @@
+ \subsection{Fixed-bank exemplar score trajectories}
+ \label{app:fixed-bank-survival}
+ 
+-The fixed-bank study follows Qwen2.5-0.5B Re:Dr on \texttt{Graph} for seeds
+-43--47. Bank membership and fresh counts are fixed before step 384's
++The fixed-bank study follows Qwen2.5-0.5B Re:Dr on \texttt{Graph} with five
++training seeds. Bank membership and fresh counts are fixed before step 384's
+ fresh rollout group. No further modes are added, and uniform replay
+ continues through step 3,072. Every exemplar in the fixed bank is tracked
+ by prompt and canonical mode. At each replay visit, its mean token log
+@@ -2766,8 +2726,8 @@
+ Changes compare each exemplar's first and final visits after the bank is
+ fixed; visit steps can differ across exemplars.
+ 
+-The 3,406 exemplars span 1,575 seed--prompt pairs and have finite scores at
+-all scheduled visits: 8--9 visits per exemplar and 29,041 observations.
++The 3,406 exemplars span 1,575 seed--prompt pairs, with 8--9 replay visits
++per exemplar.
+ The pooled median change is $+.038$ nat/token (95\% interval
+ $[+.025,+.048]$), while the 10th percentile is $-.256$ and $2.61\%$ of
+ exemplars lose more than $.5$ nat/token ($[1.54,3.77]\%$).
+@@ -2791,11 +2751,9 @@
+   \label{fig:e121-fixed-bank-survival}
+ \end{figure}
+ 
+-Pooled summaries weight exemplars equally. Descriptive 95\% intervals use
+-10,000 hierarchical bootstrap replicates (random seed 121): prompts are
+-resampled within each original seed, followed by five seeds with replacement.
+-Repeated seeds reuse their within-replicate prompt sample. Percentile
+-intervals use linearly interpolated empirical quantiles.
++Pooled summaries weight exemplars equally. Descriptive 95\% percentile
++intervals use 10,000 hierarchical bootstrap replicates, resampling prompts
++within each training seed and then resampling the five seeds.
+ 
+ Scores are observed at replay visits, rather than after every update.
+ The declining tail shows that some fixed exemplars lose likelihood despite
+@@ -3009,7 +2967,7 @@
+ reference $5[1-(4/5)^8]=4.1611$. These groups reuse the same 16 problems
+ across five checkpoints. At Level~3, all neutral trained groups and all
+ original Re:Dr groups also contain at most one observed correct key.
+-There is one exception in original DrGRPO: a single problem at seed~46
++There is one exception in original DrGRPO: one seed--problem group
+ contains two keys with counts 28 and 9, giving mean $B_{64}=.0125$ and
+ $B_{64}-B_8=.0035$. Its equal-seed correct-pair collision is $.9803$;
+ the other trained \texttt{MathIR} cells have collision $1.0$, against the uniform
+@@ -5460,7 +5418,7 @@
+   categorical plug-in threshold $\beta^\star$; green and red indicate
+   stationary single-draw correctness above and below one half under that
+   calculation. This threshold does not predict the observed
+-  \texttt{pass@8} knee. Missing reference summaries are omitted.}
++  \texttt{pass@8} knee.}
+   \label{fig:reference-kl-knee}
+ \end{figure}
+ 
+@@ -5472,10 +5430,9 @@
+ Corollary~\ref{cor:class-collapse}.
+ KL produces larger conditional-diversity estimates at several coefficients
+ in every domain. The response is not uniformly monotone: \texttt{Graph} changes
+-from $.465$ to $.458$ and \texttt{MathIR} from $.103$ to $.101$ between
++from $.465$ to $.458$ and \texttt{MathIR} from $.103$ to $.099$ between
+ $\beta=.2$ and $.3$, while \texttt{Python} changes from $.344$ to $.225$ between
+-$\beta=.04$ and $.1$. The \texttt{Python} $.1$ cell contains three seeds and the
+-\texttt{MathIR} $.3$ cell four; all other reported coefficient cells contain five.
++$\beta=.04$ and $.1$.
+ These are comparisons of point estimates, without a seed-level uncertainty
+ analysis for their differences.
+ 
+@@ -5487,7 +5444,7 @@
+   zero-KL arms use 32 disjoint evaluation streams; KL arms use their own
+   disjoint draws with the same estimator. Reference summaries are
+   initial-policy \pmd{} and $1-1/\bar k$ for each replay arm, where $\bar k$
+-  is the mean number of keys replayed per logged update. These do not bound
++  is the mean number of keys replayed per measured update. These do not bound
+   neural diversity. The final column computes categorical $\beta^\star$
+   from mean initial single-draw correctness.}
+   \label{tab:reference-kl-measured}
+@@ -5551,7 +5508,7 @@
+ For a nonempty fixed uniform categorical bank with $k$ keys, the limiting
+ diversity is $1-1/k$. Across such banks,
+ $\E[1-1/k]\le1-1/\E[k]$ by Jensen's inequality. The table instead uses
+-$\bar k$, the number of keys replayed per logged update, averaged within
++$\bar k$, the number of keys replayed per measured update, averaged within
+ runs and then across seeds. Banks change during training, and updates
+ without replay can contribute zero keys. Thus $1-1/\bar k$ is a
+ descriptive transform of training occupancy, not an estimate of the
+@@ -5577,13 +5534,12 @@
+ In \MDklPricedNames{}, coefficients that exceed both replay arms on
+ \pmd{} have lower \texttt{pass@8} than both. In \MDklMemoryNames{},
+ all measured coefficients are below both replay arms on both metrics.
+-These comparisons concern the reported coefficient cells and seed means;
+-they establish neither statistical dominance nor a ranking at equal total
+-compute. Figure~\ref{fig:reference-kl-plane} averages \texttt{Graph}, \texttt{MathIR}, and
+-\texttt{Pantry}, the three domains with reportable initial \pmd{}, using only
+-coefficients present in all three. Its aggregate curve therefore stops at
+-$\beta=.2$; the $.3$ measurements remain in the domain-level table and
+-Fig.~\ref{fig:reference-kl-knee}.
++These comparisons concern seed means; they establish neither statistical
++dominance nor a ranking at equal total compute.
++Figure~\ref{fig:reference-kl-plane} averages \texttt{Graph}, \texttt{MathIR}, and
++\texttt{Pantry}, the three domains with reportable initial \pmd{}, across all
++six coefficients. Between $\beta=.2$ and $.3$, mean \pmd{} changes from
++$.498$ to $.496$, while \texttt{pass@8} changes from $.527$ to $.528$.
+ 
+ \subsection{Reference quality, discovery, and the scope of the comparison}
+ \label{app:theory-kl-case}
+@@ -5632,16 +5588,12 @@
+ replay-dose sweep would be needed to compare coefficient sensitivity.
+ 
+ \paragraph{Limits of the evidence.}
+-Of \MDklTotalCells{} reported coefficient cells, \MDklThinCells{} have
+-fewer than five seeds, with a minimum of \MDklSeedsMin{}; three of the
+-30 domain--coefficient combinations have no terminal estimate. The table
+-marks both types of missing coverage. Reference \pmd{} requires at least
+-30 defined prompts in an initial evaluation; only \texttt{Graph}, \texttt{MathIR}, and
+-\texttt{Pantry} satisfy that condition. \texttt{Countdown}'s initial conditional is
+-unreported, and \texttt{Python}'s zero observed initial correctness cannot support
+-an inheritance explanation for its measured KL gains. \texttt{MathIR}'s support
+-certificate counts derivations and does not imply that a policy will
+-produce every certified solution mode.
++Reference \pmd{} requires at least 30 defined prompts in an initial
++evaluation. This eligibility condition affects which policy conditionals
++can be compared. \texttt{Python}'s zero observed initial correctness cannot
++support an inheritance explanation for its measured KL gains.
++\texttt{MathIR}'s support certificate counts derivations and does not imply
++that a policy will produce every certified solution mode.
+ 
+ The categorical results separate a fixed-reference target from a
+ discovered-bank target and characterize restoration under their stated
+@@ -5859,19 +5811,14 @@
+ this subtotal must not be interpreted as their measured cost difference.
+ 
+ \paragraph{Measurement scope.}
+-Within each run, the estimates average diagnostic records with replay
+-measurements and an available fresh-response length, using the most recent
+-length measurement if it is not in the same record. Run estimates then receive
+-equal weight within each model--domain cell. Repeated step records are not
+-deduplicated, and records are not truncated to the 3,072-update horizon. Fresh-group token
+-counts are reconstructed from logged response lengths and a prompt-length
+-estimate derived from replay rows. These are descriptive workload summaries,
+-not a cumulative compute audit. They exclude rollout generation, padding,
+-attention-specific costs, activation recomputation, verification, bank
+-maintenance, optimizer work, communication, and evaluation. Hardware pools
+-also differ across cohorts. Neither these estimates nor the reference-KL
+-comparison establishes an end-to-end speedup or resolves the missing budget
+-control.
++Workload estimates are averaged within runs and then equally across seeds
++in each model--domain cell. Fresh-group token counts use response lengths
++and prompt-length estimates. These averages describe the selected likelihood
++passes, not cumulative computation through the matched training horizon.
++They exclude rollout generation, padding, attention-specific costs,
++activation recomputation, verification, bank maintenance, optimizer work,
++communication, and evaluation. They therefore do not establish an
++end-to-end speedup or an advantage at equal total compute.
+ 
+ \begin{table}[t]
+   \centering
+@@ -6066,142 +6013,47 @@
+ \begin{center}\large\textbf{Part VIII. Records}\end{center}
+ \addcontentsline{toc}{part}{Part VIII. Records}
+ 
+-\section{Evaluation Records and Reproducibility}
++\section{Data and Reproducibility}
+ \label{app:reproducibility}
+ 
+-\subsection{Evaluation sources and missing checkpoints}
++\subsection{Evaluation comparisons}
+ \label{app:source-integrity}
+-
+-Falcon3-1B \texttt{Countdown} Re:Dr seed 59 contains two complete four-draw
+-terminal evaluation sequences with identical request identities but
+-conflicting metrics. This run is excluded from every checkpoint,
+-efficacy endpoint, paired contrast, and aggregate that would use it;
+-neither sequence is selected or averaged. The independent Dr.GRPO and
+-GRPO seed-59 evaluations remain valid. The core replay comparison has
+-74 seed pairs: 14 five-seed model--domain blocks and Falcon3-1B
+-\texttt{Countdown} at $n=4$, using seeds 55--58. The four-seed block is
+-descriptive and has no confidence interval.
+-
+-Evaluation inputs are identified by source paths, job identities, and file
+-hashes. Identical duplicate records count once. Conflicting repeated
+-checkpoints are usable only when the sequence rules in
+-Apps.~\ref{app:initial-provenance}--\ref{app:scheduled-provenance}
+-identify a unique evaluation block; unresolved checkpoints remain missing.
+-A missing initial or intermediate checkpoint does not invalidate an
+-independently valid terminal endpoint. Source files outside the specified
+-run and continuation records are excluded, and evaluation values do not
+-select among attempts.
+-
+-Each training curve specifies its fixed seed cohort. Core objective pairs
+-use their common terminal seed set and show a checkpoint only when both
+-arms have observations there. Within an arm, the point averages the cohort
+-seeds observed at that checkpoint; a ring marks a count below the full
+-cohort size. Thus paired curves can use different observed seed subsets at
+-an incomplete checkpoint, even though their fixed cohorts coincide.
+-Their bands show observed seed ranges, not confidence intervals.
+-A checkpoint with no observations remains a gap, and lines do not connect
+-across missing scheduled steps. Accuracy and mode-count views use the
+-same populations and gap rules. Supporting methods identify separate
+-cohorts and, where applicable, individual unpaired histories. Numerical
+-records give the exact seed sets, exclusions, per-checkpoint counts,
+-source hashes, and evaluation rules.
+-
+-\subsection{Initial checkpoints and paired contrasts}
+ \label{app:initial-provenance}
+-
+-A restarted attempt can evaluate the initial model again and append
+-another step-0 block. The initial-checkpoint rule considers file order,
+-step numbers, draw indices, and subsequent training evaluations. Files
+-without a later training-step evaluation are excluded. Within a file,
+-a step-0 block is continued when the next evaluation at a different step
+-has a positive step number. Exactly one continued block must exist across
+-the specified source files, and it must contain the four draw indices
+-$0,1,2,3$. Metric values and effect estimates do not enter this selection.
+-The rule identifies usable initial evaluations for 27 of 36 cells with
+-conflicting step-0 records; nine remain ambiguous.
+-
+-Initial-to-terminal contrasts pair each method with its own initial
+-evaluation. Terminal replay effects compare two trained checkpoints and
+-require no initial evaluation.
+-
+-The initial-block sensitivity analysis contains nine model--domain--method
+-contrasts. Excluding all conflicting initial blocks gives one to four
+-defined seeds per contrast; the unique-block rule gives five in each.
+-For example, Falcon3-1B MaxRL has three defined seeds in \texttt{Graph} and one
+-in \texttt{PantryPlan} under the exclusion rule, and five under the unique-block
+-rule. The mean signs agree under both rules; nominal intervals are shown
+-only for the complete five-seed contrasts. At Falcon3-1B, MaxRL and
+-Re:Max increase conditional diversity on \texttt{Graph}, with intervals excluding
+-zero, while MaxRL concentrates on \texttt{Countdown}, \texttt{MathIR}, and \texttt{PantryPlan}.
+-This heterogeneous result does not support extending the concentration
+-claim in Section~\ref{sec:results-collapse} to every objective and domain.
+-
+-\subsection{Repeated scheduled checkpoints}
+ \label{app:scheduled-provenance}
+ 
+-For a repeated evaluation at scheduled step $S$, the sequence rule
+-considers only source files containing an evaluation later than $S$.
+-Rows at $S$ form draw blocks separated by deterministic trace rows or
+-changes in step number. A block is continued when its next evaluation at
+-a different step is later than $S$. The checkpoint is usable only if
+-exactly one complete continued block with draw indices $0,1,2,3$ exists
+-across the specified files. The rule uses ordering and checkpoint
+-identities, rather than metric values, and includes the 27 initial
+-checkpoints described above.
+-
+-Among 70 conflicting noninitial scheduled checkpoints, 27 have a unique
+-complete continued block. The other 43 have multiple continued blocks
+-and remain unavailable. A curve can still show the other seeds observed
+-at such a step under the partial-cohort rule above; the unavailable
+-seed's value is neither interpolated nor carried forward. The model repository supplies terminal inference weights, not the intermediate
+-weights needed to re-evaluate these ambiguous checkpoints. Recorded
+-intermediate evaluations therefore determine the available trajectory.
+-
+-\subsection{Data, models, and analysis inputs}
++Paired method comparisons match model, domain, and seed at the specified
++training endpoint. Initial-to-terminal analyses use each method's own
++initial evaluation; terminal replay effects compare trained checkpoints.
++Each result states its measured population and sample size. Conditional
++solution-mode diversity uses the eligibility rules defined for that
++analysis.
++
++\subsection{Datasets and models}
+ \label{app:repro-artifacts}
+ \label{app:repro-code}
+ \label{app:archived-models}
+ 
+ The \href{https://huggingface.co/datasets/od2961/ModeBench}{ModeBench dataset}
+-provides separate level/domain configurations, split roles, row
+-identities, and construction records. Its
++provides benchmark tasks by level and domain, with documented split
++roles. The
+ \href{https://huggingface.co/datasets/od2961/ModeBench\#loading}{loading guide}
+ and \href{https://huggingface.co/datasets/od2961/ModeBench\#evaluation}{evaluation guide}
+-specify the evaluation splits and distinguish auxiliary data.
++describe their use and distinguish auxiliary data.
+ The \href{https://huggingface.co/od2961/maxent-grpo-models}{model repository}
+-links available model--domain--method--seed exports to immutable upload
+-revisions containing weights, configuration, tokenizer assets, file hashes,
+-and the applicable base-model licenses.
++contains terminal checkpoints organized by model, domain, method, and
++seed, together with configurations, tokenizers, and applicable base-model
++licenses. Model links identify the version used for each export.
++
++\subsection{Analysis resources}
++\label{app:repro-recovery}
++
+ The \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/EXPERIMENTS.md}{experiment index}
+-maps the scale comparisons, MaxRL factorial, Level-2 factorial,
+-replay-weighting ablation, and supporting controls to model families.
++connects the scale comparisons, MaxRL factorial, Level-2 factorial,
++replay-weighting ablation, and supporting controls to their model families.
+ The \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/DATA.md}{analysis-input index}
+-and \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/RESTORE.md}{restore guide}
+-identify evaluation records, numerical inputs, model revisions, and
+-SHA-256 verification procedures.
+-
+-Figure values use the numerical inputs and seed populations
+-specified for that analysis. Machine-readable records identify displayed
+-values, source files, and hashes;
+-\path{paper/FIGURE_MANIFEST.md} identifies figure assets, numerical
+-records, and rendering scripts. A downloadable model can belong to a larger
+-repository collection than a particular analysis, so model availability
+-alone does not determine an evaluation's source or seed set. Terminal
+-exports restore inference models; they do not include the optimizer and
+-replay-bank state required for training continuation.
+-
+-\subsection{Training state and reproducibility checks}
+-\label{app:repro-recovery}
+-
+-Training continuation requires a consistent checkpoint of model weights
+-and the optimizer, bank, token, cursor, and request-stream state in
+-App.~\ref{app:algorithm-control}. State mismatches, non-finite values,
+-missing completion evidence, changed dataset identities, and mismatched
+-source or aggregate hashes fail validation. Moving a run between devices
+-must preserve the configured update and checkpoint state; this alone
+-does not guarantee bitwise-identical execution. Reported analyses use the
+-specified dataset and model revisions, evaluation checkpoints, and
+-analysis inputs. A missing result is not replaced by an earlier checkpoint
+-or by a different model export.
++and \href{https://huggingface.co/od2961/maxent-grpo-models/blob/main/RESTORE.md}{model-loading guide}
++provide numerical inputs and instructions for using the released models.
++Figure data and rendering scripts are listed in
++\mbox{\path{paper/FIGURE_MANIFEST.md}}.
+ 
+ \end{document}

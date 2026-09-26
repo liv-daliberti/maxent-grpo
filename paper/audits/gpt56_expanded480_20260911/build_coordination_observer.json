@@ -1,0 +1,6 @@
+{
+  "observer_tool_parent": 2874150,
+  "action": "Stopped only explicitly launched duplicate3022826. Will not launch any further build while existing make3027521 is active. Existing build uses current manuscript/assets and logs in paper/audits/level3_neutral_repair_20260911/parent_rebuild_settled.log. Will perform read-only monitoring; leave paper mutations to the active owner.",
+  "discovered_active_make": 3027521,
+  "discovered_log": "paper/audits/level3_neutral_repair_20260911/parent_rebuild_settled.log"
+}

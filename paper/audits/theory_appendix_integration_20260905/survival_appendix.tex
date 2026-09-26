@@ -1,0 +1,252 @@
+\subsection{Sharp per-mode certificates and finite-sample interpretation}
+\label{app:theory-survival-certificates}
+
+The energy bounds above can be sharpened by using probability normalization.
+We give self-contained applications of relative-entropy data processing and
+Pinsker's inequality \citep[Theorems~9 and~31]{vanerven2014renyi}; binary-KL inversion is also a
+standard statistical-learning tool \citep{garivier2011klucb}. These certificates
+concern a specified probability distribution. Applying one at a checkpoint
+requires a valid loss bound there; applying it throughout training additionally
+requires a uniform energy bound. Neither application establishes descent for
+the implemented neural optimizer. All logarithms are natural.
+
+\subsubsection{A sharp certificate from normalized replay cross entropy}
+
+Write $H(w)=-\sum_b w_b\log w_b$, $h_2(a)=H((a,1-a))$, and
+\[
+ \operatorname{kl}(a,r)
+ =a\log\frac{a}{r}+(1-a)\log\frac{1-a}{1-r},
+\]
+with the usual endpoint conventions. For $0<a<1$ and $D\ge0$, let
+$\ell_-(a,D)$ be the unique $r\in(0,a]$ satisfying
+$\operatorname{kl}(a,r)=D$; set $\ell_-(1,D)=e^{-D}$.
+
+\begin{theorem}[Sharp normalized replay certificate]
+\label{ext:sharp-replay-certificate}
+Let $\mathcal B$ be a finite nonempty bank, let $w_b>0$ with
+$\sum_{b\in\mathcal B}w_b=1$, and let $p$ be a probability distribution on
+an alphabet containing $\mathcal B$. Suppose
+\[
+ R_w(p)=-\sum_{b\in\mathcal B}w_b\log p_b\le C<\infty,
+ \qquad D=C-H(w).
+\]
+Then $D\ge0$ and, for every $b\in\mathcal B$,
+\begin{equation}
+ \label{ext:binary-kl-retention}
+ p_b\ge\ell_-(w_b,D)>0.
+\end{equation}
+This coordinate bound is sharp on the closed probability simplex whenever
+an outcome other than $b$ is available. Moreover,
+\[
+ p(\mathcal B)\ge e^{-D},\qquad
+ p_b\ge\max\{0,w_b-\sqrt{D/2}\}.
+\]
+For $w_b<1$, the positive bound
+$p_b\ge\exp[-(D+h_2(w_b))/w_b]$ is also valid.
+\end{theorem}
+\begin{proof}
+Extend $w$ by zero off the bank, obtaining $\bar w$. Then
+\[
+ 0\le\operatorname{KL}(\bar w\|p)=R_w(p)-H(w)\le D.
+\]
+For $a=w_b$ and $r=p_b$, the log-sum inequality on the complementary
+outcomes gives
+\[
+ \sum_{j\ne b}\bar w_j\log\frac{\bar w_j}{p_j}
+ \ge(1-a)\log\frac{1-a}{1-r},
+\]
+so $\operatorname{kl}(a,r)\le D$. For $0<a<1$, its derivative in $r$ is
+$(r-a)/(r(1-r))<0$ on $(0,a)$; it diverges at zero and vanishes at $r=a$.
+Thus $r<\ell_-(a,D)$ is impossible. Equality is attained by choosing
+$r=\ell_-(a,D)$, $p_j=(1-r)w_j/(1-a)$ on the remaining banked outcomes,
+and zero mass off the bank. For $a=1$, the inequality is
+$-\log p_b\le D$, with equality obtained by placing the remaining mass on
+another outcome. If the entire alphabet has one outcome, necessarily
+$p_b=1$. For $D>0$, equality can be approached with positive off-bank
+probabilities by increasing $r$ slightly and sending off-bank mass to zero. At $D=0$, feasibility
+instead forces $p=\bar w$ exactly.
+
+Let $s=p(\mathcal B)$ and $\widetilde p_b=p_b/s$. The decomposition
+\[
+ \operatorname{KL}(\bar w\|p)
+ =-\log s+\operatorname{KL}(w\|\widetilde p)\ge-\log s
+\]
+proves the total-mass bound. For fixed $r\in(0,1)$,
+$\partial_a^2\operatorname{kl}(a,r)=1/[a(1-a)]\ge4$, whereas its value
+and first derivative vanish at $a=r$. Hence
+$\operatorname{kl}(a,r)\ge2(a-r)^2$, including endpoints by continuity,
+which proves the Pinsker bound. Finally,
+\[
+ \operatorname{kl}(a,r)
+ =-h_2(a)-a\log r-(1-a)\log(1-r)
+ \ge-h_2(a)-a\log r
+\]
+Combining this inequality with $\operatorname{kl}(a,r)\le D$ yields the
+positive exponential coordinate bound.
+\end{proof}
+
+For the categorical potential argument behind
+Eq.~\eqref{eq:replay-retention-bound} and its positive-weight extension,
+one may substitute
+\[
+ C=R_w(p(T))+
+ \frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
+\]
+Normalization improves the termwise certificate $p_b\ge e^{-C/w_b}$.
+As a hypothetical example, a uniform bank of 16 with
+$C=\log16+0.01$ yields $p_b\ge0.0339712$, while the termwise bound is
+approximately $4.62\times10^{-20}$. These are illustrative mathematical
+inputs, not measured replay losses. A large excess cross entropy can still
+make even the sharp bound too small to be useful.
+
+\subsubsection{What a scalar entropy value can certify}
+
+\begin{theorem}[Sharp entropy threshold for all-mode retention]
+\label{ext:entropy-retention-threshold}
+Let $q$ be a distribution on a known alphabet of $m\ge2$ possible modes,
+allowing zero coordinates. A scalar bound $H(q)\ge h_0$, with
+$0\le h_0\le\log m$, implies a strictly positive uniform coordinate floor
+if and only if $h_0>\log(m-1)$. In that case the sharp floor is
+$q_b\ge r_m(h_0)$ for every $b$, where $r_m(h_0)\in(0,1/m]$ uniquely solves
+\[
+ h_2(r)+(1-r)\log(m-1)=h_0,
+\]
+where $m$ counts all possible modes, including those absent from the
+evaluation sample.
+\end{theorem}
+\begin{proof}
+Fix $r=q_b<1$. Splitting off that coordinate gives
+\[
+ H(q)=h_2(r)+(1-r)H\!\left(\frac{q_{-b}}{1-r}\right)
+ \le h_2(r)+(1-r)\log(m-1)=:f_m(r).
+\]
+Uniform remaining coordinates attain equality. On $0<r<1/m$,
+$f_m'(r)=\log[(1-r)/(r(m-1))]>0$, with
+$f_m(0)=\log(m-1)$ and $f_m(1/m)=\log m$. Thus a coordinate below the
+stated root contradicts $H(q)\ge h_0$; a coordinate equal to one already
+exceeds the root. The distribution with one coordinate at the root and the
+others uniform proves sharpness. Conversely, if $h_0\le\log(m-1)$, one
+zero coordinate with the rest uniform satisfies the entropy bound. Even
+restricting to strictly positive coordinates permits arbitrarily small
+values by approximation.
+\end{proof}
+
+For uniform $u$, $H(q)=\log m-\operatorname{KL}(q\|u)$, and data processing
+gives $\operatorname{kl}(q_b,1/m)\le\operatorname{KL}(q\|u)$. A forward-KL
+budget therefore excludes every missing coordinate precisely when it is
+below $\log[m/(m-1)]$. At the threshold, one missing coordinate is possible,
+whereas $\operatorname{KL}(u\|q)=\infty$. This compares level sets; it does
+not assert that an exact-entropy gradient flow loses modes. Conditional
+entropy alone also leaves total correct mass unconstrained, and entropy
+estimated from a finite sample is not the exact $H(q)$ of a known alphabet.
+
+\subsubsection{From complete-response likelihood to an execution key}
+
+\begin{corollary}[Response-to-key certificate]
+\label{ext:response-key-certificate}
+Fix one prompt $x$, one checkpoint, and distinct complete responses $e_j$
+with verified keys $b_j$. Give them weights $w_j>0$ summing to one, and put
+$W_b=\sum_{j:b_j=b}w_j$. Under a fixed decoding law, suppose
+\[
+ -\sum_j w_j\log\pi(e_j\mid x)\le C<\infty.
+\]
+For every represented key $b$,
+\[
+ \operatorname{kl}(W_b,p(b\mid x))\le C-H(w),\qquad
+ p(b\mid x)\ge\ell_-(W_b,C-H(w))>0.
+\]
+Individually, $p(b_j\mid x)\ge\pi(e_j\mid x)$.
+\end{corollary}
+\begin{proof}
+The distinct complete responses are disjoint events. Extend their target
+weights by zero to the full response alphabet; include invalid outcomes
+and, if necessary, nontermination as additional outcomes so that the policy
+law is normalized. The resulting response-level relative entropy is
+$-\sum_jw_j\log\pi(e_j\mid x)-H(w)\le C-H(w)$. Apply the log-sum inequality
+within each execution-key event and then within its binary partition into
+key $b$ and all other outcomes. The target assigns mass $W_b$ to the first
+event and the policy assigns $p(b\mid x)$, so the resulting divergence is
+$\operatorname{kl}(W_b,p(b\mid x))$. The inverse argument of
+Theorem~\ref{ext:sharp-replay-certificate} proves the floor. Finally, each
+complete-response event is contained in its verified-key event, proving
+the individual bound used in Lemma~\ref{lem:shared-exemplar-retention}.
+\end{proof}
+
+The probability being scored must include EOS or another specified
+termination event, or a fixed deterministic horizon. It must use the same
+prompt formatting, temperature, vocabulary mask, top-$p$/top-$k$ rule,
+response-truncation rule, and verifier as the probability being bounded.
+A prefix likelihood is insufficient because its continuations can produce
+other keys or invalid outputs. All likelihoods entering one cross entropy
+must use the same checkpoint. For a complete sequence of length $L_j$ and
+mean-token log score $\bar\ell_j$, its probability is
+$\exp(L_j\bar\ell_j)$, not $\exp(\bar\ell_j)$.
+
+Length-normalized loss requires normalization before the theorem applies:
+with $a_j=\alpha_j/L_j$, $A=\sum_j a_j$, and $w_j=a_j/A$,
+\[
+ \sum_j\alpha_j\frac{-\log\pi(e_j\mid x)}{L_j}=A R_w.
+\]
+Thus an upper bound $D_0$ on this loss supplies $C=D_0/A$; uniform weights
+on mean-token scores generally give inverse-length target weights on
+complete responses. Different prompts require separate conditional
+calculations or an explicitly normalized joint prompt mixture. A change
+in one exemplar's likelihood need not equal the change in its whole key's
+probability. Approximate log scores need controlled numerical error to
+supply rigorous numerical certificates.
+
+\subsubsection{Finite observations and repeated checkpoint measurement}
+
+At a frozen checkpoint, for a key specified before sampling, $N$ independent
+draws under the same decoding law give
+$X\sim\operatorname{Binomial}(N,p_b)$. Exact binomial-tail inversion gives
+one-sided confidence bounds \citep{clopper1934binomial}. If $X=0$, the
+one-sided $(1-\alpha)$ upper bound and lower bound are respectively
+\[
+ U_0=1-\alpha^{1/N},\qquad 0.
+\]
+Indeed, $\Pr_{p_b}(X=0)=(1-p_b)^N<\alpha$ whenever $p_b>U_0$; for nonzero
+counts, the full confidence procedure uses the corresponding binomial-tail
+inversion. As hypothetical examples, zero sightings in 32 draws give an
+upper bound of $0.08937$ at the one-sided 95\% level, or $0.16495$ when
+Bonferroni protects 16 prespecified keys simultaneously. Two sightings in
+32 draws instead give a one-sided 95\% lower bound of about $0.01122$ for
+one prespecified key. The upper and lower examples are separate one-sided
+limits; a joint interval requires allocation to both tails. Zero sightings
+do not establish exact extinction.
+
+For repeated inspection of draws from a fixed policy, a confidence sequence
+can provide validity under optional stopping \citep{howard2021confidence}.
+For fixed beta-mixture parameters $a_0,b_0>0$, let $S_t$ be the number of
+successes in $t$ independent Bernoulli draws and let $\mathrm B$ denote
+the beta function. Define
+\[
+ M_t(p)=\frac{\mathrm B(S_t+a_0,t-S_t+b_0)}
+ {\mathrm B(a_0,b_0)p^{S_t}(1-p)^{t-S_t}},\qquad
+ \mathcal I_t=\{p\in(0,1):M_t(p)<1/\alpha\}.
+\]
+For each true $p\in(0,1)$, the numerator integrates the likelihood under a
+fixed beta distribution. Hence $M_t(p)$ is a mixture of likelihood-ratio
+martingales, is nonnegative, and has initial value one. The nonnegative
+martingale maximal inequality therefore gives
+$\Pr_p(\exists t:p\notin\mathcal I_t)\le\alpha$. Error allocations across
+a fixed roster of keys make coverage simultaneous by a union bound;
+independence across keys is unnecessary.
+
+This construction requires a fixed Bernoulli probability. Counts from
+different prompts, seeds, or changing checkpoints cannot be pooled to
+certify the current checkpoint's probability. Separate frozen-checkpoint
+measurements can instead allocate error across prespecified
+prompt--key--checkpoint statements. Repeated deterministic teacher-forced
+scores are not independent Bernoulli observations, and choosing identities
+after inspecting the same samples also needs selection-aware inference.
+A probability bound at observed checkpoints alone makes no claim about
+unobserved intervening or subsequent training states.
+
+For an unknown catalogue, missing mass is the total probability of categories
+not yet observed under a fixed iid law. Concentration results address this
+quantity \citep{mcallester2003missing,berend2013missing}; it is neither the
+number of missing modes nor proof of their extinction. Such bounds do not
+certify each named key, and stationary missing-mass formulas do not directly
+apply to a history generated by changing policies. Named-key binomial counts
+provide the direct measurement of per-mode visibility.

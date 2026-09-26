@@ -1,0 +1,27 @@
+--- ops/build_paper_gpt56sol_python_parity.py (before)
++++ ops/build_paper_gpt56sol_python_parity.py (after)
+@@ -13,6 +13,15 @@
+ import json
+ from pathlib import Path
+ from typing import Any
++
++try:
++    from ops.paper_domain_typography import format_domain_names
++except ModuleNotFoundError:
++    from paper_domain_typography import format_domain_names
++
++_DOMAIN_LANGUAGE_EXCEPTIONS = (
++    "Python lambda", r"Python \texttt{lambda}", "Python modulo",
++)
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+ DEFAULT_SOURCE = (ROOT / 'artifacts/frontier_modebench_gpt56sol_python_parity_20260918'
+@@ -220,7 +229,7 @@
+         r'  \label{tab:gpt56sol-python-parity}',
+         r'\end{table}',
+     ])
+-    return '\n'.join(lines) + '\n'
++    return format_domain_names('\n'.join(lines) + '\n', exclude_phrases=_DOMAIN_LANGUAGE_EXCEPTIONS)
+ 
+ 
+ def main(argv: list[str] | None = None) -> int:

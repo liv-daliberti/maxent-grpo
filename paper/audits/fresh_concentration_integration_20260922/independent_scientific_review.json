@@ -1,0 +1,31 @@
+{
+  "scope": "Independent scientific review of fresh64 manuscript integration and generated statistics; no manuscript edits by reviewer.",
+  "result": "passed",
+  "checks": [
+    "All36 original collision means converted to PCMD by negation and confidence interval endpoint reversal.",
+    "Dr.GRPO:6negative PCMD blocks,30negative seed effects,6nominal intervals belowzero.",
+    "Replay:12positive PCMD blocks,60positive seed effects,12nominal intervals abovezero.",
+    "Pantry replay-minus-initial remains negative at every scale; claims are block means, not every individual seed.",
+    "MaxRL Graph Falcon/Qwen3B initialcomparisons remain inconclusive; fresh panel does not include GRPO.",
+    "New section uses jointeligible R>=2prompt populations and correctly separates fixedinitial weights from five sampling replicas.",
+    "Currentmain concentration plot uses a different Sept15 independent32draw collection; adding Sept12fresh64 does not doublecount same draws.",
+    "Fullcohort correctness,pass,distinctbudget narrative matches frozen quantitative review.",
+    "Generatedasset --check passes."
+  ],
+  "asset_check": {
+    "command": "var/seed_paper_eval/paper310/bin/python ops/build_paper_fresh_concentration.py --check",
+    "exit_code": 0,
+    "output": "Fresh PCMD assets verified: 36 contrasts, 18 core intervals, 90 core seed effects; source SHA-256 matches."
+  },
+  "baseline_constraints": {
+    "main_pages": 9,
+    "main_figures": 12,
+    "preexisting_line_fill_violations": 46,
+    "preexisting_current_contract_failure": "hosted source, audit, prompt, provider, or graded evidence changed"
+  },
+  "recommended_final_checks": [
+    "Preserve currenttitle and all12mainfigure assets/order.",
+    "Ensure main6blockinterval wording cannot be read as intervals forindividualseed effects.",
+    "Run compiledmainlength, compare line-fill changes againstbaseline, and visuallyinspectnewappendixfigure/tables."
+  ]
+}

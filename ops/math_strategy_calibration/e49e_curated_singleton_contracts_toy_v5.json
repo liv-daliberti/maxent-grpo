@@ -1,0 +1,26 @@
+{
+  "eval:0046:7d6034fbace18cb8a496": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "Translate the geometric and arithmetic triples into $a_{2k}^2=a_{2k-1}a_{2k+1}$ and $2a_{2k+1}=a_{2k}+a_{2k+2}$, then derive $r_{k+1}=2-1/r_k$ for $r_k=a_{2k}/a_{2k-1}$."
+      },
+      {
+        "action_id": "A2",
+        "operation": "Set $s_k=(r_k-1)^{-1}$, prove $s_{k+1}=s_k+1$, and derive $a_{2k-1}=C(m+k-1)^2$ and $a_{2k}=C(m+k-1)(m+k)$ with $C$ and $Cm$ positive integers."
+      },
+      {
+        "action_id": "A3",
+        "operation": "Because $13=2k-1$, determine $k$ and substitute only into the odd-term formula $2016=C(m+k-1)^2$; set $d=Cm$, compare prime exponents in $(d+C(k-1))^2=2016C$, enforce $d>0$, and evaluate $a_1=d^2/C$."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "Linearize the ratio recurrence, derive the quadratic odd/even formulas, then use index $13=2k-1$ exclusively with the odd square constraint and integer prime-exponent comparison.",
+        "strategy_id": "S1"
+      }
+    ]
+  }
+}

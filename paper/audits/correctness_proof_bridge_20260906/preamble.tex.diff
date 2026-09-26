@@ -1,0 +1,20 @@
+--- before/preamble.tex
++++ paper/mathai2026/preamble.tex
+@@ -6,6 +6,17 @@
+   \usepackage[dblblindworkshop]{neurips_2026}
+ \fi
+ \workshoptitle{The 6th Workshop on Mathematical Reasoning and AI}
++
++% The official style omits its workshop title from the anonymous notice.
++% Keep the upstream style, anonymity and line numbering; correct only this text.
++\makeatletter
++\if@neuripsfinal\else
++  \renewcommand{\@noticestring}{%
++    Submitted to \@workshoptitle\ (NeurIPS \@neuripsyear). Do not distribute.%
++  }
++\fi
++\makeatother
++
+ 
+ \usepackage[utf8]{inputenc}
+ \usepackage[T1]{fontenc}

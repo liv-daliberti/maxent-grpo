@@ -1,0 +1,892 @@
+{
+  "eval:0010:834bdfcea94c2ee5ca2f": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CONSTRUCT_OBJECT] Build the interval dynamic-programming sets for every contiguous subexpression, combining every legal split with its fixed plus or minus operator."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:EXHAUST_CASES] Propagate the exact attainable minima and maxima through increasing interval lengths until the full expression is covered."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SELECT_EXTREMUM] Select the minimum attainable full-expression value and exhibit a parenthesization attaining it."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:ESTABLISH_BOUND] Track how parentheses can propagate the single subtraction sign and prove that the first three positive terms cannot contribute below their positive values while each of the final three terms contributes no less than its negative."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:CONSTRUCT_WITNESS] Place one parenthesized block after the subtraction so that all final three terms attain their negative contributions."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:PROVE_OPTIMALITY] Combine the universal sign bound with the attaining construction to identify the exact minimum."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:exhaustive_interval_dp] Enumerate every legal parenthesization by interval dynamic programming and take the exact minimum.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:sign_invariant_bound] Prove a termwise sign lower bound and give one parenthesization that attains it.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0011:14c26d10e966659f75dc": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:EUCLIDEAN_ALGORITHM] Apply repeated quotient-remainder steps to the two given integers until the last nonzero remainder is reached."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ARITHMETIC] Increase that greatest common factor by the amount requested in the problem."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:PRIME_FACTORIZE] Independently factor both given integers into prime powers."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:INTERSECT_FACTORS] Form the greatest common factor by taking the minimum exponent of every shared prime."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:ARITHMETIC] Increase the resulting common factor by the requested amount."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:euclidean_remainders] Compute the GCF with the Euclidean algorithm, then apply the requested increase.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4", "A5"],
+        "plan": "[KERNEL:prime_exponent_intersection] Compute the GCF from independent prime factorizations, then apply the requested increase.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0018:c82325808fd63101f821": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:SUBSTITUTE] Set t=x+1 and divide the numerator by the denominator to rewrite the objective as t plus a constant plus a positive reciprocal term, with t>1."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:APPLY_INEQUALITY] Apply AM-GM to the variable term and its reciprocal term and check that its equality value lies in t>1."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ESTABLISH_BOUND] Add the constant term and use the equality case to certify the exact global minimum."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DIFFERENTIATE] Differentiate the original rational function on x>0 using the quotient rule and simplify the derivative."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:SOLVE_EQUATION] Solve the critical-point equation in the allowed domain and determine the derivative sign on both sides."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:PROVE_OPTIMALITY] Compare the critical value with the one-sided boundary behavior at zero and infinity to certify the global minimum."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:am_gm_reciprocal_pair] Expose a positive reciprocal pair and prove its sharp AM-GM bound.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:calculus_global_extremum] Locate the critical point by differentiation and certify it against both boundaries.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0021:38692edc70e4eaa22536": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CROSS_PRODUCT] Compute the cross product of the two given position vectors component by component."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:NORM] Compute the magnitude of that cross product as the parallelogram area."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SCALE_AREA] Divide the parallelogram area by two to obtain the triangle area."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DISTANCE] Compute the three squared side lengths OA, OB, and AB directly from the coordinates."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:ALTITUDE] Use the equal-side lengths to identify an isosceles triangle, bisect its base, and obtain its altitude by the Pythagorean theorem."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:TRIANGLE_AREA] Multiply one half of the base by the independently derived altitude."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:vector_cross_product] Obtain twice the area from the cross-product norm.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:side_length_altitude_geometry] Recover an isosceles side-length model and compute base times altitude.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0030:ef781b4870a811a9cdec": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:APPLY_SIMILARITY] Use the parallel segments and shared angle at C to prove triangles ABC and EDC similar."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:COMPUTE_RATIO] Derive CD/CB from BD=4BC and obtain the corresponding linear scale factor."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SCALE_AREA] Square the similarity ratio and apply it to the given triangle area."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:COORDINATIZE] Put B, C, and D at affine coordinates on one horizontal line consistent with BD=4BC, and write A=(p,h)."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:INTERSECT_LINES] Express E both on line AC and on the line through D parallel to AB; solve the two affine parameters to obtain E's height as a multiple of h."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:DETERMINANT_AREA] Compute both triangle areas from their horizontal bases and coordinate heights, then substitute the given area."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:similar_triangle_area_ratio] Prove similarity and square its linear scale factor.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:affine_coordinate_area] Solve the parallel-line intersection in coordinates and compare base-height areas.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0033:01cf1270fb4c7a7ab44c": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:MODULAR_ITERATION] Generate successive ordered Fibonacci residue pairs modulo 4 from the initial pair."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:DETECT_PERIOD] Stop at the first recurrence of the initial ordered pair, proving the exact Pisano period rather than inferring it from a single repeated residue."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:INDEX_PERIOD] Reduce the requested index by that period and read the corresponding residue."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:MATRIX_ENCODE] Encode one Fibonacci step by the two-by-two companion matrix over integers modulo 4."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:BINARY_EXPONENTIATION] Compute the required matrix power by repeated squaring modulo 4, recording the binary exponent decomposition."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:EXTRACT_COMPONENT] Apply the powered matrix to the initial state and extract the requested Fibonacci residue."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:pisano_cycle] Prove the ordered-pair period and index into it.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:matrix_fast_power] Compute the target recurrence state directly by modular matrix exponentiation.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0036:263f5b6b9fc89dee04e3": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:FIND_CENTER] Intersect the two asymptote lines to obtain the hyperbola's center, and translate to centered coordinates."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:APPLY_CONIC_GEOMETRY] Use the point on the transverse axis to determine the semitransverse axis and use the asymptote slope to determine the semiconjugate axis."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FOCAL_RELATION] Apply c^2=a^2+b^2 and double c to obtain the distance between foci."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:CONSTRUCT_CONIC] Form the product of the two centered asymptote line factors and set it equal to an unknown nonzero constant."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:FIT_PARAMETER] Substitute the given point to determine the constant, then normalize the resulting quadratic equation."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:READ_FOCI] Read a^2 and b^2 from the normalized standard form and compute the focal separation."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:asymptote_axis_geometry] Recover the semiaxes from the center, an axis point, and the asymptote slope.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:quadratic_line_factor_construction] Construct and fit the conic equation from the product of its asymptote factors.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0040:48133f34e6592db185e8": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:EXECUTE_RECURRENCE] Starting from zero, literally alternate addition and multiplication by each successive integer, checking after every individual operation."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:FIRST_CROSSING] Stop at the first produced term above the threshold and report that term, retaining the immediately preceding comparison as minimality evidence."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:DEFINE_PAIRED_STATE] Let b_k be the term immediately after multiplication by k and derive b_k=k(b_{k-1}+k)."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:SOLVE_RECURRENCE] Divide by k factorial and telescope to obtain a finite-sum expression for b_k."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:BOUND_AND_CROSS] Evaluate the finite expression only until the last completed multiplication below the threshold, then apply the next addition and prove it is the first crossing."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:literal_sequence_simulation] Generate every term in order until the first threshold crossing.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4", "A5"],
+        "plan": "[KERNEL:factorial_normalized_recurrence] Solve the paired recurrence by factorial normalization, then locate the crossing.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0042:16bb39553cd3d55f4945": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ANGLE_COMPLEMENT] Rewrite the secant-square term as a cosecant-square term at its complementary angle."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:APPLY_THEOREM] Apply the equally spaced reciprocal-sine-square identity to all listed angles."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SPECIAL_ANGLE] Evaluate the identity's right-hand side at the resulting special angle."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DERIVE_IDENTITY] Start from the cotangent partial-fraction identity at x and its equally spaced shifted arguments, then differentiate it with respect to x."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:SUBSTITUTE] Substitute the problem's base angle into the differentiated identity and use parity plus periodicity to match all listed cosecant-square terms."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:SPECIAL_ANGLE] Evaluate and simplify the resulting exact special-angle expression."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:reciprocal_sine_sum_theorem] Convert the angle and invoke the standard equally spaced cosecant-square sum.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:differentiated_cotangent_identity] Independently derive the needed square-reciprocal identity by differentiating a cotangent partial fraction.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "eval:0047:5310db58fbda4a6559d0": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:EXTERIOR_ANGLE] Compute the exterior turning angle of a regular pentagon from one full turn."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:STAR_TURNING] Follow the extended side directions forming the star and relate their turn to the acute tip angle."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ANGLE_CHASE] Complete the linear-angle calculation for the marked angle."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:CENTRAL_ANGLES] Join the pentagon's center to its vertices and obtain the central and base angles of the resulting congruent isosceles triangles."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:ISOSCELES_TRIANGLE] Use equal chords and the side extensions to identify an isosceles triangle whose base angle is the marked star angle."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:ANGLE_SUM] Apply the triangle angle sum with the independently derived vertex angle."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:exterior_turning] Determine the star tip by tracking polygon exterior turns.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:central_isosceles_geometry] Derive the same angle from central angles, equal chords, and an isosceles triangle.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0000:test/intermediate_algebra/1716.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:APPLY_INEQUALITY] Apply AM-GM separately to a+b, a+c, and b+c for positive a,b,c."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:MULTIPLY_BOUNDS] Multiply all sharp bounds and cancel the denominator exactly."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:EQUALITY_CASE] Solve the simultaneous AM-GM equality conditions to certify attainability."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:NORMALIZE] Use homogeneity to set a=1 and introduce the positive ratios p=b/a and q=c/a."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:DIFFERENTIATE] Differentiate the logarithm of the normalized two-variable objective, solve both stationarity equations, and identify the unique positive critical point."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:PROVE_OPTIMALITY] Show the normalized objective diverges on every boundary direction and evaluate the unique interior critical point."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:factorwise_am_gm] Multiply all sharp pairwise AM-GM bounds and solve their equality conditions.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:homogeneous_multivariable_calculus] Normalize by scale, solve the log-gradient equations, and control the boundary.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0004:test/number_theory/574.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:CRT] Solve the two given congruences by a Chinese-remainder construction."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:GENERAL_SOLUTION] Prove all solutions differ by the product of the coprime moduli."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ORDER_SOLUTIONS] List the positive representatives from the general solution and select the second."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:ENUMERATE] Generate positive integers in increasing order that have the required remainder modulo 7."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:FILTER] Test each generated integer directly for the required remainder modulo 3, without invoking a simultaneous-congruence theorem."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:COUNT_MATCHES] Stop at the second direct match and return it."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:chinese_remainder_theorem] Solve one residue class modulo the product and order its positive members.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:ordered_exhaustive_filter] Enumerate one arithmetic progression and directly filter it until two matches occur.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0007:train/algebra/1106.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:MODEL] Let the consecutive page numbers be n and n+1 and form their product equation."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:QUADRATIC_FORMULA] Solve the resulting quadratic by its discriminant, retain the positive integer root, and add the consecutive numbers."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:INTEGER_SQRT_BOUND] Locate the product between consecutive perfect squares to bound the smaller page number to the integers adjacent to the square root."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:FACTOR_SEARCH] Test the bounded adjacent integer pair by exact multiplication."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:ARITHMETIC] Add the two factors after the exact product match."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:quadratic_root] Solve the consecutive-integer product as a quadratic equation.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4", "A5"],
+        "plan": "[KERNEL:integer_factor_localization] Use square-root bounds to localize and verify the consecutive factor pair.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0016:train/precalculus/539.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:COMPLEX_ENCODE] Encode all listed angles as unit complex numbers and combine both given real sums into a vanishing complex sum."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:CONJUGATE] Conjugate the relation, replace conjugates by reciprocals, and derive the vanishing pairwise-product sum."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SQUARE_AND_REAL_PART] Square the original complex sum, substitute the pairwise relation, and take real parts to obtain every possible requested value."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:VECTOR_GEOMETRY] Interpret the cosine-sine pairs as unit vectors whose vector sum is the additive identity."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:EQUILATERAL_LEMMA] Prove geometrically that the cancelling unit vectors have equal pairwise angular separation around one full turn."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:DOUBLE_ANGLES] Double those direction differences, sum the resulting unit-vector x-components, and enumerate all possible requested values."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:unit_complex_algebra] Use conjugation and the square of a vanishing complex sum.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:equilateral_vector_geometry] Classify all cancelling unit vectors geometrically, then double their directions.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0017:train/intermediate_algebra/1172.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:DEFINE_PRODUCTS] Name both positive denominator products A and B on the given open cube."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:APPLY_INEQUALITY] Apply AM-GM to the reciprocals of A and B and simplify AB as the product of the paired plus/minus factors for x, y, and z."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:EQUALITY_CASE] Bound that product by one and solve all equality conditions."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DIFFERENTIATE] Compute every partial derivative of the objective and solve the simultaneous stationarity equations in the open cube."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:BOUNDARY_ANALYSIS] Prove the objective diverges whenever any coordinate approaches either face of the cube."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:PROVE_OPTIMALITY] Use boundary coercivity and the unique interior stationary point to certify and evaluate the global minimum."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:reciprocal_product_am_gm] Bound the reciprocal pair through the product of all coordinate factors.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:multivariable_calculus] Solve the gradient equations and use boundary divergence for globality.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0020:train/number_theory/956.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:BASE_EXPANSION] Expand the base-n numeral by positional value."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:FACTOR] Factor the resulting polynomial in n as a perfect square for every allowed base."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:COUNT_INTERVAL] Count the integer bases in the stated closed interval."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:EXHAUST_CASES] For each allowed base separately, convert the numeral to decimal."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:VERIFY_SQUARES] Exhibit an integer square root for each converted value."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:COUNT_MATCHES] Count the successful rows of the exhaustive table."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:symbolic_positional_factorization] Prove one symbolic perfect-square identity for every permitted base.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:finite_base_enumeration] Independently convert and verify every permitted base.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0021:train/intermediate_algebra/1025.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:SUBSTITUTE] Set t equal to the square root already present in the given denominator, record its exact feasible domain, and rewrite the numerator in terms of t."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:APPLY_INEQUALITY] Apply AM-GM to t and its positive reciprocal term."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:EQUALITY_CASE] Verify that the equality value of t is feasible for a real x and certify the global minimum."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DIFFERENTIATE] Differentiate the original even function and factor its derivative."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:CRITICAL_POINTS] Solve for every real critical point and evaluate the objective at them."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:PROVE_OPTIMALITY] Use derivative signs together with the behavior as x tends to both infinities to select the global minimum."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:radical_substitution_am_gm] Convert to a one-variable reciprocal pair and use its sharp inequality.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:direct_calculus] Factor the derivative, enumerate critical points, and compare global behavior.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0033:test/geometry/690.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:ORDER_SIDES] Use positivity to identify the unique possible hypotenuse."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:PYTHAGOREAN_EQUATION] Write and expand the Pythagorean equation for all given side expressions."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SOLVE_AND_FILTER] Solve the resulting polynomial and retain only values producing a nondegenerate triangle."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:DIFFERENCE_OF_SQUARES] From c^2-b^2=d^2 and the given fact c-b=1, replace the two longer sides by the factored product (c-b)(c+b)."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:SUBSTITUTE] Substitute all given side expressions into the factored relation without expanding their squares."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:SOLVE_AND_FILTER] Solve the lower-degree factored equation and enforce positivity and the triangle inequalities."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:expanded_pythagorean_equation] Identify the hypotenuse and solve the fully expanded square equation.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:consecutive_leg_hypotenuse_factor] Exploit the unit gap between a leg and hypotenuse before solving.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0035:test/intermediate_algebra/1390.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:APPLY_INEQUALITY] Apply AM-GM to the two factors xy+z and xz+y."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:FACTOR_AND_BOUND] Factor their sum as (x+1)(y+z), use x+y+z=3, and apply a second sharp AM-GM bound."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:EQUALITY_CASE] Solve both equality conditions under nonnegativity to certify attainability."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:ELIMINATE_CONSTRAINT] Substitute z=3-x-y to obtain a two-variable polynomial on the closed triangular feasible region."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:DIFFERENTIATE] Solve the two interior partial-derivative equations and evaluate every interior critical point."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:BOUNDARY_ANALYSIS] Optimize the polynomial separately on all three boundary edges and compare those values with the interior critical values."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:two_stage_am_gm] Chain two sharp inequalities and solve their simultaneous equality case.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:constrained_polynomial_calculus] Eliminate the constraint, solve the interior gradient, and exhaust all boundary edges.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0042:train/intermediate_algebra/1489.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:TRANSLATE_FUNCTION] Replace x by x minus the stated horizontal shift in the original quadratic to express the shifted graph."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:EXPAND] Expand and collect the shifted polynomial's coefficients."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:SUM_COEFFICIENTS] Add all displayed coefficients."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:COEFFICIENT_EVALUATION_THEOREM] Use the fact that a+b+c is the shifted polynomial's value at x=1."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:INVERSE_TRANSLATE_POINT] Map x=1 on the shifted graph back by subtracting the stated shift from that input on the original graph."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:EVALUATE] Evaluate the original quadratic at that single preimage without expanding the shifted polynomial."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:coefficient_expansion] Expand the translated polynomial and add its explicit coefficients.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:polynomial_value_invariant] Interpret the coefficient sum as one function value and map that point through the translation.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0047:test/intermediate_algebra/924.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:FACTOR] Multiply the divisor by x squared plus the multiplicative identity and verify the resulting two-term polynomial."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:DIVISIBILITY] Factor the target power minus the multiplicative identity by the intermediate two-term polynomial and use transitivity of divisibility."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:READ_REMAINDER] Rearrange the divisibility statement into quotient-remainder form with degree below the divisor."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:QUOTIENT_RING] In the quotient ring by the divisor, use its defining relation to reduce x^8."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:REPEATED_SQUARING] Compute x^100 by binary repeated squaring, reducing after every multiplication by the defining relation."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:UNIQUE_REPRESENTATIVE] Select the resulting polynomial representative of degree below eight as the remainder."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:factor_divisibility_shortcut] Embed the divisor in the derived two-term polynomial and factor a difference of powers.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:quotient_ring_fast_power] Reduce the target power directly by modular polynomial exponentiation.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0048:test/geometry/677.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PERIMETER_CONSTRAINT] Let the positive integer side lengths be a and b and derive their fixed sum from the perimeter."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:CONVEXITY_IDENTITY] Rewrite a^2+b^2 as one half of (a+b)^2+(a-b)^2."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:INTEGER_PARITY_BOUND] Use the fixed odd sum to prove the smallest possible absolute difference, exhibit the attaining pair, and take the square root."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:ENUMERATE] List every unordered positive-integer side pair having the required fixed sum."
+      },
+      {
+        "action_id": "A5",
+        "operation": "[OP:PYTHAGOREAN_CALCULATION] Compute the diagonal squared separately for every pair in the finite list."
+      },
+      {
+        "action_id": "A6",
+        "operation": "[OP:SELECT_EXTREMUM] Select the smallest table entry and express its square root in simplest radical form."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2", "A3"],
+        "plan": "[KERNEL:balanced_integer_convexity] Minimize the side difference under the fixed odd sum.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A4", "A5", "A6"],
+        "plan": "[KERNEL:finite_integer_enumeration] Exhaust all unordered side pairs and compare their exact diagonal squares.",
+        "strategy_id": "S2"
+      }
+    ]
+  }
+}

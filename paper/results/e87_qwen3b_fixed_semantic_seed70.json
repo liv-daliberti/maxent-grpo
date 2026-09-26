@@ -1,0 +1,151 @@
+{
+  "schema": "paper-e87-qwen3b-fixed-semantic-seed70-v1",
+  "generated_at": "2026-09-04T15:19:49.814613+00:00",
+  "status": "terminal five-domain single-seed descriptive evidence",
+  "model": "Qwen2.5-3B-Instruct",
+  "seed": 70,
+  "n": 1,
+  "training_pass": 8.0,
+  "target_steps": 3072,
+  "evaluation_draws": 4,
+  "semantic_coefficient": 0.1,
+  "replay_weight": 0.1,
+  "methods": [
+    "drgrpo",
+    "replay_grpo",
+    "replay_semantic_maxent"
+  ],
+  "uncertainty": "none; one training seed, no interval or significance claim",
+  "domains": {
+    "graph_coloring": {
+      "methods": {
+        "drgrpo": {
+          "pass8": 0.650390625,
+          "mean8": 0.360595703125,
+          "distinct8": 0.982421875
+        },
+        "replay_grpo": {
+          "pass8": 0.83203125,
+          "mean8": 0.3544921875,
+          "distinct8": 1.654296875
+        },
+        "replay_semantic_maxent": {
+          "pass8": 0.81640625,
+          "mean8": 0.343505859375,
+          "distinct8": 1.64453125
+        }
+      },
+      "fixed_minus_replay": {
+        "pass8": -0.015625,
+        "mean8": -0.010986328125,
+        "distinct8": -0.009765625
+      }
+    },
+    "countdown": {
+      "methods": {
+        "drgrpo": {
+          "pass8": 0.6015625,
+          "mean8": 0.57080078125,
+          "distinct8": 0.6015625
+        },
+        "replay_grpo": {
+          "pass8": 0.74609375,
+          "mean8": 0.490234375,
+          "distinct8": 0.9765625
+        },
+        "replay_semantic_maxent": {
+          "pass8": 0.78515625,
+          "mean8": 0.4931640625,
+          "distinct8": 1.123046875
+        }
+      },
+      "fixed_minus_replay": {
+        "pass8": 0.0390625,
+        "mean8": 0.0029296875,
+        "distinct8": 0.146484375
+      }
+    },
+    "python_factors": {
+      "methods": {
+        "drgrpo": {
+          "pass8": 0.0,
+          "mean8": 0.0,
+          "distinct8": 0.0
+        },
+        "replay_grpo": {
+          "pass8": 0.76171875,
+          "mean8": 0.643798828125,
+          "distinct8": 1.38671875
+        },
+        "replay_semantic_maxent": {
+          "pass8": 0.171875,
+          "mean8": 0.171875,
+          "distinct8": 0.171875
+        }
+      },
+      "fixed_minus_replay": {
+        "pass8": -0.58984375,
+        "mean8": -0.471923828125,
+        "distinct8": -1.21484375
+      }
+    },
+    "mathir": {
+      "methods": {
+        "drgrpo": {
+          "pass8": 0.30078125,
+          "mean8": 0.206298828125,
+          "distinct8": 0.30078125
+        },
+        "replay_grpo": {
+          "pass8": 0.76171875,
+          "mean8": 0.6259765625,
+          "distinct8": 0.798828125
+        },
+        "replay_semantic_maxent": {
+          "pass8": 0.794921875,
+          "mean8": 0.6650390625,
+          "distinct8": 0.80859375
+        }
+      },
+      "fixed_minus_replay": {
+        "pass8": 0.033203125,
+        "mean8": 0.0390625,
+        "distinct8": 0.009765625
+      }
+    },
+    "pantry_plan": {
+      "methods": {
+        "drgrpo": {
+          "pass8": 0.6484375,
+          "mean8": 0.5986328125,
+          "distinct8": 0.734375
+        },
+        "replay_grpo": {
+          "pass8": 0.7421875,
+          "mean8": 0.560546875,
+          "distinct8": 1.435546875
+        },
+        "replay_semantic_maxent": {
+          "pass8": 0.77734375,
+          "mean8": 0.545166015625,
+          "distinct8": 1.828125
+        }
+      },
+      "fixed_minus_replay": {
+        "pass8": 0.03515625,
+        "mean8": -0.015380859375,
+        "distinct8": 0.392578125
+      }
+    }
+  },
+  "sources": {
+    "parent_ledger": {
+      "path": "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json",
+      "sha256": "8f7a89a8303468f1a962856d0636c7121f42a77f68cfcfb40e1601a16ee5a0a0"
+    },
+    "treatment_ledger": {
+      "path": "var/artifacts/e87_qwen3b_semantic_maxent_seed70_jobs.json",
+      "sha256": "0c87815e53d089fe642079e97052ffed2d169d46c473fff54b1cd918b065f34a"
+    }
+  }
+}

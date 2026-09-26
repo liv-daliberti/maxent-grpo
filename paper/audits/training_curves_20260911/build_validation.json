@@ -1,0 +1,81 @@
+{
+  "schema": "paper-training-curves-build-validation-v1",
+  "date": "2026-09-11",
+  "metrics": [
+    "pass8",
+    "distinct8"
+  ],
+  "primary_level1_scales": [
+    "qwen05b",
+    "falcon1b",
+    "qwen3b"
+  ],
+  "primary_methods": [
+    "drgrpo",
+    "replay_drgrpo",
+    "maxrl",
+    "replay_maxrl"
+  ],
+  "primary_level2_scales": [
+    "qwen05b"
+  ],
+  "supporting_ucpo_rlep_scales": [
+    "qwen05b",
+    "falcon1b"
+  ],
+  "compiled_figures": 18,
+  "snapshot_sha256": "6b9e4d90d337152cc30b904bd41ffe660939d80f2f3611984368c788b25d33f1",
+  "shared_pdf_sha256": {
+    "figures/modecollapse_story.pdf": "5a76c90b0ca002ce7d59b5e6af8254f311ee74f6d6c77d00b5b3ccfcc99715ac",
+    "figures/modebench_examples.pdf": "f133dfe8cc046d72625579e0b2b57a89d107c6197d9f48eeaa882efa0180cea6",
+    "figures/verified_support_story.pdf": "7acd8dfa012e841857950261e4fcba937468c66609c6fe41e012c16a6f45dea8",
+    "figures/experiment1_retention_comparator_matrix.pdf": "8f0fb925bcc955b6f2521073f9282c5a1dbf48cf11d811a1f7f01363c673ebe5",
+    "figures/e118_all_scale_factorial_progress.pdf": "334bfcdb95e8ea0a7bc103930d0c080c1a0440f64b9a148f8fc07ca64e489998",
+    "figures/modebench_level_admission.pdf": "710c12f6b5fb5e7896d9d87247d9159026a15e1ac948578a92600a213539f6f2",
+    "figures/factorial_training_curves_pass8.pdf": "4ba7db14b2d0dfb8b424d492e9a6ba96c97b782736c8e6aadf8e4009f55b302c",
+    "figures/factorial_training_curves_distinct8.pdf": "b8d05ec1f83e4bb8095007ac3a30b4e6c995533ab262e30b2ec56c62dc2afa35",
+    "figures/level2_factorial_training_curves.pdf": "76ecfcc1c2d2400a7360c3bbbc529be98094514f914f165fc469ffe412a8e7c0",
+    "figures/sustained_auc_effects_qwen05b.pdf": "88d3af7e41d1f7f2ec5ac1d95de976762e29f593ba763951ac19f577f4ca1860",
+    "figures/direct_comparator_endpoint_effects.pdf": "4cf652860eda2c3f66109bb57847f94e3397c7d9965f564d578be5589c5c9ef9",
+    "figures/direct_baseline_learning_curves_static_strip.pdf": "3bdd8b1a990007e77b1c07a7af33a6436b1038f4039856b067cb0d2d7a99a4e3",
+    "figures/direct_baseline_learning_curves_pass8.pdf": "19ddfdfe8f851f8898c3e6adc5e2d51b936b6750cf7d8a0129e82e5d76b49527",
+    "figures/baseline_collapse_precheck.pdf": "0559ed7e72b5464337034b75cad05adfba9a3a7df2b636780466b4dbaa86b298",
+    "figures/verified_support_discovery_two_scale_effects.pdf": "2b602b6478f5bf22d16f19964e0f87983d4ee79bc24e124c134202e42d6fdd7d",
+    "figures/replay_mechanism_telemetry_qwen05b.pdf": "281af28ef9acb31cf5ef8a1943262427a254a58729e6534f7f73c7a29ee7266b",
+    "figures/e121_fixed_bank_survival.pdf": "1bd7c1e98054d4512a1e3275f6344e800358929efa561a1864c932dbb1652654",
+    "figures/e118_scale_extensions_appendix.pdf": "e7cff4794de1f20f2eb526d180295f2d85aef8a49027f9801e580aadcb4edb76"
+  },
+  "builds": {
+    "paper/main.pdf": {
+      "sha256": "7003f9bdf8250a9c91396028b000af1163dce57f407e8091fcc86a8cb55a39df",
+      "pages": 70,
+      "training_figure_pages": [
+        39,
+        40,
+        41,
+        44,
+        45
+      ],
+      "passed": true
+    },
+    "paper/mathai2026/main.pdf": {
+      "sha256": "22e1a10ee0bd48f4ef84db0167c7ce4080c772a7c4f2fa97a826502c76ce23a8",
+      "pages": 70,
+      "training_figure_pages": [
+        37,
+        38,
+        39,
+        42,
+        43
+      ],
+      "passed": true
+    }
+  },
+  "short_content_pages": 4,
+  "e120_primary_unchanged": true,
+  "visual_review": {
+    "figures_reviewed_per_paper": 5,
+    "compiled_pages_checked": true,
+    "clipping_or_overlap": false
+  }
+}

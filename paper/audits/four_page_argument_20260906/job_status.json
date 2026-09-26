@@ -1,0 +1,4569 @@
+{
+  "collection_finished_utc": "2026-09-06T17:54:56.968600+00:00",
+  "collection_started_utc": "2026-09-06T17:54:56.352765+00:00",
+  "groups": {
+    "e118/falcon1b/countdown": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/falcon1b/graph_coloring": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/falcon1b/mathir": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/falcon1b/pantry_plan": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/falcon1b/python_factors": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen05b/countdown": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen05b/graph_coloring": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen05b/mathir": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen05b/pantry_plan": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen05b/python_factors": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen3b/countdown": {
+      "complete_five_seed_block": false,
+      "completed": 1,
+      "matched_completed_seeds": [],
+      "other": 0,
+      "queued": 9,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen3b/graph_coloring": {
+      "complete_five_seed_block": false,
+      "completed": 3,
+      "matched_completed_seeds": [
+        73
+      ],
+      "other": 0,
+      "queued": 4,
+      "registered": 10,
+      "running": 3
+    },
+    "e118/qwen3b/mathir": {
+      "complete_five_seed_block": false,
+      "completed": 2,
+      "matched_completed_seeds": [
+        74
+      ],
+      "other": 0,
+      "queued": 8,
+      "registered": 10,
+      "running": 0
+    },
+    "e118/qwen3b/pantry_plan": {
+      "complete_five_seed_block": false,
+      "completed": 0,
+      "matched_completed_seeds": [],
+      "other": 0,
+      "queued": 7,
+      "registered": 10,
+      "running": 3
+    },
+    "e118/qwen3b/python_factors": {
+      "complete_five_seed_block": true,
+      "completed": 10,
+      "matched_completed_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 10,
+      "running": 0
+    },
+    "e119/qwen05b/countdown": {
+      "complete_five_seed_block": false,
+      "completed": 3,
+      "matched_completed_seeds": [],
+      "other": 0,
+      "queued": 10,
+      "registered": 20,
+      "running": 7
+    },
+    "e119/qwen05b/graph_coloring": {
+      "complete_five_seed_block": true,
+      "completed": 20,
+      "matched_completed_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 20,
+      "running": 0
+    },
+    "e119/qwen05b/mathir": {
+      "complete_five_seed_block": false,
+      "completed": 15,
+      "matched_completed_seeds": [
+        43,
+        44
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 20,
+      "running": 5
+    },
+    "e119/qwen05b/pantry_plan": {
+      "complete_five_seed_block": false,
+      "completed": 0,
+      "matched_completed_seeds": [],
+      "other": 0,
+      "queued": 20,
+      "registered": 20,
+      "running": 0
+    },
+    "e119/qwen05b/python_factors": {
+      "complete_five_seed_block": false,
+      "completed": 14,
+      "matched_completed_seeds": [
+        45,
+        47
+      ],
+      "other": 0,
+      "queued": 0,
+      "registered": 20,
+      "running": 6
+    }
+  },
+  "queued_continuations_of_running_cells": [
+    {
+      "cell": "e118/qwen3b/pantry_plan/maxrl/73",
+      "queued_successor_job_ids": [
+        31099355
+      ],
+      "running_job_ids": [
+        31073908
+      ]
+    },
+    {
+      "cell": "e118/qwen3b/pantry_plan/replay_maxrl/72",
+      "queued_successor_job_ids": [
+        31099354
+      ],
+      "running_job_ids": [
+        31073907
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "168eb72d1130fe5db32829ec87ebf8aabc5fe572e2d98a71b4062cf64abacb45",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_countdown_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "ad0fffff8e5824895cebeaf71a9cd4533b48bfb21d5748cb5dab333aecc6162c",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_countdown_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "e09034a02d24ce466858cbbb0ea80588949f90c1fd5d9e514f6e3563d49136bb",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_countdown_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "70538c4a53aa09a8680c04bbac3c7901dbc6888f4c776dff20b5db36e3c99ea1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_countdown_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "d6b15f4cbf65ca58e17b5df49a1bd2708a15dddcd34c9c4fff64f8e72b9e901a",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_countdown_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "2dacb9390854ecd496f11eef3d66bf16e038467fc48f6cd7492656711eaee5ca",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_countdown_replay_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "6f8b4e13f9bf976be2824ff5c2f97c98c469caafdaabe9faddee83410bc9a33e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_countdown_replay_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "3ea5067bfa0e04dffda1a39d968dcf7ae6a68a161d3a618a8e2aa0659fb9b784",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_countdown_replay_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "aa62855fe1764115fbaea6003cfe9fee61c7aa7dbc921df493fa0665fa8885f7",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_countdown_replay_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "c61fa0a8ea8846015d1174eef107169315975721f8688f8612a125a5c1a941c3",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_countdown_replay_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "3dee375cbed1c77df0a0116aa3c4d4c4070056f8c9c10478cbb3fd48b41aa2eb",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_graph_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "3458cc3523473642b2953362a6db8f8d47f9d13b539750ab3cd282ebef198856",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_graph_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "bfeb2b8145fed085cdbd5d67b45772533e426f92898dc7756000ebee7c8f2264",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_graph_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "e8e3d7078c4b1bc8309e4e8b083486a1b712768b31505f42f05767fe41ade2c2",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_graph_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "4f0fabd4b2051ed5c3446d8aa881fd50e489e21eb2d25d4ad4b6181cdb56a143",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_graph_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "e5a4e91de9f85b1450a038ec5a1253d6fc28e9706e69b1c4bfb1c7062a182445",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_graph_replay_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "10d981b7410227beaba251c0d621176564361ae07547bbb5894c679e9a7d95ff",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_graph_replay_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "9f7e93d276dd89c155189cc687212c72e299ae5c28cddd99d1e7d4c04d740986",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_graph_replay_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "12b3d08ef639c8a9f679c96a7dbc2f3a5a1dd769e9b6933a2435b6526faa703a",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_graph_replay_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "d625976023db97ca27fa4ad1eb16350d6a1c81213d8f3015ed1d18a9fcbb4fa3",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_graph_replay_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "7e6f2b04f510312c9d50f92f40739954a64e6db2f5b8d9b0af102769025b36a2",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_mathir_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "90977928c1f8f14716a8cc96c9f938b9f54ad1798006807f24ed7d2451f1f8b4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_mathir_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "cfe2fc81cd661f89fcd1718e2033ee47c70c82d0c168660922dc395b7d862cc6",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_mathir_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "c64d65d061c3a52d4df9fc643475986d1f27e00447d36c429a42dcfa6336c29d",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_mathir_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "4a2664ab3a3ccf66b14ba22abbcef8dc493073f90f63ef996101fa5df3e752ad",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_mathir_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "a61fa788ad273f1332d2ea70c89453c39a1d3a469afe9901b8a518f7c91794a7",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_mathir_replay_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "936f0699b4a73f67031e302a2262056156f0d26ce0d4c5cdf4a565862cf84544",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_mathir_replay_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "765b9397655ba30cce42b6cdee848fd2480d4741eda1c6328a2741d2ff172ef6",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_mathir_replay_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "3e103786d30c757d2c6ce9fd1bcba4a99c6ed5e526ad611e8bde852f3e6485f8",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_mathir_replay_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "8efbd9ad77c61ff8474a67b2d9d2f00ee19015b552ec35f377f62fed0fbc9003",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_mathir_replay_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "708793e59ad45688e087a47e24422a2e5561a7f71d182ff7eeb0d3d4ef5ef9aa",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_pantry_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "2d86b4d048dfb554f4b160a91a758e95d23e54c8233c4796d4e2791de754c338",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_pantry_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "cd17852d2d9fdc604b1ba4e5b1a2dfa13e88541f05677932492c13a59d45a5aa",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_pantry_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "884c35584333caefb7a7923b2e71b0554e803862137dce2e6aa0fb94f3b57d6b",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_pantry_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "91c10eb37a3a01c797b3291140c506b436001ca392e2ae0ea6f35dbb9433b74c",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_pantry_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "ff5fd198dff7ca7d430819ee66702274f234b168e9a5cb4e3967923ec3ea60bd",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_pantry_replay_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "776e4eb0d7907303c0edabcc23905884abbd44ebb5286baf6a79e22c718e19b4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_pantry_replay_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "e83c614c2c2b36721fbc40edc92cd5201c042af022b363c00504f36077beea5e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_pantry_replay_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "f172950c5067f3e3a61c5cfd15d25c0be869b4c1d47dada3fa1035fe7334a313",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_pantry_replay_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "bde074459a1a35f84c2679861a278c1ca7939f92d43b854777ae806bab2eb3db",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_pantry_replay_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "d88d97e7c82892b9879e16dff2de0e5d14f2b218eccc210dbcb850be59793a73",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_python_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "24dd2d0413cd6f1805d669446f3bd09209258f248a3c006b5f1081c8827047aa",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_python_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "c6e32f63edca84d1d5a87d3c36b350e5f390643d4e6167006f853ea9f882daaf",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_python_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "a1e0f56ec40328976f9f171b741114603ddf14ab2eaf75ee0493f80f757802a1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_python_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "75d1e8f85bc4d85c01a0aae9e2c03cf9bc84fb165a2fd50a58d030b9cafb5104",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_compute_matched_e118f1_python_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "170a47895e73d52fbb278ac1eb715819086b44e5a39aedf03c3e052b02ba03ee",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_python_replay_maxrl_s55",
+      "seed": 55,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "4808922f090ca70760cd9c037b2fc422b6e1dd9c77732e8db84261be4db10814",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_python_replay_maxrl_s56",
+      "seed": 56,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "bc9f5dd2df5f5cfcae1aae4a6784afe008e43fa3cc0452ba96e54e7195a9416e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_python_replay_maxrl_s57",
+      "seed": 57,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "d8e47b3e3c1dc579afda1ea61343afd7feda12b22d56da541a5c75d7b17d35db",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_python_replay_maxrl_s58",
+      "seed": 58,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "d0920919ccda6623ac4426a9f6d9fc787ca90c4ce474f3fe926935bc9141eaff",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_falcon3_1b_instruct_maxrl_verified_replay_e118f1_python_replay_maxrl_s59",
+      "seed": 59,
+      "size": "falcon1b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "79b03f08e8bbd3da60eb878e3d064f12a1916ab0ea03c5896d3f6fed3b49960e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_countdown_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "eb854b435c25e6d98d2c6c38632ef19ab6360db81366ad5a2c9a3a4d504f367d",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_countdown_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "ad2f21645ef6d2519f4ee48559ecb3bac21c1e4fffcc7d01b967e2275ff3def2",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_countdown_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "32a45a2b8dfb540da46654cc876bf8419cb9839c740f94692087bfa787e00d3b",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_countdown_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "a75ab8c269961defd954e0f494604d5ae9f391d5c6eff113b2bf5a54bbadfeae",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_countdown_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "6aada1c0401b36eeaa0f1e8647a8c09d22813121220c37d272d0cd310780544f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_countdown_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "c696b71702a1d998cbbf92c4a6414be13cb7ffe6cea365eecc8b3982cac264f6",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_countdown_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "ac16113d7dbd3a0161b567813e31b1397f112b3901da04ffe108b7aa264dfc0a",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_countdown_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "e24b5fbe8fa2bd30c234f0874e48a6ea54ae2cc5e6ae2ba827868936cdc65850",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_countdown_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "ba4e0b6067c06bcf773ac9cabcf9fefbef9fe23bb6e0f712bbfa86afb73dcdd8",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_countdown_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "efedfedab63babaeb53a7abb412559d55285ee4efaff93506eb67fdcf4221742",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_graph_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "86c298d444ca582a7f83b07d2e40a7ca526cd52153fe9c123465dcd04534b332",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_graph_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "86183d50867055ad142cded284535dfcd7da98acfa2808696defda77e6c72066",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_graph_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "7bc56ec0f9ca5788ae9233d54043eb47fd1a7a50a61b77cae49ea6c9877f4e6c",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_graph_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "83330696f7579f070167234a77da7dc84e82a4dc9c7c99dfa2ec538c7308a33a",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_graph_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "d9832d9eb6a0f7898175469394867a6727d5b6c43c1ec46ad6441bddabea6b8a",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_graph_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "cd50db293b8226c327cdc3c08583961edb040f732d3131aa4e24856e1c6014ca",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_graph_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "4876e6a4771364d0d6fbfaea0d4585be9e2cf7841006d52a1de44eea8c2424e8",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_graph_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "5514f26ccc60b13a54c0ede6d486bb2361e0ece639c0f396f8a05bb4ecad5448",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_graph_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "ac782aa858c77189f528fd9c9df8c0d45105933e1a0ab6459ab97b10edbe42d7",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_graph_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "cd55522e1a1f6cb07a52feae567315a843751b36debe97de083196b882a23897",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_mathir_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "24285ef034ee2b8717723237869024cc376fbf20f0ec2d85b1fa758b3354d5ba",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_mathir_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "632df15c8eb60f536d4fb92769f30283bb553766077ec0d1e63cc59e51234709",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_mathir_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "3ab32b00f48e2542c26be572b65c855b20cbf8eac27c3838a609b9f82e62b391",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_mathir_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "61eb62952a5f9a27a220e95dc5171dbfe68eec90b8968b0f92fc31f793773937",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_mathir_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "0ffa9a8aca3493ec8d6a1086d46e2e37040164b86863b502323bf4614cc4bb16",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_mathir_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "fb6f3d032a87353340662a9ebd96d00fa99269d595ce09f15fbffcb93eae2d74",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_mathir_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "cbdfadc1469a77e5a50d42e21d936e979d92bd734309c5b6e72cd26fefc87f50",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_mathir_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "e4e0395d63175e975e0e3f593af7da03cb5b4e53ef27bafd82d834c16d256f16",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_mathir_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "3ff0d2da9d31ec3e900452bc143e9293aa460fc7b850ee5f8e0b805411723d90",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_mathir_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "d415b05dc7e24890df8b70ad0fde08b137d1421783511adedb20eecce5801bfd",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_pantry_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "285582dec49a28e6d07eddc8353d97a191de92b0549ac487e70a54beae08a3de",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_pantry_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "499af25919bcee035121d12fc039b62cae09331e183a9944829e0ea085b3dcd7",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_pantry_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "5322d2b988fa77b67fd4b7f84f196bf286a4449c00a223feebf6a991d03cb523",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_pantry_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "fa9259cac3a328d65a71d64037defa3657279891f544f045ef6e4c828438a4a6",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_pantry_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "ed81071c2312cf8d2195e1691bce3dfcbe042e92bb0bd4fd4845cfe4634e8969",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_pantry_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "9d0ee7cc1f0ea7a1355203b39646208f73bd74d864e24beb55c26bf5b82edc1e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_pantry_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "c04d405bd8fe766d685aeb8b3ff50f047f1b1ecb3c220fccab1d80398fbd6de2",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_pantry_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "b8a50890cb013fdad19e48b0112130a1e10d949b04e4b1681d35456e5a8a2435",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_pantry_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": "070ab8894fbbbc6075501b9b5674ce616b2b07432704702ce24a809b043d4f29",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_pantry_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "2f22ea8ac0459f9e3bffb7e2b6fe165a9c07f404ea2333dca649e57c5ccdf806",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_python_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "6fd71a1cb46f2f306b69a6c14eb69080537d37d09ef26880b6c1a4abda7cc5f4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118r2_python_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "0c3693e0b7cfe0b42fccca18465421bef95a7da60168a144b7282b11cb49bdc6",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_python_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "6a08fea0dfac2dfd759708c894c382a75958714b52f2ef85579b670d07e4ab07",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_python_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "711a0d7292faf28a6dc2d7ca8436bf06a49836d98af3bce6258d99f9f43e46d4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e118q5_python_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "58cc39d6263bb88286c804376538b19738cc0098876ad639684e697625e6cb0e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_python_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "8d2941b5f964cd2661bd3f4531c18e48119396d973b7f8e6788261e631f9f26f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118r2_python_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "6a5e821eb106a3b5dedf4ec7b1dd0037f81e750bd6347a2be6b3b63bbdb72f5f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_python_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "9863a65912c7f3bdd891071c249d0a20ec67871b0cabac3584833251454f31ec",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_python_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "e378a9c7e6475437988611641b07b9fbe3e57252d4568e4bf39eca96e48338e1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e118q5_python_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": "727543e1488fe372081cf5922b67bc3f91a054106193bd66225cb0924c73c20b",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s71",
+          "job_id": 31048119,
+          "name": "e118q3-countd-m-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "b153e30f86d237a8faeefc690bc8ad3234b8a93b24c995ec9664bed6a0e5785a",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s72",
+          "job_id": 31048121,
+          "name": "e118q3-countd-m-s72",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "99bcb81db49f45c2a83997d42ce05541e70669290cfb4e61354f2684d41e915d",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s73",
+          "job_id": 31048123,
+          "name": "e118q3-countd-m-s73",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "a24abca43ddb27871a0d8e630840eba3a053547ab256e01f98446567e591a7da",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s74",
+          "job_id": 31048125,
+          "name": "e118q3-countd-m-s74",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "maxrl",
+            74
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "f49523051011e11cc8a8650f63fef6a19a11647e607eff05ee01e67dd4247f8e",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_countdown_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s70",
+          "job_id": 31048118,
+          "name": "e118q3-countd-rm-s70",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "replay_maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "6e2388bb46c751ebd61ede9df7a4c3126fac44fa2b6386c8b5fb7ffcbcc0445a",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s71",
+          "job_id": 31048120,
+          "name": "e118q3-countd-rm-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "replay_maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "0cc9a86e1595322cb1da1c980b9f1a87dfb2f5a659dc16264d480d9c8a456bf1",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s72",
+          "job_id": 31048122,
+          "name": "e118q3-countd-rm-s72",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "replay_maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "89af06e00050ab1bfdebe71096cb625da3169ea3b04c30577de3e470636097bf",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s73",
+          "job_id": 31048124,
+          "name": "e118q3-countd-rm-s73",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "replay_maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "218fb2d80ca254517a58906554b3c0c1bb33ac250c5f73bbe0b52b837bbdb3aa",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s74",
+          "job_id": 31048126,
+          "name": "e118q3-countd-rm-s74",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "countdown",
+            "replay_maxrl",
+            74
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "5641d5b7dae098d8013abf8c3b726a7c72fac9ec9fb04ce45759278786ae4f33",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_countdown_replay_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s70",
+          "job_id": 31100509,
+          "name": "e118q3-graph-m-s70",
+          "node": "node302",
+          "reason": "node302",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "dad56832e808eb16e229138c4353c04ea072be324f252c9e1ebe021aef393616",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s71",
+          "job_id": 31048109,
+          "name": "e118q3-graph-m-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "4116a18740deb3859a6b60c9179b1434bd056e0bfcad667529bd4e606821b144",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "8134c416cc42c7e6fd8e05191cb3a744b2bf2dbf6632a8ea5614d469a90383c0",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "045be8fb3fa16a42122f033f279f5c9725af707c33e93d7c378dfc2f951ca5c6",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s74",
+          "job_id": 31048115,
+          "name": "e118q3-graph-m-s74",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "maxrl",
+            74
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "2da666c6ff78f4ac42af7bc75605121c610f5023b9986b49c16d039f99087ea9",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_graph_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s70",
+          "job_id": 31048108,
+          "name": "e118q3-graph-rm-s70",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "replay_maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "5bf446a1b7eb9c0dd68cd4fb7c22e6e00780df0952d3ba81e395baea120fe47f",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s71",
+          "job_id": 31048110,
+          "name": "e118q3-graph-rm-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "replay_maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "746d44d4c8490b12a0df69fbf0f5f8715ff4fa3a66a328764f3f482d7fd818ab",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s72",
+          "job_id": 31073906,
+          "name": "e118q3-graph-rm-s72",
+          "node": "node302",
+          "reason": "node302",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "replay_maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "0b0ae84a8b6e45b48a5aa2b78cfa781ffffb802cc8b922f09433fbdc5265fc9f",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": "a844690c386388f3ef3131a85fa55577fe8ce19b7340d3311c0c85fb24a234c8",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s74",
+          "job_id": 31099352,
+          "name": "e118q3-graph-rm-s74",
+          "node": "node302",
+          "reason": "node302",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "graph_coloring",
+            "replay_maxrl",
+            74
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "6fcad413fcd437c427b337fb9f3f29d4728825b9454ad8763272f54e62fa797a",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "graph_coloring",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_graph_replay_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s70",
+          "job_id": 31048133,
+          "name": "e118q3-mathir-m-s70",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "3d4fbde13fb0b09b65c00db5a46679a251246ec871a2207e1e4badbe48845549",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s71",
+          "job_id": 31048135,
+          "name": "e118q3-mathir-m-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "6ae65896d6594944117fef721f25632854b5bf3d0477f0b9420f23d8271d7234",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s72",
+          "job_id": 31048137,
+          "name": "e118q3-mathir-m-s72",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "38dc13ea38147b6fa40a4d1cde975b9ba310343eff4febdac9de4769caed182f",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s73",
+          "job_id": 31048139,
+          "name": "e118q3-mathir-m-s73",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "f29e9821a2249c0e5889cc59913d248174f13efd80ecd84bb0104b8a8af5e858",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "d9bfae1037569c9d4077e0bfe2b443921571b3de193296910118916aa76a71cd",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_mathir_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s70",
+          "job_id": 31048134,
+          "name": "e118q3-mathir-rm-s70",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "replay_maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "6fae3a018c294adeec930e91eae8fd270c38e3aa6e3342821606f257bfa0cf96",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s71",
+          "job_id": 31048136,
+          "name": "e118q3-mathir-rm-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "replay_maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "269a0da8c27e7a22064fb8ed298fa5a66f7497c454b6ac95263868b4dfa4a415",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s72",
+          "job_id": 31048138,
+          "name": "e118q3-mathir-rm-s72",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "replay_maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "9e264fa525914933aa2cca6a20aef4c2fa9b5f95e11a811592e15c617f92affb",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s73",
+          "job_id": 31048140,
+          "name": "e118q3-mathir-rm-s73",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "mathir",
+            "replay_maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "682874f8d8d3d1b84f72223eb142ade3baa139e44eef85faae4c0f3f5b0f8fe0",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "mathir",
+      "receipt_sha256": "906c8a59ac9f79351a6894f610924e9c656d947101b1595ed910ceec7593ae9b",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_mathir_replay_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s70",
+          "job_id": 31048143,
+          "name": "e118q3-pantry-m-s70",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "d2a6651aa98bf0f2c8b17c7f55726ee8ca7996f2e1999044d53352238984fb26",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s71",
+          "job_id": 31048145,
+          "name": "e118q3-pantry-m-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "3af528fb21a70da4c04c860708d04a60bad8f69bb619b62a4884edb7a1d1ffb0",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s72",
+          "job_id": 31073910,
+          "name": "e118q3-pantry-m-s72",
+          "node": "",
+          "reason": "(Dependency)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "a579d4a8734c7e150ec45c2bbe261a7ab2dfd99a100cc5101a32a9c36e0f53e7",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s73",
+          "job_id": 31099355,
+          "name": "e118q3-pantry-m-s73",
+          "node": "",
+          "reason": "(Dependency)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "f1e71e0820faf282961057f30c35ebd23f1531feff3f6c07a1e445a5724bb0eb",
+          "state": "PENDING"
+        },
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s73",
+          "job_id": 31073908,
+          "name": "e118q3-pantry-m-s73",
+          "node": "node208",
+          "reason": "node208",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "54e05ce44ae2863aa8c627507b162c5ab4aa37f01f286496b805fc08b5e5b2e4",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s74",
+          "job_id": 31073909,
+          "name": "e118q3-pantry-m-s74",
+          "node": "",
+          "reason": "(Dependency)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "maxrl",
+            74
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "382da5abebd0e785b25127e95ad97116b430568ad21dbe2edef1febe41233fae",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_pantry_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s70",
+          "job_id": 31048144,
+          "name": "e118q3-pantry-rm-s70",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "replay_maxrl",
+            70
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "0f89c3eaaba6acb20aa71c6b89558b19a181cf76c096cf3eb9d1e8af459393fc",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s71",
+          "job_id": 31048146,
+          "name": "e118q3-pantry-rm-s71",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "replay_maxrl",
+            71
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "af3687d4a640b390e4e9eba48bf05a17d90ff6662633c26bfffad96b86013ae3",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s72",
+          "job_id": 31099354,
+          "name": "e118q3-pantry-rm-s72",
+          "node": "",
+          "reason": "(Dependency)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "replay_maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "c8ecace60b62073cf4cac8fa35de15096e62b255812ba0b13a6a385766005180",
+          "state": "PENDING"
+        },
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s72",
+          "job_id": 31073907,
+          "name": "e118q3-pantry-rm-s72",
+          "node": "node208",
+          "reason": "node208",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "replay_maxrl",
+            72
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "eec73fb06ecfd80bd6c5d429f673102e239d26b8ff7061f6d6bc4dccbe59b7e8",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s73",
+          "job_id": 31073911,
+          "name": "e118q3-pantry-rm-s73",
+          "node": "",
+          "reason": "(Dependency)",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "replay_maxrl",
+            73
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "9982bc89e5feaf55ee66528375a2f3897b41ee3a71b7de73aa9167d1741e30ba",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s74",
+          "job_id": 31099353,
+          "name": "e118q3-pantry-rm-s74",
+          "node": "node208",
+          "reason": "node208",
+          "registered_cell": [
+            "e118",
+            "qwen3b",
+            "pantry_plan",
+            "replay_maxrl",
+            74
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "158e47a72679edc19b705977b71e48ce1857284823298c25510e346627bce53e",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_pantry_replay_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "d36c04bcbdf68f314b8430ea236b59d92feeb45b107815ffa6f32faf49915d47",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_python_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "1e0656af70bb3e618a561c9ec3f1692d5173cde07b51830bc57c7082cd9c38b1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_python_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "ecccc6c7649c6d3eef50f30b733ce01d49eeb6b205e202ff71de864448bd6c73",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_python_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "1c4d60bb6821b03360c8fc1ae1f35abc010f59e1a7e2316f08ed1c5841fa1029",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_python_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "dd7965db223485dcc767f40ca39a2871a404a93e465da3ca701ff43a05942778",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_compute_matched_e118q3_python_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "83362ef740957c8f54f521e69027ae83f6dd959129a9ff62de5c83ffe4ac042f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_python_replay_maxrl_s70",
+      "seed": 70,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "7061ece770f7daf0a9295a82a34bd0bf74fb7206d9be7df6fb0e094b311b5dd1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_python_replay_maxrl_s71",
+      "seed": 71,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "93ddbeacb7bdbf4ec2a5203c265496613a2bc9ea698232ed843d5225ca8d4aa4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_python_replay_maxrl_s72",
+      "seed": 72,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "b5a148b4677deb33ca798ef10f8a6160f419c9a4597c1e46ec19599b01b735e8",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_python_replay_maxrl_s73",
+      "seed": 73,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e118",
+      "domain": "python_factors",
+      "receipt_sha256": "ffb24eddc17cca3bb4f2b5f10153fc349d709b87e4d47ae7c972518c6c357ce3",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_3b_instruct_maxrl_verified_replay_e118q3_python_replay_maxrl_s74",
+      "seed": 74,
+      "size": "qwen3b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s43",
+          "job_id": 31045874,
+          "name": "e119-countd-d-s43",
+          "node": "node105",
+          "reason": "node105",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "drgrpo",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "4fa7155dab9b634a6d01910933d48d1044e667018255d2518d94abd16594f880",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": "6fde3e29dfb2c4260b79293025cf9e83bfd0824cc8ded3e536d05c308c6d0557",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s45",
+          "job_id": 31048154,
+          "name": "e119-countd-d-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "drgrpo",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "46cd66fc243dd2a4f52f4bde28d78cc35ac9510deb541974328299272fe373bc",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s46",
+          "job_id": 31037849,
+          "name": "e119-countd-d-s46",
+          "node": "node204",
+          "reason": "node204",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "drgrpo",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "b6eb20a136869d59a7cc9bb07f3c49cc7847deacfe44fb9d1100a7029d9e72d9",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s47",
+          "job_id": 31048161,
+          "name": "e119-countd-d-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "drgrpo",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "05984bdd58728ea90ad60ef5d2268d97c61c8e6a10d246b5f14bcc90f9be1ce8",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_countdown_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s43",
+          "job_id": 31048150,
+          "name": "e119-countd-m-s43",
+          "node": "node202",
+          "reason": "node202",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "maxrl",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "a808bcb7c4d3d035f3d8e1a0b2d23bbd6dc160fc1f11e1bedf23b0b324b4ee89",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s44",
+          "job_id": 31045873,
+          "name": "e119-countd-m-s44",
+          "node": "node105",
+          "reason": "node105",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "maxrl",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "10e9261fac54126be9877a8caccf667f6e662925ae0591bf3198115105c548b6",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s45",
+          "job_id": 31048156,
+          "name": "e119-countd-m-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "maxrl",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "67f90a8290f24f58b3c3de7dad820849190bb7057d07a136a91ed01a44e0f78a",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s46",
+          "job_id": 31048159,
+          "name": "e119-countd-m-s46",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "maxrl",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "fd58c86ab1c962382aa397faa844295aafb29789242bb24b6289b84ffd2cfa07",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s47",
+          "job_id": 31048163,
+          "name": "e119-countd-m-s47",
+          "node": "node203",
+          "reason": "node203",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "maxrl",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "595469b6d25ac30159bc7150dd85b646da448667d485a77eaaba3a2876d87526",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_countdown_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": "880ce7f03f805169039d25aa2f6e637d62bb0d6266c2d56da1838cc2bb36f299",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": "3a397303b37903d31d473bbb11aa8ada4c80760848420fd25b5bd21d9ed38a97",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s45",
+          "job_id": 31048155,
+          "name": "e119-countd-rd-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_drgrpo",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "c49dc1ef6d31283d70ab1daae00eb98822d3061ad403b8eb90975b7cdf579b9f",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s46",
+          "job_id": 31048158,
+          "name": "e119-countd-rd-s46",
+          "node": "node204",
+          "reason": "node204",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_drgrpo",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "88b9cd0d5b3ebf0731d6faf08ca5c47b8ed2646f89628ffb1787357c37c81daa",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s47",
+          "job_id": 31048162,
+          "name": "e119-countd-rd-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_drgrpo",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "d5e148de6d0991c3b6f658846621ffe62491ae3a88139a31b7039ef984fdbadd",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_countdown_replay_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s43",
+          "job_id": 31048151,
+          "name": "e119-countd-rm-s43",
+          "node": "node204",
+          "reason": "node204",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_maxrl",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "df3a39cb1aa95ea304f25a9a728c5357bf5b60eca2fa6c823c339ce7e302de0f",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s44",
+          "job_id": 31048153,
+          "name": "e119-countd-rm-s44",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_maxrl",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "2d7cebbfea553741a95168f48a31dcc9cfc12d68df2099a0d7be9e68d66be1b3",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s45",
+          "job_id": 31048157,
+          "name": "e119-countd-rm-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_maxrl",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "4c41f9f08f44a24b4c2df6b6c3e02f78546a540a75448c062b0ebb69c772f71e",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s46",
+          "job_id": 31048160,
+          "name": "e119-countd-rm-s46",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_maxrl",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "11c7c6429993644e9b789f671de1633339fef0ae7b0cbe4a99d2ce4f2c033ba7",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s47",
+          "job_id": 31048164,
+          "name": "e119-countd-rm-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "countdown",
+            "replay_maxrl",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "0c05a84c9d20998a5dee981dd52020225593e611839782551428d7642fc39fef",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "countdown",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_countdown_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "4ebcc32d9d9dd01cb30250a281f50853cf4d1a5aa68ba2f47a6ceecadf337cf4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_graph_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "47e0fce98e359b1a0cf95c2d9a0d5e0ab550c75efed16ff1ef700c92bb9c7520",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_graph_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "ec694434a979e58bc11c17fc42a1644cd1243e6c41491e51e239f4cb7dcca50f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_graph_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "8954302d437562a0930185eb8966c41d86e3300f97e842b06d3d6707cbb0d19e",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_graph_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "0376ebc160ea933ca2ee27de10e26d47d1955f07fd90b27060e1cc54e863dd12",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_graph_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "3130ccfda3b05251d5e642dd70b7b3a3ba0e601e9c37677e57bb424c8daba0aa",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_graph_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "640c7caa6e52539d744a4ced7c13fcedc0e19751be382a8527cb2c7109557810",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_graph_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "d69a8d6828ce6b4136318074ce2140f1308df70df1b0fcea55600e63ea263c0d",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_graph_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "833c634cb530f117cfe63429a25839741813b776945e43017647086563b0eeec",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_graph_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "9ac6dc46cf3a557d40ad649991e0d6c8f80e3453ab3e04e71a315faac3b9b981",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_graph_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "6a2e51a82d570db13c45f3204d7136b81177ce2d34620ee262a181794dab595d",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_graph_replay_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "76b9e4bf64defabb2c16e07c7ffdfb0046ede8eb229d7116e84d6f1397a45746",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_graph_replay_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "24964df431a7aade6c42dd0fbed9805e4e6bf76451462c65d638546a6cfebd72",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_graph_replay_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "9060653213b1eb1fd23323ece3d9e33bf6734d49f9a712498ae938f62eb12798",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_graph_replay_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "ccff73597d7f7aede67af3d1bc7298bb60436e1a0fd3c6033865aa2b390b79b7",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_graph_replay_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "c0d5a28f7f4ffa8b3e167981b4ffe356ce0e950f7019dbc57a82df15ee8c453d",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_graph_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "f7247f3d31773a876dc057f2b49794453024eba381bf08bba29846dce5b98f95",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_graph_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "4496bea4c602e7401941a7c00df404f9809f777b8c7fce1f6c665d712fdeb319",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_graph_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "7b413e07d8153446729482d079cc929269c38ed057c8871ea1d149a544f5aff7",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_graph_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "graph_coloring",
+      "receipt_sha256": "d549d5c2e3f77d9f92141c27b7aef5cc43f544ae42de7f2efedf5027745501b5",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_graph_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "bf152e7ed3f9de812bc961863e8685a53212d6b19fc9bcc5c5570e041b366c35",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_mathir_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "bd1f479c5f82235800701cc56acac6da49482d3b5a70047aa00e6cb7adb50c56",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_mathir_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "ab0bef7059ffa4fcaa64f2f67484384f441c80368f3133b0d3067b172f7df3e3",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_mathir_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "636ab23e8667bfb3cbc38c213d2661c79072be656680be032fc3dd3eca7554ff",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_mathir_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_mathir_drgrpo_s47",
+          "job_id": 31048174,
+          "name": "e119-mathir-d-s47",
+          "node": "node207",
+          "reason": "node207",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "mathir",
+            "drgrpo",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "1197050aaf3787a44d1c1c3c9da24d74b3dca454edef992cb834ade2becc42f3",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_mathir_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "799051d780a4187832f65cbceca5e28b22fecfa230294bcb236bc8d0dff1edca",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "fd1b9fb7eb4390230e13b6e22078482e81c6c327c3bca3f72ee697af1c1ec00f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s45",
+          "job_id": 31048169,
+          "name": "e119-mathir-m-s45",
+          "node": "node203",
+          "reason": "node203",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "mathir",
+            "maxrl",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "b526b1097b7fa73d9bf42e5bf808deca993c90c63d6f6012beba8faa5b7e4979",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "e6cf1017eb21752333d3a81457bd433236c7ff61a8064075a0251ced1e21b1ad",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s47",
+          "job_id": 31099622,
+          "name": "e119-mathir-m-s47",
+          "node": "node105",
+          "reason": "node105",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "mathir",
+            "maxrl",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "f6d0ff5e52ef0060ceb0a9fc9a88a92632490a095297b368fd7bd3b3ea4dc303",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_mathir_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "da01690babc8452ce36b1f525ba15dc7c338a5a912238ecb415477500481a8e1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "d8ab107e0db76afd8af8de1448383622951ab5c360e0f2542bb192948254b9d1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s45",
+          "job_id": 31048168,
+          "name": "e119-mathir-rd-s45",
+          "node": "node205",
+          "reason": "node205",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "mathir",
+            "replay_drgrpo",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "007ba33dd4b42f0679b35231aae65f8167fcab7191a3119f4c266dc09e562172",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s46",
+          "job_id": 31048171,
+          "name": "e119-mathir-rd-s46",
+          "node": "node203",
+          "reason": "node203",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "mathir",
+            "replay_drgrpo",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "194b4a4420ce8304f8a5e03d41278344e6a749d552f37e1016b40d59a8e05d54",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "0fe5a737c0f45ccc0cd2f064a547862466c68510c947bb27a13657cbee01b967",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_mathir_replay_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "1eeccec168435cedb1120a7fddaa78f87bceb9c02412c7dd90f185758bcd8597",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_mathir_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "75c98f4d186ea88763b68b2b6e810f8695b88fe38b1a26589e18cc49a6eab2e9",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_mathir_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "3d0f8117c2e2197b15eb60929f0f64358c32516240a837891f6585e7451d151d",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_mathir_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "04af4ebf656bff490ba094891bf0e6f10ea14586eef6bfa9c1e64a2f36cbcee4",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_mathir_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "mathir",
+      "receipt_sha256": "4de693314cd0367efb5a347ded73ff60ccc42b21bd6d954be74a8e9c5bb2d735",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_mathir_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s43",
+          "job_id": 31037827,
+          "name": "e119-pantry-d-s43",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "drgrpo",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "386b3b44f98c615ad076ac1f46ba8c4b798f9bef8d8be3151d01a91ddb610e43",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s44",
+          "job_id": 31048180,
+          "name": "e119-pantry-d-s44",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "drgrpo",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "f132d13c95e91f2a92caaa3e45b63c13ef6eff8650750df5cffb4ea1e02c3228",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s45",
+          "job_id": 31048183,
+          "name": "e119-pantry-d-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "drgrpo",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "ba98a90fb94822eb43892665fc7fcf70029777036dc56a52af526d07ab977733",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s46",
+          "job_id": 31037839,
+          "name": "e119-pantry-d-s46",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "drgrpo",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "c77291d78d79da00dcdb4192bbcfff53afc859b6005cc3c8f96178f7a61d0716",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s47",
+          "job_id": 31037843,
+          "name": "e119-pantry-d-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "drgrpo",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "ae2a55bc4942eb71b77b86e98dd050874fc6992eca064e0a269a0d949ca85c67",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s43",
+          "job_id": 31048178,
+          "name": "e119-pantry-m-s43",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "maxrl",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "018826724e6c3ee06ebd8504a1a6de91c231efed52e13de79374095719a7c315",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s44",
+          "job_id": 31048181,
+          "name": "e119-pantry-m-s44",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "maxrl",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "f27ad90d4a1bbb6a099a53abd55db702d4f01a0af90b074905930f8137420e12",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s45",
+          "job_id": 31048184,
+          "name": "e119-pantry-m-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "maxrl",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "b0e01961959e6dcccc53b4b592c6b68cba79fdcdead8a2fa9a751d707d375d58",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s46",
+          "job_id": 31048187,
+          "name": "e119-pantry-m-s46",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "maxrl",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "62d6d5821afcc6f8c1ec4949e82cf8fe506bf611496d7da4479ee3b60b315efc",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s47",
+          "job_id": 31048191,
+          "name": "e119-pantry-m-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "maxrl",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "07b6f68b80fb9b8aed76b2fcda04e2160879814d1b53d39df6dd75c30a50a4d8",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s43",
+          "job_id": 31075341,
+          "name": "e119-pantry-rd-s43",
+          "node": "",
+          "reason": "(Dependency)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_drgrpo",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "70465d2eaa4ff5cd1bef16aaca5105857eb297ca9ad441e5ff495867348945e5",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s44",
+          "job_id": 31037832,
+          "name": "e119-pantry-rd-s44",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_drgrpo",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "040e389ce2dfc362ece14bf81c258c43a7533aee6180d42bd9ebd7dba6464de1",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s45",
+          "job_id": 31037836,
+          "name": "e119-pantry-rd-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_drgrpo",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "fbcba710ff90f07fc441a2221e8a8079c2678db33e2ad2f219ebfbff7e5dc770",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s46",
+          "job_id": 31048186,
+          "name": "e119-pantry-rd-s46",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_drgrpo",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "c36e5bc250990b478c5c786f059d2be1bc87825188fedac9bf7120059efb3ad2",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s47",
+          "job_id": 31048189,
+          "name": "e119-pantry-rd-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_drgrpo",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "a02a14287886943a4154c7aa32b6b6f3fd5f14f942bb5a0d9c26e872daf9e704",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s43",
+          "job_id": 31048179,
+          "name": "e119-pantry-rm-s43",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_maxrl",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "7cd1d3fd61dcb93eb09af9bfbe23439ef6df52a25be6777ef0735cf135aee82d",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s44",
+          "job_id": 31048182,
+          "name": "e119-pantry-rm-s44",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_maxrl",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "0be4ed00024ec25e2f5970399077820e8ad773232c43f7d2018f13b98fdf58d3",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s45",
+          "job_id": 31048185,
+          "name": "e119-pantry-rm-s45",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_maxrl",
+            45
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "e32aa21229658938bffea53665bf216e51cf9b6c9aee407a123d230eb92b219d",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s46",
+          "job_id": 31048188,
+          "name": "e119-pantry-rm-s46",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_maxrl",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "dd7b4ad7f126ccca9d2d24e2bb6a403cc34aa100be91a79eb531296727bcfb93",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s47",
+          "job_id": 31037846,
+          "name": "e119-pantry-rm-s47",
+          "node": "",
+          "reason": "(Priority)",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "pantry_plan",
+            "replay_maxrl",
+            47
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "1f82aaee7f9b41f92590ec7b98266939e720c2741a22eb14b271890d5a520abb",
+          "state": "PENDING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "pantry_plan",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "queued"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_python_drgrpo_s43",
+          "job_id": 31048192,
+          "name": "e119-python-d-s43",
+          "node": "node203",
+          "reason": "node203",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "python_factors",
+            "drgrpo",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "2289b89b8a4a1218cd3278f070baf996f5b3bee1bc8962cb6b5014bd03e4fe65",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_python_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "b3ff5181b3d5581cd97c22ab0970dad938355eaf69e2b66b05578ef09ee9d4fe",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_python_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "4544f77e1115366c37ec8c50bdc40695783e40e8ab1bb2f31c6b1ce85bf98120",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_python_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "4886f322a9f6ccba42234fa4686385bfefdf79801ccfcfd5f8f8a7b1dc1b32d8",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_python_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "d7f1931d353d78e8c80d266ccdfc1dfa3e8af0152ba815840d1212e4286c5317",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_python_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "4fe673fa5ea06b0dc2ee9dac59936f77125b679b12e119710b73d95e4ba64b71",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s44",
+          "job_id": 31048201,
+          "name": "e119-python-m-s44",
+          "node": "node203",
+          "reason": "node203",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "python_factors",
+            "maxrl",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "287cc41a83c593e3d3a9e9067596e35a580c5fa50f99fdb19f6e7ffa78651cb6",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "a3d07866a6a30f6d007aef420279c8564a1c38670e53b1dc2bf9c9d69c41d481",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s46",
+          "job_id": 31048209,
+          "name": "e119-python-m-s46",
+          "node": "node203",
+          "reason": "node203",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "python_factors",
+            "maxrl",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "7e109aa231ba24a38c51e6324fa220fc45ed9d21dafd71c2934d666750577262",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "c16cf1c51e2f4cc0a556cadb9d3f4753dbe797776dac65dfac2051121d953065",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_python_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "1eb33d39190db9c5543862cbd6effe0d0ee69cd1cb18441e07c00588977c07f2",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_python_replay_drgrpo_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "23175161f0b162659f242bb9a0bfa9b67c7ca4b028884496b41383dba464667f",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_python_replay_drgrpo_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "ee46c31d4242e3783f7c612e05a72338a0076015eed11e238754e54e4bfb4b2c",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_python_replay_drgrpo_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "928702136ddd803488c9cb68473c46249115114e72b2fbb44cf358a9a5174d85",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_python_replay_drgrpo_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_drgrpo",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "e2363f566718880d926ee609a06d339c5e857916f4e5f93bf558878a0ca78d55",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_python_replay_drgrpo_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s43",
+          "job_id": 31048195,
+          "name": "e119-python-rm-s43",
+          "node": "node204",
+          "reason": "node204",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "python_factors",
+            "replay_maxrl",
+            43
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "1339da3b7aaf221141531c33e42de651f04597639a399aab79b096e24fbeea95",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s43",
+      "seed": 43,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s44",
+          "job_id": 31048202,
+          "name": "e119-python-rm-s44",
+          "node": "node204",
+          "reason": "node204",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "python_factors",
+            "replay_maxrl",
+            44
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "349b2f27560351b9e73f7e383b1a33eb01020189f76695c82e1fde47e6e95484",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s44",
+      "seed": 44,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "ff5569fa5f8e0d0d560592daecc8d9f064df2a62e0d4ca121c0a5ff51e766ff1",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s45",
+      "seed": 45,
+      "size": "qwen05b",
+      "state": "completed"
+    },
+    {
+      "allocations": [
+        {
+          "expected_run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s46",
+          "job_id": 31048210,
+          "name": "e119-python-rm-s46",
+          "node": "node204",
+          "reason": "node204",
+          "registered_cell": [
+            "e119",
+            "qwen05b",
+            "python_factors",
+            "replay_maxrl",
+            46
+          ],
+          "save_path_verified": true,
+          "scheduler_record_sha256": "486aa52d1c3e5b503bd3372501bae2b687374860d1d43f9f01c22f302055b68e",
+          "state": "RUNNING"
+        }
+      ],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": null,
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s46",
+      "seed": 46,
+      "size": "qwen05b",
+      "state": "running"
+    },
+    {
+      "allocations": [],
+      "arm": "replay_maxrl",
+      "campaign": "e119",
+      "domain": "python_factors",
+      "receipt_sha256": "338dfd687d4fd17c6a4f9f35fe127f9179bf7ea7fcac4ca2265e4a878535b15a",
+      "run_dir": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_python_replay_maxrl_s47",
+      "seed": 47,
+      "size": "qwen05b",
+      "state": "completed"
+    }
+  ],
+  "scheduler_source_sha256": "720f80f8ce24845736f790d1b8ab3a4acab4e5995799dd98be32b8811b32ca8d",
+  "schema": "e118-e119-domain-size-job-status-v1",
+  "scope": "Current completion receipts plus live scheduler allocations. Deduplicate continuations by registered run directory/scientific cell; running takes precedence over queued successor allocations. Completed denotes training receipt, not a new efficacy endpoint audit.",
+  "sources": {
+    "var/artifacts/e118_all_scales_maxrl_verified_replay_jobs.json": "5c82e09565c79abaa72cefff4c29d3d0d6477640c4df1239cc8633f2ea3c9489",
+    "var/artifacts/e119_level2_qwen05b_factorial_jobs.json": "341f77f6f41ab5954718d3216d6260ee87d2486cd38d91fbab5dd38c4efb760e"
+  },
+  "totals": {
+    "e118": {
+      "completed": 116,
+      "queued": 28,
+      "running": 6
+    },
+    "e119": {
+      "completed": 52,
+      "queued": 30,
+      "running": 18
+    }
+  }
+}

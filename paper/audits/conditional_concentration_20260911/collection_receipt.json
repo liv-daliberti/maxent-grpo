@@ -1,0 +1,33 @@
+{
+  "status": "collected",
+  "path": "paper/audits/conditional_concentration_20260911/verified_samples.jsonl.gz",
+  "sha256": "c73f3e2cbc72e5fdb52ff1d6c70b458f66fa8e241d75804fccdb46caf642797c",
+  "cells_by_method": {
+    "drgrpo": 100,
+    "maxrl": 100,
+    "replay_drgrpo": 100,
+    "replay_maxrl": 100,
+    "grpo": 75
+  },
+  "available_checkpoints": {
+    "level1/drgrpo/0": 75,
+    "level1/drgrpo/3072": 75,
+    "level1/maxrl/0": 58,
+    "level1/maxrl/3072": 69,
+    "level1/replay_drgrpo/0": 72,
+    "level1/replay_drgrpo/3072": 74,
+    "level1/replay_maxrl/0": 57,
+    "level1/replay_maxrl/3072": 70,
+    "level2/drgrpo/0": 24,
+    "level2/drgrpo/3072": 23,
+    "level2/maxrl/0": 23,
+    "level2/maxrl/3072": 21,
+    "level2/replay_drgrpo/0": 22,
+    "level2/replay_drgrpo/3072": 23,
+    "level2/replay_maxrl/0": 23,
+    "level2/replay_maxrl/3072": 21,
+    "level1/grpo/0": 75,
+    "level1/grpo/3072": 75
+  },
+  "sample_issue_count": 70
+}

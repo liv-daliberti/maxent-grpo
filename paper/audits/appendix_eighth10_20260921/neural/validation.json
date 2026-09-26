@@ -1,0 +1,118 @@
+{
+  "checks_passed": 102,
+  "exact_arithmetic_group_cases": [
+    {
+      "G": 2,
+      "advantage": "constant",
+      "enumerated_groups": 16,
+      "c": "0"
+    },
+    {
+      "G": 2,
+      "advantage": "reward",
+      "enumerated_groups": 16,
+      "c": "1"
+    },
+    {
+      "G": 2,
+      "advantage": "negative_reward",
+      "enumerated_groups": 16,
+      "c": "-1"
+    },
+    {
+      "G": 2,
+      "advantage": "centered",
+      "enumerated_groups": 16,
+      "c": "1/2"
+    },
+    {
+      "G": 2,
+      "advantage": "maxrl",
+      "enumerated_groups": 16,
+      "c": "1"
+    },
+    {
+      "G": 2,
+      "advantage": "arbitrary_count",
+      "enumerated_groups": 16,
+      "c": "7/2"
+    },
+    {
+      "G": 3,
+      "advantage": "constant",
+      "enumerated_groups": 64,
+      "c": "0"
+    },
+    {
+      "G": 3,
+      "advantage": "reward",
+      "enumerated_groups": 64,
+      "c": "1"
+    },
+    {
+      "G": 3,
+      "advantage": "negative_reward",
+      "enumerated_groups": 64,
+      "c": "-1"
+    },
+    {
+      "G": 3,
+      "advantage": "centered",
+      "enumerated_groups": 64,
+      "c": "2/3"
+    },
+    {
+      "G": 3,
+      "advantage": "maxrl",
+      "enumerated_groups": 64,
+      "c": "17/10"
+    },
+    {
+      "G": 3,
+      "advantage": "arbitrary_count",
+      "enumerated_groups": 64,
+      "c": "434/125"
+    },
+    {
+      "G": 4,
+      "advantage": "constant",
+      "enumerated_groups": 256,
+      "c": "0"
+    },
+    {
+      "G": 4,
+      "advantage": "reward",
+      "enumerated_groups": 256,
+      "c": "1"
+    },
+    {
+      "G": 4,
+      "advantage": "negative_reward",
+      "enumerated_groups": 256,
+      "c": "-1"
+    },
+    {
+      "G": 4,
+      "advantage": "centered",
+      "enumerated_groups": 256,
+      "c": "3/4"
+    },
+    {
+      "G": 4,
+      "advantage": "maxrl",
+      "enumerated_groups": 256,
+      "c": "219/100"
+    },
+    {
+      "G": 4,
+      "advantage": "arbitrary_count",
+      "enumerated_groups": 256,
+      "c": "527/150"
+    }
+  ],
+  "all_displayed_equations_unchanged": true,
+  "all_labels_unchanged": true,
+  "all_citations_unchanged": true,
+  "experiments_or_model_calls": false,
+  "block_sha256": "f368378201d3dee0ec2b3dd5f483ca3503131b83345802d295bf7d6b37fb6eaf"
+}

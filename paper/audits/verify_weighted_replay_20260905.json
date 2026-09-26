@@ -1,0 +1,139 @@
+{
+  "all_checks_passed": true,
+  "cases": [
+    {
+      "amplitude_A": 0.75,
+      "dt": 0.1,
+      "final_conditional_distribution": [
+        0.6667161783789111,
+        0.333283821621089
+      ],
+      "final_correct_mass": 0.9998681306321248,
+      "final_time": 3000.0,
+      "finite_difference_max_gradient_error": 1.8334972429201457e-11,
+      "initial_probabilities": [
+        0.08,
+        0.72,
+        0.2
+      ],
+      "integrator": "fixed-step classical RK4",
+      "inverse_length_target": [
+        0.6666666666666666,
+        0.3333333333333333
+      ],
+      "lengths": [
+        1,
+        2
+      ],
+      "loss_identity_absolute_error": 0.0,
+      "max_conditional_target_error": 4.951171224443218e-05,
+      "maximum_observed_energy_increase": 0.0,
+      "minimum_observed_banked_probabilities": [
+        0.07999999999999999,
+        0.31766083230890907
+      ],
+      "minimum_observed_log_bound_margin": 0.5979722935141716,
+      "objective": "drgrpo",
+      "rho_lm": 1.0,
+      "rho_w": 0.75,
+      "steps": 30000,
+      "theorem_probability_lower_bounds": [
+        0.046654743328311134,
+        0.0021766650750305924
+      ]
+    },
+    {
+      "amplitude_A": 0.75,
+      "dt": 0.1,
+      "final_conditional_distribution": [
+        0.6667162073002509,
+        0.333283792699749
+      ],
+      "final_correct_mass": 0.9998727754022898,
+      "final_time": 3000.0,
+      "finite_difference_max_gradient_error": 2.6140117848072464e-11,
+      "initial_probabilities": [
+        0.65,
+        0.05,
+        0.3
+      ],
+      "integrator": "fixed-step classical RK4",
+      "inverse_length_target": [
+        0.6666666666666666,
+        0.3333333333333333
+      ],
+      "lengths": [
+        1,
+        2
+      ],
+      "loss_identity_absolute_error": 0.0,
+      "max_conditional_target_error": 4.954063358431071e-05,
+      "maximum_observed_energy_increase": 0.0,
+      "minimum_observed_banked_probabilities": [
+        0.65,
+        0.05000000000000001
+      ],
+      "minimum_observed_log_bound_margin": 2.2323872843971495,
+      "objective": "maxrl",
+      "rho_lm": 1.0,
+      "rho_w": 0.75,
+      "steps": 30000,
+      "theorem_probability_lower_bounds": [
+        0.07121876513679502,
+        0.00507211250760997
+      ]
+    },
+    {
+      "amplitude_A": 1.0,
+      "dt": 0.1,
+      "final_conditional_distribution": [
+        0.5,
+        0.5
+      ],
+      "final_correct_mass": 0.9998851645717948,
+      "final_time": 3000.0,
+      "finite_difference_max_gradient_error": 4.513334150857418e-12,
+      "initial_probabilities": [
+        0.08,
+        0.72,
+        0.2
+      ],
+      "integrator": "fixed-step classical RK4",
+      "inverse_length_target": [
+        0.5,
+        0.5
+      ],
+      "lengths": [
+        1,
+        1
+      ],
+      "loss_identity_absolute_error": 0.0,
+      "max_conditional_target_error": 0.0,
+      "maximum_observed_energy_increase": 0.0,
+      "minimum_observed_banked_probabilities": [
+        0.07999999999999999,
+        0.48822692007347246
+      ],
+      "minimum_observed_log_bound_margin": 0.7563518973834817,
+      "objective": "drgrpo",
+      "rho_lm": 1.0,
+      "rho_w": 1.0,
+      "steps": 30000,
+      "theorem_probability_lower_bounds": [
+        0.039587862458359976,
+        0.039587862458359976
+      ]
+    }
+  ],
+  "relative_frequency_checks": {
+    "double_frequency_effective_coefficient": 0.01171875,
+    "double_replay_frequency": 0.005208333333333333,
+    "equal_frequency_effective_coefficient": 0.005859375,
+    "equal_replay_frequency": 0.0026041666666666665,
+    "fresh_frequency": 0.0026041666666666665,
+    "raw_coefficient": 0.005859375
+  },
+  "schema": "weighted-categorical-replay-independent-numerical-audit-v1",
+  "scope": "Finite-difference, algebraic scaling, and finite-horizon ODE checks only; no empirical result changes and no proof by simulation.",
+  "script_sha256": "dfc36e73c0acead93f4b3497e42c76d956207b7234005396ac27fa7f920a7c00"
+}

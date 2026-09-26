@@ -1,0 +1,28 @@
+{
+  "main.tex": {
+    "sha256": "11ae6b3e2292a844461e9649efcd3a8d8b60b66e5cef6bd3a86c6ff34a44f478",
+    "bytes": 10814
+  },
+  "main.pdf": {
+    "sha256": "1524c5fbe8551c87f0b7c452083717c5324ea9b8bc503f1e2e4a41e5244b0ebd",
+    "bytes": 1107318
+  },
+  "snapshot.json": {
+    "sha256": "3ca0d3e50f7626bd33e79cbbe8554ab2efeeed6b196708abe9eac7750315ab88",
+    "bytes": 32157
+  },
+  "mathai2026-source.zip": {
+    "sha256": "dca7a03a51190bbb5ca15d9a139ec1415f4e4b8dfac1b9a87cfe01dff0ad2935",
+    "bytes": 821927
+  },
+  "parent_source_sha256": "ca1ee15cdffd39476bdbe94c01829d36b892c7342f7256790ac034c49aafcb0a",
+  "main_content_pages": 4,
+  "all_pdf_pages": 60,
+  "main_figures": 6,
+  "supplementary_figures": 7,
+  "first_reference_page": 5,
+  "visual_review": "All four main pages inspected; no clipping or overlaps.",
+  "standalone_archive_build": "passed",
+  "standalone_main_source_match": true,
+  "standalone_first_four_pages_text_match": true
+}

@@ -1,0 +1,4268 @@
+{
+  "all_checks_passed": true,
+  "case_count": 12,
+  "cases": [
+    {
+      "G": 2,
+      "L": 0.65,
+      "M1": 0.5,
+      "M2": 0.0,
+      "bank": "full_correct_bank",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.65,
+        "max_gradient_finite_difference_error": 2.1362633269826047e-10,
+        "max_hessian_vector_finite_difference_error": 1.1081928718467666e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.4533018612042078,
+        "max_sampled_hessian_vector_norm": 0.2946462097827351,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "DrGRPO",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.5,
+        0.3,
+        0.2,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0008778266709702469,
+            "1": 8.047876188814853e-06,
+            "2": 2.2830842058448225e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.315224558916514,
+              "gradient_norm": 0.6832901104216276,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.5726712103963787,
+              "effective_time": 3.076923076923077,
+              "energy": 1.237846544564782,
+              "gradient_norm": 0.4866675412347414,
+              "probabilities": [
+                0.0947533949503217,
+                0.3510762976108259,
+                0.12684151783523112,
+                0.18488613939834755,
+                0.24244265020527353
+              ],
+              "step": 10,
+              "target_l1_error": 0.9568101744288942
+            },
+            {
+              "correct_mass": 0.9646098441924666,
+              "effective_time": 30.76923076923077,
+              "energy": 0.37061185795290374,
+              "gradient_norm": 0.041529120570099776,
+              "probabilities": [
+                0.49403435920552974,
+                0.28825660953694787,
+                0.18231887544998907,
+                0.017329600036360922,
+                0.018060555771172278
+              ],
+              "step": 100,
+              "target_l1_error": 0.07078031161506652
+            },
+            {
+              "correct_mass": 0.996918182211658,
+              "effective_time": 307.69230769230774,
+              "energy": 0.32773412462272855,
+              "gradient_norm": 0.0036530016165761824,
+              "probabilities": [
+                0.4993047508180352,
+                0.2989093162432914,
+                0.19870411515033132,
+                0.0015337562045248528,
+                0.001548061583817381
+              ],
+              "step": 1000,
+              "target_l1_error": 0.006163635576684279
+            },
+            {
+              "correct_mass": 0.9996988935722334,
+              "effective_time": 3076.923076923077,
+              "energy": 0.32411390011977576,
+              "gradient_norm": 0.0003572914721906388,
+              "probabilities": [
+                0.49993109869323854,
+                0.2998933644716975,
+                0.19987443040729735,
+                0.000150380486866295,
+                0.00015072594090033629
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0006022128555332266
+            },
+            {
+              "correct_mass": 0.999849701031208,
+              "effective_time": 6153.846153846154,
+              "energy": 0.3239178124891552,
+              "gradient_norm": 0.0001783543491265793,
+              "probabilities": [
+                0.49996558192664503,
+                0.2999467706773725,
+                0.19993734842719052,
+                7.509266647179563e-05,
+                7.520630232048882e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.00030059793758421317
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.3076923076923077,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.126038391863139,
+          "replay_upper_bound_constant": 3.5190306986456426,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0008778266709702469,
+            "1": 8.047876188814853e-06,
+            "2": 2.2830842058448225e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.315224558916514,
+              "gradient_norm": 0.6832901104216276,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9290362819598823,
+              "effective_time": 15.384615384615383,
+              "energy": 0.4196321059636413,
+              "gradient_norm": 0.08223761026860547,
+              "probabilities": [
+                0.48340613731691356,
+                0.2817128417605509,
+                0.16391730288241785,
+                0.03473979538830559,
+                0.036223922651811916
+              ],
+              "step": 10,
+              "target_l1_error": 0.14192743608023523
+            },
+            {
+              "correct_mass": 0.9938195286165135,
+              "effective_time": 153.84615384615384,
+              "energy": 0.33177882521832514,
+              "gradient_norm": 0.007317351652015844,
+              "probabilities": [
+                0.49862910109442454,
+                0.29781494214826637,
+                0.1973754853738226,
+                0.003076379895104303,
+                0.0031040914883822507
+              ],
+              "step": 100,
+              "target_l1_error": 0.01236094276697304
+            },
+            {
+              "correct_mass": 0.9993975656062559,
+              "effective_time": 1538.4615384615383,
+              "energy": 0.3245057783965347,
+              "gradient_norm": 0.0007147630512413946,
+              "probabilities": [
+                0.4998623524166612,
+                0.29978666365081186,
+                0.19974854953878285,
+                0.0003008850725390129,
+                0.0003015493212052159
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0012048687874883068
+            },
+            {
+              "correct_mass": 0.9999399691618576,
+              "effective_time": 15384.615384615383,
+              "energy": 0.32380045334710006,
+              "gradient_norm": 7.123888600793233e-05,
+              "probabilities": [
+                0.49998624698780786,
+                0.2999787393258937,
+                0.1999749828481561,
+                3.000712823686102e-05,
+                3.0023709905596795e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00012006167628480759
+            },
+            {
+              "correct_mass": 0.9999699917982373,
+              "effective_time": 30769.230769230766,
+              "energy": 0.32376142241511535,
+              "gradient_norm": 3.5611288889755097e-05,
+              "probabilities": [
+                0.49999312413339897,
+                0.29998937215699384,
+                0.19998749550784456,
+                1.5001367063844756e-05,
+                1.5006834699063576e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 6.0016403525540743e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.5384615384615383,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.126038391863139,
+          "replay_upper_bound_constant": 3.5190306986456426,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0008778266709702469,
+            "1": 8.047876188814853e-06,
+            "2": 2.2830842058448225e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.315224558916514,
+              "gradient_norm": 0.6832901104216276,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9671813005087692,
+              "effective_time": 29.23076923076923,
+              "energy": 0.3671248319829458,
+              "gradient_norm": 0.03852538952571797,
+              "probabilities": [
+                0.49426433992148294,
+                0.28898354648212043,
+                0.18393341410516573,
+                0.01639488742068794,
+                0.016423812070542974
+              ],
+              "step": 10,
+              "target_l1_error": 0.0656373989824618
+            },
+            {
+              "correct_mass": 0.9968274590405091,
+              "effective_time": 292.30769230769226,
+              "energy": 0.32785238625696644,
+              "gradient_norm": 0.0037603848782617262,
+              "probabilities": [
+                0.499284574783119,
+                0.2988772312349283,
+                0.19866565302246175,
+                0.0015859406192291648,
+                0.001586600340261695
+              ],
+              "step": 100,
+              "target_l1_error": 0.006345081918981792
+            },
+            {
+              "correct_mass": 0.9996840538681759,
+              "effective_time": 2923.076923076923,
+              "energy": 0.32413319683976993,
+              "gradient_norm": 0.00037489790943071337,
+              "probabilities": [
+                0.4999277082223396,
+                0.29988810938550986,
+                0.1998682362603264,
+                0.00015796486582239636,
+                0.00015798126600154882
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0006318922636480637
+            },
+            {
+              "correct_mass": 0.9999684193891374,
+              "effective_time": 29230.76923076923,
+              "energy": 0.3237634666008461,
+              "gradient_norm": 3.747727286029341e-05,
+              "probabilities": [
+                0.4999927638985761,
+                0.29998881526875393,
+                0.19998684022180738,
+                1.5790099677439337e-05,
+                1.5790511185298426e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 6.316122172532378e-05
+            },
+            {
+              "correct_mass": 0.9999842101031762,
+              "effective_time": 58461.53846153846,
+              "energy": 0.32374293825628064,
+              "gradient_norm": 1.873826532499596e-05,
+              "probabilities": [
+                0.4999963817624028,
+                0.29999440776196545,
+                0.1999934205788078,
+                7.894880542752255e-06,
+                7.895016281282745e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 3.157979364797172e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.923076923076923,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.126038391863139,
+          "replay_upper_bound_constant": 3.5190306986456426,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 2,
+      "L": 0.65,
+      "M1": 0.5,
+      "M2": 0.0,
+      "bank": "strict_correct_subset",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.65,
+        "max_gradient_finite_difference_error": 2.2458315940518153e-10,
+        "max_hessian_vector_finite_difference_error": 1.0607571435570503e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.4533018612042078,
+        "max_sampled_hessian_vector_norm": 0.2946462097827351,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "DrGRPO",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.7,
+        0.0,
+        0.3,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0030659024595868912,
+            "2": 1.365534820612403e-06
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.7409514550621705,
+              "gradient_norm": 0.7891548485563527,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.5442200338218881,
+              "effective_time": 3.076923076923077,
+              "energy": 1.1572039953837099,
+              "gradient_norm": 0.6098015045908234,
+              "probabilities": [
+                0.16502977582051068,
+                0.20570683120142552,
+                0.17348342679995182,
+                0.19809521759189308,
+                0.257684748586219
+              ],
+              "step": 10,
+              "target_l1_error": 1.322973594759075
+            },
+            {
+              "correct_mass": 0.9739377201668133,
+              "effective_time": 30.76923076923077,
+              "energy": 0.03890417924161249,
+              "gradient_norm": 0.04423967355803406,
+              "probabilities": [
+                0.6831721393515333,
+                0.018810405864340744,
+                0.2719551749509393,
+                0.012696229180537554,
+                0.013366050652649166
+              ],
+              "step": 100,
+              "target_l1_error": 0.0897453713950548
+            },
+            {
+              "correct_mass": 0.9979030484090691,
+              "effective_time": 307.69230769230774,
+              "energy": -0.0072678085812960536,
+              "gradient_norm": 0.003678544308570431,
+              "probabilities": [
+                0.6984073778892613,
+                0.0016339197974221192,
+                0.29786175072238563,
+                0.0010390128032717095,
+                0.001057938787659126
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0074617427767059395
+            },
+            {
+              "correct_mass": 0.9997980180182181,
+              "effective_time": 3076.923076923077,
+              "energy": -0.010916757521861165,
+              "gradient_norm": 0.00035757000986729235,
+              "probabilities": [
+                0.6998436346433422,
+                0.0001614413674924643,
+                0.2997929420073835,
+                0.00010063594748853606,
+                0.00010134603429351368
+              ],
+              "step": 10000,
+              "target_l1_error": 0.000726846698548764
+            },
+            {
+              "correct_mass": 0.9998993484669307,
+              "effective_time": 6153.846153846154,
+              "energy": -0.011113077230222257,
+              "gradient_norm": 0.0001784259174824917,
+              "probabilities": [
+                0.6999218949283608,
+                8.077051358891654e-05,
+                0.29989668302498107,
+                5.0191981795567914e-05,
+                5.0459551274042074e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.000362844093316635
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.3076923076923077,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 1.8753903071828737,
+          "replay_upper_bound_constant": 4.0511893188277135,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0030659024595868912,
+            "2": 1.365534820612403e-06
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.7409514550621705,
+              "gradient_norm": 0.7891548485563527,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9457543263411172,
+              "effective_time": 15.384615384615383,
+              "energy": 0.09736801234837567,
+              "gradient_norm": 0.0913820191991202,
+              "probabilities": [
+                0.6714386571313565,
+                0.03894149173596298,
+                0.23537417747379777,
+                0.02650407182871315,
+                0.027741601830169455
+              ],
+              "step": 10,
+              "target_l1_error": 0.18637433078969123
+            },
+            {
+              "correct_mass": 0.9957719301989669,
+              "effective_time": 153.84615384615384,
+              "energy": -0.0031409000437644385,
+              "gradient_norm": 0.007413813434833823,
+              "probabilities": [
+                0.696808962528503,
+                0.0033000085785343794,
+                0.2956629590919295,
+                0.0020980065965331535,
+                0.0021300632044997524
+              ],
+              "step": 100,
+              "target_l1_error": 0.015056156759134713
+            },
+            {
+              "correct_mass": 0.999595708528062,
+              "effective_time": 1538.4615384615383,
+              "energy": -0.010523958903001118,
+              "gradient_norm": 0.0007158517577129181,
+              "probabilities": [
+                0.699687077272692,
+                0.0003234186980065646,
+                0.29958521255736353,
+                0.00020155185608347972,
+                0.00020273961585440435
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0014554203398888885
+            },
+            {
+              "correct_mass": 0.9999598905911645,
+              "effective_time": 15384.615384615383,
+              "energy": -0.011230502392825747,
+              "gradient_norm": 7.125124419205466e-05,
+              "probabilities": [
+                0.6999687685617937,
+                3.2388629498904726e-05,
+                0.2999587333998719,
+                2.0031376100335735e-05,
+                2.0078032735682142e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00014499607666929024
+            },
+            {
+              "correct_mass": 0.9999799616830561,
+              "effective_time": 30769.230769230766,
+              "energy": -0.011269543617368705,
+              "gradient_norm": 3.561448241464308e-05,
+              "probabilities": [
+                0.6999843839689983,
+                1.6205274980398814e-05,
+                0.29997937243907746,
+                1.0010331633811684e-05,
+                1.002798531013044e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 7.248718384850864e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.5384615384615383,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 1.8753903071828737,
+          "replay_upper_bound_constant": 4.0511893188277135,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0030659024595868912,
+            "2": 1.365534820612403e-06
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.7409514550621705,
+              "gradient_norm": 0.7891548485563527,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9765871534888819,
+              "effective_time": 29.23076923076923,
+              "energy": 0.034844793378013494,
+              "gradient_norm": 0.04075356849006816,
+              "probabilities": [
+                0.6837866941114173,
+                0.018305285728263926,
+                0.2744951736492006,
+                0.0116944910415542,
+                0.011718355469563894
+              ],
+              "step": 10,
+              "target_l1_error": 0.08343626447876401
+            },
+            {
+              "correct_mass": 0.9978613671216605,
+              "effective_time": 292.30769230769226,
+              "energy": -0.007148511765434462,
+              "gradient_norm": 0.0037865087683689467,
+              "probabilities": [
+                0.6983519485881526,
+                0.001714691385947275,
+                0.29779472714756067,
+                0.0010689120648248412,
+                0.001069720813514619
+              ],
+              "step": 100,
+              "target_l1_error": 0.007706648528573375
+            },
+            {
+              "correct_mass": 0.999788836692028,
+              "effective_time": 2923.076923076923,
+              "energy": -0.010897418244897872,
+              "gradient_norm": 0.00037520985029022836,
+              "probabilities": [
+                0.699835578925561,
+                0.00017068662002991353,
+                0.29978257114643697,
+                0.00010556590438918076,
+                0.00010559740358311335
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0007636998560041504
+            },
+            {
+              "correct_mass": 0.9999789299183333,
+              "effective_time": 29230.76923076923,
+              "energy": -0.011267498893046568,
+              "gradient_norm": 3.7480915424330394e-05,
+              "probabilities": [
+                0.6999835575659299,
+                1.708446724598967e-05,
+                0.2999782878851574,
+                1.0534416295084435e-05,
+                1.05356653714903e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 7.630909782521442e-05
+            },
+            {
+              "correct_mass": 0.9999894674479133,
+              "effective_time": 58461.53846153846,
+              "energy": -0.01128803028053127,
+              "gradient_norm": 1.8739215012413125e-05,
+              "probabilities": [
+                0.6999917783366347,
+                8.544452616310904e-06,
+                0.2999891446586622,
+                5.266039492753984e-06,
+                5.266512594309112e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 3.815400940636823e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.923076923076923,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 1.8753903071828737,
+          "replay_upper_bound_constant": 4.0511893188277135,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 3,
+      "L": 0.7333333333333334,
+      "M1": 0.6666666666666666,
+      "M2": 0.0,
+      "bank": "full_correct_bank",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.7333333333333334,
+        "max_gradient_finite_difference_error": 2.3656901437796307e-10,
+        "max_hessian_vector_finite_difference_error": 1.4066055448907517e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.36211348351880257,
+        "max_sampled_hessian_vector_norm": 0.2655498879137886,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "DrGRPO",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.5,
+        0.3,
+        0.2,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0006422317119880339,
+            "1": 4.780642232836706e-06,
+            "2": 1.0452721171696113e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.2735578922498476,
+              "gradient_norm": 0.70932001867203,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.5621087551289626,
+              "effective_time": 2.727272727272727,
+              "energy": 1.2048838122567511,
+              "gradient_norm": 0.5254117103396649,
+              "probabilities": [
+                0.08280260559884423,
+                0.35653163161662677,
+                0.12277451791349167,
+                0.18800889195593135,
+                0.2498823529151061
+              ],
+              "step": 10,
+              "target_l1_error": 0.9888457529753284
+            },
+            {
+              "correct_mass": 0.964076325256906,
+              "effective_time": 27.27272727272727,
+              "energy": 0.21080257612122533,
+              "gradient_norm": 0.04746869846211263,
+              "probabilities": [
+                0.4957711411084668,
+                0.28829568828446384,
+                0.1800094958639753,
+                0.017585453414466354,
+                0.018338221328627776
+              ],
+              "step": 100,
+              "target_l1_error": 0.07184734948618818
+            },
+            {
+              "correct_mass": 0.9969110402395026,
+              "effective_time": 272.7272727272727,
+              "energy": 0.1615920268723584,
+              "gradient_norm": 0.004129988516317637,
+              "probabilities": [
+                0.4994138163371805,
+                0.2988855213480466,
+                0.1986117025542755,
+                0.001537274146406171,
+                0.0015516856140912496
+              ],
+              "step": 1000,
+              "target_l1_error": 0.006177919520994838
+            },
+            {
+              "correct_mass": 0.9996988037088367,
+              "effective_time": 2727.272727272727,
+              "energy": 0.1574975535830605,
+              "gradient_norm": 0.00040320987240069896,
+              "probabilities": [
+                0.4999415673186266,
+                0.2998912421607921,
+                0.19986599422941798,
+                0.00015042470848540486,
+                0.00015077158267790195
+              ],
+              "step": 10000,
+              "target_l1_error": 0.000602392582326626
+            },
+            {
+              "correct_mass": 0.9998496770536903,
+              "effective_time": 5454.545454545454,
+              "energy": 0.15727623178920258,
+              "gradient_norm": 0.00020125027581317396,
+              "probabilities": [
+                0.499970803679965,
+                0.2999457185568309,
+                0.19993315481689442,
+                7.510443449163902e-05,
+                7.521851181817802e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.00030064589261952256
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.2727272727272727,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.438538391863139,
+          "replay_upper_bound_constant": 3.6752806986456426,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0006422317119880339,
+            "1": 4.780642232836706e-06,
+            "2": 1.0452721171696113e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.2735578922498476,
+              "gradient_norm": 0.70932001867203,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9264886710382547,
+              "effective_time": 13.636363636363635,
+              "energy": 0.2687980620626117,
+              "gradient_norm": 0.09615254920276667,
+              "probabilities": [
+                0.47616469173293113,
+                0.2880266019321337,
+                0.16229737737318994,
+                0.03593532484586478,
+                0.03757600411588063
+              ],
+              "step": 10,
+              "target_l1_error": 0.14702265792349065
+            },
+            {
+              "correct_mass": 0.9937910802680051,
+              "effective_time": 136.36363636363635,
+              "energy": 0.16618603112806407,
+              "gradient_norm": 0.008289841019466716,
+              "probabilities": [
+                0.49885297057262523,
+                0.2977628710623354,
+                0.19717523863304445,
+                0.0030898924933954798,
+                0.003119027238599492
+              ],
+              "step": 100,
+              "target_l1_error": 0.012417839463989888
+            },
+            {
+              "correct_mass": 0.9993972075036123,
+              "effective_time": 1363.6363636363635,
+              "energy": 0.15794005861314864,
+              "gradient_norm": 0.0008068446246650224,
+              "probabilities": [
+                0.4998833256149297,
+                0.2997823556315159,
+                0.1997315262571667,
+                0.0003010493437355748,
+                0.00030174315265208036
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0012055849927753548
+            },
+            {
+              "correct_mass": 0.9999399647670469,
+              "effective_time": 13636.363636363636,
+              "energy": 0.1571437984201992,
+              "gradient_norm": 8.037762311395329e-05,
+              "probabilities": [
+                0.4999883317634038,
+                0.29997832090216325,
+                0.19997331210147984,
+                3.0008963991791026e-05,
+                3.0026268961016097e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00012007046590592221
+            },
+            {
+              "correct_mass": 0.9999699906371451,
+              "effective_time": 27272.727272727272,
+              "energy": 0.157099758856855,
+              "gradient_norm": 4.0178308994888176e-05,
+              "probabilities": [
+                0.4999941661652256,
+                0.29998916335838366,
+                0.19998666111353589,
+                1.500182851851534e-05,
+                1.5007534336370332e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 6.0018725709768206e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.3636363636363635,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.438538391863139,
+          "replay_upper_bound_constant": 3.6752806986456426,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0006422317119880339,
+            "1": 4.780642232836706e-06,
+            "2": 1.0452721171696113e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.2735578922498476,
+              "gradient_norm": 0.70932001867203,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9665226804560293,
+              "effective_time": 25.909090909090903,
+              "energy": 0.20706352837921116,
+              "gradient_norm": 0.044271238923082636,
+              "probabilities": [
+                0.49610639004644214,
+                0.28887094040111777,
+                0.1815453500084694,
+                0.016686200560579977,
+                0.0167911189833906
+              ],
+              "step": 10,
+              "target_l1_error": 0.06695463908794125
+            },
+            {
+              "correct_mass": 0.9968182847217837,
+              "effective_time": 259.09090909090907,
+              "energy": 0.16172842501918439,
+              "gradient_norm": 0.004253799072050847,
+              "probabilities": [
+                0.49939660813176623,
+                0.29885208495736365,
+                0.1985695916326537,
+                0.001589695877808795,
+                0.001592019400407546
+              ],
+              "step": 100,
+              "target_l1_error": 0.006363430556432764
+            },
+            {
+              "correct_mass": 0.9996839395247628,
+              "effective_time": 2590.9090909090905,
+              "energy": 0.15751935989638688,
+              "gradient_norm": 0.000423105456020474,
+              "probabilities": [
+                0.49993869050037854,
+                0.2998858753008678,
+                0.19985937372351636,
+                0.00015800147550617367,
+                0.0001580589997309575
+              ],
+              "step": 1000,
+              "target_l1_error": 0.000632120950474432
+            },
+            {
+              "correct_mass": 0.9999684180152868,
+              "effective_time": 25909.090909090904,
+              "energy": 0.15710206542696326,
+              "gradient_norm": 4.2283797449394816e-05,
+              "probabilities": [
+                0.49999386051951006,
+                0.2999885954749889,
+                0.19998596202078772,
+                1.5790271038782838e-05,
+                1.5791713674756463e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 6.316396942685294e-05
+            },
+            {
+              "correct_mass": 0.9999842097423188,
+              "effective_time": 51818.18181818181,
+              "energy": 0.15707890377899703,
+              "gradient_norm": 2.1141066832698463e-05,
+              "probabilities": [
+                0.4999969300372762,
+                0.2999942979826224,
+                0.1999929817224202,
+                7.894890917131351e-06,
+                7.895366764084541e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 3.158051536244111e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.5909090909090904,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.438538391863139,
+          "replay_upper_bound_constant": 3.6752806986456426,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 3,
+      "L": 0.7333333333333334,
+      "M1": 0.6666666666666666,
+      "M2": 0.0,
+      "bank": "strict_correct_subset",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.7333333333333334,
+        "max_gradient_finite_difference_error": 3.323653574582863e-10,
+        "max_hessian_vector_finite_difference_error": 1.462243259210037e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.36211348351880257,
+        "max_sampled_hessian_vector_norm": 0.2655498879137886,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "DrGRPO",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.7,
+        0.0,
+        0.3,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.002452548481988352,
+            "2": 8.111622595414327e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.699284788395504,
+              "gradient_norm": 0.8067309891710426,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.5273318385358293,
+              "effective_time": 2.727272727272727,
+              "energy": 1.1824375223075343,
+              "gradient_norm": 0.6560105498022217,
+              "probabilities": [
+                0.1393466964552976,
+                0.22154559740358182,
+                0.1664395446769499,
+                0.20377233926443433,
+                0.2688958221997362
+              ],
+              "step": 10,
+              "target_l1_error": 1.3884275177355048
+            },
+            {
+              "correct_mass": 0.9732992488878665,
+              "effective_time": 27.27272727272727,
+              "energy": -0.1197796609519366,
+              "gradient_norm": 0.051017274227791766,
+              "probabilities": [
+                0.6836265593337361,
+                0.02175058425735471,
+                0.26792210529677574,
+                0.013010176028677007,
+                0.013690575083456362
+              ],
+              "step": 100,
+              "target_l1_error": 0.09690267073897622
+            },
+            {
+              "correct_mass": 0.9978960376867854,
+              "effective_time": 272.7272727272727,
+              "energy": -0.17339892911313887,
+              "gradient_norm": 0.004164811015574352,
+              "probabilities": [
+                0.6983865949307168,
+                0.0018520492080098272,
+                0.2976573935480588,
+                0.0010426728360387228,
+                0.001061289477175802
+              ],
+              "step": 1000,
+              "target_l1_error": 0.007912023042448731
+            },
+            {
+              "correct_mass": 0.9997979573740936,
+              "effective_time": 2727.272727272727,
+              "energy": -0.1775329691443333,
+              "gradient_norm": 0.0004036051611984636,
+              "probabilities": [
+                0.69984162705015,
+                0.00018230529820665773,
+                0.299774025025737,
+                0.00010067354979674709,
+                0.00010136907610947433
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0007686958482258391
+            },
+            {
+              "correct_mass": 0.9998993368647018,
+              "effective_time": 5454.545454545454,
+              "energy": -0.1777546219665802,
+              "gradient_norm": 0.00020135309327783333,
+              "probabilities": [
+                0.6999208876992664,
+                9.117908259327932e-05,
+                0.29988727008284216,
+                5.020055728435666e-05,
+                5.046257801337671e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.00038368443578238194
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.2727272727272727,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.0986045928971593,
+          "replay_upper_bound_constant": 4.2074393188277135,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.002452548481988352,
+            "2": 8.111622595414327e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.699284788395504,
+              "gradient_norm": 0.8067309891710426,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9434576032050204,
+              "effective_time": 13.636363636363635,
+              "energy": -0.049481995541009294,
+              "gradient_norm": 0.10645219198077442,
+              "probabilities": [
+                0.6702934686591514,
+                0.04578006025846134,
+                0.22738407428740753,
+                0.027599071339675967,
+                0.02894332545530373
+              ],
+              "step": 10,
+              "target_l1_error": 0.20464491410688204
+            },
+            {
+              "correct_mass": 0.9957443097603971,
+              "effective_time": 136.36363636363635,
+              "energy": -0.1686913980697678,
+              "gradient_norm": 0.008421533539146445,
+              "probabilities": [
+                0.6967616819663935,
+                0.003756775861330053,
+                0.29522585193267353,
+                0.002111399548819878,
+                0.0021442906907830307
+              ],
+              "step": 100,
+              "target_l1_error": 0.016024932201865832
+            },
+            {
+              "correct_mass": 0.9995954647877043,
+              "effective_time": 1363.6363636363635,
+              "energy": -0.17708915934881608,
+              "gradient_norm": 0.0008083803048526804,
+              "probabilities": [
+                0.6996829066194195,
+                0.0003655200593068153,
+                0.29954703810897815,
+                0.00020166329512269214,
+                0.00020287191717284942
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0015401105432047003
+            },
+            {
+              "correct_mass": 0.9999598918480997,
+              "effective_time": 13636.363636363636,
+              "energy": -0.17788715086115992,
+              "gradient_norm": 8.03956121932933e-05,
+              "probabilities": [
+                0.6999683571531485,
+                3.6556996274554805e-05,
+                0.29995497769867663,
+                2.0030356315114498e-05,
+                2.0077795584956602e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00015333029634940744
+            },
+            {
+              "correct_mass": 0.9999799627300537,
+              "effective_time": 27272.727272727272,
+              "energy": -0.1779312054619534,
+              "gradient_norm": 4.018300064490683e-05,
+              "probabilities": [
+                0.6999841779509053,
+                1.828843321522358e-05,
+                0.2999774963459332,
+                1.000966014362779e-05,
+                1.0027609803018268e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 7.665140632334884e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.3636363636363635,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.0986045928971593,
+          "replay_upper_bound_constant": 4.2074393188277135,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.002452548481988352,
+            "2": 8.111622595414327e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.699284788395504,
+              "gradient_norm": 0.8067309891710426,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.975862743913992,
+              "effective_time": 25.909090909090903,
+              "energy": -0.12410261807620271,
+              "gradient_norm": 0.04733470220651769,
+              "probabilities": [
+                0.6838320579925803,
+                0.021364441394834694,
+                0.270666244526577,
+                0.012026180900427617,
+                0.012111075185580234
+              ],
+              "step": 10,
+              "target_l1_error": 0.09100339496168519
+            },
+            {
+              "correct_mass": 0.9978531438141295,
+              "effective_time": 259.09090909090907,
+              "energy": -0.17326006251802245,
+              "gradient_norm": 0.004290418937417277,
+              "probabilities": [
+                0.6983259885370033,
+                0.0019462392443979687,
+                0.2975809160327282,
+                0.001072046001901127,
+                0.0010748101839692672
+              ],
+              "step": 100,
+              "target_l1_error": 0.008186190860536785
+            },
+            {
+              "correct_mass": 0.9997887779329024,
+              "effective_time": 2590.9090909090905,
+              "energy": -0.17751109825543515,
+              "gradient_norm": 0.0004235531855132845,
+              "probabilities": [
+                0.6998333305807232,
+                0.00019280421103794158,
+                0.29976264314114137,
+                0.000105557465316648,
+                0.00010566460178075981
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0008080525562707547
+            },
+            {
+              "correct_mass": 0.9999789310539509,
+              "effective_time": 25909.090909090904,
+              "energy": -0.1779288981319646,
+              "gradient_norm": 4.2289132146996844e-05,
+              "probabilities": [
+                0.6999833378712107,
+                1.9281078842846945e-05,
+                0.2999763121038973,
+                1.0532349593658874e-05,
+                1.0536596455460279e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 8.070004978391027e-05
+            },
+            {
+              "correct_mass": 0.9999894680560758,
+              "effective_time": 51818.18181818181,
+              "energy": -0.17795206424602167,
+              "gradient_norm": 2.1142465118778536e-05,
+              "probabilities": [
+                0.6999916686382107,
+                9.642123716001555e-06,
+                0.29998815729414907,
+                5.265167679306068e-06,
+                5.266776245069735e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 4.0348135280532525e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.5909090909090904,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.0986045928971593,
+          "replay_upper_bound_constant": 4.2074393188277135,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 16,
+      "L": 0.86875,
+      "M1": 0.9375,
+      "M2": 0.0,
+      "bank": "full_correct_bank",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.86875,
+        "max_gradient_finite_difference_error": 1.762651136161253e-10,
+        "max_hessian_vector_finite_difference_error": 1.5266476525000146e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.42610187139604416,
+        "max_sampled_hessian_vector_norm": 0.3701760007753134,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "DrGRPO",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.5,
+        0.3,
+        0.2,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0003865018523619294,
+            "1": 2.0507810675489806e-06,
+            "2": 2.9368309555555646e-09
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.205849558916514,
+              "gradient_norm": 0.7526934279534896,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.5492362772842211,
+              "effective_time": 2.302158273381295,
+              "energy": 1.1371331715306978,
+              "gradient_norm": 0.5859403731294854,
+              "probabilities": [
+                0.06969285940987134,
+                0.3622300214947016,
+                0.11731339637964806,
+                0.19153861475405676,
+                0.25922510796172216
+              ],
+              "step": 10,
+              "target_l1_error": 1.0259874884209612
+            },
+            {
+              "correct_mass": 0.9633492375119864,
+              "effective_time": 23.021582733812952,
+              "energy": -0.04870205584179188,
+              "gradient_norm": 0.05722897062376978,
+              "probabilities": [
+                0.498063534909886,
+                0.2890523942714514,
+                0.17623330833064899,
+                0.01793390583813135,
+                0.018716856649882183
+              ],
+              "step": 100,
+              "target_l1_error": 0.07330152497602717
+            },
+            {
+              "correct_mass": 0.9969012777961552,
+              "effective_time": 230.21582733812951,
+              "energy": -0.10838688545148467,
+              "gradient_norm": 0.00490679062159282,
+              "probabilities": [
+                0.49959351577818095,
+                0.2988473692027452,
+                0.1984603928152291,
+                0.0015420859910166057,
+                0.0015566362128279921
+              ],
+              "step": 1000,
+              "target_l1_error": 0.006197444407689371
+            },
+            {
+              "correct_mass": 0.9996986816527712,
+              "effective_time": 2302.158273381295,
+              "energy": -0.11325398629396322,
+              "gradient_norm": 0.00047784755303330485,
+              "probabilities": [
+                0.499958605134184,
+                0.29988779966152795,
+                0.19985227685705928,
+                0.00015048485245597155,
+                0.0001508334947730226
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0006026366944577626
+            },
+            {
+              "correct_mass": 0.9998496445200011,
+              "effective_time": 4604.31654676259,
+              "energy": -0.11351633072381417,
+              "gradient_norm": 0.0002384615171228236,
+              "probabilities": [
+                0.4999792958619048,
+                0.2999440105387518,
+                0.19992633811934463,
+                7.512042816987874e-05,
+                7.523505182876564e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.00030071095999739824
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.2302158273381295,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.946350891863139,
+          "replay_upper_bound_constant": 3.9291869486456426,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0003865018523619294,
+            "1": 2.0507810675489806e-06,
+            "2": 2.9368309555555646e-09
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.205849558916514,
+              "gradient_norm": 0.7526934279534896,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9220753921060757,
+              "effective_time": 11.510791366906474,
+              "energy": 0.02684469731053607,
+              "gradient_norm": 0.12446025599239975,
+              "probabilities": [
+                0.4526919587767306,
+                0.3070394437377212,
+                0.16234398959162397,
+                0.03801969414694214,
+                0.039904913746982046
+              ],
+              "step": 10,
+              "target_l1_error": 0.16992810326329086
+            },
+            {
+              "correct_mass": 0.9937519569899502,
+              "effective_time": 115.10791366906474,
+              "energy": -0.10289379355243522,
+              "gradient_norm": 0.009877234743027296,
+              "probabilities": [
+                0.4992273703536938,
+                0.29768052105046616,
+                0.19684406558579032,
+                0.0031085913615259532,
+                0.0031394516485237786
+              ],
+              "step": 100,
+              "target_l1_error": 0.01249608602009945
+            },
+            {
+              "correct_mass": 0.9993967196279191,
+              "effective_time": 1151.0791366906474,
+              "energy": -0.11272914074228368,
+              "gradient_norm": 0.0009565602813212327,
+              "probabilities": [
+                0.49991751242756083,
+                0.29977537961175643,
+                0.1997038275886018,
+                0.00030127602368610446,
+                0.00030200434839478603
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0012065607441618237
+            },
+            {
+              "correct_mass": 0.9999399588015302,
+              "effective_time": 11510.791366906475,
+              "energy": -0.11367326471531436,
+              "gradient_norm": 9.52290575819478e-05,
+              "probabilities": [
+                0.4999917207171574,
+                0.2999776412699776,
+                0.1999705968143951,
+                3.0011526765617116e-05,
+                3.0029671704513635e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00012008239693999307
+            },
+            {
+              "correct_mass": 0.9999699890621878,
+              "effective_time": 23021.58273381295,
+              "energy": -0.11372544413174335,
+              "gradient_norm": 4.759997560486216e-05,
+              "probabilities": [
+                0.4999958597767943,
+                0.2999888241419872,
+                0.1999853051434064,
+                1.5002477746139246e-05,
+                1.5008460065759582e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 6.002187562402931e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.1510791366906474,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.946350891863139,
+          "replay_upper_bound_constant": 3.9291869486456426,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0003865018523619294,
+            "1": 2.0507810675489806e-06,
+            "2": 2.9368309555555646e-09
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.205849558916514,
+              "gradient_norm": 0.7526934279534896,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9656316497053135,
+              "effective_time": 21.8705035971223,
+              "energy": -0.05278052678198153,
+              "gradient_norm": 0.05377468546420801,
+              "probabilities": [
+                0.4994023131341409,
+                0.28890638944142444,
+                0.1773229471297481,
+                0.01709116819532738,
+                0.01727718209935924
+              ],
+              "step": 10,
+              "target_l1_error": 0.06873670058937317
+            },
+            {
+              "correct_mass": 0.9968057146480475,
+              "effective_time": 218.705035971223,
+              "energy": -0.10822042197461867,
+              "gradient_norm": 0.005057824323130567,
+              "probabilities": [
+                0.4995815825375478,
+                0.2988118647217461,
+                0.19841226738875353,
+                0.0015951627995958158,
+                0.0015991225523569175
+              ],
+              "step": 100,
+              "target_l1_error": 0.006388570703905303
+            },
+            {
+              "correct_mass": 0.9996837840315732,
+              "effective_time": 2187.05035971223,
+              "energy": -0.11322809540539891,
+              "gradient_norm": 0.0005014688230051388,
+              "probabilities": [
+                0.4999565684967549,
+                0.29988225280704967,
+                0.19984496272776864,
+                0.0001580592429273791,
+                0.0001581567254994309
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0006324319368536018
+            },
+            {
+              "correct_mass": 0.9999684161523293,
+              "effective_time": 21870.5035971223,
+              "energy": -0.11372271113500809,
+              "gradient_norm": 5.009470537148109e-05,
+              "probabilities": [
+                0.49999564288807197,
+                0.2999882384066238,
+                0.1999845348576336,
+                1.5790702321533744e-05,
+                1.5793145349092987e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 6.316769534125657e-05
+            },
+            {
+              "correct_mass": 0.9999842092532735,
+              "effective_time": 43741.0071942446,
+              "energy": -0.11375015215644646,
+              "gradient_norm": 2.50456990732851e-05,
+              "probabilities": [
+                0.4999978210770674,
+                0.29999411961664296,
+                0.19999226855956312,
+                7.894970470613282e-06,
+                7.895776255703786e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 3.158149345281878e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.18705035971223,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.946350891863139,
+          "replay_upper_bound_constant": 3.9291869486456426,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 16,
+      "L": 0.86875,
+      "M1": 0.9375,
+      "M2": 0.0,
+      "bank": "strict_correct_subset",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.86875,
+        "max_gradient_finite_difference_error": 1.715415901774181e-10,
+        "max_hessian_vector_finite_difference_error": 1.512753770426326e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.42610187139604416,
+        "max_sampled_hessian_vector_norm": 0.3701760007753134,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "DrGRPO",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.7,
+        0.0,
+        0.3,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0017064317021283316,
+            "2": 3.4796918981965656e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.6315764550621705,
+              "gradient_norm": 0.8371991378903677,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.5089320873304559,
+              "effective_time": 2.302158273381295,
+              "energy": 1.1986583513526026,
+              "gradient_norm": 0.7178903381238942,
+              "probabilities": [
+                0.11122668812804445,
+                0.2417202185735955,
+                0.15598518062881597,
+                0.20935781819704027,
+                0.2817100944725039
+              ],
+              "step": 10,
+              "target_l1_error": 1.4655762624862791
+            },
+            {
+              "correct_mass": 0.9724162786866491,
+              "effective_time": 23.021582733812952,
+              "energy": -0.37699206035567656,
+              "gradient_norm": 0.06241506274826879,
+              "probabilities": [
+                0.6847256086476299,
+                0.026885325202321,
+                0.26080534483669826,
+                0.013445330028872703,
+                0.014138391284478066
+              ],
+              "step": 100,
+              "target_l1_error": 0.10893809303134357
+            },
+            {
+              "correct_mass": 0.9978876430322687,
+              "effective_time": 230.21582733812951,
+              "energy": -0.443354868405568,
+              "gradient_norm": 0.00496086370931573,
+              "probabilities": [
+                0.698351493093926,
+                0.0022153576714523684,
+                0.2973207922668904,
+                0.0010471050734402493,
+                0.0010652518942910567
+              ],
+              "step": 1000,
+              "target_l1_error": 0.008655429278367252
+            },
+            {
+              "correct_mass": 0.9997979580554051,
+              "effective_time": 2302.158273381295,
+              "energy": -0.44828422031256593,
+              "gradient_norm": 0.00047849126288689443,
+              "probabilities": [
+                0.6998382727762162,
+                0.00021648404835657926,
+                0.29974320123083215,
+                0.0001006837225088204,
+                0.00010135822208641274
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0008370519859033696
+            },
+            {
+              "correct_mass": 0.9998993547360944,
+              "effective_time": 4604.31654676259,
+              "energy": -0.44854710699645356,
+              "gradient_norm": 0.0002386312951865603,
+              "probabilities": [
+                0.6999192146973598,
+                0.00010819326785590041,
+                0.29987194677087853,
+                5.019560021168379e-05,
+                5.044966369407894e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.00041767706352323136
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.2302158273381295,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.4613278071828737,
+          "replay_upper_bound_constant": 4.4613455688277135,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0017064317021283316,
+            "2": 3.4796918981965656e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.6315764550621705,
+              "gradient_norm": 0.8371991378903677,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9397735097082478,
+              "effective_time": 11.510791366906474,
+              "energy": -0.28590325730042265,
+              "gradient_norm": 0.13238733950502882,
+              "probabilities": [
+                0.6621319148742498,
+                0.05842950919464302,
+                0.21921208563935496,
+                0.029365117647741842,
+                0.030861372644010295
+              ],
+              "step": 10,
+              "target_l1_error": 0.23731199897279032
+            },
+            {
+              "correct_mass": 0.9957083767960384,
+              "effective_time": 115.10791366906474,
+              "energy": -0.43768349187527594,
+              "gradient_norm": 0.010081262026313225,
+              "probabilities": [
+                0.6966835046590006,
+                0.004526510450783604,
+                0.29449836168625415,
+                0.002129017808314949,
+                0.0021626053956466888
+              ],
+              "step": 100,
+              "target_l1_error": 0.017636267309490396
+            },
+            {
+              "correct_mass": 0.9995953371325293,
+              "effective_time": 1151.0791366906474,
+              "energy": -0.4477572655666794,
+              "gradient_norm": 0.0009590322623416993,
+              "probabilities": [
+                0.6996758851507949,
+                0.00043472075176017493,
+                0.2994847312299742,
+                0.00020172097074783152,
+                0.00020294189672302753
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0016787672384618387
+            },
+            {
+              "correct_mass": 0.9999599035791296,
+              "effective_time": 11510.791366906475,
+              "energy": -0.44870420018450985,
+              "gradient_norm": 9.525904489444622e-05,
+              "probabilities": [
+                0.6999676774880729,
+                4.335819613980133e-05,
+                0.29994886789491687,
+                2.0024260355137003e-05,
+                2.0072160515524843e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0001669092340206667
+            },
+            {
+              "correct_mass": 0.9999799680576034,
+              "effective_time": 23021.58273381295,
+              "energy": -0.44875640476875195,
+              "gradient_norm": 4.760787454762532e-05,
+              "probabilities": [
+                0.6999838388953636,
+                2.1683834249005234e-05,
+                0.29997444532799067,
+                1.0006908219188102e-05,
+                1.002503417746047e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 8.343155329128821e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.1510791366906474,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.4613278071828737,
+          "replay_upper_bound_constant": 4.4613455688277135,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0017064317021283316,
+            "2": 3.4796918981965656e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.6315764550621705,
+              "gradient_norm": 0.8371991378903677,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9748623368172683,
+              "effective_time": 21.8705035971223,
+              "energy": -0.3816511625458242,
+              "gradient_norm": 0.05850884151495071,
+              "probabilities": [
+                0.6846251733204072,
+                0.026757914686512008,
+                0.2634792488103491,
+                0.012495186660168887,
+                0.012642476522562925
+              ],
+              "step": 10,
+              "target_l1_error": 0.10379115573848746
+            },
+            {
+              "correct_mass": 0.9978434064177322,
+              "effective_time": 218.705035971223,
+              "energy": -0.44318334496092254,
+              "gradient_norm": 0.005115919112451061,
+              "probabilities": [
+                0.6982822710438281,
+                0.0023326722759027516,
+                0.29722846309800127,
+                0.0010760256032602644,
+                0.0010805679790076262
+              ],
+              "step": 100,
+              "target_l1_error": 0.008978531716341196
+            },
+            {
+              "correct_mass": 0.9997887947277013,
+              "effective_time": 2187.05035971223,
+              "energy": -0.44825822694509815,
+              "gradient_norm": 0.000502198273293572,
+              "probabilities": [
+                0.699829568823837,
+                0.00022906063776636577,
+                0.29973016526609797,
+                0.00010551511972570364,
+                0.00010569015257314085
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0008805318201302289
+            },
+            {
+              "correct_mass": 0.9999789369881915,
+              "effective_time": 21870.5035971223,
+              "energy": -0.44875367062821964,
+              "gradient_norm": 5.010358860593545e-05,
+              "probabilities": [
+                0.6999829761188805,
+                2.2862017856374222e-05,
+                0.2999730988514547,
+                1.052803660880516e-05,
+                1.0534975199497254e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 8.785005932944748e-05
+            },
+            {
+              "correct_mass": 0.9999894705757062,
+              "effective_time": 43741.0071942446,
+              "energy": -0.44878111910353424,
+              "gradient_norm": 2.5048040534281157e-05,
+              "probabilities": [
+                0.6999914885594578,
+                1.1430119125893875e-05,
+                0.29998655189712253,
+                5.2633979450959815e-06,
+                5.26602634839578e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 4.391908683898857e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.18705035971223,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.4613278071828737,
+          "replay_upper_bound_constant": 4.4613455688277135,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 2,
+      "L": 0.9,
+      "M1": 1,
+      "M2": 0.0,
+      "bank": "full_correct_bank",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.9,
+        "max_gradient_finite_difference_error": 2.7796209854425517e-10,
+        "max_hessian_vector_finite_difference_error": 1.5365997549849278e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.38317680786266173,
+        "max_sampled_hessian_vector_norm": 0.34485912707639554,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "implemented_MaxRL",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.5,
+        0.3,
+        0.2,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0003437618635989117,
+            "1": 1.6869264915577716e-06,
+            "2": 2.1910093843028707e-09
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.190224558916514,
+              "gradient_norm": 0.7628718765297355,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.5468022365661951,
+              "effective_time": 2.2222222222222223,
+              "energy": 1.1194603573953332,
+              "gradient_norm": 0.5997950371461587,
+              "probabilities": [
+                0.06740419217632256,
+                0.36316856506227846,
+                0.11622947932759414,
+                0.19217045307894334,
+                0.2610273103548616
+              ],
+              "step": 10,
+              "target_l1_error": 1.0327326569921667
+            },
+            {
+              "correct_mass": 0.9631966263575502,
+              "effective_time": 22.222222222222225,
+              "energy": -0.10855572772987765,
+              "gradient_norm": 0.059503747457915056,
+              "probabilities": [
+                0.49839782305957103,
+                0.2894052076075809,
+                0.17539359569039828,
+                0.018007038134028652,
+                0.01879633550842104
+              ],
+              "step": 100,
+              "target_l1_error": 0.07360674728489945
+            },
+            {
+              "correct_mass": 0.9968992591829339,
+              "effective_time": 222.22222222222223,
+              "energy": -0.17068935998533208,
+              "gradient_norm": 0.00508635149819225,
+              "probabilities": [
+                0.4996353776025229,
+                0.29883862953382545,
+                0.19842525204658557,
+                0.001543081406895396,
+                0.0015576594101706074
+              ],
+              "step": 1000,
+              "target_l1_error": 0.006201481634132075
+            },
+            {
+              "correct_mass": 0.9996986565258578,
+              "effective_time": 2222.222222222222,
+              "energy": -0.17573510678571558,
+              "gradient_norm": 0.0004950752064260506,
+              "probabilities": [
+                0.49996254097903514,
+                0.29988700598636586,
+                0.19984910956045676,
+                0.00015049724559901135,
+                0.00015084622854293571
+              ],
+              "step": 10000,
+              "target_l1_error": 0.000602686948284182
+            },
+            {
+              "correct_mass": 0.9998496378275559,
+              "effective_time": 4444.444444444444,
+              "energy": -0.17600692099399717,
+              "gradient_norm": 0.00024704967112172286,
+              "probabilities": [
+                0.499981256640804,
+                0.2999436165811635,
+                0.1999247646055884,
+                7.512372202816808e-05,
+                7.523845041583339e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.000300724344888131
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.22222222222222224,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 4.063538391863139,
+          "replay_upper_bound_constant": 3.9877806986456426,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0003437618635989117,
+            "1": 1.6869264915577716e-06,
+            "2": 2.1910093843028707e-09
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.190224558916514,
+              "gradient_norm": 0.7628718765297355,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9210072502086726,
+              "effective_time": 11.11111111111111,
+              "energy": -0.02811290239516573,
+              "gradient_norm": 0.13227777796953008,
+              "probabilities": [
+                0.44537876567499773,
+                0.3129255360130711,
+                0.1627029485206037,
+                0.038525531776948764,
+                0.04046721801437855
+              ],
+              "step": 10,
+              "target_l1_error": 0.183836571608797
+            },
+            {
+              "correct_mass": 0.9937438356281931,
+              "effective_time": 111.11111111111111,
+              "energy": -0.16498765105297863,
+              "gradient_norm": 0.010244801662723105,
+              "probabilities": [
+                0.49931550300600486,
+                0.29766183095193,
+                0.19676650167025816,
+                0.0031124880260461063,
+                0.0031436763457607835
+              ],
+              "step": 100,
+              "target_l1_error": 0.012512328743613872
+            },
+            {
+              "correct_mass": 0.9993966189769672,
+              "effective_time": 1111.111111111111,
+              "energy": -0.17519124689963406,
+              "gradient_norm": 0.000991124673843979,
+              "probabilities": [
+                0.49992541794629686,
+                0.2997737726957832,
+                0.19969742833488716,
+                0.00030132316410726086,
+                0.0003020578589255746
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0012067620460656195
+            },
+            {
+              "correct_mass": 0.9999399575740907,
+              "effective_time": 11111.111111111111,
+              "energy": -0.17616950985700808,
+              "gradient_norm": 9.865648537570901e-05,
+              "probabilities": [
+                0.49999250296453035,
+                0.2999774844683768,
+                0.19996997014118353,
+                3.0012063314184096e-05,
+                3.003036259525527e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00012008485181875733
+            },
+            {
+              "correct_mass": 0.9999699887383008,
+              "effective_time": 22222.222222222223,
+              "energy": -0.17622356784666837,
+              "gradient_norm": 4.931271347955007e-05,
+              "probabilities": [
+                0.49999625065709735,
+                0.2999887458710028,
+                0.19998499221020063,
+                1.5002614293910867e-05,
+                1.500864740515546e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 6.002252339825288e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.1111111111111112,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 4.063538391863139,
+          "replay_upper_bound_constant": 3.9877806986456426,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0003437618635989117,
+            "1": 1.6869264915577716e-06,
+            "2": 2.1910093843028707e-09
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.190224558916514,
+              "gradient_norm": 0.7628718765297355,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9654477769295677,
+              "effective_time": 21.11111111111111,
+              "energy": -0.11270127240191341,
+              "gradient_norm": 0.055992631902633046,
+              "probabilities": [
+                0.5001142652947822,
+                0.288995739474972,
+                0.17633777215981367,
+                0.01717589483952069,
+                0.017376328230911606
+              ],
+              "step": 10,
+              "target_l1_error": 0.06933297673042885
+            },
+            {
+              "correct_mass": 0.9968031103828484,
+              "effective_time": 211.11111111111111,
+              "energy": -0.17051585279993553,
+              "gradient_norm": 0.005243761471046165,
+              "probabilities": [
+                0.4996247296749925,
+                0.29880266293795366,
+                0.19837571776990226,
+                0.0015963286554627348,
+                0.0016005609616889405
+              ],
+              "step": 100,
+              "target_l1_error": 0.006393779234303263
+            },
+            {
+              "correct_mass": 0.9996837519846536,
+              "effective_time": 2111.1111111111113,
+              "energy": -0.17570827214572993,
+              "gradient_norm": 0.0005195572889588645,
+              "probabilities": [
+                0.4999606990403732,
+                0.2998814177863497,
+                0.19984163515793077,
+                0.00015807197221873385,
+                0.00015817604312747801
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0006324960306925384
+            },
+            {
+              "correct_mass": 0.999968415769189,
+              "effective_time": 21111.111111111113,
+              "energy": -0.17622073643442226,
+              "gradient_norm": 5.189727654428389e-05,
+              "probabilities": [
+                0.4999960542580711,
+                0.2999881560177276,
+                0.1999842054933904,
+                1.5790811524889476e-05,
+                1.579341928637041e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 6.316846162215923e-05
+            },
+            {
+              "correct_mass": 0.9999842091527393,
+              "effective_time": 42222.222222222226,
+              "energy": -0.1762491650487057,
+              "gradient_norm": 2.5946782145115946e-05,
+              "probabilities": [
+                0.49999802671562615,
+                0.2999940784582974,
+                0.1999921039788157,
+                7.894993574628894e-06,
+                7.895853685971021e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 3.158169452134922e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.111111111111111,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 4.063538391863139,
+          "replay_upper_bound_constant": 3.9877806986456426,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 2,
+      "L": 0.9,
+      "M1": 1,
+      "M2": 0.0,
+      "bank": "strict_correct_subset",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 0.9,
+        "max_gradient_finite_difference_error": 1.9092829311546857e-10,
+        "max_hessian_vector_finite_difference_error": 1.4808730946670088e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.38317680786266173,
+        "max_sampled_hessian_vector_norm": 0.34485912707639554,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "implemented_MaxRL",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.7,
+        0.0,
+        0.3,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0015694089903603695,
+            "2": 2.862316479516913e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.6159514550621705,
+              "gradient_norm": 0.8445433677437767,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.5057853240248007,
+              "effective_time": 2.2222222222222223,
+              "energy": 1.1984106217255213,
+              "gradient_norm": 0.7307380377525119,
+              "probabilities": [
+                0.10636277441062908,
+                0.24561461646579683,
+                0.15380793314837476,
+                0.21022356962742775,
+                0.2839911063477716
+              ],
+              "step": 10,
+              "target_l1_error": 1.4796585848819923
+            },
+            {
+              "correct_mass": 0.9722348695325238,
+              "effective_time": 22.222222222222225,
+              "energy": -0.4362357088819834,
+              "gradient_norm": 0.06510628152961219,
+              "probabilities": [
+                0.6849955492386262,
+                0.028136329094036985,
+                0.25910299119986074,
+                0.013534886169188071,
+                0.014230244298288073
+              ],
+              "step": 100,
+              "target_l1_error": 0.11180291912302619
+            },
+            {
+              "correct_mass": 0.9978861085304157,
+              "effective_time": 222.22222222222223,
+              "energy": -0.5056511368746415,
+              "gradient_norm": 0.005145600952996687,
+              "probabilities": [
+                0.6983430417246449,
+                0.0023008034632759117,
+                0.29724226334249493,
+                0.0010479236918940634,
+                0.0010659677776903374
+              ],
+              "step": 1000,
+              "target_l1_error": 0.008829389865720431
+            },
+            {
+              "correct_mass": 0.9997979714230902,
+              "effective_time": 2222.222222222222,
+              "energy": -0.5107652621234136,
+              "gradient_norm": 0.0004957864496504178,
+              "probabilities": [
+                0.699837478722575,
+                0.00022442095831314314,
+                0.29973607174220224,
+                0.00010067926674811673,
+                0.00010134931016120921
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0008528990704452196
+            },
+            {
+              "correct_mass": 0.9998993637423368,
+              "effective_time": 4444.444444444444,
+              "energy": -0.5110376760928743,
+              "gradient_norm": 0.00024723770585008853,
+              "probabilities": [
+                0.6999188208325667,
+                0.00011213767131197922,
+                0.29986840523845804,
+                5.019193636314151e-05,
+                5.044432130027325e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.000425547857950568
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.22222222222222224,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.5450331643257305,
+          "replay_upper_bound_constant": 4.5199393188277135,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0015694089903603695,
+            "2": 2.862316479516913e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.6159514550621705,
+              "gradient_norm": 0.8445433677437767,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.93889484365856,
+              "effective_time": 11.11111111111111,
+              "energy": -0.3400100936311107,
+              "gradient_norm": 0.13880789205164246,
+              "probabilities": [
+                0.6590213654607827,
+                0.061675986813390656,
+                0.21819749138438665,
+                0.029787677040094662,
+                0.03131747930134532
+              ],
+              "step": 10,
+              "target_l1_error": 0.2455622863096612
+            },
+            {
+              "correct_mass": 0.9957012782267323,
+              "effective_time": 111.11111111111111,
+              "energy": -0.49975374763879055,
+              "gradient_norm": 0.01046817575768757,
+              "probabilities": [
+                0.6966649179840737,
+                0.004709100106312085,
+                0.2943272601363465,
+                0.0021325234178958866,
+                0.0021661983553717826
+              ],
+              "step": 100,
+              "target_l1_error": 0.018015643759159466
+            },
+            {
+              "correct_mass": 0.9995953427260309,
+              "effective_time": 1111.111111111111,
+              "energy": -0.5102190763876389,
+              "gradient_norm": 0.000993849085838925,
+              "probabilities": [
+                0.6996742123589751,
+                0.00045082957143457997,
+                0.29947030079562115,
+                0.00020171789907472875,
+                0.00020293937489451074
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0017109736908075275
+            },
+            {
+              "correct_mass": 0.9999599075398256,
+              "effective_time": 11111.111111111111,
+              "energy": -0.5112004415738027,
+              "gradient_norm": 9.868972817445704e-05,
+              "probabilities": [
+                0.6999675183457897,
+                4.493258694020759e-05,
+                0.2999474566070956,
+                2.0022269255940734e-05,
+                2.0070190918284185e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00017005009422903884
+            },
+            {
+              "correct_mass": 0.9999799697554239,
+              "effective_time": 22222.222222222223,
+              "energy": -0.5112545274819382,
+              "gradient_norm": 4.93214840553323e-05,
+              "probabilities": [
+                0.6999837597725203,
+                2.2469204683802044e-05,
+                0.29997374077821987,
+                1.0006054880754796e-05,
+                1.0024189695929979e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 8.4998898520312e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.1111111111111112,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.5450331643257305,
+          "replay_upper_bound_constant": 4.5199393188277135,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0015694089903603695,
+            "2": 2.862316479516913e-07
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.6159514550621705,
+              "gradient_norm": 0.8445433677437767,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9746580657018603,
+              "effective_time": 21.11111111111111,
+              "energy": -0.4409529817236961,
+              "gradient_norm": 0.06116934527207705,
+              "probabilities": [
+                0.6849326232977105,
+                0.028077820904076213,
+                0.2616476215000736,
+                0.012591971365318451,
+                0.0127499629328212
+              ],
+              "step": 10,
+              "target_l1_error": 0.10683951040443167
+            },
+            {
+              "correct_mass": 0.9978416222345823,
+              "effective_time": 211.11111111111111,
+              "energy": -0.5054719226216393,
+              "gradient_norm": 0.005307593211127816,
+              "probabilities": [
+                0.6982717897117601,
+                0.0024236473469579833,
+                0.2971461851758643,
+                0.0010767793018019278,
+                0.0010815984636155598
+              ],
+              "step": 100,
+              "target_l1_error": 0.00916405022475107
+            },
+            {
+              "correct_mass": 0.999788812698547,
+              "effective_time": 2111.1111111111113,
+              "energy": -0.5107383159506391,
+              "gradient_norm": 0.0005203623313642441,
+              "probabilities": [
+                0.6998286781380479,
+                0.00023748232794472301,
+                0.2997226522325544,
+                0.00010550090196933676,
+                0.00010568639948342281
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0008973392587950849
+            },
+            {
+              "correct_mass": 0.9999789388664182,
+              "effective_time": 21111.111111111113,
+              "energy": -0.5112516948332781,
+              "gradient_norm": 5.190711462664525e-05,
+              "probabilities": [
+                0.699982891675543,
+                2.3690370224901018e-05,
+                0.2999723568206503,
+                1.0526889740033649e-05,
+                1.0534243841948518e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 8.950300761355577e-05
+            },
+            {
+              "correct_mass": 0.9999894713474025,
+              "effective_time": 42222.222222222226,
+              "energy": -0.5112801317055786,
+              "gradient_norm": 2.5949377501747755e-05,
+              "probabilities": [
+                0.6999914466354713,
+                1.1843474257828896e-05,
+                0.29998618123767334,
+                5.262933343675977e-06,
+                5.265719253726229e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 4.474425371052787e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 2.111111111111111,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 2.5450331643257305,
+          "replay_upper_bound_constant": 4.5199393188277135,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 3,
+      "L": 1.525,
+      "M1": 2,
+      "M2": 1.0,
+      "bank": "full_correct_bank",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 1.525,
+        "max_gradient_finite_difference_error": 2.5004581738485854e-10,
+        "max_hessian_vector_finite_difference_error": 1.7431202238862605e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.24317992470562969,
+        "max_sampled_hessian_vector_norm": 0.37084938517608523,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "implemented_MaxRL",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.5,
+        0.3,
+        0.2,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0001701744624757088,
+            "1": 5.225854484270685e-07,
+            "2": 3.7777739600795245e-10
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 1.9714745589165141,
+              "gradient_norm": 0.8889689779457999,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.4735956293066327,
+              "effective_time": 1.3114754098360657,
+              "energy": 1.044499169086351,
+              "gradient_norm": 0.7596163389717729,
+              "probabilities": [
+                0.0446291196844038,
+                0.3295954518552644,
+                0.09937105776696446,
+                0.21299050853805732,
+                0.31341386215531003
+              ],
+              "step": 10,
+              "target_l1_error": 1.1119996450972636
+            },
+            {
+              "correct_mass": 0.9367524085232498,
+              "effective_time": 13.114754098360656,
+              "energy": -0.5565555530936627,
+              "gradient_norm": 0.10890807357023313,
+              "probabilities": [
+                0.46249231544852737,
+                0.30820096399242436,
+                0.166059129082298,
+                0.030650902600938255,
+                0.03259668887581186
+              ],
+              "step": 100,
+              "target_l1_error": 0.14289711093834911
+            },
+            {
+              "correct_mass": 0.9947270722336813,
+              "effective_time": 131.14754098360658,
+              "energy": -0.6667520458804751,
+              "gradient_norm": 0.008664597067045067,
+              "probabilities": [
+                0.49941591554490095,
+                0.2980266790082697,
+                0.19728447768051063,
+                0.0026189919322360637,
+                0.0026539358340825917
+              ],
+              "step": 1000,
+              "target_l1_error": 0.010545855532637396
+            },
+            {
+              "correct_mass": 0.9994890724849755,
+              "effective_time": 1311.4754098360656,
+              "energy": -0.675357605216951,
+              "gradient_norm": 0.0008395403568533209,
+              "probabilities": [
+                0.49993679119753864,
+                0.2998084201445138,
+                0.19974386114292308,
+                0.0002550481439113277,
+                0.00025587937111326374
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0010218550300490532
+            },
+            {
+              "correct_mass": 0.9997451306513587,
+              "effective_time": 2622.9508196721313,
+              "energy": -0.6758187458783252,
+              "gradient_norm": 0.0004187932326366182,
+              "probabilities": [
+                0.4999683042855209,
+                0.29990442825637176,
+                0.19987239810946617,
+                0.0001272981121288525,
+                0.00012757123651232883
+              ],
+              "step": 20000,
+              "target_l1_error": 0.0005097386972823438
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.13114754098360656,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 4.766663391863139,
+          "replay_upper_bound_constant": 4.3393431986456426,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0001701744624757088,
+            "1": 5.225854484270685e-07,
+            "2": 3.7777739600795245e-10
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 1.9714745589165141,
+              "gradient_norm": 0.8889689779457999,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.8583024137396608,
+              "effective_time": 6.557377049180328,
+              "energy": -0.3236804593362457,
+              "gradient_norm": 0.2998146290377029,
+              "probabilities": [
+                0.2625360069744391,
+                0.4288463788131635,
+                0.16692002795205815,
+                0.06778687332123079,
+                0.07391071293910853
+              ],
+              "step": 10,
+              "target_l1_error": 0.5410879301470056
+            },
+            {
+              "correct_mass": 0.9893219443722301,
+              "effective_time": 65.57377049180329,
+              "energy": -0.6569115786433118,
+              "gradient_norm": 0.01754845408836552,
+              "probabilities": [
+                0.49900259934001406,
+                0.29603069736499465,
+                0.1942886476672214,
+                0.00529521150306908,
+                0.005382844124700983
+              ],
+              "step": 100,
+              "target_l1_error": 0.021356111255539947
+            },
+            {
+              "correct_mass": 0.9989762908691115,
+              "effective_time": 655.7377049180328,
+              "energy": -0.6744336486611132,
+              "gradient_norm": 0.0016821287041553143,
+              "probabilities": [
+                0.49987469214141145,
+                0.2996161880422474,
+                0.1994854106854527,
+                0.0005108357148591121,
+                0.0005128734160293729
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0020474182617769635
+            },
+            {
+              "correct_mass": 0.9998982431991916,
+              "effective_time": 6557.377049180329,
+              "energy": -0.676094414075687,
+              "gradient_norm": 0.00016720349885218072,
+              "probabilities": [
+                0.49998730632057936,
+                0.2999618418595679,
+                0.19994909501904437,
+                5.0853076047292035e-05,
+                5.0903724761032036e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00020351360161666878
+            },
+            {
+              "correct_mass": 0.9999491426349412,
+              "effective_time": 13114.754098360658,
+              "energy": -0.6761860423867382,
+              "gradient_norm": 8.35671809851883e-05,
+              "probabilities": [
+                0.4999936492998575,
+                0.29998092865134185,
+                0.1999745646837418,
+                2.5420334547047465e-05,
+                2.543703051184373e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.00010171473011772296
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.6557377049180328,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 4.766663391863139,
+          "replay_upper_bound_constant": 4.3393431986456426,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0001701744624757088,
+            "1": 5.225854484270685e-07,
+            "2": 3.7777739600795245e-10
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 1.9714745589165141,
+              "gradient_norm": 0.8889689779457999,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.9392550730149454,
+              "effective_time": 12.459016393442624,
+              "energy": -0.5615577810843254,
+              "gradient_norm": 0.10349706059128444,
+              "probabilities": [
+                0.46870582886965184,
+                0.30497799586847546,
+                0.16557124827681807,
+                0.02985570000998275,
+                0.03088922697507182
+              ],
+              "step": 10,
+              "target_l1_error": 0.13144584570706014
+            },
+            {
+              "correct_mass": 0.9945503894980432,
+              "effective_time": 124.59016393442623,
+              "energy": -0.6664316493372064,
+              "gradient_norm": 0.008954857385812916,
+              "probabilities": [
+                0.49939879942962595,
+                0.2979607326040231,
+                0.19719085746439408,
+                0.0027145623710599916,
+                0.002735048130897036
+              ],
+              "step": 100,
+              "target_l1_error": 0.010899221003913887
+            },
+            {
+              "correct_mass": 0.9994636644316185,
+              "effective_time": 1245.9016393442623,
+              "energy": -0.6753118386728211,
+              "gradient_norm": 0.0008812896287256737,
+              "probabilities": [
+                0.4999336821548447,
+                0.299798894024811,
+                0.1997310882519628,
+                0.0002679183952524004,
+                0.0002684171731290338
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0010726711367629138
+            },
+            {
+              "correct_mass": 0.9999464761365797,
+              "effective_time": 12459.016393442624,
+              "energy": -0.6761812423555674,
+              "gradient_norm": 8.79486836422068e-05,
+              "probabilities": [
+                0.4999933166839693,
+                0.29997992873210405,
+                0.19997323072050638,
+                2.6755691255836514e-05,
+                2.6768172164326522e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00010704772684044252
+            },
+            {
+              "correct_mass": 0.9999732416438157,
+              "effective_time": 24918.032786885247,
+              "energy": -0.6762294228478914,
+              "gradient_norm": 4.396846617976776e-05,
+              "probabilities": [
+                0.49999665699611134,
+                0.2999899656614107,
+                0.19998661898629363,
+                1.3377120012600261e-05,
+                1.3381236171766188e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 5.3516712368714074e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.2459016393442623,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 4.766663391863139,
+          "replay_upper_bound_constant": 4.3393431986456426,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 3,
+      "L": 1.525,
+      "M1": 2,
+      "M2": 1.0,
+      "bank": "strict_correct_subset",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 1.525,
+        "max_gradient_finite_difference_error": 3.4172731311343796e-10,
+        "max_hessian_vector_finite_difference_error": 1.7995373567011334e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.24317992470562969,
+        "max_sampled_hessian_vector_norm": 0.37084938517608523,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "implemented_MaxRL",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.7,
+        0.0,
+        0.3,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0009497722750191323,
+            "2": 8.867042805209913e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.3972014550621705,
+              "gradient_norm": 0.9405561353529092,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.4383755764569101,
+              "effective_time": 1.3114754098360657,
+              "energy": 1.3113718532653729,
+              "gradient_norm": 0.8609896139853198,
+              "probabilities": [
+                0.059329223136280765,
+                0.25972807976231876,
+                0.11931827355831061,
+                0.22761471005080047,
+                0.3340097134922894
+              ],
+              "step": 10,
+              "target_l1_error": 1.6427050066108173
+            },
+            {
+              "correct_mass": 0.9508526500099332,
+              "effective_time": 13.114754098360656,
+              "energy": -0.86770837060196,
+              "gradient_norm": 0.11948012540041969,
+              "probabilities": [
+                0.6642458678478725,
+                0.05671857629746011,
+                0.2298882058646006,
+                0.023780484521298627,
+                0.0253668654687681
+              ],
+              "step": 100,
+              "target_l1_error": 0.21173185257505364
+            },
+            {
+              "correct_mass": 0.9964108625525018,
+              "effective_time": 131.14754098360658,
+              "energy": -1.0015069896384476,
+              "gradient_norm": 0.008895618321377143,
+              "probabilities": [
+                0.6971117877585848,
+                0.004123168258379899,
+                0.29517590653553705,
+                0.0017754012334491955,
+                0.0018137362140491988
+              ],
+              "step": 1000,
+              "target_l1_error": 0.015424611411756346
+            },
+            {
+              "correct_mass": 0.9996591725602266,
+              "effective_time": 1311.4754098360656,
+              "energy": -1.0103851735940426,
+              "gradient_norm": 0.0008424758452397931,
+              "probabilities": [
+                0.699721938125978,
+                0.00038690402720358176,
+                0.2995503304070451,
+                0.0001697048610115503,
+                0.0001711225787615373
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0014554629339534693
+            },
+            {
+              "correct_mass": 0.999830147835306,
+              "effective_time": 2622.9508196721313,
+              "energy": -1.0108488075282565,
+              "gradient_norm": 0.00041958059716184126,
+              "probabilities": [
+                0.6998614816366616,
+                0.0001924059521088996,
+                0.2997762602465355,
+                8.465865045768616e-05,
+                8.51935142363695e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.0007245162336058046
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.13114754098360656,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.0472653071828737,
+          "replay_upper_bound_constant": 4.8715018188277135,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0009497722750191323,
+            "2": 8.867042805209913e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.3972014550621705,
+              "gradient_norm": 0.9405561353529092,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.8775566147088649,
+              "effective_time": 6.557377049180328,
+              "energy": -0.6341822101017773,
+              "gradient_norm": 0.3025171093843372,
+              "probabilities": [
+                0.5046500488316722,
+                0.14307665070254147,
+                0.22982991517465118,
+                0.05878131028606681,
+                0.0636620750050683
+              ],
+              "step": 10,
+              "target_l1_error": 0.5310400719873531
+            },
+            {
+              "correct_mass": 0.992619090936099,
+              "effective_time": 65.57377049180329,
+              "energy": -0.9908979679835256,
+              "gradient_norm": 0.01840490963058596,
+              "probabilities": [
+                0.694145273366627,
+                0.0086702157106413,
+                0.28980360185883064,
+                0.0036483113721277626,
+                0.0037325976917731286
+              ],
+              "step": 100,
+              "target_l1_error": 0.03210224954908448
+            },
+            {
+              "correct_mass": 0.9993171105184713,
+              "effective_time": 655.7377049180328,
+              "energy": -1.0094519097759869,
+              "gradient_norm": 0.0016930442720352117,
+              "probabilities": [
+                0.6994404888853138,
+                0.0007824239801583184,
+                0.29909419765299916,
+                0.0003399453311140067,
+                0.00034294415041468795
+              ],
+              "step": 1000,
+              "target_l1_error": 0.0029306269233739476
+            },
+            {
+              "correct_mass": 0.9999322723507171,
+              "effective_time": 6557.377049180329,
+              "energy": -1.0111252263632522,
+              "gradient_norm": 0.00016734079390488571,
+              "probabilities": [
+                0.6999447117971078,
+                7.675946635277302e-05,
+                0.2999108010872565,
+                3.380473355144418e-05,
+                3.392291573110662e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0002889742312709625
+            },
+            {
+              "correct_mass": 0.9999661434576561,
+              "effective_time": 13114.754098360658,
+              "energy": -1.0112169703396845,
+              "gradient_norm": 8.360365235535511e-05,
+              "probabilities": [
+                0.6999723900975379,
+                3.830323114637115e-05,
+                0.2999554501289718,
+                1.6905879515634938e-05,
+                1.6950662828214233e-05
+              ],
+              "step": 20000,
+              "target_l1_error": 0.0001443195469805082
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.6557377049180328,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.0472653071828737,
+          "replay_upper_bound_constant": 4.8715018188277135,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0009497722750191323,
+            "2": 8.867042805209913e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 2.3972014550621705,
+              "gradient_norm": 0.9405561353529092,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.9540316701916987,
+              "effective_time": 12.459016393442624,
+              "energy": -0.8721538212755243,
+              "gradient_norm": 0.11550757064893193,
+              "probabilities": [
+                0.6691686350402932,
+                0.05784913240682441,
+                0.227013902744581,
+                0.02259644155238997,
+                0.023371888255911206
+              ],
+              "step": 10,
+              "target_l1_error": 0.2076349244302513
+            },
+            {
+              "correct_mass": 0.9963225583228317,
+              "effective_time": 124.59016393442623,
+              "energy": -1.0011651674543964,
+              "gradient_norm": 0.009204310576538427,
+              "probabilities": [
+                0.6969820625483508,
+                0.00434775948262122,
+                0.2949927362918597,
+                0.0018280699609203592,
+                0.0018493717162480104
+              ],
+              "step": 100,
+              "target_l1_error": 0.01605040231957903
+            },
+            {
+              "correct_mass": 0.999643514633987,
+              "effective_time": 1245.9016393442623,
+              "energy": -1.01033909177279,
+              "gradient_norm": 0.0008845058820277737,
+              "probabilities": [
+                0.6997069222671057,
+                0.0004092276607039056,
+                0.29952736470617736,
+                0.00017783618307430296,
+                0.00017864918293877452
+              ],
+              "step": 1000,
+              "target_l1_error": 0.001531426053433835
+            },
+            {
+              "correct_mass": 0.999964397313125,
+              "effective_time": 12459.016393442624,
+              "energy": -1.0112121666674256,
+              "gradient_norm": 8.798842479132536e-05,
+              "probabilities": [
+                0.6999709165539868,
+                4.0378502897296043e-05,
+                0.29995310225624094,
+                1.778515729593266e-05,
+                1.7817529579272906e-05
+              ],
+              "step": 10000,
+              "target_l1_error": 0.00015196237954470231
+            },
+            {
+              "correct_mass": 0.9999821932849646,
+              "effective_time": 24918.032786885247,
+              "energy": -1.01126038053621,
+              "gradient_norm": 4.3978956315482266e-05,
+              "probabilities": [
+                0.6999854719883024,
+                2.0155901729740264e-05,
+                0.29997656539493245,
+                8.897219270600744e-06,
+                8.909495765119011e-06
+              ],
+              "step": 20000,
+              "target_l1_error": 7.592523353054596e-05
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 1.2459016393442623,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.0472653071828737,
+          "replay_upper_bound_constant": 4.8715018188277135,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 16,
+      "L": 21.025,
+      "M1": 15,
+      "M2": 105.0,
+      "bank": "full_correct_bank",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 21.025,
+        "max_gradient_finite_difference_error": 1.9617840685270949e-10,
+        "max_hessian_vector_finite_difference_error": 1.5888213118966923e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.03070475885483508,
+        "max_sampled_hessian_vector_norm": 0.6455675549229075,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "implemented_MaxRL",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.5,
+        0.3,
+        0.2,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 7.04306472089268e-05,
+            "1": 1.2011653587769527e-07,
+            "2": 4.162978789903881e-11
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 0.5061238307136031,
+              "gradient_norm": 1.2831542194289036,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.27280043718574576,
+              "effective_time": 0.09512485136741974,
+              "energy": 0.354041296228536,
+              "gradient_norm": 1.243298795333999,
+              "probabilities": [
+                0.021681568426208834,
+                0.18704028242611725,
+                0.06407858633341965,
+                0.24905695376359727,
+                0.47814260905065686
+              ],
+              "step": 10,
+              "target_l1_error": 1.4543991256285085
+            },
+            {
+              "correct_mass": 0.47173600942577776,
+              "effective_time": 0.9512485136741975,
+              "energy": -0.6211631348134041,
+              "gradient_norm": 0.8931334606567157,
+              "probabilities": [
+                0.03789162682705326,
+                0.3390209905924873,
+                0.0948233920062372,
+                0.2111405982236778,
+                0.3171233923505446
+              ],
+              "step": 100,
+              "target_l1_error": 1.1345699623334193
+            },
+            {
+              "correct_mass": 0.9087278519301994,
+              "effective_time": 9.512485136741974,
+              "energy": -2.3066211373699885,
+              "gradient_norm": 0.18131535481139696,
+              "probabilities": [
+                0.3826400044179261,
+                0.3572015885413822,
+                0.16888625897089113,
+                0.04380975220295842,
+                0.04746239586684212
+              ],
+              "step": 1000,
+              "target_l1_error": 0.29694747322236553
+            },
+            {
+              "correct_mass": 0.9926663878838465,
+              "effective_time": 95.12485136741975,
+              "energy": -2.481238837699642,
+              "gradient_norm": 0.01205153532624734,
+              "probabilities": [
+                0.49923366148138976,
+                0.29726027816998785,
+                0.19617244823246893,
+                0.0036359156188415505,
+                0.0036976964973118604
+              ],
+              "step": 10000,
+              "target_l1_error": 0.014667224232306876
+            },
+            {
+              "correct_mass": 0.9964038069085291,
+              "effective_time": 190.2497027348395,
+              "energy": -2.488017621951349,
+              "gradient_norm": 0.005909293949032293,
+              "probabilities": [
+                0.49958451180909574,
+                0.29865289935284706,
+                0.19816639574658637,
+                0.0017882489812112636,
+                0.0018079441102597106
+              ],
+              "step": 20000,
+              "target_l1_error": 0.007192386182941803
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.009512485136741975,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 5.648859054428346,
+          "replay_upper_bound_constant": 4.780441029928246,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 7.04306472089268e-05,
+            "1": 1.2011653587769527e-07,
+            "2": 4.162978789903881e-11
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 0.5061238307136031,
+              "gradient_norm": 1.2831542194289036,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.36630398038781253,
+              "effective_time": 0.47562425683709875,
+              "energy": -0.1638735611330122,
+              "gradient_norm": 1.0761124917246698,
+              "probabilities": [
+                0.02873247053383294,
+                0.25813978153076356,
+                0.07943172832321607,
+                0.23670584493022911,
+                0.3969901746819582
+              ],
+              "step": 10,
+              "target_l1_error": 1.2673920392243747
+            },
+            {
+              "correct_mass": 0.8094179785675559,
+              "effective_time": 4.756242568370987,
+              "energy": -1.9107464987041747,
+              "gradient_norm": 0.4011588348944892,
+              "probabilities": [
+                0.16173308401892655,
+                0.49107856082528467,
+                0.15660633372334481,
+                0.08867277303464978,
+                0.10190924839779412
+              ],
+              "step": 100,
+              "target_l1_error": 0.7633211645154573
+            },
+            {
+              "correct_mass": 0.9848836218065102,
+              "effective_time": 47.56242568370987,
+              "energy": -2.466992033990289,
+              "gradient_norm": 0.024853824498690103,
+              "probabilities": [
+                0.49887093748712963,
+                0.29447632966986304,
+                0.19153635464951752,
+                0.007460628738971207,
+                0.007655749454518721
+              ],
+              "step": 1000,
+              "target_l1_error": 0.03023275638697975
+            },
+            {
+              "correct_mass": 0.998581665893466,
+              "effective_time": 475.6242568370987,
+              "energy": -2.4919511493373885,
+              "gradient_norm": 0.0023305726273102705,
+              "probabilities": [
+                0.4998278369194299,
+                0.2994682870486939,
+                0.19928554192534217,
+                0.0007069797527455467,
+                0.0007113543537883546
+              ],
+              "step": 10000,
+              "target_l1_error": 0.002836668213067954
+            },
+            {
+              "correct_mass": 0.9992945722242124,
+              "effective_time": 951.2485136741974,
+              "energy": -2.4932362127334895,
+              "gradient_norm": 0.0011591381719146436,
+              "probabilities": [
+                0.4999130776619887,
+                0.29973550004781885,
+                0.1996459945144048,
+                0.00035199883935369973,
+                0.00035342893643389856
+              ],
+              "step": 20000,
+              "target_l1_error": 0.0014108555515752353
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.04756242568370987,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 5.648859054428346,
+          "replay_upper_bound_constant": 4.780441029928246,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 7.04306472089268e-05,
+            "1": 1.2011653587769527e-07,
+            "2": 4.162978789903881e-11
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 0.5061238307136031,
+              "gradient_norm": 1.2831542194289036,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.5
+            },
+            {
+              "correct_mass": 0.4653279047372325,
+              "effective_time": 0.9036860879904874,
+              "energy": -0.5931739978780866,
+              "gradient_norm": 0.9037515299230152,
+              "probabilities": [
+                0.037013162516738654,
+                0.334497228733487,
+                0.09381751348700687,
+                0.2134670990574618,
+                0.3212049962053058
+              ],
+              "step": 10,
+              "target_l1_error": 1.138338647992509
+            },
+            {
+              "correct_mass": 0.9036532677286957,
+              "effective_time": 9.036860879904875,
+              "energy": -2.2916195820971526,
+              "gradient_norm": 0.19542569851688094,
+              "probabilities": [
+                0.3673357822531602,
+                0.3669213131674903,
+                0.1693961723080451,
+                0.04623352853788043,
+                0.0501132037334238
+              ],
+              "step": 100,
+              "target_l1_error": 0.3265360908775893
+            },
+            {
+              "correct_mass": 0.9922807551404028,
+              "effective_time": 90.36860879904874,
+              "energy": -2.480537254560348,
+              "gradient_norm": 0.012685381241312627,
+              "probabilities": [
+                0.49920273719729347,
+                0.2971174004887752,
+                0.19596061745433416,
+                0.0038270882335459154,
+                0.0038921566260513773
+              ],
+              "step": 1000,
+              "target_l1_error": 0.01543848971919445
+            },
+            {
+              "correct_mass": 0.9992573396796525,
+              "effective_time": 903.6860879904875,
+              "energy": -2.4931691291031672,
+              "gradient_norm": 0.0012203177104360562,
+              "probabilities": [
+                0.499908560379533,
+                0.29972154194706246,
+                0.19962723735305693,
+                0.00037056642524167224,
+                0.00037209389510581845
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0014853206406950786
+            },
+            {
+              "correct_mass": 0.9996297884133012,
+              "effective_time": 1807.372175980975,
+              "energy": -2.4938400363526,
+              "gradient_norm": 0.0006083201353174996,
+              "probabilities": [
+                0.49995406792161795,
+                0.29986117984201266,
+                0.19981454064967058,
+                0.00018485514469729182,
+                0.0001853564420016222
+              ],
+              "step": 20000,
+              "target_l1_error": 0.0007404231733977238
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.09036860879904875,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 5.648859054428346,
+          "replay_upper_bound_constant": 4.780441029928246,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    },
+    {
+      "G": 16,
+      "L": 21.025,
+      "M1": 15,
+      "M2": 105.0,
+      "bank": "strict_correct_subset",
+      "correct_indices": [
+        0,
+        1,
+        2
+      ],
+      "derivative_checks": {
+        "claimed_global_smoothness_bound": 21.025,
+        "max_gradient_finite_difference_error": 2.01173522285103e-10,
+        "max_hessian_vector_finite_difference_error": 1.5609166578984682e-10,
+        "max_sampled_hessian_to_bound_ratio": 0.03070475885483508,
+        "max_sampled_hessian_vector_norm": 0.6455675549229075,
+        "states": 35,
+        "unit_directions_per_state": 4
+      },
+      "method": "implemented_MaxRL",
+      "rho": 0.8,
+      "target_extended_with_zeros": [
+        0.7,
+        0.0,
+        0.3,
+        0.0,
+        0.0
+      ],
+      "trajectories": [
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0005057702356293395,
+            "2": 2.0380943794872993e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 0.9318507268592595,
+              "gradient_norm": 1.277808545896058,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.2703406154254726,
+              "effective_time": 0.09512485136741974,
+              "energy": 0.7802996219000677,
+              "gradient_norm": 1.244794163726398,
+              "probabilities": [
+                0.02209200263040567,
+                0.18344654904846197,
+                0.06480206374660497,
+                0.24990823398307654,
+                0.4797511505914508
+              ],
+              "step": 10,
+              "target_l1_error": 1.8262118672459784
+            },
+            {
+              "correct_mass": 0.4453603781828043,
+              "effective_time": 0.9512485136741975,
+              "energy": -0.2687414940142352,
+              "gradient_norm": 0.9774446511854448,
+              "probabilities": [
+                0.04712026208266914,
+                0.28826364489937417,
+                0.10997647120076097,
+                0.222286118681184,
+                0.3323535031360116
+              ],
+              "step": 100,
+              "target_l1_error": 1.6858065334331396
+            },
+            {
+              "correct_mass": 0.9275186569928663,
+              "effective_time": 9.512485136741974,
+              "energy": -2.6074596453300525,
+              "gradient_norm": 0.18315880025019296,
+              "probabilities": [
+                0.6090945095835236,
+                0.09332285627393337,
+                0.22510129113540933,
+                0.03481974947925794,
+                0.037661593527875875
+              ],
+              "step": 1000,
+              "target_l1_error": 0.3316083985621342
+            },
+            {
+              "correct_mass": 0.9950130942146761,
+              "effective_time": 95.12485136741975,
+              "energy": -2.815706376786304,
+              "gradient_norm": 0.012523216294794009,
+              "probabilities": [
+                0.6959166572316013,
+                0.00596112019620337,
+                0.29313531678687144,
+                0.002462005675292696,
+                0.0025249001100313235
+              ],
+              "step": 10000,
+              "target_l1_error": 0.021896051963054556
+            },
+            {
+              "correct_mass": 0.9975876731359627,
+              "effective_time": 190.2497027348395,
+              "energy": -2.8229021445865357,
+              "gradient_norm": 0.006033875938831216,
+              "probabilities": [
+                0.6980075786142022,
+                0.002842174547267517,
+                0.296737919974493,
+                0.0011947875123663886,
+                0.0012175393516710533
+              ],
+              "step": 20000,
+              "target_l1_error": 0.01050900282260975
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.009512485136741975,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.677405066158021,
+          "replay_upper_bound_constant": 5.312599650110316,
+          "step_fraction_of_2_over_L": 0.1,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0005057702356293395,
+            "2": 2.0380943794872993e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 0.9318507268592595,
+              "gradient_norm": 1.277808545896058,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.3525627460174501,
+              "effective_time": 0.47562425683709875,
+              "energy": 0.24725571009580216,
+              "gradient_norm": 1.1133149766932502,
+              "probabilities": [
+                0.03180620762618476,
+                0.23595258430739635,
+                0.08480395408386897,
+                0.24203319951983124,
+                0.4054040544627186
+              ],
+              "step": 10,
+              "target_l1_error": 1.7667796765798924
+            },
+            {
+              "correct_mass": 0.8114534802232896,
+              "effective_time": 4.756242568370987,
+              "energy": -2.1568197393556154,
+              "gradient_norm": 0.47157871418961894,
+              "probabilities": [
+                0.337752870768818,
+                0.2358174782870578,
+                0.23788313116741377,
+                0.08829812377531486,
+                0.10024839600139562
+              ],
+              "step": 100,
+              "target_l1_error": 0.8487279961275365
+            },
+            {
+              "correct_mass": 0.98944009488993,
+              "effective_time": 47.56242568370987,
+              "energy": -2.7998090769857984,
+              "gradient_norm": 0.026654741512930787,
+              "probabilities": [
+                0.6916624392177146,
+                0.012886810762766297,
+                0.284890844909449,
+                0.005191121349134645,
+                0.0053687837609354494
+              ],
+              "step": 1000,
+              "target_l1_error": 0.046893431745672697
+            },
+            {
+              "correct_mass": 0.999055845091462,
+              "effective_time": 475.6242568370987,
+              "energy": -2.8269570137150524,
+              "gradient_norm": 0.0023522066826673627,
+              "probabilities": [
+                0.6992198230482588,
+                0.0010976708167988619,
+                0.2987383512264043,
+                0.00046905962143046305,
+                0.0004750952871075251
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0040836514506736935
+            },
+            {
+              "correct_mass": 0.9995312496654054,
+              "effective_time": 951.2485136741974,
+              "energy": -2.8282605391724163,
+              "gradient_norm": 0.001164899870853833,
+              "probabilities": [
+                0.6996136125096146,
+                0.0005406853331133161,
+                0.2993769518226775,
+                0.0002332417027154485,
+                0.00023550863187883818
+              ],
+              "step": 20000,
+              "target_l1_error": 0.002018871335415439
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.04756242568370987,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.677405066158021,
+          "replay_upper_bound_constant": 5.312599650110316,
+          "step_fraction_of_2_over_L": 0.5,
+          "steps": 20000
+        },
+        {
+          "bank_probability_lower_bounds": {
+            "0": 0.0005057702356293395,
+            "2": 2.0380943794872993e-08
+          },
+          "checkpoints": [
+            {
+              "correct_mass": 0.25,
+              "effective_time": 0.0,
+              "energy": 0.9318507268592595,
+              "gradient_norm": 1.277808545896058,
+              "probabilities": [
+                0.02,
+                0.17,
+                0.06,
+                0.25,
+                0.5
+              ],
+              "step": 0,
+              "target_l1_error": 1.8399999999999999
+            },
+            {
+              "correct_mass": 0.4395869748994703,
+              "effective_time": 0.9036860879904874,
+              "energy": -0.23106900069056424,
+              "gradient_norm": 0.9851103739350221,
+              "probabilities": [
+                0.045477015734922195,
+                0.28628805425810555,
+                0.10782190490644256,
+                0.22427848821428578,
+                0.3361345368862439
+              ],
+              "step": 10,
+              "target_l1_error": 1.6934021587172703
+            },
+            {
+              "correct_mass": 0.9230639291568895,
+              "effective_time": 9.036860879904875,
+              "energy": -2.592218069793292,
+              "gradient_norm": 0.19562028974468035,
+              "probabilities": [
+                0.5976375263768756,
+                0.1001311699177475,
+                0.22529523286226635,
+                0.03696762375618288,
+                0.03996844708692783
+              ],
+              "step": 100,
+              "target_l1_error": 0.3541344815217162
+            },
+            {
+              "correct_mass": 0.9947482747740376,
+              "effective_time": 90.36860879904874,
+              "energy": -2.8149455847768,
+              "gradient_norm": 0.013206105743820522,
+              "probabilities": [
+                0.6956959756518374,
+                0.006303910349115224,
+                0.29274838877308496,
+                0.0025931245937255674,
+                0.0026586006322370835
+              ],
+              "step": 1000,
+              "target_l1_error": 0.02311127115015548
+            },
+            {
+              "correct_mass": 0.9995065735556141,
+              "effective_time": 903.6860879904875,
+              "energy": -2.8281927691061264,
+              "gradient_norm": 0.0012266736695037057,
+              "probabilities": [
+                0.6995930213703073,
+                0.0005697792544076518,
+                0.2993437729308992,
+                0.00024551621251816755,
+                0.0002479102318676872
+              ],
+              "step": 10000,
+              "target_l1_error": 0.0021264113975869303
+            },
+            {
+              "correct_mass": 0.9997541256365583,
+              "effective_time": 1807.372175980975,
+              "energy": -2.8288690667814973,
+              "gradient_norm": 0.0006100103333035381,
+              "probabilities": [
+                0.6997977713118259,
+                0.00028214465221895377,
+                0.29967420967251346,
+                0.0001224853149106129,
+                0.00012338904853088516
+              ],
+              "step": 20000,
+              "target_l1_error": 0.001056038031321082
+            }
+          ],
+          "convergence_scope": "Finite-horizon values only; exact asymptotic convergence is not tested.",
+          "eta": 0.09036860879904875,
+          "finite_horizon_target_error_reduced": true,
+          "max_descent_inequality_excess": 0.0,
+          "max_energy_increase": 0.0,
+          "minimum_observed_log_retention_margin": 3.677405066158021,
+          "replay_upper_bound_constant": 5.312599650110316,
+          "step_fraction_of_2_over_L": 0.95,
+          "steps": 20000
+        }
+      ]
+    }
+  ],
+  "descent_inequality": "F(z_next)<=F(z)-eta*(1-L*eta/2)*||grad F(z)||^2",
+  "implemented_MaxRL_potential": "sum_{k=1}^{G-1} [1-(1-P)^k]/k",
+  "objective": "F(z)=rho*(-sum_b w_b log softmax(z)_b)-Psi(P(z))",
+  "schema": "discrete-weighted-categorical-replay-numerical-audit-v1",
+  "scope": "Independent fixed-step deterministic exact-gradient checks in categorical logits only. Finite numerical samples do not prove a global bound or asymptotic convergence. No SGD, Adam, or neural-network claim.",
+  "script_sha256": "d41da40bccd77a24cd88bac2b1dc5b6860dda57ce74dbe98c92ceb06e720b278",
+  "smoothness_bound": "L=rho/2+M1/2+M2/8",
+  "trajectory_count": 36
+}

@@ -1,0 +1,11 @@
+{
+  "cases": 20000,
+  "seed": 20260921,
+  "gamma_interval": [
+    0,
+    2
+  ],
+  "max_relative_contraction_excess": 0.0,
+  "max_bank_order_violation": 0.0,
+  "passed": true
+}

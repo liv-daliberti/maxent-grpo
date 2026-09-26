@@ -1,0 +1,38 @@
+{
+  "natural_gradient_section": {
+    "label": "app:theory-natural-gradient",
+    "original_sha256": "f824d4126c5b3acda3600ef07460c9c06dd43cebcd4b10962243d2d8a8f7ec60",
+    "staged_sha256": "f086225f5bcbff777a8415dbb2e023dbd05af4f87fcfc75727dda64e156604b6",
+    "formal_blocks_unchanged": true,
+    "original_bytes": 4488,
+    "staged_bytes": 5470,
+    "citations_unchanged": true
+  },
+  "entropy_section": {
+    "label": "app:theory-entropy",
+    "original_sha256": "e81a66deedfb7786b9df00c5d255dd19aaf92b0b03ee56aca48cc6821e23d9ac",
+    "staged_sha256": "b090b636c60ecf7fdbc92bd08231024cf8bc3302168286df0ea4e91dccef0bc4",
+    "formal_blocks_unchanged": true,
+    "original_bytes": 4341,
+    "staged_bytes": 5189,
+    "citations_unchanged": true
+  },
+  "entropy_comparison_section": {
+    "label": "app:theory-entropy-comparison",
+    "original_sha256": "d386120a230a49a3cc654f04c871512107dfd736d60175a43a95b2e45d1348e8",
+    "staged_sha256": "930f89bcd2e5f11c6bac73b5d97e61902874737028bb170794928590257ad1dc",
+    "formal_blocks_unchanged": true,
+    "original_bytes": 3853,
+    "staged_bytes": 4778,
+    "citations_unchanged": true
+  },
+  "gradient_availability_section": {
+    "label": "app:theory-gradient-availability",
+    "original_sha256": "686b32bfbfb9c8f180da75e594cf1cc3e14ad794d30461d00b4f7067bd68088f",
+    "staged_sha256": "83a1f28799aa1555fff25b068ab5364f47ea1b1ad06cfcabc329468156c29d14",
+    "formal_blocks_unchanged": true,
+    "original_bytes": 2615,
+    "staged_bytes": 3499,
+    "citations_unchanged": true
+  }
+}

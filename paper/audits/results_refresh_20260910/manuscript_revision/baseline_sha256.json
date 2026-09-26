@@ -1,0 +1,12 @@
+{
+  "paper/main.tex": "f169b0fe84cbd5b4422d2875c14195543c83a0038c300856c970ba10a9468469",
+  "paper/README.md": "017a11c15ccdeb98cffba04a20c1e1ef6d5968751f96196c3438a678ef5b3736",
+  "ops/check_paper_current_contract.py": "f5180647b839130202b9f967ab4320baf7564789a449935661bf102c82dc7f3b",
+  "tests/test_paper_latest_results.py": "a95aa98c959007defed165d5490b280268902484498cfea3d6e7495d825489ed",
+  "tests/test_paper_modebench_level_comparison.py": "30701b78e1ee2ea2f3a6a1fdedd67847d5ad3df2768c9529df05ffbbcef6e3cb",
+  "tests/test_paper_partial_block_reporting.py": "950dc40c9f18c1a582e9c2d1bb15d6e4a75e11216f2702b374545ede0b3419ed",
+  "paper/mathai2026/main.tex": "688e56a5f25f540242d0263d983ecb5e40d62d643007a19a586d4f66757bd936",
+  "paper/mathai2026/appendix.tex": "9ddbbf24a9fc8a8b44cec7752695377689b518addf9208a70de0a297c80673e8",
+  "paper/mathai2026/snapshot.json": "12467efeef3e1b2c7cbabcf77c4d20441e2c97aa15bb9665d864406213742416",
+  "paper/mathai2026/Makefile": "6160fbf70a69f4852771982341c406d679001a09a038a66ff3e4c7392786a476"
+}

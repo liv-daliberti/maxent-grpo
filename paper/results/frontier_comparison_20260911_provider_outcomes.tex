@@ -1,0 +1,67 @@
+\subsection{Native provider outcomes and undefined concentration}
+\label{app:hosted-provider-outcomes}
+Provider metadata distinguish refusal and filtering from executable correctness.
+A refusal does not establish that the underlying model cannot solve the task.
+Classification uses native stop reasons, refusal fields and filter metadata;
+it does not detect refusals expressed only in ordinary answer text.
+An empty visible answer is a failed draw, including when the response contains
+reasoning output. Empty-answer and refusal counts therefore need not agree.
+
+Correct-pair collision requires at least two correct draws on one prompt.
+It is undefined otherwise, as is a five-domain mean containing any undefined
+domain. Dashes denote these undefined values. Accuracy and distinct-mode
+counts include all responses, with zero correct modes on unsuccessful prompts.
+
+Native completion states over the 15,360 original-instruction responses per deployment are:
+
+\begin{itemize}\setlength{\itemsep}{0pt}
+\item GPT-5.6 Sol --- completed: 15,360
+\item Claude Opus 5 --- end\_turn: 12,838, refusal: 2,522
+\item GPT-5.4 --- completed: 15,355, incomplete: 5
+\item Grok 4.3 --- stop: 15,360
+\item Kimi K3 --- length: 15, stop: 15,345
+\item Claude Opus 4.8 --- end\_turn: 15,355, max\_tokens: 5
+\item DeepSeek V4 Pro --- length: 632, stop: 14,728
+\end{itemize}
+
+Claude Opus 5 returns provider-declared refusals for 409, 1,021 and 1,024 of the 1,024 \texttt{Python} requests at Levels 1, 2 and 3, respectively.
+The provider assigns them the refusal category cyber (2,454). These labels describe service behavior on factor-selection tasks;
+they do not measure concentration among correct \texttt{Python} outputs.
+
+\begin{table}[!htbp]
+  \centering
+  \caption{\textbf{Provider-declared refusals occur only for Opus 5 in this cohort.} Each original-instruction cell contains 128 prompts with eight responses each (1,024 responses). R counts native refusal signals, F native content filters, and E responses without visible answer text, including reasoning-only outputs. Counters can overlap and are separate from executable grades. Only cells with a nonzero counter appear; the other 83 of 105 cells have $R=F=E=0$, including all cells for GPT-5.6 Sol, Grok 4.3 and Kimi K3. Zero R does not exclude refusals expressed only in answer text.}
+  \label{tab:hosted-provider-outcomes}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{@{}llrrrr@{}}
+    \toprule
+    \textbf{Deployment} & \textbf{L} & \textbf{Domain} &
+      \textbf{R} & \textbf{F} & \textbf{E} \\
+    \midrule
+    Claude Opus 5 & 1 & \texttt{Python} & 409 & 0 & 409 \\
+     & 2 & \texttt{Python} & 1021 & 0 & 1021 \\
+     & 2 & \texttt{MathIR} & 35 & 0 & 35 \\
+     & 3 & \texttt{Python} & 1024 & 0 & 1024 \\
+     & 3 & \texttt{MathIR} & 33 & 0 & 32 \\
+    GPT-5.4 & 1 & \texttt{PantryPlan} & 0 & 0 & 1 \\
+     & 2 & \texttt{Countdown} & 0 & 0 & 1 \\
+     & 3 & \texttt{Countdown} & 0 & 0 & 1 \\
+     & 3 & \texttt{PantryPlan} & 0 & 0 & 2 \\
+    Claude Opus 4.8 & 3 & \texttt{Countdown} & 0 & 0 & 3 \\
+     & 3 & \texttt{PantryPlan} & 0 & 0 & 1 \\
+    DeepSeek V4 Pro & 1 & \texttt{Graph} & 0 & 0 & 59 \\
+     & 1 & \texttt{MathIR} & 0 & 0 & 4 \\
+     & 1 & \texttt{PantryPlan} & 0 & 0 & 13 \\
+     & 2 & \texttt{Graph} & 0 & 0 & 38 \\
+     & 2 & \texttt{Countdown} & 0 & 0 & 1 \\
+     & 2 & \texttt{MathIR} & 0 & 0 & 59 \\
+     & 2 & \texttt{PantryPlan} & 0 & 0 & 80 \\
+     & 3 & \texttt{Graph} & 0 & 0 & 24 \\
+     & 3 & \texttt{Countdown} & 0 & 0 & 7 \\
+     & 3 & \texttt{MathIR} & 0 & 0 & 100 \\
+     & 3 & \texttt{PantryPlan} & 0 & 0 & 246 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+

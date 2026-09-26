@@ -1,0 +1,445 @@
+[
+  {
+    "file": "paper/main.tex",
+    "line": 135,
+    "keys": [
+      "guo2025deepseekr1"
+    ],
+    "context": "Reinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{guo2025deepseekr1}. Reasoning RL can reduce policy\nentropy and output diversity \\citep{cui2025entropy,dang2025diversity}.\nA correctness-only reward treats repeated and distinct successes alike; we\nshow that accuracy can rise while verified-mode support contracts.\nRepeated sampling supplies proposals for verifier-guided selection\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nConcentration leaves fewer verified alternatives, without necessarily reducing\npass@$K$ at fixed per-sample correctness.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 136,
+    "keys": [
+      "cui2025entropy",
+      "dang2025diversity"
+    ],
+    "context": "Reinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{guo2025deepseekr1}. Reasoning RL can reduce policy\nentropy and output diversity \\citep{cui2025entropy,dang2025diversity}.\nA correctness-only reward treats repeated and distinct successes alike; we\nshow that accuracy can rise while verified-mode support contracts.\nRepeated sampling supplies proposals for verifier-guided selection\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nConcentration leaves fewer verified alternatives, without necessarily reducing\npass@$K$ at fixed per-sample correctness.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 140,
+    "keys": [
+      "brown2024monkeys",
+      "snell2024testtime",
+      "cobbe2021training",
+      "lightman2023lets"
+    ],
+    "context": "Reinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{guo2025deepseekr1}. Reasoning RL can reduce policy\nentropy and output diversity \\citep{cui2025entropy,dang2025diversity}.\nA correctness-only reward treats repeated and distinct successes alike; we\nshow that accuracy can rise while verified-mode support contracts.\nRepeated sampling supplies proposals for verifier-guided selection\n\\citep{brown2024monkeys,snell2024testtime,cobbe2021training,lightman2023lets}.\nConcentration leaves fewer verified alternatives, without necessarily reducing\npass@$K$ at fixed per-sample correctness.\nFigure~\\ref{fig:story} exhibits this failure on one prompt;\nAppendix Figure~\\ref{fig:baseline-precheck} shows it is systematic. Eight passes of\nunmodified Dr.GRPO or GRPO remove $99\\%$ and $98\\%$ of the base model's\nverified breadth beyond its first correct mode at Qwen2.5-0.5B, and\n$42$--$72\\%$ of it at the two larger scales.\nIn an idealized model, our analysis shows that additional parameters can\npreserve more sampled alternatives at matched accuracy when they strengthen\nupdates shared across correct outputs\n(Appendix~\\ref{app:theory-size}, Theorem~\\ref{thm:shared-correctness});\nsize alone provides no guarantee."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 164,
+    "keys": [
+      "cheng2025exploration",
+      "song2025outcome",
+      "chen2025passktraining"
+    ],
+    "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 166,
+    "keys": [
+      "lin1992selfimproving",
+      "mnih2015human",
+      "ecoffet2021return",
+      "mouret2015illuminating"
+    ],
+    "context": "The failure separates two requirements that are often treated as one. Training\nmust continue to discover correct behaviors, but it must also preserve a useful\nbehavior after on-policy sampling makes it rare. Sampling-aware objectives,\nentropy bonuses, and outcome exploration address continued discovery\n\\citep{cheng2025exploration,song2025outcome,chen2025passktraining}; replay and\nquality-diversity methods address the second\n\\citep{lin1992selfimproving,mnih2015human,ecoffet2021return,\nmouret2015illuminating}. A binary reward alone lacks the execution-grounded identity needed to\nsupport both: without knowing which correct behavior occurred, one cannot\nmeasure its loss or deliberately retain it. We make three contributions:"
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 189,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "  \\item \\textbf{ReplayMaxRL explores and preserves.} MaxRL directs fresh-rollout\n  learning toward success across sampling budgets \\citep{tajwar2026maxrl};\n  key-balanced verified replay retains one exemplar per discovered mode and\n  revisits modes uniformly. A categorical mean-flow calculation connects the\n  objectives to standard replicator dynamics: binary MaxRL inherits binary\n  GRPO's winner-take-all instability, while an idealized fixed replay bank adds\n  a qualitative barrier against exact extinction."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 212,
+    "keys": [
+      "brown2024monkeys",
+      "snell2024testtime"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nSampling-based selection depends on the proposal distribution\n\\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output\ndiversity under RLHF or reasoning RL \\citep{kirk2024understanding,dang2025diversity},\ndeclining policy entropy \\citep{cui2025entropy}, and reduced high-budget problem\ncoverage for tested RLVR models \\citep{yue2025rlvrlimit}. These metrics differ from\nwithin-prompt execution-key breadth. Semantic clustering infers answer\nequivalence \\citep{farquhar2024detecting}; \\mb{} defines keys by accepting execution."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 213,
+    "keys": [
+      "kirk2024understanding",
+      "dang2025diversity"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nSampling-based selection depends on the proposal distribution\n\\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output\ndiversity under RLHF or reasoning RL \\citep{kirk2024understanding,dang2025diversity},\ndeclining policy entropy \\citep{cui2025entropy}, and reduced high-budget problem\ncoverage for tested RLVR models \\citep{yue2025rlvrlimit}. These metrics differ from\nwithin-prompt execution-key breadth. Semantic clustering infers answer\nequivalence \\citep{farquhar2024detecting}; \\mb{} defines keys by accepting execution."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 214,
+    "keys": [
+      "cui2025entropy"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nSampling-based selection depends on the proposal distribution\n\\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output\ndiversity under RLHF or reasoning RL \\citep{kirk2024understanding,dang2025diversity},\ndeclining policy entropy \\citep{cui2025entropy}, and reduced high-budget problem\ncoverage for tested RLVR models \\citep{yue2025rlvrlimit}. These metrics differ from\nwithin-prompt execution-key breadth. Semantic clustering infers answer\nequivalence \\citep{farquhar2024detecting}; \\mb{} defines keys by accepting execution."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 215,
+    "keys": [
+      "yue2025rlvrlimit"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nSampling-based selection depends on the proposal distribution\n\\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output\ndiversity under RLHF or reasoning RL \\citep{kirk2024understanding,dang2025diversity},\ndeclining policy entropy \\citep{cui2025entropy}, and reduced high-budget problem\ncoverage for tested RLVR models \\citep{yue2025rlvrlimit}. These metrics differ from\nwithin-prompt execution-key breadth. Semantic clustering infers answer\nequivalence \\citep{farquhar2024detecting}; \\mb{} defines keys by accepting execution."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 217,
+    "keys": [
+      "farquhar2024detecting"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nSampling-based selection depends on the proposal distribution\n\\citep{brown2024monkeys,snell2024testtime}. Prior work measures reduced output\ndiversity under RLHF or reasoning RL \\citep{kirk2024understanding,dang2025diversity},\ndeclining policy entropy \\citep{cui2025entropy}, and reduced high-budget problem\ncoverage for tested RLVR models \\citep{yue2025rlvrlimit}. These metrics differ from\nwithin-prompt execution-key breadth. Semantic clustering infers answer\nequivalence \\citep{farquhar2024detecting}; \\mb{} defines keys by accepting execution."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 222,
+    "keys": [
+      "song2025outcome",
+      "chen2025passktraining",
+      "li2025divergence",
+      "li2026setpo",
+      "li2026distribution",
+      "lochab2026ucpo"
+    ],
+    "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL combines\nbest@\\(k\\) objectives across sampling budgets \\citep{tajwar2026maxrl}.\nFor our binary rewards, best@\\(k\\) equals pass@\\(k\\); ReplayMaxRL tests\nwhether explicit mode memory adds support beyond this fresh-rollout objective."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 224,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL combines\nbest@\\(k\\) objectives across sampling budgets \\citep{tajwar2026maxrl}.\nFor our binary rewards, best@\\(k\\) equals pass@\\(k\\); ReplayMaxRL tests\nwhether explicit mode memory adds support beyond this fresh-rollout objective."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 230,
+    "keys": [
+      "lin1992selfimproving",
+      "rolnick2019replay"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nReplay reuses experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP replays successful reasoning\ntrajectories \\citep{zhang2025rlep}. ReplayDr.GRPO retains one exemplar per executed\nkey and samples keys uniformly, regardless of discovery frequency.\nNovelty search rewards behavioral novelty \\citep{lehman2011novelty}; MAP-Elites\nretains one elite per descriptor cell \\citep{mouret2015illuminating}.\nOur replay bank uses execution keys as descriptors within policy-gradient updates."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 231,
+    "keys": [
+      "zhang2025rlep"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nReplay reuses experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP replays successful reasoning\ntrajectories \\citep{zhang2025rlep}. ReplayDr.GRPO retains one exemplar per executed\nkey and samples keys uniformly, regardless of discovery frequency.\nNovelty search rewards behavioral novelty \\citep{lehman2011novelty}; MAP-Elites\nretains one elite per descriptor cell \\citep{mouret2015illuminating}.\nOur replay bank uses execution keys as descriptors within policy-gradient updates."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 233,
+    "keys": [
+      "lehman2011novelty"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nReplay reuses experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP replays successful reasoning\ntrajectories \\citep{zhang2025rlep}. ReplayDr.GRPO retains one exemplar per executed\nkey and samples keys uniformly, regardless of discovery frequency.\nNovelty search rewards behavioral novelty \\citep{lehman2011novelty}; MAP-Elites\nretains one elite per descriptor cell \\citep{mouret2015illuminating}.\nOur replay bank uses execution keys as descriptors within policy-gradient updates."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 234,
+    "keys": [
+      "mouret2015illuminating"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nReplay reuses experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP replays successful reasoning\ntrajectories \\citep{zhang2025rlep}. ReplayDr.GRPO retains one exemplar per executed\nkey and samples keys uniformly, regardless of discovery frequency.\nNovelty search rewards behavioral novelty \\citep{lehman2011novelty}; MAP-Elites\nretains one elite per descriptor cell \\citep{mouret2015illuminating}.\nOur replay bank uses execution keys as descriptors within policy-gradient updates."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 316,
+    "keys": [
+      "shao2024deepseekmath"
+    ],
+    "context": "GRPO \\citep{shao2024deepseekmath} and Dr.GRPO \\citep{liu2025understanding}\ncenter binary rewards within sampled groups, giving correct responses equal\ntask credit regardless of execution key. Common correct modes therefore appear\nin more updates; absent modes supply no direct signal."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 316,
+    "keys": [
+      "liu2025understanding"
+    ],
+    "context": "GRPO \\citep{shao2024deepseekmath} and Dr.GRPO \\citep{liu2025understanding}\ncenter binary rewards within sampled groups, giving correct responses equal\ntask credit regardless of execution key. Common correct modes therefore appear\nin more updates; absent modes supply no direct signal."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 444,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "For a fresh group of $G$ binary rewards $r_{1:G}$, let\n$m=\\sum_{i=1}^G r_i$. The implemented MaxRL task advantage is\n\\[\n  A_i^{\\mathrm{MaxRL}}=\n  \\begin{cases}\n    G r_i/m-1, & m>0,\\\\\n    0, & m=0.\n  \\end{cases}\n\\]\nApplied only to fresh on-policy rows, this centered binary MaxRL estimator\n\\citep{tajwar2026maxrl} assigns failures $-1$ when $m>0$ and zero advantages\nto all-failure or all-success groups. Lemma~\\ref{lem:maxrl-mean} derives its\nmean objective for $k=1,\\ldots,G-1$."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 549,
+    "keys": [
+      "lochab2026ucpo"
+    ],
+    "context": "\\phantomsection\\label{sec:retention-design}\n\\noindent\\textbf{Exp.~1:} We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five seeds: 75 registered comparisons, of\nwhich 74 are admissible after one source-integrity exclusion\n(Appendix~\\ref{app:source-integrity}). Methods differ only in the replay\nderivative; the control executes the same bank code with zero replay gradient. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; our frequency-weighted RLEP-Dr adaptation\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 550,
+    "keys": [
+      "zhang2025rlep"
+    ],
+    "context": "\\phantomsection\\label{sec:retention-design}\n\\noindent\\textbf{Exp.~1:} We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five seeds: 75 registered comparisons, of\nwhich 74 are admissible after one source-integrity exclusion\n(Appendix~\\ref{app:source-integrity}). Methods differ only in the replay\nderivative; the control executes the same bank code with zero replay gradient. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; our frequency-weighted RLEP-Dr adaptation\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 944,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "The next lemma specializes the practical-estimator analysis of\n\\citet[Section~4.3 and Appendix~D, Theorem~5]{tajwar2026maxrl}\nto our categorical notation; we include the derivation for completeness."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 1005,
+    "keys": [
+      "sinha2026expected"
+    ],
+    "context": "Prior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.\nConsider the infinitesimal expected-update flow\n$\\dot z=\\E[\\widehat g_G]=c_G(P)\\nabla_zP$. This is the clean mean-field limit\nof fresh on-policy groups and the first-order PPO update. By Lemmas~\\ref{lem:grpo-mean} and~\\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately\nremoves sampling noise; the result below therefore identifies a structural\ninstability rather than blaming finite batches."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 1006,
+    "keys": [
+      "lochab2026ucpo"
+    ],
+    "context": "Prior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.\nConsider the infinitesimal expected-update flow\n$\\dot z=\\E[\\widehat g_G]=c_G(P)\\nabla_zP$. This is the clean mean-field limit\nof fresh on-policy groups and the first-order PPO update. By Lemmas~\\ref{lem:grpo-mean} and~\\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately\nremoves sampling noise; the result below therefore identifies a structural\ninstability rather than blaming finite batches."
+  },
+  {
+    "file": "paper/main.tex",
+    "line": 1017,
+    "keys": [
+      "hofbauer1998evolutionary"
+    ],
+    "context": "The conditional correct-mode flow derived below is a standard\nfrequency-dependent replicator system with fitness $f_c(q)=q_c$\n\\citep{hofbauer1998evolutionary}; the following\ntheorem is not claimed as a new replicator-dynamics result. Its role is to show\nthat the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that\nfamiliar winner-take-all flow under the paper's categorical assumptions."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 22,
+    "keys": [
+      "guo2025deepseekr1"
+    ],
+    "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives narrows the verified candidate set available from repeated sampling\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 25,
+    "keys": [
+      "brown2024monkeys",
+      "snell2024testtime"
+    ],
+    "context": "\\section{Correct answers can conceal the loss of alternatives}\n\\label{sec:introduction}\\label{sec:collapse}\nReinforcement learning with verifiable rewards (RLVR) trains from executable\ncorrectness feedback \\citep{guo2025deepseekr1}, rewarding\nfamiliar and new correct solutions alike. In mathematical search, losing\nalternatives narrows the verified candidate set available from repeated sampling\n\\citep{brown2024monkeys,snell2024testtime}. Figure~\\ref{fig:story} shows this\nfailure: correctness rises while sampled alternatives disappear."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 88,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with Dr.GRPO \\citep{liu2025understanding},\nwhich debiases GRPO \\citep{shao2024deepseekmath}, yields our ReplayDr.GRPO.\nAppendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 96,
+    "keys": [
+      "liu2025understanding"
+    ],
+    "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with Dr.GRPO \\citep{liu2025understanding},\nwhich debiases GRPO \\citep{shao2024deepseekmath}, yields our ReplayDr.GRPO.\nAppendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 97,
+    "keys": [
+      "shao2024deepseekmath"
+    ],
+    "context": "MaxRL trains policy $\\pi_\\theta$ for success within $k$ samples across sampling\nbudgets \\citep{tajwar2026maxrl}. Each training prompt $x$ keeps one\npolicy-generated exemplar $e_c$ per admitted key in bank $\\mathcal B_x$.\nWith $|e_c|$ its token length, recurrent replay minimizes\n\\begin{equation}\nL_{\\mathrm{replay}}(x)=-\\frac{1}{|\\mathcal B_x|}\n\\sum_{c\\in\\mathcal B_x}\\frac{\\log\\pi_\\theta(e_c\\mid x)}{|e_c|}.\n\\label{eq:lm-verified-replay}\n\\end{equation}\nEqual averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with Dr.GRPO \\citep{liu2025understanding},\nwhich debiases GRPO \\citep{shao2024deepseekmath}, yields our ReplayDr.GRPO.\nAppendix~\\ref{app:algorithm} gives\nthe full update. Appendix~\\ref{app:theory} proves categorical collapse and\nreplay retention (Theorems~\\ref{thm:grpo-collapse} and~\\ref{thm:replay-retention})."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 103,
+    "keys": [
+      "cui2025entropy",
+      "dang2025diversity"
+    ],
+    "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 104,
+    "keys": [
+      "zhang2025rlep"
+    ],
+    "context": "\\noindent\\textbf{Related work.} Prior work studies diversity collapse\n\\citep{cui2025entropy,dang2025diversity}, sampling-aware objectives, and success\nreplay \\citep{zhang2025rlep}. Our focus is execution-defined identity for\nmeasuring and retaining verified alternatives. Appendix~\\ref{sec:related}\ngives the full discussion."
+  },
+  {
+    "file": "paper/mathai2026/main.tex",
+    "line": 119,
+    "keys": [
+      "lochab2026ucpo"
+    ],
+    "context": "Five seeds are registered per comparison for eight passes; each of 128 held-out prompts per\ndomain receives four eight-sample draws. Controls execute the replay code with its gradient zeroed. Figure~\\ref{fig:cross-scale-terminal-effects} compares\nDr.GRPO with replay and alternatives targeting reward normalization, on-policy\ndiversity (UCPO; \\citealp{lochab2026ucpo}), success replay (RLEP-Dr),\nand semantic entropy. Protocols and uncertainty are in\nAppendices~\\ref{app:experimental-design} and~\\ref{app:extended-results}."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 342,
+    "keys": [
+      "lochab2026ucpo"
+    ],
+    "context": "We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five registered seeds: 75 planned pairs, of\nwhich 74 are source-admissible. Fourteen blocks contain five seeds; Falcon\nCountdown contains four (Appendix~\\ref{app:source-integrity}). The methods\nshare replay code and differ in whether its derivative is applied. Subsequent\nbanks, schedules, and realized workloads depend on each policy. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; our frequency-weighted RLEP-Dr adaptation\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 343,
+    "keys": [
+      "zhang2025rlep"
+    ],
+    "context": "We pair Dr.GRPO with ReplayDr.GRPO on five Level-1\ndomains, three model scales, and five registered seeds: 75 planned pairs, of\nwhich 74 are source-admissible. Fourteen blocks contain five seeds; Falcon\nCountdown contains four (Appendix~\\ref{app:source-integrity}). The methods\nshare replay code and differ in whether its derivative is applied. Subsequent\nbanks, schedules, and realized workloads depend on each policy. Fully matched\nQwen2.5-0.5B blocks also provide direct alternatives: ordinary GRPO\nnormalization; UCPO on-policy advantage redistribution\n\\citep{lochab2026ucpo}; our frequency-weighted RLEP-Dr adaptation\n\\citep{zhang2025rlep}; memoryless binary MaxRL; and fixed Semantic-MaxEnt.\nFigure~\\ref{fig:cross-scale-terminal-effects}B compares them with\nReplayDr.GRPO. The semantic estimator is defined only as a comparator in\nAppendix~\\ref{app:semantic-maxent}."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 476,
+    "keys": [
+      "brown2024monkeys",
+      "snell2024testtime"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on the proposal\ndistribution \\citep{brown2024monkeys,snell2024testtime}. Prior work reports\nreduced sampled output diversity under RLHF or reasoning RL\n\\citep{kirk2024understanding,dang2025diversity}, declining policy entropy\n\\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR\nmodels \\citep{yue2025rlvrlimit}. These measures differ from within-prompt\nexecution-key breadth. Semantic clustering infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 478,
+    "keys": [
+      "kirk2024understanding",
+      "dang2025diversity"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on the proposal\ndistribution \\citep{brown2024monkeys,snell2024testtime}. Prior work reports\nreduced sampled output diversity under RLHF or reasoning RL\n\\citep{kirk2024understanding,dang2025diversity}, declining policy entropy\n\\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR\nmodels \\citep{yue2025rlvrlimit}. These measures differ from within-prompt\nexecution-key breadth. Semantic clustering infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 479,
+    "keys": [
+      "cui2025entropy"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on the proposal\ndistribution \\citep{brown2024monkeys,snell2024testtime}. Prior work reports\nreduced sampled output diversity under RLHF or reasoning RL\n\\citep{kirk2024understanding,dang2025diversity}, declining policy entropy\n\\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR\nmodels \\citep{yue2025rlvrlimit}. These measures differ from within-prompt\nexecution-key breadth. Semantic clustering infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 480,
+    "keys": [
+      "yue2025rlvrlimit"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on the proposal\ndistribution \\citep{brown2024monkeys,snell2024testtime}. Prior work reports\nreduced sampled output diversity under RLHF or reasoning RL\n\\citep{kirk2024understanding,dang2025diversity}, declining policy entropy\n\\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR\nmodels \\citep{yue2025rlvrlimit}. These measures differ from within-prompt\nexecution-key breadth. Semantic clustering infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 482,
+    "keys": [
+      "farquhar2024detecting"
+    ],
+    "context": "\\noindent\\textbf{Verifiable learning and output support.}\nRepeated sampling and verifier-guided selection depend on the proposal\ndistribution \\citep{brown2024monkeys,snell2024testtime}. Prior work reports\nreduced sampled output diversity under RLHF or reasoning RL\n\\citep{kirk2024understanding,dang2025diversity}, declining policy entropy\n\\citep{cui2025entropy}, and reduced high-budget problem coverage in tested RLVR\nmodels \\citep{yue2025rlvrlimit}. These measures differ from within-prompt\nexecution-key breadth. Semantic clustering infers when generations express the same answer\n\\citep{farquhar2024detecting}. \\mb{} instead lets accepting execution define\nthe equivalence relation, yielding an exact behavioral key."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 488,
+    "keys": [
+      "song2025outcome",
+      "chen2025passktraining",
+      "li2025divergence",
+      "li2026setpo",
+      "li2026distribution",
+      "lochab2026ucpo"
+    ],
+    "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL combines\nbest@\\(k\\) objectives across sampling budgets \\citep{tajwar2026maxrl}.\nFor our binary rewards, best@\\(k\\) equals pass@\\(k\\); ReplayMaxRL tests\nwhether explicit mode memory adds support beyond this fresh-rollout objective."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 490,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "\\noindent\\textbf{Sampling-aware exploration.}\nOutcome bonuses, entropy control, set objectives, distribution matching, and\nuniform-correct objectives encourage broader verified-output support\n\\citep{song2025outcome,chen2025passktraining,li2025divergence,\nli2026setpo,li2026distribution,lochab2026ucpo}. MaxRL combines\nbest@\\(k\\) objectives across sampling budgets \\citep{tajwar2026maxrl}.\nFor our binary rewards, best@\\(k\\) equals pass@\\(k\\); ReplayMaxRL tests\nwhether explicit mode memory adds support beyond this fresh-rollout objective."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 496,
+    "keys": [
+      "lin1992selfimproving",
+      "rolnick2019replay"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay reuses past experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP reuses successful\nreasoning trajectories \\citep{zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Novelty search rewards behavioral novelty\n\\citep{lehman2011novelty}, while MAP-Elites retains one elite per behavior-descriptor\ncell \\citep{mouret2015illuminating}. Our replay bank uses the execution key\nas the descriptor inside a policy-gradient update."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 497,
+    "keys": [
+      "zhang2025rlep"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay reuses past experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP reuses successful\nreasoning trajectories \\citep{zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Novelty search rewards behavioral novelty\n\\citep{lehman2011novelty}, while MAP-Elites retains one elite per behavior-descriptor\ncell \\citep{mouret2015illuminating}. Our replay bank uses the execution key\nas the descriptor inside a policy-gradient update."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 500,
+    "keys": [
+      "lehman2011novelty"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay reuses past experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP reuses successful\nreasoning trajectories \\citep{zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Novelty search rewards behavioral novelty\n\\citep{lehman2011novelty}, while MAP-Elites retains one elite per behavior-descriptor\ncell \\citep{mouret2015illuminating}. Our replay bank uses the execution key\nas the descriptor inside a policy-gradient update."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 501,
+    "keys": [
+      "mouret2015illuminating"
+    ],
+    "context": "\\noindent\\textbf{Replay and persistent memory.}\nExperience replay reuses past experience and can mitigate forgetting\n\\citep{lin1992selfimproving,rolnick2019replay}; RLEP reuses successful\nreasoning trajectories \\citep{zhang2025rlep}. Our replay component instead stores one exemplar per canonical executed key and\nsamples uniformly over keys, making equal retention an explicit target rather\nthan depending on how often each success occurs. Novelty search rewards behavioral novelty\n\\citep{lehman2011novelty}, while MAP-Elites retains one elite per behavior-descriptor\ncell \\citep{mouret2015illuminating}. Our replay bank uses the execution key\nas the descriptor inside a policy-gradient update."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 594,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "The next lemma specializes the practical-estimator analysis of\n\\citet[Section~4.3 and Appendix~D, Theorem~5]{tajwar2026maxrl}\nto our categorical notation; we include the derivation for completeness."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 655,
+    "keys": [
+      "sinha2026expected"
+    ],
+    "context": "Prior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.\nConsider the infinitesimal expected-update flow\n$\\dot z=\\E[\\widehat g_G]=c_G(P)\\nabla_zP$. This is the clean mean-field limit\nof fresh on-policy groups and the first-order PPO update. By Lemmas~\\ref{lem:grpo-mean} and~\\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately\nremoves sampling noise; the result below therefore identifies a structural\ninstability rather than blaming finite batches."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 656,
+    "keys": [
+      "lochab2026ucpo"
+    ],
+    "context": "Prior work studies objective-induced outcome collapse and inverse-probability\ncorrection \\citep{sinha2026expected}; UCPO analyzes correctness-indifferent collapse\nthrough sampling bias and gradient amplification \\citep[Section~4]{lochab2026ucpo}.\nHere we connect our group estimators to a standard categorical flow and then study\npersistent replay over execution-defined keys.\nConsider the infinitesimal expected-update flow\n$\\dot z=\\E[\\widehat g_G]=c_G(P)\\nabla_zP$. This is the clean mean-field limit\nof fresh on-policy groups and the first-order PPO update. By Lemmas~\\ref{lem:grpo-mean} and~\\ref{lem:maxrl-mean}, it covers GRPO, Dr.GRPO, and binary MaxRL with their respective positive functions $c_G$. It deliberately\nremoves sampling noise; the result below therefore identifies a structural\ninstability rather than blaming finite batches."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 667,
+    "keys": [
+      "hofbauer1998evolutionary"
+    ],
+    "context": "The conditional correct-mode flow derived below is a standard\nfrequency-dependent replicator system with fitness $f_c(q)=q_c$\n\\citep{hofbauer1998evolutionary}; the following\ntheorem is not claimed as a new replicator-dynamics result. Its role is to show\nthat the expected GRPO, Dr.GRPO, and binary-MaxRL updates reduce to that\nfamiliar winner-take-all flow under the paper's categorical assumptions."
+  },
+  {
+    "file": "paper/mathai2026/appendix.tex",
+    "line": 2017,
+    "keys": [
+      "tajwar2026maxrl"
+    ],
+    "context": "For a fresh on-policy group of $G$ responses, let $r_i\\in\\{0,1\\}$ be the\nverified reward of response $i$ and let $m=\\sum_{i=1}^G r_i$ count successes.\nThe binary MaxRL task advantage is\n\\[\n  A_i^{\\mathrm{MaxRL}}=\n  \\begin{cases}\n    G r_i/m-1, & m>0,\\\\\n    0, & m=0.\n  \\end{cases}\n\\]\nMixed groups assign failures advantage $-1$ and increase the weight of each\nsuccess when successes are scarce. All-correct and all-failure groups have\nzero task advantage. This is the centered binary MaxRL estimator\n\\citep{tajwar2026maxrl}. Lemma~\\ref{lem:maxrl-mean} derives its on-policy\nmean objective: a harmonic mixture of pass@\\(k\\) for $k=1,\\ldots,G-1$.\nIt is applied only to fresh on-policy responses;\nreplay exemplars enter through the separate verified-likelihood loss."
+  }
+]

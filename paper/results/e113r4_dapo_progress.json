@@ -1,0 +1,1018 @@
+{
+  "failed_science_cells": 18,
+  "generated_at": "2026-09-04T15:19:59.303401+00:00",
+  "input_sha256": {
+    "var/artifacts/e113r4_official_verl_dapo_jobs.json": {
+      "byte_length": 2443596,
+      "sha256": "4a65b978f1d5689dba7412f1233d61e813afe55eb9dabd54185e6d70d6495843"
+    },
+    "var/artifacts/logs/e113r4r2-f1-count-s55-30869141.out": {
+      "byte_length": 87124,
+      "sha256": "cff2688db480fdfc392984a1f8d168e1d173eb9098611f8acd8697146d284be5"
+    },
+    "var/artifacts/logs/e113r4r2-f1-graph-s55-30869136.out": {
+      "byte_length": 90126,
+      "sha256": "867d74457ac8801c3385392b213aa71fe8d81cda147bfaa5d96fdf2f6889d709"
+    },
+    "var/artifacts/logs/e113r4r2-f1-graph-s56-30869137.out": {
+      "byte_length": 89633,
+      "sha256": "556ca4a4842d571da7ebead6100973082e942e74663cce0f10e0cea0535b4d44"
+    },
+    "var/artifacts/logs/e113r4r2-f1-graph-s57-30869138.out": {
+      "byte_length": 89674,
+      "sha256": "0134eecff7890089acf4c3c3db37a6866a6dd6b9275764bb8238a0c74e5bbd3f"
+    },
+    "var/artifacts/logs/e113r4r2-q05-count-s43-30869116.out": {
+      "byte_length": 91636,
+      "sha256": "12bc717b97c981ded8c0851fa981e4beb320cee8fc99768216e639dff3d4e38e"
+    },
+    "var/artifacts/logs/e113r4r2-q05-count-s44-30869117.out": {
+      "byte_length": 91813,
+      "sha256": "6f7cc05629516127d7d8b7e365f5958411ac339462c975be845fecf0f0475f88"
+    },
+    "var/artifacts/logs/e113r4r2-q05-count-s45-30869118.out": {
+      "byte_length": 91083,
+      "sha256": "704f5491648bbf05874cee62b7f09907b67aff0f076e75d91bf40d54b41c87ba"
+    },
+    "var/artifacts/logs/e113r4r2-q05-count-s46-30869119.out": {
+      "byte_length": 93570,
+      "sha256": "4038fc3eb1fdf38037e7ac004f1585c237ace3da0c4622233c7351553c39d63e"
+    },
+    "var/artifacts/logs/e113r4r2-q05-count-s47-30869120.out": {
+      "byte_length": 89566,
+      "sha256": "cbc437828b482ee5183f0ee0b70202eb32a7e27fcfb9f1e909186c6d1e8b1c90"
+    },
+    "var/artifacts/logs/e113r4r2-q05-graph-s43-30869111.out": {
+      "byte_length": 90561,
+      "sha256": "49eeba6acfd04f18f6cb098d89035c2c68503d9a537fc983ff4be31bdc6ed2b5"
+    },
+    "var/artifacts/logs/e113r4r2-q05-graph-s44-30869112.out": {
+      "byte_length": 91543,
+      "sha256": "ce709207fdceb9e1bed52fe2408e5e597b97715796499d1a470439c10fa6a589"
+    },
+    "var/artifacts/logs/e113r4r2-q05-graph-s45-30869113.out": {
+      "byte_length": 89812,
+      "sha256": "989f4f9d8a84ea307156eeccb38b923533fd42fe93026eac772f8f728c7f7008"
+    },
+    "var/artifacts/logs/e113r4r2-q05-graph-s46-30869114.out": {
+      "byte_length": 89818,
+      "sha256": "79d07d11af68e1f8709e222aa052d62d508e80ef82e53186b70553d2a0a20a0c"
+    },
+    "var/artifacts/logs/e113r4r2-q05-graph-s47-30869115.out": {
+      "byte_length": 93109,
+      "sha256": "1aef2c3e611ab0687abc9748938d16a4e2acee3ca220fdc2b1e130fe87440899"
+    },
+    "var/artifacts/logs/e113r4r2-q05-mathi-s43-30869126.out": {
+      "byte_length": 91873,
+      "sha256": "607e10fc29e2f5e4ace6c4896efcaa5594498c46f2e42ea5a1f8010d52dfd9a9"
+    },
+    "var/artifacts/logs/e113r4r2-q05-mathi-s44-30869127.out": {
+      "byte_length": 91855,
+      "sha256": "03774481c6a942b3cada589a710b384289f336022d09c38d8d7394e7b3effc15"
+    },
+    "var/artifacts/logs/e113r4r2-q05-mathi-s45-30869128.out": {
+      "byte_length": 91404,
+      "sha256": "0bbafd0d41a1069201c7f3407dc9f6957e95ea90d709426bfbd676e45223adb1"
+    },
+    "var/artifacts/logs/e113r4r2-q05-mathi-s46-30869129.out": {
+      "byte_length": 91625,
+      "sha256": "4599d508845033a7088b14deb1799ec03ee60c8ce80ddaa459732be6dfc532b6"
+    },
+    "var/artifacts/logs/e113r4r2-q05-mathi-s47-30869130.out": {
+      "byte_length": 91144,
+      "sha256": "0e8318ac188591df1e8d8e130d4a78cae7121546ee0f74f3bef7056ab713313c"
+    },
+    "var/artifacts/logs/e113r4r2-q05-pantr-s43-30869131.out": {
+      "byte_length": 106893,
+      "sha256": "06658061343f37b57498e91bebfd3a362028e7fcf1ce96752d0e7db71e37968e"
+    },
+    "var/artifacts/logs/e113r4r2-q05-pantr-s44-30869132.out": {
+      "byte_length": 107452,
+      "sha256": "ce2e09986e51a06259e4466ac11924e03179614e51561cd81c2b92d02bafb856"
+    },
+    "var/artifacts/logs/e113r4r2-q05-pantr-s45-30869133.out": {
+      "byte_length": 107688,
+      "sha256": "07148fda3a98664b657ad4dc4b7075a3cece3a05f4b115bbb0fb1b92707c8a42"
+    },
+    "var/artifacts/logs/e113r4r2-q05-pantr-s47-30869135.out": {
+      "byte_length": 106808,
+      "sha256": "55f128e5fe343be12c3b363838d9ab27727bf4b488448e0f2c5f0a9f38b7e3be"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-count-s56-30977243.out": {
+      "byte_length": 52713,
+      "sha256": "0548dc8e7b6c826845982694bc322b25f08e9df2ce2e1c3e8b8713b86cc20d01"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-count-s57-30977244.out": {
+      "byte_length": 53142,
+      "sha256": "12faf61fb8a4fd73cea4f7f8f2cbe85ed9a0178cb10ebc2ebed41e914011c7f1"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-count-s58-30977245.out": {
+      "byte_length": 53139,
+      "sha256": "9e9aa8ea363b251211ce9dabd06d8c1f85eada8f2d29c391269de7363e46d4fa"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-count-s59-30977246.out": {
+      "byte_length": 87148,
+      "sha256": "76b162c292b022206f79c48c59e08aa9edc6b05337babfd155df06a60dcc5041"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-graph-s58-30977241.out": {
+      "byte_length": 42284,
+      "sha256": "852c2b38aa484867fdb2585bc2c837a6706f764f76af86bb503fc8b9b05856f8"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-graph-s59-30977242.out": {
+      "byte_length": 42284,
+      "sha256": "7d9f78a30c3a125877e306c39b7c981d2615534d06dcf0ec2d8ca3c71888ca13"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-mathi-s55-30977252.out": {
+      "byte_length": 93212,
+      "sha256": "a19fda2fa74f3069ff391bc91d012a764d910221c42ea3e5b874365217315da0"
+    },
+    "var/artifacts/logs/e113r4r2s7-f1-mathi-s57-30977254.out": {
+      "byte_length": 93197,
+      "sha256": "7f09e76b42fd098d7e8a083ffa208a628220c5176e342c16b8e810e508371a06"
+    },
+    "var/artifacts/logs/e113r4r2s7-q05-pantr-s46-30977240.out": {
+      "byte_length": 48367,
+      "sha256": "9cfb1a1c6b2b4d6a43ee6896a5b4d328d78e6ab43a728d7ec40ae93577b68835"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s55/TRAINING_COMPLETE.json": {
+      "byte_length": 380,
+      "sha256": "cf0c942f6b7f80cba0dd4f92275a99c782e2388807cbd09312227b7e22c27468"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s55/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s56/TRAINING_COMPLETE.json": {
+      "byte_length": 380,
+      "sha256": "c57d930e8d256c5c36dea8e1607d9a99b76fe878261570de59ac3f56737242f9"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s56/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s57/TRAINING_COMPLETE.json": {
+      "byte_length": 380,
+      "sha256": "0817cbdcef888247fb2b20e5b225aa930994698b4e858cfd5c7748bd73cffaf3"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s57/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s58/TRAINING_COMPLETE.json": {
+      "byte_length": 380,
+      "sha256": "b4ca5e3c091bf7e8dba9cdc08307352fdfd34ca2a59f434c73354d0bb8e377b4"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s58/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s59/TRAINING_COMPLETE.json": {
+      "byte_length": 380,
+      "sha256": "0970ec63d3c83ab0e24668db2671a81b1879ffcc4255b77491d98ac65eb5b961"
+    },
+    "var/data/e113r4_falcon1b_countdown_official_dapo_s59/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s55/TRAINING_COMPLETE.json": {
+      "byte_length": 385,
+      "sha256": "1a4e5801db8df74b0e8a14ca0fd2f2011d0fc0f627eed7e9587ea6daf07d5feb"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s55/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s56/TRAINING_COMPLETE.json": {
+      "byte_length": 385,
+      "sha256": "2562bd5b35d81a2754535ce8e24dfca4a77ce423864b673048bc5e6a0736dfac"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s56/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s57/TRAINING_COMPLETE.json": {
+      "byte_length": 385,
+      "sha256": "9aa3ddb8b667b3cdb91c7a2ae8bd380654a52bd0cee6127c2bcfa1eaf28df3ee"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s57/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s58/TRAINING_COMPLETE.json": {
+      "byte_length": 385,
+      "sha256": "be7f538fd22fa9cc37e3dbce36a9f74b2771d59ab9db0fd1c9eb476beeebdac1"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s58/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s59/TRAINING_COMPLETE.json": {
+      "byte_length": 385,
+      "sha256": "28f1e0c3bcf651d062b79f974400daa043de8c217ad14fec0f5f1acbf8102765"
+    },
+    "var/data/e113r4_falcon1b_graph_official_dapo_s59/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_mathir_official_dapo_s55/TRAINING_COMPLETE.json": {
+      "byte_length": 377,
+      "sha256": "65e8595613ccdad1cf22af6782fe1fb55deade81fc9b88e924284b54fe4e3929"
+    },
+    "var/data/e113r4_falcon1b_mathir_official_dapo_s55/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_falcon1b_mathir_official_dapo_s57/TRAINING_COMPLETE.json": {
+      "byte_length": 377,
+      "sha256": "418f4f3227c0fc4c79aee16ea4a1ea90e44879593a8f04331d152ff627928715"
+    },
+    "var/data/e113r4_falcon1b_mathir_official_dapo_s57/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 379,
+      "sha256": "bcf6af9568f147506b266dcbe534addb82c10956c22c622dd898ff341e79c2b1"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s43/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 379,
+      "sha256": "653978021a3a992323fc48a422c81b9a029f266072ec39b995ae4d50ee014f6d"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s44/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 379,
+      "sha256": "8d0fd72dd11a7b6fd2970a17c5abbf042e7c230de083f974dff1d4fb6c6ce64f"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s45/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 379,
+      "sha256": "620c27f86033ead7fe46d6c1e349f09db124bbcc7a9977e4d1a308be6bd0141a"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s46/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 379,
+      "sha256": "75aab2457385067953962fb5b37518fe136f1670dfdea05878196c1b03022e6c"
+    },
+    "var/data/e113r4_qwen05b_countdown_official_dapo_s47/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 384,
+      "sha256": "1a123457a3827247882e60339a5030455ee81e0dd73d3eb852486f7a15033395"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s43/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 384,
+      "sha256": "777cb9ad45cf083aa6c3fb6ad43bee05ba5d3eb60c1af63475e89247df6971a6"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s44/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 384,
+      "sha256": "1ecbdae4caf1767428d8afd1b49055c004a1ad6cf8e024b20c837f30a621e303"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s45/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 384,
+      "sha256": "bd9310a87065c8e8271d0cbef6ce65a4837e8ff1dccdf7147b6e6fe645277871"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s46/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 384,
+      "sha256": "5faf30869b320d404487912050a12770a74c6b748dd1f922778fe28c2d5481b3"
+    },
+    "var/data/e113r4_qwen05b_graph_official_dapo_s47/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 376,
+      "sha256": "6416d5c4de9bd42b3dcb0ad883c16da01e46bfed91c97fadb27685bd1bf69eab"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s43/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 376,
+      "sha256": "0dd36bb69135509943c9e802ec5f0f53191f58ef0ee7bac182392e05c2d84770"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s44/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 376,
+      "sha256": "f4310b302c3f21c701da8452292558069f46bdb4e1590cb62b6624b9ec6b05e8"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s45/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 376,
+      "sha256": "1f023e114757237a5cf2902422e716de651d093faf16caf0c7125312e2785b16"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s46/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 376,
+      "sha256": "50c1b3fe28853663e0bcb449f47ebf41ebb7f69017009de61390936a5363fa83"
+    },
+    "var/data/e113r4_qwen05b_mathir_official_dapo_s47/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 381,
+      "sha256": "c5d9c9f1c9af0540ec5bf7046d12d647d75304adee0f5f256681d7fab289d240"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s43/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 381,
+      "sha256": "9380f2c63d238e32c7d13e7050e2458982602069d72e02182bfc647c92e0d69e"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s44/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 381,
+      "sha256": "c459a1776b442196ae93b7d285559f43e7fdecaae9bc6c66352aae55c87a19cf"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s45/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 381,
+      "sha256": "fb06e7f682a8c1fac9909f7a22ced26ed15ec7ce8a8842448bd8aa2a4d9f9c3c"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s46/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 381,
+      "sha256": "885d655db3dfd3e3fa46da4783ef826bd0ecb8c5cdcffc7a3a54482989ae6d27"
+    },
+    "var/data/e113r4_qwen05b_pantry_official_dapo_s47/checkpoints/latest_checkpointed_iteration.txt": {
+      "byte_length": 2,
+      "sha256": "c2356069e9d1e79ca924378153cfbbfb4d4416b1f99d41a2940bfdb66c5319db"
+    }
+  },
+  "interpretation": {
+    "incomplete_prefix": "report exact cells and values only; no mean, interval, pooled, cross-domain, or efficacy conclusion",
+    "scheduler_snapshot": "running, pending, failed, and other-nonterminal counts are a generated-at scheduler snapshot; terminal status additionally requires the validated 24-step completion receipt",
+    "standardized_endpoint": "pass@8 and executed-mode breadth require a separate matched paper evaluation and are not inferred from upstream acc@1",
+    "upstream_validation": "one sampled response per 128-prompt evaluation split at temperature 1 and top-p 0.7; descriptive diagnostic only"
+  },
+  "nonterminal_science_cells": 18,
+  "other_nonterminal_science_cells": 0,
+  "pending_science_cells": 0,
+  "records": [
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_countdown_official_dapo_s55/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.5,
+      "initial_upstream_validation_acc_at_1": 0.046875,
+      "job_id": 30869141,
+      "log": "var/artifacts/logs/e113r4r2-f1-count-s55-30869141.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 55,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_countdown_official_dapo_s55/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_countdown_official_dapo_s56/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.40625,
+      "initial_upstream_validation_acc_at_1": 0.265625,
+      "job_id": 30977243,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-count-s56-30977243.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 56,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_countdown_official_dapo_s56/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_countdown_official_dapo_s57/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.5234375,
+      "initial_upstream_validation_acc_at_1": 0.234375,
+      "job_id": 30977244,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-count-s57-30977244.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 57,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_countdown_official_dapo_s57/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_countdown_official_dapo_s58/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.484375,
+      "initial_upstream_validation_acc_at_1": 0.2578125,
+      "job_id": 30977245,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-count-s58-30977245.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 58,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_countdown_official_dapo_s58/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_countdown_official_dapo_s59/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.4296875,
+      "initial_upstream_validation_acc_at_1": 0.046875,
+      "job_id": 30977246,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-count-s59-30977246.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 59,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_countdown_official_dapo_s59/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_graph_official_dapo_s55/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.359375,
+      "initial_upstream_validation_acc_at_1": 0.2890625,
+      "job_id": 30869136,
+      "log": "var/artifacts/logs/e113r4r2-f1-graph-s55-30869136.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 55,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_graph_official_dapo_s55/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_graph_official_dapo_s56/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.3125,
+      "initial_upstream_validation_acc_at_1": 0.2890625,
+      "job_id": 30869137,
+      "log": "var/artifacts/logs/e113r4r2-f1-graph-s56-30869137.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 56,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_graph_official_dapo_s56/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_graph_official_dapo_s57/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.3515625,
+      "initial_upstream_validation_acc_at_1": 0.2890625,
+      "job_id": 30869138,
+      "log": "var/artifacts/logs/e113r4r2-f1-graph-s57-30869138.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 57,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_graph_official_dapo_s57/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_graph_official_dapo_s58/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.3203125,
+      "initial_upstream_validation_acc_at_1": 0.3203125,
+      "job_id": 30977241,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-graph-s58-30977241.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 58,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_graph_official_dapo_s58/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_graph_official_dapo_s59/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.3203125,
+      "initial_upstream_validation_acc_at_1": 0.296875,
+      "job_id": 30977242,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-graph-s59-30977242.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 59,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_graph_official_dapo_s59/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_mathir_official_dapo_s55/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.15625,
+      "initial_upstream_validation_acc_at_1": 0.0546875,
+      "job_id": 30977252,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-mathi-s55-30977252.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 55,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_mathir_official_dapo_s55/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_falcon1b_mathir_official_dapo_s57/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "falcon1b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.125,
+      "initial_upstream_validation_acc_at_1": 0.0546875,
+      "job_id": 30977254,
+      "log": "var/artifacts/logs/e113r4r2s7-f1-mathi-s57-30977254.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 57,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_falcon1b_mathir_official_dapo_s57/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_countdown_official_dapo_s43/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 4.0,
+      "final_upstream_validation_acc_at_1": 0.546875,
+      "initial_upstream_validation_acc_at_1": 0.0234375,
+      "job_id": 30869116,
+      "log": "var/artifacts/logs/e113r4r2-q05-count-s43-30869116.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 43,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_countdown_official_dapo_s43/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_countdown_official_dapo_s44/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 5.0,
+      "final_upstream_validation_acc_at_1": 0.5625,
+      "initial_upstream_validation_acc_at_1": 0.0234375,
+      "job_id": 30869117,
+      "log": "var/artifacts/logs/e113r4r2-q05-count-s44-30869117.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 44,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_countdown_official_dapo_s44/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_countdown_official_dapo_s45/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 3.0,
+      "final_upstream_validation_acc_at_1": 0.5625,
+      "initial_upstream_validation_acc_at_1": 0.0234375,
+      "job_id": 30869118,
+      "log": "var/artifacts/logs/e113r4r2-q05-count-s45-30869118.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 45,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_countdown_official_dapo_s45/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_countdown_official_dapo_s46/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 6.0,
+      "final_upstream_validation_acc_at_1": 0.5546875,
+      "initial_upstream_validation_acc_at_1": 0.0234375,
+      "job_id": 30869119,
+      "log": "var/artifacts/logs/e113r4r2-q05-count-s46-30869119.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 46,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_countdown_official_dapo_s46/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_countdown_official_dapo_s47/TRAINING_COMPLETE.json",
+      "domain": "countdown",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 3.0,
+      "final_upstream_validation_acc_at_1": 0.53125,
+      "initial_upstream_validation_acc_at_1": 0.0234375,
+      "job_id": 30869120,
+      "log": "var/artifacts/logs/e113r4r2-q05-count-s47-30869120.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 47,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_countdown_official_dapo_s47/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_graph_official_dapo_s43/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 2.0,
+      "final_upstream_validation_acc_at_1": 0.2734375,
+      "initial_upstream_validation_acc_at_1": 0.25,
+      "job_id": 30869111,
+      "log": "var/artifacts/logs/e113r4r2-q05-graph-s43-30869111.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 43,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_graph_official_dapo_s43/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_graph_official_dapo_s44/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 3.0,
+      "final_upstream_validation_acc_at_1": 0.265625,
+      "initial_upstream_validation_acc_at_1": 0.25,
+      "job_id": 30869112,
+      "log": "var/artifacts/logs/e113r4r2-q05-graph-s44-30869112.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 44,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_graph_official_dapo_s44/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_graph_official_dapo_s45/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.2734375,
+      "initial_upstream_validation_acc_at_1": 0.25,
+      "job_id": 30869113,
+      "log": "var/artifacts/logs/e113r4r2-q05-graph-s45-30869113.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 45,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_graph_official_dapo_s45/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_graph_official_dapo_s46/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.265625,
+      "initial_upstream_validation_acc_at_1": 0.25,
+      "job_id": 30869114,
+      "log": "var/artifacts/logs/e113r4r2-q05-graph-s46-30869114.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 46,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_graph_official_dapo_s46/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_graph_official_dapo_s47/TRAINING_COMPLETE.json",
+      "domain": "graph_coloring",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 4.0,
+      "final_upstream_validation_acc_at_1": 0.2734375,
+      "initial_upstream_validation_acc_at_1": 0.25,
+      "job_id": 30869115,
+      "log": "var/artifacts/logs/e113r4r2-q05-graph-s47-30869115.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 47,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_graph_official_dapo_s47/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_mathir_official_dapo_s43/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.3359375,
+      "initial_upstream_validation_acc_at_1": 0.03125,
+      "job_id": 30869126,
+      "log": "var/artifacts/logs/e113r4r2-q05-mathi-s43-30869126.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 43,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_mathir_official_dapo_s43/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_mathir_official_dapo_s44/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.28125,
+      "initial_upstream_validation_acc_at_1": 0.03125,
+      "job_id": 30869127,
+      "log": "var/artifacts/logs/e113r4r2-q05-mathi-s44-30869127.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 44,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_mathir_official_dapo_s44/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_mathir_official_dapo_s45/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.2421875,
+      "initial_upstream_validation_acc_at_1": 0.03125,
+      "job_id": 30869128,
+      "log": "var/artifacts/logs/e113r4r2-q05-mathi-s45-30869128.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 45,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_mathir_official_dapo_s45/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_mathir_official_dapo_s46/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.2734375,
+      "initial_upstream_validation_acc_at_1": 0.03125,
+      "job_id": 30869129,
+      "log": "var/artifacts/logs/e113r4r2-q05-mathi-s46-30869129.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 46,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_mathir_official_dapo_s46/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_mathir_official_dapo_s47/TRAINING_COMPLETE.json",
+      "domain": "mathir",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.328125,
+      "initial_upstream_validation_acc_at_1": 0.03125,
+      "job_id": 30869130,
+      "log": "var/artifacts/logs/e113r4r2-q05-mathi-s47-30869130.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 47,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_mathir_official_dapo_s47/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_pantry_official_dapo_s43/TRAINING_COMPLETE.json",
+      "domain": "pantry_plan",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.53125,
+      "initial_upstream_validation_acc_at_1": 0.1171875,
+      "job_id": 30869131,
+      "log": "var/artifacts/logs/e113r4r2-q05-pantr-s43-30869131.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 43,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_pantry_official_dapo_s43/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_pantry_official_dapo_s44/TRAINING_COMPLETE.json",
+      "domain": "pantry_plan",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.4453125,
+      "initial_upstream_validation_acc_at_1": 0.1171875,
+      "job_id": 30869132,
+      "log": "var/artifacts/logs/e113r4r2-q05-pantr-s44-30869132.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 44,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_pantry_official_dapo_s44/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_pantry_official_dapo_s45/TRAINING_COMPLETE.json",
+      "domain": "pantry_plan",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.5859375,
+      "initial_upstream_validation_acc_at_1": 0.1171875,
+      "job_id": 30869133,
+      "log": "var/artifacts/logs/e113r4r2-q05-pantr-s45-30869133.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 45,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_pantry_official_dapo_s45/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_pantry_official_dapo_s46/TRAINING_COMPLETE.json",
+      "domain": "pantry_plan",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 2.0,
+      "final_upstream_validation_acc_at_1": 0.5546875,
+      "initial_upstream_validation_acc_at_1": 0.5625,
+      "job_id": 30977240,
+      "log": "var/artifacts/logs/e113r4r2s7-q05-pantr-s46-30977240.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 46,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_pantry_official_dapo_s46/checkpoints/global_step_24"
+    },
+    {
+      "accepted_training_steps": 24,
+      "completion_receipt": "var/data/e113r4_qwen05b_pantry_official_dapo_s47/TRAINING_COMPLETE.json",
+      "domain": "pantry_plan",
+      "evidence_class": "terminal_upstream_acc_at_1_diagnostic",
+      "family": "qwen05b",
+      "final_num_generation_batches": 1.0,
+      "final_upstream_validation_acc_at_1": 0.5,
+      "initial_upstream_validation_acc_at_1": 0.1171875,
+      "job_id": 30869135,
+      "log": "var/artifacts/logs/e113r4r2-q05-pantr-s47-30869135.out",
+      "scheduler_state": "COMPLETED",
+      "seed": 47,
+      "standardized_breadth_at_8_available": false,
+      "standardized_pass_at_8_available": false,
+      "terminal_checkpoint": "var/data/e113r4_qwen05b_pantry_official_dapo_s47/checkpoints/global_step_24"
+    }
+  ],
+  "registered_science_cells": 50,
+  "running_science_cells": 0,
+  "scheduler_state_by_job_id": {
+    "30869111": "COMPLETED",
+    "30869112": "COMPLETED",
+    "30869113": "COMPLETED",
+    "30869114": "COMPLETED",
+    "30869115": "COMPLETED",
+    "30869116": "COMPLETED",
+    "30869117": "COMPLETED",
+    "30869118": "COMPLETED",
+    "30869119": "COMPLETED",
+    "30869120": "COMPLETED",
+    "30869126": "COMPLETED",
+    "30869127": "COMPLETED",
+    "30869128": "COMPLETED",
+    "30869129": "COMPLETED",
+    "30869130": "COMPLETED",
+    "30869131": "COMPLETED",
+    "30869132": "COMPLETED",
+    "30869133": "COMPLETED",
+    "30869135": "COMPLETED",
+    "30869136": "COMPLETED",
+    "30869137": "COMPLETED",
+    "30869138": "COMPLETED",
+    "30869141": "COMPLETED",
+    "30977240": "COMPLETED",
+    "30977241": "COMPLETED",
+    "30977242": "COMPLETED",
+    "30977243": "COMPLETED",
+    "30977244": "COMPLETED",
+    "30977245": "COMPLETED",
+    "30977246": "COMPLETED",
+    "30977252": "COMPLETED",
+    "30977253": "FAILED",
+    "30977254": "COMPLETED",
+    "30977255": "FAILED",
+    "30977256": "FAILED",
+    "30977257": "FAILED",
+    "30977258": "FAILED",
+    "30977259": "FAILED",
+    "30977260": "FAILED",
+    "30977261": "FAILED",
+    "30977262": "FAILED",
+    "30977263": "FAILED",
+    "30977264": "FAILED",
+    "30977265": "FAILED",
+    "30977266": "FAILED",
+    "30978749": "FAILED",
+    "30978750": "FAILED",
+    "30978751": "FAILED",
+    "30978752": "FAILED",
+    "30978753": "FAILED"
+  },
+  "schema": "paper-e113r4-official-dapo-progress-v1",
+  "terminal_counts_by_family_domain": {
+    "falcon1b": {
+      "countdown": 5,
+      "graph_coloring": 5,
+      "mathir": 2
+    },
+    "qwen05b": {
+      "countdown": 5,
+      "graph_coloring": 5,
+      "mathir": 5,
+      "pantry_plan": 5
+    }
+  },
+  "terminal_science_cells": 32
+}

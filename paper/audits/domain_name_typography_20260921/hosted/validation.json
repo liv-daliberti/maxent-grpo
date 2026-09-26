@@ -1,0 +1,256 @@
+{
+  "tex": {
+    "paper/results/discovery_hosted_interpretation_20260912.tex": {
+      "added_typewriter_spans": 7,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "3a8182fbab5a1ff851cf42d23ea90fea7f03c3f5da62c159c24e3b72b08c4378",
+      "after_sha256": "4780edc49bcf4f06f82131d0b8ccd4176afbf55c9e3a181a8af513c446559a10"
+    },
+    "paper/results/frontier_comparison_20260911_appendix.tex": {
+      "added_typewriter_spans": 4,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "34f87a75de24cf799d73a030f126b69c45608478f670bc87a5561cd17267e81c",
+      "after_sha256": "a8a6a86bc56ec83c8d7868a3dad7abfb422c35b628e5e48622a1fc957a01411b"
+    },
+    "paper/results/frontier_comparison_20260911_graph_figure.tex": {
+      "added_typewriter_spans": 1,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "a97dc46afbb764469524a4a7161c0edce0bc0d158ffe0bf0c79b0421f09d85d3",
+      "after_sha256": "a31923dca5057a9bf7c00af5da505d30be823c1bf279ad9b833c0694d0e31aa3"
+    },
+    "paper/results/frontier_comparison_20260911_normalized_cells.tex": {
+      "added_typewriter_spans": 31,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "f70e8987978b1f230f418aca54f8064fafbabf50c5fee0a1d0b2da43bb0ba70c",
+      "after_sha256": "9889106722e965842f1e136d68a98d46918a795397fb7c642cce48a818996058"
+    },
+    "paper/results/frontier_comparison_20260911_protocol.tex": {
+      "added_typewriter_spans": 3,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "33fd914bfcd0396901a63c4e0ea740d061c9d416fdc57ace11d485715f4ce031",
+      "after_sha256": "f19d3189dd4e7fe9bee62a53db9c7704ebaf2607ca3acb937d2ec90c967ecfc4"
+    },
+    "paper/results/frontier_comparison_20260911_provider_outcomes.tex": {
+      "added_typewriter_spans": 24,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "92fd853d6b42cc244f3b7a24807100823b97d568f0a7186df0992ca79189bf9d",
+      "after_sha256": "3cb8d3c961afdf7b64bbf4f1504da868ebff2cd63fe594cb5d5c88bd253d46d1"
+    },
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex": {
+      "added_typewriter_spans": 3,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "ca0fef7eb971e3a0634414a50ab15006b04cff121f6d7ab495bc1246a24060d0",
+      "after_sha256": "3471e1e642719ca5e529e7d23d75dd6a8fc3f77e673b5bb5922995132ba69351"
+    },
+    "paper/results/frontier_comparison_20260911_strict_cells.tex": {
+      "added_typewriter_spans": 106,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "c531ac2d7f4050910d9a59eeb09f39b5e5f41209f443482c301153afef5f94f9",
+      "after_sha256": "c360c53ef06c870da083e8f519e6c5f1d7f5522f697be34168196887477c7833"
+    },
+    "paper/results/frontier_hosted_20260911_appendix.tex": {
+      "added_typewriter_spans": 16,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "00c7bb4756d984d2d9e3f36e4b157e793003f3a5accfa033fd91c45e59b8774c",
+      "after_sha256": "15590618211ac1c847b56c4b497ccf8416e1eaa765cbe1e024577c4af07d74b0"
+    },
+    "paper/results/frontier_hosted_20260911_normalized_rows.tex": {
+      "added_typewriter_spans": 15,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "56bdae0f7537686ddd3d0f522c34ea86184438c59b63b868d6e5ce40ca2fcecd",
+      "after_sha256": "669c31bd7e470a730146c3738f43671105f4faf78e965baf6b20639906b2dde4"
+    },
+    "paper/results/frontier_hosted_20260911_strict_rows.tex": {
+      "added_typewriter_spans": 15,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "6a782ab069bca8adbe43a1486fe8db13e0cbdaeab3da1e7039e8934748ef44c9",
+      "after_sha256": "07bb6e6b8d33b4be6d75d0089fb7f7fdf7da270370f1736452064fa1644c7f22"
+    },
+    "paper/results/frontier_temperature_20260911.tex": {
+      "added_typewriter_spans": 1,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "e75fe2ac594e16bd1c8816876c9c12e0df161b32ab1e6d2cc2f5b24dd7440606",
+      "after_sha256": "1b32616b6de1a3e1774b6ba097e95c360c93e3043cd938419a07dfdce769fe81"
+    },
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex": {
+      "added_typewriter_spans": 24,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "f795a7be87e46633407e42675d9a982bced90b29fe4f5ef4283cf8fa4e03f3b0",
+      "after_sha256": "a09e6426a86d5acff910e63d6e18228ad0e0003a4e1fe931ef00c9e27b0e5530"
+    },
+    "paper/results/gpt56sol_python_parity_20260918.tex": {
+      "added_typewriter_spans": 5,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "0681b6a8edf07598556be49bc4f10d4e9fd4da04ae0281c7c8f7198896630bc6",
+      "after_sha256": "bf76f560d8222ebb253a646993f10230752dccebb37852854375b040011ad9b3"
+    },
+    "paper/results/hosted_level_averages_20260911.tex": {
+      "added_typewriter_spans": 2,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "9700f6b350552c9de19ec0201f4805b42757cfce4eaafe731bc87c3371481aba",
+      "after_sha256": "33fe84eff20fe1001b5df1324627744cd9d35555ff63400732f5a12978bc75de"
+    },
+    "paper/results/hosted_level_averages_20260911_parity.tex": {
+      "added_typewriter_spans": 15,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "8964a04d5a8a3b6de5ad6bd1799b127328d37069a1a84880c616e436f8ec4b14",
+      "after_sha256": "79fb47b9b03be362a3130c3ec7871b2bf1118c291b507729b61e73e60cfd7534"
+    },
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex": {
+      "added_typewriter_spans": 3,
+      "only_domain_typography_changed": true,
+      "all_other_bytes_preserved": true,
+      "before_sha256": "61120738827153470d2977fa1d015fa6f282c87bff68c95cea198eada66fc8d6",
+      "after_sha256": "92bc502a1ccc4cc3f7f90ee94186951b185b3573a9a30d735b1b18e5e25f3f0a"
+    }
+  },
+  "render_checks": {
+    "paper/results/frontier_temperature_20260911.tex": "byte-identical rendering from existing stored record",
+    "paper/results/gpt56_all_levels32_sampling_20260913.tex": "byte-identical rendering from existing stored record",
+    "paper/results/gpt56sol_python_parity_20260918.tex": "byte-identical rendering from existing stored record",
+    "paper/results/hosted_level_averages_20260911.tex": "byte-identical rendering from existing stored record",
+    "paper/results/hosted_level_averages_20260911_parity.tex": "byte-identical rendering from existing stored record",
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_appendix.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_graph_figure.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_normalized_cells.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_protocol.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_provider_outcomes.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex": "byte-identical rendering from existing stored record",
+    "paper/results/frontier_comparison_20260911_strict_cells.tex": "byte-identical rendering from existing stored record"
+  },
+  "sidecars": {
+    "paper/results/frontier_comparison_20260911.json": {
+      "generator": "ops/build_frontier_paper_comparison.py",
+      "generator_sha256": "2dac9e7d6571290160b05da9694de3dae800fad30b83e2c2d9ef008e170ca7c7",
+      "changed_metadata_fields": [
+        "builder_sha256"
+      ],
+      "all_measurements_and_other_metadata_unchanged": true
+    },
+    "paper/results/frontier_temperature_20260911.json": {
+      "generator": "ops/build_frontier_temperature_paper.py",
+      "generator_sha256": "656ef1e2495ebb4abfc5e7118828fc553e5c1e17433650e2d8cd81d15744f9b9",
+      "changed_metadata_fields": [
+        "builder_sha256"
+      ],
+      "all_measurements_and_other_metadata_unchanged": true
+    },
+    "paper/results/gpt56_all_levels32_sampling_20260913.json": {
+      "generator": "ops/build_paper_gpt56_all_levels32_discovery.py",
+      "generator_sha256": "5b3177c8146d17c1311d342e5261551fe59f53bd2fdf438911f4272538d2cbdd",
+      "changed_metadata_fields": [
+        "builder",
+        "validation_dependency"
+      ],
+      "all_measurements_and_other_metadata_unchanged": true
+    },
+    "paper/results/gpt56sol_python_parity_20260918.json": {
+      "generator": "ops/build_paper_gpt56sol_python_parity.py",
+      "generator_sha256": "4ef3712c3f453a281342327b661a9afe04127a159b6f2871e8ab05332a566b6a",
+      "changed_metadata_fields": [
+        "renderer"
+      ],
+      "all_measurements_and_other_metadata_unchanged": true
+    },
+    "paper/results/hosted_level_averages_20260911.json": {
+      "generator": "ops/build_paper_hosted_level_averages.py",
+      "generator_sha256": "fa206ebe960bd999297ee04bec1d5828e4f926a550f1e9e74d9796b6843f54a4",
+      "changed_metadata_fields": [
+        "renderer",
+        "cohort_builder"
+      ],
+      "all_measurements_and_other_metadata_unchanged": true
+    },
+    "paper/results/hosted_reasoning_off_20260912.json": {
+      "generator": "ops/build_paper_hosted_reasoning_off.py",
+      "generator_sha256": "6e29006bb6fbcf4bf75a02a7f778adfd29177de44faec017c7ca25b57626c4fe",
+      "changed_metadata_fields": [
+        "renderer"
+      ],
+      "all_measurements_and_other_metadata_unchanged": true
+    }
+  },
+  "language_exceptions": {
+    "paper/results/frontier_comparison_20260911_python_sensitivity.tex": [
+      "Python lambda",
+      "Python modulo"
+    ],
+    "paper/results/frontier_hosted_20260911_appendix.tex": [
+      "Python \\texttt{lambda}"
+    ]
+  },
+  "summary": {
+    "fragments": 17,
+    "new_typewriter_spans": 275,
+    "emitters": 6,
+    "rendered_fragments_checked": 13,
+    "sidecars_checked": 6,
+    "experiments_or_bootstrap_runs": 0
+  },
+  "generator_logic_checks": {
+    "ops/build_frontier_paper_comparison.py": "AST identical after removing formatter imports, exception tuple and output wrappers",
+    "ops/build_frontier_temperature_paper.py": "AST identical after removing formatter imports, exception tuple and output wrappers",
+    "ops/build_paper_gpt56_all_levels32_discovery.py": "AST identical after removing formatter imports, exception tuple and output wrappers",
+    "ops/build_paper_gpt56sol_python_parity.py": "AST identical after removing formatter imports, exception tuple and output wrappers",
+    "ops/build_paper_hosted_level_averages.py": "AST identical after removing formatter imports, exception tuple and output wrappers",
+    "ops/build_paper_hosted_reasoning_off.py": "AST identical after removing formatter imports, exception tuple and output wrappers"
+  },
+  "concurrent_live_changes_after_typography_validation": [
+    {
+      "path": "paper/results/frontier_comparison_20260911_protocol.tex",
+      "note": "Independent live prose change after completed typography validation; preserved without modification.",
+      "current_sha256": "450ab3f96a85eec0ed58f215892401d927dea68a74f51bbcd3277ecc298c0510"
+    },
+    {
+      "path": "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+      "note": "Independent live prose change after completed typography validation; preserved without modification.",
+      "current_sha256": "8866be0ed8a32b98b72575e9234232adff318dff08f6485a86bf4b30eff34f68"
+    },
+    {
+      "path": "paper/results/frontier_hosted_20260911_appendix.tex",
+      "note": "Independent live prose change after completed typography validation; preserved without modification.",
+      "current_sha256": "ec7eb2f3969ac4e088146fb0938facc933def7100fc522a49533b19d67368f43"
+    },
+    {
+      "path": "paper/results/frontier_temperature_20260911.tex",
+      "note": "Independent live prose change after completed typography validation; preserved without modification.",
+      "current_sha256": "74bb47974f8e9ba975ae90d7fc4063b4f7e628556cfbe83401210b538629282a"
+    },
+    {
+      "path": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+      "note": "Independent live prose change after completed typography validation; preserved without modification.",
+      "current_sha256": "43d42f34e079501fd6fc3efd98ff23036783b1473fc95322d9d314ccba1dfda7"
+    },
+    {
+      "path": "paper/results/hosted_reasoning_off_20260912_appendix.tex",
+      "note": "Independent live prose change after completed typography validation; preserved without modification.",
+      "current_sha256": "2b147bacfa6d355a06f2b461eb6baf10585485a1654b6e88cd196dd1f4a5cb40"
+    }
+  ],
+  "separate_protocol_emitter_sync": {
+    "status": "passed",
+    "protocol_render_byte_identical": true,
+    "protocol_tex_unchanged": true,
+    "only_sidecar_field_changed": "builder_sha256",
+    "builder_sha256": "41f04dbaebfa570808af609b74f449a8a77fb109a05e173b519bafa34f12db60",
+    "sidecar_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e",
+    "record_generation_plots_or_experiments_run": false
+  }
+}

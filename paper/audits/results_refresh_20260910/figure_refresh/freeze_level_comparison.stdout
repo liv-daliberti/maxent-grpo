@@ -1,0 +1,389 @@
+Frozen 10/200 comparison cells
+Frozen 20/200 comparison cells
+Frozen 30/200 comparison cells
+Frozen 40/200 comparison cells
+Frozen 50/200 comparison cells
+Frozen 60/200 comparison cells
+Frozen 70/200 comparison cells
+Frozen 80/200 comparison cells
+Frozen 90/200 comparison cells
+Frozen 100/200 comparison cells
+Frozen 110/200 comparison cells
+Frozen 120/200 comparison cells
+Frozen 130/200 comparison cells
+Frozen 140/200 comparison cells
+Frozen 150/200 comparison cells
+Frozen 160/200 comparison cells
+Frozen 170/200 comparison cells
+Frozen 180/200 comparison cells
+Frozen 190/200 comparison cells
+Frozen 200/200 comparison cells
+{
+  "coverage_by_domain": {
+    "graph_coloring": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "step_range": [
+        3072,
+        3072
+      ],
+      "training_pass_range": [
+        8.0,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "countdown": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "step_range": [
+        3072,
+        3072
+      ],
+      "training_pass_range": [
+        8.0,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "python_factors": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "step_range": [
+        3072,
+        3072
+      ],
+      "training_pass_range": [
+        8.0,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "mathir": {
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "steps_by_seed": {
+        "43": 3072,
+        "44": 3072,
+        "45": 3072,
+        "46": 3072,
+        "47": 3072
+      },
+      "step_range": [
+        3072,
+        3072
+      ],
+      "training_pass_range": [
+        8.0,
+        8.0
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": []
+    },
+    "pantry_plan": {
+      "n": 2,
+      "seeds": [
+        43,
+        45
+      ],
+      "steps_by_seed": {
+        "43": 672,
+        "45": 0
+      },
+      "step_range": [
+        0,
+        672
+      ],
+      "training_pass_range": [
+        0.0,
+        1.75
+      ],
+      "initial_checkpoint_only": false,
+      "initial_checkpoint_seeds": [
+        45
+      ]
+    }
+  },
+  "eligible_domain_seed_cells": 22,
+  "initial_only_domains": [],
+  "means": {
+    "level1": {
+      "drgrpo": {
+        "pass8": 0.44085937499999994,
+        "distinct8": 0.5944921875
+      },
+      "replay_drgrpo": {
+        "pass8": 0.7621875,
+        "distinct8": 1.5289453124999999
+      },
+      "maxrl": {
+        "pass8": 0.49046874999999995,
+        "distinct8": 0.6795312499999999
+      },
+      "replay_maxrl": {
+        "pass8": 0.7780078125000001,
+        "distinct8": 1.5815234375
+      }
+    },
+    "level2": {
+      "drgrpo": {
+        "pass8": 0.37703125000000004,
+        "distinct8": 0.3880078125
+      },
+      "replay_drgrpo": {
+        "pass8": 0.6211328125,
+        "distinct8": 0.8062109375000001
+      },
+      "maxrl": {
+        "pass8": 0.48121093750000005,
+        "distinct8": 0.5156640625000001
+      },
+      "replay_maxrl": {
+        "pass8": 0.602734375,
+        "distinct8": 0.754609375
+      }
+    }
+  },
+  "domain_means": {
+    "graph_coloring": {
+      "level1": {
+        "drgrpo": {
+          "pass8": 0.3234375,
+          "distinct8": 0.325
+        },
+        "replay_drgrpo": {
+          "pass8": 0.969140625,
+          "distinct8": 2.4375
+        },
+        "maxrl": {
+          "pass8": 0.53671875,
+          "distinct8": 0.678515625
+        },
+        "replay_maxrl": {
+          "pass8": 0.944921875,
+          "distinct8": 2.308203125
+        }
+      },
+      "level2": {
+        "drgrpo": {
+          "pass8": 0.2015625,
+          "distinct8": 0.22421875
+        },
+        "replay_drgrpo": {
+          "pass8": 0.7625,
+          "distinct8": 1.24296875
+        },
+        "maxrl": {
+          "pass8": 0.434375,
+          "distinct8": 0.54609375
+        },
+        "replay_maxrl": {
+          "pass8": 0.739453125,
+          "distinct8": 1.2140625
+        }
+      }
+    },
+    "countdown": {
+      "level1": {
+        "drgrpo": {
+          "pass8": 0.48046875,
+          "distinct8": 0.48671875
+        },
+        "replay_drgrpo": {
+          "pass8": 0.671875,
+          "distinct8": 1.63671875
+        },
+        "maxrl": {
+          "pass8": 0.581640625,
+          "distinct8": 0.620703125
+        },
+        "replay_maxrl": {
+          "pass8": 0.665625,
+          "distinct8": 1.69453125
+        }
+      },
+      "level2": {
+        "drgrpo": {
+          "pass8": 0.13125,
+          "distinct8": 0.13125
+        },
+        "replay_drgrpo": {
+          "pass8": 0.155859375,
+          "distinct8": 0.176171875
+        },
+        "maxrl": {
+          "pass8": 0.117578125,
+          "distinct8": 0.117578125
+        },
+        "replay_maxrl": {
+          "pass8": 0.1578125,
+          "distinct8": 0.174609375
+        }
+      }
+    },
+    "python_factors": {
+      "level1": {
+        "drgrpo": {
+          "pass8": 0.171875,
+          "distinct8": 0.171875
+        },
+        "replay_drgrpo": {
+          "pass8": 0.527734375,
+          "distinct8": 0.57109375
+        },
+        "maxrl": {
+          "pass8": 0.171875,
+          "distinct8": 0.171875
+        },
+        "replay_maxrl": {
+          "pass8": 0.68125,
+          "distinct8": 1.12734375
+        }
+      },
+      "level2": {
+        "drgrpo": {
+          "pass8": 0.8125,
+          "distinct8": 0.8125
+        },
+        "replay_drgrpo": {
+          "pass8": 0.8875,
+          "distinct8": 1.2125
+        },
+        "maxrl": {
+          "pass8": 0.8125,
+          "distinct8": 0.8125
+        },
+        "replay_maxrl": {
+          "pass8": 0.85,
+          "distinct8": 1.024609375
+        }
+      }
+    },
+    "mathir": {
+      "level1": {
+        "drgrpo": {
+          "pass8": 0.51171875,
+          "distinct8": 0.51328125
+        },
+        "replay_drgrpo": {
+          "pass8": 0.796484375,
+          "distinct8": 0.828515625
+        },
+        "maxrl": {
+          "pass8": 0.4453125,
+          "distinct8": 0.44609375
+        },
+        "replay_maxrl": {
+          "pass8": 0.788671875,
+          "distinct8": 0.801953125
+        }
+      },
+      "level2": {
+        "drgrpo": {
+          "pass8": 0.5015625,
+          "distinct8": 0.5015625
+        },
+        "replay_drgrpo": {
+          "pass8": 0.994140625,
+          "distinct8": 0.994140625
+        },
+        "maxrl": {
+          "pass8": 0.784765625,
+          "distinct8": 0.784765625
+        },
+        "replay_maxrl": {
+          "pass8": 0.9578125,
+          "distinct8": 0.959375
+        }
+      }
+    },
+    "pantry_plan": {
+      "level1": {
+        "drgrpo": {
+          "pass8": 0.716796875,
+          "distinct8": 1.4755859375
+        },
+        "replay_drgrpo": {
+          "pass8": 0.845703125,
+          "distinct8": 2.1708984375
+        },
+        "maxrl": {
+          "pass8": 0.716796875,
+          "distinct8": 1.48046875
+        },
+        "replay_maxrl": {
+          "pass8": 0.8095703125,
+          "distinct8": 1.9755859375
+        }
+      },
+      "level2": {
+        "drgrpo": {
+          "pass8": 0.23828125,
+          "distinct8": 0.2705078125
+        },
+        "replay_drgrpo": {
+          "pass8": 0.3056640625,
+          "distinct8": 0.4052734375
+        },
+        "maxrl": {
+          "pass8": 0.2568359375,
+          "distinct8": 0.3173828125
+        },
+        "replay_maxrl": {
+          "pass8": 0.30859375,
+          "distinct8": 0.400390625
+        }
+      }
+    }
+  },
+  "level2_terminal_cells": 85
+}
+/n/fs/similarity/maxent-grpo/paper/results/modebench_level_comparison_snapshot.json

@@ -1,0 +1,84 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -6,25 +6,32 @@
+ \maketitle
+ 
+ \begin{abstract}
+-Mathematical agents need alternatives for search, verification, and recovery.
+-Yet RLVR can improve correctness while collapsing sampled output support.
+-\mb{} gives verified outputs exact executable identities across five domains.
+-Replay revisits stored modes independently of fresh frequency, augmenting
+-Dr.GRPO and MaxRL. It improves held-out correctness and support at three and
+-two model scales, respectively, with one complete harder graph-coloring
+-demonstration. These measurements concern verified outputs; diversity of latent
+-reasoning strategies remains untested.
++When a mathematical agent reaches a dead end, a different route may offer a
++way forward. Yet learning to produce correct answers can quietly narrow the
++alternatives it has left to try. We introduce \mb{} to make this loss visible.
++Across five executable domains, it gives verified outputs exact identities,
++so we can measure how many distinct successes the model still produces.
++ReplayMaxRL turns these identities into memory, giving each stored mode equal
++replay weight even when fresh samples rarely produce it. Across model scales, this replay
++mechanism improves held-out correctness and output support under both Dr.GRPO
++and MaxRL, including a complete harder graph-coloring demonstration.
++The results motivate learning to preserve successful solutions alongside
++learning to find them.
+ \end{abstract}
+ 
+ \section{Preserving alternatives for mathematical agents}
+ \label{sec:introduction}\label{sec:collapse}
+-Mathematical agents propose candidates, check them with tools, and revise after
+-feedback \citep{brown2024monkeys,snell2024testtime}. Alternative proof or
+-computation routes could aid search and self-correction when attempts fail or
+-constraints change. A verifier can only select from what the policy still proposes.
+-
+-Reinforcement learning with verifiable rewards (RLVR; \citealp{guo2025deepseekr1})
+-can raise accuracy while collapsing sampled verified output support in our runs
++Consider a mathematical agent whose first attempt fails a check. It may repair
++that attempt or try a different route. A proof idea that is hard to complete
++may give way to another; a different computation may succeed under constraints
++that defeated the first. Tools can help it explore these routes, while verifiers check the results
++\citep{brown2024monkeys,snell2024testtime}. Yet a verifier cannot select an
++alternative the model never proposes.
++
++Correctness feedback can hide the loss of these options. Reinforcement learning
++with verifiable rewards (RLVR) reinforces correct outputs \citep{guo2025deepseekr1}.
++A familiar solution earns the same correctness reward as a newly discovered
++one. Accuracy can therefore improve even as the range of verified outputs shrinks. In our runs, these two trends occur together
+ (Figure~\ref{fig:story}).
+ 
+ \begin{figure}[!htbp]
+@@ -43,9 +50,12 @@
+ $71.6\%$ at Falcon3-1B, and $41.5\%$ at Qwen2.5-3B
+ (Appendix Figure~\ref{fig:baseline-precheck}).
+ 
+-We ask how training can retain verified alternatives after they become rare.
+-
+-\section{ModeBench makes output identity executable}
++Finding a successful output leaves a further question: will training keep
++that success available? Our approach uses executable
++identities to tell verified outputs apart, then reuses those identities to
++remember alternatives after they become rare.
++
++\section{\mb{} makes output identity executable}
+ \label{sec:modebench}
+ \mb{} assigns each accepted output an exact, executable identity: a canonical
+ key whose distinct values define verified \emph{modes}
+@@ -152,7 +162,7 @@
+ \label{fig:maxrl-factorial}
+ \end{figure}
+ 
+-\noindent\textbf{Stronger fresh learning still benefits from memory.}
++\noindent\textbf{Replay improves both Dr.GRPO and MaxRL.}
+ \label{sec:results-maxrl}
+ Adding replay improves both cross-domain averages under either objective at
+ Qwen2.5-0.5B and Falcon3-1B (Figure~\ref{fig:maxrl-factorial}); Qwen2.5-3B
+@@ -188,7 +198,7 @@
+ 
+ \section{Conclusion and Limits}
+ \label{sec:conclusion}\label{sec:discussion}\label{sec:limitations}
+-ModeBench makes a missing part of evaluation measurable: the range of distinct,
++\mb{} makes a missing part of evaluation measurable: the range of distinct,
+ verified outcomes a model can produce for one problem. This matters because
+ different approaches can have different strengths. One may succeed where
+ another fails, or remain useful when constraints change. Understanding diversity

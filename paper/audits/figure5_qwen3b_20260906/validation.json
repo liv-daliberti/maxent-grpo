@@ -1,0 +1,177 @@
+{
+  "baseline_record_sha256": "63ff32befe2314b7c245a996ca94ad783546de9f335d5410ebac49aca95bad33",
+  "new_record_sha256": "41fb57fe73bf134e0162be1a367f528d35a845b2c79e0b793cecdc39721ba19d",
+  "existing_model_cells_and_average_arrays_unchanged": true,
+  "all_maxrl_cells_and_average_arrays_unchanged": true,
+  "existing_falcon_seed_exclusion_unchanged": true,
+  "qwen3b_drgrpo_seeds": [
+    70,
+    71,
+    72,
+    73,
+    74
+  ],
+  "qwen3b_reference_source": {
+    "ledger": "var/artifacts/e80r1_qwen3b_aligned_verified_replay_jobs.json",
+    "ledger_sha256": "8f7a89a8303468f1a962856d0636c7121f42a77f68cfcfb40e1601a16ee5a0a0",
+    "terminal_endpoints": "paper/results/core_terminal_endpoints.json",
+    "initial_reference": "paper/results/baseline_collapse_precheck.json",
+    "admitted_terminal_cells": 50,
+    "seeds": [
+      70,
+      71,
+      72,
+      73,
+      74
+    ],
+    "aggregate_status": "post-hoc descriptive; no pooled inference"
+  },
+  "qwen3b_averages": {
+    "pass8": {
+      "before_training_drgrpo": {
+        "mean": 0.35562499999999997,
+        "per_seed": {
+          "70": 0.35625,
+          "71": 0.35546875,
+          "72": 0.35546875,
+          "73": 0.35546875,
+          "74": 0.35546875
+        },
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "n": 5,
+        "definition": "equal domain average within paired seed",
+        "status": "post-hoc descriptive cross-domain average"
+      },
+      "drgrpo": {
+        "mean": 0.45515625000000004,
+        "per_seed": {
+          "70": 0.440234375,
+          "71": 0.438671875,
+          "72": 0.457421875,
+          "73": 0.45078125,
+          "74": 0.488671875
+        },
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "n": 5,
+        "definition": "equal domain average within paired seed",
+        "status": "post-hoc descriptive cross-domain average"
+      },
+      "replay_drgrpo": {
+        "mean": 0.734296875,
+        "per_seed": {
+          "70": 0.76875,
+          "71": 0.732421875,
+          "72": 0.726953125,
+          "73": 0.702734375,
+          "74": 0.740625
+        },
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "n": 5,
+        "definition": "equal domain average within paired seed",
+        "status": "post-hoc descriptive cross-domain average"
+      }
+    },
+    "distinct8": {
+      "before_training_drgrpo": {
+        "mean": 0.56078125,
+        "per_seed": {
+          "70": 0.55546875,
+          "71": 0.562109375,
+          "72": 0.562109375,
+          "73": 0.562109375,
+          "74": 0.562109375
+        },
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "n": 5,
+        "definition": "equal domain average within paired seed",
+        "status": "post-hoc descriptive cross-domain average"
+      },
+      "drgrpo": {
+        "mean": 0.575234375,
+        "per_seed": {
+          "70": 0.523828125,
+          "71": 0.536328125,
+          "72": 0.536328125,
+          "73": 0.64609375,
+          "74": 0.63359375
+        },
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "n": 5,
+        "definition": "equal domain average within paired seed",
+        "status": "post-hoc descriptive cross-domain average"
+      },
+      "replay_drgrpo": {
+        "mean": 1.134375,
+        "per_seed": {
+          "70": 1.250390625,
+          "71": 1.09453125,
+          "72": 1.077734375,
+          "73": 1.10078125,
+          "74": 1.1484375
+        },
+        "seeds": [
+          70,
+          71,
+          72,
+          73,
+          74
+        ],
+        "n": 5,
+        "definition": "equal domain average within paired seed",
+        "status": "post-hoc descriptive cross-domain average"
+      }
+    }
+  },
+  "qwen3b_maxrl_cross_domain_aggregate": false,
+  "source_sha256": {
+    "paper/figures/direct_baseline_learning_curves_static_strip.json": "05206086602080a88d4f470d167984589e745ad918e1c7d5b14991d988d873d5",
+    "paper/results/core_terminal_endpoints.json": "549447008b5a261d7f718160652e5ea8098bd823851d01cf195d1f9614d02176",
+    "var/artifacts/e118_all_scales_maxrl_verified_replay_jobs.json": "2b0fa58d256721b73aca4155aef1aa5b74853e57bfa1477b84f0281f7cf0c5b1",
+    "paper/results/baseline_collapse_precheck.json": "6c851f9e09c9d914e6dc39d470b93c9113ad6075e5c71f16180e06a20f95b861"
+  },
+  "validation": {
+    "focused_tests": "7 passed (tests/test_e118_integrity_seed_tracks.py)",
+    "paper_contract": "passed",
+    "workshop_build": "passed: four content pages, references begin on page 5, six main and seven supplementary figures, no unresolved references or overfull boxes",
+    "figure_visual_review": "passed: three model rows, Qwen3B Dr.GRPO/replay only, correct existing n=4 Falcon track",
+    "workshop_page4_visual_review": "passed: Figure 5, Figure 6 and conclusion fit clearly",
+    "full_paper_build": "passed: 59 pages; frozen prompts and paper contract match; 281 natural-prose blocks pass final-line fill",
+    "full_paper_page8_visual_review": "passed: Figure 5 and caption fit without overlap"
+  },
+  "final_artifact_sha256": {
+    "paper/figures/e118_all_scale_factorial_progress.pdf": "795e8ca8ca53ab44da2a47f277d2e0711bdc70f40e694550460774ffb1805f51",
+    "paper/figures/e118_all_scale_factorial_progress.png": "1185d64f8df823e3974951274cd4c016ba58dc29bbc7993fc08a80918db9dc24",
+    "paper/main.pdf": "97c0d0913083f3bedfcdda8ea9de47877398e2d0d400ed01aad6fee1b9983f76",
+    "paper/mathai2026/main.pdf": "6ee8e3b7050f8a087d7fa6c50d96579e9b7bce0a81f3549a14bc9539c59e239c"
+  }
+}

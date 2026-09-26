@@ -1,0 +1,293 @@
+{
+  "status": "PASS",
+  "validated_at_utc": "2026-09-05T23:07:36.740176+00:00",
+  "scope": "Illustrative examples and reader progression throughout the theory appendix; formal mathematical content and empirical evidence preserved.",
+  "coverage": {
+    "theory_subsections": 12,
+    "survival_subsubsections": 4
+  },
+  "builds": {
+    "full": {
+      "command": "make -C paper",
+      "passed": true,
+      "total_pages": 56,
+      "main_text_pages": 9,
+      "rendered_prose_blocks_checked": 274
+    },
+    "workshop": {
+      "command": "make -C paper/mathai2026 bundle",
+      "passed": true,
+      "total_pages": 57,
+      "main_text_pages": 4,
+      "source_bundle_files": 42
+    }
+  },
+  "integration_checks": {
+    "status": "PASS",
+    "checked_at_utc": "2026-09-05T23:05:39.850303+00:00",
+    "covered_theory_subsections": 12,
+    "covered_survival_subsubsections": 4,
+    "formal_statement_and_proof_blocks_unchanged": 45,
+    "theory_citation_commands_unchanged": 25,
+    "main_text_unchanged_both_versions": true,
+    "non_theory_content_unchanged_both_versions": true,
+    "bibliographies_unchanged": true,
+    "theory_identical_except_two_document_crossrefs": true,
+    "frozen_copied_assets_unchanged": 28,
+    "source_bundle_files": 42,
+    "source_bundle_entries_match_current_files": true,
+    "final_compilation_diagnostics_clean": true
+  },
+  "independent_review": "independent_review.json",
+  "numerical_checks": "Four scripts and their saved numerical receipts; all assertions passed.",
+  "visual_inspection": {
+    "status": "PASS",
+    "full_paper_pages": [
+      14,
+      18,
+      30,
+      34
+    ],
+    "final_headings_rechecked": [
+      14,
+      30
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "paper/main.tex",
+      "sha256": "48490fd6bec2fa82218ab92243854a79b089176b98d8f1f3f7879d014cdef431",
+      "bytes": 206185
+    },
+    {
+      "path": "paper/main.pdf",
+      "sha256": "144325d7d67c93d10bfa9a004b1b72fc16020af75586b13ff738c96f038e8b24",
+      "bytes": 1010389
+    },
+    {
+      "path": "paper/example_paper.bib",
+      "sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "bytes": 49156
+    },
+    {
+      "path": "paper/README.md",
+      "sha256": "0eea60edb2325510ee8b92be46c937b2ff9ad29b18d34eeb0ebb8ed14f0a0cf0",
+      "bytes": 34690
+    },
+    {
+      "path": "paper/mathai2026/main.tex",
+      "sha256": "5ce26f5259c0cf685514d040f3dd028ca40898a56b23200edb32d15a6061a11e",
+      "bytes": 11060
+    },
+    {
+      "path": "paper/mathai2026/appendix.tex",
+      "sha256": "8496dd22526406628eda3be14f1039ca8a870390606aa6fd64dff377284b51e7",
+      "bytes": 193226
+    },
+    {
+      "path": "paper/mathai2026/main.pdf",
+      "sha256": "9dfbbe194e7e514fba13b0f991c5a8978baac730affc457a695eee94d6b579a9",
+      "bytes": 1087240
+    },
+    {
+      "path": "paper/mathai2026/example_paper.bib",
+      "sha256": "7ee8b52104460df3a4b904ef86be005866d26e99ee864eb80e6c5d386be22fa3",
+      "bytes": 49156
+    },
+    {
+      "path": "paper/mathai2026/preamble.tex",
+      "sha256": "2781c19eeda0f8c73e3be741b46a965d01e9510c738ed32f39b409da81987bd3",
+      "bytes": 2416
+    },
+    {
+      "path": "paper/mathai2026/snapshot.json",
+      "sha256": "6946b1e77a69eddbabac420445fcde25e77be76175b736d63b4c3499b0cd3224",
+      "bytes": 13440
+    },
+    {
+      "path": "paper/mathai2026/README.md",
+      "sha256": "67576ba2b8b49c0f617285e470b325b61836a7de48b3bf250ed176d96269c144",
+      "bytes": 7461
+    },
+    {
+      "path": "paper/mathai2026/mathai2026-source.zip",
+      "sha256": "c5b16c739a703db5bbe136dbb2dddbe2cd9523ecb2a05c98a8aefdd031929342",
+      "bytes": 676932
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/natural_gradient_section.tex",
+      "sha256": "f086225f5bcbff777a8415dbb2e023dbd05af4f87fcfc75727dda64e156604b6",
+      "bytes": 5470
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/discovery_section.tex",
+      "sha256": "0452ebc03aec0b33befb8c90bcbac83242ce0b513dfd9a3e5afbfd827a617ac4",
+      "bytes": 10968
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/replay_section.tex",
+      "sha256": "7599259e19e50ad2d1426595d16ee2ed5c1a6b18719aa77a5cf9b61060d49e25",
+      "bytes": 14880
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/gradient_availability_section.tex",
+      "sha256": "83a1f28799aa1555fff25b068ab5364f47ea1b1ad06cfcabc329468156c29d14",
+      "bytes": 3499
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/optimizer_section.tex",
+      "sha256": "2bc5c528f1a6413b4eb551409bcca20771e682e39e2e4f9e9519f7dd466e930f",
+      "bytes": 9197
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/collapse_section.tex",
+      "sha256": "a473f96c3c679bbf3b38f0ed1cf167fdeadfb35807671964bf8db71087f5163d",
+      "bytes": 5302
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/exemplar_bridge_section.tex",
+      "sha256": "d76992649c56d6aa3cd7f74713d0b4cdd88ea42157e534e35c99467de050c344",
+      "bytes": 4537
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/group_mean_section.tex",
+      "sha256": "93aa6155ed8c0eeb38a67c4ac906d8fa3bdb90a3ad85225d959cd01b94250f57",
+      "bytes": 6651
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/survival_section.tex",
+      "sha256": "de4a5025a13431918876e11e2ba26a3cc0fdf5b4cc0e51ab36fffaead0953a87",
+      "bytes": 16526
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/parameterization_section.tex",
+      "sha256": "6e2c7d0b2974038c7fd461fee6655b6ab6a768e918d4903f185d1357e4fab31b",
+      "bytes": 10143
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/entropy_section.tex",
+      "sha256": "b090b636c60ecf7fdbc92bd08231024cf8bc3302168286df0ea4e91dccef0bc4",
+      "bytes": 5189
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/entropy_comparison_section.tex",
+      "sha256": "930f89bcd2e5f11c6bac73b5d97e61902874737028bb170794928590257ad1dc",
+      "bytes": 4778
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/theory_intro.tex",
+      "sha256": "2c3e34bc962f5f84a6d3449bde6dde566143277c931120254572ca8e0478b572",
+      "bytes": 2700
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/entropy_verify_examples.py",
+      "sha256": "9cf803bd1e998a92a85b4a63c4a70b7a96c819ebe6d12f6ded1d68bdf34d9773",
+      "bytes": 4309
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/verify_survival_examples.py",
+      "sha256": "97494f79cc7ac2617e1de28c74e7790220251101f15a39f48cf179ac0d721696",
+      "bytes": 4478
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/verify_early_examples.py",
+      "sha256": "bbbd4648b26594cf30c3c2812a9f0be472f415e0101a7cfbb888f75790415192",
+      "bytes": 2450
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/verify_optimizer_examples.py",
+      "sha256": "586812e2c3dcafb5f54f92f8d036c278bb75b51625396e564e25bc6439562d43",
+      "bytes": 7641
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/verify_early_examples.json",
+      "sha256": "7ebaefd0e3b1300d585c18c8763d8ecb5ba7c4761e57dcd510a14c0b10ac6828",
+      "bytes": 1751
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/entropy_example_verification.json",
+      "sha256": "87ebc19793e1bfd07da1fb16654f54dc252027ee55ed16e9b77a12176ef6d67a",
+      "bytes": 1742
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/verify_optimizer_examples.json",
+      "sha256": "4682af1633a97ccbf0b78edd6ac1219bede00b5ce833c7511e885ed472bb397f",
+      "bytes": 3210
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/verify_survival_examples.json",
+      "sha256": "e43091f47dc03a51cc7d0b56978ffcdcd632d6d6dee531038a78e5edd0c356d5",
+      "bytes": 2695
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/full_build.log",
+      "sha256": "17d5c0e914614a54e1bd80b471689325b4f40f05d9763e1a6a91b8b9aa5b00bf",
+      "bytes": 61182
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/workshop_build.log",
+      "sha256": "c2b9b85798c129c44e46e11559395a063de00e0dbafb5bd90c580d6c465e018b",
+      "bytes": 43904
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/example_coverage.json",
+      "sha256": "dfff22663d7d31adc5842bfa19304232a4b9683ad491ca3870bf62e17b03622e",
+      "bytes": 3236
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/integration_checks.json",
+      "sha256": "809350483f9d2cca66461d63a7e3984cb3887bb0fad325434f38194e4d939c62",
+      "bytes": 614
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/independent_review.json",
+      "sha256": "f605b9424c39bf083d61e7b21ac02a7910e8f7ec46164cf0b31609578ed13b3b",
+      "bytes": 931
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/examples.patch",
+      "sha256": "c360fa9e111ae32ac33c7411261bd51deabeb374041d43b2502cf102ca07e652",
+      "bytes": 73921
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/entropy_examples_notes.md",
+      "sha256": "c30015dba0c6db59fad115d6323b9d4cfa6274d36f26cb63711b11478dfcd06f",
+      "bytes": 3182
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/optimizer_examples_notes.md",
+      "sha256": "9062f373f76988b5c4a42924022cfcd77c5164b4aaa75c9ee25346fe8b70812b",
+      "bytes": 4082
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/survival_examples_notes.md",
+      "sha256": "4fcd8e2ef205eced63388926e84b574e4fa0eed70ad5d7f01c1ed7b1d85246fb",
+      "bytes": 4062
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/rendered/full_page34_sharp_survival.png",
+      "sha256": "4fb2e450650e96db21faca8584f956eb9332178988bc5d75d51e2dac79873e34",
+      "bytes": 361894
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/rendered/full_page14_running_example.png",
+      "sha256": "780d3013ea24dcfe0c8fa41a9da0f75936a6e784414773c1668f4acce6bf4aca",
+      "bytes": 355248
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/rendered/full_page18_matched_accuracy.png",
+      "sha256": "4df998f061ba1ee611aee0b849d9cb0d1ccaebe9c6f216d32145f61717436e0f",
+      "bytes": 348471
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905/rendered/full_page30_optimizer_bounds.png",
+      "sha256": "6d80f886fe962bea894261d1dfa17c7f72fc1f5ff0bfd829aabdac990ad67edd",
+      "bytes": 351636
+    },
+    {
+      "path": "paper/audits/theory_examples_20260905.md",
+      "sha256": "f77e4a0de714a8f3cc5cb02922011a758b95741d1d60d0ea79fca259d2d7e5fc",
+      "bytes": 4832
+    }
+  ]
+}

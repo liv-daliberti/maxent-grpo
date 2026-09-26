@@ -1,0 +1,167 @@
+{
+  "train:0012:train/number_theory/800.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:RADIX_POSITIONAL_EXPANSION] Expand each displayed base numeral into an ordinary integer expression in the unknown digit."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:SOLVE_EQUATION] Equate the two positional expressions, solve the resulting linear equation, and verify the digit bound."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Enumerate every allowed decimal digit for the missing symbol."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:RADIX_POSITIONAL_EXPANSION] For each candidate digit, evaluate both base numerals independently and retain the unique equality."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:symbolic_radix_equation] Solve a single positional-value equation symbolically.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:digit_candidate_scan] Exhaust the finite digit alphabet and compare the two numeral values.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0023:test/counting_and_probability/498.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:COMBINATION_PRODUCT] Count unordered pairs of club members and multiply by the common number of games per pair."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:SOLVE_EQUATION] Equate that pair total to the stated season total and solve for the common multiplicity."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:INDEPENDENT_CHOICE_PRODUCT] Count each member's opponent incidences, sum over all members, and divide by two because every game has two endpoints."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:SOLVE_EQUATION] Equate the double-counted incidence total to the stated game count and solve for the common multiplicity."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:unordered_opponent_pairs] Count games from the set of unordered player pairs.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:degree_sum_double_count] Count game incidences at players and halve the total.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0028:train/prealgebra/694.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:INDEPENDENT_CHOICE_PRODUCT] Apply the multiplication principle to the independent choice made at each draw with replacement."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ARITHMETIC] Evaluate the resulting product of equal choice counts."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ORDERED_ENUMERATION] Generate a rooted choice tree with one branch for every labeled ball at each recorded position."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Traverse every leaf of the fixed-depth tree and count the distinct ordered lists."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:multiplication_principle] Use the closed-form product of independent per-position choices.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:explicit_choice_tree] Construct and count the complete finite tree of ordered outcomes.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0031:test/prealgebra/937.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:PRIME_FACTOR_GCD_LCM] Construct the least common multiple of the three divisibility moduli from their prime exponents."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:DIVISOR_GCD_ENUMERATION] Count the positive multiples of that least common multiple up to the stated bound."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Traverse every positive integer through the stated bound."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:VERIFY_RESULT] Test all three remainder conditions on every traversed integer and count the simultaneous passes."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:lcm_multiple_count] Reduce simultaneous divisibility to multiples of one constructed lcm.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:literal_divisibility_scan] Test every integer in the finite requested range.",
+        "strategy_id": "S2"
+      }
+    ]
+  },
+  "train:0034:train/prealgebra/21.json": {
+    "actions": [
+      {
+        "action_id": "A1",
+        "operation": "[OP:COMBINATION_PRODUCT] Use a falling-factorial product for assigning distinct members to the labeled offices."
+      },
+      {
+        "action_id": "A2",
+        "operation": "[OP:ARITHMETIC] Evaluate the successive-choice product."
+      },
+      {
+        "action_id": "A3",
+        "operation": "[OP:ORDERED_ENUMERATION] Generate every ordered tuple of members having one coordinate for each labeled office."
+      },
+      {
+        "action_id": "A4",
+        "operation": "[OP:FINITE_CASE_ENUMERATION] Reject tuples with a repeated member and count the remaining valid assignments."
+      }
+    ],
+    "schema": "math_strategy_action_menu_v1",
+    "strategies": [
+      {
+        "action_ids": ["A1", "A2"],
+        "plan": "[KERNEL:falling_factorial_assignment] Count injective office assignments by a closed-form product.",
+        "strategy_id": "S1"
+      },
+      {
+        "action_ids": ["A3", "A4"],
+        "plan": "[KERNEL:ordered_tuple_filter] Exhaust all office tuples and filter the repeated-member cases.",
+        "strategy_id": "S2"
+      }
+    ]
+  }
+}

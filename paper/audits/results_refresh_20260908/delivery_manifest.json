@@ -1,0 +1,20 @@
+{
+  "artifacts": {
+    "ops/exp_scaling/recover_terminal_timeouts_20260908.py": "131604ca163e18df06beeecef862ac1c557713f87612b2a31418313c49de185f",
+    "paper/FIGURE_MANIFEST.md": "1224a1f91b90f4cbca2c8b6d13b27aa6e9c1ae3b390c93a242cf7308e2080372",
+    "paper/Makefile": "1f744b3b78066eddb94d080f8bf56363f0d76b4332ea7f3d8ff0c180f132eb71",
+    "paper/main.pdf": "bd91bb1c8324e94a42c789441ac5d84897284df13b71ce1ea2e50a893dcefe0b",
+    "paper/main.tex": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e",
+    "paper/mathai2026/appendix.tex": "39a0ba82d7cdb66a766e2bf7efab4bc8e7e07da0c025811d23da97e85c3f5c3c",
+    "paper/mathai2026/main.pdf": "478b94417a77d209a30bec5c29c66a3eb72317d2011aa2f341a8e92176891e64",
+    "paper/mathai2026/main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+    "paper/mathai2026/mathai2026-overleaf.zip": "60096253c93de8e4e36a36182be21e5e9d022e1ae1a09f935602c0be9fc1af19",
+    "paper/mathai2026/mathai2026-source.zip": "31d839e3f28c3656efaf92cbe7599e36461192958d798df645d50b6d5cb7b939",
+    "paper/mathai2026/snapshot.json": "bda7525abbbe5ba66bda3623523d7c5940560ce69dd12e196f7a2a7e1720a769",
+    "paper/results/latest_results_20260908.json": "a65f0e88ff924623241d44d31b5fd497a3950cc472f1326158669d8f1a38ac0e",
+    "paper/results/modebench_level_comparison_snapshot.json": "57752021adf6a9e663e4024a4e7f2fb47fbb0c9119aae894962ba5d7240a374f",
+    "presentation/deck_manifest.json": "609e4f2b401636c2f4a22d0bac22c226151cfe1376b67fe744d963a83b78f2bb",
+    "presentation/verified_mode_support_story.pptx": "6e963e0908f1a60445430805460b0c8a1bae627dffc94857808608ce8b57bcb1"
+  },
+  "recorded_at_utc": "2026-09-08T15:55:06.262279+00:00"
+}

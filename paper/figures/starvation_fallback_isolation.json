@@ -1,0 +1,1228 @@
+{
+  "schema": "paper-starvation-fallback-isolation-v1",
+  "generated_at": "2026-09-04T15:37:33.261640+00:00",
+  "status": "terminal; 25/25 E103 cells passed the outcome-blind mechanism audit",
+  "model": "Qwen2.5-0.5B",
+  "comparison": "E103 starvation fallback minus matched E102 open-bank bundle",
+  "domain_order": [
+    "graph_coloring",
+    "countdown",
+    "python_factors",
+    "mathir",
+    "pantry_plan"
+  ],
+  "seeds": [
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "target_steps": 3072,
+  "cells": [
+    {
+      "domain": "graph_coloring",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30634318,
+          "parent": {
+            "pass8": 0.970703125,
+            "distinct8": 2.298828125
+          },
+          "treatment": {
+            "pass8": 0.96875,
+            "distinct8": 2.30859375
+          },
+          "effect": {
+            "pass8": -0.001953125,
+            "distinct8": 0.009765625,
+            "adjusted_breadth8": 0.01171875
+          },
+          "mechanism": {
+            "fallback_activations": 14.0,
+            "fallback_admissions": 6.0,
+            "fallback_extra_groups": 475.0
+          }
+        },
+        "44": {
+          "job_id": 30634319,
+          "parent": {
+            "pass8": 0.9921875,
+            "distinct8": 2.408203125
+          },
+          "treatment": {
+            "pass8": 0.98046875,
+            "distinct8": 2.35546875
+          },
+          "effect": {
+            "pass8": -0.01171875,
+            "distinct8": -0.052734375,
+            "adjusted_breadth8": -0.041015625
+          },
+          "mechanism": {
+            "fallback_activations": 10.0,
+            "fallback_admissions": 5.0,
+            "fallback_extra_groups": 326.0
+          }
+        },
+        "45": {
+          "job_id": 30634320,
+          "parent": {
+            "pass8": 0.97265625,
+            "distinct8": 2.37109375
+          },
+          "treatment": {
+            "pass8": 0.966796875,
+            "distinct8": 2.400390625
+          },
+          "effect": {
+            "pass8": -0.005859375,
+            "distinct8": 0.029296875,
+            "adjusted_breadth8": 0.03515625
+          },
+          "mechanism": {
+            "fallback_activations": 17.0,
+            "fallback_admissions": 6.0,
+            "fallback_extra_groups": 689.0
+          }
+        },
+        "46": {
+          "job_id": 30634321,
+          "parent": {
+            "pass8": 0.978515625,
+            "distinct8": 2.55078125
+          },
+          "treatment": {
+            "pass8": 0.978515625,
+            "distinct8": 2.435546875
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": -0.115234375,
+            "adjusted_breadth8": -0.115234375
+          },
+          "mechanism": {
+            "fallback_activations": 13.0,
+            "fallback_admissions": 6.0,
+            "fallback_extra_groups": 515.0
+          }
+        },
+        "47": {
+          "job_id": 30634322,
+          "parent": {
+            "pass8": 0.978515625,
+            "distinct8": 2.43359375
+          },
+          "treatment": {
+            "pass8": 0.990234375,
+            "distinct8": 2.49609375
+          },
+          "effect": {
+            "pass8": 0.01171875,
+            "distinct8": 0.0625,
+            "adjusted_breadth8": 0.05078125
+          },
+          "mechanism": {
+            "fallback_activations": 11.0,
+            "fallback_admissions": 6.0,
+            "fallback_extra_groups": 395.0
+          }
+        }
+      },
+      "effect_summaries": {
+        "pass8": {
+          "mean": -0.0015625,
+          "student_t_95": [
+            -0.012326340188222682,
+            0.009201340188222683
+          ],
+          "range": [
+            -0.01171875,
+            0.01171875
+          ]
+        },
+        "distinct8": {
+          "mean": -0.01328125,
+          "student_t_95": [
+            -0.10116317576220303,
+            0.07460067576220304
+          ],
+          "range": [
+            -0.115234375,
+            0.0625
+          ]
+        }
+      },
+      "mechanism_summaries": {
+        "fallback_activations": {
+          "mean": 13.0,
+          "total": 65.0
+        },
+        "fallback_admissions": {
+          "mean": 5.8,
+          "total": 29.0
+        },
+        "fallback_extra_groups": {
+          "mean": 480.0,
+          "total": 2400.0
+        }
+      }
+    },
+    {
+      "domain": "countdown",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30634313,
+          "parent": {
+            "pass8": 0.671875,
+            "distinct8": 3.025390625
+          },
+          "treatment": {
+            "pass8": 0.65625,
+            "distinct8": 2.833984375
+          },
+          "effect": {
+            "pass8": -0.015625,
+            "distinct8": -0.19140625,
+            "adjusted_breadth8": -0.17578125
+          },
+          "mechanism": {
+            "fallback_activations": 1.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 48.0
+          }
+        },
+        "44": {
+          "job_id": 30634314,
+          "parent": {
+            "pass8": 0.6640625,
+            "distinct8": 2.294921875
+          },
+          "treatment": {
+            "pass8": 0.6640625,
+            "distinct8": 2.26953125
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": -0.025390625,
+            "adjusted_breadth8": -0.025390625
+          },
+          "mechanism": {
+            "fallback_activations": 9.0,
+            "fallback_admissions": 5.0,
+            "fallback_extra_groups": 292.0
+          }
+        },
+        "45": {
+          "job_id": 30634315,
+          "parent": {
+            "pass8": 0.66015625,
+            "distinct8": 2.73828125
+          },
+          "treatment": {
+            "pass8": 0.66015625,
+            "distinct8": 2.73828125
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": 0.0,
+            "adjusted_breadth8": 0.0
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        },
+        "46": {
+          "job_id": 30634316,
+          "parent": {
+            "pass8": 0.662109375,
+            "distinct8": 2.548828125
+          },
+          "treatment": {
+            "pass8": 0.66015625,
+            "distinct8": 2.51953125
+          },
+          "effect": {
+            "pass8": -0.001953125,
+            "distinct8": -0.029296875,
+            "adjusted_breadth8": -0.02734375
+          },
+          "mechanism": {
+            "fallback_activations": 7.0,
+            "fallback_admissions": 5.0,
+            "fallback_extra_groups": 161.0
+          }
+        },
+        "47": {
+          "job_id": 30634317,
+          "parent": {
+            "pass8": 0.677734375,
+            "distinct8": 2.244140625
+          },
+          "treatment": {
+            "pass8": 0.677734375,
+            "distinct8": 2.244140625
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": 0.0,
+            "adjusted_breadth8": 0.0
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        }
+      },
+      "effect_summaries": {
+        "pass8": {
+          "mean": -0.003515625,
+          "student_t_95": [
+            -0.011986222454313954,
+            0.004954972454313955
+          ],
+          "range": [
+            -0.015625,
+            0.0
+          ]
+        },
+        "distinct8": {
+          "mean": -0.04921875,
+          "student_t_95": [
+            -0.14937670595334604,
+            0.05093920595334605
+          ],
+          "range": [
+            -0.19140625,
+            0.0
+          ]
+        }
+      },
+      "mechanism_summaries": {
+        "fallback_activations": {
+          "mean": 3.4,
+          "total": 17.0
+        },
+        "fallback_admissions": {
+          "mean": 2.0,
+          "total": 10.0
+        },
+        "fallback_extra_groups": {
+          "mean": 100.2,
+          "total": 501.0
+        }
+      }
+    },
+    {
+      "domain": "python_factors",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30634333,
+          "parent": {
+            "pass8": 0.2265625,
+            "distinct8": 0.4375
+          },
+          "treatment": {
+            "pass8": 1.0,
+            "distinct8": 3.3671875
+          },
+          "effect": {
+            "pass8": 0.7734375,
+            "distinct8": 2.9296875,
+            "adjusted_breadth8": 2.15625
+          },
+          "mechanism": {
+            "fallback_activations": 1.0,
+            "fallback_admissions": 1.0,
+            "fallback_extra_groups": 23.0
+          }
+        },
+        "44": {
+          "job_id": 30634334,
+          "parent": {
+            "pass8": 1.0,
+            "distinct8": 2.7421875
+          },
+          "treatment": {
+            "pass8": 0.2265625,
+            "distinct8": 0.390625
+          },
+          "effect": {
+            "pass8": -0.7734375,
+            "distinct8": -2.3515625,
+            "adjusted_breadth8": -1.578125
+          },
+          "mechanism": {
+            "fallback_activations": 10.0,
+            "fallback_admissions": 1.0,
+            "fallback_extra_groups": 408.0
+          }
+        },
+        "45": {
+          "job_id": 30634335,
+          "parent": {
+            "pass8": 0.6484375,
+            "distinct8": 1.830078125
+          },
+          "treatment": {
+            "pass8": 0.640625,
+            "distinct8": 1.607421875
+          },
+          "effect": {
+            "pass8": -0.0078125,
+            "distinct8": -0.22265625,
+            "adjusted_breadth8": -0.21484375
+          },
+          "mechanism": {
+            "fallback_activations": 2.0,
+            "fallback_admissions": 1.0,
+            "fallback_extra_groups": 53.0
+          }
+        },
+        "46": {
+          "job_id": 30634336,
+          "parent": {
+            "pass8": 1.0,
+            "distinct8": 3.2734375
+          },
+          "treatment": {
+            "pass8": 1.0,
+            "distinct8": 3.2734375
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": 0.0,
+            "adjusted_breadth8": 0.0
+          },
+          "mechanism": {
+            "fallback_activations": 1.0,
+            "fallback_admissions": 1.0,
+            "fallback_extra_groups": 12.0
+          }
+        },
+        "47": {
+          "job_id": 30634337,
+          "parent": {
+            "pass8": 1.0,
+            "distinct8": 2.087890625
+          },
+          "treatment": {
+            "pass8": 1.0,
+            "distinct8": 1.513671875
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": -0.57421875,
+            "adjusted_breadth8": -0.57421875
+          },
+          "mechanism": {
+            "fallback_activations": 8.0,
+            "fallback_admissions": 4.0,
+            "fallback_extra_groups": 251.0
+          }
+        }
+      },
+      "effect_summaries": {
+        "pass8": {
+          "mean": -0.0015625,
+          "student_t_95": [
+            -0.6806459997855062,
+            0.6775209997855062
+          ],
+          "range": [
+            -0.7734375,
+            0.7734375
+          ]
+        },
+        "distinct8": {
+          "mean": -0.04375,
+          "student_t_95": [
+            -2.4063928517451116,
+            2.3188928517451113
+          ],
+          "range": [
+            -2.3515625,
+            2.9296875
+          ]
+        }
+      },
+      "mechanism_summaries": {
+        "fallback_activations": {
+          "mean": 4.4,
+          "total": 22.0
+        },
+        "fallback_admissions": {
+          "mean": 1.6,
+          "total": 8.0
+        },
+        "fallback_extra_groups": {
+          "mean": 149.4,
+          "total": 747.0
+        }
+      }
+    },
+    {
+      "domain": "mathir",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30634323,
+          "parent": {
+            "pass8": 0.865234375,
+            "distinct8": 0.978515625
+          },
+          "treatment": {
+            "pass8": 0.84375,
+            "distinct8": 0.91796875
+          },
+          "effect": {
+            "pass8": -0.021484375,
+            "distinct8": -0.060546875,
+            "adjusted_breadth8": -0.0390625
+          },
+          "mechanism": {
+            "fallback_activations": 21.0,
+            "fallback_admissions": 4.0,
+            "fallback_extra_groups": 906.0
+          }
+        },
+        "44": {
+          "job_id": 30634324,
+          "parent": {
+            "pass8": 0.798828125,
+            "distinct8": 0.912109375
+          },
+          "treatment": {
+            "pass8": 0.84765625,
+            "distinct8": 0.966796875
+          },
+          "effect": {
+            "pass8": 0.048828125,
+            "distinct8": 0.0546875,
+            "adjusted_breadth8": 0.005859375
+          },
+          "mechanism": {
+            "fallback_activations": 28.0,
+            "fallback_admissions": 7.0,
+            "fallback_extra_groups": 1135.0
+          }
+        },
+        "45": {
+          "job_id": 30634325,
+          "parent": {
+            "pass8": 0.896484375,
+            "distinct8": 0.982421875
+          },
+          "treatment": {
+            "pass8": 0.849609375,
+            "distinct8": 0.91796875
+          },
+          "effect": {
+            "pass8": -0.046875,
+            "distinct8": -0.064453125,
+            "adjusted_breadth8": -0.017578125
+          },
+          "mechanism": {
+            "fallback_activations": 20.0,
+            "fallback_admissions": 10.0,
+            "fallback_extra_groups": 691.0
+          }
+        },
+        "46": {
+          "job_id": 30634326,
+          "parent": {
+            "pass8": 0.810546875,
+            "distinct8": 0.875
+          },
+          "treatment": {
+            "pass8": 0.833984375,
+            "distinct8": 0.94140625
+          },
+          "effect": {
+            "pass8": 0.0234375,
+            "distinct8": 0.06640625,
+            "adjusted_breadth8": 0.04296875
+          },
+          "mechanism": {
+            "fallback_activations": 18.0,
+            "fallback_admissions": 10.0,
+            "fallback_extra_groups": 569.0
+          }
+        },
+        "47": {
+          "job_id": 30634327,
+          "parent": {
+            "pass8": 0.775390625,
+            "distinct8": 0.859375
+          },
+          "treatment": {
+            "pass8": 0.833984375,
+            "distinct8": 0.96484375
+          },
+          "effect": {
+            "pass8": 0.05859375,
+            "distinct8": 0.10546875,
+            "adjusted_breadth8": 0.046875
+          },
+          "mechanism": {
+            "fallback_activations": 25.0,
+            "fallback_admissions": 8.0,
+            "fallback_extra_groups": 1028.0
+          }
+        }
+      },
+      "effect_summaries": {
+        "pass8": {
+          "mean": 0.0125,
+          "student_t_95": [
+            -0.043870464284263735,
+            0.06887046428426373
+          ],
+          "range": [
+            -0.046875,
+            0.05859375
+          ]
+        },
+        "distinct8": {
+          "mean": 0.0203125,
+          "student_t_95": [
+            -0.07642840802711919,
+            0.11705340802711918
+          ],
+          "range": [
+            -0.064453125,
+            0.10546875
+          ]
+        }
+      },
+      "mechanism_summaries": {
+        "fallback_activations": {
+          "mean": 22.4,
+          "total": 112.0
+        },
+        "fallback_admissions": {
+          "mean": 7.8,
+          "total": 39.0
+        },
+        "fallback_extra_groups": {
+          "mean": 865.8,
+          "total": 4329.0
+        }
+      }
+    },
+    {
+      "domain": "pantry_plan",
+      "n": 5,
+      "seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "per_seed": {
+        "43": {
+          "job_id": 30634328,
+          "parent": {
+            "pass8": 0.8984375,
+            "distinct8": 2.609375
+          },
+          "treatment": {
+            "pass8": 0.8984375,
+            "distinct8": 2.609375
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": 0.0,
+            "adjusted_breadth8": 0.0
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        },
+        "44": {
+          "job_id": 30634329,
+          "parent": {
+            "pass8": 0.740234375,
+            "distinct8": 1.611328125
+          },
+          "treatment": {
+            "pass8": 0.724609375,
+            "distinct8": 1.39453125
+          },
+          "effect": {
+            "pass8": -0.015625,
+            "distinct8": -0.216796875,
+            "adjusted_breadth8": -0.201171875
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        },
+        "45": {
+          "job_id": 30634330,
+          "parent": {
+            "pass8": 0.77734375,
+            "distinct8": 2.009765625
+          },
+          "treatment": {
+            "pass8": 0.732421875,
+            "distinct8": 1.7890625
+          },
+          "effect": {
+            "pass8": -0.044921875,
+            "distinct8": -0.220703125,
+            "adjusted_breadth8": -0.17578125
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        },
+        "46": {
+          "job_id": 30634331,
+          "parent": {
+            "pass8": 0.84375,
+            "distinct8": 2.27734375
+          },
+          "treatment": {
+            "pass8": 0.8828125,
+            "distinct8": 2.3828125
+          },
+          "effect": {
+            "pass8": 0.0390625,
+            "distinct8": 0.10546875,
+            "adjusted_breadth8": 0.06640625
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        },
+        "47": {
+          "job_id": 30634332,
+          "parent": {
+            "pass8": 0.80859375,
+            "distinct8": 2.24609375
+          },
+          "treatment": {
+            "pass8": 0.80859375,
+            "distinct8": 2.24609375
+          },
+          "effect": {
+            "pass8": 0.0,
+            "distinct8": 0.0,
+            "adjusted_breadth8": 0.0
+          },
+          "mechanism": {
+            "fallback_activations": 0.0,
+            "fallback_admissions": 0.0,
+            "fallback_extra_groups": 0.0
+          }
+        }
+      },
+      "effect_summaries": {
+        "pass8": {
+          "mean": -0.004296875,
+          "student_t_95": [
+            -0.04203855233968781,
+            0.033444802339687815
+          ],
+          "range": [
+            -0.044921875,
+            0.0390625
+          ]
+        },
+        "distinct8": {
+          "mean": -0.06640625,
+          "student_t_95": [
+            -0.24717975865902897,
+            0.11436725865902897
+          ],
+          "range": [
+            -0.220703125,
+            0.10546875
+          ]
+        }
+      },
+      "mechanism_summaries": {
+        "fallback_activations": {
+          "mean": 0.0,
+          "total": 0.0
+        },
+        "fallback_admissions": {
+          "mean": 0.0,
+          "total": 0.0
+        },
+        "fallback_extra_groups": {
+          "mean": 0.0,
+          "total": 0.0
+        }
+      }
+    }
+  ],
+  "outcome_metrics_used_for_mechanism_gate": false,
+  "audit_violations": [],
+  "input_sha256": {
+    "ops/exp_scaling/plot_paper_starvation_fallback_isolation.py": {
+      "byte_length": 10876,
+      "sha256": "d2ead42a14b76901db9a76ac2dca7e8bc983b1c8da602c33e250128807135618"
+    },
+    "paper/preregistration/e103_starvation_fallback_maxent_replay_05b_20260817.md": {
+      "byte_length": 6164,
+      "sha256": "573335ed4556b76fa013bd4781e0fb22456978f1b481cbfaf1265a2dc9c47304"
+    },
+    "var/artifacts/e102_full_open_bank_maxent_replay_05b_jobs.json": {
+      "byte_length": 218637,
+      "sha256": "4d0ded84cc2ce1664022c0275a5bf9945078fca4e79c25872a2eb6f7e4046c44"
+    },
+    "var/artifacts/e103_starvation_fallback_audit_latest.json": {
+      "byte_length": 53198,
+      "sha256": "ace34c83844e2a5a3cf000f1b7d96a5793826348649f8230de1a3a2df51e27ab"
+    },
+    "var/artifacts/e103_starvation_fallback_maxent_replay_05b_jobs.json": {
+      "byte_length": 240534,
+      "sha256": "21c5c36595225c7c88b47e96738d319291bafec0d0ed13b74fee4ce7838ad405"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 737,
+      "sha256": "66284b97d54f03a1dbbb2b75905d8df72d8984133aeba7abfa514774e17f4cc6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s43/debug_job30583679/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25092129,
+      "sha256": "c2651bc4a12355e47d21a07519187500129eddef48fcc65343589260d94e3992"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 736,
+      "sha256": "f4fd547b03b2eb9dc29e05d2f31a8509876e7e08becc5d3e435cce5e341cc69f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s44/debug_job30583680/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25547035,
+      "sha256": "2192a7b5bd844c02783728929caebeb3a8a6ebf448ab1f5893e7448a5e2c77cc"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 737,
+      "sha256": "6ff9081aa6c0c2d37bfc83c69073c5cab61bc098459306dee626e2735ea9045f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s45/debug_job30583681/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25078648,
+      "sha256": "0faeeef7f56f5c0c178d2d0bf5717f6123ca5b001ae24e5f473502de33615df8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 736,
+      "sha256": "ae1d87a681fed193a397af3b98cd6a9907ba704e7eeb784013477025c12c1946"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s46/debug_job30583682/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25479313,
+      "sha256": "d4fa0e12e53fe33a34eab24424ec08c7ddeea834f0bff1f703ab3f2278a68694"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 737,
+      "sha256": "4dd195081955288ccca3b19a22dda93e32d11e8e2be3565fd7da5cc7c3c3d2c0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_countdown_s47/debug_job30583683/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24992851,
+      "sha256": "671f28b42a975072bc920ac6247b80e823f3124fda67b1145625d985684c52e3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "aab1718a10b89e696d5cdf46ee07c40f3f24358f9a15c054031f4c51668e6e85"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s43/debug_job30583684/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29895829,
+      "sha256": "aa2ef2db78c8c71416fe14f65f519aed425020d5efb2b50f5b10fa75199fafc3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "a51cdb5a8baebf46766d6189a60321169d605bff6e11626b4e343cb581e47998"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s44/debug_job30583685/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29887580,
+      "sha256": "a0e4d5d14b86c8553bb18bd9f0d5df6af30e61902d3c27ef973f5a446c1fa4c7"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "f6f05cf676513f4e83b9780464367728ad0104b701dd9bf75e5bee4b45077188"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s45/debug_job30583686/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29883581,
+      "sha256": "c27e5c0a83d7ea68863b1221ca2d3ebab4051a6a51b7b94e4333393317ab05f9"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "e94ee990cda378552169903a39439d4acbd1093d180ae0b6e0a2459f0c290df2"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s46/debug_job30583687/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29868387,
+      "sha256": "38a1724782c8763ef0218f9fc73e2003d1d95a20171cb63974b7d1734cca3939"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 725,
+      "sha256": "773d35ca5b8711689583303f0db039fb76b5b0f241727fe0317e35b0b84764c1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_graph_s47/debug_job30583688/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29870090,
+      "sha256": "29b2b70cbdb0b24ec6713e2b9ddbf7801954325b507cc2a08f8548933e6e6cbd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "600f81a58d997c0cc7baf8c43a70c7a738ecf407a08716e297d311038faaabc2"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s43/debug_job30583689/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43575878,
+      "sha256": "ce758053b0d21820d3e8d9389ba42ceb81fcd83f161117f8862f3bce49548e35"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "0ebd484ff93fb33b8b5a65143eee4d8ee47102a097d5cd49a20dc1f388c412f1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s44/debug_job30583690/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42857167,
+      "sha256": "1f3244d5242ca3ceb236fc266ecc89dd07e3be64663a489a137cb394a106717c"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "27c777dbfeace025b69dd9956bfb6fd8dc05a4f7cb5c2c68e6d22cb1122cac2b"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s45/debug_job30583691/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43849618,
+      "sha256": "3b5b28a13ee74614cee02ae5cde5f77f23e556d1deaf0ae3414805013c84f014"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "fb43c9d504860b7aeb758abcf0c38fcbeb81119c48f11e43d9d07514a084a1a8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s46/debug_job30583692/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43098898,
+      "sha256": "890a0b5110c5b7ceeb475c9adc0419eba620e0e1919af0bff7ea61dd304f5879"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "7df44d33b75a670eec40c6a652ab4fdf8747324b1751946b9b0e5820845f34c6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_mathir_s47/debug_job30583693/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43487378,
+      "sha256": "d346da2a197fa66d906020384dcec89ab310177d780b2be95592a81e9d129574"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "e42ab92ac6d6ea539b6c85b2ae51b8b79191a12b824c995a42636e40e4b37d71"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s43/debug_job30583694/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89127161,
+      "sha256": "9b836a6c8c16cb4ba1c8afd683a0a420647728737454a1c198effd0d14ad5110"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 727,
+      "sha256": "da52a912a31fcdf1034be740a07a3c66d21f9ff8b272ea4ed6fb566b24e1f5e8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s44/debug_job30583695/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89181601,
+      "sha256": "9db723933291cb510223afea5fc53dad4f1e1f66ceda0ac746bf6094c355ab58"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "4f4d76f34c18488b607e7b27479bd5d2d607f1b65c364047ed56f6b261a8550f"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s45/debug_job30583696/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89192746,
+      "sha256": "1ffe465e052c790f53e537e2f911687041b161ad34e597c1ff54decc6edc1230"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "614be63d8d00aa351a2c5d4f9adb39716aa9f48a32cc23085353aa0cbcbdd290"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s46/debug_job30583697/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89047666,
+      "sha256": "a57e93054063adc62048282b2aa49bdbddc4a717d609ba5fcad31cb8e77680b7"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "102547e5077186a47bd56f22d4273ce6f7249433d77684b408aeaafbbfcf1304"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_pantry_s47/debug_job30583698/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89232278,
+      "sha256": "2ad2e4cea18b07f5087e2266f9d59796e5cf404e1d99da43318d1c76b365ca92"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "9456edc8f82dcb18f38db5814e753d815db2e3852da427c8bb24cd61b177ce69"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s43/debug_job30583699/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 34521039,
+      "sha256": "ad1bb71b653f05b3ad2ba19a5d0086c0217e2d8c1885a3bce8ee1465928bd7a1"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "2155fd6bf5d539bb536a4a22dd0529ddd2db5827090e8ab014dd8b7bf82db04a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s44/debug_job30583700/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 39034578,
+      "sha256": "d48647c959d99517f0826c9cd767f1ea6a619eb6cc22c7a2da2d86d4cb642e1a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "d2a053af8f33b76ac564e9af5de17020e40fa807ef9db3973b6df8ffa639e1c6"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s45/debug_job30583701/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 35657174,
+      "sha256": "62e31cd5cdb4e1639b0159c82dd8d0e1d10e55bc1264051cb6ef7b011caa2834"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "838c72e9784a194da3a03d22756bf9a064399c6742ae8ff1a3ee9accfab17976"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s46/debug_job30583702/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42643765,
+      "sha256": "662600f0dd3a7d15c95cc41efcc2e16bcf07e9cc18ae70e739e7c319cd791cdd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 728,
+      "sha256": "b847eafdbbde815768cf428f9ce035ee25ce6b3153a7b1668369d06971a6fb7a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_full_maxent_replay_e102_full_open_bank_python_s47/debug_job30583703/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 44495012,
+      "sha256": "3af49b3413c2c4a256a6b36f81c13bdbbcd2e93ad43a0e8b30d15fa31b0d569a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 797,
+      "sha256": "d6ecc12d2e1018b6fc37f185eb11cae3f534ab006914273a5b9bc3907f0d77ff"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s43/debug_job30634313/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24858257,
+      "sha256": "7c8b0b12c2c65a277014a9e2e0cbd2ee933d1cd0354e10d876724c4bf75d1ab8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 796,
+      "sha256": "e1e76d5aad31864a9e77e0f344b53c4ccdd297a4a8e9c7c25a86d2097c2bcd6d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s44/debug_job30634314/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25203346,
+      "sha256": "56ce44598d487d7b7d1dff07af3d07099de29fda8d0ba0165b0dd5cc980fb1b3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 796,
+      "sha256": "5904aa620b460204d4937208695a1c6d968f1fdb8776a23e99f4b19232f4a3c4"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s45/debug_job30634315/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25078648,
+      "sha256": "0faeeef7f56f5c0c178d2d0bf5717f6123ca5b001ae24e5f473502de33615df8"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 797,
+      "sha256": "3bd5f7529121c224afb8b006260235f6011cb8df48adda9f11ff60ac347c9179"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s46/debug_job30634316/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 25456224,
+      "sha256": "f79871bc9d877d204b27f3338249f416f85851993c8fbd01dfdbfe88cb8d93f0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 797,
+      "sha256": "8608746c85ae1ada5de69b0ac5df89b3a0aa26abba95ef6bacd12db13afff2a0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_countdown_s47/debug_job30634317/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 24992851,
+      "sha256": "671f28b42a975072bc920ac6247b80e823f3124fda67b1145625d985684c52e3"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 784,
+      "sha256": "3955cf435daaafb5b5fe145be67af1e6e35797e69c91b573464e7c9ad6f7d512"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s43/debug_job30634318/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29896367,
+      "sha256": "fb1fb327bfd9f948dfa3238b10f965d9d59b4ecb88936c99fd636e769ba5669a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 785,
+      "sha256": "f9fd932f200ba54e91717b12a675e8607c3b99a6a90d305cab7c73cbfbf72c7d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s44/debug_job30634319/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29853240,
+      "sha256": "f7a6df6ac73ebd87cdd9fe02d66ecd203df39b5d6036d29621f209081908b044"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 784,
+      "sha256": "fb82f2648e8a971a7e83dc701bcc67391461b3ad72fc7d4ffaff723ad29d2280"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s45/debug_job30634320/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29883472,
+      "sha256": "3871f67797b37457a33632c6bf271797f8ea41ca78e2589c2988091b72329395"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 784,
+      "sha256": "910916cdd059f6823d669ff1282c7095d0938e081ab7e8836ead8d0405d06062"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s46/debug_job30634321/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29866411,
+      "sha256": "95adafd620f926970c4d7e9de5f3b16d6ff4a91a1ac7c1c309845c222c2e3333"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 784,
+      "sha256": "10b25e8cec9aa18e8daa8ba23778655da4ed36c271bfcaf3d1ed8c71e889d838"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_graph_s47/debug_job30634322/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 29895562,
+      "sha256": "f3e2e4fccec76ef7f9263093ed6dbe72452cba9056446995c7378d5e858aac51"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "5285f38184721c59044848701b150cb1d922c6c6ae008303ec6699d5f4727485"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s43/debug_job30634323/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43455540,
+      "sha256": "abe06b06e6005c874494869d9fe6a0645f882f25222e55b26d809606eabdef6e"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "c6587e31f61fcab50d23f37c147977cd28b8c304168665007aa34798658293b4"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s44/debug_job30634324/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43476171,
+      "sha256": "758104661947fdfdf2f7540a4ffbb66d345a30d41257c24c38f29e3a70c04529"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 787,
+      "sha256": "555ef7cc93f90f101810b559da6930ab6b48ca0a64048aa8545639da6ad4f46d"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s45/debug_job30634325/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43635372,
+      "sha256": "0d13dfbcb181bcefc42ac65e8a2c6e05b8f1385d293f6b097dafe7da599b6749"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "89d14092875d71a950dd96197c5758089db8b9c74274326d37c3d8a0b3408eb7"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s46/debug_job30634326/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43168730,
+      "sha256": "18a963b0bbfb9b9f55ddbc433970d3c387effbb25179c62e47dd153c5d64cbd4"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 787,
+      "sha256": "a6a488ba8fcb51bf21c2c324b64a9c90ea7706c63485d5e0d3e1f5da1a37fe19"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_mathir_s47/debug_job30634327/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 43327200,
+      "sha256": "af57a8b2e97fd6ea3e224c7a962e5467fd9f095d8abf2381990afc1fce811f08"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "e81183596a79d4e7f1f29f5479097dd41eb06d107e442499d91302e8fe030a50"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s43/debug_job30634328/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89127161,
+      "sha256": "9b836a6c8c16cb4ba1c8afd683a0a420647728737454a1c198effd0d14ad5110"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "e84b30bfc89be37374aaf1963ea34dd0b3100037e0c7e6981ec3e39258e60679"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s44/debug_job30634329/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89191925,
+      "sha256": "d5a750935875084db84590b3c03060c5c3755f89b170861084b8e5b180fcc6b4"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "95f95045864108ca54f2caf35420ebb41f233f7d1eb05e0133a1760fb76fa458"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s45/debug_job30634330/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89148871,
+      "sha256": "b161c88d4d4b76a29597aa0e2f3c8d8cb23bbf1b0d6a7a8609bef44bb3100e42"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 786,
+      "sha256": "6845b0f8b0a6cdc8b4b1fb5a5bcac40a0335127dc263e895402af4820948a137"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s46/debug_job30634331/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89090529,
+      "sha256": "6e6d0558fc07c9417bd36a744dbd91fae1f694a76091f29cb429b6dbf937c6de"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 787,
+      "sha256": "b49fcffc16158f72b49b7fc650a141fd355b3b2b0ec241266f6dc44635f4a930"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_pantry_s47/debug_job30634332/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 89232278,
+      "sha256": "2ad2e4cea18b07f5087e2266f9d59796e5cf404e1d99da43318d1c76b365ca92"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s43/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "070586c49ee624d57f00799e2572abcdfab01486454acb69ae26041363b2ef40"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s43/debug_job30634333/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 41555008,
+      "sha256": "6cb003733bdf43b8fa2925478d8d7837cd8fb9c3fc444b13ed02c2feb4f90480"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s44/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "b77b6d781689bbba90e8a5d06265ddc171dd22cc6cd55913566418d5048d61d0"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s44/debug_job30634334/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 33002125,
+      "sha256": "c4e3172b7bba9ab0869bc26126ae4935fb0410e5e05843de9893f9d127818560"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s45/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "575a7ddbab0b3e02bc174c39baa2e72d4306a3f8feab07ca8cd81c65b599733c"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s45/debug_job30634335/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 35460973,
+      "sha256": "7c9db63e5f48d82a0c093a0bac2f52b8c20e367e20f188281c1ff16aebe0e532"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s46/TRAINING_COMPLETE.json": {
+      "byte_length": 787,
+      "sha256": "d985a57ec56bafb94ab2ba680f266b077308f24bcb7c1bbcfc99e2cc7e6f69cd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s46/debug_job30634336/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42643765,
+      "sha256": "662600f0dd3a7d15c95cc41efcc2e16bcf07e9cc18ae70e739e7c319cd791cdd"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s47/TRAINING_COMPLETE.json": {
+      "byte_length": 788,
+      "sha256": "6ccf19e53a29a9db402d45e6a0077972e0bcc4a5c41565f99c2ed3399a1e156a"
+    },
+    "var/data/xdr_qwen25_0p5b_instruct_open_bank_starvation_fallback_maxent_replay_e103_starvation_fallback_python_s47/debug_job30634337/eval_mode_coverage_draws.jsonl": {
+      "byte_length": 42469599,
+      "sha256": "e1b4d638e58e7e2753bf77f140de06d8d3780a5de1df395b62c4e94ea44a71dd"
+    }
+  }
+}

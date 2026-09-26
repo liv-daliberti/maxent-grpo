@@ -1,0 +1,53 @@
+{
+  "created_at_utc": "2026-09-11T20:21:37.869444+00:00",
+  "status": "passed",
+  "scope": "synthetic statistics and structural API checks only; no experiment outputs read",
+  "command": [
+    "/usr/local/anaconda3/2024.02/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/test_paper_collision_statistics.py"
+  ],
+  "returncode": 0,
+  "counts": {
+    "tests": 59,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "sha256_before": {
+    "ops/exp_scaling/analyze_paper_conditional_concentration.py": "77269cc2f3737bdd3b19213c4f2e7ce5ed9eaea023e33a86f57ae6a8079b1834",
+    "tests/test_paper_collision_statistics.py": "eba71bb9fd8692e9a823266d5c0d8b740aceb8d8ad2e7dc95560dd1f0688f169",
+    "paper/audits/conditional_concentration_20260911/statistical_stream_validation.py": "fe1881d31cd89d567a2c84d8a402a3d407118d7faad6cdfea1787b8308ed63ce"
+  },
+  "sha256_after": {
+    "ops/exp_scaling/analyze_paper_conditional_concentration.py": "77269cc2f3737bdd3b19213c4f2e7ce5ed9eaea023e33a86f57ae6a8079b1834",
+    "tests/test_paper_collision_statistics.py": "eba71bb9fd8692e9a823266d5c0d8b740aceb8d8ad2e7dc95560dd1f0688f169",
+    "paper/audits/conditional_concentration_20260911/statistical_stream_validation.py": "fe1881d31cd89d567a2c84d8a402a3d407118d7faad6cdfea1787b8308ed63ce"
+  },
+  "stdout": "...........................................................              [100%]\n---- generated xml file: /tmp/paper-collision-synthetic-7p3z53zo/pytest.xml ----\n59 passed in 0.30s\n",
+  "stderr": "",
+  "exact_reference_values_verified_by_tests": {
+    "correct_count_conditional_unbiasedness": "5/9 for P=3/5, q=(1/3,2/3), budgets 2 through 6",
+    "shared_rng_common_eligibility_spurious_delta": "1/8 despite C_A=C_B=1/2",
+    "independent_endpoint_version_delta": "0",
+    "cross_prompt_rng_random_eligible_mean_delta": "1/16 despite promptwise equal C between endpoints",
+    "cross_prompt_rng_fixed_denominator_score": "0 in the same counterexample",
+    "nominal_distinct_streams_from_four_n8_groups": 11,
+    "saved_occurrences": 32,
+    "repeated_occurrences": 21,
+    "duplicate_stream_unordered_pairs": 38,
+    "naive_32_expected_collision_fair_binary": "267/496",
+    "distinct_11_expected_collision_fair_binary": "1/2",
+    "old_first_two_vs_last_two_draw_group_overlap": 7,
+    "categorical_collision_derivative": "2*(sum(q^3)-sum(q^2)^2) = 2*Var_{c~q}(q_c) >= 0"
+  },
+  "limitations": [
+    "Distinct nominal stream IDs do not certify statistical independence under arbitrary runtime effects.",
+    "The same stream IDs recur across prompts, so iid prompt uncertainty is not certified.",
+    "The random common-eligible mean and two-orientation complete-case average remain descriptive.",
+    "Five-seed t intervals describe nominal paired seed variability; they are not full sampling uncertainty.",
+    "Passing tests does not establish empirical collapse or replay benefit."
+  ]
+}

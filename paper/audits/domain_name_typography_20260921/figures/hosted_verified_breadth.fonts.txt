@@ -1,0 +1,4 @@
+name                                 type              encoding         emb sub uni object ID
+------------------------------------ ----------------- ---------------- --- --- --- ---------
+EVICAO+DejaVuSans-Bold               Type 3            Custom           yes yes no      59  0
+BMQQDV+DejaVuSans                    Type 3            Custom           yes yes no      92  0

@@ -1,0 +1,9 @@
+# Optimization scope and replay-cost review
+
+Preserved all equations, labels, theoretical distinctions, and measured cost entries. Replaced editorial phrasing and logging-history narration with direct descriptions of the mathematical scope and the measured quantities. The bounded-score discussion now states its boundary conclusion directly. The fixed-energy limitations remain explicit; no implication that the implemented neural optimizer satisfies them was added.
+
+The natural-gradient specialization was checked against [Agarwal et al., Lemma 15](https://jmlr.org/papers/volume22/19-736/19-736.pdf): the multiplicative probability update preserves all within-correct-class ratios in the bandit specialization. Existing citations and the distinctions between conditional diversity and full-output entropy remain intact.
+
+Cost-accounting methods were checked against `ops/build_replay_cost_accounting.py` and the replay learner. Records use the most recent fresh-response length when a measurement is not in the same diagnostic record; this is now explicit. Repeated steps are not deduplicated and the record stream is not truncated to the training horizon. These limitations remain in the paper. The table caption now states the supported storage finding, then defines each row and the omitted detached scoring pass. The comparison still does not claim matched total FLOPs or end-to-end runtime.
+
+Validation reconstructs all per-run cost ratios and storage estimates and the stored family/domain summaries from 75 existing records. The existing emitter reproduces the table and macros byte-for-byte in a temporary directory. There are 281 passing numerical/structural checks. No empirical data, experimental responses, bootstrap intervals, or numbered formulas changed. No new experiments or runtime profiles were run.

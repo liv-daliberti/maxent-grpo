@@ -1,0 +1,272 @@
+{
+  "arms": {
+    "grpo": "matched Dr.GRPO with passive verified-discovery tracking",
+    "online_canonical_haarnoja": "uncapped support-normalized online-canonical Haarnoja"
+  },
+  "domains": {
+    "Countdown": {
+      "endpoints": {
+        "grpo": {
+          "by_seed": {
+            "43": {
+              "coverage8": 0.13021762669086456,
+              "distinct8": 0.568359375,
+              "greedy": 0.5078125,
+              "mean8": 0.5185546875,
+              "pass8": 0.552734375,
+              "training_passes": 2.75
+            },
+            "44": {
+              "coverage8": 0.15730096399784088,
+              "distinct8": 0.65625,
+              "greedy": 0.5,
+              "mean8": 0.47802734375,
+              "pass8": 0.564453125,
+              "training_passes": 2.75
+            },
+            "45": {
+              "coverage8": 0.11045852303504944,
+              "distinct8": 0.4453125,
+              "greedy": 0.3125,
+              "mean8": 0.32373046875,
+              "pass8": 0.396484375,
+              "training_passes": 2.75
+            }
+          },
+          "mean": {
+            "coverage8": 0.1326590379079183,
+            "distinct8": 0.556640625,
+            "greedy": 0.4401041666666667,
+            "mean8": 0.4401041666666667,
+            "pass8": 0.5045572916666666
+          }
+        },
+        "online_canonical_haarnoja": {
+          "by_seed": {
+            "43": {
+              "coverage8": 0.1637369841337204,
+              "distinct8": 0.734375,
+              "greedy": 0.5234375,
+              "mean8": 0.4970703125,
+              "pass8": 0.599609375,
+              "training_passes": 2.75
+            },
+            "44": {
+              "coverage8": 0.1462983638048172,
+              "distinct8": 0.63671875,
+              "greedy": 0.5078125,
+              "mean8": 0.474609375,
+              "pass8": 0.568359375,
+              "training_passes": 2.75
+            },
+            "45": {
+              "coverage8": 0.13001301884651184,
+              "distinct8": 0.552734375,
+              "greedy": 0.453125,
+              "mean8": 0.4658203125,
+              "pass8": 0.53515625,
+              "training_passes": 2.75
+            }
+          },
+          "mean": {
+            "coverage8": 0.14668278892834982,
+            "distinct8": 0.6412760416666666,
+            "greedy": 0.4947916666666667,
+            "mean8": 0.4791666666666667,
+            "pass8": 0.5677083333333334
+          }
+        }
+      },
+      "paired_common_horizon_passes": 2.75,
+      "treatment_minus_control_mean": {
+        "coverage8": 0.014023751020431519,
+        "distinct8": 0.08463541666666663,
+        "greedy": 0.0546875,
+        "mean8": 0.0390625,
+        "pass8": 0.06315104166666674
+      }
+    },
+    "Graph coloring": {
+      "endpoints": {
+        "grpo": {
+          "by_seed": {
+            "43": {
+              "coverage8": 0.055758100003004074,
+              "distinct8": 0.34375,
+              "greedy": 0.34375,
+              "mean8": 0.34375,
+              "pass8": 0.34375,
+              "training_passes": 8.25
+            },
+            "44": {
+              "coverage8": 0.055758100003004074,
+              "distinct8": 0.34375,
+              "greedy": 0.34375,
+              "mean8": 0.34375,
+              "pass8": 0.34375,
+              "training_passes": 8.25
+            },
+            "45": {
+              "coverage8": 0.055432580411434174,
+              "distinct8": 0.3515625,
+              "greedy": 0.3333333432674408,
+              "mean8": 0.3297525942325592,
+              "pass8": 0.3411458432674408,
+              "training_passes": 8.25
+            }
+          },
+          "mean": {
+            "coverage8": 0.055649593472480774,
+            "distinct8": 0.3463541666666667,
+            "greedy": 0.3402777810891469,
+            "mean8": 0.3390841980775197,
+            "pass8": 0.3428819477558136
+          }
+        },
+        "online_canonical_haarnoja": {
+          "by_seed": {
+            "43": {
+              "coverage8": 0.2105034738779068,
+              "distinct8": 1.3541666269302368,
+              "greedy": 0.3125,
+              "mean8": 0.3349609375,
+              "pass8": 0.7083333134651184,
+              "training_passes": 8.25
+            },
+            "44": {
+              "coverage8": 0.10237991809844971,
+              "distinct8": 0.6432291865348816,
+              "greedy": 0.3541666567325592,
+              "mean8": 0.3515625,
+              "pass8": 0.5390625,
+              "training_passes": 8.25
+            },
+            "45": {
+              "coverage8": 0.16699941456317902,
+              "distinct8": 1.046875,
+              "greedy": 0.34375,
+              "mean8": 0.3385416567325592,
+              "pass8": 0.65625,
+              "training_passes": 8.25
+            }
+          },
+          "mean": {
+            "coverage8": 0.1599609355131785,
+            "distinct8": 1.014756937821706,
+            "greedy": 0.3368055522441864,
+            "mean8": 0.3416883647441864,
+            "pass8": 0.6345486044883728
+          }
+        }
+      },
+      "paired_common_horizon_passes": 8.25,
+      "treatment_minus_control_mean": {
+        "coverage8": 0.10431134204069772,
+        "distinct8": 0.6684027711550393,
+        "greedy": -0.003472228844960512,
+        "mean8": 0.002604166666666685,
+        "pass8": 0.2916666567325592
+      }
+    }
+  },
+  "extension_sources": {
+    "Executable MathIR (held-out action menu; not MATH-500)": {
+      "path": "var/artifacts/mie59_mathir_global_verified_replay_05b_50ep_scaling_curve.json",
+      "sha256_live": "48768d9115f73669ed1e955dfcf21e9e8ac7c4eb09637ad44900668f13cbe895"
+    }
+  },
+  "extensions": {
+    "Executable MathIR (held-out action menu; not MATH-500)": {
+      "endpoints": {
+        "grpo": {
+          "by_seed": {
+            "43": {
+              "coverage8": 0.05546874925494194,
+              "distinct8": 0.27734375,
+              "greedy": 0.109375,
+              "mean8": 0.06591796875,
+              "pass8": 0.259765625,
+              "training_passes": 2.75
+            },
+            "44": {
+              "coverage8": 0.05156249925494194,
+              "distinct8": 0.2578125,
+              "greedy": 0.046875,
+              "mean8": 0.0517578125,
+              "pass8": 0.251953125,
+              "training_passes": 2.75
+            }
+          },
+          "mean": {
+            "coverage8": 0.05351562425494194,
+            "distinct8": 0.267578125,
+            "greedy": 0.078125,
+            "mean8": 0.058837890625,
+            "pass8": 0.255859375
+          }
+        },
+        "online_canonical_haarnoja": {
+          "by_seed": {
+            "43": {
+              "coverage8": 0.11289062350988388,
+              "distinct8": 0.564453125,
+              "greedy": 0.3203125,
+              "mean8": 0.2578125,
+              "pass8": 0.552734375,
+              "training_passes": 2.75
+            },
+            "44": {
+              "coverage8": 0.12148437649011612,
+              "distinct8": 0.607421875,
+              "greedy": 0.328125,
+              "mean8": 0.227294921875,
+              "pass8": 0.552734375,
+              "training_passes": 2.75
+            }
+          },
+          "mean": {
+            "coverage8": 0.1171875,
+            "distinct8": 0.5859375,
+            "greedy": 0.32421875,
+            "mean8": 0.2425537109375,
+            "pass8": 0.552734375
+          }
+        }
+      },
+      "evaluation_dataset": "mathir_action_menu_v1/multi_answer",
+      "is_math500": false,
+      "native_treatment_arm": "verified_first_global_replay_canonical",
+      "paired_common_horizon_passes": 2.75,
+      "paired_seeds": [
+        43,
+        44
+      ],
+      "status": "LIVE_PARTIAL_PAIRED_SEEDS",
+      "treatment_minus_control_mean": {
+        "coverage8": 0.06367187574505806,
+        "distinct8": 0.318359375,
+        "greedy": 0.24609375,
+        "mean8": 0.1837158203125,
+        "pass8": 0.296875
+      }
+    }
+  },
+  "interpretation": "Exploratory snapshot from an incomplete prospectively fixed 50-pass cohort; not a terminal comparison.",
+  "schema": "modebench_long_horizon_interim_v1",
+  "seeds": [
+    43,
+    44,
+    45
+  ],
+  "sources": {
+    "Countdown": {
+      "path": "var/artifacts/cde50_uncapped_normalized_canonical_haarnoja_05b_50ep_v1_scaling_curve.json",
+      "sha256_current_append_only_curve": "8a6b53b8ae7c1d522438898167072efade46469f22b4dee4c9ca77af3b32c98b"
+    },
+    "Graph coloring": {
+      "path": "var/artifacts/gce50_uncapped_normalized_canonical_haarnoja_05b_50ep_v1_scaling_curve.json",
+      "sha256_current_append_only_curve": "805957c18520ca7549aef865559bd5c9ffc0256ab122ea46385244cdb4cab6e4"
+    }
+  },
+  "status": "FROZEN_INTERIM_PAIRED_COMMON_HORIZON"
+}

@@ -1,0 +1,10316 @@
+SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning
+Report GitHub Issue
+×
+Title:
+Content selection saved. Describe the issue below:
+Description:
+Submit without GitHub
+Submit in GitHub
+arXiv is now an independent nonprofit!
+Learn more
+×
+Back to arXiv
+Why HTML?
+Report Issue
+Back to Abstract
+Download PDF
+Abstract
+1
+Introduction
+2
+Related Works
+Reinforcement Learning for LLM Reasoning.
+Diversity in Reinforcement Learning.
+3
+Diversity-Aware Reward Calculation
+3.1
+Preliminaries: Group-based Policy Optimization
+3.2
+Diversity of a Language Model
+3.3
+Leave-one-out Margin for a Single Trajectory
+3.4
+Set-Level Policy Optimization Methods
+4
+Theoretical Analysis
+4.1
+Population view
+4.2
+Leave-one-out as marginal contribution
+5
+Numerical Experiments
+5.1
+General Mathematical Reasoning
+Backbone Models.
+Baselines.
+Training Configuration.
+Evaluation Configuration.
+Numerical Results.
+Diversity Assessment.
+5.2
+Countdown Evaluation
+Task Description.
+Model and Training.
+Evaluation Protocol.
+Performance Superiority.
+Diversity Analysis.
+5.3
+Scaling Up to 32B Models
+Experimental Settings.
+Numerical Performance.
+6
+Conclusion
+References
+A
+Brief Introduction to DAPO and GSPO
+DAPO.
+GSPO.
+B
+Our Algorithm
+C
+Theoretical Framework of
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+: Trajectory Diversity
+C.1
+Preliminaries and Definitions
+C.2
+Infinitesimal Analysis: The Influence Function
+C.3
+Finite Perturbation Analysis and Error Bounds
+D
+Discrete Analysis for Leave-One-Out Contribution
+s
+i
+s_{i}
+Definitions.
+E
+Experiments Setting
+E.1
+Training Settings
+E.2
+Evaluation Settings
+F
+More Results on Mathematical Reasoning
+F.1
+Complete Comparison on Mathematical Benchmark
+F.2
+Reaching Higher Performance when
+K
+K
+is sufficiently high
+F.3
+Timing Cost on Adding SetPO to Original Algorithms
+G
+Case Study
+G.1
+Case Study: Diversity in Mathematical Reasoning Solutions
+G.2
+Case Study: Diversity in Countdown Task Solutions
+H
+Prompts Used in this Paper
+The Prompt Used for Mathematical Reasoning
+The Prompt Used for Countdown
+The Prompt Used for Diversity Evaluation
+License: CC BY 4.0
+arXiv:2602.01062v1 [cs.AI] 01 Feb 2026
+SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning
+Chenyi Li
+Affiliation:
+Peking University
+Correspondence to:
+lichenyi@stu.pku.edu.cn
+Yuan Zhang
+Affiliation:
+JD Explore Academy, China
+Correspondence to:
+zhangyuan.430@jd.com
+Bo Wang
+Affiliation:
+Beijing Institute of Technology
+Guoqing Ma
+Affiliation:
+JD Explore Academy, China
+Wei Tang
+Affiliation:
+JD Explore Academy, China
+Haoyang Huang
+Affiliation:
+JD Explore Academy, China
+Nan Duan
+Affiliation:
+JD Explore Academy, China
+Correspondence to:
+duannan@jd.com
+Abstract
+Reinforcement learning with verifiable rewards has shown notable effectiveness in enhancing large language models (LLMs) reasoning performance, especially in mathematics tasks. However, such improvements often come with reduced outcome diversity, where the model concentrates probability mass on a narrow set of solutions. Motivated by diminishing-returns principles, we introduce a set level diversity objective defined over sampled trajectories using kernelized similarity. Our approach derives a leave-one-out marginal contribution for each sampled trajectory and integrates this objective as a plug-in advantage shaping term for policy optimization. We further investigate the contribution of a single trajectory to language model diversity within a distribution perturbation framework. This analysis theoretically confirms a monotonicity property, proving that rarer trajectories yield consistently higher marginal contributions to the global diversity. Extensive experiments across a range of model scales demonstrate the effectiveness of our proposed algorithm, consistently outperforming strong baselines in both Pass@1 and Pass@K across various benchmarks.
+Keywords:
+Machine Learning, ICML
+†
+†
+affiliationnotice:
+Equal contribution,
+\icmlProject
+1
+Introduction
+The field of reinforcement learning (RL) has recently undergone a rapid expansion, with particularly strong advances in mathematical reasoning and code generation. This progress is largely driven by reinforcement learning with verifiable rewards (RLVR), whose scalability enables effective training at scale, thereby pushing the reasoning capabilities of large language models
+(
+Ouyang et al., 2022
+;
+Guo et al., 2025
+)
+. Within this paradigm, group relative policy optimization (GRPO)
+(
+Shao et al., 2024
+)
+emerged as a competitive alternative to proximal policy optimization (PPO)
+(
+Schulman et al., 2017
+)
+, achieving strong empirical performance while eliminating the need for a critic model. This design choice has inspired a line of subsequent studies that build upon GRPO to improve training stability and empirical performance across diverse benchmarks
+(
+Yu et al., 2025
+;
+Zheng et al., 2025
+;
+Zhao et al., 2025
+)
+.
+Figure 1:
+Evolution of trajectory embeddings during training for GRPO vs. SetPO (stars denote correct modes; color indicates training steps). Left (GRPO): Although trajectories initially populate multiple modes, training progressively concentrates on a single dominant cluster, exhibiting clear mode collapse. Right (SetPO): Embeddings remain distributed across multiple clusters throughout training, continuing to cover the correct modes at late steps. This indicates that SetPO mitigates mode collapse and preserves rollout diversity.
+While recent research has primarily focused on developing more effective group-based policy optimization algorithms, another line of work has observed that the apparent performance gains achieved through reinforcement learning often come at the cost of reduced model diversity. More concretely, recent evidence suggests that many trajectories produced by RLVR finetuned models can also be recovered from the base model by increasing the sampling budget, implying that the base model may act as an effective upper bound under extensive rollouts
+(
+Yue et al., 2025
+)
+. Similarly, concurrent work in the LLM literature has also found that policy performance improvements are often accompanied by a decline in policy entropy, suggesting that enhanced performance may result from focusing the model’s output distribution on a narrower set of solutions
+(
+Cui et al., 2025
+)
+.
+These observations highlight effective exploration as a key missing ingredient in RLVR based post-training, which is crucial for maintaining diverse outcomes while improving reasoning performance. However, unlike traditional reinforcement learning with a limited state-action space, the policy of LLMs, with their extended vocabulary size, operates in a high-dimensional space. As a result, the search space grows exponentially with the sequence length, imposing a significant burden on the exploration process
+(
+Gupta et al., 2024
+)
+. Existing solutions often rely on entropy based regularization as a proxy for exploration in RL
+(
+Yao et al., 2025
+;
+Cheng et al., 2025
+)
+. However, when entropy is defined at the token level and aggregated over sequences, it can introduce a strong length bias. Longer responses naturally accumulate higher entropy due to increased token-level uncertainty, thereby favoring verbose outputs regardless of whether they provide genuinely diverse solutions. Moreover, token level entropy fails to capture semantic diversity at the trajectory level, as it measures local uncertainty in next-token prediction rather than global variation in the meaning of complete outputs. In addition, some recent studies explicitly optimize for Pass@K
+(
+Chen et al., 2025b
+;
+Tang et al., 2025
+;
+Walder and Karkhanis, 2025
+)
+. Yet, since Pass@K primarily rewards success under repeated sampling, such improvements may not translate into higher single-sample correctness, leading to limited gains or even degraded performance in Pass@1.
+In this paper, we propose SetPO, a diversity-preserving policy optimization algorithm that encourages the learned policy to represent a multi modal outcome distribution. SetPO assigns each trajectory a set-level marginal diversity credit, yielding an explicit diversity-aware signal for policy optimization. Concretely, for each prompt, we sample a group of rollouts and compute pairwise semantic similarities using a pretrained embedding model. Based on these similarities, we quantify how redundant each trajectory is within the group and define its diversity contribution via a leave-one-out marginal estimator. Trajectories that cover distinct semantic modes receive higher credits, whereas redundant ones receive lower credits. We then incorporate this set-level diversity signal into standard reward maximization by augmenting the per-trajectory training advantage with a weighted diversity term. To validate the effectiveness of the proposed algorithm, we construct a toy multi-modal bandit environment with twelve discrete semantic modes, where only the first four modes yield positive reward. Each mode is represented by a 50-dimensional embedding, and semantic similarity is measured via cosine similarity. As shown in Figure
+1
+, our method preserves more distinct modes throughout training than vanilla GRPO. Consequently, it mitigates mode collapse and produces a more diverse set of outcomes.
+Our main contributions are listed as follows.
+•
+To the best of our knowledge, SetPO is the first to introduce an explicit set-level diversity objective. Distinct from traditional pairwise methods, our approach adopts a distributional perspective: it evaluates the holistic diversity of the entire sampled set by aggregating semantic similarities, rather than focusing on isolated local differences.
+•
+We incorporate a leave-one-out marginal contribution mechanism into policy optimization, where each trajectory is rewarded based on its impact on the set’s diversity. Our theoretical analysis demonstrates the anti-redundant nature of this estimator, showing that it assigns higher marginal value to rarer samples.
+•
+We evaluate the proposed SetPO algorithm on comprehensive reasoning benchmarks, spanning model scales from 1.5B to 32B. Empirical results demonstrate that our method consistently achieves superior performance compared to strong baselines.
+2
+Related Works
+Reinforcement Learning for LLM Reasoning.
+A series of studies
+(
+Zhao et al., 2025
+;
+Liu et al., 2025
+;
+Shrivastava et al., 2025
+)
+have been proposed to improve GRPO-style optimization for RLVR. DAPO
+(
+Yu et al., 2025
+)
+introduces several modifications to enhance training stability and sample efficiency. In particular, it adopts asymmetric clipping by using distinct clip ratios
+ϵ
+l
+​
+o
+​
+w
+\epsilon_{low}
+and
+ϵ
+h
+​
+i
+​
+g
+​
+h
+\epsilon_{high}
+, allowing low probability tokens to receive effective updates. Moreover, DAPO filters out prompts for which all sampled trajectories are correct or incorrect, thereby focusing optimization on samples that provide meaningful learning signals. In addition, GSPO
+(
+Zheng et al., 2025
+)
+adopts a sequence-level reward formulation, in contrast to the token-level objective used in GRPO, which improves training stability for LLMs, especially in mixture of experts settings. Alternative approaches demonstrate that reinforce style policy gradient methods can attain competitive performance and stable training when appropriately tuned
+(
+Chu et al., 2025
+;
+Ahmadian et al., 2024
+)
+. For example, REINFORCE++
+(
+Hu, 2025
+)
+introduces global advantage normalization to improve the training stability of vanilla policy gradient methods. ReMax
+(
+Li et al., 2023
+)
+modifies the reinforce gradient estimator by introducing a subtractive baseline to reduce variance and improve training stability. Specifically, the baseline is computed by greedily sampling a response and evaluating its corresponding reward.
+Diversity in Reinforcement Learning.
+Exploration is essential for performance improvement in high dimensional reinforcement learning
+(
+Ladosz et al., 2022
+)
+. Previous studies
+(
+Yao et al., 2025
+;
+Cheng et al., 2025
+;
+Wang et al., 2025
+)
+primarily adopt entropy-based regularization to balance exploitation and exploration. These approaches treat entropy as a proxy for diversity by maximizing the average output entropy of LLMs, rewarding trajectories with higher token-level uncertainty to encourage more diverse generations.
+(
+Masood and Doshi-Velez, 2019
+)
+instead propose to exploit maximum mean discrepancy distance as a trajectory level regularizer to enhance diversity of the learned policy. Recent studies
+(
+Lanchantin et al., 2025
+;
+Chung et al., 2025
+;
+Ismayilzada et al., 2025
+)
+explicitly incorporate both quality and diversity into preference optimization.
+Concurrent work
+(
+Chen et al., 2025a
+;
+Li et al., 2025
+)
+also explores trajectory-level semantic diversity measures for RL fine-tuning of LLMs. While these methods similarly rely on trajectory-level semantic similarity to quantify diversity, SetPO adopts a fundamentally different formulation. We introduce a set-level objective that evaluates the generated batch as a holistic distribution. By employing a leave-one-out marginal calculation, we explicitly measure the contribution of each trajectory to the group’s total information mass, thereby optimizing diversity from a global distributional perspective rather than through pairwise separation explored in previous studies.
+3
+Diversity-Aware Reward Calculation
+3.1
+Preliminaries: Group-based Policy Optimization
+Group-based policy optimization has emerged as a stable and efficient alternative to standard PPO for language model alignment, primarily by eliminating the need for a separate critic network. One of the representative methods in this family is GRPO.
+Formally, for each prompt
+x
+x
+sampled from the dataset
+𝒟
+\mathcal{D}
+, GRPO generates a group of
+G
+G
+outputs
+{
+o
+1
+,
+…
+,
+o
+G
+}
+\{o_{1},\dots,o_{G}\}
+from the current policy
+π
+θ
+old
+\pi_{\theta_{\mathrm{old}}}
+.
+Denote
+ρ
+i
+,
+t
+​
+(
+θ
+)
+=
+π
+θ
+​
+(
+a
+i
+,
+t
+∣
+x
+,
+a
+i
+,
+<
+t
+)
+π
+θ
+old
+​
+(
+a
+i
+,
+t
+∣
+x
+,
+a
+i
+,
+<
+t
+)
+\rho_{i,t}(\theta)=\frac{\pi_{\theta}(a_{i,t}\mid x,a_{i,<t})}{\pi_{\theta_{\mathrm{old}}}(a_{i,t}\mid x,a_{i,<t})}
+is the importance sampling ratio, and
+𝔻
+KL
+\mathbb{D}_{\text{KL}}
+is the KL divergence penalty to keep the policy close to a reference model
+π
+ref
+\pi_{\mathrm{ref}}
+. The reward is assigned with a scalar score
+r
+i
+r_{i}
+to each trajectory
+o
+i
+o_{i}
+by the model. To reduce variance without a learned value function, GRPO computes the advantage
+A
+¯
+i
+\bar{A}_{i}
+for each output by normalizing the rewards relative to the group statistics:
+A
+¯
+i
+=
+r
+i
+−
+μ
+⁡
+(
+{
+r
+j
+}
+j
+=
+1
+G
+)
+σ
+⁡
+(
+{
+r
+j
+}
+j
+=
+1
+G
+)
++
+ϵ
+,
+\bar{A}_{i}=\frac{r_{i}-\mu(\{r_{j}\}_{j=1}^{G})}{\sigma(\{r_{j}\}_{j=1}^{G})+\epsilon},
+where
+μ
+\mu
+and
+σ
+\sigma
+denote the mean and standard deviation of the rewards within the group. The policy parameters
+θ
+\theta
+are updated by maximizing the following surrogate objective:
+J
+⁡
+(
+θ
+)
+=
+𝔼
+[
+1
+G
+∑
+i
+=
+1
+G
+1
+|
+o
+i
+|
+∑
+t
+=
+1
+|
+o
+i
+|
+min
+(
+ρ
+i
+,
+t
+(
+θ
+)
+A
+¯
+i
+,
+OPEN
+clip
+⁡
+(
+ρ
+i
+,
+t
+​
+(
+θ
+)
+,
+1
+−
+ε
+,
+1
++
+ε
+)
+​
+A
+¯
+i
+)
+−
+β
+KL
+(
+π
+θ
+(
+⋅
+∣
+x
+,
+a
+i
+,
+<
+t
+)
+∥
+π
+ref
+(
+⋅
+∣
+x
+,
+a
+i
+,
+<
+t
+)
+)
+]
+.
+\displaystyle\begin{aligned} J(\theta)=&\mathbb{E}\Bigg[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_{i}|}\sum_{t=1}^{|o_{i}|}\min\Big(\rho_{i,t}(\theta)\,\bar{A}_{i},\ \\
+&\mathrm{clip}(\rho_{i,t}(\theta),1-\varepsilon,1+\varepsilon)\,\bar{A}_{i}\Big)\;-\;\\
+&\beta\,\mathrm{KL}\!\left(\pi_{\theta}(\cdot\mid x,a_{i,<t})\ \big\|\ \pi_{\mathrm{ref}}(\cdot\mid x,a_{i,<t})\right)\Bigg].\end{aligned}
+(1)
+3.2
+Diversity of a Language Model
+We first study the diversity measure of a language model at the level of trajectories. Given a prompt
+x
+x
+, a trajectory is defined as a finite token sequence
+y
+=
+(
+a
+1
+,
+…
+,
+a
+T
+)
+∈
+Ω
+y=(a_{1},\dots,a_{T})\in\Omega
+, where
+a
+T
+a_{T}
+is the
+EOS
+token or
+T
+T
+reaches the maximum length. Accordingly, a parameterized language model induces a trajectory distribution following
+P
+θ
+​
+(
+y
+|
+x
+)
+=
+∏
+t
+=
+1
+T
+π
+θ
+​
+(
+a
+t
+|
+x
+,
+a
+<
+t
+)
+.
+P_{\theta}(y|x)=\prod\limits_{t=1}^{T}\pi_{\theta}(a_{t}|x,a_{<t}).
+In the following discussion, we omit the subscript
+θ
+\theta
+where unambiguous.
+Unlike methods that focus on diversity at the token level, we evaluate complete outputs semantically. We utilize a bounded, symmetric similarity kernel
+k
+:
+Ω
+×
+Ω
+→
+[
+0
+,
+1
+]
+k:\Omega\times\Omega\to[0,1]
+, satisfying
+k
+⁡
+(
+y
+,
+y
+′
+)
+=
+k
+⁡
+(
+y
+′
+,
+y
+)
+k(y,y^{\prime})=k(y^{\prime},y)
+and
+k
+⁡
+(
+y
+,
+y
+)
+=
+1
+k(y,y)=1
+. Specifically, we let
+k
+⁡
+(
+y
+,
+y
+′
+)
+=
+sim
+⁡
+(
+e
+⁡
+(
+y
+)
+,
+e
+⁡
+(
+y
+′
+)
+)
+k(y,y^{\prime})=\operatorname{sim}(e(y),e(y^{\prime}))
+, employing a pre-defined semantic embedding function
+e
+⁡
+(
+⋅
+)
+:
+Ω
+→
+ℝ
+n
+e(\cdot):\Omega\to\mathbb{R}^{n}
+, where
+n
+n
+denotes the dimension of the embedding space.
+For any trajectory distribution
+P
+∈
+𝒫
+⁡
+(
+Ω
+)
+P\in\mathcal{P}(\Omega)
+, we define the kernelized local mass of a single trajectory
+y
+y
+as:
+m
+P
+​
+(
+y
+)
+:=
+𝔼
+y
+′
+∼
+P
+​
+[
+k
+⁡
+(
+y
+,
+y
+′
+)
+]
+.
+m_{P}(y):=\mathbb{E}_{y^{\prime}\sim P}\left[k(y,y^{\prime})\right].
+Conceptually,
+m
+P
+​
+(
+y
+)
+m_{P}(y)
+estimates the semantic density surrounding
+y
+y
+. A high value indicates that
+y
+y
+resides in a crowded neighborhood, implying redundancy. Conversely, a low value places
+y
+y
+in a sparse region, signifying relative novelty. We then quantify the language model’s overall diversity by aggregating these local estimates. Let
+g
+:
+[
+0
+,
+1
+]
+→
+ℝ
+g:[0,1]\to\mathbb{R}
+be a continuous, non-increasing function. The diversity objective is defined as:
+ℱ
+⁡
+(
+P
+)
+:=
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+]
+.
+\displaystyle\mathcal{F}(P):=\mathbb{E}_{y\sim P}\Big[g\big(m_{P}(y)\big)\Big].
+(2)
+Since
+g
+g
+is non-increasing, a smaller local mass
+m
+P
+​
+(
+y
+)
+m_{P}(y)
+yields a larger return. This mechanism effectively rewards semantic novelty. In this paper, we adopt the following shaping function:
+g
+⁡
+(
+x
+)
+=
+−
+log
+⁡
+(
+1
++
+x
+)
+.
+g(x)=-\log(1+x).
+Beyond numerical stability, this formulation embodies the principle of diminishing marginal sensitivity. The gradient magnitude is steepest when
+x
+≈
+0
+x\approx 0
+and decays as
+x
+x
+increases. Consequently, the function prioritizes the preservation of highly unique trajectories, as the reward for adjusting already crowded regions diminishes.
+3.3
+Leave-one-out Margin for a Single Trajectory
+We now derive a per-sample marginal assignment by from the aspect of assessing the diversity of a language model through Monte Carlo approximations over arbitrary subsets. Let
+S
+⊂
+Ω
+S\subset\Omega
+be any finite collection of i.i.d. trajectories drawn from
+P
+θ
+(
+⋅
+∣
+x
+)
+P_{\theta}(\cdot\mid x)
+with cardinality
+|
+S
+|
+≥
+3
+|S|\geq 3
+. Since
+S
+S
+serves as a Monte Carlo sample of the trajectory space, we can estimate the population diversity
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+using a generalized within-group score
+D
+⁡
+(
+S
+)
+D(S)
+:
+D
+⁡
+(
+S
+)
+:=
+1
+|
+S
+|
+​
+∑
+y
+∈
+S
+g
+⁡
+(
+m
+^
+​
+(
+y
+,
+S
+)
+)
+,
+\displaystyle D(S):=\frac{1}{|S|}\sum_{y\in S}g\big(\widehat{m}(y;S)\big),
+(3)
+where
+m
+^
+​
+(
+y
+,
+S
+)
+:=
+1
+|
+S
+|
+−
+1
+​
+∑
+z
+∈
+S
+∖
+{
+y
+}
+k
+⁡
+(
+y
+,
+z
+)
+\widehat{m}(y;S):=\frac{1}{|S|-1}\sum_{z\in S\setminus\{y\}}k(y,z)
+.
+Here,
+m
+^
+​
+(
+y
+,
+S
+)
+\widehat{m}(y;S)
+estimates the local semantic density around
+y
+y
+based on the empirical distribution of
+S
+S
+. Since the samples are i.i.d.,
+D
+⁡
+(
+S
+)
+D(S)
+remains a consistent estimator for any valid subset
+S
+S
+.
+This statistical property allows us to quantify the contribution of a single trajectory
+o
+i
+o_{i}
+by contrasting the diversity estimate of the full generated batch
+Ω
+=
+{
+o
+1
+,
+…
+,
+o
+G
+}
+\Omega=\{o_{1},\dots,o_{G}\}
+against that of the subset
+Ω
+∖
+{
+o
+i
+}
+\Omega\setminus\{o_{i}\}
+. If
+o
+i
+o_{i}
+is informative, its presence should improve the resolution of the approximation compared to the subset that excludes it. We therefore define the diversity contribution
+s
+i
+s_{i}
+of each trajectory
+o
+i
+o_{i}
+towards the considered whole set as the leave-one-out marginal difference given as:
+s
+i
+:=
+D
+⁡
+(
+Ω
+)
+−
+D
+⁡
+(
+Ω
+∖
+{
+o
+i
+}
+)
+.
+\displaystyle s_{i}:=D(\Omega)-D\big(\Omega\setminus\{o_{i}\}\big).
+(4)
+In this formulation,
+D
+⁡
+(
+Ω
+)
+D(\Omega)
+utilizes all
+G
+G
+samples to estimate the kernelized density, while
+D
+⁡
+(
+Ω
+∖
+{
+o
+i
+}
+)
+D(\Omega\setminus\{o_{i}\})
+re-evaluates the score using the remaining
+G
+−
+1
+G-1
+trajectories. Explicitly, the term for the reduced set is computed as:
+D
+⁡
+(
+Ω
+∖
+{
+o
+i
+}
+)
+=
+1
+G
+−
+1
+​
+∑
+j
+≠
+i
+g
+⁡
+(
+m
+^
+​
+(
+o
+j
+,
+Ω
+∖
+{
+o
+i
+}
+)
+)
+.
+D(\Omega\setminus\{o_{i}\})=\frac{1}{G-1}\sum_{j\neq i}g\big(\widehat{m}(o_{j};\Omega\setminus\{o_{i}\})\big).
+A larger
+s
+i
+s_{i}
+indicates that including
+o
+i
+o_{i}
+yields a more significant gain in the estimated diversity of the set, implying that
+o
+i
+o_{i}
+captures a distinct semantic mode not covered by other samples. Conversely, a small or negative
+s
+i
+s_{i}
+suggests redundancy. Since the group size
+G
+G
+in reinforcement learning is typically small, computing these recursive leave-one-out marginals imposes a negligible computational burden.
+3.4
+Set-Level Policy Optimization Methods
+We integrate the marginal diversity contribution for each sample towards a certain set derived above as a plug-in shaping term for the group policy optimization framework introduced in the Preliminaries. Our method requires only the standard group of sampled trajectories
+{
+o
+i
+}
+i
+=
+1
+G
+\{o_{i}\}_{i=1}^{G}
+and the base advantages
+A
+¯
+i
+\bar{A}_{i}
+.
+We compute the diversity score
+s
+i
+s_{i}
+from the same group and form the augmented advantage:
+A
+^
+i
+:=
+A
+¯
+i
++
+λ
+​
+s
+i
+,
+\hat{A}_{i}:=\bar{A}_{i}+\lambda\ s_{i},
+where
+λ
+≥
+0
+\lambda\geq 0
+controls the trade-off between task performance and diversity. We then substitute this augmented advantage directly into the standard GRPO objective defined in Eq. (
+1
+), replacing the original base advantage.
+The diversity plug-in solely modifies the advantage term
+A
+¯
+i
+\bar{A}_{i}
+. This modular design ensures that our diversity-aware reward calculation is compatible with a broad family of set-level RL objectives including DAPO, GSPO and so on, provided they rely on a group-based advantage estimation.
+4
+Theoretical Analysis
+4.1
+Population view
+Table 1:
+Pass@1 accuracy on mathematical benchmarks for Qwen2.5-Math-7B. Entries marked with * are from the original paper.
+Method
+GSM8K
+MATH500
+College Math
+AMC23
+AIME24
+AIME25
+Avg
+Qwen2.5-Math-7B
+53.4
+48.1
+19.4
+41.3
+9.9
+4.0
+29.4
+R1-zero-Div
+∗
+90.6
+76.9
+47.5
+-
+-
+-
+-
+GRPO
+89.1
+73.5
+42.2
+53.5
+15.4
+9.7
+47.2
+GSPO
+89.5
+73.0
+45.0
+57.7
+17.4
+7.9
+48.4
+DAPO
+92.2
+77.6
+47.1
+59.6
+21.7
+11.0
+51.7
+SetPO
++GRPO
+92.2
+(+3.1)
+80.8
+(+7.3)
+48.3
+(+6.1)
+60.5
+(+7.0)
+21.6
+(+8.2)
+13.6
+(+3.9)
+52.8
+(+5.6)
+SetPO
++GSPO
+91.6
+(+2.1)
+75.7
+(+2.7)
+47.2
+(+2.2)
+60.9
+(+3.2)
+21.1
+(+3.7)
+10.1
+(+2.2)
+51.1
+(+2.7)
+SetPO
++DAPO
+93.0
+(+0.8)
+79.2
+(+1.6)
+49.5
+(+2.2)
+62.3
+(+2.7)
+25.3
+(+3.6)
+13.5
+(+2.5)
+53.8
+(+2.1)
+To understand the change of the diversity
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+towards any single trajectory, we take a perturbation perspective. Firstly, we give the assumptions on the kernel and the shaping functions as follows.
+Assumption 4.1
+.
+The kernel function
+k
+⁡
+(
+⋅
+,
+⋅
+)
+k(\cdot,\cdot)
+is measurable and symmetric, i.e.
+k
+⁡
+(
+x
+,
+y
+)
+=
+k
+⁡
+(
+y
+,
+x
+)
+k(x,y)=k(y,x)
+. Besides, it holds that
+0
+≤
+k
+⁡
+(
+x
+,
+y
+)
+≤
+1
+0\leq k(x,y)\leq 1
+for all
+x
+,
+y
+x,y
+. The shaping function
+g
+:
+[
+0
+,
+1
+]
+→
+ℝ
+g:[0,1]\to\mathbb{R}
+is continuously differentiable on
+[
+0
+,
+1
+]
+[0,1]
+and
+g
+′
+g^{\prime}
+is bounded. Besides
+g
+g
+is non-increasing on
+[
+0
+,
+1
+]
+[0,1]
+.
+Consider the mixture update
+P
+ε
+=
+(
+1
+−
+ε
+)
+​
+P
++
+ε
+​
+δ
+τ
+P_{\varepsilon}=(1-\varepsilon)P+\varepsilon\delta_{\tau}
+, which can be seen as a perturbation of the original distribution by single trajectory
+τ
+\tau
+. We characterize the influence of
+τ
+\tau
+through Gâteaux derivative.
+Theorem 4.2
+(Influence function of the diversity functional)
+.
+Under Assumption
+4.1
+, the Gâteaux derivative of
+ℱ
+\mathcal{F}
+at
+P
+P
+in the direction
+τ
+\tau
+is
+ℐ
+⁡
+(
+τ
+,
+P
+)
+:=
+\displaystyle\mathcal{I}(\tau;P):=
+d
+d
+​
+ε
+​
+ℱ
+​
+(
+P
+ε
+)
+|
+ε
+=
+0
+=
+g
+​
+(
+m
+P
+​
+(
+τ
+)
+)
+⏟
+intrinsic novelty
+\displaystyle\frac{d}{d\varepsilon}\mathcal{F}(P_{\varepsilon})\Big|_{\varepsilon=0}=\underbrace{g(m_{P}(\tau))}_{\textbf{intrinsic novelty}}
++
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+⏟
+interaction penalty
+−
+Ψ
+⁡
+(
+P
+)
+,
+\displaystyle\;+\;\underbrace{\mathbb{E}_{y\sim P}\!\left[g^{\prime}(m_{P}(y))\,k(y,\tau)\right]}_{\textbf{interaction penalty}}\;-\;\Psi(P),
+where
+Ψ
+⁡
+(
+P
+)
+\Psi(P)
+does not depend on
+τ
+\tau
+.
+The concrete technical derivations are omitted here and we defer all proofs to Appendix
+C
+. The influence splits into two complementary mechanisms:
+(i) an
+intrinsic novelty
+term
+g
+​
+(
+m
+P
+​
+(
+τ
+)
+)
+g(m_{P}(\tau))
+that strictly favors low local mass since
+g
+g
+is non-increasing; and
+(ii) an
+interaction penalty
+that discourages trajectories that are highly similar to what already exists, since
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+<
+0
+g^{\prime}(m_{P}(y))<0
+and the kernel weight
+k
+⁡
+(
+y
+,
+τ
+)
+k(y,\tau)
+concentrates the penalty on nearby regions.
+Thus, the
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+follows diminishing-returns principles and is anti-redundant.
+4.2
+Leave-one-out as marginal contribution
+Our algorithm operates on a finite candidate set and repeatedly removes the element that hurts diversity the least.
+We need to stress that the leave-one-out (LOO) score (
+4
+)
+is not a heuristic proxy. It is exactly the marginal decrease in the objective induced by removing
+o
+i
+o_{i}
+.
+The following results make this precise and show that
+s
+i
+s_{i}
+systematically penalizes redundancy. For finite set
+Ω
+\Omega
+, we characterize the marginal contribution of
+o
+i
+o_{i}
+as follows.
+Theorem 4.3
+(Exact decomposition of the LOO contribution)
+.
+For
+|
+Ω
+|
+≥
+3
+|\Omega|\geq 3
+,
+s
+i
+s_{i}
+admits an exact decomposition into three parts:
+s
+i
+=
+\displaystyle s_{i}=
+1
+|
+Ω
+|
+​
+g
+​
+(
+m
+i
+)
+⏟
+𝒯
+self
++
+(
+1
+|
+Ω
+|
+−
+1
+|
+Ω
+|
+−
+1
+)
+​
+∑
+j
+≠
+i
+g
+⁡
+(
+m
+j
+)
+⏟
+𝒯
+norm
+\displaystyle\underbrace{\frac{1}{|\Omega|}g(m_{i})}_{\mathcal{T}_{\text{self}}}+\underbrace{\Big(\frac{1}{|\Omega|}-\frac{1}{|\Omega|-1}\Big)\sum_{j\neq i}g(m_{j})}_{\mathcal{T}_{\text{norm}}}
++
+1
+|
+Ω
+|
+−
+1
+​
+∑
+j
+≠
+i
+[
+g
+⁡
+(
+m
+j
+)
+−
+g
+⁡
+(
+m
+j
+(
+−
+i
+)
+)
+]
+⏟
+𝒯
+interaction
+,
+\displaystyle+\underbrace{\frac{1}{|\Omega|-1}\sum_{j\neq i}\Big[g(m_{j})-g(m_{j}^{(-i)})\Big]}_{\mathcal{T}_{\text{interaction}}},
+where
+m
+j
+(
+−
+i
+)
+=
+m
+^
+​
+(
+o
+j
+,
+Ω
+∖
+{
+o
+i
+}
+)
+m_{j}^{(-i)}=\widehat{m}(o_{j};\Omega\setminus\{o_{i}\})
+.
+The concrete technical derivations are omitted here and we defer all proofs and a complete analysis to Appendix
+D
+. Moreover, each interaction summand depends on
+o
+i
+o_{i}
+only through the pairwise similarity
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+k(o_{j},o_{i})
+.
+The decomposition illustrates why
+s
+i
+s_{i}
+serves as a robust signal. The first term,
+𝒯
+self
+\mathcal{T}_{\text{self}}
+, rewards points that are individually novel under the diversity shaping function
+g
+g
+. Meanwhile, the interaction term,
+𝒯
+interaction
+\mathcal{T}_{\text{interaction}}
+, measures the extent to which
+o
+i
+o_{i}
+congests
+the neighborhood structure. Removing a redundant point typically reduces the local mass of its neighbors, thereby increasing their
+g
+⁡
+(
+⋅
+)
+g(\cdot)
+values. This raises
+D
+⁡
+(
+Ω
+∖
+{
+o
+i
+}
+)
+D(\Omega\setminus\{o_{i}\})
+and consequently yields a smaller
+s
+i
+s_{i}
+. This mechanism captures exactly the diminishing-returns behavior desired for the leave-one-out construction.
+Furthermore, we consider our marginal contribution towards each similarity between current sample and others.
+Theorem 4.4
+(Strict anti-redundancy of
+s
+i
+s_{i}
+)
+.
+For any
+t
+≠
+i
+t\neq i
+, if Assumption
+4.1
+holds, the leave-one-out contribution is strictly decreasing in the pairwise similarity
+k
+⁡
+(
+o
+i
+,
+o
+t
+)
+k(o_{i},o_{t})
+:
+∂
+s
+i
+∂
+k
+⁡
+(
+o
+i
+,
+o
+t
+)
+=
+1
+|
+Ω
+|
+​
+(
+|
+Ω
+|
+−
+1
+)
+​
+(
+g
+′
+​
+(
+m
+i
+)
++
+g
+′
+​
+(
+m
+t
+)
+)
+<
+0
+.
+\frac{\partial s_{i}}{\partial k(o_{i},o_{t})}=\frac{1}{|\Omega|(|\Omega|-1)}\Big(g^{\prime}(m_{i})+g^{\prime}(m_{t})\Big)\;<\;0.
+Table 2:
+Pass@1 accuracy on mathematical benchmarks for Qwen2.5-Math-1.5B. Entries marked with * are from the original paper.
+Method
+GSM8K
+MATH500
+College Math
+AMC23
+AIME24
+AIME25
+Avg
+Qwen2.5-Math-1.5B
+39.4
+36.4
+6.6
+29.5
+4.6
+1.8
+19.7
+R1-zero-Div
+∗
+83.2
+70.4
+43.9
+-
+-
+-
+-
+GRPO
+83.0
+67.2
+43.1
+47.5
+11.5
+8.2
+43.4
+GSPO
+83.5
+67.2
+43.0
+48.8
+11.1
+5.6
+43.2
+DAPO
+85.9
+69.5
+44.3
+50.1
+12.0
+6.6
+44.7
+SetPO
++GRPO
+86.9
+(+3.9)
+72.9
+(+5.7)
+45.7
+(+2.6)
+51.3
+(+3.8)
+13.4
+(+1.9)
+9.7
+(+1.5)
+46.7
+(+3.3)
+SetPO
++GSPO
+85.0
+(+1.5)
+69.4
+(+2.2)
+44.7
+(+1.7)
+50.6
+(+1.8)
+13.2
+(+2.1)
+7.4
+(+1.8)
+45.2
+(+2.0)
+SetPO
++DAPO
+86.6
+(+0.7)
+71.7
+(+2.2)
+46.5
+(+2.2)
+53.2
+(+3.1)
+13.4
+(+1.4)
+8.9
+(+2.3)
+46.7
+(+2.0)
+Increasing similarity to any other element must reduce the marginal contribution of
+o
+i
+o_{i}
+under our objective.
+Therefore, iterative removal of the smallest-
+s
+i
+s_{i}
+elements is provably a redundancy-removal procedure. Finally, we establish a global ordering guarantee. If one point is uniformly less similar to the rest of the set, then leave-one-out necessarily ranks it higher.
+Theorem 4.5
+(Dominance ordering)
+.
+Let
+o
+r
+,
+o
+c
+∈
+Ω
+o_{r},o_{c}\in\Omega
+. If Assumption
+4.1
+holds and
+k
+⁡
+(
+o
+r
+,
+o
+j
+)
+≤
+k
+⁡
+(
+o
+c
+,
+o
+j
+)
+k(o_{r},o_{j})\leq k(o_{c},o_{j})
+for all
+j
+∉
+{
+r
+,
+c
+}
+j\notin\{r,c\}
+, and strict inequality holds for at least one such
+j
+j
+,
+then it holds that
+s
+r
+>
+s
+c
+s_{r}>s_{c}
+.
+In summary, Theorem
+4.2
+quantifies how injecting a single trajectory perturbs the population-level diversity functional through its influence. A trajectory is favored when it lies in low-mass regions, and it is penalized according to its similarity-induced overlap with the existing distribution. On a finite candidate set, Theorems
+4.3
+–
+4.5
+further establish that the leave-one-out margin
+s
+i
+s_{i}
+, defined as the exact marginal decrease of the same objective when removing
+o
+i
+o_{i}
+, is strictly decreasing in every pairwise similarity
+k
+⁡
+(
+o
+i
+,
+o
+t
+)
+k(o_{i},o_{t})
+. Therefore,
+s
+i
+s_{i}
+provides a principled, anti-redundant ranking signal whose optimization is directly aligned with increasing the diversity objective under the induced empirical distribution, rather than serving as a heuristic.
+5
+Numerical Experiments
+5.1
+General Mathematical Reasoning
+Backbone Models.
+We employ two instruction-tuned backbone models of varying scales to verify the generalizability of our approach: Qwen2.5-Math-7B, Qwen2.5-Math-1.5B
+(
+Yang et al., 2024
+)
+. Our implementation is built upon the open-source veRL framework
+(
+Sheng et al., 2024
+)
+to ensure efficient training and flexible rollout management.
+Baselines.
+We benchmark our proposed method SetPO+GRPO, SetPO+GSPO and SetPO+DAPO against four representative reinforcement learning baselines: GRPO
+(
+Shao et al., 2024
+)
+, GSPO
+(
+Zheng et al., 2025
+)
+, DAPO
+(
+Yu et al., 2025
+)
+and R1-Zero-Div
+(
+Yao et al., 2025
+)
+. To ensure a rigorous and fair comparison, we strictly unify the experimental protocols across all methods; specifically, we utilize identical hyperparameters including learning rate, batch size, and total training steps.
+Figure 2:
+Performance of SetPO+GRPO and SetPO+GSPO on the Olympiad benchmark. Shaded regions indicate variance across runs. Both methods improve performance and reduce variability, suggesting that SetPO stabilizes the training dynamics.
+Training Configuration.
+All models are trained using the standard GSM8K training split
+(
+Cobbe et al., 2021
+)
+. We optimize the models for 2 epochs using the AdamW optimizer with a constant learning rate of
+3
+×
+10
+−
+6
+3\times 10^{-6}
+and a global batch size of 64. During the online data generation phase, we set the rollout number to 6 per prompt and utilize a sampling temperature of 0.9 to encourage diverse exploration in the solution space. More concrete experiment settings can be found in Appendix
+E
+.
+Figure 3:
+Pass@K performance on the Countdown task for SetPO (SetPO+GRPO) versus the GRPO baseline under varying decoding temperatures, training rollout counts, and KL penalties. SetPO consistently achieves higher Pass@K across these settings.
+Evaluation Configuration.
+We assess performance across a comprehensive suite of mathematical reasoning benchmarks, including GSM8K test, MATH500
+(
+Hendrycks et al., 2021
+)
+, Olympiad
+(
+He et al., 2024
+)
+, college math bench
+(
+Tang et al., 2024
+)
+, AMC 2023
+(
+Mathematical Association of America, 2023
+)
+, and AIME 24/25
+(
+Mathematical Association of America, 2025
+)
+. To ensure statistical robustness, all reported results are averaged over five random seeds. Unless otherwise specified, we report Pass@1 accuracy derived from Avg@64 (i.e., averaging over 64 sampled generations) with an inference-time temperature of 0.5. For the college math bench, we adopt Avg@16 for efficiency due to the significantly larger size of its evaluation set.
+Figure 4:
+Diversity scores across the AIME24 benchmark, computed per problem from 16 Gemini-2.5-Flash generated solutions. Scores range from 1 (lowest diversity) to 5 (highest diversity).
+Numerical Results.
+Tables
+1
+and
+2
+summarize the Pass@1 results for the 7B and 1.5B models, respectively. Overall, SetPO achieves large margin gains over baseline methods across model scales and benchmark difficulties. In particular, SetPO consistently improves GRPO, GSPO, and DAPO across benchmarks and model scales. As shown in Table
+1
+, SetPO+DAPO achieves the best overall performance with an average Pass@1 accuracy of 53.8%. Notably, the most pronounced improvement is observed when applying SetPO to GRPO, which increases the average accuracy from 47.2% to 52.8% (+5.6). On challenging benchmarks, SetPO yields strong relative gains; for example, on AIME24, accuracy improves from 15.7% to 21.6%, corresponding to a relative increase of over 40%. Table
+2
+further demonstrates a similar trend on the 1.5B models, where SetPO+DAPO achieves the best overall average accuracy of 46.7%. In addition, as shown in Figure
+2
+, our method significantly reduces the variance of the baselines and yields consistent performance gains across different random seeds.
+Diversity Assessment.
+To assess the diversity of the generated answers, we utilize Gemini-2.5-Flash as an LLM evaluator. The scoring adopts a 5-point scale, ranging from minimum diversity 1 to maximum diversity 5. The full evaluation prompt is provided in Appendix
+H
+. Figure
+4
+shows that SetPO-enhanced methods consistently achieve higher diversity scores than the baselines across both 1.5B and 7B model scales, demonstrating that our algorithm effectively improves the diversity of final outputs.
+5.2
+Countdown Evaluation
+Task Description.
+The Countdown task is a rigorous benchmark for arithmetic reasoning and constraint satisfaction. In this task, the model is provided with a target number and a set of input numbers. The goal is to generate a valid mathematical expression using the input numbers and basic arithmetic operations that evaluates to the target. This task challenges the model’s ability to perform search in a discrete action space and verify its own reasoning steps.
+Figure 5:
+Pass@k performance of SetPO+GRPO versus the GRPO baseline on Qwen2.5-32B. SetPO+GRPO consistently outperforms GRPO across all k, demonstrating robust gains under varying sampling budgets.
+Model and Training.
+We conduct experiments on the countdown dataset
+(
+Pang et al., 2023
+)
+using Qwen2.5-3B as the backbone model. During training, we optimize all models with a global batch size of 128 and a maximum generation length of 2048. To enforce strict adherence to the required answer format, our rule-based reward function incorporates an auxiliary format reward term with a weight of 0.1. We explore varied hyperparameter settings, specifically considering rollout numbers in
+{
+3
+,
+7
+}
+\{3,7\}
+and KL divergence coefficients of
+{
+0.001
+,
+0.005
+}
+\{0.001,0.005\}
+. Detailed configurations are provided in Appendix
+E
+.
+Evaluation Protocol.
+During inference, we report the unbiased Pass@
+k
+k
+metric for
+k
+∈
+{
+1
+,
+…
+,
+64
+}
+k\in\{1,\dots,64\}
+. To provide a comprehensive analysis of the model’s behavior, we investigate the impact of sampling temperature by evaluating performance at
+T
+=
+0.5
+T=0.5
+and
+T
+=
+1.0
+T=1.0
+, and discuss how sample size variations influence empirical conclusions.
+Performance Superiority.
+As illustrated in Figure
+3
+, SetPO consistently outperforms the GRPO baseline on the Countdown task, demonstrating superior sample efficiency and solution quality. This performance advantage remains consistent under both 3 rollout and 7 rollout settings. Notably, the performance gap widens as
+k
+k
+increases, indicating that SetPO is particularly effective at covering more rewarding modes compared to the baseline. Furthermore, our method maintains a distinct advantage across diverse sampling configurations. While a high temperature generally yields improved pass rates for both methods by encouraging broader exploration, SetPO consistently surpasses GRPO at temperatures of both
+0.5
+0.5
+and
+1.0
+1.0
+. Finally, the analysis of varying KL penalties shown in the right panel of Figure
+3
+further validates the stability of SetPO, showing that it yields robust performance improvements over the baseline irrespective of the regularization strength.
+Diversity Analysis.
+To systematically evaluate the output diversity, we analyze the statistics presented in Table
+3
+. We introduce two primary metrics: (1) diversity width, defined as the count of samples for which the model generates at least two distinct correct solutions; and (2) average mode, which calculates the average number of unique valid answers specifically for those instances identified diverse.
+The empirical results demonstrate that integrating SetPO significantly expands the solution space compared to the GRPO baseline. In the 7-rollout setting, SetPO+GRPO increases the diversity width from 351 to 415, indicating a robust capability to discover alternative reasoning paths. Furthermore, the average mode rises from 2.3 to 3.5. This quantitative improvement confirms that SetPO+GRPO actively promotes a broader coverage of valid solutions.
+Table 3:
+Diversity statistics for the Countdown task. Diversity width measures the count of problems yielding at least two different outputs. Average mode represents the mean number of distinct answers per question. Sampling temperature is set to 1.0.
+Setting
+Diversity
+Average
+Width
+Mode
+Rollout 7 SetPO+GRPO
+415
+3.5
+Rollout 7 GRPO
+351
+2.3
+Rollout 3 SetPO+GRPO
+403
+3.2
+Rollout 3 GRPO
+321
+2.1
+5.3
+Scaling Up to 32B Models
+Experimental Settings.
+We further validate the scalability of our approach by extending the experiments to the 32B parameter scale, utilizing Qwen2.5-32B
+(
+Team and others, 2024
+)
+as the backbone model. The models are fine-tuned on the challenging hard subset of Simple-RL Zoo
+(
+Zeng et al., 2025
+)
+. To ensure stable optimization and effective exploration at this scale, we configure the global batch size to 1024 and the PPO mini-batch size to 256. During the inference rollout phase, we generate 6 trajectories per prompt with a sampling temperature of 0.1 to maintain a balance between diversity and precision.
+Numerical Performance.
+Figure
+5
+verifies the scalability of SetPO on 32B-parameter models, where it consistently outperforms the GRPO baseline across all four mathematical benchmarks. Specifically, SetPO shows consistent advantages in both single-sample and multi-sample regimes. In the Pass@1 setting, our method achieves a clear accuracy improvement over the baseline, especially on the more challenging AIME 2025 and Olympiad tasks, suggesting stronger reasoning quality. On hard benchmarks such as AIME24 and AIME25, SetPO provides an almost 5 percentage-point gain in Pass@1 compared to vanilla GRPO. Moreover, as the sampling budget
+k
+k
+increases, SetPO consistently preserves this performance gap. These results indicate that SetPO not only improves the correctness of individual solutions, but also enhances the diversity and robustness of the generation distribution for complex reasoning tasks.
+6
+Conclusion
+We introduced SetPO, a set-level policy optimization method that promotes output diversity by rewarding trajectories according to their leave-one-out marginal contribution within the rollout set. SetPO estimates a local kernel density induced by semantic trajectory similarity and converts each trajectory’s density-sensitive marginal effect into an interpretable leave-one-out diversity credit, which can be incorporated into standard group-based policy optimization. We analyze the diversity functional under distributional perturbations, establishing bounds and a monotonic mechanism showing that rarer modes yield larger diversity gains. Extensive experiments across a wide range of model sizes on mathematical reasoning and combinatorial tasks show that SetPO consistently outperforms strong baselines, achieving higher accuracy and maintaining solution diversity.
+Impact Statement
+This paper presents work whose goal is to advance the field of reinforcement learning. There are many potential societal consequences of our work, none
+which we feel must be specifically highlighted here.
+References
+Ahmadian
+et al.
+(2024)
+A. Ahmadian, C. Cremer, M. Gallé, M. Fadaee, J. Kreutzer, O. Pietquin, A. Üstün, and S. Hooker
+Back to basics: revisiting reinforce style optimization for learning from human feedback in llms
+.
+arXiv preprint arXiv:2402.14740
+.
+Cited by:
+§2
+.
+Chen (2021)
+M. Chen
+Evaluating large language models trained on code
+.
+arXiv preprint arXiv:2107.03374
+.
+Cited by:
+§E.2
+.
+Chen
+et al.
+(2025a)
+M. Chen, G. Chen, W. Wang, and Y. Yang
+Seed-grpo: semantic entropy enhanced grpo for uncertainty-aware policy optimization
+.
+arXiv preprint arXiv:2505.12346
+.
+Cited by:
+§2
+.
+Chen
+et al.
+(2025b)
+Z. Chen, X. Qin, Y. Wu, Y. Ling, Q. Ye, W. X. Zhao, and G. Shi
+Pass@ k training for adaptively balancing exploration and exploitation of large reasoning models
+.
+arXiv preprint arXiv:2508.10751
+.
+Cited by:
+§1
+.
+Cheng
+et al.
+(2025)
+D. Cheng, S. Huang, X. Zhu, B. Dai, W. X. Zhao, Z. Zhang, and F. Wei
+Reasoning with exploration: an entropy perspective on reinforcement learning for llms, 2025
+.
+arXiv preprint arXiv:2506.14758
+.
+Cited by:
+§1
+,
+§2
+.
+Chu
+et al.
+(2025)
+X. Chu, H. Huang, X. Zhang, F. Wei, and Y. Wang
+Gpg: a simple and strong reinforcement learning baseline for model reasoning
+.
+arXiv preprint arXiv:2504.02546
+.
+Cited by:
+§2
+.
+Chung
+et al.
+(2025)
+J. J. Y. Chung, V. Padmakumar, M. Roemmele, Y. Sun, and M. Kreminski
+Modifying large language model post-training for diverse creative writing
+.
+arXiv preprint arXiv:2503.17126
+.
+Cited by:
+§2
+.
+Cobbe
+et al.
+(2021)
+K. Cobbe, V. Kosaraju, M. Bavarian, M. Chen, H. Jun, L. Kaiser, M. Plappert, J. Tworek, J. Hilton, R. Nakano, C. Hesse, and J. Schulman
+Training verifiers to solve math word problems
+.
+External Links:
+2110.14168
+,
+Link
+Cited by:
+§5.1
+.
+Cui
+et al.
+(2025)
+G. Cui, Y. Zhang, J. Chen, L. Yuan, Z. Wang, Y. Zuo, H. Li, Y. Fan, H. Chen, W. Chen,
+et al.
+The entropy mechanism of reinforcement learning for reasoning language models
+.
+arXiv preprint arXiv:2505.22617
+.
+Cited by:
+§1
+.
+Guo
+et al.
+(2025)
+D. Guo, D. Yang, H. Zhang, J. Song, P. Wang, Q. Zhu, R. Xu, R. Zhang, S. Ma, X. Bi,
+et al.
+DeepSeek-R1 incentivizes reasoning in LLMs through reinforcement learning
+.
+Nature
+645
+(
+8081
+),
+pp. 633–638
+.
+Cited by:
+§1
+.
+Gupta
+et al.
+(2024)
+N. Gupta, H. Narasimhan, W. Jitkrittum, A. S. Rawat, A. K. Menon, and S. Kumar
+Language model cascades: token-level uncertainty and beyond
+.
+arXiv preprint arXiv:2404.10136
+.
+Cited by:
+§1
+.
+He
+et al.
+(2024)
+C. He, R. Luo, Y. Bai, S. Hu, Z. Thai, J. Shen, J. Hu, X. Han, Y. Huang, Y. Zhang,
+et al.
+Olympiadbench: A challenging benchmark for promoting AGI with Olympiad-level bilingual multimodal scientific problems
+.
+In
+Proceedings of the 62nd Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)
+,
+pp. 3828–3850
+.
+Cited by:
+§5.1
+.
+Hendrycks
+et al.
+(2021)
+D. Hendrycks, C. Burns, S. Kadavath, A. Arora, S. Basart, E. Tang, D. Song, and J. Steinhardt
+Measuring mathematical problem solving with the math dataset
+.
+arXiv preprint arXiv:2103.03874
+.
+Cited by:
+§5.1
+.
+Hu (2025)
+J. Hu
+Reinforce++: a simple and efficient approach for aligning large language models
+.
+arXiv preprint arXiv:2501.03262
+.
+Cited by:
+§2
+.
+Ismayilzada
+et al.
+(2025)
+M. Ismayilzada, A. Laverghetta, S. A. Luchini, R. Patel, A. Bosselut, L. Van Der Plas, and R. E. Beaty
+Creative preference optimization
+.
+Findings of the Association for Computational Linguistics: EMNLP 2025
+,
+pp. 9580–9609
+.
+Cited by:
+§2
+.
+Ladosz
+et al.
+(2022)
+P. Ladosz, L. Weng, M. Kim, and H. Oh
+Exploration in deep reinforcement learning: a survey
+.
+Information Fusion
+85
+,
+pp. 1–22
+.
+Cited by:
+§2
+.
+Lanchantin
+et al.
+(2025)
+J. Lanchantin, A. Chen, S. Dhuliawala, P. Yu, J. Weston, S. Sukhbaatar, and I. Kulikov
+Diverse preference optimization
+.
+arXiv preprint arXiv:2501.18101
+.
+Cited by:
+§2
+.
+Li
+et al.
+(2025)
+T. Li, Y. Zhang, P. Yu, S. Saha, D. Khashabi, J. Weston, J. Lanchantin, and T. Wang
+Jointly reinforcing diversity and quality in language model generations
+.
+arXiv preprint arXiv:2509.02534
+.
+Cited by:
+§2
+.
+Li
+et al.
+(2023)
+Z. Li, T. Xu, Y. Zhang, Z. Lin, Y. Yu, R. Sun, and Z. Luo
+Remax: a simple, effective, and efficient reinforcement learning method for aligning large language models
+.
+arXiv preprint arXiv:2310.10505
+.
+Cited by:
+§2
+.
+Liu
+et al.
+(2025)
+Z. Liu, C. Chen, W. Li, P. Qi, T. Pang, C. Du, W. S. Lee, and M. Lin
+Understanding r1-zero-like training: a critical perspective
+.
+arXiv preprint arXiv:2503.20783
+.
+Cited by:
+§2
+.
+Masood and Doshi-Velez (2019)
+M. A. Masood and F. Doshi-Velez
+Diversity-inducing policy gradient: using maximum mean discrepancy to find a set of diverse policies
+.
+arXiv preprint arXiv:1906.00088
+.
+Cited by:
+§2
+.
+Mathematical Association of America (2023)
+Mathematical Association of America
+American mathematics competitions (amc)
+.
+External Links:
+Link
+Cited by:
+§5.1
+.
+Mathematical Association of America (2025)
+Mathematical Association of America
+American invitational mathematics examination (aime)
+.
+External Links:
+Link
+Cited by:
+§5.1
+.
+Ouyang
+et al.
+(2022)
+L. Ouyang, J. Wu, X. Jiang, D. Almeida, C. Wainwright, P. Mishkin, C. Zhang, S. Agarwal, K. Slama, A. Ray,
+et al.
+Training language models to follow instructions with human feedback
+.
+Advances in neural information processing systems
+35
+,
+pp. 27730–27744
+.
+Cited by:
+§1
+.
+Pang
+et al.
+(2023)
+J. Pang, P. Wang, K. Li, X. Chen, J. Xu, Z. Zhang, and Y. Yu
+Language model self-improvement by reinforcement learning contemplation
+.
+External Links:
+2305.14483
+,
+Link
+Cited by:
+§5.2
+.
+Schulman
+et al.
+(2017)
+J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov
+Proximal policy optimization algorithms
+.
+arXiv preprint arXiv:1707.06347
+.
+Cited by:
+§1
+.
+Shao
+et al.
+(2024)
+Z. Shao, P. Wang, Q. Zhu, R. Xu, J. Song, X. Bi, H. Zhang, M. Zhang, Y. K. Li, Y. Wu, and D. Guo
+DeepSeekMath: pushing the limits of mathematical reasoning in open language models
+.
+External Links:
+2402.03300
+,
+Link
+Cited by:
+§1
+,
+§5.1
+.
+Sheng
+et al.
+(2024)
+G. Sheng, C. Zhang, Z. Ye, X. Wu, W. Zhang, R. Zhang, Y. Peng, H. Lin, and C. Wu
+HybridFlow: a flexible and efficient rlhf framework
+.
+arXiv preprint arXiv: 2409.19256
+.
+Cited by:
+§5.1
+.
+Shrivastava
+et al.
+(2025)
+V. Shrivastava, A. Awadallah, V. Balachandran, S. Garg, H. Behl, and D. Papailiopoulos
+Sample more to think less: group filtered policy optimization for concise reasoning
+.
+arXiv preprint arXiv:2508.09726
+.
+Cited by:
+§2
+.
+Tang
+et al.
+(2025)
+Y. Tang, K. Zheng, G. Synnaeve, and R. Munos
+Optimizing language models for inference time objectives using reinforcement learning
+.
+arXiv preprint arXiv:2503.19595
+.
+Cited by:
+§1
+.
+Tang
+et al.
+(2024)
+Z. Tang, X. Zhang, B. Wang, and F. Wei
+Mathscale: scaling instruction tuning for mathematical reasoning
+.
+arXiv preprint arXiv:2403.02884
+.
+Cited by:
+§5.1
+.
+Team
+et al.
+(2024)
+Q. Team
+et al.
+Qwen2 technical report
+.
+arXiv preprint arXiv:2407.10671
+2
+(
+3
+).
+Cited by:
+§5.3
+.
+Walder and Karkhanis (2025)
+C. Walder and D. Karkhanis
+Pass@ k policy optimization: solving harder reinforcement learning problems
+.
+arXiv preprint arXiv:2505.15201
+.
+Cited by:
+§1
+.
+Wang
+et al.
+(2025)
+S. Wang, L. Yu, C. Gao, C. Zheng, S. Liu, R. Lu, K. Dang, X. Chen, J. Yang, Z. Zhang,
+et al.
+Beyond the 80/20 rule: high-entropy minority tokens drive effective reinforcement learning for llm reasoning
+.
+arXiv preprint arXiv:2506.01939
+.
+Cited by:
+§2
+.
+Yang
+et al.
+(2024)
+A. Yang, B. Zhang, B. Hui, B. Gao, B. Yu, C. Li, D. Liu, J. Tu, J. Zhou, J. Lin, K. Lu, M. Xue, R. Lin, T. Liu, X. Ren, and Z. Zhang
+Qwen2.5-math technical report: toward mathematical expert model via self-improvement
+.
+External Links:
+2409.12122
+,
+Link
+Cited by:
+§5.1
+.
+Yao
+et al.
+(2025)
+J. Yao, R. Cheng, X. Wu, J. Wu, and K. C. Tan
+Diversity-Aware Policy Optimization for Large Language Model Reasoning
+.
+arXiv preprint arXiv:2505.23433
+.
+Cited by:
+§E.1
+,
+§1
+,
+§2
+,
+§5.1
+.
+Yu
+et al.
+(2025)
+Q. Yu, Z. Zhang, R. Zhu, Y. Yuan, X. Zuo, Y. Yue, W. Dai, T. Fan, G. Liu, L. Liu,
+et al.
+DAPO: an open-source llm reinforcement learning system at scale
+.
+arXiv preprint arXiv:2503.14476
+.
+Cited by:
+§1
+,
+§2
+,
+§5.1
+.
+Yue
+et al.
+(2025)
+Y. Yue, Z. Chen, R. Lu, A. Zhao, Z. Wang, S. Song, and G. Huang
+Does reinforcement learning really incentivize reasoning capacity in llms beyond the base model?
+.
+arXiv preprint arXiv:2504.13837
+.
+Cited by:
+§F.2
+,
+§1
+.
+Zeng
+et al.
+(2025)
+W. Zeng, Y. Huang, Q. Liu, W. Liu, K. He, Z. Ma, and J. He
+Simplerl-zoo: investigating and taming zero reinforcement learning for open base models in the wild
+.
+arXiv preprint arXiv:2503.18892
+.
+Cited by:
+Table 7
+,
+§5.3
+.
+Zhao
+et al.
+(2025)
+Y. Zhao, Y. Liu, J. Liu, J. Chen, X. Wu, Y. Hao, T. Lv, S. Huang, L. Cui, Q. Ye,
+et al.
+Geometric-mean policy optimization
+.
+arXiv preprint arXiv:2507.20673
+.
+Cited by:
+§1
+,
+§2
+.
+Zheng
+et al.
+(2025)
+C. Zheng, S. Liu, M. Li, X. Chen, B. Yu, C. Gao, K. Dang, Y. Liu, R. Men, A. Yang,
+et al.
+Group sequence policy optimization
+.
+arXiv preprint arXiv:2507.18071
+.
+Cited by:
+§1
+,
+§2
+,
+§5.1
+.
+Appendix A
+Brief Introduction to DAPO and GSPO
+DAPO.
+Decoupled Clip and Dynamic sAmpling Policy Optimization (DAPO) is a GRPO-style RL algorithm tailored to verifiable reasoning tasks, where for each prompt
+q
+q
+one samples a group of responses
+{
+o
+i
+}
+i
+=
+1
+G
+\{o_{i}\}_{i=1}^{G}
+from the behavior policy
+π
+θ
+old
+\pi_{\theta_{\text{old}}}
+and optimizes a clipped surrogate objective with
+asymmetric
+clipping ranges to mitigate entropy collapse (“Clip-Higher”). Concretely, DAPO maximizes
+J
+DAPO
+(
+θ
+)
+=
+𝔼
+(
+q
+,
+a
+)
+∼
+𝒟
+,
+{
+o
+i
+}
+i
+=
+1
+G
+∼
+π
+θ
+old
+(
+⋅
+|
+q
+)
+[
+1
+∑
+i
+=
+1
+G
+|
+o
+i
+|
+∑
+i
+=
+1
+G
+∑
+t
+=
+1
+|
+o
+i
+|
+min
+(
+r
+i
+,
+t
+(
+θ
+)
+A
+¯
+i
+,
+t
+,
+clip
+(
+r
+i
+,
+t
+(
+θ
+)
+,
+1
+−
+ϵ
+low
+,
+1
++
+ϵ
+high
+)
+A
+¯
+i
+,
+t
+)
+]
+,
+J_{\text{DAPO}}(\theta)=\mathbb{E}_{(q,a)\sim\mathcal{D},\,\{o_{i}\}_{i=1}^{G}\sim\pi_{\theta_{\text{old}}}(\cdot|q)}\Bigg[\frac{1}{\sum_{i=1}^{G}|o_{i}|}\sum_{i=1}^{G}\sum_{t=1}^{|o_{i}|}\min\Big(r_{i,t}(\theta)\,\bar{A}_{i,t},\ \mathrm{clip}(r_{i,t}(\theta),\,1-\epsilon_{\text{low}},\,1+\epsilon_{\text{high}})\,\bar{A}_{i,t}\Big)\Bigg],
+subject to the dynamic-sampling constraint
+0
+<
+|
+{
+o
+i
+:
+is
+​
+_
+​
+equivalent
+​
+(
+a
+,
+o
+i
+)
+}
+|
+<
+G
+.
+0<\big|\{\,o_{i}:\mathrm{is\_equivalent}(a,o_{i})\,\}\big|<G.
+Here
+r
+i
+,
+t
+​
+(
+θ
+)
+=
+π
+θ
+​
+(
+o
+i
+,
+t
+∣
+q
+,
+o
+i
+,
+<
+t
+)
+π
+θ
+old
+​
+(
+o
+i
+,
+t
+∣
+q
+,
+o
+i
+,
+<
+t
+)
+r_{i,t}(\theta)=\frac{\pi_{\theta}(o_{i,t}\mid q,o_{i,<t})}{\pi_{\theta_{\text{old}}}(o_{i,t}\mid q,o_{i,<t})}
+is the token-level importance ratio, and
+A
+^
+i
+,
+t
+\hat{A}_{i,t}
+is a group-normalized advantage (shared across tokens within the same response) computed from outcome rewards
+{
+R
+i
+}
+i
+=
+1
+G
+\{R_{i}\}_{i=1}^{G}
+via
+A
+^
+i
+,
+t
+=
+R
+i
+−
+mean
+⁡
+(
+{
+R
+i
+}
+)
+std
+⁡
+(
+{
+R
+i
+}
+)
+\hat{A}_{i,t}=\frac{R_{i}-\mathrm{mean}(\{R_{i}\})}{\mathrm{std}(\{R_{i}\})}
+.
+GSPO.
+Group Sequence Policy Optimization (GSPO) addresses a mismatch in GRPO between token-level importance ratios and sequence-level rewards by defining the importance ratio at the
+sequence
+level and applying
+sequence-level
+clipping. GSPO maximizes
+J
+GSPO
+(
+θ
+)
+=
+𝔼
+x
+∼
+𝒟
+,
+{
+y
+i
+}
+i
+=
+1
+G
+∼
+π
+θ
+old
+(
+⋅
+|
+x
+)
+[
+1
+G
+∑
+i
+=
+1
+G
+min
+(
+s
+i
+(
+θ
+)
+A
+¯
+i
+,
+clip
+(
+s
+i
+(
+θ
+)
+,
+1
+−
+ϵ
+,
+1
++
+ϵ
+)
+A
+¯
+i
+)
+]
+,
+J_{\text{GSPO}}(\theta)=\mathbb{E}_{x\sim\mathcal{D},\,\{y_{i}\}_{i=1}^{G}\sim\pi_{\theta_{\text{old}}}(\cdot|x)}\left[\frac{1}{G}\sum_{i=1}^{G}\min\Big(s_{i}(\theta)\,\bar{A}_{i},\ \mathrm{clip}(s_{i}(\theta),\,1-\epsilon,\,1+\epsilon)\,\bar{A}_{i}\Big)\right],
+where the group-based advantage is
+A
+¯
+i
+=
+r
+⁡
+(
+x
+,
+y
+i
+)
+−
+mean
+⁡
+(
+{
+r
+⁡
+(
+x
+,
+y
+i
+)
+}
+)
+std
+⁡
+(
+{
+r
+⁡
+(
+x
+,
+y
+i
+)
+}
+)
+\bar{A}_{i}=\frac{r(x,y_{i})-\mathrm{mean}(\{r(x,y_{i})\})}{\mathrm{std}(\{r(x,y_{i})\})}
+and the (length-normalized) sequence-level importance ratio is
+s
+i
+​
+(
+θ
+)
+=
+(
+π
+θ
+​
+(
+y
+i
+∣
+x
+)
+π
+θ
+old
+​
+(
+y
+i
+∣
+x
+)
+)
+1
+|
+y
+i
+|
+=
+exp
+⁡
+(
+1
+|
+y
+i
+|
+​
+∑
+t
+=
+1
+|
+y
+i
+|
+log
+⁡
+π
+θ
+​
+(
+y
+i
+,
+t
+∣
+x
+,
+y
+i
+,
+<
+t
+)
+π
+θ
+old
+​
+(
+y
+i
+,
+t
+∣
+x
+,
+y
+i
+,
+<
+t
+)
+)
+.
+s_{i}(\theta)=\left(\frac{\pi_{\theta}(y_{i}\mid x)}{\pi_{\theta_{\text{old}}}(y_{i}\mid x)}\right)^{\!\frac{1}{|y_{i}|}}=\exp\left(\frac{1}{|y_{i}|}\sum_{t=1}^{|y_{i}|}\log\frac{\pi_{\theta}(y_{i,t}\mid x,y_{i,<t})}{\pi_{\theta_{\text{old}}}(y_{i,t}\mid x,y_{i,<t})}\right).
+This design aligns the optimization unit (sequence) with the reward granularity, reducing variance and improving stability, especially for long responses and large-scale training.
+Appendix B
+Our Algorithm
+The target function used for SetPO+GRPO is given as
+J
+⁡
+(
+θ
+)
+=
+𝔼
+[
+1
+G
+∑
+i
+=
+1
+G
+1
+|
+o
+i
+|
+∑
+t
+=
+1
+|
+o
+i
+|
+min
+(
+ρ
+i
+,
+t
+(
+θ
+)
+A
+^
+i
+,
+clip
+(
+ρ
+i
+,
+t
+(
+θ
+)
+,
+1
+−
+ε
+,
+1
++
+ε
+)
+A
+^
+i
+)
+−
+β
+KL
+(
+π
+θ
+(
+⋅
+∣
+x
+,
+a
+i
+,
+<
+t
+)
+∥
+π
+ref
+(
+⋅
+∣
+x
+,
+a
+i
+,
+<
+t
+)
+)
+]
+,
+\displaystyle\begin{aligned} J(\theta)=&\mathbb{E}\Bigg[\frac{1}{G}\sum_{i=1}^{G}\frac{1}{|o_{i}|}\sum_{t=1}^{|o_{i}|}\min\Big(\rho_{i,t}(\theta)\,\hat{A}_{i},\ \mathrm{clip}(\rho_{i,t}(\theta),1-\varepsilon,1+\varepsilon)\,\hat{A}_{i}\Big)\;-\;\\
+&\beta\,\mathrm{KL}\!\left(\pi_{\theta}(\cdot\mid x,a_{i,<t})\ \big\|\ \pi_{\mathrm{ref}}(\cdot\mid x,a_{i,<t})\right)\Bigg],\end{aligned}
+(5)
+where
+A
+^
+i
+\hat{A}_{i}
+combines the original advantage
+A
+¯
+i
+\bar{A}_{i}
+with our leave-one-out marginal, calculated by (
+4
+). The complete algorithm of our SetPO+GPRO is given in Algorithm
+1
+.
+Algorithm 1
+Set-Level Policy Optimization
+1:
+Prompt dataset
+𝒟
+\mathcal{D}
+, Policy
+π
+θ
+\pi_{\theta}
+, Reference model
+π
+ref
+\pi_{\mathrm{ref}}
+, Group size
+G
+G
+, Diversity coefficient
+λ
+\lambda
+, KL coefficient
+β
+\beta
+, Learning rate
+η
+\eta
+.
+2:
+while
+not reach max iteration
+do
+3:
+Sample a batch of prompts
+Ω
+=
+{
+x
+1
+,
+…
+,
+x
+M
+}
+\Omega=\{x_{1},\dots,x_{M}\}
+from
+𝒟
+\mathcal{D}
+.
+4:
+for
+each prompt
+x
+∈
+Ω
+x\in\Omega
+do
+5:
+Sampling:
+6:
+Generate
+G
+G
+outputs
+A
+=
+{
+o
+1
+,
+…
+,
+o
+G
+}
+A=\{o_{1},\dots,o_{G}\}
+where
+o
+i
+∼
+π
+θ
+old
+(
+⋅
+∣
+x
+)
+o_{i}\sim\pi_{\theta_{\mathrm{old}}}(\cdot\mid x)
+.
+7:
+Reward Calculation:
+8:
+Compute task rewards
+{
+r
+1
+,
+…
+,
+r
+G
+}
+\{r_{1},\dots,r_{G}\}
+for each output.
+9:
+Compute base advantages
+A
+¯
+i
+\bar{A}_{i}
+(e.g., via group normalization:
+A
+¯
+i
+=
+r
+i
+−
+mean
+⁡
+(
+r
+)
+std
+⁡
+(
+r
+)
++
+ϵ
+\bar{A}_{i}=\frac{r_{i}-\operatorname{mean}(r)}{\operatorname{std}(r)+\epsilon}
+).
+10:
+Diversity Estimation (Leave-one-out):
+11:
+Compute pairwise similarity matrix
+K
+∈
+ℝ
+G
+×
+G
+K\in\mathbb{R}^{G\times G}
+where
+K
+i
+​
+j
+=
+k
+⁡
+(
+o
+i
+,
+o
+j
+)
+K_{ij}=k(o_{i},o_{j})
+.
+12:
+Calculate group score
+D
+⁡
+(
+A
+)
+=
+1
+G
+​
+∑
+i
+=
+1
+G
+g
+⁡
+(
+m
+^
+i
+)
+D(A)=\frac{1}{G}\sum_{i=1}^{G}g(\widehat{m}_{i})
+.
+13:
+for
+i
+=
+1
+i=1
+to
+G
+G
+do
+14:
+Calculate reduced-set score
+D
+⁡
+(
+Ω
+∖
+{
+o
+i
+}
+)
+D(\Omega\setminus\{o_{i}\})
+using Eq.
+3
+(recomputing local masses).
+15:
+Compute diversity contribution
+s
+i
+=
+D
+⁡
+(
+Ω
+)
+−
+D
+⁡
+(
+Ω
+∖
+{
+o
+i
+}
+)
+s_{i}=D(\Omega)-D(\Omega\setminus\{o_{i}\})
+.
+16:
+end
+for
+17:
+Compute augmented advantage:
+A
+^
+i
+←
+A
+¯
+i
++
+λ
+⋅
+s
+i
+\hat{A}_{i}\leftarrow\bar{A}_{i}+\lambda\cdot s_{i}
+.
+18:
+end
+for
+19:
+Policy Optimization:
+20:
+Maximize the surrogate objective
+J
+⁡
+(
+θ
+)
+J(\theta)
+by (
+5
+) on the collected batch as
+θ
+←
+θ
++
+η
+​
+∇
+θ
+J
+​
+(
+θ
+)
+.
+\theta\leftarrow\theta+\eta\nabla_{\theta}J(\theta).
+21:
+end
+while
+Appendix C
+Theoretical Framework of
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+: Trajectory Diversity
+In this section, we establish the mathematical foundations of our diversity measure. We begin by defining the diversity measure for large language models, derive its sensitivity to perturbations, establish a rigorous lower bound for finite-step updates, and finally discuss its thermodynamic properties in relation to decoding temperature.
+C.1
+Preliminaries and Definitions
+Let
+Ω
+\Omega
+be the trajectory space. We employ a bounded, symmetric similarity kernel
+k
+:
+Ω
+×
+Ω
+→
+[
+0
+,
+1
+]
+k:\Omega\times\Omega\to[0,1]
+with
+k
+⁡
+(
+y
+,
+y
+)
+=
+1
+k(y,y)=1
+. For any distribution
+P
+∈
+𝒫
+⁡
+(
+Ω
+)
+P\in\mathcal{P}(\Omega)
+, the
+kernelized local mass
+at
+y
+y
+is defined as:
+m
+P
+​
+(
+y
+)
+:=
+𝔼
+y
+′
+∼
+P
+​
+[
+k
+⁡
+(
+y
+,
+y
+′
+)
+]
+∈
+[
+0
+,
+1
+]
+.
+m_{P}(y):=\mathbb{E}_{y^{\prime}\sim P}[k(y,y^{\prime})]\in[0,1].
+(6)
+This quantity estimates the semantic density of the distribution
+P
+P
+around trajectory
+y
+y
+. The global diversity functional is defined as:
+ℱ
+⁡
+(
+P
+)
+:=
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+]
+,
+\mathcal{F}(P):=\mathbb{E}_{y\sim P}\Big[g\big(m_{P}(y)\big)\Big],
+(7)
+where the shape function
+g
+⁡
+(
+x
+)
+:
+[
+0
+,
+1
+]
+→
+ℝ
+g(x):[0,1]\to\mathbb{R}
+. A canonical choice used in this work is
+g
+⁡
+(
+x
+)
+=
+−
+log
+⁡
+(
+1
++
+x
+)
+g(x)=-\log(1+x)
+, which is smooth and strictly decreasing.
+Assumption C.1
+.
+The kernel function
+k
+⁡
+(
+⋅
+,
+⋅
+)
+k(\cdot,\cdot)
+is measurable and symmetric, i.e.
+k
+⁡
+(
+x
+,
+y
+)
+=
+k
+⁡
+(
+y
+,
+x
+)
+k(x,y)=k(y,x)
+. Besides, it holds that
+0
+≤
+k
+⁡
+(
+x
+,
+y
+)
+≤
+1
+0\leq k(x,y)\leq 1
+for all
+x
+,
+y
+x,y
+. The shape function
+g
+⁡
+(
+x
+)
+:
+[
+0
+,
+1
+]
+→
+ℝ
+g(x):[0,1]\to\mathbb{R}
+is a continuous, strictly decreasing shaping function and there exists
+L
+<
+∞
+L<\infty
+such that
+‖
+g
+′
+​
+(
+a
+)
+−
+g
+′
+​
+(
+b
+)
+‖
+≤
+L
+​
+‖
+a
+−
+b
+‖
+\|g^{\prime}(a)-g^{\prime}(b)\|\leq L\|a-b\|
+for all
+a
+,
+b
+∈
+[
+0
+,
+1
+]
+a,b\in[0,1]
+.
+For a certain trajectory
+τ
+∈
+Ω
+\tau\in\Omega
+and consider the mixture perturbation
+P
+ε
+:=
+(
+1
+−
+ε
+)
+​
+P
++
+ε
+​
+δ
+τ
+,
+ε
+∈
+[
+0
+,
+1
+]
+.
+P_{\varepsilon}\;:=\;(1-\varepsilon)P+\varepsilon\,\delta_{\tau},\qquad\varepsilon\in[0,1].
+(8)
+We study the finite-
+ε
+\varepsilon
+change
+ℱ
+⁡
+(
+P
+ε
+)
+−
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P_{\varepsilon})-\mathcal{F}(P)
+and its relation to the original rarity
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+. For any
+y
+∈
+Ω
+y\in\Omega
+, it holds that
+m
+P
+ε
+​
+(
+y
+)
+=
+𝔼
+y
+′
+∼
+P
+ε
+​
+k
+​
+(
+y
+,
+y
+′
+)
+=
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+′
+∼
+P
+​
+k
+​
+(
+y
+,
+y
+′
+)
++
+ε
+​
+𝔼
+y
+′
+∼
+δ
+τ
+​
+k
+​
+(
+y
+,
+y
+′
+)
+=
+(
+1
+−
+ε
+)
+​
+m
+P
+​
+(
+y
+)
++
+ε
+​
+k
+​
+(
+y
+,
+τ
+)
+=
+m
+P
+​
+(
+y
+)
++
+ε
+⁡
+(
+k
+⁡
+(
+y
+,
+τ
+)
+−
+m
+P
+​
+(
+y
+)
+)
+.
+\displaystyle\begin{aligned} m_{P_{\varepsilon}}(y)&=\mathbb{E}_{y^{\prime}\sim P_{\varepsilon}}k(y,y^{\prime})\ =(1-\varepsilon)\mathbb{E}_{y^{\prime}\sim P}k(y,y^{\prime})+\varepsilon\mathbb{E}_{y^{\prime}\sim\delta_{\tau}}k(y,y^{\prime})\\
+&=(1-\varepsilon)m_{P}(y)+\varepsilon k(y,\tau)=m_{P}(y)+\varepsilon\Big(k(y,\tau)-m_{P}(y)\Big).\end{aligned}
+(9)
+Define the
+similarity offset
+d
+τ
+​
+(
+y
+)
+:=
+k
+⁡
+(
+y
+,
+τ
+)
+−
+m
+P
+​
+(
+y
+)
+.
+d_{\tau}(y)\;:=\;k(y,\tau)-m_{P}(y).
+Then (
+9
+) becomes
+m
+P
+ε
+​
+(
+y
+)
+=
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+.
+m_{P_{\varepsilon}}(y)=m_{P}(y)+\varepsilon\,d_{\tau}(y).
+(10)
+In particular, using
+k
+⁡
+(
+τ
+,
+τ
+)
+=
+1
+k(\tau,\tau)=1
+, it yields
+m
+P
+ε
+​
+(
+τ
+)
+=
+(
+1
+−
+ε
+)
+​
+m
+P
+​
+(
+τ
+)
++
+ε
+=
+m
+P
+​
+(
+τ
+)
++
+ε
+⁡
+(
+1
+−
+m
+P
+​
+(
+τ
+)
+)
+.
+m_{P_{\varepsilon}}(\tau)=(1-\varepsilon)m_{P}(\tau)+\varepsilon=m_{P}(\tau)+\varepsilon\big(1-m_{P}(\tau)\big).
+It is immediate from this expression that rarer samples (smaller
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+) receive a larger injection boost, since the increment
+m
+P
+ε
+​
+(
+τ
+)
+−
+m
+P
+​
+(
+τ
+)
+=
+ε
+⁡
+(
+1
+−
+m
+P
+​
+(
+τ
+)
+)
+m_{P_{\varepsilon}}(\tau)-m_{P}(\tau)=\varepsilon\big(1-m_{P}(\tau)\big)
+increases as
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+decreases.
+We next perform decomposition of the finite-
+ε
+\varepsilon
+diversity change of
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+.
+By definition,
+ℱ
+⁡
+(
+P
+ε
+)
+=
+𝔼
+y
+∼
+P
+ε
+​
+[
+g
+⁡
+(
+m
+P
+ε
+​
+(
+y
+)
+)
+]
+=
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+ε
+​
+(
+y
+)
+)
+]
++
+ε
+​
+g
+​
+(
+m
+P
+ε
+​
+(
+τ
+)
+)
+.
+\displaystyle\mathcal{F}(P_{\varepsilon})=\mathbb{E}_{y\sim P_{\varepsilon}}\Big[g\big(m_{P_{\varepsilon}}(y)\big)\Big]=(1-\varepsilon)\mathbb{E}_{y\sim P}\Big[g\big(m_{P_{\varepsilon}}(y)\big)\Big]+\varepsilon\,g\big(m_{P_{\varepsilon}}(\tau)\big).
+Decomposing
+ℱ
+⁡
+(
+P
+)
+\mathcal{F}(P)
+into an
+ϵ
+\epsilon
+-part and another
+(
+1
+−
+ϵ
+)
+(1-\epsilon)
+-part and rearranging yields the exact identity
+ℱ
+(
+P
+ε
+)
+−
+ℱ
+(
+P
+)
+=
+ε
+⁡
+(
+g
+⁡
+(
+m
+P
+ε
+​
+(
+τ
+)
+)
+−
+ℱ
+⁡
+(
+P
+)
+)
+⏟
+main term: contribution of injected
+τ
++
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+ε
+​
+(
+y
+)
+)
+−
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+]
+⏟
+perturbation on existing samples
+.
+\mathcal{F}(P_{\varepsilon})-\mathcal{F}(P)=\underbrace{\varepsilon\Big(g\big(m_{P_{\varepsilon}}(\tau)\big)-\mathcal{F}(P)\Big)}_{\text{main term: contribution of injected }\tau}+\underbrace{(1-\varepsilon)\,\mathbb{E}_{y\sim P}\!\left[g\big(m_{P_{\varepsilon}}(y)\big)-g\big(m_{P}(y)\big)\right]}_{\text{perturbation on existing samples}}.
+(11)
+Using
+m
+P
+ε
+​
+(
+y
+)
+=
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+m_{P_{\varepsilon}}(y)=m_{P}(y)+\varepsilon d_{\tau}(y)
+from (
+10
+),
+ℱ
+⁡
+(
+P
+ε
+)
+−
+ℱ
+⁡
+(
+P
+)
+=
+ε
+⁡
+(
+g
+⁡
+(
+m
+P
+ε
+​
+(
+τ
+)
+)
+−
+ℱ
+⁡
+(
+P
+)
+)
++
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+)
+−
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+]
+.
+\mathcal{F}(P_{\varepsilon})-\mathcal{F}(P)=\varepsilon\Big(g\big(m_{P_{\varepsilon}}(\tau)\big)-\mathcal{F}(P)\Big)+(1-\varepsilon)\,\mathbb{E}_{y\sim P}\!\left[g\big(m_{P}(y)+\varepsilon d_{\tau}(y)\big)-g\big(m_{P}(y)\big)\right].
+(12)
+C.2
+Infinitesimal Analysis: The Influence Function
+We now analyze how
+ℱ
+\mathcal{F}
+responds to infinitesimal changes. This characterizes the ”gradient” of diversity in the space of distributions, indicating which trajectories should be upweighted to maximally increase diversity.
+Consider the mixture perturbation
+P
+ε
+:=
+(
+1
+−
+ε
+)
+​
+P
++
+ε
+​
+δ
+τ
+P_{\varepsilon}:=(1-\varepsilon)P+\varepsilon\,\delta_{\tau}
+in the limit as
+ε
+→
+0
++
+\varepsilon\to 0^{+}
+.
+Theorem C.2
+(Diversity Influence Function)
+.
+The Gâteaux derivative of
+ℱ
+\mathcal{F}
+at
+P
+P
+in the direction of a trajectory
+τ
+\tau
+is given by:
+ℐ
+⁡
+(
+τ
+,
+P
+)
+:=
+d
+d
+​
+ε
+​
+ℱ
+​
+(
+P
+ε
+)
+|
+ε
+=
+0
+=
+g
+​
+(
+m
+P
+​
+(
+τ
+)
+)
+⏟
+Intrinsic Novelty
++
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+⏟
+Interaction Cost
+−
+Ψ
+⁡
+(
+P
+)
+,
+\mathcal{I}(\tau;P):=\frac{d}{d\varepsilon}\mathcal{F}(P_{\varepsilon})\bigg|_{\varepsilon=0}=\underbrace{g(m_{P}(\tau))}_{\text{Intrinsic Novelty}}+\underbrace{\mathbb{E}_{y\sim P}\left[g^{\prime}(m_{P}(y))k(y,\tau)\right]}_{\text{Interaction Cost}}-\Psi(P),
+(13)
+where
+Ψ
+⁡
+(
+P
+)
+\Psi(P)
+is a scalar baseline independent of
+τ
+\tau
+.
+Proof.
+Recall the exact decomposition of the finite difference derived in (
+12
+):
+ℱ
+⁡
+(
+P
+ε
+)
+−
+ℱ
+⁡
+(
+P
+)
+=
+ε
+⁡
+(
+g
+⁡
+(
+m
+P
+ε
+​
+(
+τ
+)
+)
+−
+ℱ
+⁡
+(
+P
+)
+)
++
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+)
+−
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+]
+.
+\mathcal{F}(P_{\varepsilon})-\mathcal{F}(P)=\varepsilon\Big(g\big(m_{P_{\varepsilon}}(\tau)\big)-\mathcal{F}(P)\Big)+(1-\varepsilon)\,\mathbb{E}_{y\sim P}\!\left[g\big(m_{P}(y)+\varepsilon d_{\tau}(y)\big)-g\big(m_{P}(y)\big)\right].
+Dividing both sides by
+ε
+\varepsilon
+and taking the limit
+ε
+→
+0
++
+\varepsilon\to 0^{+}
+, we analyze the two terms on the right-hand side separately.
+The Injection Term.
+By the continuity of the kernel,
+lim
+ε
+→
+0
+m
+P
+ε
+​
+(
+τ
+)
+=
+m
+P
+​
+(
+τ
+)
+\lim_{\varepsilon\to 0}m_{P_{\varepsilon}}(\tau)=m_{P}(\tau)
+. Thus, the first term becomes:
+lim
+ε
+→
+0
++
+ε
+⁡
+(
+g
+⁡
+(
+m
+P
+ε
+​
+(
+τ
+)
+)
+−
+ℱ
+⁡
+(
+P
+)
+)
+ε
+=
+g
+⁡
+(
+m
+P
+​
+(
+τ
+)
+)
+−
+ℱ
+⁡
+(
+P
+)
+.
+\lim_{\varepsilon\to 0^{+}}\frac{\varepsilon\Big(g\big(m_{P_{\varepsilon}}(\tau)\big)-\mathcal{F}(P)\Big)}{\varepsilon}=g\big(m_{P}(\tau)\big)-\mathcal{F}(P).
+(14)
+The Perturbation Term.
+For the second term, we apply the limit to the expectation. Since
+g
+g
+is continuously differentiable and the domain is bounded, the Dominated Convergence Theorem allows us to interchange the limit and the integral:
+lim
+ε
+→
+0
++
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+)
+−
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+ε
+]
+\displaystyle\lim_{\varepsilon\to 0^{+}}(1-\varepsilon)\mathbb{E}_{y\sim P}\left[\frac{g\big(m_{P}(y)+\varepsilon d_{\tau}(y)\big)-g\big(m_{P}(y)\big)}{\varepsilon}\right]
+=
+1
+⋅
+𝔼
+y
+∼
+P
+​
+[
+d
+d
+​
+ε
+​
+[
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+)
+]
+ε
+=
+0
+]
+\displaystyle=1\cdot\mathbb{E}_{y\sim P}\left[\frac{d}{d\varepsilon}\Big[g\big(m_{P}(y)+\varepsilon d_{\tau}(y)\big)\Big]_{\varepsilon=0}\right]
+=
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+⋅
+d
+τ
+​
+(
+y
+)
+]
+.
+\displaystyle=\mathbb{E}_{y\sim P}\Big[g^{\prime}\big(m_{P}(y)\big)\cdot d_{\tau}(y)\Big].
+(15)
+Substituting the definition of the similarity offset
+d
+τ
+​
+(
+y
+)
+=
+k
+⁡
+(
+y
+,
+τ
+)
+−
+m
+P
+​
+(
+y
+)
+d_{\tau}(y)=k(y,\tau)-m_{P}(y)
+into (
+15
+), we expand the interaction:
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+(
+k
+⁡
+(
+y
+,
+τ
+)
+−
+m
+P
+​
+(
+y
+)
+)
+]
+=
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+−
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+m
+P
+​
+(
+y
+)
+]
+.
+\mathbb{E}_{y\sim P}\Big[g^{\prime}\big(m_{P}(y)\big)\big(k(y,\tau)-m_{P}(y)\big)\Big]=\mathbb{E}_{y\sim P}\Big[g^{\prime}\big(m_{P}(y)\big)k(y,\tau)\Big]-\mathbb{E}_{y\sim P}\Big[g^{\prime}\big(m_{P}(y)\big)m_{P}(y)\Big].
+Summing the results from the injection and perturbation terms:
+ℐ
+⁡
+(
+τ
+,
+P
+)
+\displaystyle\mathcal{I}(\tau;P)
+=
+(
+g
+⁡
+(
+m
+P
+​
+(
+τ
+)
+)
+−
+ℱ
+⁡
+(
+P
+)
+)
++
+(
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+−
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+m
+P
+​
+(
+y
+)
+]
+)
+\displaystyle=\Big(g(m_{P}(\tau))-\mathcal{F}(P)\Big)+\Big(\mathbb{E}_{y\sim P}[g^{\prime}(m_{P}(y))k(y,\tau)]-\mathbb{E}_{y\sim P}[g^{\prime}(m_{P}(y))m_{P}(y)]\Big)
+=
+g
+⁡
+(
+m
+P
+​
+(
+τ
+)
+)
++
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+−
+(
+ℱ
+⁡
+(
+P
+)
++
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+m
+P
+​
+(
+y
+)
+]
+)
+⏟
+Ψ
+⁡
+(
+P
+)
+.
+\displaystyle=g(m_{P}(\tau))+\mathbb{E}_{y\sim P}[g^{\prime}(m_{P}(y))k(y,\tau)]-\underbrace{\Big(\mathcal{F}(P)+\mathbb{E}_{y\sim P}[g^{\prime}(m_{P}(y))m_{P}(y)]\Big)}_{\Psi(P)}.
+The term
+Ψ
+⁡
+(
+P
+)
+\Psi(P)
+depends solely on the reference distribution
+P
+P
+and is constant with respect to
+τ
+\tau
+.
+∎
+To determine the correlation between
+ℐ
+⁡
+(
+τ
+,
+P
+)
+\mathcal{I}(\tau;P)
+and
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+, we show that provided
+g
+g
+is strictly decreasing, the interaction mechanism inherently cooperates with the intrinsic novelty to penalize redundancy.
+Since
+Ψ
+⁡
+(
+P
+)
+\Psi(P)
+is independent of
+τ
+\tau
+, for ranking or gradient-based reweighting it is often sufficient to use the uncentered score
+ℐ
+~
+​
+(
+τ
+,
+P
+)
+:=
+g
+⁡
+(
+m
+P
+​
+(
+τ
+)
+)
++
+𝔼
+y
+∼
+P
+​
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+.
+\tilde{\mathcal{I}}(\tau;P):=g(m_{P}(\tau))+\mathbb{E}_{y\sim P}\!\left[g^{\prime}(m_{P}(y))\,k(y,\tau)\right].
+The interaction term depends on
+m
+P
+​
+(
+y
+)
+m_{P}(y)
+in the neighborhood of
+τ
+\tau
+weighted by
+k
+⁡
+(
+y
+,
+τ
+)
+k(y,\tau)
+. To obtain a local monotonicity statement without a fragile
+relative
+homogeneity assumption,
+we use an
+absolute
+smoothness control on an effective neighborhood and explicitly account for the kernel tail.
+Assumption C.3
+(Absolute local smoothness at kernel threshold
+η
+\eta
+)
+.
+Fix a threshold
+η
+∈
+(
+0
+,
+1
+)
+\eta\in(0,1)
+. For
+τ
+∈
+Ω
+\tau\in\Omega
+, define the effective neighborhood
+B
+τ
+,
+η
+:=
+{
+y
+∈
+Ω
+:
+k
+⁡
+(
+y
+,
+τ
+)
+≥
+η
+}
+,
+B_{\tau,\eta}:=\{y\in\Omega:\ k(y,\tau)\geq\eta\},
+and assume there exists
+δ
+=
+δ
+⁡
+(
+τ
+,
+η
+)
+≥
+0
+\delta=\delta(\tau,\eta)\geq 0
+such that
+sup
+y
+∈
+B
+τ
+,
+η
+|
+m
+P
+​
+(
+y
+)
+−
+m
+P
+​
+(
+τ
+)
+|
+≤
+δ
+⁡
+(
+τ
+,
+η
+)
+.
+\sup_{y\in B_{\tau,\eta}}|m_{P}(y)-m_{P}(\tau)|\leq\delta(\tau,\eta).
+Lemma C.4
+(Proxy reduction with an explicit remainder bound)
+.
+Under Assumption
+C.1
+and
+C.3
+, then for any
+η
+∈
+(
+0
+,
+1
+)
+\eta\in(0,1)
+and any
+τ
+∈
+Ω
+\tau\in\Omega
+,
+ℐ
+~
+(
+τ
+;
+P
+)
+=
+ϕ
+(
+m
+τ
+)
++
+r
+τ
+,
+ϕ
+(
+m
+)
+:=
+g
+(
+m
+)
++
+m
+g
+′
+(
+m
+)
+,
+where
+m
+τ
+:=
+m
+P
+(
+τ
+)
+,
+\tilde{\mathcal{I}}(\tau;P)=\phi(m_{\tau})+r_{\tau},\qquad\phi(m):=g(m)+mg^{\prime}(m),\quad\text{where}\quad m_{\tau}:=m_{P}(\tau),
+and the remainder satisfies
+|
+r
+τ
+|
+≤
+L
+⁡
+(
+δ
+⁡
+(
+τ
+,
+η
+)
+​
+m
+τ
++
+η
+)
+.
+|r_{\tau}|\leq L\,(\delta(\tau,\eta)\,m_{\tau}\;+\;\eta).
+(16)
+Proof.
+Write
+ℐ
+~
+​
+(
+τ
+,
+P
+)
+\displaystyle\tilde{\mathcal{I}}(\tau;P)
+=
+g
+⁡
+(
+m
+τ
+)
++
+𝔼
+⁡
+[
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+\displaystyle=g(m_{\tau})+\mathbb{E}\!\left[g^{\prime}(m_{P}(y))k(y,\tau)\right]
+=
+g
+⁡
+(
+m
+τ
+)
++
+g
+′
+​
+(
+m
+τ
+)
+​
+𝔼
+​
+[
+k
+⁡
+(
+y
+,
+τ
+)
+]
++
+𝔼
+⁡
+[
+(
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+−
+g
+′
+​
+(
+m
+τ
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+.
+\displaystyle=g(m_{\tau})+g^{\prime}(m_{\tau})\mathbb{E}[k(y,\tau)]+\mathbb{E}\!\left[(g^{\prime}(m_{P}(y))-g^{\prime}(m_{\tau}))k(y,\tau)\right].
+Since
+𝔼
+⁡
+[
+k
+⁡
+(
+y
+,
+τ
+)
+]
+=
+m
+τ
+\mathbb{E}[k(y,\tau)]=m_{\tau}
+, the first two terms equal
+ϕ
+⁡
+(
+m
+τ
+)
+\phi(m_{\tau})
+.
+Thus the remainder is
+r
+τ
+=
+𝔼
+⁡
+[
+(
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+−
+g
+′
+​
+(
+m
+τ
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+]
+.
+r_{\tau}=\mathbb{E}\!\left[(g^{\prime}(m_{P}(y))-g^{\prime}(m_{\tau}))k(y,\tau)\right].
+Split the expectation over
+B
+τ
+,
+η
+B_{\tau,\eta}
+and its complement.
+On
+B
+τ
+,
+η
+B_{\tau,\eta}
+, Assumption
+C.3
+and lipschitzness of
+g
+′
+g^{\prime}
+give
+|
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+−
+g
+′
+​
+(
+m
+τ
+)
+|
+≤
+L
+​
+|
+m
+P
+​
+(
+y
+)
+−
+m
+τ
+|
+≤
+L
+​
+δ
+|g^{\prime}(m_{P}(y))-g^{\prime}(m_{\tau})|\leq L|m_{P}(y)-m_{\tau}|\leq L\delta
+, hence
+|
+𝔼
+⁡
+[
+(
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+−
+g
+′
+​
+(
+m
+τ
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+​
+𝟏
+B
+τ
+,
+η
+]
+|
+≤
+L
+​
+δ
+​
+𝔼
+​
+[
+k
+⁡
+(
+y
+,
+τ
+)
+]
+=
+L
+​
+δ
+​
+m
+τ
+.
+\left|\mathbb{E}\!\left[(g^{\prime}(m_{P}(y))-g^{\prime}(m_{\tau}))k(y,\tau)\mathbf{1}_{B_{\tau,\eta}}\right]\right|\leq L\delta\,\mathbb{E}[k(y,\tau)]=L\delta\,m_{\tau}.
+On
+B
+τ
+,
+η
+c
+B_{\tau,\eta}^{c}
+, we have
+k
+⁡
+(
+y
+,
+τ
+)
+<
+η
+k(y,\tau)<\eta
+and
+|
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+−
+g
+′
+​
+(
+m
+τ
+)
+|
+≤
+L
+|g^{\prime}(m_{P}(y))-g^{\prime}(m_{\tau})|\leq L
+, hence
+|
+𝔼
+⁡
+[
+(
+g
+′
+​
+(
+m
+P
+​
+(
+y
+)
+)
+−
+g
+′
+​
+(
+m
+τ
+)
+)
+​
+k
+​
+(
+y
+,
+τ
+)
+​
+𝟏
+B
+τ
+,
+η
+c
+]
+|
+≤
+L
+​
+η
+.
+\left|\mathbb{E}\!\left[(g^{\prime}(m_{P}(y))-g^{\prime}(m_{\tau}))k(y,\tau)\mathbf{1}_{B_{\tau,\eta}^{c}}\right]\right|\leq L\,\eta.
+Combining the two bounds proves (
+16
+).
+∎
+Theorem C.5
+(Local monotonicity via a curvature condition)
+.
+Assume in addition that
+g
+g
+is twice continuously differentiable on
+(
+0
+,
+1
+]
+(0,1]
+and satisfies
+m
+​
+g
+′′
+​
+(
+m
+)
+<
+−
+2
+​
+g
+′
+​
+(
+m
+)
+,
+∀
+m
+∈
+(
+0
+,
+1
+]
+.
+mg^{\prime\prime}(m)<-2g^{\prime}(m),\qquad\forall m\in(0,1].
+(17)
+Moreover, fix any
+a
+∈
+(
+0
+,
+1
+]
+a\in(0,1]
+and define
+c
+a
+:=
+min
+m
+∈
+[
+a
+,
+1
+]
+⁡
+(
+−
+ϕ
+′
+​
+(
+m
+)
+)
+>
+0
+.
+c_{a}:=\min_{m\in[a,1]}\big(-\phi^{\prime}(m)\big)>0.
+For any
+τ
+1
+,
+τ
+2
+\tau_{1},\tau_{2}
+with
+m
+P
+​
+(
+τ
+1
+)
+,
+m
+P
+​
+(
+τ
+2
+)
+∈
+[
+a
+,
+1
+]
+m_{P}(\tau_{1}),m_{P}(\tau_{2})\in[a,1]
+, we have
+ℐ
+~
+​
+(
+τ
+1
+,
+P
+)
+−
+ℐ
+~
+​
+(
+τ
+2
+,
+P
+)
+≤
+−
+c
+a
+​
+(
+m
+P
+​
+(
+τ
+1
+)
+−
+m
+P
+​
+(
+τ
+2
+)
+)
++
+(
+|
+r
+τ
+1
+|
++
+|
+r
+τ
+2
+|
+)
+,
+\tilde{\mathcal{I}}(\tau_{1};P)-\tilde{\mathcal{I}}(\tau_{2};P)\leq-c_{a}\big(m_{P}(\tau_{1})-m_{P}(\tau_{2})\big)+\big(|r_{\tau_{1}}|+|r_{\tau_{2}}|\big),
+(18)
+where
+r
+τ
+r_{\tau}
+is the remainder in Lemma
+C.4
+.
+In particular, whenever
+m
+P
+​
+(
+τ
+1
+)
+−
+m
+P
+​
+(
+τ
+2
+)
+>
+|
+r
+τ
+1
+|
++
+|
+r
+τ
+2
+|
+c
+a
+,
+m_{P}(\tau_{1})-m_{P}(\tau_{2})>\frac{|r_{\tau_{1}}|+|r_{\tau_{2}}|}{c_{a}},
+the ranking aligns with rarity:
+m
+P
+​
+(
+τ
+1
+)
+>
+m
+P
+​
+(
+τ
+2
+)
+⟹
+ℐ
+~
+​
+(
+τ
+1
+,
+P
+)
+<
+ℐ
+~
+​
+(
+τ
+2
+,
+P
+)
+.
+m_{P}(\tau_{1})>m_{P}(\tau_{2})\quad\Longrightarrow\quad\tilde{\mathcal{I}}(\tau_{1};P)<\tilde{\mathcal{I}}(\tau_{2};P).
+Thus, in regimes where the local smoothness error
+δ
+⁡
+(
+τ
+,
+η
+)
+\delta(\tau,\eta)
+and tail threshold
+η
+\eta
+are small,
+the interaction term cooperates with the intrinsic novelty term to penalize redundancy.
+Proof.
+The strict decrease of
+ϕ
+\phi
+follows from
+ϕ
+′
+​
+(
+m
+)
+=
+2
+​
+g
+′
+​
+(
+m
+)
++
+m
+​
+g
+′′
+​
+(
+m
+)
+\phi^{\prime}(m)=2g^{\prime}(m)+mg^{\prime\prime}(m)
+and (
+17
+).
+On the compact interval
+[
+a
+,
+1
+]
+[a,1]
+,
+ϕ
+′
+\phi^{\prime}
+is continuous and negative, hence
+c
+a
+=
+min
+m
+∈
+[
+a
+,
+1
+]
+⁡
+(
+−
+ϕ
+′
+​
+(
+m
+)
+)
+>
+0
+c_{a}=\min_{m\in[a,1]}(-\phi^{\prime}(m))>0
+.
+By the mean value theorem, for
+m
+1
+,
+m
+2
+∈
+[
+a
+,
+1
+]
+m_{1},m_{2}\in[a,1]
+,
+ϕ
+⁡
+(
+m
+1
+)
+−
+ϕ
+⁡
+(
+m
+2
+)
+≤
+−
+c
+a
+​
+(
+m
+1
+−
+m
+2
+)
+.
+\phi(m_{1})-\phi(m_{2})\leq-c_{a}(m_{1}-m_{2}).
+Apply this to
+m
+i
+=
+m
+P
+​
+(
+τ
+i
+)
+m_{i}=m_{P}(\tau_{i})
+and use the decomposition (
+C.4
+):
+ℐ
+~
+​
+(
+τ
+1
+,
+P
+)
+−
+ℐ
+~
+​
+(
+τ
+2
+,
+P
+)
+=
+ϕ
+⁡
+(
+m
+1
+)
+−
+ϕ
+⁡
+(
+m
+2
+)
++
+(
+r
+τ
+1
+−
+r
+τ
+2
+)
+≤
+−
+c
+a
+​
+(
+m
+1
+−
+m
+2
+)
++
+|
+r
+τ
+1
+|
++
+|
+r
+τ
+2
+|
+,
+\tilde{\mathcal{I}}(\tau_{1};P)-\tilde{\mathcal{I}}(\tau_{2};P)=\phi(m_{1})-\phi(m_{2})+(r_{\tau_{1}}-r_{\tau_{2}})\leq-c_{a}(m_{1}-m_{2})+|r_{\tau_{1}}|+|r_{\tau_{2}}|,
+which is (
+18
+).
+∎
+Corollary C.6
+(Soft-log stability and bounded gradients)
+.
+For
+g
+⁡
+(
+m
+)
+=
+−
+log
+⁡
+(
+1
++
+m
+)
+g(m)=-\log(1+m)
+, the curvature condition (
+17
+) holds for all
+m
+≥
+0
+m\geq 0
+.
+Moreover,
+|
+g
+′
+​
+(
+m
+)
+|
+≤
+1
+|g^{\prime}(m)|\leq 1
+on
+[
+0
+,
+1
+]
+[0,1]
+, hence the influence score avoids gradient blow-up in low-mass regions.
+Proof.
+For
+g
+⁡
+(
+m
+)
+=
+−
+log
+⁡
+(
+1
++
+m
+)
+g(m)=-\log(1+m)
+, we have
+g
+′
+​
+(
+m
+)
+=
+−
+(
+1
++
+m
+)
+−
+1
+g^{\prime}(m)=-(1+m)^{-1}
+and
+g
+′′
+​
+(
+m
+)
+=
+(
+1
++
+m
+)
+−
+2
+g^{\prime\prime}(m)=(1+m)^{-2}
+, thus
+ϕ
+′
+​
+(
+m
+)
+=
+2
+​
+g
+′
+​
+(
+m
+)
++
+m
+​
+g
+′′
+​
+(
+m
+)
+=
+−
+2
+​
+(
+1
++
+m
+)
++
+m
+(
+1
++
+m
+)
+2
+=
+−
+(
+m
++
+2
+)
+(
+1
++
+m
+)
+2
+<
+0
+,
+\phi^{\prime}(m)=2g^{\prime}(m)+mg^{\prime\prime}(m)=\frac{-2(1+m)+m}{(1+m)^{2}}=\frac{-(m+2)}{(1+m)^{2}}<0,
+which implies (
+17
+). Also
+|
+g
+′
+​
+(
+m
+)
+|
+=
+(
+1
++
+m
+)
+−
+1
+≤
+1
+|g^{\prime}(m)|=(1+m)^{-1}\leq 1
+on
+[
+0
+,
+1
+]
+[0,1]
+.
+∎
+C.3
+Finite Perturbation Analysis and Error Bounds
+While the influence function characterizes the optimal direction for infinitesimal updates (
+ε
+→
+0
++
+\varepsilon\to 0^{+}
+), practical generation algorithms operate with discrete perturbation (
+ε
+>
+0
+\varepsilon>0
+). In this subsection, we establish rigorous bounds for the diversity gain under finite perturbations. We demonstrate that the trajectory redundancy
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+governs both the magnitude of the expected gain and the tightness of the approximation error.
+Theorem C.7
+(Finite Perturbation Bounds)
+.
+Denote
+M
+:=
+max
+x
+∈
+[
+0
+,
+1
+]
+⁡
+|
+g
+′
+​
+(
+x
+)
+|
+M:=\max\limits_{x\in[0,1]}|g^{\prime}(x)|
+. For any trajectory
+τ
+∈
+Ω
+\tau\in\Omega
+and perturbation scale
+ε
+∈
+[
+0
+,
+1
+]
+\varepsilon\in[0,1]
+, the finite change in diversity
+Δ
+​
+ℱ
+=
+ℱ
+⁡
+(
+P
+ε
+)
+−
+ℱ
+⁡
+(
+P
+)
+\Delta\mathcal{F}=\mathcal{F}(P_{\varepsilon})-\mathcal{F}(P)
+is bounded by:
+ℳ
+⁡
+(
+τ
+,
+ε
+)
+−
+ℰ
+⁡
+(
+τ
+,
+ε
+)
+≤
+Δ
+​
+ℱ
+≤
+ℳ
+⁡
+(
+τ
+,
+ε
+)
++
+ℰ
+⁡
+(
+τ
+,
+ε
+)
+,
+\mathcal{M}(\tau,\varepsilon)-\mathcal{E}(\tau,\varepsilon)\;\leq\;\Delta\mathcal{F}\;\leq\;\mathcal{M}(\tau,\varepsilon)+\mathcal{E}(\tau,\varepsilon),
+where the
+main signal
+ℳ
+\mathcal{M}
+and the
+error radius
+ℰ
+\mathcal{E}
+are defined as:
+ℳ
+⁡
+(
+τ
+,
+ε
+)
+\displaystyle\mathcal{M}(\tau,\varepsilon)
+:
+=
+ε
+⁡
+(
+g
+⁡
+(
+(
+1
+−
+ε
+)
+​
+m
+P
+​
+(
+τ
+)
++
+ε
+)
+−
+ℱ
+⁡
+(
+P
+)
+)
+,
+\displaystyle:=\varepsilon\left(g\big((1-\varepsilon)m_{P}(\tau)+\varepsilon\big)-\mathcal{F}(P)\right),
+ℰ
+⁡
+(
+τ
+,
+ε
+)
+\displaystyle\mathcal{E}(\tau,\varepsilon)
+:
+=
+M
+⋅
+ε
+⋅
+(
+m
+P
+​
+(
+τ
+)
++
+κ
+⁡
+(
+P
+)
+)
+.
+\displaystyle:=M\cdot\varepsilon\cdot\big(m_{P}(\tau)+\kappa(P)\big).
+Here,
+κ
+⁡
+(
+P
+)
+:=
+𝔼
+y
+,
+y
+′
+∼
+P
+​
+[
+k
+⁡
+(
+y
+,
+y
+′
+)
+]
+\kappa(P):=\mathbb{E}_{y,y^{\prime}\sim P}[k(y,y^{\prime})]
+represents the global average similarity of the distribution.
+Proof.
+Recall the exact decomposition of the finite difference derived in Eq. (
+11
+):
+Δ
+​
+ℱ
+=
+ℳ
+⁡
+(
+τ
+,
+ε
+)
++
+B
+⁡
+(
+ε
+)
+,
+\Delta\mathcal{F}=\mathcal{M}(\tau,\varepsilon)+B(\varepsilon),
+(19)
+where the residual term is
+B
+⁡
+(
+ε
+)
+=
+(
+1
+−
+ε
+)
+​
+𝔼
+y
+∼
+P
+​
+[
+g
+⁡
+(
+m
+P
+ε
+​
+(
+y
+)
+)
+−
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+]
+B(\varepsilon)=(1-\varepsilon)\mathbb{E}_{y\sim P}[g(m_{P_{\varepsilon}}(y))-g(m_{P}(y))]
+.
+To prove the theorem, it suffices to bound the absolute magnitude
+|
+B
+⁡
+(
+ε
+)
+|
+|B(\varepsilon)|
+.
+By Assumption
+C.1
+, substitute the linear update rule
+m
+P
+ε
+​
+(
+y
+)
+=
+m
+P
+​
+(
+y
+)
++
+ε
+​
+d
+τ
+​
+(
+y
+)
+m_{P_{\varepsilon}}(y)=m_{P}(y)+\varepsilon d_{\tau}(y)
+, where
+d
+τ
+​
+(
+y
+)
+=
+k
+⁡
+(
+y
+,
+τ
+)
+−
+m
+P
+​
+(
+y
+)
+d_{\tau}(y)=k(y,\tau)-m_{P}(y)
+, we get:
+|
+g
+⁡
+(
+m
+P
+ε
+​
+(
+y
+)
+)
+−
+g
+⁡
+(
+m
+P
+​
+(
+y
+)
+)
+|
+≤
+M
+⋅
+ε
+⋅
+|
+d
+τ
+​
+(
+y
+)
+|
+.
+\left|g(m_{P_{\varepsilon}}(y))-g(m_{P}(y))\right|\leq M\cdot\varepsilon\cdot|d_{\tau}(y)|.
+Since the kernel is non-negative (
+k
+≥
+0
+k\geq 0
+), applying the triangle inequality directly yields:
+|
+d
+τ
+​
+(
+y
+)
+|
+=
+|
+k
+⁡
+(
+y
+,
+τ
+)
+−
+m
+P
+​
+(
+y
+)
+|
+≤
+k
+⁡
+(
+y
+,
+τ
+)
++
+m
+P
+​
+(
+y
+)
+.
+|d_{\tau}(y)|=|k(y,\tau)-m_{P}(y)|\leq k(y,\tau)+m_{P}(y).
+Taking the expectation over
+y
+∼
+P
+y\sim P
+:
+𝔼
+y
+∼
+P
+​
+|
+d
+τ
+​
+(
+y
+)
+|
+≤
+𝔼
+y
+∼
+P
+​
+[
+k
+⁡
+(
+y
+,
+τ
+)
+]
++
+𝔼
+y
+∼
+P
+​
+[
+m
+P
+​
+(
+y
+)
+]
+=
+m
+P
+​
+(
+τ
+)
++
+κ
+⁡
+(
+P
+)
+.
+\mathbb{E}_{y\sim P}|d_{\tau}(y)|\leq\mathbb{E}_{y\sim P}[k(y,\tau)]+\mathbb{E}_{y\sim P}[m_{P}(y)]=m_{P}(\tau)+\kappa(P).
+(20)
+Hence, it holds that
+|
+B
+⁡
+(
+ε
+)
+|
+≤
+(
+1
+−
+ε
+)
+⋅
+𝔼
+y
+∼
+P
+​
+[
+M
+⋅
+ε
+⋅
+|
+d
+τ
+​
+(
+y
+)
+|
+]
+≤
+M
+⋅
+ε
+⋅
+(
+m
+P
+​
+(
+τ
+)
++
+κ
+⁡
+(
+P
+)
+)
+=
+ℰ
+⁡
+(
+τ
+,
+ε
+)
+.
+\displaystyle|B(\varepsilon)|\leq(1-\varepsilon)\cdot\mathbb{E}_{y\sim P}\left[M\cdot\varepsilon\cdot|d_{\tau}(y)|\right]\leq M\cdot\varepsilon\cdot(m_{P}(\tau)+\kappa(P))=\mathcal{E}(\tau,\varepsilon).
+The two-sided bound follows immediately from
+−
+|
+B
+⁡
+(
+ε
+)
+|
+≤
+B
+⁡
+(
+ε
+)
+≤
+|
+B
+⁡
+(
+ε
+)
+|
+-|B(\varepsilon)|\leq B(\varepsilon)\leq|B(\varepsilon)|
+.
+∎
+Theorem
+C.7
+uncovers a structural duality where the redundancy
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+governs both the potential upside and the theoretical risk of an update. Specifically, minimizing
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+simultaneously enhances the novelty signal
+ℳ
+\mathcal{M}
+and strictly compresses the error radius
+ℰ
+\mathcal{E}
+. This implies that rarer trajectories offer a superior trade-off. They provide higher projected gains with greater certainty. To rigorously operationalize this observation, we focus on the certified lower bound, defined as
+J
+⁡
+(
+τ
+,
+ε
+)
+:=
+ℳ
+⁡
+(
+τ
+,
+ε
+)
+−
+ℰ
+⁡
+(
+τ
+,
+ε
+)
+J(\tau,\varepsilon):=\mathcal{M}(\tau,\varepsilon)-\mathcal{E}(\tau,\varepsilon)
+, which serves as the worst-case guarantee for improvement.
+Theorem C.8
+(Monotonicity of certified gain)
+.
+If
+ϵ
+>
+0
+\epsilon>0
+, then the certified lower bound
+J
+⁡
+(
+τ
+,
+ε
+)
+J(\tau,\varepsilon)
+is a strictly decreasing function of the local mass
+m
+P
+​
+(
+τ
+)
+m_{P}(\tau)
+.
+Proof.
+Let
+m
+:=
+m
+P
+​
+(
+τ
+)
+∈
+[
+0
+,
+1
+]
+m:=m_{P}(\tau)\in[0,1]
+. We analyze the sensitivity of the lower bound function
+J
+J
+with respect to
+m
+m
+:
+J
+⁡
+(
+m
+)
+=
+ε
+⁡
+[
+g
+⁡
+(
+(
+1
+−
+ε
+)
+​
+m
++
+ε
+)
+−
+ℱ
+⁡
+(
+P
+)
+−
+M
+​
+m
+−
+M
+​
+κ
+​
+(
+P
+)
+]
+.
+J(m)=\varepsilon\Big[g\big((1-\varepsilon)m+\varepsilon\big)-\mathcal{F}(P)-Mm-M\kappa(P)\Big].
+Differentiating
+J
+⁡
+(
+m
+)
+J(m)
+yields:
+∂
+J
+∂
+m
+=
+ε
+⁡
+[
+(
+1
+−
+ε
+)
+​
+g
+′
+​
+(
+(
+1
+−
+ε
+)
+​
+m
++
+ε
+)
+−
+M
+]
+.
+\frac{\partial J}{\partial m}=\varepsilon\left[(1-\varepsilon)g^{\prime}\big((1-\varepsilon)m+\varepsilon\big)-M\right].
+The strict negativity of this derivative follows immediately from the system’s properties.
+∎
+This confirms that increasing redundancy incurs a “double penalty,” simultaneously attenuating the diversity signal and amplifying the perturbation noise.
+Appendix D
+Discrete Analysis for Leave-One-Out Contribution
+s
+i
+s_{i}
+Definitions.
+Let
+Ω
+=
+{
+o
+1
+,
+…
+,
+o
+G
+}
+\Omega=\{o_{1},\dots,o_{G}\}
+with
+G
+≥
+3
+G\geq 3
+. Assume the similarity kernel is symmetric:
+k
+⁡
+(
+o
+p
+,
+o
+q
+)
+=
+k
+⁡
+(
+o
+q
+,
+o
+p
+)
+k(o_{p},o_{q})=k(o_{q},o_{p})
+, and bounded on its domain.
+For any finite set
+S
+S
+with
+|
+S
+|
+=
+n
+≥
+2
+|S|=n\geq 2
+, define the leave-one-out local mass
+m
+u
+​
+(
+S
+)
+=
+1
+|
+S
+|
+−
+1
+​
+∑
+v
+∈
+S
+,
+v
+≠
+u
+k
+⁡
+(
+o
+u
+,
+o
+v
+)
+,
+m_{u}(S)=\frac{1}{|S|-1}\sum_{v\in S,\,v\neq u}k(o_{u},o_{v}),
+and the diversity score
+D
+⁡
+(
+S
+)
+=
+1
+|
+S
+|
+​
+∑
+u
+∈
+S
+g
+⁡
+(
+m
+u
+​
+(
+S
+)
+)
+,
+D(S)=\frac{1}{|S|}\sum_{u\in S}g\!\big(m_{u}(S)\big),
+where
+g
+g
+is continuously differentiable and strictly decreasing on the relevant range:
+g
+′
+​
+(
+x
+)
+<
+0
+g^{\prime}(x)<0
+.
+For the full set
+Ω
+\Omega
+we write
+m
+i
+:=
+m
+i
+​
+(
+Ω
+)
+m_{i}:=m_{i}(\Omega)
+.
+For a leave-one-out set
+A
+−
+i
+:=
+Ω
+∖
+{
+o
+i
+}
+A_{-i}:=\Omega\setminus\{o_{i}\}
+we write
+m
+j
+(
+−
+i
+)
+:=
+m
+j
+​
+(
+A
+−
+i
+)
+,
+D
+−
+i
+:=
+D
+⁡
+(
+A
+−
+i
+)
+.
+m_{j}^{(-i)}:=m_{j}(A_{-i}),\qquad D_{-i}:=D(A_{-i}).
+Your algorithm uses the leave-one-out contribution
+s
+i
+:=
+D
+⁡
+(
+Ω
+)
+−
+D
+−
+i
+.
+s_{i}:=D(\Omega)-D_{-i}.
+Lemma D.1
+(Exact density update law under removal)
+.
+For any
+j
+≠
+i
+j\neq i
+,
+m
+j
+(
+−
+i
+)
+=
+1
+G
+−
+2
+​
+∑
+p
+∈
+Ω
+,
+p
+≠
+j
+,
+i
+k
+⁡
+(
+o
+j
+,
+o
+p
+)
+=
+(
+G
+−
+1
+)
+​
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+G
+−
+2
+=
+m
+j
++
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+G
+−
+2
+.
+m_{j}^{(-i)}=\frac{1}{G-2}\sum_{p\in\Omega,\,p\neq j,i}k(o_{j},o_{p})=\frac{(G-1)m_{j}-k(o_{j},o_{i})}{G-2}=m_{j}+\frac{m_{j}-k(o_{j},o_{i})}{G-2}.
+Equivalently,
+m
+j
+(
+−
+i
+)
+−
+m
+j
+=
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+G
+−
+2
+.
+m_{j}^{(-i)}-m_{j}=\frac{m_{j}-k(o_{j},o_{i})}{G-2}.
+Proof.
+Let
+R
+j
+​
+i
+:=
+∑
+p
+∈
+Ω
+,
+p
+≠
+j
+,
+i
+k
+⁡
+(
+o
+j
+,
+o
+p
+)
+R_{ji}:=\sum_{p\in\Omega,\,p\neq j,i}k(o_{j},o_{p})
+. Then
+m
+j
+=
+1
+G
+−
+1
+​
+(
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
++
+R
+j
+​
+i
+)
+m_{j}=\frac{1}{G-1}\big(k(o_{j},o_{i})+R_{ji}\big)
+and
+m
+j
+(
+−
+i
+)
+=
+1
+G
+−
+2
+​
+R
+j
+​
+i
+m_{j}^{(-i)}=\frac{1}{G-2}R_{ji}
+.
+Eliminate
+R
+j
+​
+i
+=
+(
+G
+−
+1
+)
+​
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+R_{ji}=(G-1)m_{j}-k(o_{j},o_{i})
+and substitute.
+∎
+Theorem D.2
+(Exact decomposition of
+s
+i
+s_{i}
+)
+.
+Let
+G
+=
+|
+Ω
+|
+≥
+3
+G=|\Omega|\geq 3
+. Then
+s
+i
+=
+1
+G
+​
+g
+​
+(
+m
+i
+)
+⏟
+𝒯
+self
++
+(
+1
+G
+−
+1
+G
+−
+1
+)
+​
+∑
+j
+≠
+i
+g
+⁡
+(
+m
+j
+)
+⏟
+𝒯
+norm
++
+1
+G
+−
+1
+​
+∑
+j
+≠
+i
+[
+g
+⁡
+(
+m
+j
+)
+−
+g
+⁡
+(
+m
+j
+(
+−
+i
+)
+)
+]
+⏟
+𝒯
+interaction
+.
+s_{i}=\underbrace{\frac{1}{G}g(m_{i})}_{\mathcal{T}_{\text{self}}}+\underbrace{\Big(\frac{1}{G}-\frac{1}{G-1}\Big)\sum_{j\neq i}g(m_{j})}_{\mathcal{T}_{\text{norm}}}+\underbrace{\frac{1}{G-1}\sum_{j\neq i}\Big[g(m_{j})-g(m_{j}^{(-i)})\Big]}_{\mathcal{T}_{\text{interaction}}}.
+Moreover, by Lemma
+D.1
+, each interaction summand depends on
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+k(o_{j},o_{i})
+only through
+m
+j
+(
+−
+i
+)
+=
+m
+j
++
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+G
+−
+2
+m_{j}^{(-i)}=m_{j}+\frac{m_{j}-k(o_{j},o_{i})}{G-2}
+.
+Proof.
+Expand
+D
+⁡
+(
+Ω
+)
+=
+1
+G
+​
+(
+g
+⁡
+(
+m
+i
+)
++
+∑
+j
+≠
+i
+g
+⁡
+(
+m
+j
+)
+)
+D(\Omega)=\frac{1}{G}\big(g(m_{i})+\sum_{j\neq i}g(m_{j})\big)
+and
+D
+−
+i
+=
+1
+G
+−
+1
+​
+∑
+j
+≠
+i
+g
+⁡
+(
+m
+j
+(
+−
+i
+)
+)
+D_{-i}=\frac{1}{G-1}\sum_{j\neq i}g(m_{j}^{(-i)})
+and regroup terms.
+∎
+Theorem D.3
+(Strict monotonicity w.r.t. pairwise similarity)
+.
+Fix
+i
+≠
+t
+i\neq t
+and denote
+k
+i
+​
+t
+:=
+k
+⁡
+(
+o
+i
+,
+o
+t
+)
+k_{it}:=k(o_{i},o_{t})
+.
+Then
+∂
+s
+i
+∂
+k
+i
+​
+t
+=
+1
+G
+⁡
+(
+G
+−
+1
+)
+​
+(
+g
+′
+​
+(
+m
+i
+)
++
+g
+′
+​
+(
+m
+t
+)
+)
+<
+0
+.
+\frac{\partial s_{i}}{\partial k_{it}}=\frac{1}{G(G-1)}\Big(g^{\prime}(m_{i})+g^{\prime}(m_{t})\Big)<0.
+Proof.
+D
+−
+i
+D_{-i}
+does not involve
+o
+i
+o_{i}
+, hence is independent of
+k
+i
+​
+t
+k_{it}
+. Therefore
+∂
+s
+i
+∂
+k
+i
+​
+t
+=
+∂
+D
+⁡
+(
+Ω
+)
+∂
+k
+i
+​
+t
+\frac{\partial s_{i}}{\partial k_{it}}=\frac{\partial D(\Omega)}{\partial k_{it}}
+.
+In
+D
+⁡
+(
+Ω
+)
+D(\Omega)
+, only
+m
+i
+m_{i}
+and
+m
+t
+m_{t}
+depend on
+k
+i
+​
+t
+k_{it}
+, and
+∂
+m
+i
+∂
+k
+i
+​
+t
+=
+1
+G
+−
+1
+\frac{\partial m_{i}}{\partial k_{it}}=\frac{1}{G-1}
+,
+∂
+m
+t
+∂
+k
+i
+​
+t
+=
+1
+G
+−
+1
+\frac{\partial m_{t}}{\partial k_{it}}=\frac{1}{G-1}
+.
+Thus
+∂
+D
+⁡
+(
+Ω
+)
+∂
+k
+i
+​
+t
+=
+1
+G
+​
+(
+g
+′
+​
+(
+m
+i
+)
+​
+1
+G
+−
+1
++
+g
+′
+​
+(
+m
+t
+)
+​
+1
+G
+−
+1
+)
+=
+1
+G
+⁡
+(
+G
+−
+1
+)
+​
+(
+g
+′
+​
+(
+m
+i
+)
++
+g
+′
+​
+(
+m
+t
+)
+)
+<
+0
+,
+\frac{\partial D(\Omega)}{\partial k_{it}}=\frac{1}{G}\left(g^{\prime}(m_{i})\frac{1}{G-1}+g^{\prime}(m_{t})\frac{1}{G-1}\right)=\frac{1}{G(G-1)}(g^{\prime}(m_{i})+g^{\prime}(m_{t}))<0,
+since
+g
+′
+<
+0
+g^{\prime}<0
+.
+∎
+Theorem D.4
+(Rare–redundant ordering under pointwise dominance)
+.
+Let
+r
+≠
+c
+r\neq c
+be two indices in
+Ω
+\Omega
+. Assume
+o
+r
+o_{r}
+is pointwise no-more-similar than
+o
+c
+o_{c}
+to all other points:
+k
+⁡
+(
+o
+r
+,
+o
+j
+)
+≤
+k
+⁡
+(
+o
+c
+,
+o
+j
+)
+∀
+j
+∈
+Ω
+∖
+{
+r
+,
+c
+}
+,
+k(o_{r},o_{j})\leq k(o_{c},o_{j})\quad\forall j\in\Omega\setminus\{r,c\},
+with strict inequality for at least one such
+j
+j
+.
+Then
+s
+r
+>
+s
+c
+.
+s_{r}>s_{c}.
+Proof.
+Since
+s
+i
+=
+D
+⁡
+(
+Ω
+)
+−
+D
+−
+i
+s_{i}=D(\Omega)-D_{-i}
+and
+D
+⁡
+(
+Ω
+)
+D(\Omega)
+is common,
+s
+r
+−
+s
+c
+=
+D
+−
+c
+−
+D
+−
+r
+.
+s_{r}-s_{c}=D_{-c}-D_{-r}.
+Expand
+D
+−
+c
+=
+1
+G
+−
+1
+​
+(
+g
+⁡
+(
+m
+r
+(
+−
+c
+)
+)
++
+∑
+j
+≠
+r
+,
+c
+g
+⁡
+(
+m
+j
+(
+−
+c
+)
+)
+)
+,
+D
+−
+r
+=
+1
+G
+−
+1
+​
+(
+g
+⁡
+(
+m
+c
+(
+−
+r
+)
+)
++
+∑
+j
+≠
+r
+,
+c
+g
+⁡
+(
+m
+j
+(
+−
+r
+)
+)
+)
+,
+D_{-c}=\frac{1}{G-1}\left(g(m_{r}^{(-c)})+\sum_{j\neq r,c}g(m_{j}^{(-c)})\right),\quad D_{-r}=\frac{1}{G-1}\left(g(m_{c}^{(-r)})+\sum_{j\neq r,c}g(m_{j}^{(-r)})\right),
+hence
+s
+r
+−
+s
+c
+=
+1
+G
+−
+1
+​
+(
+g
+⁡
+(
+m
+r
+(
+−
+c
+)
+)
+−
+g
+⁡
+(
+m
+c
+(
+−
+r
+)
+)
++
+∑
+j
+≠
+r
+,
+c
+[
+g
+⁡
+(
+m
+j
+(
+−
+c
+)
+)
+−
+g
+⁡
+(
+m
+j
+(
+−
+r
+)
+)
+]
+)
+.
+s_{r}-s_{c}=\frac{1}{G-1}\left(g(m_{r}^{(-c)})-g(m_{c}^{(-r)})+\sum_{j\neq r,c}\big[g(m_{j}^{(-c)})-g(m_{j}^{(-r)})\big]\right).
+Now note:
+m
+r
+(
+−
+c
+)
+=
+1
+G
+−
+2
+​
+∑
+j
+≠
+r
+,
+c
+k
+⁡
+(
+o
+r
+,
+o
+j
+)
+,
+m
+c
+(
+−
+r
+)
+=
+1
+G
+−
+2
+​
+∑
+j
+≠
+r
+,
+c
+k
+⁡
+(
+o
+c
+,
+o
+j
+)
+,
+m_{r}^{(-c)}=\frac{1}{G-2}\sum_{j\neq r,c}k(o_{r},o_{j}),\quad m_{c}^{(-r)}=\frac{1}{G-2}\sum_{j\neq r,c}k(o_{c},o_{j}),
+hence
+m
+r
+(
+−
+c
+)
+≤
+m
+c
+(
+−
+r
+)
+m_{r}^{(-c)}\leq m_{c}^{(-r)}
+by the assumption, with strict inequality if any term is strict.
+For
+j
+≠
+r
+,
+c
+j\neq r,c
+, apply Lemma
+D.1
+to both removals and subtract:
+m
+j
+(
+−
+c
+)
+−
+m
+j
+(
+−
+r
+)
+=
+(
+G
+−
+1
+)
+​
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+c
+)
+G
+−
+2
+−
+(
+G
+−
+1
+)
+​
+m
+j
+−
+k
+⁡
+(
+o
+j
+,
+o
+r
+)
+G
+−
+2
+=
+k
+⁡
+(
+o
+j
+,
+o
+r
+)
+−
+k
+⁡
+(
+o
+j
+,
+o
+c
+)
+G
+−
+2
+≤
+0
+,
+m_{j}^{(-c)}-m_{j}^{(-r)}=\frac{(G-1)m_{j}-k(o_{j},o_{c})}{G-2}-\frac{(G-1)m_{j}-k(o_{j},o_{r})}{G-2}=\frac{k(o_{j},o_{r})-k(o_{j},o_{c})}{G-2}\leq 0,
+again strict for at least one
+j
+j
+if the dominance is strict somewhere (using symmetry of
+k
+k
+).
+Since
+g
+g
+is strictly decreasing, every bracketed difference in the expansion of
+s
+r
+−
+s
+c
+s_{r}-s_{c}
+is nonnegative,
+and at least one is strictly positive, so
+s
+r
+−
+s
+c
+>
+0
+s_{r}-s_{c}>0
+.
+∎
+Corollary D.5
+(Weighted characterization of the gap)
+.
+There exist
+ξ
+0
+\xi_{0}
+between
+m
+r
+(
+−
+c
+)
+m_{r}^{(-c)}
+and
+m
+c
+(
+−
+r
+)
+m_{c}^{(-r)}
+, and
+{
+ξ
+j
+}
+j
+≠
+r
+,
+c
+\{\xi_{j}\}_{j\neq r,c}
+between
+m
+j
+(
+−
+c
+)
+m_{j}^{(-c)}
+and
+m
+j
+(
+−
+r
+)
+m_{j}^{(-r)}
+, such that
+s
+r
+−
+s
+c
+=
+1
+(
+G
+−
+1
+)
+​
+(
+G
+−
+2
+)
+​
+∑
+j
+≠
+r
+,
+c
+(
+w
+0
++
+w
+j
+)
+​
+(
+k
+⁡
+(
+o
+c
+,
+o
+j
+)
+−
+k
+⁡
+(
+o
+r
+,
+o
+j
+)
+)
+,
+w
+0
+:=
+−
+g
+′
+​
+(
+ξ
+0
+)
+>
+0
+,
+w
+j
+:=
+−
+g
+′
+​
+(
+ξ
+j
+)
+>
+0
+.
+s_{r}-s_{c}=\frac{1}{(G-1)(G-2)}\sum_{j\neq r,c}\big(w_{0}+w_{j}\big)\Big(k(o_{c},o_{j})-k(o_{r},o_{j})\Big),\quad w_{0}:=-g^{\prime}(\xi_{0})>0,\;\;w_{j}:=-g^{\prime}(\xi_{j})>0.
+Therefore
+s
+r
+>
+s
+c
+s_{r}>s_{c}
+holds whenever the
+weighted
+similarity advantage of
+o
+c
+o_{c}
+over
+o
+r
+o_{r}
+is positive,
+even if pointwise dominance fails.
+Proof.
+Apply the mean value theorem to
+g
+⁡
+(
+m
+r
+(
+−
+c
+)
+)
+−
+g
+⁡
+(
+m
+c
+(
+−
+r
+)
+)
+g(m_{r}^{(-c)})-g(m_{c}^{(-r)})
+and each
+g
+⁡
+(
+m
+j
+(
+−
+c
+)
+)
+−
+g
+⁡
+(
+m
+j
+(
+−
+r
+)
+)
+g(m_{j}^{(-c)})-g(m_{j}^{(-r)})
+in the expansion of Theorem
+D.4
+, then use
+m
+r
+(
+−
+c
+)
+−
+m
+c
+(
+−
+r
+)
+=
+1
+G
+−
+2
+​
+∑
+j
+≠
+r
+,
+c
+(
+k
+⁡
+(
+o
+r
+,
+o
+j
+)
+−
+k
+⁡
+(
+o
+c
+,
+o
+j
+)
+)
+,
+m
+j
+(
+−
+c
+)
+−
+m
+j
+(
+−
+r
+)
+=
+k
+⁡
+(
+o
+j
+,
+o
+r
+)
+−
+k
+⁡
+(
+o
+j
+,
+o
+c
+)
+G
+−
+2
+,
+m_{r}^{(-c)}-m_{c}^{(-r)}=\frac{1}{G-2}\sum_{j\neq r,c}(k(o_{r},o_{j})-k(o_{c},o_{j})),\quad m_{j}^{(-c)}-m_{j}^{(-r)}=\frac{k(o_{j},o_{r})-k(o_{j},o_{c})}{G-2},
+and simplify.
+∎
+Corollary D.6
+(Dilution vs. congestion under removal)
+.
+For any
+j
+≠
+i
+j\neq i
+, removing
+o
+i
+o_{i}
+makes
+o
+j
+o_{j}
+denser
+(mass increases) iff
+o
+i
+o_{i}
+acts as a diluter for
+o
+j
+o_{j}
+:
+m
+j
+(
+−
+i
+)
+>
+m
+j
+⟺
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+<
+m
+j
+.
+m_{j}^{(-i)}>m_{j}\;\Longleftrightarrow\;k(o_{j},o_{i})<m_{j}.
+Consequently, the neighbor score decreases under removal iff
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+<
+m
+j
+k(o_{j},o_{i})<m_{j}
+:
+g
+⁡
+(
+m
+j
+(
+−
+i
+)
+)
+<
+g
+⁡
+(
+m
+j
+)
+⟺
+k
+⁡
+(
+o
+j
+,
+o
+i
+)
+<
+m
+j
+.
+g(m_{j}^{(-i)})<g(m_{j})\;\Longleftrightarrow\;k(o_{j},o_{i})<m_{j}.
+Proof.
+Immediate from Lemma
+D.1
+and monotonicity of
+g
+g
+.
+∎
+Appendix E
+Experiments Setting
+E.1
+Training Settings
+We train Qwen-1.5B and Qwen-7B models on GSM8K following the experimental settings in
+(
+Yao et al., 2025
+)
+to ensure a fair comparison. The hyperparameters for SetPO+GRPO, SetPO+GSPO, and SetPO+DAPO are summarized in Tables
+4
+,
+5
+, and
+6
+, respectively. For the extended experiments on Qwen-32B, the detailed settings are provided in Table
+7
+. For the Countdown experiments, the corresponding hyperparameters are listed in Table
+8
+. In all settings, the kernel function is defined as
+k
+⁡
+(
+o
+i
+,
+o
+j
+)
+=
+clamp
+⁡
+(
+sim
+⁡
+(
+e
+i
+,
+e
+j
+)
+)
+k(o_{i},o_{j})=\operatorname{clamp}(\operatorname{sim}(e_{i},e_{j}))
+, where
+o
+i
+o_{i}
+and
+o
+j
+o_{j}
+denote the output answers and
+e
+i
+,
+e
+j
+e_{i},e_{j}
+are their corresponding semantic embeddings. Here,
+sim
+\operatorname{sim}
+represents cosine similarity, and the
+clamp
+\operatorname{clamp}
+operation is applied to ensure the kernel value remains within the range
+[
+0
+,
+1
+]
+[0,1]
+.
+Table 4:
+Hyperparameters and Experimental Settings for SetPO+GRPO and GRPO
+Parameter
+Value
+Parameter
+Value
+Base Model
+Qwen2.5-Math-7B/1.5B
+Algorithm
+GRPO
+Dataset
+GSM8K
+Embedding Model
+Qwen3-Embedding-0.6B
+Training Configuration
+Global Batch Size
+64
+Learning Rate
+3
+×
+10
+−
+6
+3\times 10^{-6}
+KL Coefficient
+1
+×
+10
+−
+4
+1\times 10^{-4}
+Total Epochs
+2
+Rollout Samples (
+N
+N
+)
+6
+Training Rollout Temp.
+0.9
+Clip Ratio
+0.2
+Max Response Len.
+756
+Marginal Weight
+0.05
+Shape Function
+−
+log
+⁡
+(
+1
++
+x
+)
+-\log(1+x)
+Inference & Evaluation Configuration
+Inference Temperature
+0.5
+Top-
+p
+p
+0.9
+Table 5:
+Hyperparameters and Experimental Settings for SetPO+GSPO and GSPO
+Parameter
+Value
+Parameter
+Value
+Base Model
+Qwen2.5-Math-7B/1.5B
+Algorithm
+GSPO
+Dataset
+GSM8K
+Embedding Model
+Qwen3-Embedding-0.6B
+Training Configuration
+Global Batch Size
+64
+Learning Rate
+1
+×
+10
+−
+6
+1\times 10^{-6}
+KL Coefficient
+1
+×
+10
+−
+4
+1\times 10^{-4}
+Total Epochs
+2
+Clip Ratio Low (
+ϵ
+l
+​
+o
+​
+w
+\epsilon_{low}
+)
+0.0003
+Clip Ratio High (
+ϵ
+h
+​
+i
+​
+g
+​
+h
+\epsilon_{high}
+)
+0.0004
+Temperature
+0.9
+Max Response Len.
+756
+Rollout Number
+6
+Mini Batch Size
+64
+Marginal Weight
+0.1
+Shape Function
+−
+log
+⁡
+(
+1
++
+x
+)
+-\log(1+x)
+Inference & Evaluation Configuration
+Inference Temperature
+0.5
+Top-
+p
+p
+0.9
+Table 6:
+Hyperparameters and Experimental Settings for SetPO+DAPO and DAPO
+Parameter
+Value
+Parameter
+Value
+Base Model
+Qwen2.5-Math-7B/1.5B
+Algorithm
+DAPO
+Dataset
+GSM8K
+Embedding Model
+Qwen3-Embedding-0.6B
+Training Configuration
+Global Batch Size
+64
+Learning Rate
+1
+×
+10
+−
+6
+1\times 10^{-6}
+KL Coefficient
+1
+×
+10
+−
+4
+1\times 10^{-4}
+Total Epochs
+2
+Clip Ratio Low (
+ϵ
+l
+​
+o
+​
+w
+\epsilon_{low}
+)
+0.2
+Clip Ratio High (
+ϵ
+h
+​
+i
+​
+g
+​
+h
+\epsilon_{high}
+)
+0.28
+Temperature
+0.9
+Max Response Len.
+756
+Rollout Number
+6
+Mini Batch Size
+64
+Marginal Weight
+0.2
+Shape Function
+−
+log
+⁡
+(
+1
++
+x
+)
+-\log(1+x)
+Inference & Evaluation Configuration
+Inference Temperature
+0.5
+Top-
+p
+p
+0.9
+Table 7:
+Hyperparameters and Experimental Settings for SetPO+GRPO and GRPO of Qwen2.5-32B-Base
+Parameter
+Value
+Parameter
+Value
+Base Model
+Qwen2.5-32B-Base
+Algorithm
+GRPO
+Dataset
+Math-Hard
+(
+Zeng et al., 2025
+)
+Embedding Model
+Qwen3-Embedding-0.6B
+Training Configuration
+Global Batch Size
+1024
+Learning Rate
+1
+×
+10
+−
+6
+1\times 10^{-6}
+KL Coefficient
+1
+×
+10
+−
+3
+1\times 10^{-3}
+Total Epochs
+15
+Clip Ratio
+0.2
+Mini Batch Size
+256
+Temperature
+1
+Max Response Len.
+4096
+Marginal Weight
+0.1
+Shape Function
+−
+log
+⁡
+(
+1
++
+x
+)
+-\log(1+x)
+Rollout Number
+6
+Mini Batch Size
+64
+Inference & Evaluation Configuration
+Inference Temperature
+0.5
+Top-
+p
+p
+0.9
+Table 8:
+Detailed hyperparameter settings for the Qwen2.5-3B GRPO experiments for Countdown.
+Parameter
+Value
+Parameter
+Value
+Base Model
+Qwen2.5-3B
+Algorithm
+GRPO
+Dataset
+Countdown
+Embedding Model
+Qwen3-Embedding-0.6B
+Training Configuration
+Global Batch Size
+128
+Learning Rate
+1
+×
+10
+−
+6
+1\times 10^{-6}
+KL Coefficient (
+β
+\beta
+)
+0.001
+Training Epochs
+1
+Rollout Group Size (
+G
+G
+)
+7/ 3
+Total Training Samples
+86400
+Max Prompt Length
+512
+Max Response Length
+2048
+Marginal Weight
+0.5
+Shape Function
+-
+log
+⁡
+(
+1
++
+x
+)
+\log(1+x)
+Inference & Evaluation Configuration
+Eval Response Length
+2048
+Eval Samples (
+N
+N
+)
+64
+Temperature
+1.0/ 0.5
+Top-
+p
+p
+0.9
+E.2
+Evaluation Settings
+Following the evaluation protocol
+(
+Chen, 2021
+)
+, we employ the unbiased estimator for the Pass@k metric. Directly generating only
+k
+k
+samples to measure accuracy often yields high variance. Therefore, we generate a larger pool of
+n
+n
+samples and analytically calculate the probability of finding at least one correct solution within a random subset of size
+k
+k
+. Let
+n
+n
+denote the total sample count and
+c
+c
+the count of correct solutions. The unbiased estimator is defined as:
+Pass
+​
+@
+​
+k
+:=
+1
+−
+(
+n
+−
+c
+k
+)
+(
+n
+k
+)
+\text{Pass}@k:=1-\frac{\binom{n-c}{k}}{\binom{n}{k}}
+(21)
+In our experiments, we fix the total generation budget at
+n
+=
+64
+n=64
+and evaluate Pass@k for
+k
+∈
+{
+1
+,
+2
+,
+4
+,
+8
+,
+16
+,
+32
+,
+64
+}
+k\in\{1,2,4,8,16,32,64\}
+. This formula naturally simplifies to empirical accuracy when
+n
+=
+k
+n=k
+. Additionally, if the number of incorrect samples is fewer than
+k
+k
+(i.e.,
+n
+−
+c
+<
+k
+n-c<k
+), the metric is defined as 1, indicating that any chosen subset of size
+k
+k
+would inherently contain a correct solution.
+Appendix F
+More Results on Mathematical Reasoning
+F.1
+Complete Comparison on Mathematical Benchmark
+The complete comparison from Pass@1 to Pass@k is shown in Figures
+6
+and
+7
+. We evaluate different sampling budgets for the three baselines and their SetPO-augmented variants. All experiments are conducted with five random seeds to reduce randomness, and the shaded regions indicate variance. We observe that SetPO consistently reduces the variance of the baselines and yields stable performance improvements. Moreover, the gains do not diminish as the sampling budget increases, suggesting that SetPO effectively improves outcome diversity by covering more reward modes. Finally, Figure
+10
+further confirms that our method remains effective when scaling to larger models.
+Figure 6:
+Performance of SetPO+GRPO vs. GRPO and SetPO+GSPO vs. GSPO on Qwen2.5-Math-1.5B and Qwen2.5-Math-7B across multiple benchmarks. SetPO consistently outperforms the corresponding baselines and, in most cases, reduces training variability. Shaded regions denote variance across runs, and solid lines indicate the mean.
+Figure 7:
+Performance of SetPO+DAPO vs. DAPO on Qwen2.5-Math-1.5B and Qwen2.5-Math-7B across multiple benchmarks. SetPO consistently outperforms the corresponding baselines. Shaded regions denote variance across runs, and solid lines indicate the mean.
+F.2
+Reaching Higher Performance when
+K
+K
+is sufficiently high
+As noted by
+(
+Yue et al., 2025
+)
+, improvements in Pass@1 do not always reflect genuine capability gains. In some cases, comparable performance can be obtained simply by increasing the sampling budget of the base model. Furthermore, they show that models trained with current policy gradient methods can underperform the base model in terms of Pass@k, suggesting that the apparent gains from RLVR may partially arise from a reduction in outcome diversity rather than improved underlying competence. Motivated by this observation, we evaluate our model on AIME24 from pass@
+1
+1
+through pass@
+256
+256
+. As shown in Figure
+8
+, our method consistently and substantially outperforms the base model across the entire range of
+K
+K
+, including at
+K
+=
+256
+K=256
+, indicating that the gains are not merely an artifact of more sampling but reflect robust improvements over the underlying base model.
+Figure 8:
+Pass@k performance on AIME24 benchmark across sampling budgets
+k
+k
+, comparing the instruction-tuned base model and the RL-finetuned model (SetPO+GRPO). Notably, SetPO+GRPO maintains strong performance at large
+k
+k
+, exceeding the base model even under high-pass evaluation.
+F.3
+Timing Cost on Adding SetPO to Original Algorithms
+Although SetPO leverages an additional embedding model (Qwen3-0.6B-Embedding) to compute the leave-one-out marginal reward, the extra computation is lightweight and readily controllable. Figure
+9
+reports the end-to-end wall-clock time of baseline algorithms and their SetPO-augmented counterparts. Across GRPO, GSPO, and DAPO, incorporating SetPO increases total runtime by less than 10%, indicating that the embedding-based marginal reward estimation does not materially affect training throughput. Moreover, this overhead is not fundamental and can be further reduced with more efficient implementations of the embedding pipeline (e.g., optimized parallelization and better IO/serialization), making SetPO a practical drop-in augmentation for existing RL pipelines.
+Figure 9:
+Wall-clock time comparison between baseline algorithms and their SetPO-augmented variants. For GRPO, GSPO, and DAPO, adding SetPO introduces less than 10% additional compute overhead, and this cost can be further reduced with more efficient implementations.
+Figure 10:
+Performance of SetPO+GRPO vs GRPO on Qwen2.5-32B.
+Appendix G
+Case Study
+G.1
+Case Study: Diversity in Mathematical Reasoning Solutions
+In this subsection, we use a representative olympiad-style number theory problem to illustrate the diversity of reasoning paths produced by our SetPO+GRPO training.
+Problem Statement
+. Let
+b
+≥
+2
+b\geq 2
+be an integer. Call a positive integer
+n
+n
+b
+​
+-
+eautiful
+b\text{-}\textit{eautiful}
+if it has exactly two digits when expressed in base
+b
+b
+and these two digits sum to
+n
+\sqrt{n}
+. For example,
+81
+81
+is
+13
+​
+-
+eautiful
+13\text{-}\textit{eautiful}
+because
+81
+=
+6
+¯
+​
+3
+¯
+13
+81=\underline{6}\ \underline{3}_{13}
+and
+6
++
+3
+=
+81
+6+3=\sqrt{81}
+. Find the least integer
+b
+≥
+2
+b\geq 2
+for which there are more than ten
+b
+​
+-
+eautiful
+b\text{-}\textit{eautiful}
+integers.
+Instead of converging to a single proof, the trained model can generate multiple solution strategies for the problem and arrive at the same final answer. Below, we present two such solutions: one proceeds mainly via algebraic manipulation of the digit constraints, while the other follows a constructive viewpoint. These distinct approaches provides concrete evidence that SetPO+GRPO encourages diverse problem-solving strategies, validating the diversity of our generated solutions.
+Solution I
+To solve this problem, we need to find the smallest base
+b
+≥
+2
+b\geq 2
+such that there are more than ten
+b
+b
+-beautiful integers. A number
+n
+n
+is
+b
+b
+-beautiful if it has exactly two digits in base
+b
+b
+and the sum of these digits is equal to
+n
+\sqrt{n}
+.Let’s break down the problem:
+1.
+A two-digit number in base
+b
+b
+can be written as
+n
+=
+a
+​
+b
++
+c
+n=ab+c
+, where
+a
+a
+and
+c
+c
+are the digits,
+1
+≤
+a
+≤
+b
+−
+1
+1\leq a\leq b-1
+, and
+0
+≤
+c
+≤
+b
+−
+1
+0\leq c\leq b-1
+.
+2.
+The condition for
+n
+n
+to be
+b
+b
+-beautiful is
+a
++
+c
+=
+n
+a+c=\sqrt{n}
+. Since
+n
+=
+a
+​
+b
++
+c
+n=ab+c
+, we have
+a
+​
+b
++
+c
+=
+a
++
+c
+\sqrt{ab+c}=a+c
+. Squaring both sides, we get
+a
+​
+b
++
+c
+=
+(
+a
++
+c
+)
+2
+=
+a
+2
++
+2
+​
+a
+​
+c
++
+c
+2
+ab+c=(a+c)^{2}=a^{2}+2ac+c^{2}
+.
+3.
+Rearranging the equation, we get
+a
+​
+b
++
+c
+=
+a
+2
++
+2
+​
+a
+​
+c
++
+c
+2
+ab+c=a^{2}+2ac+c^{2}
+, which simplifies to
+a
+​
+b
+=
+a
+2
++
+2
+​
+a
+​
+c
++
+c
+2
+−
+c
+ab=a^{2}+2ac+c^{2}-c
+. This can be further simplified to
+a
+​
+b
+=
+a
+2
++
+c
+⁡
+(
+2
+​
+a
++
+c
+−
+1
+)
+ab=a^{2}+c(2a+c-1)
+.
+We need to find the smallest base
+b
+b
+such that there are more than ten solutions to this equation. We’ll start with
+b
+=
+2
+b=2
+and increment
+b
+b
+until we find a base with more than ten
+b
+b
+-beautiful integers. The least integer
+b
+≥
+2
+b\geq 2
+for which there are more than ten
+b
+b
+-beautiful integers is
+211
+\boxed{211}
+.
+Solution II
+Let’s break down the problem step by step and use to find the solution.
+1.
+Understanding
+b
+b
+-beautiful numbers
+: A number
+n
+n
+is
+b
+b
+-beautiful if it has exactly two digits in base
+b
+b
+and the sum of these digits is
+n
+\sqrt{n}
+. If
+n
+n
+has two digits in base
+b
+b
+, it can be expressed as
+n
+=
+d
+1
+⋅
+b
++
+d
+2
+n=d_{1}\cdot b+d_{2}
+where
+d
+1
+d_{1}
+and
+d
+2
+d_{2}
+are the digits, with
+1
+≤
+d
+1
+≤
+b
+−
+1
+1\leq d_{1}\leq b-1
+and
+0
+≤
+d
+2
+≤
+b
+−
+1
+0\leq d_{2}\leq b-1
+. The condition for
+n
+n
+being
+b
+b
+-beautiful is
+d
+1
++
+d
+2
+=
+n
+d_{1}+d_{2}=\sqrt{n}
+.
+2.
+Range of
+n
+n
+: Since
+n
+n
+has two digits in base
+b
+b
+,
+b
+≤
+n
+<
+b
+2
+b\leq n<b^{2}
+. Therefore,
+b
+≤
+n
+<
+b
+2
+b\leq n<b^{2}
+and
+n
+\sqrt{n}
+must be an integer. This means
+n
+n
+must be a perfect square, say
+n
+=
+k
+2
+n=k^{2}
+, where
+b
+≤
+k
+2
+<
+b
+2
+b\leq k^{2}<b^{2}
+. Hence,
+k
+k
+must be an integer such that
+b
+≤
+k
+<
+b
+\sqrt{b}\leq k<b
+.
+3.
+Finding
+b
+b
+-beautiful numbers
+: For each
+k
+k
+in the range
+⌈
+b
+⌉
+≤
+k
+<
+b
+\lceil\sqrt{b}\rceil\leq k<b
+, we need to check if
+k
+2
+k^{2}
+can be expressed as
+d
+1
+⋅
+b
++
+d
+2
+d_{1}\cdot b+d_{2}
+with
+d
+1
++
+d
+2
+=
+k
+d_{1}+d_{2}=k
+. This means
+d
+1
+=
+⌊
+k
+2
+b
+⌋
+d_{1}=\left\lfloor\frac{k^{2}}{b}\right\rfloor
+and
+d
+2
+=
+k
+2
+mod
+b
+d_{2}=k^{2}\mod b
+. We need to check if
+d
+1
++
+d
+2
+=
+k
+d_{1}+d_{2}=k
+.
+4.
+Counting
+b
+b
+-beautiful numbers
+: We need to find the smallest
+b
+b
+such that there are more than ten
+b
+b
+-beautiful numbers. We will iterate over
+b
+b
+starting from 2 and count the number of
+b
+b
+-beautiful numbers for each
+b
+b
+.Let’s implement this in to find the solution.The least integer
+b
+≥
+2
+b\geq 2
+for which there are more than ten
+b
+b
+-beautiful integers is
+211
+\boxed{211}
+.
+G.2
+Case Study: Diversity in Countdown Task Solutions
+To demonstrate the diversity of the generated outputs, we analyze a specific instance of the Countdown task where the objective is to construct the target integer
+63
+63
+using the set of operands
+{
+54
+,
+24
+,
+21
+,
+3
+}
+\{54,24,21,3\}
+. Model trained after SetPO+GRPO successfully identifies multiple valid calculation paths. Rather than converging on a single heuristic, the model generates seven distinct expressions. These solutions exhibit diversity in two dimensions:
+algebraic strategy
+(utilizing different primary operators) and
+structural variation
+(exploiting commutativity and operator precedence).
+The generated solutions are presented below:
+54
++
+(
+24
+−
+21
+)
+×
+3
+\displaystyle 54+(24-21)\times 3
+(22)
+(
+24
+−
+21
+)
+×
+3
++
+54
+\displaystyle(24-21)\times 3+54
+54
+−
+(
+21
+−
+24
+)
+×
+3
+\displaystyle 54-(21-24)\times 3
+(23)
+(
+54
+/
+3
+)
++
+24
++
+21
+\displaystyle(54/3)+24+21
+(24)
+24
++
+54
+/
+3
++
+21
+\displaystyle 24+54/3+21
+24
++
+21
++
+54
+/
+3
+\displaystyle 24+21+54/3
+21
++
+24
++
+54
+/
+3
+\displaystyle 21+24+54/3
+Equations (
+22
+) through (
+23
+) represent a strategy based on difference amplification, specifically computing
+3
+×
+3
++
+54
+3\times 3+54
+. Notably, Equation (
+23
+) demonstrates the model’s implicit understanding of signed arithmetic by transforming addition into the subtraction of a negative difference. Conversely, Equations (
+24
+) utilize a division-based strategy, summing partial components (
+18
++
+45
+18+45
+). The variation among these latter equations confirms the model’s grasp of commutative properties within the solution space. This output suggests the model does not merely recall a single solving pattern but actively explores the arithmetic landscape to provide a diverse set of valid constructions.
+Appendix H
+Prompts Used in this Paper
+The Prompt Used for Mathematical Reasoning
+Here is a typical case for GSM8K dataset.
+An Example of a GSM8K problem
+Julie is reading a 120-page book. Yesterday, she was able to read 12 pages and today, she read twice as many pages as yesterday. If she wants to read half of the remaining pages tomorrow, how many pages should she read?
+Please reason step by step, and put your final answer within \boxed
+{
+}
+\{\}
+.
+The Prompt Used for Countdown
+Here is a typical case for countdown dataset.
+An Example of a countdown problem
+A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant first thinks about the reasoning process in the mind and then provides the user with the answer.
+User: Using the numbers [35, 51, 46], create an equation that equals 40. You can use basic arithmetic operations (+, -, *, /) and each number can only be used once. Show your work in
+<
+<
+think
+>
+>
+<
+<
+/think
+>
+>
+tags. And return the final answer in
+<
+<
+answer
+>
+>
+<
+<
+/answer
+>
+>
+tags, for example
+<
+<
+answer
+>
+>
+(1 + 2) / 3
+<
+<
+/answer
+>
+>
+.
+Assistant: Let me solve this step by step.
+<
+<
+think
+>
+>
+The Prompt Used for Diversity Evaluation
+Our prompt is used for diversity evaluation is given as below. We use Gemini-2.5-flash.
+Prompt: AIME Solution Diversity Evaluator
+You are an expert in Mathematics Competition Coach evaluating solutions for the AIME.
+Your task is to rate the DIVERSITY of problem-solving strategies across 16 generated attempts.
+INPUT DATA
+PROBLEM:
+{problem}
+16 SOLUTION ATTEMPTS:
+{responses}
+EVALUATION CRITERIA
+1.
+Identify Strategy Clusters
+: Group solutions by their fundamental mathematical path.
+2.
+Computational/Brute-force
+: Python scripts or trial-and-error without proof are ONE cluster.
+3.
+Ignore Surface Variations
+: Different variable names or minor algebraic steps are the SAME strategy.
+SCORING RUBRIC (1-5)
+Score 1 (Minimal)
+•
+13+ responses
+rely on the exact same theorem or computational path.
+•
+Zero meaningful exploration of alternative mathematical properties.
+Score 2 (Low)
+•
+10-12 responses
+follow the standard textbook approach.
+•
+Only 1 or 2 attempts show a different perspective.
+Score 3 (Moderate)
+•
+7-9 responses
+use the dominant strategy.
+•
+There are 2-3 clearly distinct mathematical frameworks present.
+Score 4 (High)
+•
+4-6 responses
+use the most common approach.
+•
+The set demonstrates 3-4 distinct, well-developed strategies.
+Score 5 (Maximum)
+•
+3 or fewer responses
+use the most common approach.
+•
+The solutions cover a wide spectrum of techniques.
+•
+At least 4+ fundamentally different mathematical paths are successfully applied.
+OUTPUT FORMAT
+Output the score FIRST inside double brackets, followed by a brief reason.
+Format example:
+[[3]]
+The solutions use two main approaches: coordinate geometry and similar triangles...
+YOUR RESPONSE:
+Experimental support, please
+view the build logs
+for errors. Generated by
+L
+A
+T
+E
+xml
+.
+Instructions for reporting errors
+We are continuing to improve HTML versions of papers, and your feedback helps enhance accessibility and mobile
+      support. To report errors in the HTML that will help us improve conversion and rendering, choose any of the
+      methods listed below:
+Click the "Report Issue"
+(
+)
+button, located in the page header.
+Tip:
+You can select the relevant text first, to include it in your report.
+Our team has already identified
+the following issues
+. We appreciate your time reviewing and reporting rendering errors we
+      may not have found yet. Your efforts will help us improve the HTML versions for all readers, because disability
+      should not be a barrier to accessing research. Thank you for your continued support in championing open access for
+      all.
+Have a free development cycle? Help support accessibility at arXiv! Our collaborators at LaTeXML maintain a
+list of packages that need conversion
+, and welcome
+developer contributions
+.
+We gratefully acknowledge support from
+        our
+major funders
+,
+member institutions
+,
+,
+        and all contributors.
+About
+·
+Help
+·
+Contact
+·
+Subscribe
+·
+Copyright
+·
+Privacy
+·
+Accessibility
+·
+Operational Status
+(opens in new tab)
+Major funding support from

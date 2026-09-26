@@ -1,0 +1,22 @@
+{
+  "visual_review_passed": true,
+  "reviewed_iclr_pages": [
+    56,
+    57
+  ],
+  "reviewed_workshop_pages": [
+    55,
+    56
+  ],
+  "pdf_text_checks_passed": true,
+  "old_planned_e121_claim_absent": true,
+  "workshop_archives_match_final_e121_assets": true,
+  "iclr_main_content_pages_before": 10,
+  "iclr_main_content_pages_after": 10,
+  "workshop_main_content_pages": 4,
+  "focused_tests_passed": 27,
+  "final_pdf_sha256": {
+    "paper/main.pdf": "1febceb71ef93b11ca0a506702eaa41696bb93e5ad229fb92f24d684f873b298",
+    "paper/mathai2026/main.pdf": "fdf310e61ac6fd987d4d0f004ac8dfd4b0fb71339ac7daa077930d676dd8877b"
+  }
+}

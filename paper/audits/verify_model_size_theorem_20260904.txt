@@ -1,0 +1,25 @@
+{
+  "integration_method": "DOP853",
+  "rtol": 2e-11,
+  "atol": 2e-13,
+  "full_logit_integrations": 30,
+  "replication_integrations": 24,
+  "max_universal_qr_residual": 5.127681612648871e-11,
+  "max_clock_residual": 4.3251846548741923e-11,
+  "max_DrGRPO_MaxRL_endpoint_residual": 1.5014656185030617e-12,
+  "max_target_probability_residual": 2.220446049250313e-16,
+  "max_monotonicity_violation": 0.0,
+  "minimum_componentwise_lower_bound_slack": 0.008170808647267915,
+  "max_replication_logit_residual": 1.272764116322378e-10,
+  "note": "Numerical consistency checks, not a proof or empirical model-size law."
+}
+
+Representative DrGRPO case: four correct / three incorrect, P0=.20, P*=.83
+lambda   tau          max_q        S_q          distinct@8
+  0.00   3.52035470   0.81271188   0.67833154   1.95631131
+  0.25   2.79854488   0.72972484   0.56856092   2.25146204
+  1.00   1.66810427   0.60404379   0.43767084   2.61804425
+  4.00   0.62220439   0.51238450   0.36610841   2.85152093
+ 16.00   0.17710155   0.48123238   0.34571695   2.92755428
+
+Saved /n/fs/similarity/maxent-grpo/paper/audits/verify_model_size_theorem_20260904.json

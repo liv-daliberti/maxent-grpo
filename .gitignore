@@ -16,6 +16,7 @@ build/
 # Local environments and caches
 .venv/
 .local/
+data/
 var/*
 .cache/
 .tmp/
@@ -29,6 +30,8 @@ datasets/train/
 # Generated spill directories
 torchinductor_*/
 results/
+!paper/results/
+!paper/results/*.json
 details/
 outputs/
 logs/
@@ -39,3 +42,20 @@ controller_state.json
 condaenv.*.requirements.txt
 *.bak
 *.log
+
+# Generated per-episode mujoco models; the ant maze writers emit these to
+# the working directory, 1264 of them accumulated at the repo root.
+ant_maze*.xml
+tmp*/_remote_module_non_scriptable.py
+
+# patch/merge backups; 21 of these were swept into a commit once
+*.orig
+
+# Oversized artifacts kept on disk only (GitHub 100 MB limit)
+artifacts/modebench_prompt_ablation_20260911/local/download_cache/
+artifacts/modebench_inference_followups_20260911/offline/per_prompt.jsonl
+artifacts/frontier_temperature_20260911/kimi_k3_t1p5/normalized_samples.jsonl
+artifacts/frontier_temperature_20260911/kimi_k3_t1p5/audited_primary_samples.jsonl
+
+# Experiment artifacts stay on disk and are never tracked
+artifacts/

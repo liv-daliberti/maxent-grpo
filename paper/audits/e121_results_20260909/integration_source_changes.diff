@@ -1,0 +1,677 @@
+--- paper/main.tex before E121
++++ paper/main.tex
+@@ -811,10 +811,10 @@
+ \textbf{Limits and next steps.} \mb{} provides a controlled setting for
+ studying diverse solutions. Understanding how this diversity relates to broader
+ mathematical reasoning and later problem solving remains an open direction. Replay can
+-retain only modes it discovers and stores. Individual-mode survival and
+-size-dependent update geometry remain unmeasured
+-(Appendices~\ref{app:ablations} and~\ref{app:theory-size}); the optimizer and
+-admission results are conditional. Theory studies idealized mean flows.
++retain only modes it discovers and stores. A five-seed fixed-bank Graph audit
++finds a pooled median score change of $+.038$ nat/token, while $2.61\%$ of
++exemplars lose $>.5$ (Appendix~\ref{app:fixed-bank-survival}). Exact canonical-mode
++probabilities and size-dependent update geometry remain unverified. The optimizer and admission results are conditional. Theory studies idealized mean flows.
+ We have not shown that broader support
+ causes the accuracy gains. The MaxRL factorial has eleven complete paired
+ blocks; Falcon Countdown's Dr.GRPO replay comparison has four admissible seeds,
+@@ -4111,27 +4111,173 @@
+   their matched controls. It records bank availability and occupancy,
+   capacity hits, realized replay-token dose, and paired optimizer time. These
+   measurements verify the replay intervention. Testing individual-mode
+-  preservation additionally requires longitudinal scores for the same stored exemplars throughout training.}
++  preservation additionally requires longitudinal scores for the same stored
++  exemplars, measured on fixed-bank Graph in
++  Appendix~\ref{app:fixed-bank-survival}.}
+   \label{fig:replay-mechanism-telemetry}
+ \end{figure}
+ 
+ The bank stores at most one surface exemplar per verified canonical key and at
+-most 16 keys per prompt. Identity-level survival histories were not retained,
+-so occupancy cannot be interpreted as a mode-survival curve and
+-Theorem~\ref{thm:replay-retention}'s individual-mode prediction is not tested by
+-the experiments in this paper. Existing fingerprints verify key/weight
+-alignment but do not record each fixed exemplar's longitudinal policy score;
+-the disjoint evaluation prompts cannot supply that missing measurement. The
+-registered E121 fixed-bank survival study addresses this gap by freezing a
+-Graph bank after one pass and recording per-exemplar score trajectories
+-(\path{paper/preregistration/e121_fixed_bank_survival_telemetry_20260903.md}).
+-It is planned mechanism evidence; no E121 empirical result is reported here.
+-The present telemetry is used only to verify that
+-replay was scheduled, nonzero in treatment, exactly zero in controls, and
+-within its registered resource envelope. Earlier
++most 16 keys per prompt. The historical efficacy cohorts in
++Figure~\ref{fig:replay-mechanism-telemetry} did not retain identity-level score
++histories, so their occupancy cannot be interpreted as a mode-survival curve.
++Their fingerprints verify key/weight alignment, while disjoint evaluation
++prompts cannot recover a stored exemplar's longitudinal policy score.
++The completed fixed-bank study below adds that measurement for Graph.
++The historical telemetry verifies that replay was scheduled, nonzero in
++treatment, exactly zero in controls, and within its registered resource envelope. Earlier
+ bank-normalization, starvation-fallback, and open-bank experiments altered
+ multiple mechanisms and are excluded from the appendix because they do not
+ identify the ReplayMaxRL effect reported here.
++
++\subsection{Fixed-bank exemplar score trajectories}
++\label{app:fixed-bank-survival}
++
++\paragraph{Registered design and population.}
++The completed E121 mechanism study follows Qwen2.5-0.5B-Instruct
++ReplayDr.GRPO on Graph for seeds 43--47 through all 3,072 updates. It inherits
++the matched Graph recipe: group size 16, learning rate $2\times10^{-7}$,
++one PPO epoch, no reference KL, uniform replay coefficient $.10$, capacity
++16, and one global round-robin replay group per update. Before processing
++step 384's fresh group, both bank membership and fresh counts are frozen.
++Admission thereafter stops while replay continues over the retained exemplars.
++This intervention and the score readouts were registered before any E121
++outcome existed
++(\path{paper/preregistration/e121_fixed_bank_survival_telemetry_20260903.md}).
++
++A prompt fingerprint and canonical-outcome fingerprint identify each frozen
++exemplar. The analysis includes every frozen identity, with no selection by its
++score trajectory. Each replay visit records response-length-normalized mean
++token log probability $s$ and sequence log probability $\ell$. For identity
++$i$, the final change is $\Delta s_i=s_{i,\mathrm{last}}-s_{i,\mathrm{first}}$;
++$\Delta\ell_i$ is defined analogously. The first and final observations are
++that identity's scheduled post-freeze visits, whose learner steps differ across
++prompts. The minimum intermediate change is
++$\min_t(s_{i,t}-s_{i,\mathrm{first}})$, with the corresponding sequence score
++reported separately. A negative value denotes deterioration.
++
++\paragraph{Complete coverage with a declining tail.}
++All 3,406 frozen identities across 1,575 seed--prompt pairs have finite,
++aligned scores at every scheduled post-freeze visit: coverage is $100\%$ in
++every seed. Each identity has 8--9 visits, totaling 29,041 identity observations
++across 13,445 post-freeze updates. No membership fingerprint or frozen count
++changes, no identity is missing, and none has fewer than two visits.
++Coverage reconciles the aggregate frozen-bank counts with complete round-robin
++cycles; resume checkpoints were automatically pruned on completion. One
++carried-forward terminal summary per seed repeats the final update and is
++excluded. Thus the analysis uses actual optimizer updates through 3,072.
++
++Median mean-token score changes are positive in all five seeds
++($+.024$ to $+.043$ nat/token), but $1.42$--$3.58\%$ of identities lose more
++than $.5$ nat/token (Table~\ref{tab:e121-fixed-bank}). Pooled across identities,
++the median change is $+.038$ ($[+.025,+.048]$), the 10th percentile is $-.256$,
++and $2.61\%$ lose more than $.5$ nat/token ($[1.54,3.77]\%$).
++The worst intermediate change is $-1.328$ nat/token. On the length-dependent
++sequence scale, the pooled median is $+.154$ nat/sequence
++($[+.104,+.198]$), while $21.99\%$ lose more than $.5$ nat/sequence.
++Exemplar lengths range from 4 to 100 tokens, so the two threshold percentages
++have different meanings. Tables~\ref{tab:e121-fixed-bank-sequence}
++and~\ref{tab:e121-fixed-bank-bootstrap} retain both scales separately.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Frozen-bank coverage and changes in mean token log probability.}
++  All five registered seeds are shown. Visits gives the per-identity range;
++  score changes are in nat/token. The last column is the percentage with
++  $\Delta s<-.5$. These are within-run score changes, without a no-replay
++  control.}
++  \label{tab:e121-fixed-bank}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}lrrrrrrr@{}}
++    \toprule
++    \textbf{Seed} & \textbf{Prompts} & \textbf{Keys} & \textbf{Visits}
++      & \textbf{Median} & \textbf{10th pct.} & \textbf{Minimum}
++      & \textbf{$<-.5$ (\%)} \\
++    \midrule
++    \input{results/e121_fixed_bank_survival_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Sequence-score changes and the worst intermediate deterioration.}
++  Median, 10th percentile, minimum, and threshold percentage describe
++  $\Delta\ell$ in nat/sequence. The final two columns give the minimum
++  intermediate change over all visits and identities in that seed, separately
++  in nat/token and nat/sequence. Sequence scores depend on exemplar length.}
++  \label{tab:e121-fixed-bank-sequence}
++  \small
++  \setlength{\tabcolsep}{3.8pt}
++  \begin{tabular}{@{}lrrrrrr@{}}
++    \toprule
++    & \multicolumn{4}{c}{\textbf{Final sequence-score change}}
++      & \multicolumn{2}{c}{\textbf{Min. intermediate change}} \\
++    \cmidrule(lr){2-5}\cmidrule(l){6-7}
++    \textbf{Seed} & \textbf{Median} & \textbf{10th pct.}
++      & \textbf{Minimum} & \textbf{$<-.5$ (\%)}
++      & \textbf{Token mean} & \textbf{Sequence} \\
++    \midrule
++    \input{results/e121_fixed_bank_survival_sequence_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\begin{figure}[H]
++  \centering
++  \includegraphics[width=.95\linewidth]{figures/e121_fixed_bank_survival.pdf}
++  \caption{\textbf{Fixed-exemplar scores improve centrally but retain a declining tail.}
++  Empirical cumulative distributions show first-to-final post-freeze score
++  changes for every frozen identity, with one curve per seed and the pooled
++  identity distribution. Mean token and sequence scores are separate panels;
++  positive values indicate increased teacher-forced likelihood. Neither panel
++  measures the exact probability of generating a canonical mode during policy sampling.}
++  \label{fig:e121-fixed-bank-survival}
++\end{figure}
++
++\paragraph{Pooled distribution and uncertainty.}
++The pooled summaries weight frozen identities equally; their counts differ
++across seeds. The registered bootstrap uses 10,000 draws and random seed 121,
++resampling prompts within each original seed and then five seeds with
++replacement. A repeated seed reuses its within-draw prompt sample.
++Identity weighting, linear empirical quantiles, percentile intervals, and which
++summaries receive displayed intervals are analysis implementation choices.
++Table~\ref{tab:e121-fixed-bank-bootstrap} reports the pooled endpoints on
++both score scales. These descriptive intervals do not test a replay-versus-control
++effect or extrapolate beyond this model, domain, bank freeze, and training recipe.
++The machine-readable result records all seed summaries, identity trajectories,
++source hashes, and audit diagnostics
++(\path{paper/results/e121_fixed_bank_survival.json}).
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Pooled score-change distribution.}
++  Point estimates pool every frozen identity. Brackets give hierarchical
++  prompt/seed-bootstrap 95\% intervals. The threshold row reports percentages
++  below $-.5$ on each score scale; the two scales have different units.}
++  \label{tab:e121-fixed-bank-bootstrap}
++  \small
++  \setlength{\tabcolsep}{5pt}
++  \begin{tabular}{@{}lrr@{}}
++    \toprule
++    \textbf{Statistic} & \textbf{Mean token score (nat/token)}
++      & \textbf{Sequence score (nat/sequence)} \\
++    \midrule
++    \input{results/e121_fixed_bank_survival_bootstrap_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\paragraph{What the measurement establishes.}
++These are score surrogates, not exact canonical-mode probabilities. Finite
++teacher-forced scores establish that the tracked exemplars remain scored at
++scheduled visits; they do not establish material sampling probability,
++unchanged sampling availability, or retention of every semantic alternative.
++Intermediate changes cover scheduled visits rather than every intervening update. The declining tails also rule out a
++claim that every stored exemplar's likelihood improves. Without a matched
++no-replay fixed-bank arm, these trajectories do not identify a causal effect
++of replay. They neither numerically validate
++Theorem~\ref{thm:replay-retention}'s $\exp(-kC_T)$ floor nor certify an exact
++finite-network guarantee. The study supplies direct longitudinal exemplar
++measurements alongside the historical occupancy and held-out support evidence.
+ 
+ \section{Aligned Scale Extensions}
+ \label{app:aligned-xmode}
+--- paper/mathai2026/main.tex before E121
++++ paper/mathai2026/main.tex
+@@ -196,14 +196,13 @@
+ another fails, or remain useful when constraints change. Understanding diversity
+ therefore gives a fuller picture of a model's capabilities than accuracy alone.
+ 
+-Our results show that replay can preserve alternatives while improving
+-held-out correctness. These controlled tasks provide a starting point for
+-studying diversity in broader mathematical reasoning. Replay retains only discovered,
+-stored modes; individual-mode survival remains unmeasured
+-(Appendix~\ref{app:ablations}). Whether broader support causes accuracy gains or
+-helps on later tasks remains open. Adding an edge can invalidate one graph
+-coloring while leaving another valid. A natural next step is to test whether
+-retained alternatives help a model respond to such changes.
++Replay improves held-out correctness while preserving alternatives. It can
++retain only discovered modes. A five-seed fixed-bank Graph audit finds a pooled
++median score change of $+.038$ nat/token, yet $2.61\%$ of exemplars lose $>.5$
++(Appendix~\ref{app:fixed-bank-survival}). Exact mode probabilities and whether
++broader support causes accuracy gains remain unverified. Adding an edge can
++invalidate one graph coloring while leaving another valid. A natural next step
++is to test whether retained alternatives help a model respond to such changes.
+ 
+ \label{main:lastpage}
+ \clearpage
+--- paper/mathai2026/appendix.tex before E121
++++ paper/mathai2026/appendix.tex
+@@ -3778,22 +3778,166 @@
+ \end{figure}
+ 
+ The bank stores at most one surface exemplar per verified canonical key and at
+-most 16 keys per prompt. Identity-level survival histories were not retained,
+-so occupancy cannot be interpreted as a mode-survival curve and
+-Theorem~\ref{thm:replay-retention}'s individual-mode prediction is not tested by
+-the experiments in this paper. Existing fingerprints verify key/weight
+-alignment but do not record each fixed exemplar's longitudinal policy score;
+-the disjoint evaluation prompts cannot supply that missing measurement. The
+-registered E121 fixed-bank survival study addresses this gap by freezing a
+-Graph bank after one pass and recording per-exemplar score trajectories
+-(\path{paper/preregistration/e121_fixed_bank_survival_telemetry_20260903.md}).
+-It is planned mechanism evidence; no E121 empirical result is reported here.
+-The present telemetry is used only to verify that
+-replay was scheduled, nonzero in treatment, exactly zero in controls, and
+-within its registered resource envelope. Earlier
++most 16 keys per prompt. The historical efficacy cohorts in
++Figure~\ref{fig:replay-mechanism-telemetry} did not retain identity-level score
++histories, so their occupancy cannot be interpreted as a mode-survival curve.
++Their fingerprints verify key/weight alignment, while disjoint evaluation
++prompts cannot recover a stored exemplar's longitudinal policy score.
++The completed fixed-bank study below adds that measurement for Graph.
++The historical telemetry verifies that replay was scheduled, nonzero in
++treatment, exactly zero in controls, and within its registered resource envelope. Earlier
+ bank-normalization, starvation-fallback, and open-bank experiments altered
+ multiple mechanisms and are excluded from the appendix because they do not
+ identify the ReplayMaxRL effect reported here.
++
++\subsection{Fixed-bank exemplar score trajectories}
++\label{app:fixed-bank-survival}
++
++\paragraph{Registered design and population.}
++The completed E121 mechanism study follows Qwen2.5-0.5B-Instruct
++ReplayDr.GRPO on Graph for seeds 43--47 through all 3,072 updates. It inherits
++the matched Graph recipe: group size 16, learning rate $2\times10^{-7}$,
++one PPO epoch, no reference KL, uniform replay coefficient $.10$, capacity
++16, and one global round-robin replay group per update. Before processing
++step 384's fresh group, both bank membership and fresh counts are frozen.
++Admission thereafter stops while replay continues over the retained exemplars.
++This intervention and the score readouts were registered before any E121
++outcome existed
++(\path{paper/preregistration/e121_fixed_bank_survival_telemetry_20260903.md}).
++
++A prompt fingerprint and canonical-outcome fingerprint identify each frozen
++exemplar. The analysis includes every frozen identity, with no selection by its
++score trajectory. Each replay visit records response-length-normalized mean
++token log probability $s$ and sequence log probability $\ell$. For identity
++$i$, the final change is $\Delta s_i=s_{i,\mathrm{last}}-s_{i,\mathrm{first}}$;
++$\Delta\ell_i$ is defined analogously. The first and final observations are
++that identity's scheduled post-freeze visits, whose learner steps differ across
++prompts. The minimum intermediate change is
++$\min_t(s_{i,t}-s_{i,\mathrm{first}})$, with the corresponding sequence score
++reported separately. A negative value denotes deterioration.
++
++\paragraph{Complete coverage with a declining tail.}
++All 3,406 frozen identities across 1,575 seed--prompt pairs have finite,
++aligned scores at every scheduled post-freeze visit: coverage is $100\%$ in
++every seed. Each identity has 8--9 visits, totaling 29,041 identity observations
++across 13,445 post-freeze updates. No membership fingerprint or frozen count
++changes, no identity is missing, and none has fewer than two visits.
++Coverage reconciles the aggregate frozen-bank counts with complete round-robin
++cycles; resume checkpoints were automatically pruned on completion. One
++carried-forward terminal summary per seed repeats the final update and is
++excluded. Thus the analysis uses actual optimizer updates through 3,072.
++
++Median mean-token score changes are positive in all five seeds
++($+.024$ to $+.043$ nat/token), but $1.42$--$3.58\%$ of identities lose more
++than $.5$ nat/token (Table~\ref{tab:e121-fixed-bank}). Pooled across identities,
++the median change is $+.038$ ($[+.025,+.048]$), the 10th percentile is $-.256$,
++and $2.61\%$ lose more than $.5$ nat/token ($[1.54,3.77]\%$).
++The worst intermediate change is $-1.328$ nat/token. On the length-dependent
++sequence scale, the pooled median is $+.154$ nat/sequence
++($[+.104,+.198]$), while $21.99\%$ lose more than $.5$ nat/sequence.
++Exemplar lengths range from 4 to 100 tokens, so the two threshold percentages
++have different meanings. Tables~\ref{tab:e121-fixed-bank-sequence}
++and~\ref{tab:e121-fixed-bank-bootstrap} retain both scales separately.
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Frozen-bank coverage and changes in mean token log probability.}
++  All five registered seeds are shown. Visits gives the per-identity range;
++  score changes are in nat/token. The last column is the percentage with
++  $\Delta s<-.5$. These are within-run score changes, without a no-replay
++  control.}
++  \label{tab:e121-fixed-bank}
++  \small
++  \setlength{\tabcolsep}{4pt}
++  \begin{tabular}{@{}lrrrrrrr@{}}
++    \toprule
++    \textbf{Seed} & \textbf{Prompts} & \textbf{Keys} & \textbf{Visits}
++      & \textbf{Median} & \textbf{10th pct.} & \textbf{Minimum}
++      & \textbf{$<-.5$ (\%)} \\
++    \midrule
++    \input{results/e121_fixed_bank_survival_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Sequence-score changes and the worst intermediate deterioration.}
++  Median, 10th percentile, minimum, and threshold percentage describe
++  $\Delta\ell$ in nat/sequence. The final two columns give the minimum
++  intermediate change over all visits and identities in that seed, separately
++  in nat/token and nat/sequence. Sequence scores depend on exemplar length.}
++  \label{tab:e121-fixed-bank-sequence}
++  \small
++  \setlength{\tabcolsep}{3.8pt}
++  \begin{tabular}{@{}lrrrrrr@{}}
++    \toprule
++    & \multicolumn{4}{c}{\textbf{Final sequence-score change}}
++      & \multicolumn{2}{c}{\textbf{Min. intermediate change}} \\
++    \cmidrule(lr){2-5}\cmidrule(l){6-7}
++    \textbf{Seed} & \textbf{Median} & \textbf{10th pct.}
++      & \textbf{Minimum} & \textbf{$<-.5$ (\%)}
++      & \textbf{Token mean} & \textbf{Sequence} \\
++    \midrule
++    \input{results/e121_fixed_bank_survival_sequence_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\begin{figure}[H]
++  \centering
++  \includegraphics[width=.95\linewidth]{figures/e121_fixed_bank_survival.pdf}
++  \caption{\textbf{Fixed-exemplar scores improve centrally but retain a declining tail.}
++  Empirical cumulative distributions show first-to-final post-freeze score
++  changes for every frozen identity, with one curve per seed and the pooled
++  identity distribution. Mean token and sequence scores are separate panels;
++  positive values indicate increased teacher-forced likelihood. Neither panel
++  measures the exact probability of generating a canonical mode during policy sampling.}
++  \label{fig:e121-fixed-bank-survival}
++\end{figure}
++
++\paragraph{Pooled distribution and uncertainty.}
++The pooled summaries weight frozen identities equally; their counts differ
++across seeds. The registered bootstrap uses 10,000 draws and random seed 121,
++resampling prompts within each original seed and then five seeds with
++replacement. A repeated seed reuses its within-draw prompt sample.
++Identity weighting, linear empirical quantiles, percentile intervals, and which
++summaries receive displayed intervals are analysis implementation choices.
++Table~\ref{tab:e121-fixed-bank-bootstrap} reports the pooled endpoints on
++both score scales. These descriptive intervals do not test a replay-versus-control
++effect or extrapolate beyond this model, domain, bank freeze, and training recipe.
++The machine-readable result records all seed summaries, identity trajectories,
++source hashes, and audit diagnostics
++(\path{paper/results/e121_fixed_bank_survival.json}).
++
++\begin{table}[H]
++  \centering
++  \caption{\textbf{Pooled score-change distribution.}
++  Point estimates pool every frozen identity. Brackets give hierarchical
++  prompt/seed-bootstrap 95\% intervals. The threshold row reports percentages
++  below $-.5$ on each score scale; the two scales have different units.}
++  \label{tab:e121-fixed-bank-bootstrap}
++  \small
++  \setlength{\tabcolsep}{5pt}
++  \begin{tabular}{@{}lrr@{}}
++    \toprule
++    \textbf{Statistic} & \textbf{Mean token score (nat/token)}
++      & \textbf{Sequence score (nat/sequence)} \\
++    \midrule
++    \input{results/e121_fixed_bank_survival_bootstrap_table_body.tex}
++  \end{tabular}
++\end{table}
++
++\paragraph{What the measurement establishes.}
++These are score surrogates, not exact canonical-mode probabilities. Finite
++teacher-forced scores establish that the tracked exemplars remain scored at
++scheduled visits; they do not establish material sampling probability,
++unchanged sampling availability, or retention of every semantic alternative.
++Intermediate changes cover scheduled visits rather than every intervening update. The declining tails also rule out a
++claim that every stored exemplar's likelihood improves. Without a matched
++no-replay fixed-bank arm, these trajectories do not identify a causal effect
++of replay. They neither numerically validate
++Theorem~\ref{thm:replay-retention}'s $\exp(-kC_T)$ floor nor certify an exact
++finite-network guarantee. The study supplies direct longitudinal exemplar
++measurements alongside the historical occupancy and held-out support evidence.
+ 
+ \section{Aligned Scale Extensions}
+ \label{app:aligned-xmode}
+--- paper/Makefile before E121
++++ paper/Makefile
+@@ -16,7 +16,8 @@
+ 	figures/direct_comparator_endpoint_effects.pdf \
+ 	figures/direct_baseline_learning_curves_static_strip.pdf \
+ 	figures/verified_support_discovery_two_scale_effects.pdf \
+-	figures/replay_mechanism_telemetry_qwen05b.pdf
++	figures/replay_mechanism_telemetry_qwen05b.pdf \
++	figures/e121_fixed_bank_survival.pdf
+ COMPARISON_JSON = \
+ 	figures/baseline_collapse_precheck.json \
+ 	figures/experiment1_retention_comparator_matrix.json \
+@@ -33,7 +34,7 @@
+ 
+ all: $(PAPER).pdf
+ 
+-$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) figures/xmode_adaptive_cross_scale_distinct_at_k.json results/e118_qwen05b_factorial.json results/modebench_level_comparison_snapshot.json ../ops/exp_scaling/build_paper_modebench_level_comparison.py results/e118_qwen3b_python_terminal_table_body.tex results/xmode_adaptive_cross_scale_endpoints_table_body.tex results/core_terminal_endpoints.json results/core_terminal_endpoints_table_body.tex results/absolute_support_references.json results/absolute_support_references_table_body.tex results/baseline_collapse_precheck.json results/baseline_collapse_precheck_table_body.tex results/e95_falcon_plain_grpo_reportable.json results/e78_terminal_05b_table_body.tex results/maxent_factorial_05b_table_body.tex results/maxent_factorial_05b_uncertainty_table_body.tex results/e87_qwen3b_fixed_semantic_seed70.json results/e87_qwen3b_fixed_semantic_seed70_table_body.tex results/paper_program_status.json results/paper_program_status_table_body.tex results/e113r4_dapo_progress.json results/e78_python_collapse_diagnostics.json results/e120_frequency_progress.json results/e120_frequency_progress_table_body.tex results/e120_primary_breadth.json results/e120_primary_breadth_table_body.tex results/e120_primary_breadth_seeds_table_body.tex ../ops/exp_scaling/build_paper_e120_primary_breadth.py ../ops/check_paper_current_contract.py ../var/artifacts/e102_full_open_bank_maxent_replay_05b_audit_latest.json ../ops/check_paper_line_fill.py $(wildcard results/latest_results_*.json results/latest_results_*.tex results/e120_falcon_graph_*.json results/e120_falcon_graph_*.tex)
++$(PAPER).pdf: $(PAPER).tex example_paper.bib iclr2027_conference.sty iclr2027_conference.bst fancyhdr.sty natbib.sty $(FIGURES) $(COMPARISON_JSON) figures/xmode_adaptive_cross_scale_distinct_at_k.json results/e118_qwen05b_factorial.json results/modebench_level_comparison_snapshot.json ../ops/exp_scaling/build_paper_modebench_level_comparison.py results/e118_qwen3b_python_terminal_table_body.tex results/xmode_adaptive_cross_scale_endpoints_table_body.tex results/core_terminal_endpoints.json results/core_terminal_endpoints_table_body.tex results/absolute_support_references.json results/absolute_support_references_table_body.tex results/baseline_collapse_precheck.json results/baseline_collapse_precheck_table_body.tex results/e95_falcon_plain_grpo_reportable.json results/e78_terminal_05b_table_body.tex results/maxent_factorial_05b_table_body.tex results/maxent_factorial_05b_uncertainty_table_body.tex results/e87_qwen3b_fixed_semantic_seed70.json results/e87_qwen3b_fixed_semantic_seed70_table_body.tex results/paper_program_status.json results/paper_program_status_table_body.tex results/e113r4_dapo_progress.json results/e78_python_collapse_diagnostics.json results/e120_frequency_progress.json results/e120_frequency_progress_table_body.tex results/e120_primary_breadth.json results/e120_primary_breadth_table_body.tex results/e120_primary_breadth_seeds_table_body.tex ../ops/exp_scaling/build_paper_e120_primary_breadth.py ../ops/check_paper_current_contract.py ../var/artifacts/e102_full_open_bank_maxent_replay_05b_audit_latest.json ../ops/check_paper_line_fill.py results/e121_fixed_bank_survival.json results/e121_fixed_bank_survival_table_body.tex results/e121_fixed_bank_survival_sequence_table_body.tex results/e121_fixed_bank_survival_bootstrap_table_body.tex ../ops/exp_scaling/build_paper_e121_survival.py $(wildcard results/latest_results_*.json results/latest_results_*.tex results/e120_falcon_graph_*.json results/e120_falcon_graph_*.tex)
+ 	python ../ops/check_paper_current_contract.py
+ 	$(DATA_PYTHON) ../ops/check_paper_domain_prompts.py
+ 	$(LATEX) $(PAPER)
+--- paper/mathai2026/Makefile before E121
++++ paper/mathai2026/Makefile
+@@ -5,7 +5,10 @@
+ 	results/e118_qwen3b_python_terminal_table_body.tex \
+ 	results/e120_frequency_progress_table_body.tex \
+ 	results/e120_primary_breadth_table_body.tex \
+-	results/e120_primary_breadth_seeds_table_body.tex
++	results/e120_primary_breadth_seeds_table_body.tex \
++	results/e121_fixed_bank_survival_table_body.tex \
++	results/e121_fixed_bank_survival_sequence_table_body.tex \
++	results/e121_fixed_bank_survival_bootstrap_table_body.tex
+ SOURCES = main.tex preamble.tex appendix.tex example_paper.bib $(REQUIRED_TABLES) \
+ 	$(wildcard *.sty figures/*.pdf figures/*.json results/*.tex results/*.json) \
+ 	snapshot.json check_submission.py build_submission.py package_source.py Makefile
+--- paper/mathai2026/check_submission.py before E121
++++ paper/mathai2026/check_submission.py
+@@ -100,8 +100,8 @@
+                     'fig:level2-admission']
+     for name in main_figures:
+         require(1 <= labels.get(name, 999) <= 4, 'main figure outside page limit: ' + name)
+-    require(len([k for k in labels if k.startswith('fig:')]) == 13,
+-            'expected six main and seven supplementary figures')
++    require(len([k for k in labels if k.startswith('fig:')]) == 14,
++            'expected six main and eight supplementary figures')
+     log = (ROOT / 'main.log').read_text()
+     for problem in ['undefined', 'multiply defined', 'Overfull', 'LaTeX Error', 'Fatal error']:
+         require(problem not in log, 'compiler diagnostic: ' + problem)
+@@ -150,7 +150,7 @@
+             'source_sha256': sources,
+             'artifact_sha256': artifacts,
+         }, indent=2, sort_keys=True) + '\n')
+-    print('PASS: 4 content pages; all 6 main figures; 7 supplementary figures;')
++    print('PASS: 4 content pages; all 6 main figures; 8 supplementary figures;')
+     print('      Figure 1 is on page 1; references start on page 5;')
+     print('      MATH-AI submission footer; anonymous mode and official style intact;')
+     print('      referenced inputs and source hashes complete; compiled artifact current;')
+--- paper/mathai2026/snapshot.json before E121
++++ paper/mathai2026/snapshot.json
+@@ -1,7 +1,7 @@
+ {
+   "source": "paper/main.tex",
+-  "source_sha256": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e",
+-  "snapshot_date": "2026-09-08",
++  "source_sha256": "a0708f58a77c4af60849a299e21c3afba3a05175b606646757da4ce79fdebb53",
++  "snapshot_date": "2026-09-09",
+   "template_url": "https://mathai-2026.github.io/files/mathai_neurips2026_template.zip",
+   "style_sha256": "c3fc2894e83d2517ca18b66741d6c595986d97957dc08ec08bb2125a7ec4555a",
+   "copied_files": {
+@@ -49,7 +49,12 @@
+     "figures/modebench_level_admission.png": "4049f618620e08965132465ba677d6e5ecdeec0d1725d7dd706c9e3d83b0c8db",
+     "results/latest_results_20260908.json": "a65f0e88ff924623241d44d31b5fd497a3950cc472f1326158669d8f1a38ac0e",
+     "results/latest_results_20260908_table_body.tex": "c5c357069965383a4761559403a99d668f01910d641e52f9b40bc4129c436471",
+-    "results/latest_results_20260908_effects_table_body.tex": "513a8bdcaec6609c21ea8d69f5b824f211ae3f121e9136ecffbe57855cb55391"
++    "results/latest_results_20260908_effects_table_body.tex": "513a8bdcaec6609c21ea8d69f5b824f211ae3f121e9136ecffbe57855cb55391",
++    "results/e121_fixed_bank_survival.json": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
++    "results/e121_fixed_bank_survival_table_body.tex": "bad19eb78ba198240bf5cbc850f006e358e4f1afbe6be9dd9e6200c992b2ce3d",
++    "results/e121_fixed_bank_survival_sequence_table_body.tex": "35bafe5bc916f448873965e3cb29547e7c01c9eea2b3cb6b45c085314b6af95d",
++    "results/e121_fixed_bank_survival_bootstrap_table_body.tex": "0282f253e549620dfed79707561380b7c634d5f91002455bcea1a7cba7f75cce",
++    "figures/e121_fixed_bank_survival.pdf": "f09e296026e22c742b261cda0fad019e4b6e42b81bf5190ec34b1be0a32183b2"
+   },
+   "correction_history": [
+     {
+@@ -681,6 +686,43 @@
+         "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+       },
+       "source_sha256": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e"
++    },
++    {
++      "date": "2026-09-09",
++      "reason": "Add completed registered five-seed fixed-bank Graph exemplar-score analysis, full coverage and negative tails; replace historical-only survival limitations with scoped score-surrogate findings.",
++      "audit": "../audits/e121_results_20260909/analysis.md",
++      "parent_source_before": "635f2946be0f5fd1cd163d99b8ea1d269573c74cfc34be63dc794c6b879c5f6e",
++      "parent_source_after": "a0708f58a77c4af60849a299e21c3afba3a05175b606646757da4ce79fdebb53",
++      "workshop_sources_before": {
++        "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
++        "appendix.tex": "39a0ba82d7cdb66a766e2bf7efab4bc8e7e07da0c025811d23da97e85c3f5c3c",
++        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
++      },
++      "workshop_sources_after": {
++        "main.tex": "532502e0f224667c6dc6a89d660619a339e5410d6c2d43070a97c5ac0a180ce0",
++        "appendix.tex": "8e45859cfbd3d09a0337d76095d503bd0bf6d26e26cc0c1de4ea6ebd71bdd184",
++        "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
++      },
++      "added_assets": {
++        "results/e121_fixed_bank_survival.json": "ed954b44123eac8ead4915bc5ab533325ff5a009af1a243f3915e5540068682d",
++        "results/e121_fixed_bank_survival_table_body.tex": "bad19eb78ba198240bf5cbc850f006e358e4f1afbe6be9dd9e6200c992b2ce3d",
++        "results/e121_fixed_bank_survival_sequence_table_body.tex": "35bafe5bc916f448873965e3cb29547e7c01c9eea2b3cb6b45c085314b6af95d",
++        "results/e121_fixed_bank_survival_bootstrap_table_body.tex": "0282f253e549620dfed79707561380b7c634d5f91002455bcea1a7cba7f75cce",
++        "figures/e121_fixed_bank_survival.pdf": "f09e296026e22c742b261cda0fad019e4b6e42b81bf5190ec34b1be0a32183b2"
++      },
++      "analysis": {
++        "frozen_identities": 3406,
++        "seeds": [
++          43,
++          44,
++          45,
++          46,
++          47
++        ],
++        "hierarchical_bootstrap_draws": 10000,
++        "rng_seed": 121,
++        "scope": "teacher-forced exemplar scores; no exact canonical-mode probability or causal replay claim"
++      }
+     }
+   ],
+   "workshop_title": "More than One Way to Skin a Cat: Preserving Verified Modes in RLVR",
+@@ -738,8 +780,8 @@
+     }
+   ],
+   "workshop_sources": {
+-    "main.tex": "0dcfee7207f5bf04eb182871ae60008ad256dafd3909a63b9f1b30bd31b7ac3f",
+-    "appendix.tex": "39a0ba82d7cdb66a766e2bf7efab4bc8e7e07da0c025811d23da97e85c3f5c3c",
++    "main.tex": "532502e0f224667c6dc6a89d660619a339e5410d6c2d43070a97c5ac0a180ce0",
++    "appendix.tex": "8e45859cfbd3d09a0337d76095d503bd0bf6d26e26cc0c1de4ea6ebd71bdd184",
+     "preamble.tex": "a92a5dd1d884583d128ef9d89e03067e4ce7440a1f4df1e3727b6f25475fde52"
+   }
+ }
+--- paper/README.md before E121
++++ paper/README.md
+@@ -78,8 +78,9 @@
+ These extensions do not certify current AdamW/PPO updates or guarantee that the
+ finite bank discovers every correct mode. Mean-token exemplar scores need the
+ stated length and complete-response normalization before they bound sampling
+-probabilities. Theoretical floors may be tiny; actual per-mode survival still
+-requires checkpoint measurements. See the
++probabilities. Theoretical floors may be tiny. The completed fixed-bank Graph study now
++measures longitudinal exemplar scores, while exact canonical-mode probabilities
++and numerical validation of these floors remain unverified. See the
+ [appendix integration record](audits/theory_appendix_integration_20260905.md)
+ for the added results and validation.
+ 
+@@ -103,7 +104,8 @@
+ |---|---|---|
+ | Qwen2.5-0.5B x-Mode Dr.GRPO versus matched Dr.GRPO | Terminal | Five-domain paired pass-8 effects, intervals, raw seeds, and trajectory AUC; no pooled effect |
+ | Plain GRPO versus matched Dr.GRPO | 75/75 terminal | All 15 model--domain blocks are complete at paired `n=5`; the five Qwen2.5-3B blocks are inconclusive and no domain pooling or model-size trend is inferred |
+-| Replay-bank and compute telemetry | Terminal | All 25 replay and 25 exact-zero control logs; occupancy, capacity hits, realized dose, and descriptive paired update time; identity-level survival unavailable |
++| Replay-bank and compute telemetry | Terminal | All 25 replay and 25 exact-zero control logs; occupancy, capacity hits, realized dose, and descriptive paired update time; identity-level histories unavailable in these historical cohorts |
++| Fixed-bank Graph exemplar trajectories | Terminal; 5/5 seeds, 3,072 updates | Registered post-freeze score histories for every frozen identity; score-surrogate distributions and prompt/seed-bootstrap intervals, without a causal replay comparison or exact canonical-mode probability claim |
+ | Bank occupancy versus retained breadth | Terminal observational diagnostic | All 25 replay seeds joined to same-seed normalized-AUC and terminal correctness-adjusted breadth effects; domain means only, with no pooled, causal, or identity-level survival claim |
+ | Qwen2.5-0.5B and Falcon3-1B fixed semantic-MaxEnt factorials | Terminal | Five-domain $2\times2$ paired effects, interactions, and intervals at both scales; domain-specific ablations, not pooled or general MaxEnt claims |
+ | Qwen2.5-3B fixed semantic MaxEnt + ReplayDr.GRPO | Terminal descriptive slice | Completed seed 70 on all five static domains; exact pass@8, mean@8, and distinct@8 endpoints and matched ReplayDr.GRPO deltas are reported with `n=1`, without intervals, significance, pooling, or a model-scale claim |
+@@ -524,3 +526,14 @@
+ E120 at 33/45 (6/9). E118 contains 57 matched MaxRL/ReplayMaxRL pairs;
+ its new Qwen3B Graph and MathIR pairs each have only one seed and receive
+ no interval. No frozen primary endpoint or figure was replaced by a partial run.
++
++
++The [September 9 fixed-bank result](results/e121_fixed_bank_survival.json)
++adds all five completed Qwen2.5-0.5B Graph ReplayDr.GRPO seeds. Bank membership
++and fresh counts freeze before update 384; every retained identity's scheduled
++replay scores are followed through the eight-pass horizon. Both appendices
++report seed-level coverage, score-change quantiles, negative tails, worst
++intermediate changes, the pooled empirical distributions, and the registered
++10,000-draw hierarchical prompt/seed bootstrap. Main-text references distinguish
++this direct score measurement from exact mode-probability or causal guarantees.
++The source and validation audit is in [the integration directory](audits/e121_results_20260909/).
+--- paper/mathai2026/README.md before E121
++++ paper/mathai2026/README.md
+@@ -119,7 +119,7 @@
+ 
+ `check_submission.py` checks every referenced input, source and asset hashes,
+ and a compilation receipt binding the PDF and compiler outputs to those inputs.
+-It also checks compiled page references, all thirteen figures, anonymous output,
++It also checks compiled page references, all fourteen figures, anonymous output,
+ unchanged official style, references beginning on page 5, and compilation
+ diagnostics. The main pages are also rendered for visual review. `make` records
+ the receipt after successful compilation; `make clean` followed by `make`
+@@ -258,3 +258,14 @@
+ official style bytes. Camera-ready mode retains the official workshop notice.
+ The compiled submission check enforces the corrected footer. Evidence and
+ source comparison: `../audits/correctness_proof_bridge_20260906/`.
++
++
++The September 9 update adds the completed five-seed fixed-bank Graph mechanism
++study. The supplement reports every seed's frozen-bank coverage, first-to-final
++mean-token and sequence-score changes, worst intermediate changes, pooled
++empirical distributions, and registered hierarchical bootstrap intervals. The
++main text gives a short, scoped reference. This measures exemplar likelihood
++trajectories; it does not measure exact canonical-mode probabilities or identify
++a causal replay effect. The bundle carries the result JSON, three table bodies,
++and the new two-panel empirical-distribution figure. See the parent audit in
++`../audits/e121_results_20260909/`.
+--- ops/check_paper_current_contract.py before E121
++++ ops/check_paper_current_contract.py
+@@ -35,6 +35,7 @@
+     "direct_baseline_learning_curves_static_strip",
+     "verified_support_discovery_two_scale_effects",
+     "replay_mechanism_telemetry_qwen05b",
++    "e121_fixed_bank_survival",
+ )
+ RETIRED = (
+     "terminal_pass8_distinct8_frontier",
+@@ -200,11 +201,49 @@
+         "not claimed as a new replicator-dynamics result",
+         r"\exp(-2560)",
+         "inapplicable to Python factors as a domain-wide guarantee",
+-        "individual-mode prediction is not tested by the experiments in this paper",
+-        "freezing a Graph bank after one pass and recording per-exemplar score trajectories",
+-        "no E121 empirical result is reported here",
++        r"\label{app:fixed-bank-survival}",
++        "completed fixed-bank study",
++        "score surrogates, not exact canonical-mode probabilities",
+     ):
+         require(normalized(token) in normalized(manuscript), f"proof contract missing {token!r}")
++
++    e121_path = ROOT / "paper/results/e121_fixed_bank_survival.json"
++    e121 = json.loads(e121_path.read_text())
++    require(e121.get("schema") == "e121-fixed-bank-survival-paper-v1"
++            and e121.get("registered_seeds") == [43, 44, 45, 46, 47]
++            and e121.get("freeze_step") == 384
++            and e121.get("final_optimizer_update") == 3072,
++            "fixed-bank score analysis has the wrong registered population")
++    e121_script = ROOT / "ops/exp_scaling/build_paper_e121_survival.py"
++    require(e121["provenance"]["analysis_script_sha256"]
++            == hashlib.sha256(e121_script.read_bytes()).hexdigest(),
++            "fixed-bank analysis builder changed; regenerate results")
++    audit_path = ROOT / e121["provenance"]["audit"]
++    require(e121["provenance"]["audit_sha256"]
++            == hashlib.sha256(audit_path.read_bytes()).hexdigest()
++            and json.loads(audit_path.read_text()).get("passed") is True,
++            "fixed-bank result is not bound to a passing coverage audit")
++    require([row["seed"] for row in e121["runs"]] == [43, 44, 45, 46, 47]
++            and all(row["finite_at_every_scheduled_observation_fraction"] == 1
++                    and row["visit_count_min"] >= 2 for row in e121["runs"]),
++            "fixed-bank result omits a seed or fails registered score coverage")
++    e121_analysis = runpy.run_path(str(e121_script))
++    all_identities = []
++    for row in e121["runs"]:
++        identities = row["identities"]
++        require(len(identities) == row["identity_count"],
++                "fixed-bank reported identity count differs from its population")
++        expected = e121_analysis["named_statistics"](
++            e121_analysis["array_from_identities"](identities))
++        require(row["statistics"] == expected,
++                "fixed-bank seed summaries differ from identity-level changes")
++        all_identities.extend(identities)
++    require(e121["pooled"]["identity_count"] == len(all_identities)
++            and e121["pooled"]["statistics"] == e121_analysis["named_statistics"](
++                e121_analysis["array_from_identities"](all_identities))
++            and e121["bootstrap"]["draws"] == 10000
++            and e121["bootstrap"]["rng_seed"] == 121,
++            "fixed-bank pooled summaries or registered bootstrap settings drifted")
+ 
+     require(main_body.count("Semantic-MaxEnt") == 1,
+             "main body should contain Semantic-MaxEnt only in Figure 4")

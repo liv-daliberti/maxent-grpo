@@ -1,0 +1,1843 @@
+--- Appendix P before
++++ Appendix P after
+@@ -1,18 +1,22 @@
+ \section{Mode Collapse and Verified Replay}
+ \label{app:theory}
+ 
+-Under the explicit categorical assumptions below, centered binary-reward
+-estimators amplify a pre-existing imbalance among correct modes,
+-whereas persistent verified replay supplies a loss barrier for banked modes.
+-The complete-response argument then states what would be needed to transfer
+-that protection to a language model. These results concern idealized update
+-rules; they do not certify the implemented AdamW/PPO trajectories.
++We separate the per-prompt mean gradient from the geometry and noise of its
++updates. Outcome-binary score estimators share a correctness-gradient
++direction for differentiable neural policies, while their covariance can
++differ. The categorical specialization yields finite-step concentration and
++sampled symmetry breaking; fixed-bank replay has an explicit restoration
++threshold and recovery bound. Complete-response and local-update arguments
++state conditions for neural retention. These results do not certify the implemented AdamW/PPO trajectories.
+ Table~\ref{tab:notation} lists the symbols used here.
+ 
+ \subsection{Categorical abstraction and mean updates}
+ \label{app:theory-grpo-mean}
+ 
+-Every result in this appendix is stated under one model, fixed here once.
++The categorical results use the following model. The neural score identities,
++finite-step updates, and sampled-update results below state separately which
++assumptions they replace; none identifies a neural mode with an independently
++optimized logit.
+ 
+ \begin{assumption}[Categorical mean-flow model]
+ \label{ass:categorical-mean-flow}
+@@ -75,6 +79,7 @@
+ advantages and normalization weights are detached in the score estimator.
+ 
+ \begin{lemma}[A group baseline does not remove frequency amplification]
++\enforcehalffinalproseline
+ \label{lem:grpo-mean}
+ For $0<P<1$, the expected update in Equation~\eqref{eq:group-estimator} is
+ \begin{equation}
+@@ -91,6 +96,7 @@
+ \end{lemma}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Condition on the complete binary reward vector, whose sum is $R$. The score
+ identities give
+ \[
+@@ -128,6 +134,7 @@
+ to our categorical notation; we include the derivation for completeness.
+ 
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
++\enforcehalffinalproseline
+ \label{lem:maxrl-mean}
+ Under Assumption~\ref{ass:categorical-mean-flow}, let MaxRL assign
+ $A_i^{\mathrm{MaxRL}}=GR_i/R-1$ when $R>0$ and zero when $R=0$, as in
+@@ -149,6 +156,7 @@
+ \end{lemma}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Condition on $R=r>0$. Each successful row has advantage $(G-r)/r$ and each
+ failed row has advantage $-1$. Using the same conditional score identities as
+ above, the expected unaveraged sum is
+@@ -200,6 +208,7 @@
+ \citet{sinha2026expected,lochab2026ucpo}.
+ 
+ \begin{theorem}[Standard replicator specialization for binary-reward RL]
++\enforcehalffinalproseline
+ \label{thm:grpo-collapse}
+ Under Assumption~\ref{ass:categorical-mean-flow}, if the conditional correct-mode
+ distribution $q(0)$ has a unique largest coordinate $c^\star$, then
+@@ -222,6 +231,7 @@
+ \end{remark}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ The coefficient $c_G$ is smooth and bounded on $[0,1]$, and the softmax
+ reward gradient is bounded. Thus the logit flow exists for all finite times
+ and cannot develop infinite logits at finite time.
+@@ -277,20 +287,21 @@
+ concentration: finite softmax logits already give positive probabilities at
+ every finite time, so finite-time positivity alone is not a retention result.
+ 
+-\subsection{No outcome-binary objective can change which mode wins}
++\subsection{Conditional trajectories of outcome-binary mean flows}
+ \label{app:theory-objective-inertness}
+ 
+ Theorem~\ref{thm:grpo-collapse} is stated for three estimators, which invites
+-the reading that a fourth might escape it. It does not. Under
+-Assumption~\ref{ass:categorical-mean-flow} the entire class of group-centered
+-objectives built from binary verifier outcomes induces the same conditional
+-trajectory, and differs only in how fast that trajectory is traversed. The
++the question of which other estimators share its conclusion. Under
++Assumption~\ref{ass:categorical-mean-flow}, outcome-binary estimators with
++positive correctness coefficients induce the same conditional trajectory,
++differing only in how fast it is traversed. The
+ reason is one line of conditioning: a binary reward cannot tell the estimator
+ which correct mode it just saw.
+ 
+ \paragraph{Proof of Theorem~\ref{thm:objective-inertness}.}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Condition on the binary reward vector. The score identities used in
+ Lemma~\ref{lem:grpo-mean} give
+ $\E[\nabla_z\log p_{Z_i}\mid R_i=1]=\nabla_z\log P$ and
+@@ -337,15 +348,18 @@
+ advantage a single row receives when that row flips from failure to success:
+ the leave-one-out gap the objective puts between being right and being wrong.
+ Since the Bernstein basis is positive and sums to one, $c_a(P)$ lies between
+-$\min_jd_j$ and $\max_jd_j$ at every $P$, so the sign of the coefficient is
+-settled by the signs of these $G$ numbers and by nothing else.
++$\min_jd_j$ and $\max_jd_j$ at every $P$. Nonnegative control points,
++with at least one positive, therefore certify positivity in the interior.
++This is a sufficient condition: mixed signs alone do not determine whether
++$c_a$ is positive throughout the interval.
+ For Dr.GRPO every $d_j$ equals $(G-1)/G$, recovering the constant coefficient
+ of Lemma~\ref{lem:grpo-mean}; for the centered MaxRL estimator $d_0=G-1$ and
+ $d_j=G/(j+1)$ for $j\ge1$, and summing the basis against them returns
+ $[1-(1-P)^{G-1}]/P$ as in Lemma~\ref{lem:maxrl-mean}. The consequence is that
+ the collapse theorem was never about the three estimators it was stated for.
+ 
+-\begin{corollary}[Every outcome-binary objective collapses]
++\begin{corollary}[Collapse for correctness-improving outcome-binary mean flows]
++\enforcehalffinalproseline
+ \label{cor:class-collapse}
+ Under Assumption~\ref{ass:categorical-mean-flow}, let $a$ be bounded and
+ reward measurable, and suppose it rewards correctness in the weak sense that
+@@ -360,6 +374,7 @@
+ \end{corollary}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ By Theorem~\ref{thm:objective-inertness} the flow is
+ $\dot z=c_a(P)\nabla_zP$, which is the flow of
+ Theorem~\ref{thm:grpo-collapse} with $c_G$ replaced by $c_a$. That proof uses
+@@ -370,22 +385,18 @@
+ strictly positive member gives $c_a(P)\ge\binom{G-1}{j_0}P^{j_0}(1-P)^{G-1-j_0}
+ d_{j_0}>0$ there. The identity of $c^\star$ is fixed by $q(0)$ alone, because
+ the replicator equation~\eqref{eq:grpo-replicator} reached after the time
+-change carries no trace of the advantage at all.
+-\end{proof}
+-
+-This closes the escape route rather than leaving it open. An objective outside
+-the corollary is one with some $d_j<0$: for some group composition it
+-\emph{reduces} the advantage a response receives when that response becomes
+-correct. That is not a diversity mechanism, and it does not buy diversity ---
+-Theorem~\ref{thm:objective-inertness} is proved without any sign condition, so
+-such an objective still produces $c_a(P)\nabla_zP$, still cannot tell two
+-correct modes apart, and still moves along the very same orbit in $q$, merely
+-traversing part of it backwards while it also undoes correctness. The
+-hypothesis therefore excludes only objectives that escape collapse by failing
+-at the task, which is why no reweighting of binary outcomes is a route to
+-diversity.
+-
+-\begin{remark}[Group size is not a remedy]
++change contains neither the advantage coefficients nor the rollout group size.
++\end{proof}
++
++The nonnegative-gap condition is sufficient rather than necessary. Some
++estimators with mixed-sign gaps still have $c_a(P)>0$ throughout the interior
++and satisfy the same conclusion. If $c_a$ has an interior zero, the mean flow
++can stop there; if it is negative, correctness decreases locally.
++Theorem~\ref{thm:objective-inertness} identifies the direction in all cases,
++but the collapse conclusion requires the stated positivity and initial
++imbalance. It does not describe shared-prompt or sampled neural updates.
++
++\begin{remark}[Group size in the deterministic conditional flow]
+ \label{rem:group-size-inert}
+ The group size enters the class only through $c_a$, which
+ Equation~\eqref{eq:inertness-polynomial} shows is a coefficient on
+@@ -397,11 +408,13 @@
+ change is the starvation bound of
+ Lemma~\ref{lem:replay-gradient-availability} and the MaxRL coefficient of
+ Corollary~\ref{cor:maxrl-starvation}, both of which concern discovery near
+-$P=0$ rather than retention near $p_b=0$. Drawing more samples per prompt is
+-therefore an answer to the first of those problems and not to the second one.
++$P=0$ rather than retention near $p_b=0$. These are mean-flow statements. Group size also changes gradient covariance
++and finite-sample symmetry breaking, as the sampled-update results below
++make explicit; the deterministic equivalence is not a stochastic invariance.
+ \end{remark}
+ 
+ \begin{corollary}[What a stronger fresh objective does buy]
++\enforcehalffinalproseline
+ \label{cor:maxrl-starvation}
+ For the coefficients of Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean},
+ \[
+@@ -412,20 +425,478 @@
+ multiplies progress along the correctness axis by a factor approaching the
+ group size in exactly the regime where
+ Lemma~\ref{lem:replay-gradient-availability} bounds fresh signal to be scarce,
+-and by at most $G/(G-1)$ once correctness is high.
++with the factor approaching $G/(G-1)$ as correctness tends to one.
+ \end{corollary}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Divide $c_G^{\mathrm{MaxRL}}(P)=[1-(1-P)^{G-1}]/P$ by $(G-1)/G$. The quotient
+ is $c_G^{\mathrm{MaxRL}}$ up to a positive constant and
+ $c_G^{\mathrm{MaxRL}}$ is decreasing, with endpoint values $G-1$ and $1$ from
+ Lemma~\ref{lem:maxrl-mean}.
+ \end{proof}
+ 
++% Insert after the outcome-binary subsection and before fresh-group starvation.
++% This fragment does not modify Section 3.1.
++\subsection{Neural score identities and the limits of conditional inertness}
++\label{app:neural-binary-inertness}
++
++The distinction between correctness and its allocation among correct outputs
++is established in prior work: \citet[Theorem~3.1, v1]{sinha2026expected}
++derive the expected-return log-ratio dynamics for softmax outcome logits,
++and \citet[Section~4.1, v1]{lochab2026ucpo} identify binary reward's
++indifference to allocation within the correct set. The extension here gives
++the mean and covariance of general outcome-binary group estimators in neural
++parameters, then states what survives finite steps, shared prompts, and
++response-length weighting. This subsection replaces the categorical
++assumptions with the differentiable-policy assumptions stated below.
++
++\begin{theorem}[Per-prompt neural mean and covariance]
++\enforcehalffinalproseline
++\label{thm:neural-binary-moments}
++Fix a prompt and a differentiable policy $\pi_\theta$ on a finite or countable
++response space with common positive support, where $\theta$ lies in an open
++subset of $\mathbb R^d$. Let $\mathcal C$ be a fixed verifier-positive event,
++$P=\Pr_\theta(Y\in\mathcal C)\in(0,1)$, and
++$s(Y)=\nabla_\theta\log\pi_\theta(Y)$. Assume differentiation may be
++interchanged with the probability sums over the full support and over
++$\mathcal C$, and that $\E\|s(Y)\|_2^2<\infty$. For $G$ independent
++responses, write $R_i=\1[Y_i\in\mathcal C]$, $R=\sum_iR_i$, and let
++$a:\{0,1\}\times\{0,\ldots,G\}\to\mathbb R$ be any finite, detached
++advantage. Define
++\[
++ \widehat g_a=\frac1G\sum_i a(R_i,R)s(Y_i),\qquad
++ v=\nabla_\theta P,\qquad
++ \Sigma_r=\operatorname{Cov}\!\left(s(Y)\mid\1[Y\in\mathcal C]=r\right).
++\]
++With
++\[
++ \beta_r=\frac1G\left(\frac{r\,a(1,r)}P
++          -\frac{(G-r)a(0,r)}{1-P}\right),
++ \qquad c_a(P)=\E[\beta_R],
++\]
++where $R\sim\operatorname{Binomial}(G,P)$, the exact identities are
++\begin{align}
++ \E[\widehat g_a]&=c_a(P)v,
++ \label{eq:neural-binary-mean}\\
++ \operatorname{Cov}(\widehat g_a)
++ &=\operatorname{Var}(\beta_R)vv^\top
++   +\frac1{G^2}\E\!\left[
++       R\,a(1,R)^2\Sigma_1+(G-R)a(0,R)^2\Sigma_0\right].
++ \label{eq:neural-binary-covariance}
++\end{align}
++In particular, $c_a$ is the coefficient in
++Equation~\eqref{eq:objective-inertness}, without an independent-logit
++assumption.
++\end{theorem}
++
++\begin{proof}
++\enforcehalffinalproseline
++Differentiating the correct and incorrect event probabilities gives
++\[
++ \E[s(Y)\mid Y\in\mathcal C]=v/P,
++ \qquad
++ \E[s(Y)\mid Y\notin\mathcal C]=-v/(1-P).
++\]
++Conditioned on the complete reward vector, the response scores remain
++independent. The conditional mean of $\widehat g_a$ is $\beta_Rv$ and
++its conditional covariance is
++$G^{-2}[R a(1,R)^2\Sigma_1+(G-R)a(0,R)^2\Sigma_0]$.
++Taking expectations proves Equation~\eqref{eq:neural-binary-mean}; the law
++of total covariance proves Equation~\eqref{eq:neural-binary-covariance}.
++\end{proof}
++
++For one prompt, a common locally Lipschitz preconditioner $M(\theta)$ and
++positive coefficients $c_a(P)$ give deterministic mean fields
++$\dot\theta=c_a(P)M(\theta)\nabla_\theta P$ that trace the same orbit
++under a positive change of time, wherever the flows exist uniquely.
++This is a statement about the mean direction. Equation~\eqref{eq:neural-binary-covariance}
++shows that outcome-binary estimators can have different sampling covariance,
++including after their mean magnitudes are matched.
++
++\begin{corollary}[A finite-step comparison in neural parameters]
++\enforcehalffinalproseline
++\label{cor:neural-binary-finite-step}
++Under Theorem~\ref{thm:neural-binary-moments}, suppose $c_a(P)>0$ and take
++$\theta^+=\theta+\eta\widehat g_a/c_a(P)$ with $\eta>0$. Let $f$ be a
++twice differentiable scalar observable with
++$\|\nabla^2f\|_{\mathrm{op}}\le L_f$ along every update segment, which
++is assumed to remain in its domain. Then, conditional on the current policy,
++\begin{equation}
++ \left|\E[f(\theta^+)-f(\theta)]
++       -\eta\nabla f(\theta)^\top v\right|
++ \le\frac{L_f\eta^2}{2}
++ \left(\|v\|_2^2+
++       \frac{\operatorname{tr}\operatorname{Cov}(\widehat g_a)}{c_a(P)^2}
++ \right).
++ \label{eq:neural-binary-finite-step}
++\end{equation}
++\end{corollary}
++
++\begin{proof}
++\enforcehalffinalproseline
++Taylor's theorem bounds the remainder after the linear term by
++$L_f\eta^2\|\widehat g_a\|_2^2/(2c_a(P)^2)$. Take expectations and use
++Equation~\eqref{eq:neural-binary-mean} together with
++$\E\|\widehat g_a\|_2^2
++=c_a(P)^2\|v\|_2^2+\operatorname{tr}\operatorname{Cov}(\widehat g_a)$.
++\end{proof}
++
++The normalization by $c_a(P)$ isolates direction for this comparison; it is
++not an additional step in the implemented algorithm. For two such estimators,
++their expected changes in $f$ differ by at most the sum of the two
++second-order bounds. Conditional mode probabilities or \pmd{} may be used
++as $f$ where the stated smoothness bounds hold. Thus mean-direction
++equivalence is a first-order statement for stochastic finite updates, and
++does not identify their trajectories or eventual surviving modes. Adam's
++moments and subsequent PPO epochs require additional analysis.
++
++\begin{remark}[Shared prompts need not follow the same trajectory]
++\label{rem:neural-binary-shared-prompts}
++For prompt probabilities $\mu_x$ and shared parameters, the aggregate mean is
++\begin{equation}
++ \E[\widehat g_a]
++ =\sum_x\mu_x c_a(P_x)\nabla_\theta P_x.
++ \label{eq:neural-binary-prompt-sum}
++\end{equation}
++Different objectives generally assign different relative coefficients to
++the prompt gradients, so the per-prompt identity does not imply a common
++aggregate orbit. An explicit example also shows a difference in conditional
++diversity. Let $\theta=(u,v)$, $\sigma(t)=(1+e^{-t})^{-1}$, and sample two
++prompts $A,B$ equally. Set
++\[
++ P_A=\sigma(u+v),\qquad P_B=\sigma(u-v),\qquad
++ q_A=(\sigma(v),1-\sigma(v)).
++\]
++For prompt $A$, the probabilities of two correct responses and one incorrect
++response are $(P_A\sigma(v),P_A[1-\sigma(v)],1-P_A)$; for $B$, use
++$(P_B/2,P_B/2,1-P_B)$. At $(u,v)=(0,\log3)$,
++$P_A=3/4$, $P_B=1/4$, and
++$\nabla P_A=(3/16,3/16)$, $\nabla P_B=(3/16,-3/16)$.
++For $G=3$, Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} give
++$c_{\mathrm{Dr}}=2/3$ and $c_{\mathrm{Max}}(P)=2-P$, hence
++\[
++ \dot\theta_{\mathrm{Dr}}=(1/8,0),\qquad
++ \dot\theta_{\mathrm{Max}}=(9/32,-3/64).
++\]
++Prompt $A$ has conditional disagreement
++$D_A=1-\sum_cq_{A,c}^2=2\sigma(v)[1-\sigma(v)]$, so direct
++differentiation gives
++\[
++ \dot D_{A,\mathrm{Dr}}=0,\qquad
++ \dot D_{A,\mathrm{Max}}=9/1024>0.
++\]
++Both prompts' correctness increases under both mean fields, since
++$\dot P_A=(3/16)(\dot u+\dot v)>0$ and
++$\dot P_B=(3/16)(\dot u-\dot v)>0$ at this point. Changing a binary
++objective can therefore change conditional diversity through shared prompt
++gradients, despite the exact per-prompt identity.
++\end{remark}
++
++\begin{proposition}[The residual from response-dependent normalization]
++\enforcehalffinalproseline
++\label{prop:neural-binary-length-residual}
++Under Theorem~\ref{thm:neural-binary-moments}, multiply each response's score
++by a detached function $\omega(Y)$ with finite conditional second moments;
++inverse response length is the case $\omega(Y)=1/L(Y)$. Define
++\[
++ \widehat g_{a,\omega}
++ =\frac1G\sum_i a(R_i,R)\omega(Y_i)s(Y_i),\qquad
++ A_1=\frac{\E[R a(1,R)]}{G},\quad
++ A_0=\frac{\E[(G-R)a(0,R)]}{G},
++\]
++and, conditioning on $\1[Y\in\mathcal C]=r$, let
++$\bar\omega_r=\E[\omega(Y)\mid r]$,
++$K_r=\operatorname{Cov}(\omega(Y),s(Y)\mid r)$, and
++$\sigma_{\omega,r}^2=\operatorname{Var}(\omega(Y)\mid r)$.
++Then
++\begin{align}
++ \E[\widehat g_{a,\omega}]
++ &=\widetilde c_a\nabla_\theta P+A_1K_1+A_0K_0,
++ &\widetilde c_a&=\frac{A_1\bar\omega_1}{P}
++                  -\frac{A_0\bar\omega_0}{1-P},
++ \label{eq:neural-binary-length-residual}\\
++ \|A_1K_1+A_0K_0\|_2
++ &\le\sum_{r=0}^1|A_r|\sigma_{\omega,r}
++                 \sqrt{\operatorname{tr}\Sigma_r}.
++ \label{eq:neural-binary-length-bound}
++\end{align}
++\end{proposition}
++
++\begin{proof}
++\enforcehalffinalproseline
++Conditioning on the reward vector gives
++$\E[\widehat g_{a,\omega}]
++=A_1\E[\omega s\mid1]+A_0\E[\omega s\mid0]$.
++For each outcome, $\E[\omega s\mid r]
++=\bar\omega_r\E[s\mid r]+K_r$; substituting the conditional score
++means proves Equation~\eqref{eq:neural-binary-length-residual}.
++The vector Cauchy--Schwarz inequality gives
++$\|K_r\|_2\le\sigma_{\omega,r}\sqrt{\operatorname{tr}\Sigma_r}$;
++the triangle inequality completes the bound.
++\end{proof}
++
++The residual is a within-outcome covariance between response weighting and
++the policy score. A common length makes it zero; equal mean lengths for
++correct and incorrect responses need not. More generally, response-dependent
++information can leave the outcome-binary class. IPS uses outcome-frequency
++weights \citep[Section~4.4, v1]{sinha2026expected}, and UCPO adds a
++conditional-uniformity term \citep[Section~6, v1]{lochab2026ucpo}; neither
++intervention is excluded by the mean-direction identity proved here.
++
++
++\subsection{Diversity at finite steps and sampling budgets}
++\label{app:finite-time-diversity}
++
++The softmax log-ratio identity of
++\citet[Theorem~3.1 and App.~A.1]{sinha2026expected} and the amplification
++analysis of \citet[Section~4.2]{lochab2026ucpo} identify the underlying
++frequency effect. We now connect it to the reported \pmd{} metric, extend
++expected-gradient collapse to finite steps, and quantify disappearance within
++a finite inference budget. The categorical geometry remains explicit;
++the discrete and sampled results replace (A3) with their stated updates.
++
++\begin{proposition}[Exact diversity drift and matched correctness]
++\enforcehalffinalproseline
++\label{prop:pcmd-drift}
++Under Assumption~\ref{ass:categorical-mean-flow}, consider
++$\dot z=c(P)\nabla_zP$ with $c(P)>0$. Write
++$D(q)=1-\sum_cq_c^2$, $S_2=\sum_cq_c^2$, and
++$V(q)=\sum_cq_c^3-S_2^2=\operatorname{Var}_{C\sim q}(q_C)$.
++For incorrect conditional probabilities $r_a=p_a/(1-P)$, set
++$T_2=\sum_ar_a^2$. In effective time $d\tau=c(P)P(1-P)dt$,
++\begin{equation}
++ \frac{dD}{d\tau}=-2V(q),
++ \qquad
++ \frac{dD}{d\log[P/(1-P)]}
++ =-\frac{2V(q)}{S_2+T_2}.
++ \label{eq:pcmd-drift}
++\end{equation}
++Thus diversity strictly decreases at every nonuniform interior $q$.
++Positive-coefficient mean flows from the same initial logits follow the same
++$D$-versus-$P$ curve, independently of their chosen outcome-binary advantage or
++group size.
++\end{proposition}
++
++\begin{proof}
++\enforcehalffinalproseline
++Equation~\eqref{eq:grpo-replicator} gives
++$dS_2/d\tau=2(\sum_cq_c^3-S_2^2)$. The variance vanishes exactly when the
++positive coordinates of $q$ are equal. Also,
++\[
++ \dot P=c(P)\|\nabla_zP\|_2^2
++       =c(P)P^2(1-P)^2(S_2+T_2),
++\]
++so $d\log[P/(1-P)]/d\tau=S_2+T_2>0$, proving the second identity.
++Finally, the full logit equation in effective time is
++$dz_c/d\tau=q_c$ and $dz_a/d\tau=-r_a$; it contains no $c$.
++The same initial logits therefore give the same full trajectory after the
++time change, and hence the same curve at matched correctness for every positive-coefficient outcome-binary estimator considered here.
++\end{proof}
++
++\begin{theorem}[Collapse under finite expected-gradient steps]
++\enforcehalffinalproseline
++\label{thm:finite-expected-steps}
++Retain the categorical model but replace (A3) by
++\begin{equation}
++ z_{k+1}=z_k+\eta_k c(P_k)\nabla_zP_k,
++ \qquad 0<\eta_k<\infty,\quad \sum_{k=0}^\infty\eta_k=\infty,
++ \label{eq:finite-expected-update}
++\end{equation}
++where $c$ is continuous and positive on $(0,1)$. Each step strictly decreases
++$D(q_k)$ unless $q_k$ is uniform. If $q_0$ has a unique largest coordinate
++$c^\star$, then $P_k\to1$ and $q_{c^\star,k}\to1$.
++No upper bound on the finite step sizes is required.
++\end{theorem}
++
++\begin{proof}
++\enforcehalffinalproseline
++Let $h_k=\eta_kc(P_k)P_k(1-P_k)>0$. The exact updates are
++$z_c^+=z_c+h_kq_c$ and $z_a^+=z_a-h_kr_a$, so
++\begin{equation}
++ q_c^+=\frac{q_c e^{h_kq_c}}{\sum_dq_d e^{h_kq_d}}.
++ \label{eq:finite-correct-tilt}
++\end{equation}
++For fixed $q$, put $u_c(s)=q_ce^{sq_c}/\sum_dq_de^{sq_d}$.
++Differentiation gives
++\[
++ \frac{d}{ds}\sum_cu_c(s)^2
++ =\sum_{c,d}u_c(s)u_d(s)
++       \big(u_c(s)-u_d(s)\big)(q_c-q_d)\ge0.
++\]
++The ordering of $u(s)$ is that of $q$, and the inequality is strict whenever
++$q$ is nonuniform. Integrating from $0$ to $h_k$ proves the diversity claim.
++Equation~\eqref{eq:finite-correct-tilt} also preserves the leader and makes
++its conditional probability nondecreasing.
++
++Every correct logit increases and every incorrect logit decreases, hence
++$P_k$ increases. Jensen's inequality gives
++\[
++ \log\frac{P_{k+1}}{1-P_{k+1}}-\log\frac{P_k}{1-P_k}
++ =\log\sum_cq_c e^{h_kq_c}-\log\sum_ar_a e^{-h_kr_a}
++ \ge h_k\sum_cq_c^2\ge h_k/m.
++\]
++If $P_k$ had an interior limit, continuity and positivity of $c$ would imply
++$\sum_kh_k=\infty$, contradicting bounded correctness odds. Thus $P_k\to1$.
++Moreover, $\sum_kh_k=\infty$ is necessary: otherwise every logit would have
++finite total variation and converge to a finite value, contradicting
++$P_k\to1$.
++Set $\alpha=q_{c^\star,0}$ and
++$\xi_{c,k}=q_{c,k}/q_{c^\star,k}$. For $c\ne c^\star$,
++\[
++ \xi_{c,k+1}=\xi_{c,k}
++  e^{-h_k(q_{c^\star,k}-q_{c,k})},
++ \qquad
++ q_{c^\star,k}-q_{c,k}
++ \ge\alpha(1-\xi_{c,0})>0.
++\]
++The divergent sum of $h_k$ forces every such ratio to zero, proving
++$q_{c^\star,k}\to1$.
++\end{proof}
++
++This theorem concerns the exact expected gradient. Finite step sizes can
++change the trajectory across estimators; the exact matched-correctness
++identity in Proposition~\ref{prop:pcmd-drift} remains a mean-flow statement.
++
++\citet[Proposition~A.1]{lochab2026ucpo} establish that finite multinomial
++counts can break a uniform policy's symmetry. The next result quantifies
++the effect of those counts on \pmd{} after the centered group update,
++including its learning-rate and group-size dependence.
++
++\begin{proposition}[Sampled updates break conditional symmetry]
++\enforcehalffinalproseline
++\label{prop:stochastic-pcmd}
++Retain the categorical model, replacing (A3) by one sampled update
++$z^+=z+\eta\widehat g_G$ from Equation~\eqref{eq:group-estimator}, with
++$\eta>0$. Suppose $0<P<1$ and $q_c=1/m$ for every correct mode. Then
++\begin{equation}
++ \E[D(q^+)]<1-1/m,
++ \qquad \E[q_c^+]=1/m.
++ \label{eq:stochastic-strict-decrease}
++\end{equation}
++As $\eta\to0$, for the fixed initial policy and estimator,
++\begin{equation}
++ \E[D(q^+)]
++ =1-\frac1m
++  -\eta^2\frac{m-1}{m^3}
++    \E\!\left[\frac{w(R)^2R(G-R)^2}{G^4}\right]
++  +O(\eta^3),
++ \label{eq:stochastic-pcmd-expansion}
++\end{equation}
++where the summand is zero on $R=0,G$. For Dr.GRPO, $w=1$ and
++\begin{equation}
++ \E\!\left[\frac{R(G-R)^2}{G^4}\right]
++ =\frac{G-1}{G^3}P(1-P)\big[1+(G-2)(1-P)\big].
++ \label{eq:stochastic-dr-coefficient}
++\end{equation}
++\end{proposition}
++
++\begin{proof}
++\enforcehalffinalproseline
++Let $N_c$ count occurrences of correct mode $c$. The centered advantages
++sum to zero, so the common softmax-score term cancels and
++$\widehat g_c=\kappa_RN_c$, where
++$\kappa_R=w(R)(G-R)/G^2$ on mixed groups and $\kappa_R=0$ otherwise.
++Conditional on $R$, the correct counts are
++$N\sim\operatorname{Multinomial}(R;1/m,\ldots,1/m)$, and
++\[
++ q_c^+=\frac{e^{\eta\kappa_RN_c}}{\sum_de^{\eta\kappa_RN_d}}.
++\]
++Diversity is at most $1-1/m$, with equality only at uniform $q^+$.
++The event $R=1$ has positive probability; on this event one correct logit
++increases and the others do not, so $q^+$ is nonuniform. This proves the
++strict inequality for every $\eta>0$. Permutation symmetry of the correct
++labels gives $\E[q_c^+]=1/m$.
++
++For a fixed vector $v$, Taylor expansion about uniform logits gives
++\[
++ \sum_c\operatorname{softmax}(\eta v)_c^2
++ =\frac1m+\frac{\eta^2}{m^2}\sum_c(v_c-\bar v)^2+O(\eta^3),
++ \qquad \bar v=\frac1m\sum_cv_c.
++\]
++Use $v_c=\kappa_RN_c$ and
++$\E[\sum_c(N_c-R/m)^2\mid R]=R(1-1/m)$.
++There are finitely many possible groups and all mixed-group weights are
++finite, so the Taylor remainder is uniform over those groups. Averaging
++proves Equation~\eqref{eq:stochastic-pcmd-expansion}.
++Finally,
++\[
++ \E[R(G-R)^2]
++ =G(G-1)(G-2)P(1-P)^2+G(G-1)P(1-P),
++\]
++by the binomial factorial moments, yielding
++Equation~\eqref{eq:stochastic-dr-coefficient}.
++\end{proof}
++
++At fixed $P\in(0,1)$, the Dr.GRPO coefficient in
++Equation~\eqref{eq:stochastic-dr-coefficient} is
++$P(1-P)^2/G+O(G^{-2})$. Thus larger groups reduce the leading expected
++one-step diversity loss from conditional symmetry at the same learning rate.
++This sampling effect is absent from the mean flow. The proposition does not
++assert monotone expected diversity from an arbitrary nonuniform policy or
++convergence of a stochastic optimizer.
++
++\begin{corollary}[Finite-budget disappearance of competing modes]
++\enforcehalffinalproseline
++\label{cor:finite-budget-invisibility}
++In the mean flow of Theorem~\ref{thm:grpo-collapse}, let $c^\star$ be the
++unique initial correct leader and define
++\[
++ \alpha=q_{c^\star}(0),
++ \qquad
++ \Gamma_0=\sum_{c\ne c^\star}
++             \frac{q_c(0)}{\alpha-q_c(0)}.
++\]
++At effective time $\tau$,
++\begin{equation}
++ 1-q_{c^\star}(\tau)\le\Gamma_0e^{-\alpha\tau},
++ \qquad D(q(\tau))\le2\Gamma_0e^{-\alpha\tau}.
++ \label{eq:finite-minority-bound}
++\end{equation}
++For $K\ge1$ independent full-policy draws at that checkpoint,
++\begin{equation}
++ \Pr(\text{any correct mode other than }c^\star\text{ is observed})
++ \le K\Gamma_0e^{-\alpha\tau}.
++ \label{eq:finite-inference-visibility}
++\end{equation}
++In particular, if
++$\tau\ge\max\{0,\alpha^{-1}\log(K\Gamma_0/\delta)\}$ for
++$0<\delta<1$, no competing correct mode is observed with probability at
++least $1-\delta$, although every mode retains positive probability.
++\end{corollary}
++
++\begin{proof}
++\enforcehalffinalproseline
++For $c\ne c^\star$, write $\xi_c=q_c/q_{c^\star}<1$.
++The leader is nondecreasing, and Equation~\eqref{eq:grpo-replicator} gives
++\[
++ \frac{d}{d\tau}\log\frac{\xi_c}{1-\xi_c}
++ =-q_{c^\star}\le-\alpha.
++\]
++Hence
++$\xi_c(\tau)\le[q_c(0)/(\alpha-q_c(0))]e^{-\alpha\tau}$.
++Now $1-q_{c^\star}=\sum_{c\ne c^\star}\xi_c/(1+\sum_{c\ne c^\star}\xi_c)$
++and $D\le1-q_{c^\star}^2\le2(1-q_{c^\star})$, proving the first bounds.
++A single full-policy draw hits a competing correct mode with probability
++$P(1-q_{c^\star})\le1-q_{c^\star}$; a union bound over $K$ draws completes
++the proof.
++\end{proof}
++
++The bound gives a finite-budget interpretation of the rare-output pruning
++mechanism discussed by \citet[Section~4.2.5]{lochab2026ucpo}.
++It can also be indexed by correctness: Proposition~\ref{prop:pcmd-drift}
++and $S_2+T_2\le2$ imply
++$\tau\ge\tfrac12\log\{[P/(1-P)]/[P(0)/(1-P(0))]\}$.
++These are sufficient visibility bounds within the categorical model;
++they do not require literal support loss or identify an empirical collapse
++time for neural training.
++
++
+ \subsection{A replay signal when fresh groups supply none}
+ \label{app:theory-gradient-availability}
+ 
+ \begin{lemma}[Fresh-group starvation]
++\enforcehalffinalproseline
+ \label{lem:replay-gradient-availability}
+ Under Assumption~\ref{ass:categorical-mean-flow} with correctness probability
+ $P$, draw $G$ fresh categories independently. The probability of a
+@@ -440,6 +911,7 @@
+ \end{lemma}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ The all-correct and all-incorrect events are disjoint and have probabilities
+ $P^G$ and $(1-P)^G$. A mixed group requires both a correct and an incorrect
+ sample, so the union bound supplies each of the two stated bounds, $GP$ and
+@@ -447,6 +919,7 @@
+ \end{proof}
+ 
+ \begin{lemma}[Replay ascent persists as fresh signal vanishes]
++\enforcehalffinalproseline
+ \label{lem:replay-ascent}
+ Under Assumption~\ref{ass:categorical-mean-flow}, let
+ $\mathcal B\subseteq\mathcal C$ be a nonempty fixed verified bank with
+@@ -464,6 +937,7 @@
+ \end{lemma}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ For $R_w=-\sum_b w_b\log p_b$, the softmax score identity gives
+ $\partial R_w/\partial z_a=p_a-\bar w_a$, proving the replay formula and
+ coordinate bound. Finally,
+@@ -529,16 +1003,19 @@
+ $\dot z=-\nabla_zF_{\mathcal B}$.
+ 
+ \begin{theorem}[Verified replay prevents banked-mode extinction]
++\enforcehalffinalproseline
+ \label{thm:replay-retention}
+ Suppose logits are finite at time $T$ and thereafter the nonempty verified
+ bank $\mathcal B$ is fixed, fits within replay capacity, and receives a
+ fixed positive effective replay dose $\rho$, the fresh objective being any
+ bounded reward-measurable one in the sense of
+-Theorem~\ref{thm:objective-inertness}. Under~\eqref{eq:replay-mean-flow}, define
++Theorem~\ref{thm:objective-inertness}. Set
++$\Psi_{\max}=\max_{s\in[0,1]}\Psi(s)$, which is finite, and under
++\eqref{eq:replay-mean-flow} define
+ \[
+   C_T
+   =R_{\mathcal B}(z(T))
+-   +\frac{\Psi(1)-\Psi(P(T))}{\rho}.
++   +\frac{\Psi_{\max}-\Psi(P(T))}{\rho}.
+ \]
+ Then for every $b\in\mathcal B$ and every $t\ge T$,
+ \begin{equation}
+@@ -552,6 +1029,7 @@
+ \end{theorem}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ The smooth vector field has bounded velocity because $c_G$,
+ $\nabla_zP$, and $\nabla_zR_{\mathcal B}$ are bounded, so finite initial
+ logits give a flow for every finite $t\ge T$. Along this flow,
+@@ -559,11 +1037,11 @@
+   \frac{d}{dt}F_{\mathcal B}(z(t))
+   =-\lVert\nabla_zF_{\mathcal B}(z(t))\rVert_2^2\le0.
+ \]
+-Since $P(t)\le1$ and $\Psi$ is increasing,
++Since $\Psi(P(t))\le\Psi_{\max}$,
+ \[
+   R_{\mathcal B}(z(t))
+   \le R_{\mathcal B}(z(T))
+-     +\frac{\Psi(1)-\Psi(P(T))}{\rho}
++     +\frac{\Psi_{\max}-\Psi(P(T))}{\rho}
+   =C_T.
+ \]
+ Every $-\log p_b$ is nonnegative and their sum is
+@@ -573,6 +1051,9 @@
+ \end{proof}
+ 
+ 
++For the nonnegative coefficients of the named fresh estimators,
++$\Psi_{\max}=\Psi(1)$, recovering the simpler constant. Signed coefficients
++also satisfy the retention bound, but need not yield $P\to1$.
+ The floor is qualitative and can be numerically vacuous. For example, at
+ $k=16$ even a hypothetical $C_T=160$ gives $e^{-2560}$, far below any useful
+ evaluation probability. The argument establishes a uniform-in-time lower
+@@ -591,9 +1072,12 @@
+ 
+ \paragraph{Full coverage and the categorical target.}
+ \begin{corollary}[Conditional full-coverage categorical limit]
++\enforcehalffinalproseline
+ \label{cor:replay-no-collapse}
+ Assume the conditions of Theorem~\ref{thm:replay-retention} and that by time
+-$T$ the bank covers the full correct support, $\mathcal B=\mathcal C$. Let
++$T$ the bank covers the full correct support, $\mathcal B=\mathcal C$.
++Assume additionally $c_G(P)\ge0$ on $[0,1]$, as for the three named
++estimators. Let
+ $u_c=1/m$ on $\mathcal C$. Then the categorical mean flow converges to
+ \[
+   P(t)\longrightarrow1,
+@@ -609,12 +1093,13 @@
+ \end{corollary}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ For full coverage,
+ \begin{equation}
+  R_{\mathcal C}=\log m-\log P+\mathrm{KL}(u\|q).
+  \label{eq:replay-mass-uniformity-decomposition}
+ \end{equation}
+-The potential is bounded below by $-\Psi(1)$, so its descent gives
++The potential is bounded below by $-\Psi_{\max}$, so its descent gives
+ $\int_T^\infty\|\nabla F_{\mathcal C}\|_2^2dt<\infty$. The finite-group
+ $c_G$ is smooth on $[0,1]$, and softmax derivatives and the cross-entropy
+ gradient are bounded. Thus the Hessian of $F_{\mathcal C}$ and the velocity
+@@ -641,8 +1126,9 @@
+ The same potential argument gives, for all $t\ge T$,
+ \[
+  p_b(t)\ge\exp(-C_{T,w}/w_b),\qquad
+- C_{T,w}=R_w(z(T))+\frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
+-\]
++ C_{T,w}=R_w(z(T))+\frac{\Psi_{\max}-\Psi(P(T))}{\rho_w}.
++\]
++For the following convergence statements assume $c_G\ge0$.
+ If $\mathcal B=\mathcal C$, then
+ $R_w=H(w)-\log P+\mathrm{KL}(w\|q)$, and the independent-logit limit is
+ $P\to1$, $q\to w$. The preceding stationarity proof applies with $1/m$
+@@ -688,6 +1174,199 @@
+ full-coverage corollary therefore cannot supply a domain-wide guarantee there. The retention theorem protects only
+ admitted banked modes; it supplies no probability floor for an unbanked key.
+ 
++% Insert after the fixed-bank replay subsection and before the exemplar bridge.
++\subsection{When replay reverses concentration, and how fast}
++\label{app:theory-replay-finite-horizon}
++
++The restoring logit field $\rho(\bar w-p)$ has a shared foundation with
++inverse probability scaling: the ideal IPS field of
++\citet[Theorem~4.1]{sinha2026expected}, normalized to a fixed target $w$, is
++$\bar w-p$. The uniform-correct target and its forward conditional-KL
++formulation are also established by \citet{lochab2026ucpo}. Here the target is
++restricted to a discovered bank and evaluated from stored exemplars. The
++question below is how its restoring field competes with the fresh binary
++objective over a finite interval. Neither a uniform target nor its
++cross-entropy gradient is a new contribution of this analysis.
++
++Fix a bank $\mathcal B\subseteq\mathcal C$ of $k\ge2$ modes, with uniform
++categorical weights, and consider Equation~\eqref{eq:replay-mean-flow}.
++Write $c(P)$ for its fresh coefficient and define
++\begin{equation}
++ \begin{gathered}
++ M_{\mathcal B}=\sum_{b\in\mathcal B}p_b,\qquad
++ r_b=\frac{p_b}{M_{\mathcal B}},\qquad
++ C_{\mathcal B}=\sum_{b\in\mathcal B}r_b^2,\\
++ a_\rho(t)=\rho-c(P(t))(1-P(t)).
++ \end{gathered}
++ \label{eq:replay-finite-notation}
++\end{equation}
++Thus $1-C_{\mathcal B}$ is \pmd{} conditional on the bank. It equals the
++paper's success-conditional \pmd{} when $\mathcal B=\mathcal C$; otherwise
++it measures only allocation inside the bank.
++
++\begin{theorem}[Exact replay threshold for bank diversity]
++\enforcehalffinalproseline
++\label{thm:replay-finite-threshold}
++Under the categorical mean-flow assumptions and a fixed uniform bank,
++\begin{align}
++ \frac{d}{dt}\log\frac{p_i}{p_j}
++  &=-a_\rho M_{\mathcal B}(r_i-r_j),
++   &&i,j\in\mathcal B,\label{eq:replay-finite-ratio}\\
++ \dot r_b&=-a_\rho M_{\mathcal B}r_b(r_b-C_{\mathcal B}),
++   &&b\in\mathcal B,\label{eq:replay-finite-conditional}\\
++ \frac{d}{dt}(1-C_{\mathcal B})
++  &=2a_\rho M_{\mathcal B}
++    \left(\sum_{b\in\mathcal B}r_b^3-C_{\mathcal B}^2\right).
++ \label{eq:replay-finite-pcmd}
++\end{align}
++For a nonuniform $r$, bank-conditional diversity strictly increases when
++$\rho>c(P)(1-P)$, strictly decreases when $\rho<c(P)(1-P)$, and has zero
++instantaneous derivative at equality. These conclusions require no coverage
++of correct modes outside the bank.
++\end{theorem}
++
++\begin{proof}
++\enforcehalffinalproseline
++For $b\in\mathcal B$, the score identities give
++$\dot z_b=\rho/k-a_\rho p_b$. Subtracting two such equations gives
++Equation~\eqref{eq:replay-finite-ratio}. The distribution $r$ is the softmax
++of the logits restricted to $\mathcal B$, so
++$\dot r_b=r_b(\dot z_b-\sum_jr_j\dot z_j)$, proving
++Equation~\eqref{eq:replay-finite-conditional}. Differentiating
++$C_{\mathcal B}$ gives Equation~\eqref{eq:replay-finite-pcmd}.
++Its parenthesis is $\operatorname{Var}_{b\sim r}(r_b)$, which is strictly
++positive for a nonuniform distribution with positive coordinates.
++\end{proof}
++
++A positive dose therefore need not improve diversity immediately.
++The thresholds for Dr.GRPO and the specified MaxRL estimator are, respectively,
++\[
++ \rho>\frac{G-1}{G}(1-P),\qquad
++ \rho>\frac{(1-P)[1-(1-P)^{G-1}]}{P}.
++\]
++The asymptotic result for every $\rho>0$ and this finite-time condition are
++compatible: the fresh concentration pressure vanishes as $P\to1$.
++
++\begin{theorem}[Finite recovery from accumulated replay exposure]
++\enforcehalffinalproseline
++\label{thm:replay-finite-recovery}
++In the setting of Theorem~\ref{thm:replay-finite-threshold}, suppose
++$a_\rho(u)\ge0$ for $u\in[T,t]$, and define
++\[
++ S(T,t)=\int_T^t a_\rho(u)M_{\mathcal B}(u)\,du,
++ \qquad D(t)=\log\frac{\max_{b\in\mathcal B}r_b(t)}
++                            {\min_{b\in\mathcal B}r_b(t)}.
++\]
++Then
++\begin{equation}
++ e^{D(t)}-1\le(e^{D(T)}-1)e^{-S(T,t)/k},
++ \qquad
++ \min_b r_b(t)\ge\frac{1}{1+(k-1)e^{D(t)}}.
++ \label{eq:replay-finite-recovery}
++\end{equation}
++For $0<\delta<1/k$, put
++$D_\delta=\log[(1/\delta-1)/(k-1)]$. If $D(T)>D_\delta$, the condition
++\begin{equation}
++ S(T,t)\ge k\log\frac{e^{D(T)}-1}{e^{D_\delta}-1}
++ \label{eq:replay-finite-visibility-exposure}
++\end{equation}
++is sufficient for every $r_b(t)\ge\delta$. If $D(T)\le D_\delta$, this
++conclusion already holds and is preserved on the interval. In particular,
++when $a_\rho\ge a_0>0$ and $M_{\mathcal B}\ge M_0>0$ on the interval,
++its required duration is at most the right-hand side of
++Equation~\eqref{eq:replay-finite-visibility-exposure} divided by $a_0M_0$.
++At that endpoint every unconditional bank probability is at least
++$M_0\delta$.
++\end{theorem}
++
++\begin{proof}
++\enforcehalffinalproseline
++Bank-coordinate ordering is preserved by
++Equation~\eqref{eq:replay-finite-ratio}: a difference of two bank logits
++satisfies a scalar equation proportional to that difference, and ties persist.
++Writing $r_{\max}$ and $r_{\min}$ for the extremal coordinates,
++\[
++ \dot D=-a_\rho M_{\mathcal B}(r_{\max}-r_{\min}),
++ \qquad
++ r_{\max}-r_{\min}
++   =r_{\max}(1-e^{-D})\ge\frac{1-e^{-D}}{k}.
++\]
++Thus $\frac{d}{dt}(e^D-1)\le
++ -(a_\rho M_{\mathcal B}/k)(e^D-1)$; integration proves the first bound.
++Since $1\le r_{\min}+(k-1)r_{\max}$, the second follows. Substituting
++$D_\delta$ and solving the first bound for the exposure proves the remaining
++claims. When $D(T)=0$, uniformity is preserved directly.
++\end{proof}
++
++The bound specifies the interval on which restoration occurs. It does not
++assume that bank mass is monotone or that correctness stays above its value
++at $T$. Both enter through the displayed exposure; a bound on unconditional
++visibility additionally needs the stated bank-mass lower bound.
++
++\begin{proposition}[Discrete exact-gradient contraction]
++\enforcehalffinalproseline
++\label{prop:replay-discrete-contraction}
++Replace the continuous update by simultaneous exact mean-gradient steps,
++while retaining independent logits and a fixed uniform bank:
++\[
++ z_{n+1}=z_n+\eta_n\{c(P_n)\nabla_zP_n+
++                         \rho(\bar w-p_n)\},\qquad \eta_n\ge0.
++\]
++Define $D_n$ as above and
++$\gamma_n=\eta_n M_{\mathcal B,n}
++ [\rho-c(P_n)(1-P_n)]$.
++If $0\le\gamma_n\le2$, the order of all bank probabilities is preserved
++at this step and
++\begin{equation}
++ e^{D_{n+1}}-1\le
++ \left(1-\frac{1-e^{-\gamma_n}}{k}\right)(e^{D_n}-1).
++ \label{eq:replay-discrete-contraction}
++\end{equation}
++Consequently, if $0\le\gamma_n\le1$ for $n=0,\ldots,N-1$, then
++\[
++ e^{D_N}-1\le(e^{D_0}-1)
++  \exp\!\left(-\frac{1-e^{-1}}{k}
++                    \sum_{n=0}^{N-1}\gamma_n\right).
++\]
++\end{proposition}
++
++\begin{proof}
++\enforcehalffinalproseline
++For two bank logits with difference $d=z_i-z_j\ge0$,
++\[
++ d_{\rm next}=d-\gamma_n(r_i-r_j),\qquad
++ r_i-r_j=(r_i+r_j)\tanh(d/2)\le d/2.
++\]
++Hence $d_{\rm next}\ge0$ when $\gamma_n\le2$. The same extremal indices
++therefore give
++$D_{n+1}=D_n-\gamma_n(r_{\max}-r_{\min})$.
++For $x\in[0,1]$, convexity of $e^{-\gamma_nx}$ yields
++$1-e^{-\gamma_nx}\ge(1-e^{-\gamma_n})x$. Set
++$x=r_{\max}-r_{\min}$ and use
++$e^{D_n}x\ge(e^{D_n}-1)/k$ from the preceding proof. This gives
++Equation~\eqref{eq:replay-discrete-contraction}. Multiplication over steps,
++$1-y\le e^{-y}$, and
++$1-e^{-\gamma}\ge(1-e^{-1})\gamma$ for $0\le\gamma\le1$ prove the last
++bound.
++\end{proof}
++
++These discrete statements concern exact mean gradients, without clipping,
++sampling noise, optimizer state or alternating replay visits. They establish
++a finite-step result for the specified update, rather than a guarantee for
++AdamW. Uniform categorical weights are also essential to the stated target.
++For fixed nonuniform weights $w_b$, the exact conditional equation is instead
++\begin{equation}
++ \dot r_b=r_b\left\{
++   \rho\left(w_b-\sum_jr_jw_j\right)
++   -a_\rho M_{\mathcal B}(r_b-C_{\mathcal B})\right\}.
++ \label{eq:replay-finite-weighted}
++\end{equation}
++The inverse-length weights induced by the implemented mean-token loss belong
++to this weighted case. The uniform contraction theorem therefore describes
++an equal-length categorical specialization, and does not assert uniform key
++probabilities for neural exemplar replay.
++
++
+ \subsection{Complete responses and finite evaluation visibility}
+ \label{app:theory-exemplar-bridge}
+ 
+@@ -700,6 +1379,7 @@
+ probability conditional on correctness.
+ 
+ \begin{lemma}[Retention from a joint exemplar potential]
++\enforcehalffinalproseline
+ \label{lem:shared-exemplar-retention}
+ Fix finitely many verified complete-response exemplars $(x_j,e_j)$, each
+ realizing key $b_j$, with lengths $L_j>0$ and fixed weights $\alpha_j>0$.
+@@ -719,6 +1399,7 @@
+ \]
+ \end{lemma}
+ \begin{proof}
++\enforcehalffinalproseline
+ The weighted exemplar loss equals $F(\theta(t))+J(\theta(t))\le D$.
+ Each summand is nonnegative, so
+ $-\log\pi_\theta(e_j\mid x_j)\le L_jD/\alpha_j$.
+@@ -730,7 +1411,7 @@
+ inequality, even with shared parameters and multiple prompts. For example,
+ the ideal categorical model permits
+ $J(\theta)=\sum_x\nu_x\Psi_x(P_x(\theta))$ with fixed nonnegative prompt
+-weights and $J_{\max}=\sum_x\nu_x\Psi_x(1)$. The lemma does not establish
++weights and $J_{\max}=\sum_x\nu_x\max_{s\in[0,1]}\Psi_x(s)$. The lemma does not establish
+ this descent condition for stochastic, clipped, alternating AdamW updates,
+ and it neither implies uniform neural key probabilities nor requires them.
+ Its bound applies only to the listed exemplar--prompt pairs. Shared
+@@ -775,6 +1456,96 @@
+ Counts from changing checkpoints cannot be pooled to certify a current
+ policy, and teacher-forced scores are not independent Bernoulli observations.
+ 
++% Insert after the existing complete-exemplar/finite-visibility subsection.
++\subsection{When a replay gradient improves a neural exemplar}
++\label{app:theory-neural-replay-response}
++
++Lemma~\ref{lem:shared-exemplar-retention} permits shared parameters by
++assuming descent of a joint potential. A local statement can instead expose
++the condition under which a realized replay update helps a particular
++exemplar. This condition involves interference among scores and the optimizer's
++response, quantities that the categorical abstraction suppresses.
++
++\begin{proposition}[Local replay response under shared parameters]
++\enforcehalffinalproseline
++\label{prop:neural-replay-local-response}
++For a selected bank of $k$ complete exemplars, define
++\[
++ \ell_b(\theta)=\frac{\log\pi_\theta(e_b\mid x_b)}{L_b},\qquad
++ h_b=\nabla_\theta\ell_b(\theta),\qquad
++ \bar h=\frac1k\sum_{j=1}^k h_j.
++\]
++Suppose a step has the form
++$\Delta=\eta H(g+\lambda\bar h)+u$, where $\eta,\lambda\ge0$,
++$H$ is a fixed symmetric positive semidefinite matrix for this step,
++$g$ is the fresh ascent direction, and $u$ is the remaining update.
++Assume $\ell_b$ is twice differentiable and its Hessian has operator norm
++at most $B_b$ along $\{\theta+s\Delta:0\le s\le1\}$.
++Set
++\[
++ K_{bj}=h_b^\top Hh_j,\qquad
++ \kappa_b=\frac1k\sum_jK_{bj},\qquad
++ m_b=\eta h_b^\top Hg+\eta\lambda\kappa_b
++       +h_b^\top u-\frac{B_b}{2}\|\Delta\|_2^2.
++\]
++Then
++\begin{equation}
++ \ell_b(\theta+\Delta)-\ell_b(\theta)\ge m_b,
++ \qquad
++ \pi_{\theta+\Delta}(e_b\mid x_b)
++    \ge\pi_\theta(e_b\mid x_b)e^{L_bm_b}.
++ \label{eq:neural-replay-local-response}
++\end{equation}
++In particular, $m_b>0$ guarantees that this update increases the complete
++exemplar's probability, whether or not it appeared among the fresh samples.
++\end{proposition}
++
++\begin{proof}
++\enforcehalffinalproseline
++Taylor's theorem with the Hessian bound gives
++$\ell_b(\theta+\Delta)-\ell_b(\theta)
++ \ge h_b^\top\Delta-(B_b/2)\|\Delta\|_2^2$.
++Substitution of the stated step and
++$h_b^\top H\bar h=k^{-1}\sum_jK_{bj}$ proves the first inequality.
++Multiplication by $L_b$ and exponentiation prove the second.
++\end{proof}
++
++The required replay response is a row average $\kappa_b$ of the score Gram
++matrix, not only its nonnegative diagonal entry $K_{bb}$. A sufficient
++interference condition is $\kappa_b>0$, with replay strength satisfying
++\[
++ \eta\lambda\kappa_b>
++   -\eta h_b^\top Hg-h_b^\top u
++       +\frac{B_b}{2}\|\Delta\|_2^2.
++\]
++This inequality includes the step's curvature cost, which itself depends on
++the chosen dose; arbitrarily increasing $\lambda$ is not a sufficient rule.
++
++The interference condition cannot be dropped. For example, consider three
++categorical logits sharing one scalar parameter, with slopes $(1,-2,0)$.
++At a point with probabilities $(s,s,1-2s)$, where $0<s<1/4$, let the first
++two categories be correct and banked. Their unit-length log-score gradients
++are $h_1=1+s$ and $h_2=-2+s$. Uniform replay alone follows
++$\bar h=s-1/2$, so
++\[
++ \left.\frac{d}{dt}\log p_1\right|_{\dot\theta=\bar h}
++   =(1+s)(s-1/2)<0.
++\]
++Thus shared parameters can make replay initially reduce the probability of
++a rare stored mode while improving the average replay score.
++
++For an AdamW step, replay can alter both moment estimates. The proposition
++therefore does not identify its $H$ with an unchanged AdamW preconditioner.
++It applies to a specified decomposition of the realized step, with any
++remaining contribution included in $u$; alternatively its Taylor bound can
++be evaluated directly from $h_b^\top\Delta$. Neither the interference margin
++nor a curvature bound is established for the experimental runs here.
++The statement concerns complete stored responses under the sampling law
++specified in App.~\ref{app:theory-exemplar-bridge}. Raising one such
++probability strengthens that exemplar's contribution to its key, but need
++not increase total key probability or transfer to a held-out prompt.
++
++
+ \subsection{Reference KL retains the reference, not the discovery}
+ \label{app:theory-kl}
+ 
+@@ -784,15 +1555,16 @@
+ therefore says nothing about the regularizer most RLVR recipes carry, and a
+ reader is entitled to ask whether that regularizer already does the work the
+ bank is introduced for. This subsection answers in the idealized flow. The
+-answer is not that reference KL fails to prevent winner-take-all --- for every
+-$\beta>0$ it prevents it --- but that the allocation it holds the policy at is
+-the reference model's own, that it holds it there with a restoring force which
+-vanishes as a mode vanishes, and that the two properties have the same cause:
+-a bounded penalty cannot be a barrier. App.~\ref{app:theory-kl-measured} reads
+-these statements against measured cells, and states which of them the
+-measurement supports.
++comparison separates stationary targets from recovery rates. For the
++Dr.GRPO and MaxRL coefficients, the full-support stationary conditional is
++the reference's own. Its restoring logit force vanishes as a mode vanishes,
++whereas replay supplies a nonvanishing banked-coordinate force.
++The recovery comparison below is proved on a specified two-mode face; it is
++not a convergence theorem for all full-support trajectories.
++App.~\ref{app:theory-kl-measured} compares these mechanisms with measured runs.
+ 
+ Replace (A4) by
++
+ \begin{itemize}
+ \item[(A4$'$)] \emph{Reference KL.} A fixed reference $\mu$ with full support
+   on the category set $\mathcal A$ enters with a positive coefficient $\beta$,
+@@ -814,29 +1586,44 @@
+ $F_\beta(z)=-\Psi(P(z))+\beta D(z)$, built exactly as
+ Equation~\eqref{eq:replay-potential} was built for verified replay.
+ 
+-\begin{lemma}[A bounded penalty supplies no probability floor]
++\begin{lemma}[Reverse-KL sublevels and replay barriers]
++\enforcehalffinalproseline
+ \label{lem:kl-no-barrier}
+-For a full-support reference, $D\le\log(1/\min_a\mu_a)<\infty$ everywhere on
+-the simplex, whereas $R_{\mathcal B}\to\infty$ whenever a banked coordinate
+-$p_b\to0$. Consequently the energy argument of
+-Theorem~\ref{thm:replay-retention}, applied to $F_\beta$, returns only
+-$p_b\ge0$: for every $\beta>0$ it yields no uniform-in-time positive lower
+-bound on any coordinate.
++For a full-support reference,
++$D=\mathrm{KL}(p\|\mu)\le\log(1/\min_a\mu_a)$ on the simplex, while
++$R_{\mathcal B}\to\infty$ if a banked coordinate vanishes. More precisely,
++\[
++ \inf_{p:p_b=0}D(p)=\log\frac1{1-\mu_b}.
++\]
++Thus every finite replay-loss sublevel bounds each protected probability
++away from zero. A reverse-KL sublevel $\{D\le B\}$ does so for coordinate $b$
++if $B<-\log(1-\mu_b)$, but includes a point with $p_b=0$ if
++$B\ge-\log(1-\mu_b)$.
+ \end{lemma}
+-
+-\begin{proof}
+-$D=\sum_ap_a\log p_a-\sum_ap_a\log\mu_a\le0+\log(1/\min_a\mu_a)$. Descent of
+-$F_\beta$ bounds $\beta D(z(t))$ by $F_\beta(z(T))+\Psi(1)$, but $D$ stays
+-finite as $p_b\to0$, so this bounds no individual $-\log p_b$. The
+-corresponding step in Theorem~\ref{thm:replay-retention} works only because
+-$kR_{\mathcal B}$ dominates each $-\log p_b$ and is itself unbounded on the
+-simplex, which is exactly the property $D$ lacks.
+-\end{proof}
++\begin{proof}
++\enforcehalffinalproseline
++The global bound follows from $\sum_ap_a\log p_a\le0$ and
++$-\sum_ap_a\log\mu_a\le\log(1/\min_a\mu_a)$.
++On the face $p_b=0$, write $\widetilde\mu_a=\mu_a/(1-\mu_b)$ for $a\ne b$.
++Then $D(p)=\mathrm{KL}(p\|\widetilde\mu)-\log(1-\mu_b)$, whose minimum is
++attained at $\widetilde\mu$. Continuity and compactness exclude that face
++from any strictly lower sublevel and give a positive coordinate minimum.
++For replay, $-\log p_b\le kR_{\mathcal B}$ gives the bound directly.
++\end{proof}
++
++Descent of $F_\beta$ gives
++$D(p(t))\le [F_\beta(z(T))+\Psi_{\max}]/\beta$.
++This yields a floor when its right side is below the displayed face
++threshold, but need not do so for an arbitrary initial energy. The distinction
++is which sublevels exclude the boundary, not an impossibility of retention
++under a bounded penalty.
+ 
+ \begin{proposition}[The retained conditional is the reference's]
++\enforcehalffinalproseline
+ \label{prop:kl-stationary}
+-Under Assumption~\ref{ass:categorical-mean-flow} with (A4$'$), the flow
+-\eqref{eq:kl-mean-flow} has exactly one stationary point of full support,
++Under Assumption~\ref{ass:categorical-mean-flow} with (A4$'$), using the
++Dr.GRPO or centered MaxRL coefficient, the flow
++\eqref{eq:kl-mean-flow} has exactly one stationary policy of full support,
+ \[
+   p^\star_a\propto\mu_ae^{\lambda R_a},
+   \qquad
+@@ -859,6 +1646,7 @@
+ \end{proposition}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Stationarity of~\eqref{eq:kl-mean-flow} in a coordinate with $p_b>0$ reads
+ $c_G(P)(R_b-P)=\beta(\log(p_b/\mu_b)-D)$, so
+ $\log(p_b/\mu_b)=D+(c_G(P)/\beta)(R_b-P)$ and the $b$-independent terms are
+@@ -876,35 +1664,25 @@
+ is $P^\star/(1-P^\star)=[\mu(\mathcal C)/(1-\mu(\mathcal C))]e^\lambda$.
+ \end{proof}
+ 
+-Read against Corollary~\ref{cor:replay-no-collapse}, this is the substantive
+-difference. Full-coverage replay sends $q\to u$ and
+-$\mathcal H(q)\to\log m$ for \emph{every} $\rho>0$; the best a reference KL
+-offers, at every $\beta>0$, is to hold $q$ at $\mu|_{\mathcal C}$. A reference that is already
+-concentrated among correct modes is returned unchanged, and
+-Section~\ref{sec:results-collapse} measures exactly that concentration at pass~0.
+-Reference KL is an anchor and not a target: it can hold diversity where it was
+-and cannot raise it above what the reference had. The proposition is stated for
+-an arbitrary full-support $\mu$, so it also answers the natural repair. One
+-could anchor to a broader reference and inherit its allocation instead --- but
+-$q^\star=\mu|_{\mathcal C}$ says the result is only ever as broad as the model
+-supplying it, so the repair presupposes a policy that already allocates its
+-correct mass the way the training was supposed to make it allocate. A bank is
+-not circular in this way: it is assembled from the policy's own verified
+-successes as they are found, and Corollary~\ref{cor:replay-no-collapse} sends
+-$q$ to a distribution no available model had to exhibit first.
++The stationary target differs from full-coverage uniform replay:
++Corollary~\ref{cor:replay-no-collapse} gives $q\to u$, whereas the KL
++stationary allocation is $\mu|_{\mathcal C}$. A broader reference changes that
++allocation; replay instead constructs its target from verified discoveries.
++The proposition does not bound transient diversity by the reference's
++diversity or establish convergence of every trajectory to this stationary
++point, and it does not apply directly to neural optimizer trajectories.
+ 
+ \begin{remark}
+-The correctness statement in Proposition~\ref{prop:kl-stationary} is structural
+-rather than numerical, in the sense of the remark following
+-Theorem~\ref{thm:replay-retention}. With the Dr.GRPO coefficient at $G=16$ and
+-any $\beta\le.1$, $\lambda\ge9.4$ and $1-P^\star$ is at most of order
+-$10^{-4}$: the flow's correctness ceiling sits far below a measurable deficit.
+-What survives at practical $\beta$ is the conditional statement, which is
+-$\beta$-free, together with the rate statement established in the corollary
+-that follows it below.
++The correctness prediction also depends on reference correctness
++$s_\mu=\mu(\mathcal C)$:
++$1-P^\star=(1-s_\mu)/(1-s_\mu+s_\mu e^\lambda)$.
++For Dr.GRPO with $G=16$ and $\beta\le.1$, $\lambda\ge9.375$;
++this amplifies the reference correctness odds by at least $e^{9.375}$ but
++does not give a reference-independent bound on the correctness deficit.
+ \end{remark}
+ 
+ \begin{lemma}[Reference KL has no probability-independent boundary force]
++\enforcehalffinalproseline
+ \label{lem:kl-boundary-force}
+ Under (A4$'$) the logit velocity contributed by the reference-KL term is
+ \[
+@@ -915,12 +1693,14 @@
+   \le\beta\Big(\frac{\mu_b}{e}+\log\frac1{\min_a\mu_a}\Big),
+ \]
+ whereas the verified-replay term contributes $\rho(w_b-p_b)\to\rho w_b>0$ at
+-the same limit. Reference KL therefore belongs to the class described by
+-Lemma~\ref{lem:sampled-score-bound}, with the difference that this is a
+-property of the exactly evaluated penalty rather than of a sampled estimator.
++the same limit. This is a property of the exactly evaluated penalty. Its score contains
++an unbounded log ratio, so it is not an instance of the uniformly
++bounded-score premise in Lemma~\ref{lem:sampled-score-bound}; both
++comparisons nevertheless have a vanishing coordinate force.
+ \end{lemma}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ The displayed velocity is the softmax score identity used above. For the
+ bound, $\sup_{0<s\le1}s\log(\mu_b/s)=\mu_b/e$ at $s=\mu_b/e$, the same
+ expression is bounded below by $\log\mu_b$ at $s=1$, and $0\le D\le
+@@ -928,50 +1708,55 @@
+ Lemma~\ref{lem:replay-ascent}.
+ \end{proof}
+ 
+-\begin{corollary}[Recovery from depth $s$: $\Theta(1/s)$ against $\Theta(\log(1/s))$]
++\begin{corollary}[Recovery on a two-correct-mode face]
++\enforcehalffinalproseline
+ \label{cor:kl-recovery-time}
+-Fix correct modes $b$ and $c^\star$ in a state with $p_b=s$ small and
+-$p_{c^\star}=1-O(s)$. The normalization drift cancels in a ratio,
+-$\frac{d}{dt}\log(p_b/p_{c^\star})=\dot z_b-\dot z_{c^\star}$, so under
+-(A4$'$)
+-\[
+-  \frac{d}{dt}\log\frac{p_b}{p_{c^\star}}
+-  =\beta s\log\frac{\mu_b}{s\mu_{c^\star}}-c_G(P)(1-P)+O\!\big(\beta s\log(1/s)\big),
+-\]
+-whereas under the fixed-bank replay term with $b,c^\star\in\mathcal B$ and
+-uniform weights it is exactly $\rho(p_{c^\star}-p_b)=\rho(1-O(s))$. Hence, for
+-$s$ small enough that the leading term dominates the correctness drag, the
+-time to raise $p_b$ from $s$ to a fixed $\delta$ is
+-\[
+-  T_{\mathrm{KL}}(s)=\frac{1+o(1)}{\beta s\log(1/s)},
+-  \qquad
+-  T_{\mathrm{replay}}(s)=\frac{\log(\delta/s)}{\rho}\,(1+o(1)),
+-\]
+-and $T_{\mathrm{KL}}/T_{\mathrm{replay}}\to\infty$ as $s\to0$.
++Consider the continuous extension of the categorical probability flow to
++the face supported on two correct modes $b,c$, with $p_b=s$, $p_c=1-s$.
++This boundary reduction replaces the full-support start in (A5); here $P=1$
++and the fresh correctness gradient is zero. For reference KL take fixed
++$\beta>0$ and $\mu_b,\mu_c>0$. For replay take the uniform bank $\{b,c\}$
++and fixed $\rho>0$. Fix
++$0<\delta<\min\{1/2,\mu_b/(\mu_b+\mu_c)\}$.
++The times to reach $p_b=\delta$ from $s\downarrow0$ satisfy
++\[
++ T_{\mathrm{KL}}(s)
++ =\frac{1+o(1)}{2\beta s\log(1/s)},\qquad
++ T_{\mathrm{replay}}(s)
++ =\frac{\log(\delta/s)}{\rho}+O(1).
++\]
++In particular their ratio diverges. The KL order is
++$\Theta(1/[s\log(1/s)])$, and the replay order is
++$\Theta(\log(1/s))$.
+ \end{corollary}
+-
+-\begin{proof}
+-For the KL term, $D=\log(1/\mu_{c^\star})+O(s\log(1/s))$ at such a state, so
+-$p_{c^\star}(\log(\mu_{c^\star}/p_{c^\star})+D)=O(s\log(1/s))$ while
+-$p_b(\log(\mu_b/p_b)+D)=s\log(\mu_b/(s\mu_{c^\star}))+O(s\log(1/s))$; the
+-correctness term contributes $c_G(P)(1-P)(p_b-p_{c^\star})$. For the replay
+-term, $\dot z_b-\dot z_{c^\star}=\rho[(w_b-w_{c^\star})-(p_b-p_{c^\star})]$,
+-which is $\rho(p_{c^\star}-p_b)$ for uniform weights. Since
+-$p_b=s(1+O(s))$ in both cases, separating variables gives
+-$dt=dp_b/(\beta p_b^2\log(1/p_b))$ and $dt=dp_b/(\rho p_b)$ respectively;
+-integrating each from $s$ to $\delta$ under $s\ll\delta$ then yields the two
+-displayed recovery times.
+-\end{proof}
+-
+-Table~\ref{tab:kl-recovery} integrates the two flows numerically and reaches
+-both rates at depths a run could plausibly visit. The reference there is
+-uniform, which is the case most favorable to reference KL: by
+-Proposition~\ref{prop:kl-stationary} its stationary conditional then sits
+-exactly on the replay target, so the two regularizers aim at the same
+-distribution and only the rate separates them. Recovery time grows by a factor
+-of \MDklDecadeKL{} per decade of depth under reference KL, at both
+-coefficients, and by a constant additive amount under replay that reproduces
+-the predicted $\log(10)/\rho$ to four significant figures at both doses.
++\begin{proof}
++\enforcehalffinalproseline
++Write $u=p_b$ along this face. The softmax identity
++$\dot u=u(1-u)(\dot z_b-\dot z_c)$ gives exactly
++\[
++ \dot u_{\mathrm{KL}}
++ =2\beta u^2(1-u)^2\log\frac{(1-u)\mu_b}{u\mu_c},
++ \qquad
++ \dot u_{\mathrm{replay}}
++ =\rho u(1-u)(1-2u).
++\]
++Both velocities are positive up to $\delta$ by its stated restriction.
++Separating variables expresses each hitting time as the integral from
++$s$ to $\delta$ of the reciprocal velocity. For KL the integrand is
++$(1+o(1))/(2\beta u^2\log(1/u))$ as $u\downarrow0$, and its integral is
++asymptotic to $1/(2\beta s\log(1/s))$ (equivalently, apply
++l'Hopital's rule to the two divergent functions). For replay the integrand
++is $1/(\rho u)+O(1)$, giving the second expression for any fixed admissible target $\delta$.
++\end{proof}
++
++Table~\ref{tab:kl-recovery} is a numerical illustration in a larger
++categorical system, with $\MDklModes{}$ correct and three incorrect categories.
++Its reference is uniform, its other depleted logits start at $-40$, and its
++target is $p_b=\MDklTarget{}$. The KL times grow by a factor
++\MDklDecadeKL{} per decade of initial depth; replay adds approximately
++$\log(10)/\rho$ per decade. These finite-depth integrations illustrate the
++recovery contrast but do not prove the two-mode asymptotic constants for
++the larger system.
+ 
+ \begin{table}[t]
+   \centering
+@@ -979,10 +1764,9 @@
+   $p_b=\MDklTarget{}$, by the depth it starts from.} Numerical integration of
+   the categorical mean flow with $m=\MDklModes{}$ correct modes, $G=16$, and a
+   uniform reference, in the flow's own time units. Reference KL multiplies its
+-  recovery time by \MDklDecadeKL{} per decade of depth, matching the
+-  $\Theta(1/s)$ of Corollary~\ref{cor:kl-recovery-time}; verified replay adds
+-  a constant per decade, matching $\Theta(\log(1/s))$. The coefficients scale
+-  the constants and not the exponents.}
++  recovery time by \MDklDecadeKL{} per decade of depth; verified replay adds
++  approximately a constant per decade. Corollary~\ref{cor:kl-recovery-time}
++  proves the contrasting asymptotic orders on a separate two-mode face.}
+   \label{tab:kl-recovery}
+   \small
+   \setlength{\tabcolsep}{6pt}
+@@ -1010,75 +1794,53 @@
+ verified history. Verified replay is the barrier construction with the target
+ replaced by a policy-generated, validator-accepted, uniformly weighted one.
+ 
+-\paragraph{A regularizer whose target carries incorrect mass cannot reach
+-$P=1$.} The structural reason replay costs no correctness is that
+-$\mathcal B\subseteq\mathcal C$. For any fixed target $\nu$ used in a
+-cross-entropy or KL penalty, the stationary equations summed over
+-$\mathcal C$ give $P^\star=1$ when $\nu(\mathcal N)=0$ and $P^\star<1$
+-strictly when $\nu(\mathcal N)>0$, as in
+-Proposition~\ref{prop:kl-stationary}. A full-support reference necessarily has
+-$\mu(\mathcal N)>0$. This is the same accounting as the remark above and
+-inherits its numerical weakness; it is recorded because it identifies which
+-property of the target, rather than which coefficient, produces the
+-difference.
+-
+-\paragraph{One coefficient has a window; the other only has a sign.}
+-The two results above constrain their coefficients differently, and the
+-difference is practical rather than aesthetic. Verified replay is constrained
+-on one side only: Corollary~\ref{cor:replay-no-collapse} sends $q\to u$ and
+-$P\to1$ for \emph{every} dose $\rho>0$, so the dose sets how fast the flow
+-arrives and not where it arrives. There is no value of $\rho$ that reaches a
+-different limit, and none that has to be found.
+-
+-A reference KL is constrained on both sides at once, and by the same identity.
+-It must be large enough to act: the restoring force it applies to a depleted
+-mode is $\beta p_b(\log(\mu_b/p_b)+D)$, which
+-Corollary~\ref{cor:kl-recovery-time} turns into a recovery time scaling as
+-$1/(\beta s)$, so a small coefficient is inert on any finite horizon. It must
+-also be small enough not to spend correctness, because
+-$\operatorname{logit}P^\star=\operatorname{logit}\mu(\mathcal C)+c_G(P^\star)/\beta$
+-falls as $\beta$ grows, and the reference's own correctness $\mu(\mathcal C)$
+-sets how quickly. A reference that is rarely right makes that window narrow:
+-at $\mu(\mathcal C)=.02$ and $G=16$, the Dr.GRPO coefficient puts $P^\star$
+-above $.99$ at $\beta=.1$ and below $.65$ at $\beta=.2$.
+-
+-So the comparison is not only between what each instrument reaches but between
+-what each asks of whoever sets it. One asks for a positive number. The other
+-asks for a number inside an interval whose location depends on the reference,
+-the group size and the estimator, and which a practitioner cannot read off
+-before training. This is a statement about the two mean flows and their
+-coefficients; we have not swept $\rho$ empirically, and nothing here reports a
+-measured dose response.
+-
+-\paragraph{What this does not establish.} (A1)--(A3) still bind, so these are
+-statements about independently optimized logits under a mean flow, not about
+-AdamW on a language model; the caveats of
+-App.~\ref{app:theory-collapse} apply unchanged. A $\beta$ schedule, an
+-annealed or adaptively controlled coefficient, and a reference that is itself
+-updated are all outside the fixed-potential argument. The sampled $k_3$
+-estimator is weaker still than the exactly evaluated penalty analyzed here,
+-since a mode absent from the rollout group contributes nothing to it at all,
+-which places it under Lemma~\ref{lem:sampled-score-bound} as well. That
+-estimator is the one the measured arms carry, so
+-App.~\ref{app:theory-kl-measured} tests the weaker of the two objects this
+-subsection could have been about; nothing in this subsection is itself an
+-empirical comparison. Reference KL has its own guarantees, for staying near
+-a reference and for the regularized control problem
+-\citep{geist2019regmdp,vieillard2020kl}, and those are not what
+-Corollary~\ref{cor:kl-recovery-time} contradicts. The claim is the narrow one
+-the two lemmas support jointly: among correct modes that have already become
+-rare, a bounded penalty restores at a rate that vanishes with the mode, and an
+-unbounded one does not.
+-
+-\begin{corollary}[The three limits, in the reported diversity metric]
++\paragraph{Correctness at the analyzed targets.}
++For Dr.GRPO and MaxRL with a full-support reference, the interior KL
++stationary point has $P^\star<1$, because the reference assigns positive
++mass to incorrect categories. Verified-only cross-entropy instead has the
++proved limit $P\to1$ when $c_G\ge0$. These statements concern the identified
++stationary point and convergence theorem, respectively. They do not exclude
++boundary stationary points of the continuously extended reverse-KL
++probability flow or establish a universal correctness cost for neural KL
++training.
++
++\paragraph{Stationary targets and finite training budgets.}
++Full-coverage uniform replay has the same categorical limit for every
++$\rho>0$, but this does not make dose selection irrelevant.
++The finite-time analysis above compares replay with the instantaneous
++fresh concentration pressure $c_G(P)(1-P)$. Small doses can allow diversity
++to decline before the asymptotic target is approached.
++
++For reference KL, increasing $\beta$ changes stationary correctness through
++$\operatorname{logit}P^\star=\operatorname{logit}\mu(\mathcal C)+c_G(P^\star)/\beta$.
++Its boundary recovery time also depends on $\beta$; on the two-mode face
++the leading scale is $1/[2\beta s\log(1/s)]$.
++Both coefficients therefore matter at a finite horizon. We have not swept
++the replay dose empirically, so the finite-time comparison is a prediction of
++the specified dynamics rather than a measured dose response.
++
++\paragraph{Scope of the comparison.}
++The stationary and rate statements concern independently optimized
++categorical logits. Schedules, changing references, momentum, and shared
++neural parameters require separate analysis. The implemented sampled KL
++term also differs from an exactly differentiated distributional KL:
++an absent response supplies no direct sampled score, although normalization
++and shared parameters can still change its probability.
++Reference KL has guarantees for regularized control and proximity to a
++reference \citep{geist2019regmdp,vieillard2020kl}. The results here distinguish
++its stationary target and boundary force from verified replay; they do not
++exclude useful finite-time diversity preservation by KL.
++
++\begin{corollary}[Two limits and a KL stationary value in the diversity metric]
++\enforcehalffinalproseline
+ \label{cor:pmd-limits}
+ The diversity axis this paper reports is
+ $\pmd{}=1-C(q)=1-\sum_{c\in\mathcal C}q_c^2$. In the categorical mean flow, a
+-bounded outcome-binary objective alone sends $\pmd{}\to0$
+-(Corollary~\ref{cor:class-collapse}), and adding full-coverage uniform verified
++bounded outcome-binary objective satisfying the positivity and unique-maximum
++hypotheses of Corollary~\ref{cor:class-collapse} sends $\pmd{}\to0$, and adding full-coverage uniform verified
+ replay sends $\pmd{}\to1-1/m$ for every dose $\rho>0$
+-(Corollary~\ref{cor:replay-no-collapse}). Adding a reference KL instead leaves
+-the flow with a single interior stationary point, at which
++(Corollary~\ref{cor:replay-no-collapse}). With the Dr.GRPO or centered MaxRL coefficient, adding a reference KL
++instead gives a single interior stationary point, at which
+ \[
+  \pmd{}=1-\sum_{c\in\mathcal C}
+    \left(\frac{\mu_c}{\mu(\mathcal C)}\right)^{\!2}
+@@ -1089,29 +1851,19 @@
+ \end{corollary}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Substitute $\mathbf e_{c^\star}$, the uniform $u$ on $\mathcal C$, and
+ $\mu|_{\mathcal C}$ into $1-\sum_cq_c^2$, using continuity of $C$ on the
+ simplex.
+ \end{proof}
+ 
+-The difference in what the three statements assert is itself a result and not
+-an artifact of how hard we tried. The first two are limits, reached because
+-each flow descends a potential whose stationary set the trajectory provably
+-attains. The third is only the location of a stationary point, because
+-Lemma~\ref{lem:kl-no-barrier} leaves the reference-KL flow with nothing to
+-keep it off the boundary: a vertex is a degenerate stationary point of that
+-flow too, and a bounded penalty supplies no argument excluding it. Reference KL
+-therefore cannot be shown, by this route, to reach even its own fixed point,
+-whereas verified replay reaches its target for every positive dose. We report
+-that asymmetry rather than papering over it, and it is the sharper form of the
+-claim that a bounded penalty is the wrong instrument for a boundary problem.
+-
+-On the axis the tables report, then, these are not three degrees of the same
+-effect. One drives diversity to its floor, one to the ceiling the bank's coverage
+-allows, and one returns the value the base model began with --- a quantity
+-Section~\ref{sec:results-collapse} measures at pass~0 rather than a free
+-parameter, which is what makes the middle and last rows distinguishable in
+-practice and not only in the limit.
++The first two statements are convergence results under their stated
++hypotheses; the third identifies an interior stationary point.
++Lemma~\ref{lem:kl-no-barrier} explains when a KL sublevel excludes a face,
++but a general convergence proof is not supplied here.
++Neither the stationary value nor the two-mode recovery rate is a bound on
++transient neural diversity. The distinction between the reference allocation
++and the discovered-bank target remains useful without that stronger claim.
+ 
+ \paragraph{Two boundaries, and which instrument reaches each.}
+ The results in this appendix separate along the two boundaries of the simplex
+@@ -1125,33 +1877,21 @@
+ there, and Equation~\eqref{eq:maxrl-potential-finite-sum} identifies what it
+ is maximizing as a harmonic mixture of pass@$k$ for $k=1,\ldots,G-1$.
+ 
+-At $p_b\to0$ for an already-discovered correct mode, the policy is losing
+-something it found. This is a \emph{retention} boundary, and
+-Theorem~\ref{thm:objective-inertness} says no member of the fresh class
+-reaches it, while Lemma~\ref{lem:kl-boundary-force} says a bounded penalty
+-does not either. Only an unbounded penalty on that coordinate supplies a force
+-that does not vanish with it, which is Theorem~\ref{thm:replay-retention}.
+-
+-The two instruments are therefore not substitutes and not alternatives to each
+-other. They also compose without interfering: adding verified replay to the
+-MaxRL coefficient gives the single potential
+-$F=\rho R_{\mathcal B}-\Psi_{\mathrm{MaxRL}}(P)$, whose descent carries the
+-$\Theta(G)$ starvation factor of Corollary~\ref{cor:maxrl-starvation} and the
+-probability floor of Theorem~\ref{thm:replay-retention} at once, because the
+-extension of that theorem to the whole outcome-binary class asked nothing of
+-the fresh objective beyond boundedness. That combination is the method this
+-paper reports (Section~\ref{sec:results-retention}). Their prices differ in the same direction as
+-their roles. A fresh-objective change is arithmetic on advantages that were
+-computed anyway and costs nothing. Verified replay costs a bank with no
+-parameters and, by Equation~\eqref{eq:replay-flop-ratio}, a per-update
+-overhead of $3\E|\mathcal B|/G$ against a reference-KL forward, measured below
+-one on four of our five domains (App.~\ref{app:replay-cost}). Reference KL
+-costs a resident copy of the policy, measured at \MDcostStateMin{} to
+-\MDcostStateMax{} times the bank it would replace, in exchange for a
+-conditional limit it inherits from the reference rather than chooses
+-(Proposition~\ref{prop:kl-stationary}). That ordering is an accounting
+-statement about these three additions, not a ranking of published methods on
+-their own benchmarks.
++At $p_b\to0$ for a discovered correct mode, the bounded sampled-coordinate
++force vanishes, while verified replay contributes $\rho(w_b-p_b)$.
++The reference-KL force also vanishes, at a different rate.
++These are coordinate-level comparisons in the stated geometry: they do not
++exclude retention through parameter sharing or other update rules.
++
++The fresh and replay terms compose into
++$F=\rho R_{\mathcal B}-\Psi_{\mathrm{MaxRL}}(P)$.
++Its descent gives the fixed-bank retention guarantee, and the finite-time
++analysis quantifies when replay overcomes concentration. Their gradients can
++oppose one another, so composition does not imply an absence of interference.
++Changing fresh advantages adds arithmetic to the existing update; replay adds
++stored targets and gradient computation. Equation~\eqref{eq:replay-flop-ratio}
++and App.~\ref{app:replay-cost} quantify that cost separately from the
++mathematical comparison.
+ 
+ \subsection{Two ceilings, and which one a domain sits under}
+ \label{app:theory-kl-measured}
+@@ -1180,13 +1920,15 @@
+ 
+ \begin{table}[t]
+   \centering
+-  \caption{\textbf{Terminal \pmd{} for every arm, against the bound each one's
+-  own result predicts.} Columns 11--13 are those bounds. An anchor can
+-  hold the frozen model's success-conditional diversity and no more
+-  (Proposition~\ref{prop:kl-stationary}). Uniform rehearsal can reach
+-  $1-1/\E|\mathcal B|$ at the bank's measured occupancy
+-  (Corollary~\ref{cor:replay-no-collapse}); Re:Dr and Re:Max each get their own,
+-  because the fresh objective decides what discovery puts in the bank. Every
++  \caption{\textbf{Terminal \pmd{} beside categorical reference values.}
++  Columns 11--13 give the frozen reference's conditional diversity and
++  the replay occupancy summaries $1-1/\E|\mathcal B|$.
++  The former is the interior stationary value in
++  Proposition~\ref{prop:kl-stationary}, not a transient upper bound.
++  The latter is a Jensen upper bound on the mean uniform-bank limit
++  $\E[1-1/|\mathcal B|]$ for nonempty fixed categorical banks; it does not
++  certify held-out neural diversity. Re:Dr and Re:Max have separate summaries
++  because their discovered banks differ. Every
+   column but the $\beta$ ones is the 32-disjoint-stream resample; the $\beta$
+   columns use the same estimator on their own disjoint draws. Dashes are
+   coefficients a domain does not yet carry, and a superscript on a $\beta$ cell
+@@ -1203,7 +1945,7 @@
+     & \multicolumn{2}{c}{\textbf{no retention}}
+       & \multicolumn{5}{c}{\textbf{$+$ reference KL, by $\beta$}}
+       & \multicolumn{2}{c}{\textbf{$+$ memory}}
+-      & \multicolumn{3}{c}{\textbf{bound on each}} & \\
++      & \multicolumn{3}{c}{\textbf{reference values}} & \\
+     \cmidrule(lr){2-3}\cmidrule(lr){4-8}\cmidrule(lr){9-10}\cmidrule(lr){11-13}
+     \textbf{Domain} & Dr.GRPO & MaxRL
+       & $.001$ & $.01$ & $.04$ & $.1$ & $.2$
+@@ -1214,7 +1956,9 @@
+   \end{tabular}
+ \end{table}
+ \paragraph{What the flow got right.}
+-Corollary~\ref{cor:class-collapse} is confirmed without qualification. The
++The observed concentration is consistent with the categorical mechanism
++in Corollary~\ref{cor:class-collapse}, although neural training does not
++satisfy that corollary's update assumptions. The
+ compute-matched control reaches \pmd{} at or below $.004$ in every domain in
+ the table: not reduced diversity but effectively none, which is what a
+ winner-take-all limit predicts and what no reweighting of binary outcomes was
+@@ -1229,34 +1973,30 @@
+ the frozen model in \MDklMuLowDomain{}); the $\beta=.1$ cells instead sit near
+ $\mu(\mathcal C)$ itself rather than near that limit.
+ 
+-Both misses have one cause: eight passes do not reach a stationary point of
+-this flow, so its fixed points are not the object a training run realizes. What
+-does survive is the structure around them --- the boundary-force comparison of
+-Lemma~\ref{lem:kl-boundary-force}, the $\Theta(1/s)$ against
+-$\Theta(\log(1/s))$ separation of Corollary~\ref{cor:kl-recovery-time}, and the
+-direction in which $\beta$ moves correctness. The rate results describe the
+-finite-horizon behaviour; the stationary results describe a destination that is
+-not arrived at. We report the fixed points as the bounds they are and read the
+-rates as the predictions.
+-
+-\paragraph{Two ceilings, not one comparison.}
+-The columns either side of the table are the two bounds, and they are not the
+-same quantity. Uniform rehearsal can carry \pmd{} to $1-1/\E|\mathcal B|$,
+-where $\E|\mathcal B|$ is what the bank holds, so a bank of capacity 16 facing
+-a prompt with more admissible keys than that is bounded by its own occupancy
+-rather than by the domain's support --- the partial-bank case of
+-App.~\ref{app:theory-replay}, where correct modes outside a frozen bank vanish.
+-An anchor can carry \pmd{} to the reference's own conditional diversity and no
+-further, by Proposition~\ref{prop:kl-stationary}.
+-
+-Read that way the table separates cleanly. Where a prompt's support sits under
+-bank capacity, the bank fills and replay attains close to its bound. Where
+-support exceeds capacity, or the admissible modes are ones the policy does not
+-produce, occupancy stays near one key per prompt and replay has almost nothing
+-to rehearse; the anchor then wins, and wins by more the broader the frozen
+-model already was. \pmd{} of the frozen model is therefore as much a property
+-of the domain as the support count is, and the two together say which
+-instrument a domain favours before either is run.
++These discrepancies show that the stationary categorical predictions do
++not quantitatively describe the measured checkpoints. Finite training,
++shared parameters, and the sampled adaptive optimizer are all possible
++sources of the difference; this comparison does not identify their separate
++effects. The boundary-force identities and the two-mode
++$\Theta(1/[s\log(1/s)])$ versus $\Theta(\log(1/s))$ recovery comparison
++motivate mechanism checks, rather than certify the measured neural rates.
++
++\paragraph{Reference diversity and bank occupancy.}
++The table compares quantities with different meanings. For a nonempty fixed
++uniform categorical bank of size $k$, the limiting diversity is $1-1/k$.
++Across such banks, its mean is $\E[1-1/k]\le1-1/\E[k]$ by Jensen's
++inequality. The occupancy columns report the latter summary. They are not
++exact mean limits when bank sizes differ, and training-bank occupancy does
++not furnish a bound on held-out neural PCMD.
++The KL column reports the reference conditional, which is the analyzed
++interior stationary value rather than a bound on transient diversity.
++
++The measurements nevertheless motivate an occupancy explanation: where
++replay discovers few keys, it has few distinct targets to rehearse.
++Where the frozen model is broader, KL can preserve useful diversity without
++requiring further admission. These are interpretations of the observed
++comparison; the categorical results do not identify which mechanism
++causes a particular neural outcome.
+ 
+ \paragraph{The fresh objective moves the bound, not just the rate.}
+ Re:Dr and Re:Max carry separate occupancy columns because a bank is filled by
+@@ -1267,7 +2007,7 @@
+ 
+ That is what the occupancy columns do. In Python, the domain whose control
+ reaches the lowest correctness of the five, the Re:Max bank holds $1.73$ keys
+-per prompt against Re:Dr's $1.18$, lifting the attainable bound from $.15$ to
++per prompt against Re:Dr's $1.18$, lifting the occupancy summary from $.15$ to
+ $.42$ and terminal \pmd{} from $.099$ to $.239$. In the four domains that do
+ not start starved, the two occupancies differ by at most $.6$ of a key and the
+ terminal values track them: Re:Max is ahead in Countdown, level in Pantry, and
+@@ -1275,13 +2015,12 @@
+ prediction was specific --- a discovery advantage confined to small $P$ --- and
+ the one domain it picks out is the one where it appears.
+ 
+-This is the composition argument of App.~\ref{app:theory-objective-inertness}
+-in measured form. The fresh objective cannot prefer one correct mode to another
+-(Theorem~\ref{thm:objective-inertness}), so it does not raise \pmd{} on its own:
+-MaxRL alone reaches $.148$ in Graph and at or below $.022$ elsewhere, no better
+-than Dr.GRPO alone in four domains of five. What it does is find more modes for
+-the bank to keep, which is a different boundary, and the two together reach
+-what neither does apart.
++These measurements are consistent with separating fresh learning and
++memory. The per-prompt mean-direction identity does not itself predict the
++shared neural trajectory: MaxRL alone reaches $.148$ PCMD in Graph and at
++or below $.022$ elsewhere, no better than Dr.GRPO alone in four domains.
++The larger Python bank motivates the discovery interpretation, but does not
++isolate it from prompt weighting, stochasticity, or optimizer effects.
+ 
+ \paragraph{Consequences for the comparison.}
+ The claim that a reference KL is the wrong instrument for diversity does not
+@@ -1305,7 +2044,9 @@
+ discovery failure and not a retention failure. And the coefficient window of
+ the preceding paragraph is the one place where the two instruments are not
+ symmetric, because the measured correctness cost at the top of the $\beta$
+-range has no counterpart in a replay dose.
++range concerns a stationary target tradeoff, whereas the replay dose also
++controls finite-time restoration. A matched replay-dose sweep would be
++needed to compare those sensitivities empirically.
+ 
+ \subsection{Why a memory rather than an anchor, once the reference is collapsed}
+ \label{app:theory-kl-case}
+@@ -1319,10 +2060,9 @@
+ about what that quantity is worth in the setting this paper measures.
+ 
+ \paragraph{The case for the anchor, at its strongest.}
+-It should be put plainly. A reference KL prevents winner-take-all for every
+-$\beta>0$ in the flow, needs no bank, no admission rule and no capacity, stores
+-nothing between updates, and adds one term to a loss most implementations
+-already carry. Its best cell is \MDklWinDomain{} at $\beta=\MDklWinBeta{}$,
++For every $\beta>0$, the analyzed reference-KL flow has a full-support
++stationary point. It needs no replay bank, admission rule, or bank capacity,
++although it retains a reference policy, and adds a familiar loss term. Its best cell is \MDklWinDomain{} at $\beta=\MDklWinBeta{}$,
+ where it reaches $\pmd{}=\MDklWinPmd{}$ against the better memory arm's
+ $\MDklWinRivalPmd{}$ with \texttt{pass@8} of $\MDklWinPass{}$ against
+ $\MDklWinRivalPass{}$: more diversity and no less correctness. That cell rests on
+@@ -1335,9 +2075,9 @@
+ Proposition~\ref{prop:kl-stationary} says the quantity being bought is the
+ reference's own success-conditional diversity, and
+ App.~\ref{app:theory-kl-measured} finds the measured arms at $91$ to $100$
+-percent of it. So the anchor is not a diversity mechanism that happens to be
+-cheaper than a memory. It is a faithful copy of a property of whatever model
+-it is pointed at, and it inherits that property's value.
++percent of it. This empirical agreement is consistent with reference
++retention, while the stationary formula alone does not describe the finite
++training trajectory or establish a bound on its diversity.
+ 
+ This is why \MDklWinDomain{} is the case it is. The frozen Qwen2.5-0.5B has
+ $\pmd{}=\MDklWinFrozenPmd{}$ there, and $.85$ is the most a capacity-16 bank assembles from
+@@ -1362,8 +2102,8 @@
+ \MDklHostedHi{} and typically less. \MDklTopMemoryArm{} reaches
+ \MDklTopMemoryPmd{} in \MDklTopMemoryDomain{}, past what anchoring to any
+ model in that cohort would supply on average, and it does so because
+-Corollary~\ref{cor:replay-no-collapse} bounds them by what discovery puts in
+-the bank rather than by what the reference already had. The two instruments are
++the categorical replay target depends on discovered bank membership,
++whereas the analyzed KL stationary target depends on the reference. The two instruments are
+ not competing for the same resource. One spends a property of the initial
+ policy; the other spends search.
+ 
+@@ -1382,8 +2122,9 @@
+ each domain's own frozen correctness and runs from $\MDklBetaStarLo{}$ to
+ $\MDklBetaStarHi{}$ across the domains that carry one. A practitioner must therefore locate a window whose position
+ depends on the reference's correctness, the group size and the estimator, per
+-domain, before training. Replay asks for a positive
+-number, by Corollary~\ref{cor:replay-no-collapse}.
++domain, before training. Replay has the same categorical limit for every positive dose, but its
++finite-time restoration still depends on the dose relative to fresh
++concentration pressure.
+ 
+ Last and most structural: an anchor requires a reference that is worth
+ anchoring to, and successive rounds of RL do not supply one. The bank is
+@@ -1408,9 +2149,9 @@
+ failures on the memory side rather than retention successes on the anchor's.
+ One of them does not even fit the inheritance account, since a reference that
+ verifies nothing has no success-conditional diversity to pass on, so what the
+-coefficient supplies there is the finite-horizon brake of
+-Corollary~\ref{cor:kl-recovery-time} and not the fixed point of
+-Proposition~\ref{prop:kl-stationary}. We report them as wins regardless.
++coefficient supplies there cannot be inferred from the stationary
++conditional formula. Zero observed successes also does not establish
++zero population correctness. We report them as wins regardless.
+ 
+ \subsection{Scope relative to entropy, KL, admission, and neural optimization}
+ \label{app:theory-entropy}
+@@ -1427,28 +2168,23 @@
+ $\dot z_a=c_G(P)(R_a-P)$, which gives identical velocities to correct logits
+ and preserves their ratios. Here $R_a=\1[a\in\mathcal C]$.
+ 
+-This caveat is specific to the collapse conclusion, and
+-Theorem~\ref{thm:objective-inertness} does not inherit it. For any fixed
+-preconditioner $M\succeq0$ the flow is $\dot z=c_a(P)M\nabla_zP$, so two
+-members of the class differ by a positive state-dependent scalar and trace the
+-same orbit at different speeds, whatever $M$ is. Whichever endpoint the
+-geometry selects --- a single surviving mode under the independent-logit
+-metric, preserved ratios under the natural-gradient one --- it selects the same
+-one for every outcome-binary objective. So the conclusion that a fresh
+-objective is not the instrument for this problem does not rest on the choice of
+-geometry; only the identification of the endpoint as winner-take-all does.
+-Parameter count alone does not specify the optimization geometry. The empirical
+-scale
+-comparisons also change pretrained models and learning-rate schedules; they
+-neither measure the geometry nor identify the cause of cross-scale differences.
+-The theorem supplies a mechanism to test in controlled training; it cannot
+-identify the training history or cause of concentration in a hosted model.
++The mean-gradient identity has broader scope than the collapse conclusion.
++For one prompt and a common autonomous preconditioner $M(\theta)$, positive
++coefficients give flows $c_a(P)M(\theta)\nabla_\theta P$ that follow the same
++orbit after a change of time. Outcome-dependent covariance, response-length
++weights, shared prompts, and optimizer memory can break the corresponding
++training-trajectory equivalence, as the preceding neural analysis shows.
++Parameter count alone does not identify this geometry. The empirical scale
++comparisons change pretrained models and schedules; they do not establish
++the cause of cross-scale differences or the training history of a hosted
++model.
+ 
+ A bounded advantage based on fresh samples has a different boundary behavior.
+ The next bound includes group-dependent detached scores and distinguishes
+ sampled updates from gradients of an exactly evaluated entropy functional.
+ 
+ \begin{lemma}[Bounded sampled scores have no probability-independent boundary force]
++\enforcehalffinalproseline
+ \label{lem:sampled-score-bound}
+ Under Assumption~\ref{ass:categorical-mean-flow}, condition on the training history, draw
+ $Z_1,\ldots,Z_G$ independently from $p$, and let $a_i$ be any detached,
+@@ -1471,6 +2207,7 @@
+ \end{lemma}
+ 
+ \begin{proof}
++\enforcehalffinalproseline
+ Use the triangle inequality and $|a_i|\le B$. Each marginal draw satisfies
+ $\E|\1\{Z_i=b\}-p_b|=2p_b(1-p_b)$, irrespective of the dependence of
+ $a_i$ on the group. On the absence event all indicator terms are zero.

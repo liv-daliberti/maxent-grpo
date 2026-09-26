@@ -1,0 +1,520 @@
+IEEE TRANSACTIONS ON AUTOMATIC CONTROL, VOL. 43, NO. 4, APRIL 1998                                                                        475
+
+
+
+
+    Multiple Lyapunov Functions and Other Analysis
+        Tools for Switched and Hybrid Systems
+                                                   Michael S. Branicky, Member, IEEE
+
+
+
+   Abstract—In this paper, we introduce some analysis tools for                 Models like (1) have been studied for stability [1]–[3].
+switched and hybrid systems. We first present work on stability              However, those papers were predominantly concerned with
+analysis. We introduce multiple Lyapunov functions as a tool for             the case where all the are linear. Because of this, however,
+analyzing Lyapunov stability and use iterated function systems
+(IFS) theory as a tool for Lagrange stability. We also discuss               Peleties and his coworkers were able to derive switching laws
+the case where the switched systems are indexed by an arbitrary              based on generalized eigenvalue analysis of the constituent
+compact set. Finally, we extend Bendixson’s theorem to the case              matrices. We discuss the general cases below.
+of Lipschitz continuous vector fields, allowing limit cycle analysis           We also discuss difference equations
+of a class of “continuous switched” systems.
+  Index Terms—Hybrid systems, limit cycles, Lyapunov methods,                                                                             (2)
+nonlinear systems, stability, switched systems, variable-structure
+systems.
+                                                                             where             . Here, we only add the assumption that each
+                                                                                 is globally Lipschitz continuous. Again, these equations
+                          I. INTRODUCTION
+                                                                             can be thought of as the “continuous” portion of the dynamics
+
+T    HIS PAPER develops some analysis tools applicable
+     to the study of switched and hybrid systems. Below,
+we introduce the systems under study and summarize our
+                                                                             of hybrid systems combining difference equations and finite
+                                                                             automata [4].
+                                                                                Finally, we also study continuous switched systems. A
+contributions.                                                               continuous switched system is a switching system with the
+                                                                             additional constraint that the switched subsystems agree at the
+A. Switched Systems                                                          switching time. More specifically, consider (1) and suppose
+                                                                             that at times                      there is a switch from
+  We have in mind the following model as a prototypical
+                                                                             to     . Then we require                                  . That
+example of a switched system
+                                                                             is, we require that the vector field is continuous over time.
+                                                                      (1)       Throughout,                    denote the reals, nonnegative
+                                                                             reals, integers, and nonnegative integers, respectively.
+where              . We add the following switching rules.
+   • Each      is globally Lipschitz continuous.                             B. Hybrid Systems
+   • The ’s are picked in such a way that there are finite                      Hybrid systems are those that inherently combine logical
+     switches in finite time.                                                and continuous processes, usually coupled finite automata and
+   Switched systems are of “variable structure” or “multi-                   differential equations [4]–[10]. Thus, the continuous dynamics
+modal”; they are a simple model of (the continuous portion)                  is modeled by a differential equation
+of hybrid systems. The particular at any given time may
+be chosen by some “higher process,” such as a controller,                                                                                 (3)
+computer, or human operator, in which case we say that the
+system is controlled. It may also be a function of time or state
+or both, in which case we say that the system is autonomous.                 where         is the continuous component of the state taking
+In the latter case, we may really just arrive at a single (albeit            values in some subset of a Euclidean space.          is a (con-
+complicated) nonlinear, time-varying equation. However, one                  trolled) vector field that generally depends on         and the
+might gain some leverage in the analysis of such systems by                  aforementioned “logical” or “finite” dynamics.
+considering them to be amalgams of simpler systems.                             As mentioned above, we consider two categories of
+                                                                             switched systems [6].
+   Manuscript received August 2, 1996. Recommended by Associate Editor,         • Autonomous switching: Here the vector field       changes
+P. J. Antsaklis. This work was supported by the Army Research Office and           discontinuously when the state      hits certain “bound-
+the Center for Intelligent Control Systems under Grants DAAL03-92-G-0164
+and DAAL03-92-G-0115 and Siemens AG under Grant DTD 5/30/94.                       aries.”
+   The author is with the Department of Electrical Engineering and Applied      • Controlled switching: Here        changes abruptly in re-
+Physics, Case Western Reserve University, Cleveland, OH 44106-7221 USA             sponse to a control command, possibly with an associated
+(e-mail: branicky@alum.mit.edu).
+   Publisher Item Identifier S 0018-9286(98)02663-4.                               cost.
+                                                          0018–9286/98$10.00  1998 IEEE
+476                                                                      IEEE TRANSACTIONS ON AUTOMATIC CONTROL, VOL. 43, NO. 4, APRIL 1998
+
+
+
+  A (continuous-time) autonomous hybrid system may be                     “continuations” of them
+defined as follows:
+
+
+                                                                  (4)     Here, we have shown a linear interpolation of the dynamics,
+                                                                          although others are possible, including appending states so that
+where                                             . Here,                 the continuation of the discrete transitions are well defined
+                     , each globally Lipschitz continuous, is the         [12], [13]. If one can analyze such a system, then one
+continuous dynamics of (4), and                          is the finite    can conclude properties of the resulting hybrid system via
+dynamics of (4). Here, the notation       indicates that the finite       comparison—and vice versa!
+state is piecewise continuous from the right. Thus, starting at              This “continuation” idea for analyzing hybrid systems is
+        , the continuous state trajectory      evolves according          originally due to Branicky and Mitter [14]. More discussion of
+to              . If     hits some                  at time , then        this program, comparison tools in support of it, and a detailed
+the state becomes             , from which the process continues.         example yielding novel analysis results may be found in [15]
+    Clearly, this is an instantiation of autonomous switching.            and [14].
+Switchings that are a fixed function of time may be taken care
+of by adding another state dimension, as usual. This definition
+is closely related to the so-called differential automata in [10];        D. Paper Organization
+it is a simplified view of the hybrid systems models in [4]–[6],             Section II introduces multiple Lyapunov functions (MLF’s)
+and [9]. We do not discuss here restrictions on which lead                as a tool for analyzing Lyapunov stability of switched systems.
+to finite switches in finite time. For a discussion of this, see          In Section III iterative function systems are presented as a
+[11], [6], [4], and [10].                                                 tool for proving Lagrange stability and positive invariance.
+    By a (continuous-time) controlled hybrid system we have in            We also address the case where                 in (1) and (2) is
+mind a system of the form                                                 replaced by an arbitrary compact set. In Section IV, we extend
+                                                                          Bendixson’s theorem to the case of Lipschitz continuous
+                                                                          vector fields. This gives us a tool for analyzing the existence
+                                                                  (5)     of limit cycles of continuous switched systems. We conclude
+                                                                          with some discussion.
+where everything is as above except that           , with
+and modified appropriately.
+   Next we give an example in which we have suppressed the                     II. STABILITY VIA MULTIPLE LYAPUNOV FUNCTIONS
+finite dynamics.                                                             In this section, we discuss Lyapunov stability of switched
+   Example 1.1: A simplified model of a manual transmission               and hybrid systems via MLF’s. The idea here is that even if
+is given by [4]                                                           we have Lyapunov functions for each system       individually,
+                                                                          we need to impose restrictions on switching to guarantee
+                                                                          stability. Indeed, it is easy to construct examples of two
+                                                                          globally exponentially stable systems and a switching scheme
+                                                                          that sends all trajectories to infinity.1
+where     is the ground speed,    is the engine RPM,                         Example 2.1: Consider                  where
+is the throttle position, and                  is the gear shift
+position. The function is positive for positive argument.
+   Likewise, we can define discrete-time autonomous and
+controlled hybrid systems by replacing the ODE’s above with               Then              is globally exponentially stable for         .
+difference equations. In this case, (4) represents a simplified           But the switched system using          in the second and fourth
+view of some of the models in [4].                                        quadrants and      in the first and third quadrants is unstable.
+                                                                          See Figs. 1–3, which plot 1 s of trajectories for           and
+C. Continuation Program for Hybrid Systems                                the switched system starting from                 and
+                                                                          respectively.
+   The additional constraint of the continuous switched system
+                                                                             We assume the reader is familiar with basic Lyapunov theory
+introduced above leads to a simpler class of systems to con-
+                                                                          in continuous and discrete time [18]. We let                and
+sider. At the same time, it is not overly restrictive since many
+                                                                                 represent the sphere, ball, and closed ball of Euclidean
+switching systems naturally satisfy this constraint. Indeed they
+                                                                          radius about the origin in        , respectively.
+may even arise from the discontinuous logic present in hybrid
+                                                                             Below, we deal with systems that switch among vector fields
+systems. These can result in discontinuous control inputs,
+                                                                          (respectively, difference equations) over time or regions of
+which, after passing through a dynamical system (e.g., actuator
+                                                                          state space. One can associate with such a system the following
+dynamics), yield switching controls at the plant level that
+preserves continuity in the derivative.                                      1 Such examples appear to be “classical.” Similar examples showing sta-
+   More generally, we may approximate the finite dynamics of              ble systems constructed from unstable ones appear in [16]; Åström had
+a hybrid system by considering singular perturbations that are            qualitatively similar ones in [17].
+BRANICKY: MULTIPLE LYAPUNOV FUNCTIONS AND OTHER ANALYSIS TOOLS                                                                         477
+
+
+
+                                                                      We can take projections of this sequence onto its first and
+                                                                    second coordinates, yielding the sequence of indexes
+
+
+                                                                    and the sequence of switching times
+
+
+                                                                    respectively. Suppose is a switching sequence as in (6). We
+                                                                    denote by         the endpoints of the times that system is
+                                                                    active in both the continuous- and discrete-time cases. The
+                                                                    interval completion       of a strictly increasing sequence of
+                                                                    times                         is the set
+
+Fig. 1. Trajectory of f1 .
+
+
+                                                                    Hence,           is the set of times that the th system is active
+                                                                    (up to a set of measure zero in the continuous-time case).
+                                                                    Finally, let       denote the even sequence of                  .
+                                                                       Below, we say that       is a candidate Lyapunov function if
+                                                                       is a continuous positive definite function (about the origin,
+                                                                      ) with continuous partial derivatives. Note this assumes
+                                                                               . We also use the following.
+                                                                       Definition 2.2: Given a strictly increasing sequence of
+                                                                    times in (respectively, ), we say that is Lyapunov-like
+                                                                    for function and trajectory         (respectively,    ) over if:
+                                                                      •                     (respectively,                          ) for
+                                                                          all             ;
+Fig. 2. Trajectory of f2 .                                            •         is monotonically nonincreasing on         .
+                                                                       Theorem 2.3: Suppose we have candidate Lyapunov func-
+                                                                    tions                     and vector fields            (respec-
+                                                                    tively, difference equations                   ) with
+                                                                    for all . Let be the set of all switching sequences associated
+                                                                    with the system.
+                                                                       If for each        we have that for all    is Lyapunov-like
+                                                                    for     and        over      , then the system is stable in the
+                                                                    sense of Lyapunov.
+                                                                          Proof: In each case, we do the proofs only for         .
+                                                                      • Continuous-time: Let                  be arbitrary. Let
+                                                                        denote the minimum value of             on        . Pick
+                                                                        such that in            we have                 . This choice is
+                                                                        possible via the continuity of . Let                      . With
+Fig. 3. Trajectory of switched system.                                  this choice, if we start in          , either vector field alone
+                                                                        will stay within           .
+(anchored) switching sequence, indexed by an initial state,     :          Now, pick              such that in           we have
+                                                                              . Set                  . Thus, if we start in      , either
+                                                              (6)
+                                                                        vector field alone will stay in           . Therefore, whenever
+The sequence may or may not be infinite. In the finite case, we         the other is first switched on we have                           ,
+may take               , with all further definitions and results       so that we will stay within             .
+holding. However, we present in the sequel only in the infinite       • Discrete-time: Let                be arbitrary. Let
+case to ease notation. The switching sequence, along with (1),          denote the minimum value of              on the closed annulus
+completely describes the trajectory of the system according                             . Pick             so that none of the        can
+to the following rule:           means that the system evolves          jump out of            in one step. Pick             such that in
+according to                          for                  . We                we have                        . This choice is possible
+denote this trajectory by        . Throughout, we assume that           via the continuity of . Let                          . With this
+the switching sequence is minimal in the sense that                     choice, if we start in           , either equation alone will
+         .                                                              stay within          .
+478                                                                  IEEE TRANSACTIONS ON AUTOMATIC CONTROL, VOL. 43, NO. 4, APRIL 1998
+
+
+
+         Pick          so that none of the    can jump out of
+             in one step. Now, pick         such that in
+      we have                   . Set             . Thus, if we
+      start in      , either equation alone will stay in       ,
+      and hence         . Therefore, whenever the other is first
+      switched on we have                            so that we
+      will stay within          and hence       .
+   The proofs for general          require      sets of concentric
+circles constructed as the two were in each case above.
+   Some remarks are in order.
+   • The case               is the usual theorem for Lyapunov
+     stability [18]. Also, compare Figs. 4 and 5, both of which
+     depict the continuous-time case. Fig. 6 depicts MLF’s
+     over time.                                                       Fig. 4. Lyapunov stability.
+   • The theorem also holds if the         are time-varying.
+   • It is easy to see that the theorem does not hold if         ,
+     and we leave it to the reader to construct examples.
+   • It is not hard to generalize our MLF theory to the case of
+     different equilibria, which is generally the case in hybrid
+     systems. For example, under a Lyapunov-like switching
+     rule, after all controllers have been switched in at level
+        , the set                is invariant.
+   • It is not hard to extend the presented theorems to con-
+     sider variations such as: 1) relaxing the first part of
+     our Lyapnov-like definition by allowing the Lyapunov
+     functions to increase in each active region if the gain from
+     “switch in” to “switch out” is given by a positive definite
+     function [19], or, more provocatively and 2) allowing
+     increases over energy          at its switching times with a
+     similar constraint from initial value to final limit.            Fig. 5. Multiple Lyapunov stability,   N = 2.
+   • After we proved the theorem above, we became aware
+     of the related work in [20]. There, Pavlidis concludes
+     stability of differential equations containing impulses by
+     introducing a positive definite function which decreases
+     during the occurrence of an impulse and remains constant
+     or decreases during the “free motion” of the system.
+     Hence, it is a special case of our results.
+   • The stabilization strategies proposed in [21], e.g., choos-
+     ing at each time the minimum of several Lyapunov
+     functions, clearly satisfies our switching condition.
+   • Sliding modes may be taken care of by defining each
+                                                                      Fig. 6. Multiple Lyapunov stability,   N   = 2. Lyapunov function values
+                                                                      versus time. Solid/dotted denotes corresponding system active/inactive.
+     sliding mode and its associated sliding dynamics as an
+     additional system to which we can switch. We then merely
+     check the conditions as before.                                  stable. The reason is that each system is strictly stable linear
+   • In proving stability, we can use more Lyapunov functions         and hence diminishes               for some          . However,
+     than constituent systems (see [22] for an example where          since switchings occur on a line through the origin, we are
+     this is necessary) by simply introducing new discrete            assured that on switches to system       is lower energy than
+     substates with the same continuous dynamics but different        when it was last switched out; see Fig. 7.
+     Lyapunov functions.                                                 Example 2.5: Consider the following system, inspired from
+   • When the dynamics are piecewise affine, computational            one in [22]:                    with
+     tests may be used to compute appropriate switching
+     conditions [2] (eigenvalue analysis) or to find Lyapunov
+     functions that prove stability [23] [linear matrix inequal-
+     ities (LMI’s)].                                                  with the switching rule that we go from system to on hitting
+   Example 2.4: Pick any line through the origin. Going back          the sets             in the second and fourth quadrants where
+to Example 2.1 and choosing to use             above the line and
+    below it, the resulting system is globally asymptotically
+BRANICKY: MULTIPLE LYAPUNOV FUNCTIONS AND OTHER ANALYSIS TOOLS                                                                     479
+
+
+
+                                                                    of Theorem 2.3 above. Moreover, the proof of asymptotic
+                                                                    stability in [2] is flawed since it only proves state convergence
+                                                                    and not state convergence plus stability, as required. It can be
+                                                                    fixed using our theorem.
+                                                                       Now, consider the case where the index set is an arbitrary
+                                                                    compact set
+                                                                                                             compact              (7)
+                                                                    Here,          and is globally Lipschitz in , continuous
+                                                                    in . For brevity, we only consider the continuous-time case.
+                                                                    Again, we assume finite switches in finite time.
+                                                                      As above, we may define a switching sequence
+
+
+Fig. 7. Switching on a line through the origin.                     with its associated projection sequences.
+                                                                       Theorem 2.7: Suppose we have candidate Lyapunov func-
+                                                                    tions               and vector fields as in (7) with             ,
+                                                                    for each         . Also,                       is continuous. Let
+                                                                       be the set of all switching sequences associated with the
+                                                                    system.
+                                                                       If for each       we have that for all        is Lyapunov-like
+                                                                    for      and       over       and the        satisfy the sequence
+                                                                    nonincreasing condition for        , then the system is stable in
+                                                                    the sense of Lyapunov.
+                                                                          Proof: We present the proof in the case that              is
+                                                                    sequentially compact, which is automatic if            is a metric
+                                                                    space. The general case follows with little change from the
+                                                                    argument below by using countable compactness and nets
+                                                                    instead of sequences (see [24] and [25] for definitions).
+                                                                       The Lyapunov-like and sequence nonincreasing constraints
+Fig. 8. A switching system requiring hybrid states and MLF’s.
+                                                                    are such that if                                    then the state
+                                                                           will remain within the set
+An example trajectory is shown in Fig. 8. There, the dynamics
+alternate between going counterclockwise along a short, fat
+ellipse and then clockwise along a tall, skinny one.
+   It is clear that the conic switching region: 1) is attractive;   Next, note that if     lies in
+2) leads to a hybrid system; and 3) admits no single quadratic
+Lyapunov function that can be used to show stability (e.g.,
+the system intersects a whole range of lines through the
+origin at greater distances on the clockwise portion than the       then the state will remain in   .
+counterclockwise one).                                                Thus, it remains to show that given any            , there exist
+   However, it is also easy to see that energy is decreasing                    such that
+at switching times (just consider the switching lines through
+the origin and note we get closer). Lyapunov functions show-
+ing this may be computed using LMI’s which encode the               Letting      denote the minimum of on
+conditions of our theorem [23].                                     satisfies the last equation. Now     contains the origin   .
+   It is possible to use different conditions on the   to ensure    Suppose there is no open ball about zero in . Then for each
+stability. For instance, consider the following.                              , there exists     such that
+   Definition 2.6: If there are candidate Lyapunov functions
+corresponding to for all , we say they satisfy the sequence
+nonincreasing condition for a trajectory         if                 Further, we may take each of the        distinct. Let           be
+                                                                    the point at which the       above is attained. Since
+                                                                    is sequentially compact, there is a subsequence
+This is a stronger notion than the Lyapunov-like condition          converging to          with                   , a contradiction to
+used above.                                                         the continuity of     and the assumption that                  for
+   The sequence nonincreasing condition is used in the stability    all        .
+(version of the asymptotic stability) theorem of [2]. Thus              This theorem is a different generalization of the aforemen-
+that theorem is a special case of the continuous-time version       tioned theorems of [20] and [2].
+480                                                                     IEEE TRANSACTIONS ON AUTOMATIC CONTROL, VOL. 43, NO. 4, APRIL 1998
+
+
+
+      III. STABILITY      VIA ITERATED   FUNCTION SYSTEMS
+   In this section, we study iterated function systems (IFS)
+theory as a tool for Lagrange stability. We begin with some
+background from [26]–[28].
+   Definition 3.1: Recall that a contractive function is one
+such that there exists        where                         ,
+for all     .
+   An IFS is a complete metric space and a set             of
+contractive functions such that is a compact space and the
+map                   is continuous.
+   The image of a compact set         under an IFS is the set
+                    . It is compact. Now suppose        is an
+IFS. Let           be the semigroup generated by        under
+composition. For example, if               , then
+
+
+
+Now, define     to be the closure of the fixed points of            .    Fig. 9. Example IFS: Sierpinski triangle (10 000 points).
+We have the following.
+  Theorem 3.2: Suppose                       is an IFS on           .
+Then:
+  •      is compact;
+  •                        ;
+  • for all
+
+
+
+      where                                .
+   The relevance of this theorem is twofold.
+   •       is an invariant set under the maps              .
+   • All points approach            under iterated composition of
+      the maps              .
+   Clearly, this theory can be applied in the case of a set of
+contractive discrete maps indexed by a compact set (usually
+finite). Thus, it is directly applicable to systems of the form (2).
+   Example 3.3: The following IFS is well known:
+                                                                         Fig. 10. Example differential IFS: Sierpinski-like triangle, T   = 2=3 (10 000
+                                                                         points).
+
+
+
+Its limit set is the well-known Sierpinski triangle, as shown               Therefore, we can convert switching among vector fields
+in Fig. 9.                                                               into an IFS by letting                            . In particular,
+                                                                         we see that for each , if it is active for a time       , we can
+   To obtain contractive maps while switching among differ-
+ential equations requires a little thought. Assume there is some         write the solution in that interval as                           ,
+lower limit on the interswitching time. Now, notice that for             where      is the fundamental solution for acting for time .
+any interswitching time           , there is a decomposition into        Thus the switching sequence can be converted to an iterated
+smaller intervals as follows:                                            composition of maps indexed by the compact set .
+                                                                            The other interesting point about IFS theory is that the
+                                                                         different vector fields (or difference equations) need not have
+                                                                         the same equilibrium point. This is important as it appears to
+                                                                         be the usual case in switched and hybrid systems.
+      Proof: Let                        and                   . Now,        Example 3.4: Starting with Example 3.3, we consider a
+                . If           , the decomposition is                    corresponding differential IFS (DIFS), with
+             . If                  , the decomposition is
+                             , the first equation not applying if
+      . Finally, if              , then (we must have           since
+       )                      , so the decomposition is
+                                             , the first equation not    Its limit set can be computed for different values of                 and    .
+applying if           .                                                  Fig. 10 depicts it for          and           .
+BRANICKY: MULTIPLE LYAPUNOV FUNCTIONS AND OTHER ANALYSIS TOOLS                                                                     481
+
+
+
+   In conclusion, in IFS we have a tool for analyzing the            to explore their full potential. For instance, we can state IFS
+Lagrange stability and computing the invariant sets of switched      theorems analogous to Theorem 2.3, namely, in which the
+systems of the form (1) and (2). The resulting sets         are      maps need only be contractions on the points (time periods)
+reminiscent of those for usual IFS (see [26]), as seen in            on which they are applied. Finally, if there is no lower limit
+comparing Figs. 9 and 10. The reader may consult [26] for            on the interswitching time, then we are not assured to have a
+algorithms to compute such invariant sets.                           contraction mapping. However, as long as we have only finite
+                                                                     switches in finite time, one expects that the trajectories should
+                 IV. LIMIT CYCLE ANALYSIS                            be well-behaved (e.g., invoke continuity of ODE solutions and
+                                                                     take convex hulls).
+   Suppose we are interested in the existence of limit cycles
+of continuous switched systems in the plane. The traditional
+tool for such analysis is Bendixson’s theorem. But under our                                    APPENDIX
+model, systems typically admit vector fields that are Lipschitz,        The proof of Bendixson’s theorem depends, in a critical
+with no other smoothness assumptions. Bendixson’s theorem,           way, on Green’s theorem. The usual statement of Green’s
+as it is traditionally stated (e.g., [29] and [30]), requires        theorem says [31] that a    vector field        on a compact
+continuously differentiable vector fields and is thus not of use     region in       with     boundary     satisfies
+in general. Therefore, we offer an extension of Bendixson’s
+theorem to the more general case of Lipschitz continuous
+vector fields. Its proof is based on results in geometric measure
+theory (which are discussed in the Appendix).                        where             is the exterior unit normal to at        is the
+  Theorem 4.1 (Extension of Bendixson’s Theorem): Suppose            element of area on , and             is the Lebesgue measure on
+   is a simply connected domain in         and      is a Lipschitz       . It is possible, however, to treat more general regions and
+continuous vector field on such that the quantity             (the   vector fields that are merely Lipschitz continuous. A general
+divergence of , which exists almost everywhere) defined by           extension is the so-called Gauss–Green–Federer theorem given
+                                                                     in [31]. Even the statement of this theorem requires the
+                                                                     development of a bit of the language of geometric measure
+                                                                     theory. We state a relaxed version of this theorem that is
+is not zero almost everywhere over any subregion of and              still suitable for our purposes. In the final formula,     exists
+is of the same sign almost everywhere in . Then contains             almost everywhere because a Lipschitz continuous function is
+no closed trajectories of                                            differentiable almost everywhere.
+                                                              (8)       Theorem A.1 (Relaxation of Gauss–Green–Federer): Let
+                                                                     be a compact region of           with      boundary . Then for
+                                                              (9)
+                                                                     any Lipschitz vector field
+     Proof: See the Appendix.
+   Finally, we give an example which shows the necessity of
+Lipschitz continuity of the vector fields.
+   Example 4.2: Consider Example 2.1. Note that if the roles         Now we can prove our version of Bendixson’s theorem.
+of      and     are interchanged, then the resulting system is            Proof of Theorem 4.1: The proof is similar to that of
+asymptotically stable. Thus, continuity of solutions and the         Bendixson’s theorem in [30, pp. 31–32]. Suppose, for con-
+intermediate value theorem imply that there exists                   tradiction, that is a closed trajectory of (8) and (9). Then at
+such that                            and                             each point       , the vector field      is tangent to . Then
+results in a closed trajectory. Yet,         and          .                             for all       , where is the area enclosed
+                                                                     by . But by Theorem A.1
+                        V. CONCLUSION
+   In both the MLF and IFS cases, the stability results are suf-
+ficiency conditions on the continuous dynamics and switching.
+                                                                     Therefore, we must have either: 1)             is zero almost
+We do not consider this a drawback since Lyapunov theory is
+                                                                     everywhere, or 2) the sets                                and
+almost always used in its sufficiency form; also, the use of
+                                                                                                both have positive measure. But if
+such conditions in design of provably stable control laws is
+                                                                        is a subset of , neither can happen. Hence, contains no
+an important area of future research (cf. the way Lyapunov
+                                                                     closed trajectories of (8) and (9).
+theory is used to design stable adaptive control laws). This
+work, then, represents the rudiments of a stability theory of
+the systems in (1) and (2) and, in turn, of hybrid systems. We                            ACKNOWLEDGMENT
+also discussed the case where                  in (1) and (2) is        The work in Sections II and III was begun in [33] and con-
+replaced by an arbitrary compact set.                                tinued in [34]. In personal discussions, Prof. W. S. Newman
+   For future directions, we offer the following brief treatment.    essentially conjectured Theorem 2.3 in the continuous-time
+In searching for necessary and sufficient stability criteria, the    setting. Our extension of Bendixson’s theorem was used to
+theory in [32] appears helpful. As far as IFS, we have yet           prove no limit cycles exist in a realistic aircraft control
+482                                                                             IEEE TRANSACTIONS ON AUTOMATIC CONTROL, VOL. 43, NO. 4, APRIL 1998
+
+
+
+problem [15]. Figs. 1–3, 7, and 8 were produced by the                            [16] V. I. Utkin, “Variable structure systems with sliding modes,” IEEE
+simulation tool Omsim, from Lund Institute of Technology,                              Trans. Automat. Contr., vol. 22, pp. 212–222, 1977.
+                                                                                  [17] K. J. Åström, personal communication, June 1996.
+using hybrid systems macros written by the author; see [35]                       [18] D. G. Luenberger, Introduction to Dynamic Systems. New York: Wiley,
+for details.                                                                           1979.
+                                                                                  [19] H. Ye, A. Michel, and K. Wang, “Stability theory for hybrid dynamical
+                                                                                       systems,” in Proc. IEEE Conf. Decision and Control, New Orleans, LA,
+                              REFERENCES                                               Dec. 1995.
+                                                                                  [20] T. Pavlidis, “Stability of systems described by differential equations
+ [1] J. Ezzine and A. H. Haddad, “Controllability and observability of hybrid          containing impulses,” IEEE Trans. Automat. Contr., vol. 12, pp. 43–45,
+                                                            m
+     systems,” Int. J. Contr., vol. 49, pp. 2045–2055, June 1989.                      1967.
+ [2] P. Peleties and R. DeCarlo, “Asymptotic stability of -switched sys-          [21] J. Malmborg, B. Bernhardsson, and K. J. Astrom, “A stabilizing switch-
+     tems using Lyapunov-like functions,” in Proc. American Control Conf.,             ing scheme for multi-controller systems,” in Proc. IFAC World Congr.,
+     Boston, MA, June 1991, pp. 1679–1684.                                             San Francisco, CA, July 1996.
+ [3] M. A. Wicks, P. Peleties, and R. A. DeCarlo, “Construction of piecewise      [22] S. Petersson and B. Lennartson, “Modeling, analysis, and synthesis of
+     Lyapunov functions for stabilizing switched systems,” in Proc. IEEE               hybrid systems,” in Preprints of the Reglermöte, Lulea, Sweden, June
+     Conf. Decision and Control, Lake Buena Vista, FL, Dec. 1994, pp.                  1996.
+     3492–3497.                                                                   [23] M. Johansson and A. Rantzer, “Computation of piecewise quadratic
+ [4] R. W. Brockett, “Hybrid models for motion control systems,” in Essays             Lyapunov functions for hybrid systems,” Dept. Automatic Control, Lund
+     in Control, H. L. Trentelman and J. C. Willems, Eds. Boston, MA:                  Institute of Technology, Tech Rep. TFRT-7549, June 1996.
+     Birkhäuser, 1993, pp. 29–53.                                                [24] M. C. Gemignani, Elementary Topology, 2nd ed. New York: Dover,
+ [5] P. J. Antsaklis, J. A. Stiver, and M. D. Lemmon, “Hybrid system                   1972.
+     modeling and autonomous control systems,” in Hybrid Systems, Lecture         [25] J. R. Munkres, Topology. Englewood Cliffs, NJ: Prentice-Hall, 1975.
+     Notes in Computer Science, vol. 736, R. L. Grossman, A. Nerode, A. P.        [26] M. F. Barnsley, Fractals Everywhere. Boston, MA: Academic, 1988.
+     Ravn, and H. Rischel, Eds. New York: Springer, 1993, pp. 366–392.            [27] E. R. Vrscay, “Iterated function systems: Theory, applications, and the
+ [6] M. S. Branicky, V. S. Borkar, and S. K. Mitter, “A unified framework              inverse problem,” in Fractal Geometry and Analysis, J. Bélair and S.
+     for hybrid control,” in Proc. IEEE Conf. Decision and Control, Lake               Dubuc, Eds. The Netherlands: Kluwer, 1991, pp. 405–468.
+     Buena Vista, FL, Dec. 1994, pp. 4228–4234.                                   [28] T. W. Colthurst, “Advanced IFS. IAP course,” Dept. Mathematics, MIT,
+ [7] A. Gollu and P. P. Varaiya, “Hybrid dynamical systems,” in Proc. IEEE             Cambridge, MA, Jan. 1993.
+     Conf. Decision and Control, Tampa, FL, Dec. 1989, pp. 2708–2712.             [29] J. Guckenheimer and P. Holmes, Nonlinear Oscillations, Dynamical Sys-
+ [8] R. L. Grossman, A. Nerode, A. P. Ravn, and H. Rischel, Eds. Hybrid                tems, and Bifurcations of Vector Fields, Applied Mathematical Sciences,
+     Systems, Lecture Notes in Computer Science, vol. 736. New York:                   vol. 42, 3rd ed. New York: Springer, 1990.
+     Springer, 1993.                                                              [30] M. Vidyasagar, Nonlinear Systems Analysis, 2nd ed. Englewood Cliffs,
+ [9] A. Nerode and W. Kohn, “Models for hybrid systems: Automata,                      NJ: Prentice-Hall, 1993.
+     topologies, stability,” in Hybrid Systems, Lecture Notes in Computer         [31] F. Morgan, Geometric Measure Theory. Boston, MA: Academic, 1988.
+     Science, vol. 736, R. L. Grossman, A. Nerode, A. P. Ravn, and H.             [32] Y. Lin, E. D. Sontag, and Y. Wang, “Recent results on Lyapunov-
+     Rischel, Eds. New York: Springer, 1993, pp. 317–356.                              theoretic techniques for nonlinear stability,” in Proc. American Control
+[10] L. Tavernini, “Differential automata and their discrete simulators,”              Conf., Baltimore, MD, June 1994.
+     Nonlinear Anal., Theory, Methods, and Appl., vol. 11, no. 6, pp.             [33] M. S. Branicky, “Stability of switched and hybrid systems,” Laboratory
+     665–683, 1987.                                                                    for Information and Decision Systems, Massachusetts Inst. Technol.,
+[11] D. D. Bainov and P. S. Simeonov, Systems with Impulse Effect. Chich-              Tech. Rep. LIDS-P-2214, Nov. 1993.
+     ester, U.K.: Ellis Horwood, 1989.                                            [34]        , “Stability of switched and hybrid systems,” in Proc. IEEE Conf.
+[12] M. S. Branicky, “Universal computation and other capabilities of hybrid           Decision and Control, Lake Buena Vista, FL, Dec. 1994, pp. 3498–3503.
+     and continuous dynamical systems,” Theoretical Computer Sci., vol.           [35] M. S. Branicky and S. E. Mattsson, “Simulation of hybrid systems,”
+     138, no. 1, pp. 67–100, 1995.                                                     in Hybrid Systems IV, Lecture Notes in Computer Science, vol. 1273,
+[13] R. W. Brockett, “Smooth dynamical systems which realize arithmetical              P. J. Antsaklis, W. Kohn, A. Nerode, and S. Sastry, Eds. New York:
+     and logical operations,” in Three Decades of Mathematical Systems                 Springer, 1997, pp. 31–56.
+     Theory, H. Nijmeijer and J. M. Schumacher, Eds. Berlin, Germany:
+     Springer, pp. 19–30, 1989.
+[14] M. S. Branicky, “Studies in hybrid systems: Modeling, analysis, and
+     control,” Sc.D. dissertation, Dept. of Electrical Engineering and Com-
+     puter Science, MIT, Cambridge, MA, June 1995.
+[15]        , “Analyzing continuous switching systems: Theory and exam-
+     ples,” in Proc. American Control Conf., Baltimore, MD, June 1994, pp.       Michael S. Branicky (S’92–M’95), for photograph and biography, see p. 45
+     3110–3114.                                                                  of the January 1998 issue of this TRANSACTIONS.
+

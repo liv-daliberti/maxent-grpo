@@ -1,0 +1,796 @@
+--- before/paper/main.tex
++++ after/paper/main.tex
+@@ -257,6 +257,8 @@
+  \qquad
+  p_\theta^+(c\mid x)=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\neq\bot].
+ \]
++The conditional distribution is defined only when $P_\theta^+(x)>0$;
++when $P_\theta^+(x)=0$, all three sampling metrics below are zero.
+ The first quantity measures correctness. The second describes the distribution
+ of verified behaviors conditional on being correct. We call concentration of
+ $p_\theta^+$ onto fewer keys \emph{mode collapse}, particularly when
+@@ -280,12 +282,20 @@
+ \texttt{pass@8} is two probability points, whereas $.02$ in
+ \texttt{distinct@8} is $.02$ expected verified keys.
+ 
+-Raw \texttt{distinct@}$K$ measures coverage. We assess absolute task
+-knowledge against an uninformed reference whenever the action representation
+-makes one canonical. If a finite action space has $N$ actions of which $m_x$
+-are valid, uniform independent sampling has
+-$\E[D_K\mid x]=m_x[1-(1-1/N)^K]$. We report this analytic reference where the
+-prompt exposes a fixed finite action space, together with the frozen model.
++For a fixed prompt, write $\mu_c(x)=\Pr[V(Y,s_x)=c]$. Independence gives
++\[
++ \texttt{pass@}K(x)=1-(1-P_\theta^+(x))^K,\qquad
++ \texttt{distinct@}K(x)=\sum_{c\in\mathcal C_x}[1-(1-\mu_c(x))^K].
++\]
++These identities apply before averaging over prompts; applying the nonlinear
++formula to an average success probability generally gives a different result.
++
++Raw \texttt{distinct@}$K$ measures sampled coverage, not the total number of
++positive-probability modes. For an uninformed reference, suppose a finite
++space has $N$ actions and $n_c$ actions map to valid key $c$. Uniform independent
++action sampling then gives $\sum_c[1-(1-n_c/N)^K]$ expected verified keys.
++The simpler expression $m_x[1-(1-1/N)^K]$ applies when the $m_x$ valid actions
++have distinct keys, as in our reported finite-action references.
+ Open-ended program and derivation spaces have no canonical nominal
+ ``uniform'' generator.
+ 
+@@ -314,8 +324,9 @@
+ 
+ A categorical reduction makes this feedback loop explicit. Let $p_c$ denote
+ the probability of correct mode $c$ and
+-$P=\sum_{c\in\mathcal C}p_c$ the total correct mass. Under gradient ascent on
+-expected binary reward, two correct modes $c$ and $d$ satisfy
++$P=\sum_{c\in\mathcal C}p_c$ the total correct mass. Under Euclidean gradient
++ascent in independently trained softmax logits on expected binary reward,
++two correct modes $c$ and $d$ satisfy
+ \[
+   \frac{d}{dt}\log\frac{p_c}{p_d}=(p_c-p_d)(1-P).
+ \]
+@@ -455,9 +466,11 @@
+   \label{eq:lm-verified-replay}
+ \end{equation}
+ Uniform sampling over keys prevents discovery frequency from determining replay
+-frequency. Its relationship to the evaluation metric is intentional. In the
+-categorical reduction, let $C=|\mathcal B_x|$, let $p(c)$ be the probability of
+-banked key $c$, and let $q_{\mathcal B}=\sum_{c\in\mathcal B_x}p(c)$. Then
++frequency. To explain its relationship to the evaluation metric, we first
++analyze an equal-weight categorical surrogate, without length normalization.
++A stored response's probability need not equal its key's total probability.
++For $C=|\mathcal B_x|$ banked keys, write $p(c)$ for their probabilities
++and $q_{\mathcal B}$ for their total mass. Then
+ \begin{equation}
+  -\frac1C\sum_{c\in\mathcal B_x}\log p(c)
+  =-\log q_{\mathcal B}+\log C+
+@@ -516,7 +529,11 @@
+ 
+ The primary reporting unit is a five-seed model--domain--level terminal block.
+ Complete blocks receive paired 95\% Student-\(t\) intervals; smaller admissible
+-intersections report descriptive means and exact \(n\), without intervals. We do not substitute
++intersections report descriptive means and exact \(n\), without intervals.
++We average prompts and evaluation draws within each training seed before
++pairing. These are approximate, unadjusted intervals for training-seed
++variation conditional on the frozen evaluation prompts and seeds, not
++simultaneous bounds across comparisons. We do not substitute
+ shallower checkpoints, impute final results, or pool models or levels.
+ \texttt{pass@8} and raw \texttt{distinct@8} are co-primary; adjusted breadth is
+ derived. Figure~\ref{fig:cross-scale-terminal-effects}'s within-seed, equal-weighted
+@@ -881,9 +898,11 @@
+ \end{equation}
+ For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
+ binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
+-on mixed groups. In either case $w(\ell)>0$ for
+-$\ell\in\{1,\ldots,G-1\}$; its value on all-equal groups is irrelevant because
+-the centered advantage is zero. We take explicit reference KL to be zero, as
++on mixed groups. We absorb the same fixed response-length normalizer in both
++variants; response-dependent row normalization is outside this reduction.
++In either case $0<w(\ell)<\infty$ for $\ell\in\{1,\ldots,G-1\}$.
++We define the entire update as zero on all-equal groups, without evaluating an
++undefined reciprocal standard deviation. We take explicit reference KL to be zero, as
+ in the experiments.
+ 
+ \begin{lemma}[A group baseline does not remove frequency amplification]
+@@ -928,7 +947,7 @@
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \label{lem:maxrl-mean}
+ Let MaxRL assign
+-$A_i^{\mathrm{MaxRL}}=Gr_i/M-1$ when $M>0$ and zero when $M=0$, as in
++$A_i^{\mathrm{MaxRL}}=GR_i/M-1$ when $M>0$ and zero when $M=0$, as in
+ Section~\ref{sec:maxrl-method}. At the on-policy point, its expected update is
+ \begin{equation}
+   \E[\widehat g_G^{\mathrm{MaxRL}}]
+@@ -971,6 +990,13 @@
+  \label{eq:maxrl-potential-finite-sum}
+ \end{equation}
+ In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
++For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
++mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
++$G-1$, not $G$: the implemented centered estimator drops the entire update
++on all-failure groups. Subtracting an unconditional score baseline even on
++those groups instead gives the order-$G$ estimator. This distinction concerns
++the exact finite-group expectation at the on-policy point; it does not assert
++unbiasedness of subsequent clipped or adaptive-optimizer updates.
+ 
+ \subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+ \label{app:theory-collapse}
+@@ -999,9 +1025,9 @@
+   \qquad
+   q_c(t)\longrightarrow0\quad(c\ne c^\star).
+ \]
+-Thus GRPO, Dr.GRPO, and binary MaxRL converge to a single correct execution mode for
+-generic initial conditions, even though every mode in $\mathcal C$ has exactly
+-the same reward.
++Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single
++correct execution mode for generic initial conditions, even though every mode
++in $\mathcal C$ has exactly the same reward.
+ \end{theorem}
+ 
+ \begin{proof}
+@@ -1037,13 +1063,17 @@
+   \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
+   \label{eq:grpo-replicator}
+ \end{equation}
+-The initially unique maximum remains the unique maximum, and every one of its
+-log-ratios increases. The Lyapunov quantity $\sum_cq_c^2$ is nondecreasing,
+-since its derivative is twice the variance of the coordinate values under
+-$q$. Every limit point of~\eqref{eq:grpo-replicator} is therefore uniform on
+-its positive support. Because $q_{c^\star}\ge1/m$ and its ratio to every other
+-coordinate stays strictly greater than one, no multi-coordinate uniform limit
+-is possible. The only limit point is the vertex $q_{c^\star}=1$.
++The initially unique maximum remains the unique maximum. For $c\ne c^\star$,
++set $\xi_c=q_c/q_{c^\star}$, so $\xi_c(0)<1$ and $\xi_c$ is nonincreasing.
++Since $q_{c^\star}\ge1/m$,
++\[
++ \frac{d\log\xi_c}{d\tau}
++ =-q_{c^\star}(1-\xi_c)
++ \le-\frac{1-\xi_c(0)}{m}.
++\]
++Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
++Normalization gives $q_{c^\star}=1/(1+\sum_{c\ne c^\star}\xi_c)\to1$,
++proving the claim directly.
+ \end{proof}
+ 
+ \begin{corollary}[Ties are nongeneric]
+@@ -1056,9 +1086,11 @@
+ and its single-surviving-mode limit described above.
+ \end{corollary}
+ 
+-Finite groups make this instability practically harsher: a mode absent from
+-a group has no score carrier, all-correct groups have zero task advantage, and
+-sampling noise can break exact ties. These facts are not needed for
++Finite groups also introduce sampling effects: a mode absent from
++a group has no sampled response of its own carrying a score term,
++all-correct groups have zero task advantage, and sampling noise can break exact
++ties. Softmax normalization and shared parameters can still change an
++unsampled mode's probability. These facts are not needed for
+ the theorem.
+ 
+ \subsection{How model parameterization changes collapse}
+@@ -1208,8 +1240,10 @@
+ bank: decreasing~\eqref{eq:verified-replay-loss} can raise total bank mass as
+ well as redistribute mass within the bank.
+ 
+-Absorb a fixed round-robin replay frequency and loss scale into an effective
+-dose $\rho>0$. The prompt-isolated categorical mean flow for any of the three fresh
++In an averaged continuous-time model, absorb a fixed round-robin replay
++frequency and loss scale into an effective dose $\rho>0$. This assumes a
++fixed eligible-bank set and constant relative weighting; it does not identify
++finite alternating updates with simultaneous gradient flow. The prompt-isolated categorical mean flow for any of the three fresh
+ binary-reward objectives above plus verified replay is
+ \begin{equation}
+   \dot z
+@@ -1242,9 +1276,10 @@
+   p_b(t)\ge \exp(-kC_T)>0.
+   \label{eq:replay-retention-bound}
+ \end{equation}
+-Thus, in this continuous-time categorical flow and exact arithmetic, no mode
+-in a recurrently replayed fixed bank reaches zero, even when the bank does not
+-cover every correct mode.
++Thus each banked probability is uniformly bounded away from zero for all
++$t\ge T$, including asymptotically, even when the bank does not cover every
++correct mode. This is stronger than finite-time positivity, which already
++follows from finite softmax logits without replay.
+ \end{theorem}
+ 
+ \begin{proof}
+@@ -1267,13 +1302,17 @@
+ \end{proof}
+ 
+ This is a qualitative positivity statement, not a useful numerical guarantee.
+-For the registered group size $G=16$, the replay coefficient and Dr.GRPO
+-per-rollout scale give $\rho\approx .10(15/256)=5.86\times10^{-3}$ even before
+-any prompt-level round-robin dilution. With $k=16$, the worst-case Dr.GRPO
++If a prompt receives fresh updates with frequency $\nu_x>0$ and replay with
++frequency $\mu_x>0$, normalizing time by its fresh-update frequency gives
++$\rho=\rho_{\rm raw}\mu_x/\nu_x$. Equal fresh and replay frequencies cancel;
++round-robin scheduling alone does not imply dilution of the relative dose.
++As an illustrative equal-frequency categorical calculation, the registered
++$G=16$ coefficient and per-rollout scale give
++$\rho=.10(15/256)=5.86\times10^{-3}$. With $k=16$, the worst-case Dr.GRPO
+ potential term alone permits a bound on the order of $\exp(-2560)$ (and
+ $R_{\mathcal B}(z(T))$ can only weaken it). The bound is therefore vacuous at
+ machine and experimental scales; it establishes only that an idealized
+-continuous-time, fixed-bank coordinate cannot reach exactly zero.
++continuous-time, fixed-bank coordinate cannot vanish asymptotically.
+ 
+ \paragraph{The retention bound also holds under smooth parameterization.}
+ The same argument applies to $\dot\theta=-\nabla_\theta F_{\mathcal B}(z(\theta))$:
+@@ -1322,14 +1361,19 @@
+    -\rho\log P-\Psi(P).
+ \]
+ For fixed $P$, its unique minimizer is $q=u$. Its derivative in $P$ is
+-$-\rho/P-c_G(P)<0$, so its unique limiting distribution is $P=1,q=u$,
++$-\rho/P-c_G(P)<0$, so its unique minimizing distribution on the closed
++simplex is $P=1,q=u$,
+ placing all limiting probability uniformly on the correct support and zero
+ mass on every incorrect category in the categorical limit.
+ 
+ For completeness, Theorem~\ref{thm:replay-retention} keeps every correct
+ coordinate away from zero. The decreasing potential gives
+-$\int_T^\infty\lVert\nabla F_{\mathcal C}\rVert_2^2dt<\infty$; bounded
+-softmax derivatives imply $\nabla F_{\mathcal C}\to0$. At any limiting
++$\int_T^\infty\lVert\nabla F_{\mathcal C}\rVert_2^2dt<\infty$.
++The finite-group $c_G$ is smooth on $[0,1]$; softmax derivatives and the
++cross-entropy gradient are bounded. Thus the Hessian of $F_{\mathcal C}$ and
++the velocity $\dot z=-\nabla F_{\mathcal C}$ are bounded, making
++$\nabla F_{\mathcal C}(z(t))$ uniformly continuous. Together with square
++integrability, this implies $\nabla F_{\mathcal C}\to0$. At any limiting
+ distribution the correct-coordinate stationarity equations are
+ \[
+   0=\rho(p_c-1/m)-c_G(P)p_c(1-P),
+@@ -1339,6 +1383,35 @@
+ $0=p_a(\rho+c_G(P)P)$ and therefore has $p_a=0$. The limiting distribution is
+ unique, proving convergence from every initialization covered by the corollary.
+ \end{proof}
++
++\paragraph{Positive replay weights and exemplar length.}
++Uniformity of the target is separate from protection against extinction.
++For fixed weights $w_b>0$ with $\sum_{b\in\mathcal B}w_b=1$, define
++$R_w=-\sum_b w_b\log p_b$ and use replay coefficient $\rho_w>0$.
++The same potential argument gives, for all $t\ge T$,
++\[
++ p_b(t)\ge\exp(-C_{T,w}/w_b),\qquad
++ C_{T,w}=R_w(z(T))+\frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
++\]
++If $\mathcal B=\mathcal C$, then
++$R_w=H(w)-\log P+\mathrm{KL}(w\|q)$, and the independent-logit limit is
++$P\to1$, $q\to w$. The preceding stationarity proof applies with $1/m$
++replaced by $w_c$: summing the correct-coordinate equations forces $P=1$,
++then each equation forces $p_c=w_c$.
++
++This distinction matters for the implemented mean-token exemplar loss.
++Even if each key were represented by exactly one categorical exemplar of
++fixed length $L_b$, its loss would be $A R_w$, where
++\[
++ A=\frac1k\sum_{b\in\mathcal B}\frac1{L_b},\qquad
++ w_b=\frac{L_b^{-1}}{\sum_{j\in\mathcal B}L_j^{-1}}.
++\]
++Its effective categorical replay coefficient would be $\rho_w=\rho_{\rm LM}A$.
++The full-coverage limit would therefore weight shorter exemplars more, and
++would be uniform only for equal lengths. For an actual language model,
++$\pi_\theta(e_b\mid x)$ is only one contribution to the total key probability.
++Equal averaging of per-token exemplar scores does not imply uniform learned
++key probabilities; the categorical uniformity corollary is not that claim.
+ 
+ The premise $\mathcal B=\mathcal C$ is not a description of the released
+ Python-factors experiments. Their prompts have 16--3,600 valid execution modes
+@@ -1347,19 +1420,83 @@
+ applies only to prompts whose entire correct support fits in the bank and has
+ actually been discovered; neither condition follows from replay.
+ 
++\begin{lemma}[Fixed-bank limits and deterministic finite steps]
++\label{lem:replay-finite-steps}
++Retain finite independent Euclidean logits, a nonempty fixed bank
++$\mathcal B\subseteq\mathcal C$, fixed positive normalized weights $w_b$,
++and $\rho_w>0$. Let $F=\rho_wR_w-\Psi(P)$, with
++$\Psi\in C^2([0,1])$ and $\Psi'=c_G\ge0$. Set
++\[
++ M_1=\sup_{[0,1]}|\Psi'|,\qquad
++ M_2=\sup_{[0,1]}|\Psi''|,\qquad
++ L=\frac{\rho_w}{2}+\frac{M_1}{2}+\frac{M_2}{8}.
++\]
++For constant $0<\eta<2/L$, deterministic updates
++$z_{n+1}=z_n-\eta\nabla F(z_n)$ preserve, for every $n\ge0$,
++\[
++ p_b(z_n)\ge \exp(-C_{0,w}/w_b),\qquad
++ C_{0,w}=R_w(z_0)+\frac{\Psi(1)-\Psi(P(z_0))}{\rho_w}.
++\]
++Moreover, $p(z_n)\to\bar w$, where $\bar w_b=w_b$ on the bank and
++$\bar w_a=0$ elsewhere. The same probability limit holds for the corresponding
++continuous mean flow. The logits need not converge: zero limiting probabilities require divergent logit differences relative to banked coordinates.
++\end{lemma}
++
++\begin{proof}
++For a logit direction $u$, let $U=u_a$ and $Y=\mathbf1[a\in\mathcal C]$
++under $a\sim p$. Differentiating along that direction gives
++\[
++ u^\top\nabla^2P\,u
++ =\mathbb E[(Y-P)(U-\mathbb EU)^2],\qquad
++ u^\top\nabla^2R_w\,u=\operatorname{Var}(U).
++\]
++Since $|Y-P|\le1$ and the coordinate range of $u$ is at most
++$\sqrt2\lVert u\rVert_2$, both Hessians have operator norm at most $1/2$.
++Also $\lVert\nabla P\rVert_2^2\le2P^2(1-P)^2\le1/8$.
++The chain rule therefore bounds $\lVert\nabla^2F\rVert_{\rm op}\le L$
++globally. The descent lemma yields
++\[
++ F(z_{n+1})\le F(z_n)
++ -\eta(1-L\eta/2)\lVert\nabla F(z_n)\rVert_2^2.
++\]
++Energy monotonicity gives the preceding replay-loss bound and hence the
++stated retention floor. Since $F\ge-\Psi(1)$, the squared gradients are
++summable and $\nabla F(z_n)\to0$. Its coordinate expression,
++\[
++ [\nabla F]_a=\rho_w(p_a-\bar w_a)
++ -c_G(P)p_a(\mathbf1[a\in\mathcal C]-P),
++\]
++extends continuously to the closed probability simplex. Every subsequential
++probability limit is therefore stationary. On an incorrect coordinate,
++stationarity gives $(\rho_w+c_G(P)P)p_a=0$, forcing all incorrect mass to
++zero and $P=1$. The correct-coordinate equations then give $p_a=\bar w_a$.
++Compactness and this unique limit prove convergence of the whole probability
++sequence. For the mean flow, bounded Hessian and velocity together with
++energy descent give vanishing gradient as in the preceding corollary;
++the same stationarity argument applies.
++\end{proof}
++
++For Dr.GRPO, $M_1=(G-1)/G$ and $M_2=0$. For the implemented finite-group
++MaxRL estimator, $M_1=G-1$ and $M_2=(G-1)(G-2)/2$, so one sufficient smoothness
++constant is $L=\rho_w/2+(G-1)(G+6)/16$. These bounds concern categorical logit
++steps, not the neural optimizer's learning rate. With an incomplete frozen
++bank, the categorical limit assigns zero mass even to correct modes outside
++the bank: fixed-bank retention is not a guarantee of discovering or preserving
++all correct modes. Changing banks and stochastic, clipped, or preconditioned
++updates require separate analysis.
++
+ \begin{remark}[Exact scope of the ReplayMaxRL guarantee]
+ The replay-component theorem is a conditional post-discovery retention result, not an end-to-end
+-discovery theorem. Without full coverage it protects every mode in
+-$\mathcal B$ but says nothing about unobserved modes in
+-$\mathcal C\setminus\mathcal B$; capacity 16 can also truncate the protected
+-support. The categorical proof treats each stored exemplar as its execution
++discovery theorem. Without full coverage the retention bound protects only
++$\mathcal B$; Lemma~\ref{lem:replay-finite-steps} further shows that a frozen
++incomplete bank can exclude unbanked correct modes in the categorical limit.
++Capacity 16 can therefore truncate the protected support. The categorical proof treats each stored exemplar as its execution
+ category and uses $\log p_b$, whereas the language-model implementation uses a
+ length-normalized teacher-forced exemplar score. The parameterized energy
+ argument above preserves the fixed-bank retention bound, but it does not
+ guarantee neural optimization reaches full coverage or uniformity. Cross-prompt
+ interference and stochastic finite steps remain outside the result and must
+-be tested empirically. These limitations motivate
+-the matched ReplayMaxRL factorial and ReplayDr.GRPO retention comparisons rather than a stronger neural-network claim.
++be tested empirically. These limits motivate the matched factorial comparisons and direct retention measurements.
+ \end{remark}
+ 
+ \section{Supporting Measurements and Direct Comparators}
+@@ -2378,6 +2515,18 @@
+ \subsection{MaxRL factorial per-domain results}
+ \label{app:maxrl-scale-extensions}
+ 
++For a common paired seed $j$ and endpoint $Y$, the factorial interaction is
++\[
++ I_j=(Y_j^{\rm ReplayMaxRL}-Y_j^{\rm MaxRL})
++     -(Y_j^{\rm ReplayDr.GRPO}-Y_j^{\rm Dr.GRPO}).
++\]
++A positive replay effect under each fresh objective need not give $I_j>0$.
++Here ``complementary'' means that replay adds value under both objectives;
++it does not assert a positive interaction. Negative interactions can coexist
++with those gains, including when a bounded endpoint approaches its ceiling.
++Interaction uncertainty must use these within-seed differences of differences,
++not differences between separately calculated confidence limits.
++
+ \begin{figure}[H]
+   \centering
+   \includegraphics[width=.98\linewidth]
+--- before/paper/mathai2026/main.tex
++++ after/paper/mathai2026/main.tex
+@@ -93,7 +93,7 @@
+ \sum_{c\in\mathcal B_x}\frac{\log\pi_\theta(e_c\mid x)}{|e_c|}.
+ \label{eq:lm-verified-replay}
+ \end{equation}
+-Equal weight per key keeps frequent successes from dominating replay. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields
++Equal averaging of per-token scores makes replay independent of discovery frequency. Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO yields
+ ReplayDr.GRPO \citep{liu2025understanding}. Appendix~\ref{app:algorithm} gives
+ the full update. Appendix~\ref{app:theory} proves categorical collapse and
+ replay retention (Theorems~\ref{thm:grpo-collapse} and~\ref{thm:replay-retention}).
+@@ -164,7 +164,7 @@
+ and breadth in four. The cross-domain averages are post-hoc summaries; paired intervals
+ are in Appendix~\ref{app:results-maxrl}. Improving success across sampling
+ budgets does not remove the value of revisiting earlier successes: fresh
+-learning and persistent memory remain complementary.
++learning still benefits from persistent memory.
+ 
+ \begin{figure}[!htbp]
+ \centering
+--- before/paper/mathai2026/appendix.tex
++++ after/paper/mathai2026/appendix.tex
+@@ -103,6 +103,8 @@
+  \qquad
+  p_\theta^+(c\mid x)=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\neq\bot].
+ \]
++The conditional distribution is defined only when $P_\theta^+(x)>0$;
++when $P_\theta^+(x)=0$, all three sampling metrics below are zero.
+ The first quantity measures correctness. The second describes the repertoire
+ of verified behaviors conditional on being correct. We call concentration of
+ $p_\theta^+$ onto fewer keys \emph{mode collapse}, particularly when
+@@ -126,12 +128,20 @@
+ \texttt{pass@8} is two probability points, whereas $.02$ in
+ \texttt{distinct@8} is $.02$ expected verified keys.
+ 
+-Raw \texttt{distinct@}$K$ measures coverage. We assess absolute task
+-knowledge against an uninformed reference whenever the action representation
+-makes one canonical. If a finite action space has $N$ actions of which $m_x$
+-are valid, uniform independent sampling has
+-$\E[D_K\mid x]=m_x[1-(1-1/N)^K]$. We report this analytic reference where the
+-prompt exposes a fixed finite action space, together with the frozen model.
++For a fixed prompt, write $\mu_c(x)=\Pr[V(Y,s_x)=c]$. Independence gives
++\[
++ \texttt{pass@}K(x)=1-(1-P_\theta^+(x))^K,\qquad
++ \texttt{distinct@}K(x)=\sum_{c\in\mathcal C_x}[1-(1-\mu_c(x))^K].
++\]
++These identities apply before averaging over prompts; applying the nonlinear
++formula to an average success probability generally gives a different result.
++
++Raw \texttt{distinct@}$K$ measures sampled coverage, not the total number of
++positive-probability modes. For an uninformed reference, suppose a finite
++space has $N$ actions and $n_c$ actions map to valid key $c$. Uniform independent
++action sampling then gives $\sum_c[1-(1-n_c/N)^K]$ expected verified keys.
++The simpler expression $m_x[1-(1-1/N)^K]$ applies when the $m_x$ valid actions
++have distinct keys, as in our reported finite-action references.
+ Open-ended program and derivation spaces have no canonical nominal
+ ``uniform'' generator.
+ 
+@@ -160,8 +170,9 @@
+ 
+ A categorical reduction makes this feedback loop explicit. Let $p_c$ denote
+ the probability of correct mode $c$ and
+-$P=\sum_{c\in\mathcal C}p_c$ the total correct mass. Under gradient ascent on
+-expected binary reward, two correct modes $c$ and $d$ satisfy
++$P=\sum_{c\in\mathcal C}p_c$ the total correct mass. Under Euclidean gradient
++ascent in independently trained softmax logits on expected binary reward,
++two correct modes $c$ and $d$ satisfy
+ \[
+   \frac{d}{dt}\log\frac{p_c}{p_d}=(p_c-p_d)(1-P).
+ \]
+@@ -182,9 +193,11 @@
+ For a prompt $x$, the bank $\mathcal B_x$ contains one verified exemplar per
+ discovered key. The replay term applies equal weight to those keys.
+ Uniform sampling over keys prevents discovery frequency from determining replay
+-frequency. Its relationship to the evaluation metric is intentional. In the
+-categorical reduction, let $C=|\mathcal B_x|$, let $p(c)$ be the probability of
+-banked key $c$, and let $q_{\mathcal B}=\sum_{c\in\mathcal B_x}p(c)$. Then
++frequency. To explain its relationship to the evaluation metric, we first
++analyze an equal-weight categorical surrogate, without length normalization.
++A stored response's probability need not equal its key's total probability.
++For $C=|\mathcal B_x|$ banked keys, write $p(c)$ for their probabilities
++and $q_{\mathcal B}$ for their total mass. Then
+ \begin{equation}
+  -\frac1C\sum_{c\in\mathcal B_x}\log p(c)
+  =-\log q_{\mathcal B}+\log C+
+@@ -301,6 +314,7 @@
+ registered domain seed plus \(d\). Paired methods share model revision,
+ initialization, prompt order, optimizer, decoding, checkpoints, placement, and
+ recovery rules.
++We average prompts and evaluation draws within each training seed before pairing. These are approximate, unadjusted intervals for training-seed variation conditional on the frozen evaluation prompts and seeds, not simultaneous bounds across comparisons.
+ 
+ The primary reporting unit is a five-seed model--domain--level terminal block. Only
+ complete blocks receive paired 95\% Student-\(t\) intervals; smaller admissible
+@@ -528,9 +542,11 @@
+ \end{equation}
+ For Dr.GRPO, $w(M)=1$ after absorbing the shared positive length scale. For
+ binary-reward GRPO, $w(M)$ is the reciprocal group reward standard deviation
+-on mixed groups. In either case $w(\ell)>0$ for
+-$\ell\in\{1,\ldots,G-1\}$; its value on all-equal groups is irrelevant because
+-the centered advantage is zero. We take explicit reference KL to be zero, as
++on mixed groups. We absorb the same fixed response-length normalizer in both
++variants; response-dependent row normalization is outside this reduction.
++In either case $0<w(\ell)<\infty$ for $\ell\in\{1,\ldots,G-1\}$.
++We define the entire update as zero on all-equal groups, without evaluating an
++undefined reciprocal standard deviation. We take explicit reference KL to be zero, as
+ in the experiments.
+ 
+ \begin{lemma}[A group baseline does not remove frequency amplification]
+@@ -575,7 +591,7 @@
+ \begin{lemma}[Binary MaxRL has the same correctness-gradient direction]
+ \label{lem:maxrl-mean}
+ Let MaxRL assign
+-$A_i^{\mathrm{MaxRL}}=Gr_i/M-1$ when $M>0$ and zero when $M=0$, as in
++$A_i^{\mathrm{MaxRL}}=GR_i/M-1$ when $M>0$ and zero when $M=0$, as in
+ Appendix~\ref{app:binary-maxrl}. At the on-policy point, its expected update is
+ \begin{equation}
+   \E[\widehat g_G^{\mathrm{MaxRL}}]
+@@ -618,6 +634,13 @@
+  \label{eq:maxrl-potential-finite-sum}
+ \end{equation}
+ In particular, $\Psi_{\mathrm{MaxRL}}(1)=\sum_{k=1}^{G-1}1/k$.
++For binary rewards, best@\(k\) equals pass@\(k\), so this is a harmonic
++mixture of sampling objectives for $k=1,\ldots,G-1$. The upper limit is
++$G-1$, not $G$: the implemented centered estimator drops the entire update
++on all-failure groups. Subtracting an unconditional score baseline even on
++those groups instead gives the order-$G$ estimator. This distinction concerns
++the exact finite-group expectation at the on-policy point; it does not assert
++unbiasedness of subsequent clipped or adaptive-optimizer updates.
+ 
+ \subsection{Winner-take-all collapse under GRPO, Dr.GRPO, and MaxRL}
+ \label{app:theory-collapse}
+@@ -646,9 +669,9 @@
+   \qquad
+   q_c(t)\longrightarrow0\quad(c\ne c^\star).
+ \]
+-Thus GRPO, Dr.GRPO, and binary MaxRL converge to a single correct execution mode for
+-generic initial conditions, even though every mode in $\mathcal C$ has exactly
+-the same reward.
++Thus these GRPO, Dr.GRPO, and binary MaxRL mean flows converge to a single
++correct execution mode for generic initial conditions, even though every mode
++in $\mathcal C$ has exactly the same reward.
+ \end{theorem}
+ 
+ \begin{proof}
+@@ -684,13 +707,17 @@
+   \frac{d}{d\tau}\log\frac{q_c}{q_d}=q_c-q_d.
+   \label{eq:grpo-replicator}
+ \end{equation}
+-The initially unique maximum remains the unique maximum, and every one of its
+-log-ratios increases. The Lyapunov quantity $\sum_cq_c^2$ is nondecreasing,
+-since its derivative is twice the variance of the coordinate values under
+-$q$. Every limit point of~\eqref{eq:grpo-replicator} is therefore uniform on
+-its positive support. Because $q_{c^\star}\ge1/m$ and its ratio to every other
+-coordinate stays strictly greater than one, no multi-coordinate uniform limit
+-is possible. The only limit point is the vertex $q_{c^\star}=1$.
++The initially unique maximum remains the unique maximum. For $c\ne c^\star$,
++set $\xi_c=q_c/q_{c^\star}$, so $\xi_c(0)<1$ and $\xi_c$ is nonincreasing.
++Since $q_{c^\star}\ge1/m$,
++\[
++ \frac{d\log\xi_c}{d\tau}
++ =-q_{c^\star}(1-\xi_c)
++ \le-\frac{1-\xi_c(0)}{m}.
++\]
++Hence $\xi_c(\tau)\le\xi_c(0)\exp[-(1-\xi_c(0))\tau/m]\to0$.
++Normalization gives $q_{c^\star}=1/(1+\sum_{c\ne c^\star}\xi_c)\to1$,
++proving the claim directly.
+ \end{proof}
+ 
+ \begin{corollary}[Ties are nongeneric]
+@@ -703,9 +730,11 @@
+ and its single-surviving-mode limit described above.
+ \end{corollary}
+ 
+-Finite groups make this instability practically harsher: a mode absent from
+-a group has no score carrier, all-correct groups have zero task advantage, and
+-sampling noise can break exact ties. These facts are not needed for
++Finite groups also introduce sampling effects: a mode absent from
++a group has no sampled response of its own carrying a score term,
++all-correct groups have zero task advantage, and sampling noise can break exact
++ties. Softmax normalization and shared parameters can still change an
++unsampled mode's probability. These facts are not needed for
+ the theorem.
+ 
+ \subsection{How model parameterization changes collapse}
+@@ -855,8 +884,10 @@
+ bank: decreasing~\eqref{eq:verified-replay-loss} can raise total bank mass as
+ well as redistribute mass within the bank.
+ 
+-Absorb a fixed round-robin replay frequency and loss scale into an effective
+-dose $\rho>0$. The prompt-isolated categorical mean flow for any of the three fresh
++In an averaged continuous-time model, absorb a fixed round-robin replay
++frequency and loss scale into an effective dose $\rho>0$. This assumes a
++fixed eligible-bank set and constant relative weighting; it does not identify
++finite alternating updates with simultaneous gradient flow. The prompt-isolated categorical mean flow for any of the three fresh
+ binary-reward objectives above plus verified replay is
+ \begin{equation}
+   \dot z
+@@ -889,9 +920,10 @@
+   p_b(t)\ge \exp(-kC_T)>0.
+   \label{eq:replay-retention-bound}
+ \end{equation}
+-Thus, in this continuous-time categorical flow and exact arithmetic, no mode
+-in a recurrently replayed fixed bank reaches zero, even when the bank does not
+-cover every correct mode.
++Thus each banked probability is uniformly bounded away from zero for all
++$t\ge T$, including asymptotically, even when the bank does not cover every
++correct mode. This is stronger than finite-time positivity, which already
++follows from finite softmax logits without replay.
+ \end{theorem}
+ 
+ \begin{proof}
+@@ -914,13 +946,17 @@
+ \end{proof}
+ 
+ This is a qualitative positivity statement, not a useful numerical guarantee.
+-For the registered group size $G=16$, the replay coefficient and Dr.GRPO
+-per-rollout scale give $\rho\approx .10(15/256)=5.86\times10^{-3}$ even before
+-any prompt-level round-robin dilution. With $k=16$, the worst-case Dr.GRPO
++If a prompt receives fresh updates with frequency $\nu_x>0$ and replay with
++frequency $\mu_x>0$, normalizing time by its fresh-update frequency gives
++$\rho=\rho_{\rm raw}\mu_x/\nu_x$. Equal fresh and replay frequencies cancel;
++round-robin scheduling alone does not imply dilution of the relative dose.
++As an illustrative equal-frequency categorical calculation, the registered
++$G=16$ coefficient and per-rollout scale give
++$\rho=.10(15/256)=5.86\times10^{-3}$. With $k=16$, the worst-case Dr.GRPO
+ potential term alone permits a bound on the order of $\exp(-2560)$ (and
+ $R_{\mathcal B}(z(T))$ can only weaken it). The bound is therefore vacuous at
+ machine and experimental scales; it establishes only that an idealized
+-continuous-time, fixed-bank coordinate cannot reach exactly zero.
++continuous-time, fixed-bank coordinate cannot vanish asymptotically.
+ 
+ \paragraph{The retention bound also holds under smooth parameterization.}
+ The same argument applies to $\dot\theta=-\nabla_\theta F_{\mathcal B}(z(\theta))$:
+@@ -969,14 +1005,19 @@
+    -\rho\log P-\Psi(P).
+ \]
+ For fixed $P$, its unique minimizer is $q=u$. Its derivative in $P$ is
+-$-\rho/P-c_G(P)<0$, so its unique limiting distribution is $P=1,q=u$,
++$-\rho/P-c_G(P)<0$, so its unique minimizing distribution on the closed
++simplex is $P=1,q=u$,
+ placing all limiting probability uniformly on the correct support and zero
+ mass on every incorrect category in the categorical limit.
+ 
+ For completeness, Theorem~\ref{thm:replay-retention} keeps every correct
+ coordinate away from zero. The decreasing potential gives
+-$\int_T^\infty\lVert\nabla F_{\mathcal C}\rVert_2^2dt<\infty$; bounded
+-softmax derivatives imply $\nabla F_{\mathcal C}\to0$. At any limiting
++$\int_T^\infty\lVert\nabla F_{\mathcal C}\rVert_2^2dt<\infty$.
++The finite-group $c_G$ is smooth on $[0,1]$; softmax derivatives and the
++cross-entropy gradient are bounded. Thus the Hessian of $F_{\mathcal C}$ and
++the velocity $\dot z=-\nabla F_{\mathcal C}$ are bounded, making
++$\nabla F_{\mathcal C}(z(t))$ uniformly continuous. Together with square
++integrability, this implies $\nabla F_{\mathcal C}\to0$. At any limiting
+ distribution the correct-coordinate stationarity equations are
+ \[
+   0=\rho(p_c-1/m)-c_G(P)p_c(1-P),
+@@ -986,6 +1027,35 @@
+ $0=p_a(\rho+c_G(P)P)$ and therefore has $p_a=0$. The limiting distribution is
+ unique, proving convergence from every initialization covered by the corollary.
+ \end{proof}
++
++\paragraph{Positive replay weights and exemplar length.}
++Uniformity of the target is separate from protection against extinction.
++For fixed weights $w_b>0$ with $\sum_{b\in\mathcal B}w_b=1$, define
++$R_w=-\sum_b w_b\log p_b$ and use replay coefficient $\rho_w>0$.
++The same potential argument gives, for all $t\ge T$,
++\[
++ p_b(t)\ge\exp(-C_{T,w}/w_b),\qquad
++ C_{T,w}=R_w(z(T))+\frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
++\]
++If $\mathcal B=\mathcal C$, then
++$R_w=H(w)-\log P+\mathrm{KL}(w\|q)$, and the independent-logit limit is
++$P\to1$, $q\to w$. The preceding stationarity proof applies with $1/m$
++replaced by $w_c$: summing the correct-coordinate equations forces $P=1$,
++then each equation forces $p_c=w_c$.
++
++This distinction matters for the implemented mean-token exemplar loss.
++Even if each key were represented by exactly one categorical exemplar of
++fixed length $L_b$, its loss would be $A R_w$, where
++\[
++ A=\frac1k\sum_{b\in\mathcal B}\frac1{L_b},\qquad
++ w_b=\frac{L_b^{-1}}{\sum_{j\in\mathcal B}L_j^{-1}}.
++\]
++Its effective categorical replay coefficient would be $\rho_w=\rho_{\rm LM}A$.
++The full-coverage limit would therefore weight shorter exemplars more, and
++would be uniform only for equal lengths. For an actual language model,
++$\pi_\theta(e_b\mid x)$ is only one contribution to the total key probability.
++Equal averaging of per-token exemplar scores does not imply uniform learned
++key probabilities; the categorical uniformity corollary is not that claim.
+ 
+ The premise $\mathcal B=\mathcal C$ is not a description of the released
+ Python-factors experiments. Their prompts have 16--3,600 valid execution modes
+@@ -994,19 +1064,83 @@
+ applies only to prompts whose entire correct support fits in the bank and has
+ actually been discovered; neither condition follows from replay.
+ 
++\begin{lemma}[Fixed-bank limits and deterministic finite steps]
++\label{lem:replay-finite-steps}
++Retain finite independent Euclidean logits, a nonempty fixed bank
++$\mathcal B\subseteq\mathcal C$, fixed positive normalized weights $w_b$,
++and $\rho_w>0$. Let $F=\rho_wR_w-\Psi(P)$, with
++$\Psi\in C^2([0,1])$ and $\Psi'=c_G\ge0$. Set
++\[
++ M_1=\sup_{[0,1]}|\Psi'|,\qquad
++ M_2=\sup_{[0,1]}|\Psi''|,\qquad
++ L=\frac{\rho_w}{2}+\frac{M_1}{2}+\frac{M_2}{8}.
++\]
++For constant $0<\eta<2/L$, deterministic updates
++$z_{n+1}=z_n-\eta\nabla F(z_n)$ preserve, for every $n\ge0$,
++\[
++ p_b(z_n)\ge \exp(-C_{0,w}/w_b),\qquad
++ C_{0,w}=R_w(z_0)+\frac{\Psi(1)-\Psi(P(z_0))}{\rho_w}.
++\]
++Moreover, $p(z_n)\to\bar w$, where $\bar w_b=w_b$ on the bank and
++$\bar w_a=0$ elsewhere. The same probability limit holds for the corresponding
++continuous mean flow. The logits need not converge: zero limiting probabilities require divergent logit differences relative to banked coordinates.
++\end{lemma}
++
++\begin{proof}
++For a logit direction $u$, let $U=u_a$ and $Y=\mathbf1[a\in\mathcal C]$
++under $a\sim p$. Differentiating along that direction gives
++\[
++ u^\top\nabla^2P\,u
++ =\mathbb E[(Y-P)(U-\mathbb EU)^2],\qquad
++ u^\top\nabla^2R_w\,u=\operatorname{Var}(U).
++\]
++Since $|Y-P|\le1$ and the coordinate range of $u$ is at most
++$\sqrt2\lVert u\rVert_2$, both Hessians have operator norm at most $1/2$.
++Also $\lVert\nabla P\rVert_2^2\le2P^2(1-P)^2\le1/8$.
++The chain rule therefore bounds $\lVert\nabla^2F\rVert_{\rm op}\le L$
++globally. The descent lemma yields
++\[
++ F(z_{n+1})\le F(z_n)
++ -\eta(1-L\eta/2)\lVert\nabla F(z_n)\rVert_2^2.
++\]
++Energy monotonicity gives the preceding replay-loss bound and hence the
++stated retention floor. Since $F\ge-\Psi(1)$, the squared gradients are
++summable and $\nabla F(z_n)\to0$. Its coordinate expression,
++\[
++ [\nabla F]_a=\rho_w(p_a-\bar w_a)
++ -c_G(P)p_a(\mathbf1[a\in\mathcal C]-P),
++\]
++extends continuously to the closed probability simplex. Every subsequential
++probability limit is therefore stationary. On an incorrect coordinate,
++stationarity gives $(\rho_w+c_G(P)P)p_a=0$, forcing all incorrect mass to
++zero and $P=1$. The correct-coordinate equations then give $p_a=\bar w_a$.
++Compactness and this unique limit prove convergence of the whole probability
++sequence. For the mean flow, bounded Hessian and velocity together with
++energy descent give vanishing gradient as in the preceding corollary;
++the same stationarity argument applies.
++\end{proof}
++
++For Dr.GRPO, $M_1=(G-1)/G$ and $M_2=0$. For the implemented finite-group
++MaxRL estimator, $M_1=G-1$ and $M_2=(G-1)(G-2)/2$, so one sufficient smoothness
++constant is $L=\rho_w/2+(G-1)(G+6)/16$. These bounds concern categorical logit
++steps, not the neural optimizer's learning rate. With an incomplete frozen
++bank, the categorical limit assigns zero mass even to correct modes outside
++the bank: fixed-bank retention is not a guarantee of discovering or preserving
++all correct modes. Changing banks and stochastic, clipped, or preconditioned
++updates require separate analysis.
++
+ \begin{remark}[Exact scope of the ReplayMaxRL guarantee]
+ The replay-component theorem is a conditional post-discovery retention result, not an end-to-end
+-discovery theorem. Without full coverage it protects every mode in
+-$\mathcal B$ but says nothing about unobserved modes in
+-$\mathcal C\setminus\mathcal B$; capacity 16 can also truncate the protected
+-support. The categorical proof treats each stored exemplar as its execution
++discovery theorem. Without full coverage the retention bound protects only
++$\mathcal B$; Lemma~\ref{lem:replay-finite-steps} further shows that a frozen
++incomplete bank can exclude unbanked correct modes in the categorical limit.
++Capacity 16 can therefore truncate the protected support. The categorical proof treats each stored exemplar as its execution
+ category and uses $\log p_b$, whereas the language-model implementation uses a
+ length-normalized teacher-forced exemplar score. The parameterized energy
+ argument above preserves the fixed-bank retention bound, but it does not
+ guarantee neural optimization reaches full coverage or uniformity. Cross-prompt
+ interference and stochastic finite steps remain outside the result and must
+-be tested empirically. These limitations motivate
+-the matched ReplayMaxRL factorial and ReplayDr.GRPO retention comparisons rather than a stronger neural-network claim.
++be tested empirically. These limits motivate the matched factorial comparisons and direct retention measurements.
+ \end{remark}
+ 
+ \section{Supporting Measurements and Direct Comparators}
+@@ -1869,7 +2003,7 @@
+ Mixed groups assign failures advantage $-1$ and increase the weight of each
+ success when successes are scarce. All-correct and all-failure groups have
+ zero task advantage. This is the binary special case of ArgMaxRL and
+-optimizes best@\(k\) across sampling budgets up to $G$
++optimizes a harmonic mixture of best@\(k\) for $k=1,\ldots,G-1$
+ \citep{tajwar2026maxrl}. It is applied only to fresh on-policy responses;
+ replay exemplars enter through the separate verified-likelihood loss.
+ 
+@@ -2047,6 +2181,18 @@
+ \subsection{MaxRL factorial per-domain results}
+ \label{app:maxrl-scale-extensions}
+ 
++For a common paired seed $j$ and endpoint $Y$, the factorial interaction is
++\[
++ I_j=(Y_j^{\rm ReplayMaxRL}-Y_j^{\rm MaxRL})
++     -(Y_j^{\rm ReplayDr.GRPO}-Y_j^{\rm Dr.GRPO}).
++\]
++A positive replay effect under each fresh objective need not give $I_j>0$.
++Here ``complementary'' means that replay adds value under both objectives;
++it does not assert a positive interaction. Negative interactions can coexist
++with those gains, including when a bounded endpoint approaches its ceiling.
++Interaction uncertainty must use these within-seed differences of differences,
++not differences between separately calculated confidence limits.
++
+ \begin{figure}[H]
+   \centering
+   \includegraphics[width=.98\linewidth]

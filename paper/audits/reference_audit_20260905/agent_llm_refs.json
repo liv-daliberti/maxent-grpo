@@ -1,0 +1,672 @@
+[
+  {
+    "key": "shao2024deepseekmath",
+    "exists": true,
+    "status": "usage_correction_needed",
+    "source_urls": [
+      "https://arxiv.org/abs/2402.03300",
+      "https://arxiv.org/html/2402.03300v3"
+    ],
+    "evidence": {
+      "inventory_index": 29,
+      "primary_source_findings": "Title, all 11 authors,2024 date and arXiv 2402.03300 match. Fulltext§4.2 explicitly trains an initial learned reward model from DeepSeekMath-Base 7B;§4.1 introduces GRPO.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 136,
+        "assessment": "citation_mismatch",
+        "detail": "Supports GRPO attribution, but its learned reward model does not directly support executable-correctness RLVR in this sentence."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 22,
+        "assessment": "citation_mismatch",
+        "detail": "Supports GRPO attribution, but its learned reward model does not directly support executable-correctness RLVR in this sentence."
+      }
+    ],
+    "recommended_changes": [
+      "Use: Reinforcement learning with verifiable rewards (RLVR) trains from rule-based correctness feedback \\citep{guo2025deepseekr1}.",
+      "Keep \\citep{shao2024deepseekmath} immediately after the introduction or definition of GRPO elsewhere."
+    ]
+  },
+  {
+    "key": "guo2025deepseekr1",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://www.nature.com/articles/s41586-025-09422-z",
+      "https://pubmed.ncbi.nlm.nih.gov/40962978/",
+      "https://arxiv.org/abs/2501.12948"
+    ],
+    "evidence": {
+      "inventory_index": 30,
+      "primary_source_findings": "Nature and PubMed confirm title, Guo-led author order,2025,645(8081):633–638 and DOI. Methods/Reward design describes rule-based accuracy checks, code testcases and separate format rewards; general-data training also uses model-based rewards.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review.",
+      "publication_vs_preprint_authorship": "The Nature version starts with Daya Guo, not the corporate DeepSeek-AI name. Existing first 10 authors+others match Nature. The arXiv metadata starts with DeepSeek-AI and has a differently worded title; retaining its eprint as a related preprint is conventional."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 136,
+        "assessment": "supported",
+        "detail": "Supports rule-based reasoning-task correctness feedback; the citation should not imply every DeepSeek-R1 reward is binary or execution-only."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 22,
+        "assessment": "supported",
+        "detail": "Supports rule-based reasoning-task correctness feedback; the citation should not imply every DeepSeek-R1 reward is binary or execution-only."
+      }
+    ],
+    "recommended_changes": [
+      "Retain the present Nature authors, title, year, volume, issue, pages and DOI. Do not replace the journal author field with the arXiv corporate author.",
+      "Optional precision in the following sentence: replace 'a conventional verifier' with 'an outcome-only correctness verifier'."
+    ]
+  },
+  {
+    "key": "hendrycks2021math",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://datasets-benchmarks-proceedings.neurips.cc/paper_files/paper/2021/hash/be83ab3ecd0db773eb2dc1b0a17836a1-Abstract-round2.html",
+      "https://arxiv.org/abs/2103.03874"
+    ],
+    "evidence": {
+      "inventory_index": 31,
+      "primary_source_findings": "All8authors, title,2021 and arXiv 2103.03874 match. Official NeurIPS Datasets and Benchmarks proceedings confirm the claimed track/venue.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "cobbe2021training",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2110.14168",
+      "https://arxiv.org/html/2110.14168"
+    ],
+    "evidence": {
+      "inventory_index": 32,
+      "primary_source_findings": "All12authors, title,2021 and arXiv 2110.14168 match. Fulltext describes sampling candidate math solutions and choosing the verifier-ranked best; its test-time verifier section supports selection from proposals.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 144,
+        "assessment": "supported_background_with_inference_boundary",
+        "detail": "The source demonstrates verifier-ranked selection over sampled candidates. It does not itself establish this manuscript's RL-induced verified-mode collapse mechanism; that link is the authors' inference."
+      }
+    ],
+    "recommended_changes": [
+      "Optional clarity: place the citation directly after verifier-guided selection/best-of-K, then state the proposal-support limitation as the manuscript's argument. No metadata correction required."
+    ]
+  },
+  {
+    "key": "lewkowycz2022solving",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://proceedings.neurips.cc/paper_files/paper/2022/hash/18abbeef8cfe9203fdf9053c9c4fe191-Abstract.html",
+      "https://arxiv.org/abs/2206.14858"
+    ],
+    "evidence": {
+      "inventory_index": 33,
+      "primary_source_findings": "All14authors, title,2022 and arXiv 2206.14858 match; official proceedings metadata confirms NeurIPS 35:3843–3857.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "lightman2023lets",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://iclr.cc/virtual/2024/poster/17549",
+      "https://arxiv.org/abs/2305.20050",
+      "https://arxiv.org/html/2305.20050"
+    ],
+    "evidence": {
+      "inventory_index": 34,
+      "primary_source_findings": "Official ICLR 2024 poster confirms title and all10listed authors. The preprint is arXiv 2305.20050(2023). Fulltext§2 and Fig.3 evaluate reward models through best-of-N selection from sampled solutions.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review.",
+      "metadata_variant": "ArXiv machine-readable names use Yura Burda/Harri Edwards; the official ICLR 2024 page uses Yuri Burda/Harrison Edwards, matching the cited publication entry. These are source-name variants, not evidence of nonexistent authors."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 144,
+        "assessment": "supported_background_with_inference_boundary",
+        "detail": "The source demonstrates verifier-ranked selection over sampled candidates. It does not itself establish this manuscript's RL-induced verified-mode collapse mechanism; that link is the authors' inference."
+      }
+    ],
+    "recommended_changes": [
+      "Optional clarity: place the citation directly after verifier-guided selection/best-of-K, then state the proposal-support limitation as the manuscript's argument. No metadata correction required."
+    ]
+  },
+  {
+    "key": "le2022coderl",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://proceedings.neurips.cc/paper_files/paper/2022/hash/8636419dea1aa9fbd25fc4248e702da4-Abstract-Conference.html",
+      "https://arxiv.org/abs/2207.01780"
+    ],
+    "evidence": {
+      "inventory_index": 35,
+      "primary_source_findings": "Title, all 5 authors and arXiv 2207.01780 match; official proceedings confirm NeurIPS 35(2022):21314–21328. Steven C.H.Hoi is an accepted abbreviation of the proceedings name Steven Chu Hong Hoi.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "liu2025understanding",
+    "exists": true,
+    "status": "usage_correction_needed",
+    "source_urls": [
+      "https://arxiv.org/abs/2503.20783",
+      "https://arxiv.org/html/2503.20783v2",
+      "https://colmweb.org/2025/AcceptedPapers.html"
+    ],
+    "evidence": {
+      "inventory_index": 36,
+      "primary_source_findings": "All8authors, title,2025 and arXiv 2503.20783 match; official COLM 2025 accepted list confirms venue. Latest fulltext§3.1–3.2 removes length/std normalization and names Dr.GRPO; it does not introduce the bank-replay variant or establish verified-mode collapse.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 140,
+        "assessment": "not_direct_support_for_claim",
+        "detail": "The paper analyzes GRPO optimization/length bias and Dr.GRPO, not loss of support over verified output modes while accuracy improves."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 97,
+        "assessment": "misleading_attribution",
+        "detail": "Citation placement after ReplayDr.GRPO can attribute the manuscript's replay variant to Liu et al.; the source introduces only Dr.GRPO."
+      }
+    ],
+    "recommended_changes": [
+      "Workshop replacement: Replacing MaxRL with the group-centered binary-reward baseline Dr.GRPO \\citep{liu2025understanding} gives our ReplayDr.GRPO variant.",
+      "Remove liu2025understanding from the introduction's mode-support-collapse citation cluster; retain the relevant diversity references after their own audit.",
+      "In the full manuscript, attach \\citep{liu2025understanding} directly to Dr.GRPO when first defining that baseline."
+    ]
+  },
+  {
+    "key": "wang2023selfconsistency",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2203.11171",
+      "https://openreview.net/forum?id=1PL1NIMMrw",
+      "https://iclr.cc/media/iclr-2023/Slides/11718.pdf"
+    ],
+    "evidence": {
+      "inventory_index": 37,
+      "primary_source_findings": "Title, author identities and arXiv 2203.11171 match; official ICLR 2023 slides confirm venue/year.2022 is the preprint year, not an error in the2023 proceedings entry.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review.",
+      "metadata_variant": "The arXiv record shortens Quoc V.Le/Ed H.Chi to Quoc Le/Ed Chi; identities and order match. Existing publication-style initials are acceptable."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "lin2025cppo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2503.22342",
+      "https://proceedings.neurips.cc/paper_files/paper/2025/hash/57ec371599f3d4123c9b054ffa3ef0ca-Abstract-Conference.html"
+    ],
+    "evidence": {
+      "inventory_index": 38,
+      "primary_source_findings": "Title, all 4 authors,2025 and arXiv 2503.22342 match. Official NeurIPS 2025 proceedings verify acceptance and volume38; no invented venue.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": [
+      "Optional bibliographic completion: add volume38 and the official proceedings URL. The existing NeurIPS 2025venue is verified."
+    ]
+  },
+  {
+    "key": "chen2025seedgrpo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2505.12346"
+    ],
+    "evidence": {
+      "inventory_index": 39,
+      "primary_source_findings": "ArXiv2505.12346 confirms exact title, all 4 authors,2025 and cs.AI. The entry accurately labels it a preprint.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "farquhar2024detecting",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://www.nature.com/articles/s41586-024-07421-0",
+      "https://pmc.ncbi.nlm.nih.gov/articles/PMC11186750/"
+    ],
+    "evidence": {
+      "inventory_index": 40,
+      "primary_source_findings": "Nature/PMC confirm title, all 4 authors,2024,630(8017):625–630 and DOI. Fulltext/Methods clusters answers using bidirectional entailment before estimating semantic uncertainty; this supports the cited contrast with execution-defined keys.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 218,
+        "assessment": "supported",
+        "detail": "The source infers semantic equivalence using entailment-based clustering; the sentence accurately contrasts inferred meaning classes with executable canonical keys."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 480,
+        "assessment": "supported",
+        "detail": "The source infers semantic equivalence using entailment-based clustering; the sentence accurately contrasts inferred meaning classes with executable canonical keys."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "wen2024etpo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2402.06700"
+    ],
+    "evidence": {
+      "inventory_index": 41,
+      "primary_source_findings": "ArXiv2402.06700 confirms exact title, all 6 authors,2024 and cs.LG. Current entry accurately cites the preprint.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "infogrpo",
+    "exists": true,
+    "status": "exists_metadata_partially_verified",
+    "source_urls": [
+      "https://openreview.net/forum?id=d5qElNtXS5",
+      "https://openreview.net/pdf/6644505d465f9b227d4c4cea1e8a6a67e229dab0.pdf",
+      "https://openreview.net/pdf/78f1708912ae8b04a1bd4f1b7169a1e6350d8edf.pdf"
+    ],
+    "evidence": {
+      "inventory_index": 42,
+      "primary_source_findings": "Primary OpenReview indexed PDF text exposes the exact title, Anonymous authors, and ICLR 2026-under-review header. Direct forum/PDF loading hits a browser challenge and public API returns403; this is access-limited metadata, not evidence of nonexistence.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [
+      "Exact forum metadata, current publication decision/deanonymization and the2025posting date could not be independently verified because direct OpenReview access was blocked. Matching anonymous primary PDF text confirms existence and title, but not the full present record."
+    ],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": [
+      "Do not label the reference nonexistent. Keep it explicitly as an anonymous OpenReview submission/preprint unless a verified current record supports named authors or publication status. It is uncited and need not be retained in a minimal bibliography."
+    ]
+  },
+  {
+    "key": "oord2018cpc",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/1807.03748"
+    ],
+    "evidence": {
+      "inventory_index": 43,
+      "primary_source_findings": "ArXiv1807.03748 confirms title, threeauthor identities,2018 firstsubmission and cs.LG. The revision is2019, which does not invalidate the original2018preprint year.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "dpo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://proceedings.neurips.cc/paper_files/paper/2023/hash/a85b405ed65c6477a4fe8302b5e06ce7-Abstract-Conference.html",
+      "https://proceedings.neurips.cc/paper_files/paper/2023/file/a85b405ed65c6477a4fe8302b5e06ce7-Paper-Conference.pdf",
+      "https://arxiv.org/abs/2305.18290"
+    ],
+    "evidence": {
+      "inventory_index": 60,
+      "primary_source_findings": "Title, sixauthors, arXiv 2305.18290 and NeurIPS 36(2023) verified. Current author order matches arXiv and the camera-ready PDF; the publisher HTML swaps Manning/Ermon, so HTML alone should not force a correction.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "simpo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://proceedings.neurips.cc/paper_files/paper/2024/hash/e099c1c9699814af0be873a175361713-Abstract-Conference.html",
+      "https://arxiv.org/abs/2405.14734"
+    ],
+    "evidence": {
+      "inventory_index": 61,
+      "primary_source_findings": "Title, all 3 authors,2024, arXiv 2405.14734 and official NeurIPS 37 venue match.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "orpo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://aclanthology.org/2024.emnlp-main.626/",
+      "https://aclanthology.org/2024.emnlp-main.626.bib",
+      "https://arxiv.org/abs/2403.07691"
+    ],
+    "evidence": {
+      "inventory_index": 62,
+      "primary_source_findings": "Official ACL BibTeX confirms exact title, threeauthors, EMNLP 2024, Miami,11170–11189; arXiv 2403.07691 maps to the same work.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "kto",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://proceedings.mlr.press/v235/ethayarajh24a.html",
+      "https://arxiv.org/abs/2402.01306"
+    ],
+    "evidence": {
+      "inventory_index": 63,
+      "primary_source_findings": "PMLR confirms all 5 authors, title, ICML 2024, volume235 and12634–12651. ArXiv2402.01306 prefixes the title with KTO; the existing conference title correctly follows PMLR.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "liu2024lipo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://aclanthology.org/2025.naacl-long.121/",
+      "https://arxiv.org/abs/2402.01878"
+    ],
+    "evidence": {
+      "inventory_index": 64,
+      "primary_source_findings": "Official ACL export confirms all 12 authors, title, NAACL 2025, Albuquerque and2404–2420. ArXiv2402.01878 is its2024preprint; the2024citation key with2025publication year is not an error.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "song2024pro",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://ojs.aaai.org/index.php/AAAI/article/view/29865",
+      "https://arxiv.org/abs/2306.17492"
+    ],
+    "evidence": {
+      "inventory_index": 65,
+      "primary_source_findings": "AAAI publisher confirms exact title, all 7 authors,2024,38(17):18990–18998. ArXiv2306.17492 is the2023preprint of that work.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "maa_invitational",
+    "exists": true,
+    "status": "exists_metadata_date_unverified",
+    "source_urls": [
+      "https://maa.org/maa-invitational-competitions/"
+    ],
+    "evidence": {
+      "inventory_index": 66,
+      "primary_source_findings": "Official MAA page exists and contains its AIME competition information. Its page title is MAA Invitational Competitions; no2024publication date is exposed in the browsed text. Direct metadata request was403.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [
+      "The2024year is not substantiated by the current browsed primary page; an original publication/archive date may exist but was not available in this audit."
+    ],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": [
+      "If no saved2024publication/archive evidence exists, use an undated web-resource citation and a truthful access date instead of an unsupported year. Do not infer that the resource itself is nonexistent.",
+      "Prefer the actual page title MAA Invitational Competitions, optionally specifying its American Invitational Mathematics Examination(AIME)section."
+    ]
+  },
+  {
+    "key": "maa_amc",
+    "exists": true,
+    "status": "exists_metadata_date_unverified",
+    "source_urls": [
+      "https://maa.org/student-programs/amc/"
+    ],
+    "evidence": {
+      "inventory_index": 67,
+      "primary_source_findings": "Official MAA page exists with matching American Mathematics Competitions title and organization. No2024publication date is exposed in the browsed text. Direct metadata request was403.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [
+      "The2024year is not substantiated by the current browsed primary page; an original publication/archive date may exist but was not available in this audit."
+    ],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": [
+      "If no saved2024publication/archive evidence exists, use an undated web-resource citation and a truthful access date instead of an unsupported year. Do not infer that the resource itself is nonexistent."
+    ]
+  },
+  {
+    "key": "he2024olympiadbench",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://aclanthology.org/2024.acl-long.211/",
+      "https://aclanthology.org/2024.acl-long.211.bib",
+      "https://arxiv.org/abs/2402.14008"
+    ],
+    "evidence": {
+      "inventory_index": 68,
+      "primary_source_findings": "Official ACL BibTeX matches title, all 14 authors, editors, ACL 2024, Bangkok,3828–3850 and DOI. ArXiv2402.14008 matches the same paper; source spelling of Zhen Thai differs by version.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review.",
+      "metadata_variant": "ACL officially exports Thai, Zhen; arXiv currently exports Thai, Zhen Leng. The bibliography matches its cited ACL version, so no automatic author change is justified."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "gandhi2024stream",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2404.03683",
+      "https://colmweb.org/2024/AcceptedPapers.html",
+      "https://openreview.net/pdf?id=2cop2jmQVL"
+    ],
+    "evidence": {
+      "inventory_index": 69,
+      "primary_source_findings": "Exact title, all 7 authors,2024 and arXiv 2404.03683 match. Official COLM 2024 accepted list and camera-ready PDF establish venue; PDF uses Denise Lee and Noah D.Goodman as in the entry.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "tinyzero2025",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://github.com/Jiayi-Pan/TinyZero"
+    ],
+    "evidence": {
+      "inventory_index": 70,
+      "primary_source_findings": "Repository README Citation block gives TinyZero, all6listed authors,2025 and this GitHub URL exactly. The access date is manuscript-local provenance, not contradicted by the README suggested2025access date.",
+      "metadata_evidence_artifact": "paper/audits/reference_audit_20260905/agent_llm_primary_metadata.json",
+      "context_basis": "All usage contexts in inventory.json were assessed; uncited entries receive metadata-only review."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "assessment": "uncited_metadata_only",
+        "detail": "No citation context in the supplied main/workshop/appendix inventory."
+      }
+    ],
+    "recommended_changes": []
+  }
+]

@@ -1,0 +1,201 @@
+% Insert after the outcome-binary subsection and before fresh-group starvation.
+% This fragment does not modify Section 3.1.
+\subsection{Neural score identities and the limits of conditional inertness}
+\label{app:neural-binary-inertness}
+
+The distinction between correctness and its allocation among correct outputs
+is established in prior work: \citet[Theorem~3.1, v1]{sinha2026expected}
+derive the expected-return log-ratio dynamics for softmax outcome logits,
+and \citet[Section~4.1, v1]{lochab2026ucpo} identify binary reward's
+indifference to allocation within the correct set. The extension here gives
+the mean and covariance of general outcome-binary group estimators in neural
+parameters, then states what survives finite steps, shared prompts, and
+response-length weighting. This subsection replaces the categorical
+assumptions with the differentiable-policy assumptions stated below.
+
+\begin{theorem}[Per-prompt neural mean and covariance]
+\label{thm:neural-binary-moments}
+Fix a prompt and a differentiable policy $\pi_\theta$ on a finite or countable
+response space with common positive support, where $\theta$ lies in an open
+subset of $\mathbb R^d$. Let $\mathcal C$ be a fixed verifier-positive event,
+$P=\Pr_\theta(Y\in\mathcal C)\in(0,1)$, and
+$s(Y)=\nabla_\theta\log\pi_\theta(Y)$. Assume differentiation may be
+interchanged with the probability sums over the full support and over
+$\mathcal C$, and that $\E\|s(Y)\|_2^2<\infty$. For $G$ independent
+responses, write $R_i=\1[Y_i\in\mathcal C]$, $R=\sum_iR_i$, and let
+$a:\{0,1\}\times\{0,\ldots,G\}\to\mathbb R$ be any finite, detached
+advantage. Define
+\[
+ \widehat g_a=\frac1G\sum_i a(R_i,R)s(Y_i),\qquad
+ v=\nabla_\theta P,\qquad
+ \Sigma_r=\operatorname{Cov}\!\left(s(Y)\mid\1[Y\in\mathcal C]=r\right).
+\]
+With
+\[
+ \beta_r=\frac1G\left(\frac{r\,a(1,r)}P
+          -\frac{(G-r)a(0,r)}{1-P}\right),
+ \qquad c_a(P)=\E[\beta_R],
+\]
+where $R\sim\operatorname{Binomial}(G,P)$, the exact identities are
+\begin{align}
+ \E[\widehat g_a]&=c_a(P)v,
+ \label{eq:neural-binary-mean}\\
+ \operatorname{Cov}(\widehat g_a)
+ &=\operatorname{Var}(\beta_R)vv^\top
+   +\frac1{G^2}\E\!\left[
+       R\,a(1,R)^2\Sigma_1+(G-R)a(0,R)^2\Sigma_0\right].
+ \label{eq:neural-binary-covariance}
+\end{align}
+In particular, $c_a$ is the coefficient in
+Equation~\eqref{eq:objective-inertness}, without an independent-logit
+assumption.
+\end{theorem}
+
+\begin{proof}
+Differentiating the correct and incorrect event probabilities gives
+\[
+ \E[s(Y)\mid Y\in\mathcal C]=v/P,
+ \qquad
+ \E[s(Y)\mid Y\notin\mathcal C]=-v/(1-P).
+\]
+Conditioned on the complete reward vector, the response scores remain
+independent. The conditional mean of $\widehat g_a$ is $\beta_Rv$ and
+its conditional covariance is
+$G^{-2}[R a(1,R)^2\Sigma_1+(G-R)a(0,R)^2\Sigma_0]$.
+Taking expectations proves Equation~\eqref{eq:neural-binary-mean}; the law
+of total covariance proves Equation~\eqref{eq:neural-binary-covariance}.
+\end{proof}
+
+For one prompt, a common locally Lipschitz preconditioner $M(\theta)$ and
+positive coefficients $c_a(P)$ give deterministic mean fields
+$\dot\theta=c_a(P)M(\theta)\nabla_\theta P$ that trace the same orbit
+under a positive change of time, wherever the flows exist uniquely.
+This is a statement about the mean direction. Equation~\eqref{eq:neural-binary-covariance}
+shows that outcome-binary estimators can have different sampling covariance,
+including after their mean magnitudes are matched.
+
+\begin{corollary}[A finite-step comparison in neural parameters]
+\label{cor:neural-binary-finite-step}
+Under Theorem~\ref{thm:neural-binary-moments}, suppose $c_a(P)>0$ and take
+$\theta^+=\theta+\eta\widehat g_a/c_a(P)$ with $\eta>0$. Let $f$ be a
+twice differentiable scalar observable with
+$\|\nabla^2f\|_{\mathrm{op}}\le L_f$ along every update segment, which
+is assumed to remain in its domain. Then, conditional on the current policy,
+\begin{equation}
+ \left|\E[f(\theta^+)-f(\theta)]
+       -\eta\nabla f(\theta)^\top v\right|
+ \le\frac{L_f\eta^2}{2}
+ \left(\|v\|_2^2+
+       \frac{\operatorname{tr}\operatorname{Cov}(\widehat g_a)}{c_a(P)^2}
+ \right).
+ \label{eq:neural-binary-finite-step}
+\end{equation}
+\end{corollary}
+
+\begin{proof}
+Taylor's theorem bounds the remainder after the linear term by
+$L_f\eta^2\|\widehat g_a\|_2^2/(2c_a(P)^2)$. Take expectations and use
+Equation~\eqref{eq:neural-binary-mean} together with
+$\E\|\widehat g_a\|_2^2
+=c_a(P)^2\|v\|_2^2+\operatorname{tr}\operatorname{Cov}(\widehat g_a)$.
+\end{proof}
+
+The normalization by $c_a(P)$ isolates direction for this comparison; it is
+not an additional step in the implemented algorithm. For two such estimators,
+their expected changes in $f$ differ by at most the sum of the two
+second-order bounds. Conditional mode probabilities or \pmd{} may be used
+as $f$ where the stated smoothness bounds hold. Thus mean-direction
+equivalence is a first-order statement for stochastic finite updates, and
+does not identify their trajectories or eventual surviving modes. Adam's
+moments and subsequent PPO epochs require additional analysis.
+
+\begin{remark}[Shared prompts need not follow the same trajectory]
+\label{rem:neural-binary-shared-prompts}
+For prompt probabilities $\mu_x$ and shared parameters, the aggregate mean is
+\begin{equation}
+ \E[\widehat g_a]
+ =\sum_x\mu_x c_a(P_x)\nabla_\theta P_x.
+ \label{eq:neural-binary-prompt-sum}
+\end{equation}
+Different objectives generally assign different relative coefficients to
+the prompt gradients, so the per-prompt identity does not imply a common
+aggregate orbit. An explicit example also shows a difference in conditional
+diversity. Let $\theta=(u,v)$, $\sigma(t)=(1+e^{-t})^{-1}$, and sample two
+prompts $A,B$ equally. Set
+\[
+ P_A=\sigma(u+v),\qquad P_B=\sigma(u-v),\qquad
+ q_A=(\sigma(v),1-\sigma(v)).
+\]
+For prompt $A$, the probabilities of two correct responses and one incorrect
+response are $(P_A\sigma(v),P_A[1-\sigma(v)],1-P_A)$; for $B$, use
+$(P_B/2,P_B/2,1-P_B)$. At $(u,v)=(0,\log3)$,
+$P_A=3/4$, $P_B=1/4$, and
+$\nabla P_A=(3/16,3/16)$, $\nabla P_B=(3/16,-3/16)$.
+For $G=3$, Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} give
+$c_{\mathrm{Dr}}=2/3$ and $c_{\mathrm{Max}}(P)=2-P$, hence
+\[
+ \dot\theta_{\mathrm{Dr}}=(1/8,0),\qquad
+ \dot\theta_{\mathrm{Max}}=(9/32,-3/64).
+\]
+Prompt $A$ has conditional disagreement
+$D_A=1-\sum_cq_{A,c}^2=2\sigma(v)[1-\sigma(v)]$, so direct
+differentiation gives
+\[
+ \dot D_{A,\mathrm{Dr}}=0,\qquad
+ \dot D_{A,\mathrm{Max}}=9/1024>0.
+\]
+Both prompts' correctness increases under both mean fields, since
+$\dot P_A=(3/16)(\dot u+\dot v)>0$ and
+$\dot P_B=(3/16)(\dot u-\dot v)>0$ at this point. Changing a binary
+objective can therefore change conditional diversity through shared prompt
+gradients, despite the exact per-prompt identity.
+\end{remark}
+
+\begin{proposition}[The residual from response-dependent normalization]
+\label{prop:neural-binary-length-residual}
+Under Theorem~\ref{thm:neural-binary-moments}, multiply each response's score
+by a detached function $\omega(Y)$ with finite conditional second moments;
+inverse response length is the case $\omega(Y)=1/L(Y)$. Define
+\[
+ \widehat g_{a,\omega}
+ =\frac1G\sum_i a(R_i,R)\omega(Y_i)s(Y_i),\qquad
+ A_1=\frac{\E[R a(1,R)]}{G},\quad
+ A_0=\frac{\E[(G-R)a(0,R)]}{G},
+\]
+and, conditioning on $\1[Y\in\mathcal C]=r$, let
+$\bar\omega_r=\E[\omega(Y)\mid r]$,
+$K_r=\operatorname{Cov}(\omega(Y),s(Y)\mid r)$, and
+$\sigma_{\omega,r}^2=\operatorname{Var}(\omega(Y)\mid r)$.
+Then
+\begin{align}
+ \E[\widehat g_{a,\omega}]
+ &=\widetilde c_a\nabla_\theta P+A_1K_1+A_0K_0,
+ &\widetilde c_a&=\frac{A_1\bar\omega_1}{P}
+                  -\frac{A_0\bar\omega_0}{1-P},
+ \label{eq:neural-binary-length-residual}\\
+ \|A_1K_1+A_0K_0\|_2
+ &\le\sum_{r=0}^1|A_r|\sigma_{\omega,r}
+                 \sqrt{\operatorname{tr}\Sigma_r}.
+ \label{eq:neural-binary-length-bound}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+Conditioning on the reward vector gives
+$\E[\widehat g_{a,\omega}]
+=A_1\E[\omega s\mid1]+A_0\E[\omega s\mid0]$.
+For each outcome, $\E[\omega s\mid r]
+=\bar\omega_r\E[s\mid r]+K_r$; substituting the conditional score
+means proves Equation~\eqref{eq:neural-binary-length-residual}.
+The vector Cauchy--Schwarz inequality gives
+$\|K_r\|_2\le\sigma_{\omega,r}\sqrt{\operatorname{tr}\Sigma_r}$;
+the triangle inequality completes the bound.
+\end{proof}
+
+The residual is a within-outcome covariance between response weighting and
+the policy score. A common length makes it zero; equal mean lengths for
+correct and incorrect responses need not. More generally, response-dependent
+information can leave the outcome-binary class. IPS uses outcome-frequency
+weights \citep[Section~4.4, v1]{sinha2026expected}, and UCPO adds a
+conditional-uniformity term \citep[Section~6, v1]{lochab2026ucpo}; neither
+intervention is excluded by the mean-direction identity proved here.

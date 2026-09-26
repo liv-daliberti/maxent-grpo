@@ -1,0 +1,2315 @@
+{
+  "by_arm": {
+    "neutral": {
+      "category_counts": {
+        "invalid_python_expression": 1816,
+        "missing_extracted_candidate": 33,
+        "non_integer_return": 376,
+        "restricted_language_rejection": 59,
+        "wrong_proper_divisor": 276
+      },
+      "category_percentages": {
+        "invalid_python_expression": 70.9375,
+        "missing_extracted_candidate": 1.289062,
+        "non_integer_return": 14.6875,
+        "restricted_language_rejection": 2.304688,
+        "wrong_proper_divisor": 10.78125
+      },
+      "draws": 2560,
+      "error_message_counts": {
+        "candidate AST is too large": 6,
+        "candidate is empty or too long": 2,
+        "candidate is not one Python expression": 1816,
+        "function output must be an integer": 376,
+        "function returned 1, not a proper divisor of 12": 1,
+        "function returned 1, not a proper divisor of 64": 2,
+        "function returned 1, not a proper divisor of 88": 1,
+        "function returned 162, not a proper divisor of 63": 1,
+        "function returned 173, not a proper divisor of 63": 2,
+        "function returned 2, not a proper divisor of 117": 2,
+        "function returned 2, not a proper divisor of 123": 2,
+        "function returned 2, not a proper divisor of 155": 1,
+        "function returned 2, not a proper divisor of 165": 1,
+        "function returned 2, not a proper divisor of 215": 5,
+        "function returned 2, not a proper divisor of 245": 3,
+        "function returned 2, not a proper divisor of 57": 16,
+        "function returned 2, not a proper divisor of 63": 2,
+        "function returned 2, not a proper divisor of 65": 18,
+        "function returned 2, not a proper divisor of 69": 2,
+        "function returned 2, not a proper divisor of 75": 3,
+        "function returned 216, not a proper divisor of 66": 7,
+        "function returned 218, not a proper divisor of 65": 3,
+        "function returned 219, not a proper divisor of 68": 17,
+        "function returned 22, not a proper divisor of 22": 47,
+        "function returned 24, not a proper divisor of 64": 1,
+        "function returned 246, not a proper divisor of 64": 11,
+        "function returned 26, not a proper divisor of 26": 12,
+        "function returned 27, not a proper divisor of 27": 20,
+        "function returned 3, not a proper divisor of 128": 1,
+        "function returned 3, not a proper divisor of 64": 2,
+        "function returned 3, not a proper divisor of 88": 1,
+        "function returned 30, not a proper divisor of 30": 1,
+        "function returned 36, not a proper divisor of 36": 1,
+        "function returned 39, not a proper divisor of 64": 1,
+        "function returned 45, not a proper divisor of 45": 1,
+        "function returned 56, not a proper divisor of 56": 1,
+        "function returned 62, not a proper divisor of 62": 22,
+        "function returned 63, not a proper divisor of 63": 4,
+        "function returned 64, not a proper divisor of 63": 2,
+        "function returned 64, not a proper divisor of 64": 10,
+        "function returned 65, not a proper divisor of 65": 17,
+        "function returned 66, not a proper divisor of 66": 9,
+        "function returned 67, not a proper divisor of 66": 5,
+        "function returned 68, not a proper divisor of 68": 4,
+        "function returned 70, not a proper divisor of 70": 1,
+        "function returned 72, not a proper divisor of 66": 1,
+        "function returned 74, not a proper divisor of 74": 1,
+        "function returned 75, not a proper divisor of 75": 3,
+        "function returned 76, not a proper divisor of 76": 4,
+        "function returned 86, not a proper divisor of 86": 1,
+        "function returned 90, not a proper divisor of 90": 3,
+        "integer literal is too large": 1,
+        "only integer literals are allowed": 23,
+        "unknown name: d": 4,
+        "unknown name: s": 4,
+        "unknown name: x": 2,
+        "unsupported Python syntax: Call": 4,
+        "unsupported Python syntax: Div": 3,
+        "unsupported Python syntax: GeneratorExp": 1,
+        "unsupported Python syntax: In": 8,
+        "unsupported Python syntax: LShift": 1
+      },
+      "finish_reason_counts": {
+        "length": 33,
+        "stop": 2527
+      },
+      "input_independent_body_count": 104,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 145,
+        "Compare": 231,
+        "Constant": 104,
+        "IfExp": 172
+      },
+      "literal_constant_body_count": 104,
+      "malformed_2_for_prefix_count": 1636,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(3) if n % i == 0",
+          "draws": 67
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 63
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 61
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(3) if n % x == 0",
+          "draws": 59
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 55
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 34
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(3))",
+          "draws": 20
+        },
+        {
+          "candidate": "lambda n: 26 <= n <= 141",
+          "draws": 18
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(4) if n % x == 0",
+          "draws": 17
+        },
+        {
+          "candidate": "lambda n: 219",
+          "draws": 17
+        }
+      ],
+      "parser_accepted": 652,
+      "verified": 0
+    },
+    "original": {
+      "category_counts": {
+        "verified_success": 2320,
+        "wrong_proper_divisor": 240
+      },
+      "category_percentages": {
+        "verified_success": 90.625,
+        "wrong_proper_divisor": 9.375
+      },
+      "draws": 2560,
+      "error_message_counts": {
+        "function returned 5, not a proper divisor of 119": 40,
+        "function returned 5, not a proper divisor of 133": 40,
+        "function returned 5, not a proper divisor of 143": 40,
+        "function returned 5, not a proper divisor of 77": 40,
+        "function returned 5, not a proper divisor of 91": 80
+      },
+      "finish_reason_counts": {
+        "stop": 2560
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 2560
+      },
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 2560
+        }
+      ],
+      "parser_accepted": 2560,
+      "verified": 2320
+    }
+  },
+  "by_seed_level_arm": [
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 208,
+        "wrong_proper_divisor": 48
+      },
+      "category_percentages": {
+        "verified_success": 81.25,
+        "wrong_proper_divisor": 18.75
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "function returned 5, not a proper divisor of 119": 8,
+        "function returned 5, not a proper divisor of 133": 8,
+        "function returned 5, not a proper divisor of 143": 8,
+        "function returned 5, not a proper divisor of 77": 8,
+        "function returned 5, not a proper divisor of 91": 16
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 2,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 43,
+      "verified": 208
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 197,
+        "missing_extracted_candidate": 4,
+        "non_integer_return": 20,
+        "restricted_language_rejection": 6,
+        "wrong_proper_divisor": 29
+      },
+      "category_percentages": {
+        "invalid_python_expression": 76.953125,
+        "missing_extracted_candidate": 1.5625,
+        "non_integer_return": 7.8125,
+        "restricted_language_rejection": 2.34375,
+        "wrong_proper_divisor": 11.328125
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is not one Python expression": 197,
+        "function output must be an integer": 20,
+        "function returned 2, not a proper divisor of 57": 4,
+        "function returned 22, not a proper divisor of 22": 12,
+        "function returned 26, not a proper divisor of 26": 5,
+        "function returned 27, not a proper divisor of 27": 3,
+        "function returned 56, not a proper divisor of 56": 1,
+        "function returned 64, not a proper divisor of 64": 3,
+        "function returned 90, not a proper divisor of 90": 1,
+        "only integer literals are allowed": 2,
+        "unsupported Python syntax: Call": 1,
+        "unsupported Python syntax: GeneratorExp": 1,
+        "unsupported Python syntax: In": 2
+      },
+      "finish_reason_counts": {
+        "length": 4,
+        "stop": 252
+      },
+      "input_independent_body_count": 4,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 4,
+        "Compare": 16,
+        "Constant": 4,
+        "IfExp": 25
+      },
+      "level": 2,
+      "literal_constant_body_count": 4,
+      "malformed_2_for_prefix_count": 178,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(3) if n % i == 0",
+          "draws": 23
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(3) if n % x == 0",
+          "draws": 21
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(3))",
+          "draws": 13
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 8
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(4) if n % x == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 26 <= n <= 141",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(1_prime(n)) if n % i == 0",
+          "draws": 2
+        }
+      ],
+      "parser_accepted": 49,
+      "training_seed": 43,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 256
+      },
+      "category_percentages": {
+        "verified_success": 100.0
+      },
+      "draws": 256,
+      "error_message_counts": {},
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 3,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 43,
+      "verified": 256
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 202,
+        "non_integer_return": 17,
+        "restricted_language_rejection": 3,
+        "wrong_proper_divisor": 34
+      },
+      "category_percentages": {
+        "invalid_python_expression": 78.90625,
+        "non_integer_return": 6.640625,
+        "restricted_language_rejection": 1.171875,
+        "wrong_proper_divisor": 13.28125
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is not one Python expression": 202,
+        "function output must be an integer": 17,
+        "function returned 162, not a proper divisor of 63": 1,
+        "function returned 2, not a proper divisor of 123": 2,
+        "function returned 2, not a proper divisor of 165": 1,
+        "function returned 2, not a proper divisor of 215": 3,
+        "function returned 2, not a proper divisor of 245": 1,
+        "function returned 2, not a proper divisor of 65": 6,
+        "function returned 2, not a proper divisor of 75": 1,
+        "function returned 219, not a proper divisor of 68": 2,
+        "function returned 24, not a proper divisor of 64": 1,
+        "function returned 246, not a proper divisor of 64": 1,
+        "function returned 62, not a proper divisor of 62": 5,
+        "function returned 63, not a proper divisor of 63": 1,
+        "function returned 64, not a proper divisor of 63": 2,
+        "function returned 65, not a proper divisor of 65": 2,
+        "function returned 66, not a proper divisor of 66": 1,
+        "function returned 67, not a proper divisor of 66": 1,
+        "function returned 68, not a proper divisor of 68": 1,
+        "function returned 75, not a proper divisor of 75": 1,
+        "function returned 76, not a proper divisor of 76": 1,
+        "only integer literals are allowed": 1,
+        "unsupported Python syntax: Div": 1,
+        "unsupported Python syntax: In": 1
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 19,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 6,
+        "Compare": 11,
+        "Constant": 19,
+        "IfExp": 15
+      },
+      "level": 3,
+      "literal_constant_body_count": 19,
+      "malformed_2_for_prefix_count": 187,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(3) if n % i == 0",
+          "draws": 37
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 23
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(3) if n % x == 0",
+          "draws": 23
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 14
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 9
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(3))",
+          "draws": 7
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 5
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(2 if n % 2 else 1) if n % x == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 62 if n == 62 else 76 if n == 76 else 122 if n == 122 else 159",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(63) if n % x == 0",
+          "draws": 3
+        }
+      ],
+      "parser_accepted": 51,
+      "training_seed": 43,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 208,
+        "wrong_proper_divisor": 48
+      },
+      "category_percentages": {
+        "verified_success": 81.25,
+        "wrong_proper_divisor": 18.75
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "function returned 5, not a proper divisor of 119": 8,
+        "function returned 5, not a proper divisor of 133": 8,
+        "function returned 5, not a proper divisor of 143": 8,
+        "function returned 5, not a proper divisor of 77": 8,
+        "function returned 5, not a proper divisor of 91": 16
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 2,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 44,
+      "verified": 208
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 201,
+        "missing_extracted_candidate": 5,
+        "non_integer_return": 14,
+        "restricted_language_rejection": 3,
+        "wrong_proper_divisor": 33
+      },
+      "category_percentages": {
+        "invalid_python_expression": 78.515625,
+        "missing_extracted_candidate": 1.953125,
+        "non_integer_return": 5.46875,
+        "restricted_language_rejection": 1.171875,
+        "wrong_proper_divisor": 12.890625
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is not one Python expression": 201,
+        "function output must be an integer": 14,
+        "function returned 2, not a proper divisor of 57": 4,
+        "function returned 22, not a proper divisor of 22": 13,
+        "function returned 26, not a proper divisor of 26": 3,
+        "function returned 27, not a proper divisor of 27": 9,
+        "function returned 30, not a proper divisor of 30": 1,
+        "function returned 64, not a proper divisor of 64": 2,
+        "function returned 65, not a proper divisor of 65": 1,
+        "only integer literals are allowed": 1,
+        "unknown name: x": 1,
+        "unsupported Python syntax: Div": 1
+      },
+      "finish_reason_counts": {
+        "length": 5,
+        "stop": 251
+      },
+      "input_independent_body_count": 5,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 2,
+        "Compare": 12,
+        "Constant": 5,
+        "IfExp": 28
+      },
+      "level": 2,
+      "literal_constant_body_count": 5,
+      "malformed_2_for_prefix_count": 184,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 26 <= n <= 141",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 22 <= n <= 27",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(2 if n % 2 else 1) if n % x == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(45))",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(130 + 1) if n % x == 0",
+          "draws": 2
+        },
+        {
+          "candidate": "lambda n: 22 if n == 22 or n == 27 or n == 76 or n == 134 else n-1",
+          "draws": 2
+        },
+        {
+          "candidate": "lambda n: 22 <= n <= 175",
+          "draws": 2
+        }
+      ],
+      "parser_accepted": 47,
+      "training_seed": 44,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 256
+      },
+      "category_percentages": {
+        "verified_success": 100.0
+      },
+      "draws": 256,
+      "error_message_counts": {},
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 3,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 44,
+      "verified": 256
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 200,
+        "missing_extracted_candidate": 2,
+        "non_integer_return": 11,
+        "restricted_language_rejection": 6,
+        "wrong_proper_divisor": 37
+      },
+      "category_percentages": {
+        "invalid_python_expression": 78.125,
+        "missing_extracted_candidate": 0.78125,
+        "non_integer_return": 4.296875,
+        "restricted_language_rejection": 2.34375,
+        "wrong_proper_divisor": 14.453125
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate AST is too large": 1,
+        "candidate is not one Python expression": 200,
+        "function output must be an integer": 11,
+        "function returned 1, not a proper divisor of 64": 1,
+        "function returned 1, not a proper divisor of 88": 1,
+        "function returned 173, not a proper divisor of 63": 1,
+        "function returned 2, not a proper divisor of 245": 1,
+        "function returned 2, not a proper divisor of 65": 5,
+        "function returned 2, not a proper divisor of 69": 1,
+        "function returned 218, not a proper divisor of 65": 1,
+        "function returned 219, not a proper divisor of 68": 6,
+        "function returned 246, not a proper divisor of 64": 3,
+        "function returned 3, not a proper divisor of 128": 1,
+        "function returned 3, not a proper divisor of 64": 1,
+        "function returned 3, not a proper divisor of 88": 1,
+        "function returned 62, not a proper divisor of 62": 4,
+        "function returned 63, not a proper divisor of 63": 1,
+        "function returned 65, not a proper divisor of 65": 5,
+        "function returned 66, not a proper divisor of 66": 2,
+        "function returned 68, not a proper divisor of 68": 1,
+        "function returned 76, not a proper divisor of 76": 1,
+        "only integer literals are allowed": 3,
+        "unsupported Python syntax: Div": 1,
+        "unsupported Python syntax: In": 1
+      },
+      "finish_reason_counts": {
+        "length": 2,
+        "stop": 254
+      },
+      "input_independent_body_count": 16,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 3,
+        "Compare": 8,
+        "Constant": 16,
+        "IfExp": 21
+      },
+      "level": 3,
+      "literal_constant_body_count": 16,
+      "malformed_2_for_prefix_count": 184,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 8
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 8
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 7
+        },
+        {
+          "candidate": "lambda n: 219",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 2 for n in range(63)",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for n in range(60.5))",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 if n % 2 else 3",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(100) if n % i == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 63 <= n <= 198",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(66) if n % x == 0",
+          "draws": 3
+        }
+      ],
+      "parser_accepted": 48,
+      "training_seed": 44,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 208,
+        "wrong_proper_divisor": 48
+      },
+      "category_percentages": {
+        "verified_success": 81.25,
+        "wrong_proper_divisor": 18.75
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "function returned 5, not a proper divisor of 119": 8,
+        "function returned 5, not a proper divisor of 133": 8,
+        "function returned 5, not a proper divisor of 143": 8,
+        "function returned 5, not a proper divisor of 77": 8,
+        "function returned 5, not a proper divisor of 91": 16
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 2,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 45,
+      "verified": 208
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 168,
+        "missing_extracted_candidate": 6,
+        "non_integer_return": 75,
+        "restricted_language_rejection": 4,
+        "wrong_proper_divisor": 3
+      },
+      "category_percentages": {
+        "invalid_python_expression": 65.625,
+        "missing_extracted_candidate": 2.34375,
+        "non_integer_return": 29.296875,
+        "restricted_language_rejection": 1.5625,
+        "wrong_proper_divisor": 1.171875
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is not one Python expression": 168,
+        "function output must be an integer": 75,
+        "function returned 2, not a proper divisor of 155": 1,
+        "function returned 2, not a proper divisor of 57": 2,
+        "only integer literals are allowed": 1,
+        "unknown name: s": 1,
+        "unsupported Python syntax: Call": 1,
+        "unsupported Python syntax: In": 1
+      },
+      "finish_reason_counts": {
+        "length": 6,
+        "stop": 250
+      },
+      "input_independent_body_count": 3,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 36,
+        "Compare": 39,
+        "Constant": 3
+      },
+      "level": 2,
+      "literal_constant_body_count": 3,
+      "malformed_2_for_prefix_count": 137,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 22 <= n <= 175",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 2 <= n % 3 <= 4",
+          "draws": 5
+        },
+        {
+          "candidate": "lambda n: 26 <= n <= 141",
+          "draws": 5
+        },
+        {
+          "candidate": "lambda n: 2 <= n % 3 <= 5",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 27 < n < 45 and n % 27 == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 90 <= n <= 99 or 116 <= n <= 141",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for n in range(12.5) if n % 2 == 0",
+          "draws": 2
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(130 + 1) if n % x == 0",
+          "draws": 2
+        },
+        {
+          "candidate": "lambda n: 22 <= n <= 27",
+          "draws": 2
+        }
+      ],
+      "parser_accepted": 78,
+      "training_seed": 45,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 256
+      },
+      "category_percentages": {
+        "verified_success": 100.0
+      },
+      "draws": 256,
+      "error_message_counts": {},
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 3,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 45,
+      "verified": 256
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 92,
+        "missing_extracted_candidate": 1,
+        "non_integer_return": 140,
+        "restricted_language_rejection": 12,
+        "wrong_proper_divisor": 11
+      },
+      "category_percentages": {
+        "invalid_python_expression": 35.9375,
+        "missing_extracted_candidate": 0.390625,
+        "non_integer_return": 54.6875,
+        "restricted_language_rejection": 4.6875,
+        "wrong_proper_divisor": 4.296875
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate AST is too large": 3,
+        "candidate is not one Python expression": 92,
+        "function output must be an integer": 140,
+        "function returned 2, not a proper divisor of 117": 1,
+        "function returned 2, not a proper divisor of 63": 1,
+        "function returned 2, not a proper divisor of 75": 1,
+        "function returned 216, not a proper divisor of 66": 4,
+        "function returned 219, not a proper divisor of 68": 1,
+        "function returned 246, not a proper divisor of 64": 2,
+        "function returned 62, not a proper divisor of 62": 1,
+        "integer literal is too large": 1,
+        "only integer literals are allowed": 2,
+        "unknown name: d": 3,
+        "unknown name: s": 2,
+        "unsupported Python syntax: Call": 1
+      },
+      "finish_reason_counts": {
+        "length": 1,
+        "stop": 255
+      },
+      "input_independent_body_count": 10,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 51,
+        "Compare": 89,
+        "Constant": 10,
+        "IfExp": 1
+      },
+      "level": 3,
+      "literal_constant_body_count": 10,
+      "malformed_2_for_prefix_count": 71,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 <= n % 3 <= 4",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 63 <= n <= 198",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 65 < n < 76 and 1 < n % 65 < n",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 <= n % 3 < n",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 216",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 64 <= n <= 219",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 <= n % 68 < n",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 68 < n < 123 < n < 175 < n < 219",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 64 <= n <= 96",
+          "draws": 3
+        }
+      ],
+      "parser_accepted": 151,
+      "training_seed": 45,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 208,
+        "wrong_proper_divisor": 48
+      },
+      "category_percentages": {
+        "verified_success": 81.25,
+        "wrong_proper_divisor": 18.75
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "function returned 5, not a proper divisor of 119": 8,
+        "function returned 5, not a proper divisor of 133": 8,
+        "function returned 5, not a proper divisor of 143": 8,
+        "function returned 5, not a proper divisor of 77": 8,
+        "function returned 5, not a proper divisor of 91": 16
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 2,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 46,
+      "verified": 208
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 183,
+        "missing_extracted_candidate": 6,
+        "non_integer_return": 22,
+        "restricted_language_rejection": 5,
+        "wrong_proper_divisor": 40
+      },
+      "category_percentages": {
+        "invalid_python_expression": 71.484375,
+        "missing_extracted_candidate": 2.34375,
+        "non_integer_return": 8.59375,
+        "restricted_language_rejection": 1.953125,
+        "wrong_proper_divisor": 15.625
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is empty or too long": 2,
+        "candidate is not one Python expression": 183,
+        "function output must be an integer": 22,
+        "function returned 1, not a proper divisor of 12": 1,
+        "function returned 2, not a proper divisor of 57": 4,
+        "function returned 22, not a proper divisor of 22": 14,
+        "function returned 26, not a proper divisor of 26": 3,
+        "function returned 27, not a proper divisor of 27": 7,
+        "function returned 36, not a proper divisor of 36": 1,
+        "function returned 45, not a proper divisor of 45": 1,
+        "function returned 64, not a proper divisor of 64": 4,
+        "function returned 65, not a proper divisor of 65": 1,
+        "function returned 74, not a proper divisor of 74": 1,
+        "function returned 76, not a proper divisor of 76": 1,
+        "function returned 90, not a proper divisor of 90": 2,
+        "only integer literals are allowed": 1,
+        "unsupported Python syntax: In": 1,
+        "unsupported Python syntax: LShift": 1
+      },
+      "finish_reason_counts": {
+        "length": 6,
+        "stop": 250
+      },
+      "input_independent_body_count": 8,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 10,
+        "Compare": 12,
+        "Constant": 8,
+        "IfExp": 32
+      },
+      "level": 2,
+      "literal_constant_body_count": 8,
+      "malformed_2_for_prefix_count": 169,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 7
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(4) if n % x == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(3) if n % i == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(45))",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 22 <= n <= 27",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 22 if n == 22 or n == 48 or n == 93 or n == 138 else n-1",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(3) if n % x == 0",
+          "draws": 3
+        }
+      ],
+      "parser_accepted": 62,
+      "training_seed": 46,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 256
+      },
+      "category_percentages": {
+        "verified_success": 100.0
+      },
+      "draws": 256,
+      "error_message_counts": {},
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 3,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 46,
+      "verified": 256
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 155,
+        "non_integer_return": 36,
+        "restricted_language_rejection": 12,
+        "wrong_proper_divisor": 53
+      },
+      "category_percentages": {
+        "invalid_python_expression": 60.546875,
+        "non_integer_return": 14.0625,
+        "restricted_language_rejection": 4.6875,
+        "wrong_proper_divisor": 20.703125
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate AST is too large": 2,
+        "candidate is not one Python expression": 155,
+        "function output must be an integer": 36,
+        "function returned 1, not a proper divisor of 64": 1,
+        "function returned 173, not a proper divisor of 63": 1,
+        "function returned 2, not a proper divisor of 117": 1,
+        "function returned 2, not a proper divisor of 215": 2,
+        "function returned 2, not a proper divisor of 245": 1,
+        "function returned 2, not a proper divisor of 63": 1,
+        "function returned 2, not a proper divisor of 65": 3,
+        "function returned 2, not a proper divisor of 69": 1,
+        "function returned 2, not a proper divisor of 75": 1,
+        "function returned 219, not a proper divisor of 68": 3,
+        "function returned 246, not a proper divisor of 64": 2,
+        "function returned 62, not a proper divisor of 62": 10,
+        "function returned 63, not a proper divisor of 63": 2,
+        "function returned 64, not a proper divisor of 64": 1,
+        "function returned 65, not a proper divisor of 65": 6,
+        "function returned 66, not a proper divisor of 66": 5,
+        "function returned 67, not a proper divisor of 66": 4,
+        "function returned 68, not a proper divisor of 68": 2,
+        "function returned 70, not a proper divisor of 70": 1,
+        "function returned 72, not a proper divisor of 66": 1,
+        "function returned 75, not a proper divisor of 75": 2,
+        "function returned 76, not a proper divisor of 76": 1,
+        "function returned 86, not a proper divisor of 86": 1,
+        "only integer literals are allowed": 9,
+        "unsupported Python syntax: In": 1
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 20,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 13,
+        "Compare": 23,
+        "Constant": 20,
+        "IfExp": 33
+      },
+      "level": 3,
+      "literal_constant_body_count": 20,
+      "malformed_2_for_prefix_count": 138,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 18
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 10
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 6
+        },
+        {
+          "candidate": "lambda n: 67",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 62 if n == 62 else 76 if n == 76 else 122 if n == 122 else 159",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(63) if n % x == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 219",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 63 <= n <= 198",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(66) if n % i == 0",
+          "draws": 3
+        }
+      ],
+      "parser_accepted": 89,
+      "training_seed": 46,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 208,
+        "wrong_proper_divisor": 48
+      },
+      "category_percentages": {
+        "verified_success": 81.25,
+        "wrong_proper_divisor": 18.75
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "function returned 5, not a proper divisor of 119": 8,
+        "function returned 5, not a proper divisor of 133": 8,
+        "function returned 5, not a proper divisor of 143": 8,
+        "function returned 5, not a proper divisor of 77": 8,
+        "function returned 5, not a proper divisor of 91": 16
+      },
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 2,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 47,
+      "verified": 208
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 206,
+        "missing_extracted_candidate": 7,
+        "non_integer_return": 27,
+        "restricted_language_rejection": 3,
+        "wrong_proper_divisor": 13
+      },
+      "category_percentages": {
+        "invalid_python_expression": 80.46875,
+        "missing_extracted_candidate": 2.734375,
+        "non_integer_return": 10.546875,
+        "restricted_language_rejection": 1.171875,
+        "wrong_proper_divisor": 5.078125
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is not one Python expression": 206,
+        "function output must be an integer": 27,
+        "function returned 2, not a proper divisor of 57": 2,
+        "function returned 22, not a proper divisor of 22": 8,
+        "function returned 26, not a proper divisor of 26": 1,
+        "function returned 27, not a proper divisor of 27": 1,
+        "function returned 65, not a proper divisor of 65": 1,
+        "only integer literals are allowed": 1,
+        "unknown name: x": 1,
+        "unsupported Python syntax: Call": 1
+      },
+      "finish_reason_counts": {
+        "length": 7,
+        "stop": 249
+      },
+      "input_independent_body_count": 2,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 13,
+        "Compare": 14,
+        "Constant": 2,
+        "IfExp": 11
+      },
+      "level": 2,
+      "literal_constant_body_count": 2,
+      "malformed_2_for_prefix_count": 186,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(10))",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 22 <= n <= 27 AND n % 22 != 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 22 <= n <= 175",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 22 if n == 22 or n == 48 or n == 93 or n == 138 else n-1",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(3) if n % x == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 26 <= n <= 141",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 26 <= n <= 52 and n % 26 == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(36)(x) if n % x == 0",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 2 for n in range(12.5) if n % 2 == 0",
+          "draws": 2
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 2
+        }
+      ],
+      "parser_accepted": 40,
+      "training_seed": 47,
+      "verified": 0
+    },
+    {
+      "arm": "original",
+      "category_counts": {
+        "verified_success": 256
+      },
+      "category_percentages": {
+        "verified_success": 100.0
+      },
+      "draws": 256,
+      "error_message_counts": {},
+      "finish_reason_counts": {
+        "stop": 256
+      },
+      "input_independent_body_count": 0,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "IfExp": 256
+      },
+      "level": 3,
+      "literal_constant_body_count": 0,
+      "malformed_2_for_prefix_count": 0,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+          "draws": 256
+        }
+      ],
+      "parser_accepted": 256,
+      "training_seed": 47,
+      "verified": 256
+    },
+    {
+      "arm": "neutral",
+      "category_counts": {
+        "invalid_python_expression": 212,
+        "missing_extracted_candidate": 2,
+        "non_integer_return": 14,
+        "restricted_language_rejection": 5,
+        "wrong_proper_divisor": 23
+      },
+      "category_percentages": {
+        "invalid_python_expression": 82.8125,
+        "missing_extracted_candidate": 0.78125,
+        "non_integer_return": 5.46875,
+        "restricted_language_rejection": 1.953125,
+        "wrong_proper_divisor": 8.984375
+      },
+      "draws": 256,
+      "error_message_counts": {
+        "candidate is not one Python expression": 212,
+        "function output must be an integer": 14,
+        "function returned 2, not a proper divisor of 65": 4,
+        "function returned 216, not a proper divisor of 66": 3,
+        "function returned 218, not a proper divisor of 65": 2,
+        "function returned 219, not a proper divisor of 68": 5,
+        "function returned 246, not a proper divisor of 64": 3,
+        "function returned 3, not a proper divisor of 64": 1,
+        "function returned 39, not a proper divisor of 64": 1,
+        "function returned 62, not a proper divisor of 62": 2,
+        "function returned 65, not a proper divisor of 65": 1,
+        "function returned 66, not a proper divisor of 66": 1,
+        "only integer literals are allowed": 2,
+        "unknown name: d": 1,
+        "unknown name: s": 1,
+        "unsupported Python syntax: In": 1
+      },
+      "finish_reason_counts": {
+        "length": 2,
+        "stop": 254
+      },
+      "input_independent_body_count": 17,
+      "lambda_body_ast_type_counts_among_parser_accepted": {
+        "BoolOp": 7,
+        "Compare": 7,
+        "Constant": 17,
+        "IfExp": 6
+      },
+      "level": 3,
+      "literal_constant_body_count": 17,
+      "malformed_2_for_prefix_count": 202,
+      "most_frequent_extracted_candidates": [
+        {
+          "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+          "draws": 13
+        },
+        {
+          "candidate": "lambda n: 2 for i in range(10) if n % i == 0",
+          "draws": 8
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(63) if n % x == 0",
+          "draws": 8
+        },
+        {
+          "candidate": "lambda n: 219",
+          "draws": 5
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(65 + 1) if n % x == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for x in range(66) if n % x == 0",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for n in range(60.5))",
+          "draws": 4
+        },
+        {
+          "candidate": "lambda n: 2 for n in range(63) if n > 1",
+          "draws": 3
+        },
+        {
+          "candidate": "lambda n: 246",
+          "draws": 3
+        }
+      ],
+      "parser_accepted": 37,
+      "training_seed": 47,
+      "verified": 0
+    }
+  ],
+  "canonical_key_disagreements": 0,
+  "category_definition": {
+    "execution_exception": "Other exception in the unchanged frozen executor.",
+    "invalid_python_expression": "Frozen restricted parser raises candidate is not one Python expression.",
+    "missing_extracted_candidate": "Frozen extraction returned None (all observed such outputs ended at the 192-token limit).",
+    "non_integer_return": "Frozen executor rejects a Boolean/non-integer output.",
+    "restricted_language_rejection": "Other frozen parser rejections, including language restrictions and character/AST limits; parser precedence is preserved.",
+    "verified_success": "Frozen executor succeeds and its canonical key equals the stored key.",
+    "wrong_proper_divisor": "Frozen executor rejects an integer output for one case; only its first failing case is recorded."
+  },
+  "created_at": "2026-09-11T20:03:19.676115+00:00",
+  "deterministic_examples": [
+    {
+      "answer_spec": {
+        "cases": [
+          15,
+          68,
+          160,
+          166
+        ],
+        "certified_mode_key_sha256": "69834ec3fe7106fd952a35bb643e74cf1a710e6f77785645028a6b127b8f74cb",
+        "instance_id": "level2_eval-4237300-87",
+        "num_externally_certified_modes": 2,
+        "num_modes": 160,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for i in range(1 empezando desde 2 hasta n parcialmente))",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s43",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "94f457355f908dbad71fce44214161bfeb39db85c576aeff42b77c06acec7f18",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": false,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "30fe70b03769e3695923106184b2c75d7bfa87dbea9a7b2a733f8570c5090d97",
+            "token_count": 27,
+            "training_seed": 43,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for i in range(1 empezando desde 2 hasta n parcialmente))}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:3,2,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s43",
+            "diagnostic_canonical_key": "python_factor:3,2,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "23e8b5ee58618434d3ff9c44f5d7f4128ec4cc72b057fbacd2b91262260c9782",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": true,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 43,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 2,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [15, 68, 160, 166]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 0,
+      "training_seed": 43
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          70,
+          155,
+          170,
+          206
+        ],
+        "certified_mode_key_sha256": "be4daf81b46ff3ba77aea60da2e090c68741319e4151dd79c366d31bbbde93c6",
+        "instance_id": "level3_v3_eval-support-144-9439100-0",
+        "num_externally_certified_modes": 2,
+        "num_modes": 144,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s43",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "53b3f2d342e3ebc18416a7111db7c94abdf2496943fcbeea162ff7685eb4b38c",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": false,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "2d57e8f468b9e060a7fd7ab85cf3be0d14d275e71be7b5dd0a17e4fc1649f79d",
+            "token_count": 24,
+            "training_seed": 43,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for i in range(4) if n % i == 0}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:2,5,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s43",
+            "diagnostic_canonical_key": "python_factor:2,5,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "39405681ffce8f07cf0898affcaea1d5596b35ff4e073a09dc8c66a1a1014dbd",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": true,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 43,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 3,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [70, 155, 170, 206]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 2,
+      "training_seed": 43
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          15,
+          68,
+          160,
+          166
+        ],
+        "certified_mode_key_sha256": "69834ec3fe7106fd952a35bb643e74cf1a710e6f77785645028a6b127b8f74cb",
+        "instance_id": "level2_eval-4237300-87",
+        "num_externally_certified_modes": 2,
+        "num_modes": 160,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for i in range(153895180371572826000000000000000000000000000000000000003001",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s44",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "94f457355f908dbad71fce44214161bfeb39db85c576aeff42b77c06acec7f18",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": false,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "debc29b7e98f9035928934e33ee25d436f3125da9b132a3018285efefb44c1e6",
+            "token_count": 75,
+            "training_seed": 44,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for i in range(153895180371572826000000000000000000000000000000000000003001}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:3,2,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s44",
+            "diagnostic_canonical_key": "python_factor:3,2,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "23e8b5ee58618434d3ff9c44f5d7f4128ec4cc72b057fbacd2b91262260c9782",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": true,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 44,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 2,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [15, 68, 160, 166]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 0,
+      "training_seed": 44
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          70,
+          155,
+          170,
+          206
+        ],
+        "certified_mode_key_sha256": "be4daf81b46ff3ba77aea60da2e090c68741319e4151dd79c366d31bbbde93c6",
+        "instance_id": "level3_v3_eval-support-144-9439100-0",
+        "num_externally_certified_modes": 2,
+        "num_modes": 144,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for n in range(70 + 194270 + 170)",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s44",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "53b3f2d342e3ebc18416a7111db7c94abdf2496943fcbeea162ff7685eb4b38c",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": false,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "b869d87208fdba91d8ab53d24a277ee38e6521b878f32caf5501a30afb61c63d",
+            "token_count": 30,
+            "training_seed": 44,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for n in range(70 + 194270 + 170)}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:2,5,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s44",
+            "diagnostic_canonical_key": "python_factor:2,5,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "39405681ffce8f07cf0898affcaea1d5596b35ff4e073a09dc8c66a1a1014dbd",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": true,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 44,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 3,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [70, 155, 170, 206]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 2,
+      "training_seed": 44
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          15,
+          68,
+          160,
+          166
+        ],
+        "certified_mode_key_sha256": "69834ec3fe7106fd952a35bb643e74cf1a710e6f77785645028a6b127b8f74cb",
+        "instance_id": "level2_eval-4237300-87",
+        "num_externally_certified_modes": 2,
+        "num_modes": 160,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": null,
+            "canonical_key": null,
+            "category": "missing_extracted_candidate",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s45",
+            "draw_index": 0,
+            "finish_reason": "length",
+            "input_independent_body": false,
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "94f457355f908dbad71fce44214161bfeb39db85c576aeff42b77c06acec7f18",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": false,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "346bbb0d3113b46ffa11d4bf99630f185dbcdad71da3e6de89c1185447a94675",
+            "token_count": 192,
+            "training_seed": 45,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for x in range(15389518037157212400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:3,2,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s45",
+            "diagnostic_canonical_key": "python_factor:3,2,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "23e8b5ee58618434d3ff9c44f5d7f4128ec4cc72b057fbacd2b91262260c9782",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": true,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 45,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 2,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [15, 68, 160, 166]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 0,
+      "training_seed": 45
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          70,
+          155,
+          170,
+          206
+        ],
+        "certified_mode_key_sha256": "be4daf81b46ff3ba77aea60da2e090c68741319e4151dd79c366d31bbbde93c6",
+        "instance_id": "level3_v3_eval-support-144-9439100-0",
+        "num_externally_certified_modes": 2,
+        "num_modes": 144,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for n in range(70 + 1 << 20)",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s45",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "53b3f2d342e3ebc18416a7111db7c94abdf2496943fcbeea162ff7685eb4b38c",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": false,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "2ffa827a3c7620835c2f2d65b1c6e7fa42395170e3ab6085e06fc7cc6ee895af",
+            "token_count": 24,
+            "training_seed": 45,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for n in range(70 + 1 << 20)}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:2,5,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s45",
+            "diagnostic_canonical_key": "python_factor:2,5,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "39405681ffce8f07cf0898affcaea1d5596b35ff4e073a09dc8c66a1a1014dbd",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": true,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 45,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 3,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [70, 155, 170, 206]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 2,
+      "training_seed": 45
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          15,
+          68,
+          160,
+          166
+        ],
+        "certified_mode_key_sha256": "69834ec3fe7106fd952a35bb643e74cf1a710e6f77785645028a6b127b8f74cb",
+        "instance_id": "level2_eval-4237300-87",
+        "num_externally_certified_modes": 2,
+        "num_modes": 160,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for i in range(153895180371572826000000000000000000000000000000000000003001",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s46",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "94f457355f908dbad71fce44214161bfeb39db85c576aeff42b77c06acec7f18",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": false,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "debc29b7e98f9035928934e33ee25d436f3125da9b132a3018285efefb44c1e6",
+            "token_count": 75,
+            "training_seed": 46,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for i in range(153895180371572826000000000000000000000000000000000000003001}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:3,2,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s46",
+            "diagnostic_canonical_key": "python_factor:3,2,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "23e8b5ee58618434d3ff9c44f5d7f4128ec4cc72b057fbacd2b91262260c9782",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": true,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 46,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 2,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [15, 68, 160, 166]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 0,
+      "training_seed": 46
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          70,
+          155,
+          170,
+          206
+        ],
+        "certified_mode_key_sha256": "be4daf81b46ff3ba77aea60da2e090c68741319e4151dd79c366d31bbbde93c6",
+        "instance_id": "level3_v3_eval-support-144-9439100-0",
+        "num_externally_certified_modes": 2,
+        "num_modes": 144,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s46",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "53b3f2d342e3ebc18416a7111db7c94abdf2496943fcbeea162ff7685eb4b38c",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": false,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "2d57e8f468b9e060a7fd7ab85cf3be0d14d275e71be7b5dd0a17e4fc1649f79d",
+            "token_count": 24,
+            "training_seed": 46,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for i in range(4) if n % i == 0}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:2,5,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s46",
+            "diagnostic_canonical_key": "python_factor:2,5,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "39405681ffce8f07cf0898affcaea1d5596b35ff4e073a09dc8c66a1a1014dbd",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": true,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 46,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 3,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [70, 155, 170, 206]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 2,
+      "training_seed": 46
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          15,
+          68,
+          160,
+          166
+        ],
+        "certified_mode_key_sha256": "69834ec3fe7106fd952a35bb643e74cf1a710e6f77785645028a6b127b8f74cb",
+        "instance_id": "level2_eval-4237300-87",
+        "num_externally_certified_modes": 2,
+        "num_modes": 160,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for x in range(1539) if n % x == 0",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s47",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "94f457355f908dbad71fce44214161bfeb39db85c576aeff42b77c06acec7f18",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": false,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "9b746ee39c25fd3cd6c156289ed4245b5f90b43e1eb2feee9dc7392da5d65432",
+            "token_count": 27,
+            "training_seed": 47,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for x in range(1539) if n % x == 0}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:3,2,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s47",
+            "diagnostic_canonical_key": "python_factor:3,2,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 2,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "23e8b5ee58618434d3ff9c44f5d7f4128ec4cc72b057fbacd2b91262260c9782",
+            "pair_id": "L2_python_factors_000",
+            "parser_accepted": true,
+            "row_index": 0,
+            "row_sha256": "c0df3ad1277d94be027d054f99d2b17e99c3dabcc23d906aa2717792ffb1448c",
+            "sampling_seed": 79011000,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 47,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 2,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [15, 68, 160, 166]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 0,
+      "training_seed": 47
+    },
+    {
+      "answer_spec": {
+        "cases": [
+          70,
+          155,
+          170,
+          206
+        ],
+        "certified_mode_key_sha256": "be4daf81b46ff3ba77aea60da2e090c68741319e4151dd79c366d31bbbde93c6",
+        "instance_id": "level3_v3_eval-support-144-9439100-0",
+        "num_externally_certified_modes": 2,
+        "num_modes": 144,
+        "python_version": "factor-v1",
+        "source": "synthetic_python_factor_modebench_v1",
+        "verifier": "python_factor_function"
+      },
+      "arms": {
+        "neutral": {
+          "diagnostic": {
+            "arm": "neutral",
+            "candidate": "lambda n: 2 for i in range(4) if n % i == 0",
+            "canonical_key": null,
+            "category": "invalid_python_expression",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s47",
+            "draw_index": 0,
+            "error_message": "candidate is not one Python expression",
+            "error_type": "PythonModeBenchError",
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": true,
+            "messages_sha256": "53b3f2d342e3ebc18416a7111db7c94abdf2496943fcbeea162ff7685eb4b38c",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": false,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "2d57e8f468b9e060a7fd7ab85cf3be0d14d275e71be7b5dd0a17e4fc1649f79d",
+            "token_count": 24,
+            "training_seed": 47,
+            "verified": false
+          },
+          "text": "\\boxed{lambda n: 2 for i in range(4) if n % i == 0}"
+        },
+        "original": {
+          "diagnostic": {
+            "arm": "original",
+            "candidate": "lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5",
+            "canonical_key": "python_factor:2,5,2,2",
+            "category": "verified_success",
+            "checkpoint_label": "qwen05b_E119_python_factors_drgrpo_s47",
+            "diagnostic_canonical_key": "python_factor:2,5,2,2",
+            "draw_index": 0,
+            "finish_reason": "stop",
+            "input_independent_body": false,
+            "lambda_body_ast_type": "IfExp",
+            "level": 3,
+            "literal_constant_body": false,
+            "malformed_2_for_prefix": false,
+            "messages_sha256": "39405681ffce8f07cf0898affcaea1d5596b35ff4e073a09dc8c66a1a1014dbd",
+            "pair_id": "L3_python_factors_002",
+            "parser_accepted": true,
+            "row_index": 2,
+            "row_sha256": "ecf9767e4c975e8708490b2c11919f91cc65a96da82eebd42ec8332e493b7cc8",
+            "sampling_seed": 79171032,
+            "text_sha256": "b5bcc04fa1d8fc9fc20639c0715985b20d1cc5cfdb4b050a4ab77f5bd843aed8",
+            "token_count": 32,
+            "training_seed": 47,
+            "verified": true
+          },
+          "text": "\\boxed{lambda n: 2 if n % 2 == 0 else 3 if n % 3 == 0 else 5}"
+        }
+      },
+      "draw_index": 0,
+      "level": 3,
+      "problem": "Write one pure Python function with the exact form lambda n: EXPR. An external Python tool will call it once for each n in [70, 155, 170, 206]. For every call, return an integer d satisfying 1 < d < n and n % d == 0. Different valid return vectors are different solution modes. You may use integer literals, n, +, -, *, //, %, comparisons, Boolean operators, and conditional expressions; calls, imports, attributes, containers, and other names are forbidden. Return exactly the one-line lambda inside \\boxed{} and no explanation.",
+      "row_index": 2,
+      "training_seed": 47
+    }
+  ],
+  "draw_diagnostics_path": "artifacts/modebench_prompt_ablation_20260911/LOCAL_PYTHON_FAILURE_DRAW_DIAGNOSTICS.jsonl",
+  "draw_diagnostics_sha256": "376ff3d6a68660e9c28545ef8c1a70bb3d84830c573ec15cf6c61b3414a2c5cc",
+  "example_selection_rule": "For each seed in ascending 43-47 and each level in ascending 2,3, choose the smallest selected row_index and draw_index 0; show both paired arms. No success/failure or text filter.",
+  "fixed_answer_definition": "literal_constant_body_count requires a parser-accepted lambda with an AST Constant body. input_independent_body_count is the broader static absence of n in an accepted body. Malformed lambda n: 2 for ... strings are not constant functions.",
+  "generation_calls": 0,
+  "limitations": "Counts describe these frozen sampled outputs and are not independent trials across shared prompts/seeds. This diagnostic does not identify an internal training mechanism, estimate a new causal effect, or establish failures for other prompts/checkpoints. Extraction/parser errors take precedence, so syntax inside overlong candidates is not separately classified.",
+  "method": "Use unchanged frozen math_grader extraction and Python restricted parser. For parser-accepted candidates, unchanged frozen execute_python_factor_candidate runs in a separate Python -I worker with the original SIGALRM 0.25-second handler. Exception messages provide first-failure descriptions. Stored outputs and grades are never edited.",
+  "post_hoc": true,
+  "schema": "modebench-python-posthoc-failure-diagnostic-v1",
+  "scope": "All five registered Python Factors DrGRPO seed checkpoints (43-47), both levels and both arms: 5120 existing draws; 2560 per arm.",
+  "selection_and_taxonomy": "Requested after aggregate prompt-ablation results were known. Descriptive taxonomy developed after inspecting saved outputs; not preregistered or a confirmatory hypothesis test.",
+  "source_sha256": {
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/code_v2/src/oat_drgrpo/math_grader.py": "5bc8a2382ab30d9ccb2dfa4a9cbfb78be28187e1b5049063814cc262b5bac255",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/code_v2/src/oat_drgrpo/python_modebench.py": "0fa4a452d5935f3922ef3e2ffeacbc5d9f3ddb8defdcbb31c04050346313c726",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/code_v2/src/oat_drgrpo/python_modebench_worker.py": "6595e9ea6a1786753734e8ddb03efd4d78ac7f6091e8dc3c6db312eef12db210",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/completion_integrity_audit.json": "a96055e2afaf6b302dd9e570513f25a084ea02079b0b8f1e6bd4ae2808344ade",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/plan_v2.json": "f82f028dab3c2dfd2590db91297e0f6eac43101afde561f2ce328d0b493576f5",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s43/responses.jsonl": "28889dcfa1f57996ce07226c9d3e65b63554f23fb64d3ae3ffcc0beb1ad51e55",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s43/result.json": "41a5ec97ea7fb052e14af3f7a08a4823712b0ff96be940cb075bb13224bda898",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s44/responses.jsonl": "b31cb233bd8cf48babcf24b03dda56266968453fafeecae97a7ca70cce840fe4",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s44/result.json": "c822b2686143a461802efbe5823508af2b72993d3f32aed78acc4dfc7b346b10",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s45/responses.jsonl": "3ad6add910951a8e4cf5f9192473a910668c32b5ae4964ce02c724233b223f4f",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s45/result.json": "8d7d0cfd45526c13d01ddddb6947737e6a30e2e2c024c478fad5a8de7b2d33e2",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s46/responses.jsonl": "092a0a194f903445f469eb92e2b9aa70db27e7a86d6967dde140242a557f5efd",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s46/result.json": "8d99025c6750bebf7499527783827699389942fd94e5cf58640c03fdc0af58ee",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s47/responses.jsonl": "9d297e9a1e089dcf26f6d73a2424087ff22c95de72a01703af1e8533b6dd4106",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/local/results_v2/qwen05b_E119_python_factors_drgrpo_s47/result.json": "dc683e9ee132b42e89511b7912963ff22d239b19ab8c9f3e59d47ac22277a6bd",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/manifest.json": "0d0149905d29cf846c97cbfd2f8f23e5117cf837af78a5b2eb1c17f69d951f93",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/prompts.jsonl": "29979ca49f86c46961791fb4d83fc3f7f1b2d0a709cb22a482bab911916acea8",
+    "/n/fs/similarity/maxent-grpo/artifacts/modebench_prompt_ablation_20260911/rows.jsonl": "9d5081748536ad8921595b346a9aa752b638ae74073af8841553b9fdc1643835",
+    "/n/fs/similarity/maxent-grpo/ops/diagnose_modebench_python_prompt_failures.py": "3980d4fe2c00269277643fc4817f16997329feac041ecf8c8622b3c41384deca"
+  },
+  "status": "complete",
+  "stored_grade_disagreements": 0,
+  "worker_unique_candidate_spec_pairs": 415
+}

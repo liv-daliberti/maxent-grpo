@@ -1,0 +1,27 @@
+{
+  "parent_build": "passed",
+  "parent_warning_scan": [],
+  "parent_visual_review_pages": [
+    60,
+    62,
+    64
+  ],
+  "parent_visual_review": "No clipped text or tables; new uncertainty intervals and incomplete blocks are readable.",
+  "reporting_regression_tests": {
+    "passed": 39,
+    "log": "reporting_tests.log"
+  },
+  "figure_regression_tests": {
+    "passed": 18,
+    "receipt": "../figure_refresh/validation.json"
+  },
+  "numeric_review": "../manuscript_numeric_review.json",
+  "exact_data_reproduction": "../data_reproduction_verification.json",
+  "new_admitted_endpoints_since_september9": 19,
+  "newly_complete_blocks_since_september9": [
+    "E118 Qwen-3B Graph",
+    "E120 Falcon Pantry"
+  ],
+  "scientific_runtime_or_scheduler_changes": false,
+  "frozen_september4_e120_primary_preserved": true
+}

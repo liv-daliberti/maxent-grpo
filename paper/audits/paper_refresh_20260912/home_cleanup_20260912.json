@@ -1,0 +1,13 @@
+{
+  "time": 1789231332.6630077,
+  "download_cache_removed": "/u/od2961/.vscode-server/data/CachedExtensionVSIXs",
+  "extensions": [
+    {
+      "path": "/u/od2961/.vscode-server/extensions/anthropic.claude-code-2.1.268-linux-x64",
+      "obsolete": true,
+      "active_process_reference": false,
+      "bytes": 229737518,
+      "removed": true
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""Materialize PointMaze v4 with harder horizontal-orientation geometry."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+import make_point_maze_algorithm_repair_data_v3 as v3
+from make_point_maze_algorithm_repair_data_v1 import repair_families
+from make_point_maze_geometry_shift_data import geometry_shift_families
+
+
+ROOT = v3.ROOT
+DEFAULT_OUTPUT = ROOT / "var/data/point_maze_algorithm_repair_v4"
+SPLIT_ASSIGNMENTS = {
+    "train": (
+        ("large_block13_v4", "large_block13_v4", 0),
+        ("medium_cross9_v4", "cross9_shift", 1),
+        ("large_bar13_v4", "large_bar13_v4", 2),
+        ("medium_upper_offset9_v4", "upper_offset9_shift", 3),
+        ("large_diamond13_v4", "large_diamond13_v4", 0),
+        ("hard_block11_v4", "block11_repair", 1),
+        ("large_wide_block13_v4", "large_wide_block13_v4", 2),
+        ("hard_wide_block11_v4", "wide_block11_repair", 3),
+    ),
+    "dev": (
+        ("large_wide_block13_v4", "large_wide_block13_v4", 0),
+        ("medium_upper_offset9_v4", "upper_offset9_shift", 1),
+        ("large_diamond13_v4", "large_diamond13_v4", 2),
+        ("hard_bar11_v4", "bar11_repair", 3),
+    ),
+    "eval": (
+        ("large_bar13_v4", "large_bar13_v4", 0),
+        ("medium_lower_offset9_v4", "lower_offset9_shift", 1),
+        ("large_block13_v4", "large_block13_v4", 2),
+        ("hard_block11_v4", "block11_repair", 3),
+    ),
+}
+SEED_BASE = {"train": 81_000, "dev": 82_000, "eval": 83_000}
+
+
+def large_families() -> list[dict]:
+    def map_with(obstacles: set[tuple[int, int]]) -> list[list[int]]:
+        return [
+            [
+                1
+                if row in {0, 12}
+                or column in {0, 12}
+                or (row, column) in obstacles
+                else 0
+                for column in range(13)
+            ]
+            for row in range(13)
+        ]
+
+    definitions = (
+        (
+            "large_block13_v4",
+            {
+                (row, column)
+                for row in range(4, 9)
+                for column in range(4, 9)
+            },
+        ),
+        (
+            "large_wide_block13_v4",
+            {
+                (row, column)
+                for row in range(5, 8)
+                for column in range(3, 10)
+            },
+        ),
+        (
+            "large_bar13_v4",
+            {(6, column) for column in range(3, 10)},
+        ),
+        (
+            "large_diamond13_v4",
+            {
+                (row, column)
+                for row in range(3, 10)
+                for column in range(3, 10)
+                if abs(row - 6) + abs(column - 6) <= 3
+            },
+        ),
+    )
+    families = []
+    for family, obstacles in definitions:
+        maze_map = map_with(obstacles)
+        assert maze_map[6][1] == 0 and maze_map[6][11] == 0
+        families.append(
+            {
+                "family": family,
+                "maze_map": maze_map,
+                "reset": (6, 1),
+                "goal": (6, 11),
+                "bounds": [[-6.5, 6.5], [-6.5, 6.5]],
+                "spans": ((2.5, 6.0), (-6.0, -2.5)),
+                "counts": (13, 32, 16),
+            }
+        )
+    return families
+
+
+def source_families() -> dict[str, dict]:
+    families = (
+        geometry_shift_families()
+        + repair_families()
+        + large_families()
+    )
+    return {str(family["family"]): family for family in families}
+
+
+def output_root() -> Path:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT)
+    parsed, _ = parser.parse_known_args()
+    return parsed.output_root.resolve()
+
+
+def main() -> None:
+    destination = output_root()
+    v3.DEFAULT_OUTPUT = DEFAULT_OUTPUT
+    v3.SPLIT_ASSIGNMENTS = SPLIT_ASSIGNMENTS
+    v3.SEED_BASE = SEED_BASE
+    v3._source_families = source_families
+    v3.main()
+    identity_path = destination / "identity.json"
+    identity = json.loads(identity_path.read_text(encoding="utf-8"))
+    identity.update(
+        schema_version="point-maze-algorithm-repair-data-v4",
+        horizontal_geometry_repair=True,
+        horizontal_family_size=13,
+        horizontal_route_counts=[13, 32, 16],
+        v3_viability_sha256=(
+            "6417bd27d55251d287f804035c4d84c8f683d6117e06ec54de98755169ab3da5"
+        ),
+        v3_verified_rate=0.54296875,
+        v3_saturated_rows=[
+            "medium_cross9_v3_dev_r0",
+            "hard_block11_v3_dev_r2",
+        ],
+        information_boundary={
+            "v2_terminal_pair_outcome_loaded": True,
+            "v3_viability_outcome_loaded": True,
+            "v4_failed_source_gate_loaded": True,
+            "v4_checker_only_route_calibration_loaded": True,
+            "v4_model_outcomes_loaded_before_freeze": False,
+            "v4_model_sampled_before_freeze": False,
+            "threshold_changed": False,
+            "algorithm_coefficient_changed": False,
+        },
+    )
+    temporary = identity_path.with_suffix(".json.tmp")
+    temporary.write_text(
+        json.dumps(identity, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(identity_path)
+    print("[point-repair-v4-data] horizontal_size=13")
+
+
+if __name__ == "__main__":
+    main()

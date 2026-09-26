@@ -1,0 +1,1359 @@
+{
+ "cells": [
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 131,
+    "eligible_prompts_with_one_key": 131,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 253,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8373
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/graph_coloring/s43/debug_job30508679/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_graph_s43",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 43,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.31371925569686837,
+    "replay_update_fraction": 0.3410348193947283,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 135,
+    "eligible_prompts_with_one_key": 135,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 249,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8640
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/graph_coloring/s44/debug_job30508681/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_graph_s44",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 44,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.25097736799054676,
+    "replay_update_fraction": 0.3514480963228116,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 147,
+    "eligible_prompts_with_one_key": 147,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 237,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 9408
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/graph_coloring/s45/debug_job30508683/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_graph_s45",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 45,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.043934240724992794,
+    "replay_update_fraction": 0.3826879271070615,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 135,
+    "eligible_prompts_with_one_key": 135,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 249,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8640
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/graph_coloring/s46/debug_job30508685/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_graph_s46",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 46,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.1831637389172182,
+    "replay_update_fraction": 0.35177351122681416,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 150,
+    "eligible_prompts_with_one_key": 150,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 234,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 9600
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/graph_coloring/s47/debug_job30508687/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_graph_s47",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 47,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.15680555722055337,
+    "replay_update_fraction": 0.390497884803124,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 221,
+    "eligible_prompts_with_one_key": 221,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 163,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14144
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/pantry_plan/s43/debug_job30508689/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_pantry_s43",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 43,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.024370328859631932,
+    "replay_update_fraction": 0.5756589651806052,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 221,
+    "eligible_prompts_with_one_key": 221,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 163,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14144
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/pantry_plan/s44/debug_job30508691/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_pantry_s44",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 44,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.02923811346907411,
+    "replay_update_fraction": 0.5756589651806052,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 221,
+    "eligible_prompts_with_one_key": 221,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 163,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14144
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/pantry_plan/s45/debug_job30508693/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_pantry_s45",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 45,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.038398693338862505,
+    "replay_update_fraction": 0.5753335502766027,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 206,
+    "eligible_prompts_with_one_key": 206,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 178,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 13184
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/pantry_plan/s46/debug_job30508696/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_pantry_s46",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 46,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.03151968755596543,
+    "replay_update_fraction": 0.5362837617962902,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 221,
+    "eligible_prompts_with_one_key": 221,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 163,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14144
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/pantry_plan/s47/debug_job30508698/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_pantry_s47",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 47,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.021198417517578217,
+    "replay_update_fraction": 0.5756589651806052,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 81,
+    "eligible_prompts_with_one_key": 81,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 303,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 5184
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/python_factors/s43/debug_job30508700/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_python_s43",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 43,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.030131826863174997,
+    "replay_update_fraction": 0.21119427269768956,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 81,
+    "eligible_prompts_with_one_key": 81,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 303,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 5184
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/python_factors/s44/debug_job30508702/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_python_s44",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 44,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.031807270303460554,
+    "replay_update_fraction": 0.21086885779368694,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 81,
+    "eligible_prompts_with_one_key": 81,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 303,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 5184
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/python_factors/s45/debug_job30508704/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_python_s45",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 45,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.029749657113656954,
+    "replay_update_fraction": 0.21086885779368694,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 81,
+    "eligible_prompts_with_one_key": 81,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 303,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 5184
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/python_factors/s46/debug_job30508706/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_python_s46",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 46,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.03552473917924935,
+    "replay_update_fraction": 0.21119427269768956,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 81,
+    "eligible_prompts_with_one_key": 81,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 303,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 5184
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e98_rlep_pools/python_factors/s47/debug_job30508708/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e98r1_sparse_rlep_python_s47",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 47,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.02379729493143746,
+    "replay_update_fraction": 0.21119427269768956,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9983217592592593,
+    "eligible_prompts": 270,
+    "eligible_prompts_with_one_key": 269,
+    "keys_per_eligible_prompt": 1.0037037037037038,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9981352880658436,
+    "prompts_with_no_verified_trajectory": 114,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 17005
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/countdown/s43/debug_job30790382/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_countdown_sparse_rlep_s43",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 43,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.11190806790903618,
+    "replay_update_fraction": 0.7032216075496258,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9959935897435898,
+    "eligible_prompts": 195,
+    "eligible_prompts_with_one_key": 192,
+    "keys_per_eligible_prompt": 1.0153846153846153,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9945156695156695,
+    "prompts_with_no_verified_trajectory": 189,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 12480
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/countdown/s44/debug_job30790384/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_countdown_sparse_rlep_s44",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 44,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.08061072025340693,
+    "replay_update_fraction": 0.5079726651480638,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.996328125,
+    "eligible_prompts": 200,
+    "eligible_prompts_with_one_key": 198,
+    "keys_per_eligible_prompt": 1.01,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.995280257936508,
+    "prompts_with_no_verified_trajectory": 184,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 12800
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/countdown/s45/debug_job30790386/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_countdown_sparse_rlep_s45",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 45,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.08449580174621234,
+    "replay_update_fraction": 0.5209892613081679,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9913091715976331,
+    "eligible_prompts": 169,
+    "eligible_prompts_with_one_key": 163,
+    "keys_per_eligible_prompt": 1.0355029585798816,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9871736169813092,
+    "prompts_with_no_verified_trajectory": 215,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 10728
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/countdown/s46/debug_job30790388/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_countdown_sparse_rlep_s46",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 46,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.11107005110369818,
+    "replay_update_fraction": 0.44028636511552227,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9981993494423792,
+    "eligible_prompts": 269,
+    "eligible_prompts_with_one_key": 266,
+    "keys_per_eligible_prompt": 1.0111524163568772,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.997379698471706,
+    "prompts_with_no_verified_trajectory": 115,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 17126
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/countdown/s47/debug_job30790390/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_countdown_sparse_rlep_s47",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 47,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.14052743031792567,
+    "replay_update_fraction": 0.700618288317605,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 241,
+    "eligible_prompts_with_one_key": 241,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 143,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14753
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/mathir/s43/debug_job30790392/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_mathir_sparse_rlep_s43",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 43,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.361024666741815,
+    "replay_update_fraction": 0.6273999349170192,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 0.9996558370044053,
+    "eligible_prompts": 227,
+    "eligible_prompts_with_one_key": 226,
+    "keys_per_eligible_prompt": 1.0044052863436124,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9993553772463464,
+    "prompts_with_no_verified_trajectory": 157,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 13684
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/mathir/s44/debug_job30790395/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_mathir_sparse_rlep_s44",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 44,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.4020741565608407,
+    "replay_update_fraction": 0.5909534656687276,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 237,
+    "eligible_prompts_with_one_key": 237,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 147,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14747
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/mathir/s45/debug_job30790397/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_mathir_sparse_rlep_s45",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 45,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.3703215611027333,
+    "replay_update_fraction": 0.6173120728929385,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 204,
+    "eligible_prompts_with_one_key": 204,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 180,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 12537
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/mathir/s46/debug_job30790399/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_mathir_sparse_rlep_s46",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 46,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.3533033961903553,
+    "replay_update_fraction": 0.5314025382362512,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 0.9991816693944353,
+    "eligible_prompts": 188,
+    "eligible_prompts_with_one_key": 187,
+    "keys_per_eligible_prompt": 1.0053191489361701,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9985786889482298,
+    "prompts_with_no_verified_trajectory": 196,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 10772
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e116_rlep_pools/qwen05b/mathir/s47/debug_job30790401/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e116_qwen05b_mathir_sparse_rlep_s47",
+   "scale": "Qwen2.5-0.5B",
+   "seed": 47,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.40546327158066126,
+    "replay_update_fraction": 0.489749430523918,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 0.9496408830664743,
+    "eligible_prompts": 208,
+    "eligible_prompts_with_one_key": 146,
+    "keys_per_eligible_prompt": 1.3076923076923077,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.920493350494585,
+    "prompts_with_no_verified_trajectory": 176,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8773
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/graph_coloring/s55/debug_job30572755/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_graph_s55",
+   "scale": "Falcon3-1B",
+   "seed": 55,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.39089497668049195,
+    "replay_update_fraction": 0.5419823232323232,
+    "terminal_step": 3073,
+    "updates": 3168
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 0.9843459449709451,
+    "eligible_prompts": 165,
+    "eligible_prompts_with_one_key": 149,
+    "keys_per_eligible_prompt": 1.1090909090909091,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.9744246919197068,
+    "prompts_with_no_verified_trajectory": 219,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8981
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/graph_coloring/s56/debug_job30572757/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_graph_s56",
+   "scale": "Falcon3-1B",
+   "seed": 56,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.32962691933845234,
+    "replay_update_fraction": 0.4305555555555556,
+    "terminal_step": 3073,
+    "updates": 3168
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 0.8782672923621032,
+    "eligible_prompts": 257,
+    "eligible_prompts_with_one_key": 123,
+    "keys_per_eligible_prompt": 1.7315175097276265,
+    "max_keys_on_any_eligible_prompt": 5,
+    "p_same_key_pair": 0.8196349617401472,
+    "prompts_with_no_verified_trajectory": 126,
+    "prompts_with_one_verified_trajectory": 1,
+    "verified_trajectories": 8422
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/graph_coloring/s57/debug_job30572759/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_graph_s57",
+   "scale": "Falcon3-1B",
+   "seed": 57,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.48260825215434394,
+    "replay_update_fraction": 0.6694651741293532,
+    "terminal_step": 3073,
+    "updates": 3216
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 0.9162882736918794,
+    "eligible_prompts": 227,
+    "eligible_prompts_with_one_key": 147,
+    "keys_per_eligible_prompt": 1.4317180616740088,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.8788677070683893,
+    "prompts_with_no_verified_trajectory": 154,
+    "prompts_with_one_verified_trajectory": 3,
+    "verified_trajectories": 8879
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/graph_coloring/s58/debug_job30572761/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_graph_s58",
+   "scale": "Falcon3-1B",
+   "seed": 58,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.4184592646956444,
+    "replay_update_fraction": 0.5918560606060606,
+    "terminal_step": 3073,
+    "updates": 3168
+   }
+  },
+  {
+   "domain": "graph_coloring",
+   "pool": {
+    "dominant_key_share": 0.9024546417960665,
+    "eligible_prompts": 221,
+    "eligible_prompts_with_one_key": 141,
+    "keys_per_eligible_prompt": 1.407239819004525,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.8577179258040688,
+    "prompts_with_no_verified_trajectory": 163,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8338
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/graph_coloring/s59/debug_job30572763/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_graph_s59",
+   "scale": "Falcon3-1B",
+   "seed": 59,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.43534042920943467,
+    "replay_update_fraction": 0.5740453275380316,
+    "terminal_step": 3073,
+    "updates": 3221
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9492445054945055,
+    "eligible_prompts": 182,
+    "eligible_prompts_with_one_key": 138,
+    "keys_per_eligible_prompt": 1.2472527472527473,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.9272402452941194,
+    "prompts_with_no_verified_trajectory": 202,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 9863
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/countdown/s55/debug_job30572765/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_countdown_s55",
+   "scale": "Falcon3-1B",
+   "seed": 55,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.24154433237938838,
+    "replay_update_fraction": 0.474930790525992,
+    "terminal_step": 3073,
+    "updates": 3251
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9740234375,
+    "eligible_prompts": 160,
+    "eligible_prompts_with_one_key": 140,
+    "keys_per_eligible_prompt": 1.13125,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.9631944444444445,
+    "prompts_with_no_verified_trajectory": 224,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8515
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/countdown/s56/debug_job30572767/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_countdown_s56",
+   "scale": "Falcon3-1B",
+   "seed": 56,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.2918512760206439,
+    "replay_update_fraction": 0.4163411458333333,
+    "terminal_step": 3073,
+    "updates": 3072
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9752784510618652,
+    "eligible_prompts": 152,
+    "eligible_prompts_with_one_key": 135,
+    "keys_per_eligible_prompt": 1.118421052631579,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.9642733478432925,
+    "prompts_with_no_verified_trajectory": 232,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 8702
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/countdown/s57/debug_job30572769/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_countdown_s57",
+   "scale": "Falcon3-1B",
+   "seed": 57,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.22089838673381307,
+    "replay_update_fraction": 0.3961588541666667,
+    "terminal_step": 3073,
+    "updates": 3072
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.9621184593023255,
+    "eligible_prompts": 172,
+    "eligible_prompts_with_one_key": 145,
+    "keys_per_eligible_prompt": 1.1627906976744187,
+    "max_keys_on_any_eligible_prompt": 3,
+    "p_same_key_pair": 0.9487558831672204,
+    "prompts_with_no_verified_trajectory": 212,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 9372
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/countdown/s58/debug_job30572771/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_countdown_s58",
+   "scale": "Falcon3-1B",
+   "seed": 58,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.23705050739375028,
+    "replay_update_fraction": 0.4475911458333333,
+    "terminal_step": 3073,
+    "updates": 3072
+   }
+  },
+  {
+   "domain": "countdown",
+   "pool": {
+    "dominant_key_share": 0.96467603980322,
+    "eligible_prompts": 172,
+    "eligible_prompts_with_one_key": 142,
+    "keys_per_eligible_prompt": 1.1744186046511629,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.948198806579877,
+    "prompts_with_no_verified_trajectory": 212,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 9714
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/countdown/s59/debug_job30572773/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_countdown_s59",
+   "scale": "Falcon3-1B",
+   "seed": 59,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.22916666955719595,
+    "replay_update_fraction": 0.4479166666666667,
+    "terminal_step": 3073,
+    "updates": 3072
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 2,
+    "eligible_prompts_with_one_key": 2,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 382,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 6
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/python_factors/s55/debug_job30572775/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_python_s55",
+   "scale": "Falcon3-1B",
+   "seed": 55,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.697916672565043,
+    "replay_update_fraction": 0.005206638464041653,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "python_factors",
+   "pool": {
+    "dominant_key_share": 0.9977477477477477,
+    "eligible_prompts": 74,
+    "eligible_prompts_with_one_key": 73,
+    "keys_per_eligible_prompt": 1.0135135135135136,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9954954954954955,
+    "prompts_with_no_verified_trajectory": 310,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 323
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/python_factors/s57/debug_job30580927/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_python_s57",
+   "scale": "Falcon3-1B",
+   "seed": 57,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.2922297329201388,
+    "replay_update_fraction": 0.19264562316954117,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 24,
+    "eligible_prompts_with_one_key": 24,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 360,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 1536
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/mathir/s55/debug_job30572785/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_mathir_s55",
+   "scale": "Falcon3-1B",
+   "seed": 55,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.11855670318161089,
+    "replay_update_fraction": 0.06186224489795918,
+    "terminal_step": 3073,
+    "updates": 3136
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 24,
+    "eligible_prompts_with_one_key": 24,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 360,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 1536
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/mathir/s56/debug_job30572787/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_mathir_s56",
+   "scale": "Falcon3-1B",
+   "seed": 56,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.2898428774241245,
+    "replay_update_fraction": 0.0625,
+    "terminal_step": 3073,
+    "updates": 3168
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 24,
+    "eligible_prompts_with_one_key": 24,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 360,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 1536
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/mathir/s57/debug_job30572789/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_mathir_s57",
+   "scale": "Falcon3-1B",
+   "seed": 57,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.21006944763939828,
+    "replay_update_fraction": 0.0625,
+    "terminal_step": 3073,
+    "updates": 3072
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 54,
+    "eligible_prompts_with_one_key": 54,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 317,
+    "prompts_with_one_verified_trajectory": 13,
+    "verified_trajectories": 2268
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/mathir/s58/debug_job30572791/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_mathir_s58",
+   "scale": "Falcon3-1B",
+   "seed": 58,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.3930771155592608,
+    "replay_update_fraction": 0.13962848297213623,
+    "terminal_step": 3073,
+    "updates": 3230
+   }
+  },
+  {
+   "domain": "mathir",
+   "pool": {
+    "dominant_key_share": 0.996875,
+    "eligible_prompts": 40,
+    "eligible_prompts_with_one_key": 39,
+    "keys_per_eligible_prompt": 1.025,
+    "max_keys_on_any_eligible_prompt": 2,
+    "p_same_key_pair": 0.9944444444444445,
+    "prompts_with_no_verified_trajectory": 344,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 1550
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/mathir/s59/debug_job30572793/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_mathir_s59",
+   "scale": "Falcon3-1B",
+   "seed": 59,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.488855627092148,
+    "replay_update_fraction": 0.10379117464263518,
+    "terminal_step": 3073,
+    "updates": 3218
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 228,
+    "eligible_prompts_with_one_key": 228,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 156,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14592
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/pantry_plan/s55/debug_job30790678/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_pantry_s55",
+   "scale": "Falcon3-1B",
+   "seed": 55,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.0880365310139852,
+    "replay_update_fraction": 0.5938821998047511,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 228,
+    "eligible_prompts_with_one_key": 228,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 156,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14592
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/pantry_plan/s56/debug_job30572797/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_pantry_s56",
+   "scale": "Falcon3-1B",
+   "seed": 56,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.08407914901637051,
+    "replay_update_fraction": 0.5938821998047511,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 228,
+    "eligible_prompts_with_one_key": 228,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 156,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14592
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/pantry_plan/s57/debug_job30572799/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_pantry_s57",
+   "scale": "Falcon3-1B",
+   "seed": 57,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.09865375383953123,
+    "replay_update_fraction": 0.5935567849007485,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 228,
+    "eligible_prompts_with_one_key": 228,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 156,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14592
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/pantry_plan/s58/debug_job30790680/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_pantry_s58",
+   "scale": "Falcon3-1B",
+   "seed": 58,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.09132420212438662,
+    "replay_update_fraction": 0.5938821998047511,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  },
+  {
+   "domain": "pantry_plan",
+   "pool": {
+    "dominant_key_share": 1.0,
+    "eligible_prompts": 228,
+    "eligible_prompts_with_one_key": 228,
+    "keys_per_eligible_prompt": 1.0,
+    "max_keys_on_any_eligible_prompt": 1,
+    "p_same_key_pair": 1.0,
+    "prompts_with_no_verified_trajectory": 156,
+    "prompts_with_one_verified_trajectory": 0,
+    "verified_trajectories": 14592
+   },
+   "pool_sidecar": "/n/fs/similarity/maxent-grpo/var/data/e100_rlep_pools/pantry_plan/s59/debug_job30572803/eval_mode_coverage_draws.jsonl",
+   "run_stamp": "e100_sparse_rlep_falcon_pantry_s59",
+   "scale": "Falcon3-1B",
+   "seed": 59,
+   "telemetry": {
+    "mean_replay_advantage_when_eligible": 0.09348554173356866,
+    "replay_update_fraction": 0.5938821998047511,
+    "terminal_step": 3073,
+    "updates": 3073
+   }
+  }
+ ],
+ "domains": {
+  "Falcon3-1B": {
+   "countdown": {
+    "cells": 5,
+    "eligible_fraction": 0.43645833333333334,
+    "keys_per_eligible_prompt": 1.1668266204419815,
+    "mean_replay_advantage": 0.24410223441695833,
+    "no_verified_fraction": 0.5635416666666667,
+    "p_same_key_pair": 0.9503325454657908,
+    "replay_update_fraction": 0.43658772060519835,
+    "seeds": [
+     55,
+     56,
+     57,
+     58,
+     59
+    ],
+    "single_key_fraction": 0.8380008608282783
+   },
+   "graph_coloring": {
+    "cells": 5,
+    "eligible_fraction": 0.5614583333333333,
+    "keys_per_eligible_prompt": 1.3974517214378754,
+    "mean_replay_advantage": 0.41138596841567343,
+    "no_verified_fraction": 0.43645833333333334,
+    "p_same_key_pair": 0.8902277274053795,
+    "replay_update_fraction": 0.5615808882122648,
+    "seeds": [
+     55,
+     56,
+     57,
+     58,
+     59
+    ],
+    "single_key_fraction": 0.6738277488056064
+   },
+   "mathir": {
+    "cells": 5,
+    "eligible_fraction": 0.08645833333333335,
+    "keys_per_eligible_prompt": 1.0050000000000001,
+    "mean_replay_advantage": 0.3000803541793085,
+    "no_verified_fraction": 0.9067708333333333,
+    "p_same_key_pair": 0.9988888888888889,
+    "replay_update_fraction": 0.08605638050254612,
+    "seeds": [
+     55,
+     56,
+     57,
+     58,
+     59
+    ],
+    "single_key_fraction": 0.9949999999999999
+   },
+   "pantry_plan": {
+    "cells": 5,
+    "eligible_fraction": 0.59375,
+    "keys_per_eligible_prompt": 1.0,
+    "mean_replay_advantage": 0.09111583554556844,
+    "no_verified_fraction": 0.40625,
+    "p_same_key_pair": 1.0,
+    "replay_update_fraction": 0.5938171168239506,
+    "seeds": [
+     55,
+     56,
+     57,
+     58,
+     59
+    ],
+    "single_key_fraction": 1.0
+   },
+   "python_factors": {
+    "cells": 2,
+    "eligible_fraction": 0.09895833333333333,
+    "keys_per_eligible_prompt": 1.0067567567567568,
+    "mean_replay_advantage": 0.4950732027425909,
+    "no_verified_fraction": 0.9010416666666666,
+    "p_same_key_pair": 0.9977477477477478,
+    "replay_update_fraction": 0.09892613081679141,
+    "seeds": [
+     55,
+     57
+    ],
+    "single_key_fraction": 0.9932432432432432
+   }
+  },
+  "Qwen2.5-0.5B": {
+   "countdown": {
+    "cells": 5,
+    "eligible_fraction": 0.5744791666666667,
+    "keys_per_eligible_prompt": 1.0151487388050158,
+    "mean_replay_advantage": 0.10572241426605586,
+    "no_verified_fraction": 0.42552083333333335,
+    "p_same_key_pair": 0.9944969061942073,
+    "replay_update_fraction": 0.5746176374877969,
+    "seeds": [
+     43,
+     44,
+     45,
+     46,
+     47
+    ],
+    "single_key_fraction": 0.9848512611949843
+   },
+   "graph_coloring": {
+    "cells": 5,
+    "eligible_fraction": 0.36354166666666665,
+    "keys_per_eligible_prompt": 1.0,
+    "mean_replay_advantage": 0.1897200321100359,
+    "no_verified_fraction": 0.6364583333333333,
+    "p_same_key_pair": 1.0,
+    "replay_update_fraction": 0.3634884477709079,
+    "seeds": [
+     43,
+     44,
+     45,
+     46,
+     47
+    ],
+    "single_key_fraction": 1.0
+   },
+   "mathir": {
+    "cells": 5,
+    "eligible_fraction": 0.5713541666666667,
+    "keys_per_eligible_prompt": 1.0019448870559564,
+    "mean_replay_advantage": 0.3784374104352811,
+    "no_verified_fraction": 0.42864583333333334,
+    "p_same_key_pair": 0.9995868132389152,
+    "replay_update_fraction": 0.5713634884477709,
+    "seeds": [
+     43,
+     44,
+     45,
+     46,
+     47
+    ],
+    "single_key_fraction": 0.9980551129440436
+   },
+   "pantry_plan": {
+    "cells": 5,
+    "eligible_fraction": 0.5677083333333334,
+    "keys_per_eligible_prompt": 1.0,
+    "mean_replay_advantage": 0.028945048148222442,
+    "no_verified_fraction": 0.4322916666666667,
+    "p_same_key_pair": 1.0,
+    "replay_update_fraction": 0.5677188415229417,
+    "seeds": [
+     43,
+     44,
+     45,
+     46,
+     47
+    ],
+    "single_key_fraction": 1.0
+   },
+   "python_factors": {
+    "cells": 5,
+    "eligible_fraction": 0.2109375,
+    "keys_per_eligible_prompt": 1.0,
+    "mean_replay_advantage": 0.03020215767819586,
+    "no_verified_fraction": 0.7890625,
+    "p_same_key_pair": 1.0,
+    "replay_update_fraction": 0.2110641067360885,
+    "seeds": [
+     43,
+     44,
+     45,
+     46,
+     47
+    ],
+    "single_key_fraction": 1.0
+   }
+  }
+ },
+ "generated_at": "2026-09-25T01:48:53.494164+00:00",
+ "protocol": {
+  "collection": "64 candidates per prompt (four draws of 16), temperature .7, top-p .95",
+  "eligibility": "at least 2 verified trajectories on the prompt",
+  "replay_row_coefficient": "(1 - mean mixed reward) / (fresh + replay rows)",
+  "seed_policy": "paired terminal Dr.GRPO control of the same seed",
+  "update": "16 fresh + 2 replay rows under one common baseline"
+ },
+ "provenance": [
+  {
+   "ledger": "/n/fs/similarity/maxent-grpo/var/artifacts/e98r1_sparse_rlep_dr_05b_jobs.json",
+   "sha256": "bc85df0ee0ab777d3da1970469c0f9cbbcbdb4afbdda52a1ca6ae12d097ade38"
+  },
+  {
+   "ledger": "/n/fs/similarity/maxent-grpo/var/artifacts/e116_sparse_rlep_qwen05b_domain_extension_jobs.json",
+   "sha256": "696a660251990d5cbd91ee244a8905944b5d872e9fe1432f57f617b49a1aa5ae"
+  },
+  {
+   "ledger": "/n/fs/similarity/maxent-grpo/var/artifacts/e100_sparse_rlep_dr_falcon1b_jobs.json",
+   "sha256": "8a522a9afa7229df03a2ccb204d3fe571a7852f5211fa3b03b6b38ded7b67e1d"
+  },
+  {
+   "ledger": "/n/fs/similarity/maxent-grpo/var/artifacts/e132_matched_redr_05b_jobs.json",
+   "sha256": "fc8573fad06025ecc43e6ff0da4f5b482196a00001489f38b03d88e8e083fc4c"
+  }
+ ],
+ "redr_bank_occupancy_e132": {
+  "countdown": {
+   "cells": 5,
+   "fraction_of_updates_with_two_or_more_modes": 0.8485882398706732,
+   "mean_banked_modes": 2.562817127134524
+  },
+  "graph_coloring": {
+   "cells": 5,
+   "fraction_of_updates_with_two_or_more_modes": 0.8863418271227737,
+   "mean_banked_modes": 3.7719625296094934
+  },
+  "mathir": {
+   "cells": 5,
+   "fraction_of_updates_with_two_or_more_modes": 0.15245027578587064,
+   "mean_banked_modes": 1.1534268382858708
+  },
+  "pantry_plan": {
+   "cells": 5,
+   "fraction_of_updates_with_two_or_more_modes": 0.9511877643996096,
+   "mean_banked_modes": 6.877904328018223
+  },
+  "python_factors": {
+   "cells": 5,
+   "fraction_of_updates_with_two_or_more_modes": 0.19000616168140555,
+   "mean_banked_modes": 1.1992455594543767
+  }
+ },
+ "schema": "paper-rlep-pool-composition-v1"
+}

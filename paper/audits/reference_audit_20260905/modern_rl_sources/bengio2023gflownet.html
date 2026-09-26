@@ -1,0 +1,173 @@
+<html>
+<head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-131826476-1"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-131826476-1');
+    </script>
+
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+  <!-- favicon -->
+  <link rel="icon" href="/img/favicon.ico">
+  <link rel="icon" type="image/png" href="/img/favicon-16x16.png">
+  <link rel="icon" type="image/png" href="/img/favicon-32x32.png">
+
+<title>GFlowNet Foundations</title>
+
+
+<link rel="alternate" type="application/rss+xml" href="/jmlr.xml" title="JMLR RSS">
+<link rel="stylesheet" type="text/css" href="/style.css">
+<style type="text/css">
+. {font-family:verdana,helvetica,sans-serif}
+a {text-decoration:none;color:#3030a0}
+
+#fixed {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 8em;
+    height: 100%;
+}
+body > #fixed {
+    position: fixed;
+}
+#content {
+    margin-top: 1em;
+    margin-left: 10em;
+    margin-right: 0.5em;
+}
+img.jmlr {
+    width: 7em;
+}
+img.rss {
+    width: 2em;
+}
+
+ul li {
+    margin-bottom: 0.5em;
+}
+</style>
+
+
+ <!-- MathJax -->
+<script type="text/x-mathjax-config">
+    MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$']]}});
+</script>
+<script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+
+<!-- Google Scholar Meta -->
+<meta name="citation_title" content="GFlowNet Foundations">
+<meta name="citation_author" content="Yoshua Bengio">
+<meta name="citation_author" content="Salem Lahlou">
+<meta name="citation_author" content="Tristan Deleu">
+<meta name="citation_author" content="Edward J. Hu">
+<meta name="citation_author" content="Mo Tiwari">
+<meta name="citation_author" content="Emmanuel Bengio">
+<meta name="citation_journal_title" content="Journal of Machine Learning Research">
+<meta name="citation_volume" content="24">
+<meta name="citation_issue" content="210">
+<meta name="citation_firstpage" content="1">
+<meta name="citation_lastpage" content="55">
+<meta name="citation_pdf_url" content="http://jmlr.org/papers/volume24/22-0364/22-0364.pdf">
+<meta name="citation_publication_date" content="2023">
+<meta name="citation_public_url" content="http://jmlr.org/papers/v24/22-0364.html">
+<meta name="citation_abstract_html_url" content="http://jmlr.org/papers/v24/22-0364.html">
+<meta name="citation_issn" content="1533-7928">
+
+
+
+
+</head>
+<body>
+
+  <div id="fixed">
+  <br>
+  <a align="right" href="/" target=_top><img align="right" class="jmlr" src="/img/jmlr.jpg" border="0"></a> 
+  <p><br><br>
+  <p align="right"> <A href="/"> Home Page </A> 
+
+  <p align="right"> <A href="/papers"> Papers </A> 
+
+  <p align="right" > <A href="/author-info.html">  Submissions  </A> 
+    
+
+  <p align="right"> <A href="/news.html"> News </A> 
+
+  <!--<p align="right"> <A href="/scope.html"> Scope </A>-->
+
+  <p align="right" > <A href="/editorial-board.html"> Editorial Board </A> 
+
+    
+
+    <p align="right" > <A href="/special_issues/"> Special Issues </A> 
+
+        
+    
+  <p align="right"> <A href="/mloss">Open Source Software</A>
+
+  <p align="right"> <A href="https://proceedings.mlr.press/"> Proceedings (PMLR)</A>
+
+  <p align="right"> <A href="https://data.mlr.press/"> Data (DMLR) </A>
+      
+  <p align="right"> <A href="/tmlr"> Transactions (TMLR) </A>
+
+  <p align="right"> <A href="/search-jmlr.html"> Search </A>
+
+  <p align="right"> <A href="/stats.html">Statistics</A>
+
+  <p align="right"> <A href="/manudb"> Login </A></p>
+
+   <p align="right"> <A href="/faq.html">Frequently Asked Questions </A></p>
+                                     
+  <p align="right"> <A href="/contact.html"> Contact Us </A></p>
+
+  <br><br>
+  <p align="right"> <A href="/jmlr.xml"> 
+  <img src="/img/RSS.gif" class="rss" alt="RSS Feed">
+  </A>
+
+
+
+  </div>
+
+<div id="content">
+    
+<h2> GFlowNet Foundations </h2>
+
+<p><b><i>Yoshua Bengio, Salem Lahlou, Tristan Deleu, Edward J. Hu, Mo Tiwari, Emmanuel Bengio</i></b>; 24(210):1&minus;55, 2023.</p>
+
+
+<h3>Abstract</h3>
+<p class="abstract">
+
+Generative Flow Networks (GFlowNets) have been introduced as a method to sample a diverse set of candidates in an active learning context, with a training objective that makes them approximately sample in proportion to a given reward function. In this paper, we show a number of additional theoretical properties of GFlowNets, including a new local and efficient training objective called detailed balance for the analogy with MCMC. GFlowNets can be used to estimate joint probability distributions and the corresponding marginal distributions where some variables are unspecified and, of particular interest, can represent distributions over composite objects like sets and graphs. GFlowNets amortize the work typically done by computationally expensive MCMC methods in a single but trained generative pass. They could also be used to estimate partition functions and free energies, conditional probabilities of supersets (supergraphs) given a subset (subgraph), as well as marginal distributions over all supersets (supergraphs) of a given set (graph). We introduce variations enabling the estimation of entropy and mutual information, continuous actions and modular energy functions.
+
+</p>
+
+
+
+<font color="gray"><p>[abs]</font>[<a id="pdf" target="_blank" href="/papers/volume24/22-0364/22-0364.pdf">pdf</a>][<a id="bib" href="/papers/v24/22-0364.bib">bib</a>]
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+
+
+                      
+    <table width="100%"> <tr>
+    <td
+    align="right"><font size="-1">&copy <a target="_top"
+    href="https://www.jmlr.org">JMLR</a> 2023. 
+(<a href="https://github.com/JmlrOrg/v24/tree/main/22-0364">edit</a>, <a href="http://jmlr.org/beta/papers/v24/22-0364.html">beta</a>)
+</td> </tr> </table>
+    
+
+</div>
+<!-- for mastodon verification -->
+<a style="font-size: 0" rel="me" href="https://sigmoid.social/@jmlr">Mastodon</a>
+</body>
+</html>

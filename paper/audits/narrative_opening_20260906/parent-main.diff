@@ -1,0 +1,125 @@
+--- before/parent-main.tex
++++ paper/main.tex
+@@ -82,7 +82,7 @@
+ 
+ 
+ \title{Preserving Verified Output Modes in RLVR:\\
+-ModeBench and ReplayMaxRL}
++\mb{} and ReplayMaxRL}
+ 
+ \author{Anonymous Authors}
+ 
+@@ -104,7 +104,7 @@
+ counters this tendency. Across three model scales, canonical replay improves
+ held-out correctness and retains a broader set of sampled outputs than
+ verifier-only RL. At the two scales with complete MaxRL comparisons, replay
+-also complements sampling-aware learning. ModeBench thus provides a controlled
++also complements sampling-aware learning. \mb{} thus provides a controlled
+ setting for studying two requirements of mathematical reasoning: discovering
+ successful solutions and preserving alternatives an agent can still propose
+ for verification and further search.
+@@ -159,7 +159,7 @@
+ 
+ Measuring this loss requires identifying which successful output occurred.
+ Different strings can encode the same executed solution, while different
+-computations can reach the same correct answer. ModeBench therefore asks which
++computations can reach the same correct answer. \mb{} therefore asks which
+ verified alternatives remain sampleable, alongside whether any sample succeeds.
+ Its canonical keys make the same identity useful for measurement and memory.
+ 
+@@ -183,7 +183,7 @@
+   \setlength{\parsep}{0pt}%
+   \setlength{\topsep}{0.35em}%
+   \setlength{\itemsep}{0.35em}}
+-  \item \textbf{ModeBench measures verified output support.} We introduce
++  \item \textbf{\mb{} measures verified output support.} We introduce
+   five executable domain families with two matched difficulty levels each.
+   Validators return both reward and a canonical key. Countdown and MathIR keys
+   distinguish computation or derivation routes; Python keys distinguish
+@@ -276,7 +276,7 @@
+   \qquad
+   F_K=K^{-1}\sum_i \1[V(Y_i,s_x)\neq\bot].
+ \]
+-ModeBench reports three averages with different units. \texttt{distinct@}$K
++\mb{} reports three averages with different units. \texttt{distinct@}$K
+ =\E[D_K]$ is an expected count in $[0,K]$ of unique verified keys;
+ \texttt{pass@}$K=\Pr[D_K>0]$ and \texttt{mean@}$K=\E[F_K]$ are probabilities
+ in $[0,1]$. For every draw, $F_K\le\1[D_K>0]\le D_K$; hence
+@@ -401,7 +401,7 @@
+   order aliases (18.19 modes per evaluation prompt).
+ \end{list}
+ 
+-ModeBench targets task-defined executable output support. ReplayMaxRL stores
++\mb{} targets task-defined executable output support. ReplayMaxRL stores
+ one verified exemplar per observed task-defined key and samples uniformly over
+ those keys.
+ Appendices~\ref{app:prompts}, \ref{app:python}, and~\ref{app:data} give the
+@@ -417,7 +417,7 @@
+ \section{ReplayMaxRL: Explore and Preserve Verified Modes}
+ \label{sec:method}
+ 
+-ReplayMaxRL turns ModeBench keys into persistent training state without
++ReplayMaxRL turns \mb{} keys into persistent training state without
+ requiring the full valid support. Binary MaxRL learns from fresh rollouts across
+ sampling budgets; key-balanced replay keeps previously verified modes available
+ when they become rare or disappear from the current group.
+@@ -570,7 +570,7 @@
+ blocks report exact \(n\).
+ 
+ \phantomsection\label{sec:levels-design}
+-\noindent\textbf{Exp.~3:} ModeBench Level 2 preserves each domain's validator,
++\noindent\textbf{Exp.~3:} \mb{} Level 2 preserves each domain's validator,
+ canonical key, split sizes, and split-wise valid-mode-count histogram while
+ changing structure: four hidden Graph vertices, four Countdown operands,
+ larger Python inputs, variable-on-both-sides MathIR equations, and tighter PantryPlan
+@@ -790,7 +790,7 @@
+ \label{sec:discussion}
+ \label{sec:limitations}
+ 
+-ModeBench makes a missing part of evaluation measurable: the range of distinct,
++\mb{} makes a missing part of evaluation measurable: the range of distinct,
+ verified outcomes a model can produce for one problem. Accuracy tells us whether
+ a model can succeed; diversity helps describe the alternatives still available
+ to it. That distinction matters because different approaches can have different
+@@ -800,12 +800,12 @@
+ 
+ Our experiments show that replay complements learning from fresh samples.
+ Remembering verified solutions improves held-out correctness and preserves
+-more correct output alternatives across the completed comparisons. ModeBench
++more correct output alternatives across the completed comparisons. \mb{}
+ lets us measure those alternatives through executable, task-defined identities.
+ It provides a controlled starting point for understanding what training
+ preserves, alongside what training learns to solve.
+ 
+-\textbf{Limits and next steps.} ModeBench provides a controlled setting for
++\textbf{Limits and next steps.} \mb{} provides a controlled setting for
+ studying diverse solutions. Understanding how this diversity relates to broader
+ mathematical reasoning and later problem solving remains an open direction. Replay can
+ retain only modes it discovers and stores. Individual-mode survival and
+@@ -3930,7 +3930,7 @@
+ \subsection{Matched Level-2 construction}
+ \label{app:data-levels}
+ 
+-ModeBench currently releases two levels for each domain. Level 2 changes the
++\mb{} currently releases two levels for each domain. Level 2 changes the
+ problem structure while preserving the Level-1 verifier, canonicalizer, split
+ sizes, and exact per-split histogram of valid-mode counts. Its 384/128/128
+ train/development/evaluation identities are disjoint from every Level-1 and
+@@ -4136,7 +4136,7 @@
+ \subsection{Matched design}
+ \label{app:scale-matrix}
+ 
+-The scale extensions preserve the five ModeBench domains, paired initialization
++The scale extensions preserve the five \mb{} domains, paired initialization
+ and data identities, eight-pass horizon, evaluation grid, verifier, bank
+ capacity, replay scheduling code, and recovery rules. Registered seeds are
+ 55--59 for Falcon3-1B and 70--74 for Qwen2.5-3B. The Falcon Countdown
+@@ -4431,7 +4431,7 @@
+ Every reported figure has an adjacent machine-readable record containing its
+ source paths, exact seed set, checkpoint rule, displayed values, and SHA-256
+ hashes. \path{paper/FIGURE_MANIFEST.md} maps figures to builders and versioned
+-records. The ModeBench example renderer re-executes every displayed coloring,
++records. The \mb{} example renderer re-executes every displayed coloring,
+ factorization, arithmetic transition, and pantry allocation. Result builders
+ abort on missing matched comparisons or source-hash drift rather than carrying a
+ shallower checkpoint forward.

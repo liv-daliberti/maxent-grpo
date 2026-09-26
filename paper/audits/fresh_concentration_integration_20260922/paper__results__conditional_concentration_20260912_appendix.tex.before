@@ -1,0 +1,141 @@
+\subsection{Conditional concentration of correct outputs}
+\label{app:conditional-concentration}
+
+Conditional concentration measures how strongly correct outputs favor the
+same solution keys, separately from the probability of correctness. For a
+fixed prompt with correct mass $P>0$, write
+$q_c=\Pr[V(Y,s_x)=c\mid V(Y,s_x)\ne\bot]$ and define
+\begin{equation}
+ C(q)=\sum_c q_c^2,\qquad \bar D_2=2P-P^2C(q).
+ \label{eq:collision-breadth-bridge}
+\end{equation}
+Here $C$ is the probability that two independent correct outputs share a
+key, and $\bar D_2$ is the expected number of distinct verified keys in two
+outputs. The identity follows from
+$\bar D_2=\sum_c[1-(1-Pq_c)^2]$. At $P=0$, $C$ is undefined and
+$\bar D_2=0$. Expected distinct keys, $\bar D_K$, differ from extra verified
+modes, $B=\texttt{distinct@}K-\texttt{pass@}K$. Sampled diversity can change
+through either correctness or conditional concentration. Lower $C$ alone
+implies neither majorization nor larger total support, and collisions do
+not determine whether any particular unobserved key has zero probability.
+
+\paragraph{Connection to the conditional theory.}
+Under the assumptions of Theorem~\ref{thm:grpo-collapse}, the time change in
+its proof gives $dq_c/d\tau=q_c(q_c-C)$. Consequently,
+\begin{equation}
+ \frac{dC}{d\tau}
+ =2\left(\sum_c q_c^3-C^2\right)
+ =2\operatorname{Var}_{c\sim q}(q_c)\ge0.
+ \label{eq:collision-flow}
+\end{equation}
+The variance vanishes exactly when $q$ is uniform on its positive support.
+Concentration therefore increases strictly along this ideal categorical
+flow whenever the positive coordinates are unequal. This result does not
+establish monotonicity for neural optimization or a monotonic decrease
+under finite-bank replay.
+
+\paragraph{Estimator and comparison population.}
+For a prompt with $R\ge2$ correct samples, the collision estimator is
+$\widehat C=1-\widehat{\pmd}$, using the pair statistic in
+App.~\ref{app:metric-sampling}. It is unbiased for promptwise $C$ under
+independent sampling from a fixed policy. Estimates are undefined at $R<2$;
+joint selection of eligible prompts across conditions imposes additional
+assumptions, as detailed in App.~\ref{app:metric-sampling}.
+
+For paired training seed $s$, let $E_s$ contain the prompts with defined
+estimates in both conditions. When $E_s$ is nonempty, the seed contrast is
+$|E_s|^{-1}\sum_{x\in E_s}(\widehat C_{B,x}-\widehat C_{A,x})$.
+Defined seeds receive equal weight. Before/after comparisons use each
+method's own initial evaluation and step 3,072; replay comparisons use
+paired terminal evaluations. Nominal Student-$t$ intervals require five
+defined seeds; smaller groups are descriptive. These intervals measure
+variation among the observed seed means, without simultaneous coverage or
+uncertainty over unseen prompts. Tables report the number of defined seeds
+and eligible prompts for each contrast.
+
+The hosted analysis instead pools correct pairs across prompts. Under
+independent sampling at a common budget, its ratio of expected colliding
+to correct pair counts is
+$\sum_x P_x^2 C(q_x)/\sum_x P_x^2$; the finite-sample ratio is not generally
+unbiased for this target. Training comparisons weight eligible prompts
+equally. Changes in correctness can alter both eligibility and pooled pair
+weights, so these aggregates estimate different quantities.
+
+\paragraph{Overlapping sampling streams.}
+The four eight-output groups overlap in their sampling streams. Under the
+vLLM V0 seed convention, they contain eleven distinct nominal stream
+identifiers; the concentration estimator uses one representative per
+identifier, chosen independently of correctness and key identity. This
+mapping is an assumption of the seed-based analysis. Equal identifiers can
+produce different outputs, and distinct identifiers do not establish
+independent draws.
+
+Two sensitivity comparisons assign disjoint sets of five and six stream
+identifiers to the two conditions. Split~0 assigns the lower five to~A and
+the upper six to~B; split~1 reverses them. Eligibility is determined
+separately for each split. Streams also repeat across prompts, so the
+splits do not establish independence across prompts or conditions.
+Comparisons remain descriptive where the estimator's independent-sampling
+or joint-selection assumptions do not hold.
+
+The original \texttt{mean@8}, \texttt{pass@8}, and \texttt{distinct@8} average
+the four intact groups. Stream overlap affects dependence, but not the
+linearity of these marginal averages.
+
+\paragraph{Concentration before and after training.}
+At Level~1, all twelve \texttt{Graph}/\texttt{PantryPlan} Dr.GRPO/GRPO comparisons across the
+three scales show increased concentration, with nominal intervals above
+zero. Per-sample correctness also increases on their jointly eligible
+prompts. \texttt{Graph}'s increases range from $.098$ to $.274$ and \texttt{PantryPlan}'s
+from $.447$ to $.886$. Both disjoint splits agree in direction in eleven
+of these twelve comparisons; Falcon \texttt{Graph} with GRPO is the exception.
+Thus the observed concentration increase has a sampling sensitivity and
+does not establish exact mode disappearance or concentration in every
+RLVR run.
+
+\paragraph{Replay contrasts.}
+At Level~1, Re:Dr has lower concentration than Dr.GRPO in all six \texttt{Graph}
+and \texttt{PantryPlan} comparisons. Changes range from $-.756$ to $-.273$ in
+\texttt{Graph} and $-.433$ to $-.300$ in \texttt{PantryPlan}; all six nominal intervals lie
+below zero, and both disjoint splits agree in direction. These
+comparisons also have lower per-sample correctness under replay on their
+jointly eligible prompts. The collision contrast therefore describes a
+change in the conditional correct-key distribution on that population;
+it neither fixes correctness nor implies improvement in every accuracy
+measure. Full-test \texttt{pass@8} and sampled diversity measure separate
+outcomes.
+
+The other domains have narrower identifiable populations. Level-1
+Dr.GRPO/GRPO \texttt{Python} initial evaluations yield no jointly eligible prompts.
+Some \texttt{Countdown} before/after comparisons contain only one or two eligible
+prompts per seed. Several \texttt{MathIR} conditions already have observed
+collision one, leaving little detectable change. A diversity increase
+alone therefore does not imply reduced conditional concentration.
+
+For Qwen2.5-3B MaxRL at Level~1, replay lowers concentration in \texttt{Countdown},
+\texttt{Python}, and \texttt{PantryPlan}, with nominal intervals below zero; \texttt{MathIR}'s
+contrast is zero. \texttt{Graph}'s primary contrast is negative, but its two
+disjoint splits disagree in direction, as they do for Falcon \texttt{Graph} with
+MaxRL. At Level~2, both \texttt{Graph} replay contrasts are negative and both
+splits agree. \texttt{PantryPlan} remains sparse despite complete terminal
+evaluations: Re:Dr has three defined seeds with 2--16 eligible prompts
+and mean $+.495$; Re:Max has four defined seeds with 1--19 eligible
+prompts and mean $+.439$. Both splits also give positive means, with
+fewer defined seeds. Neither contrast has a five-seed interval.
+Full-test diversity gains can therefore coexist with greater conditional
+concentration on these small jointly correct subsets.
+
+\paragraph{Table conventions.}
+Positive $\Delta\widehat C$ indicates greater concentration. Eligible
+prompts have $R\ge2$ correct representatives in both conditions, with
+eligibility determined separately for each contrast and split. The range
+$|E_s|$ counts eligible prompts out of 128 across available seed pairs,
+including zero; $n$ counts seeds with a defined estimate, out of five.
+Within each seed, eligible prompts receive equal weight; defined seeds
+then receive equal weight. The nominal 95\% intervals are unadjusted,
+untruncated Student-$t$ intervals and appear only at $n=5$. Dashes denote
+unavailable or unidentified contrasts. Replay-table rows give Re:Dr minus
+Dr.GRPO or Re:Max minus MaxRL at step 3,072; they do not measure the
+control's own initial-to-final change.
+
+\input{results/conditional_concentration_20260912_tables.tex}

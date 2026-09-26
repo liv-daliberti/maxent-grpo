@@ -1,0 +1,15 @@
+--- reviewed-snapshot
++++ live
+@@ -3877,9 +3877,10 @@
+ For each outcome, $\E[\omega s\mid r]
+ =\bar\omega_r\E[s\mid r]+K_r$; substituting the conditional score
+ means proves Equation~\eqref{eq:neural-binary-length-residual}.
+-The vector Cauchy--Schwarz inequality gives
++Cauchy--Schwarz gives
+ $\|K_r\|_2\le\sigma_{\omega,r}\sqrt{\operatorname{tr}\Sigma_r}$;
+-the triangle inequality completes the bound.
++summing these bounds with weights $|A_r|$ proves
++Equation~\eqref{eq:neural-binary-length-bound}.
+ \end{proof}
+ 
+ The residual is a within-outcome covariance between response weighting and

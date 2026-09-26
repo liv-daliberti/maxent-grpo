@@ -1,0 +1,16 @@
+{
+  "encoding": "per domain, a span over the control's PCMD range across the sweep and a marker at the replay arm's default setting; grey counts are settings with at least one seed reaching 30 eligible prompts",
+  "estimand": "terminal PCMD of the RLVR-only control across every decoding setting, against the replay arm at the default",
+  "figure_key": "decoding_objection",
+  "min_drawn_span": 0.004,
+  "panels": {
+    "A": "decoding_objection_e125.json",
+    "B": "decoding_objection_e72.json"
+  },
+  "schema": "paper-decoding-objection-plate-v1",
+  "source": {
+    "decoding_objection_e125.json": "a03dfd92989b29092d0dc8fb1247ed2301df32cee447a2c65b17b8345a000dce",
+    "decoding_objection_e72.json": "906ee4fce9dad4e19f52f6baf52675efc8e824d6df69f1beee1b423a00fb8e7f"
+  },
+  "support_bar": 30
+}

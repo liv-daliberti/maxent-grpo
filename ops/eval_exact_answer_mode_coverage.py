@@ -93,13 +93,26 @@ def _select_template(template: str):
 
 
 def _answer_mode_count(answer: Any, row: Mapping[str, Any]) -> int:
-    if isinstance(row.get("answer_mode_count"), int):
-        return max(int(row["answer_mode_count"]), 1)
     try:
         spec = json.loads(answer) if isinstance(answer, str) else answer
+        if bool(spec.get("support_is_open", False)):
+            return 0
+        if isinstance(row.get("answer_mode_count"), int):
+            return max(int(row["answer_mode_count"]), 1)
         return max(int(spec.get("num_completions", 1)), 1)
     except Exception:
         return 1
+
+
+def _public_seed_key(answer: Any) -> str | None:
+    try:
+        spec = json.loads(answer) if isinstance(answer, str) else answer
+        if not isinstance(spec, dict):
+            return None
+        key = spec.get("public_seed_key")
+        return str(key) if key else None
+    except Exception:
+        return None
 
 
 def compute_coverage_metrics(
@@ -107,6 +120,7 @@ def compute_coverage_metrics(
     rewards: Sequence[float],
     answer_keys: Sequence[str | None],
     answer_mode_count: int,
+    public_seed_key: str | None = None,
 ) -> dict[str, float]:
     if len(rewards) != len(answer_keys):
         raise ValueError("rewards and answer_keys must have matching lengths.")
@@ -120,7 +134,12 @@ def compute_coverage_metrics(
     ]
     counts = Counter(correct_keys)
     distinct = len(counts)
-    total_modes = max(int(answer_mode_count), 1)
+    nonseed_keys = (
+        set(correct_keys) - {str(public_seed_key)}
+        if public_seed_key is not None
+        else set()
+    )
+    total_modes = int(answer_mode_count)
     entropy = 0.0
     observed_entropy_norm = 0.0
     if counts:
@@ -129,6 +148,8 @@ def compute_coverage_metrics(
         entropy = -sum(prob * math.log(prob) for prob in probs if prob > 0.0)
         if total_modes > 1:
             entropy /= math.log(float(total_modes))
+        elif total_modes <= 0:
+            entropy = float("nan")
         if distinct > 1:
             observed_entropy_norm = -sum(
                 prob * math.log(prob) for prob in probs if prob > 0.0
@@ -138,8 +159,16 @@ def compute_coverage_metrics(
         "mean_at_k": float(sum(float(value) for value in rewards) / float(k)),
         "any_correct_at_k": float(any(float(value) > 0.0 for value in rewards)),
         "distinct_correct_modes_at_k": float(distinct),
-        "mode_coverage_at_k": float(distinct) / float(total_modes),
-        "all_modes_covered_at_k": float(distinct >= total_modes),
+        "distinct_nonseed_correct_modes_at_k": float(len(nonseed_keys)),
+        "any_nonseed_correct_at_k": float(bool(nonseed_keys)),
+        "mode_coverage_at_k": (
+            float(distinct) / float(total_modes)
+            if total_modes > 0
+            else float("nan")
+        ),
+        "all_modes_covered_at_k": (
+            float(distinct >= total_modes) if total_modes > 0 else float("nan")
+        ),
         "correct_mode_entropy_total_norm": float(entropy),
         "correct_mode_entropy_observed_norm": float(observed_entropy_norm),
         "answer_key_extracted_frac": float(
@@ -185,7 +214,7 @@ def _evaluate_checkpoint(
     import vllm
     from oat_drgrpo.math_grader import (
         boxed_reward_fn,
-        extract_normalized_final_answer_for_clustering,
+        extract_normalized_final_answer,
     )
 
     apply_template = _select_template(template)
@@ -228,7 +257,7 @@ def _evaluate_checkpoint(
                 for sample_index, sample_output in enumerate(output.outputs, start=1):
                     text = sample_output.text
                     _info, reward = boxed_reward_fn(text, answer, fast=False)
-                    answer_key = extract_normalized_final_answer_for_clustering(
+                    answer_key = extract_normalized_final_answer(
                         text,
                         template=template,
                         gt_answer=answer,
@@ -251,6 +280,7 @@ def _evaluate_checkpoint(
                     rewards=rewards,
                     answer_keys=answer_keys,
                     answer_mode_count=_answer_mode_count(answer, row),
+                    public_seed_key=_public_seed_key(answer),
                 )
                 metrics["dataset_index"] = float(row_index)
                 metrics["split"] = split  # type: ignore[assignment]
@@ -296,7 +326,12 @@ def _parse_alias(alias: str) -> tuple[int | None, str]:
     return seed, variant
 
 
-def _pairwise_deltas(summaries: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def _pairwise_deltas(
+    summaries: Sequence[Mapping[str, Any]],
+    *,
+    baseline_variant: str = "grpo",
+    treatment_variant: str = "xdr_tau0p05",
+) -> list[dict[str, Any]]:
     by_seed_variant: dict[tuple[int, str], Mapping[str, Any]] = {}
     for summary in summaries:
         seed, variant = _parse_alias(str(summary["alias"]))
@@ -314,20 +349,20 @@ def _pairwise_deltas(summaries: Sequence[Mapping[str, Any]]) -> list[dict[str, A
         "correct_mode_entropy_total_norm",
     ]
     for seed in seeds:
-        baseline = by_seed_variant.get((seed, "grpo"))
-        maxent = by_seed_variant.get((seed, "answer_maxent"))
-        if baseline is None or maxent is None:
+        baseline = by_seed_variant.get((seed, baseline_variant))
+        treatment = by_seed_variant.get((seed, treatment_variant))
+        if baseline is None or treatment is None:
             continue
-        for split, maxent_split in maxent["splits"].items():
+        for split, treatment_split in treatment["splits"].items():
             if split not in baseline["splits"]:
                 continue
             base_metrics = baseline["splits"][split]["metrics"]
-            maxent_metrics = maxent_split["metrics"]
+            treatment_metrics = treatment_split["metrics"]
             row: dict[str, Any] = {"seed": seed, "split": split}
             for metric in metrics:
-                row[f"{metric}_delta"] = float(maxent_metrics.get(metric, 0.0)) - float(
-                    base_metrics.get(metric, 0.0)
-                )
+                row[f"{metric}_delta"] = float(
+                    treatment_metrics.get(metric, 0.0)
+                ) - float(base_metrics.get(metric, 0.0))
             rows.append(row)
     return rows
 
@@ -415,7 +450,9 @@ def main() -> None:
     parser.add_argument("--run-data-root", type=Path, default=Path("var/data"))
     parser.add_argument("--checkpoint", action="append", default=[])
     parser.add_argument("--seeds", default="43,44,45")
-    parser.add_argument("--variants", default="grpo,answer_maxent")
+    parser.add_argument("--variants", default="grpo,xdr_tau0p05")
+    parser.add_argument("--baseline-variant", default="grpo")
+    parser.add_argument("--treatment-variant", default="xdr_tau0p05")
     parser.add_argument("--model-tag", default="qwen25_0p5b_instruct")
     parser.add_argument("--splits", default="all")
     parser.add_argument("--template", default="qwen_boxed")
@@ -484,7 +521,11 @@ def main() -> None:
         )
         print(f"[coverage-eval] done alias={alias}", flush=True)
 
-    deltas = _pairwise_deltas(summaries)
+    deltas = _pairwise_deltas(
+        summaries,
+        baseline_variant=args.baseline_variant,
+        treatment_variant=args.treatment_variant,
+    )
     payload = {
         "stamp_prefix": args.stamp_prefix,
         "data_root": str(args.data_root.resolve()),

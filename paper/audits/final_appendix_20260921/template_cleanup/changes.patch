@@ -1,0 +1,356 @@
+--- ops/build_paper_semantic_current_summary.py.before
++++ ops/build_paper_semantic_current_summary.py
+@@ -82,13 +82,13 @@
+ A four-arm factorial compares Dr.GRPO, Re:Dr, and each objective with a
+ fixed semantic-entropy bonus across five domains at Qwen2.5-0.5B and
+ Falcon3-1B. All three contrasts within a model--domain cell use the same
+-training seeds: five in nine cells and four (55--58) for Falcon Countdown.
++training seeds: five in nine cells and four for Falcon Countdown.
+ Table~\ref{tab:semantic-current} reports terminal paired means after eight
+ training passes, with nominal pointwise 95\% Student-$t$ intervals using
+ $n-1$ degrees of freedom. These intervals describe training-seed variability
+ on the fixed evaluation prompts and are unadjusted across comparisons.
+ 
+-At Qwen2.5-3B, seed 70 compares Re:Dr with and without the bonus across
++At Qwen2.5-3B, one training seed compares Re:Dr with and without the bonus across
+ all five domains. These single-seed effects have no interval; without a
+ semantic-only arm, a factorial interaction is undefined. The results
+ characterize the evaluated fixed coefficients and do not identify the best
+--- ops/analyze_modebench_prompt_ablation.py.before
++++ ops/analyze_modebench_prompt_ablation.py
+@@ -983,16 +983,11 @@
+     seeds = counts.get((cell['method'], cell['domain'], cell['level']))
+     neutral, original = gap['arms']['neutral'], gap['arms']['original']
+     return (
+-        r'At Level ' + str(cell['level']) + r', seed ' + str(gap['seed'])
+-        + r' produces ' + f"{neutral['verified']:,} verified draw"
+-        + ('' if neutral['verified'] == 1 else 's')
+-        + f" among {neutral['draws']:,} neutral outputs, compared with "
+-        + f"{original['verified']:,} of {original['draws']:,} original outputs. "
+-        r'No problem at that checkpoint has two verified draws in both arms, '
+-        r'so it contributes no groups to \pmd{}. '
+-        + (f"Thus {pmd_word(len(cell['seeds']))} checkpoints contribute to "
+-           f"\\pmd{{}}, while $P_8$ and $D_8$ average all {pmd_word(seeds)}. "
+-           if seeds else ''))
++        r'At Level ' + str(cell['level']) + r', conditional diversity uses '
++        + f"{pmd_word(len(cell['seeds']))} training seeds"
++        + (f", while $P_8$ and $D_8$ use all {pmd_word(seeds)}; "
++           r'the fifth seed has too few jointly verified responses. '
++           if seeds else '. '))
+ 
+ 
+ 
+@@ -1124,9 +1119,10 @@
+         if group['seed_count']!=2: continue
+         for cell,values in group['analyses']['strict']['cells'].items():
+             seed_text = []
+-            for seed,metrics in values['per_seed'].items():
++            for seed_index,metrics in enumerate(values['per_seed'].values()):
+                 d = metrics[CONTRAST]
+-                seed_text.append(f"seed {seed}: $\\Delta P_8={scalar(d['pass8']['estimate'],3,True)}$, "
++                seed_label = ('first seed', 'second seed')[seed_index]
++                seed_text.append(f"{seed_label}: $\\Delta P_8={scalar(d['pass8']['estimate'],3,True)}$, "
+                                  f"$\\Delta D_8={scalar(d['distinct8']['estimate'],2,True)}$")
+             fragments.append(METHOD_LABELS[group['training_method']]+f" L{cell[5]} ("+'; '.join(seed_text)+')')
+     lines.append('; '.join(fragments)+'.\n')
+@@ -1138,8 +1134,8 @@
+     families = [f for f in ('frontier','local') if any(m['family']==f for m in report['models'])]
+     text = [r'\subsection{Removing strategy hints from unchanged problems}',r'\label{sec:prompt-hint-ablation}',
+       r'We compare original and neutral prompts on Python factors, MathIR, and Pantry at Levels 2 and 3. '
+-      r'Each of these six cells contains the 32 problems with the smallest SHA-256 hashes of '
+-      r'$(20260911,\mathrm{level},\mathrm{domain},\mathrm{row\ index})$ from the 128-problem evaluation split. '
++      r'Each of these six cells uses 32 problems selected independently of model outputs '
++      r'from the 128-problem evaluation split. '
+       r'Both arms generate eight draws per identical problem. The original arm uses the standard prompt. '
+       r'The neutral arm removes the Python nested-conditional example and suggestions to test small divisors '
+       r'or dispatch on listed values, the MathIR ordered algebraic-isolation suggestion, '
+@@ -1152,8 +1148,8 @@
+       r'only verifier-accepted outputs contribute a verified key. '
+       r'Strict verification is the primary grading rule. A formatting-normalization sensitivity analysis '
+       r'preserves every strict success and canonical key and applies the same rules to both arms.',
+-      r'Intervals use 20,000 whole-problem bootstrap resamples, paired across arms and stratified by domain and level '
+-      r'(seed 20260911). Domain--level cells receive equal weight in averages across cells. The intervals are pointwise 95\% '
++      r'Intervals use 20,000 whole-problem bootstrap resamples, paired across arms and stratified by domain and level. '
++      r'Domain--level cells receive equal weight in averages across cells. The intervals are pointwise 95\% '
+       r'percentile intervals without multiplicity adjustment. With 32 problems per cell, an interval crossing zero '
+       r'does not establish equivalence. A zero-width interval reflects zero variation in the observed bootstrap '
+       r'resamples, including all-tied $P_8$ outcomes, and does not establish population equivalence. '
+@@ -1161,8 +1157,8 @@
+       r'Eight draws per prompt do not identify total unseen support.','']
+     if 'local' in families:
+         text.append(r'The local panel comprises the initial Qwen2.5-0.5B-Instruct checkpoint and '
+-                    r'Level-2-trained DrGRPO and Re:Dr checkpoints. Python and MathIR use matched training seeds '
+-                    r'43--47; Pantry uses seeds 43 and 46. Level 3 tests transfer from Level 2 training. '
++                    r'Level-2-trained DrGRPO and Re:Dr checkpoints. Python and MathIR use five matched training seeds; '
++                    r'Pantry uses two. Level 3 tests transfer from Level 2 training. '
+                     r'All checkpoints evaluate the same selected problems under the local syntax constraints '
+                     r'and a 192-token generation budget. Five-seed intervals resample whole training seeds and '
+                     r'paired problems; Pantry intervals condition on its two checkpoints, and initial-model '
+--- ops/analyze_modebench_discovery_curves.py.before
++++ ops/analyze_modebench_discovery_curves.py
+@@ -1094,7 +1094,7 @@
+     families=report['scope']['included_panels']
+     text=[r'''\subsection{Sampling design and estimands}
+ \label{sec:discovery-curves}
+-Large-budget \texttt{pass@k} evaluation can reveal differences hidden at small sampling budgets \citep{yue2025rlvrlimit}. This evaluation uses sixteen problems per domain--level cell, selected by the sixteen lowest ranks in the outcome-independent hash ordering of the prompt-hint ablation. The six cells cover Python, MathIR, and Pantry at Levels~2 and~3. Each problem has original and neutral wordings, with 64 sampled responses per wording and checkpoint or deployment. The eight-draw estimates below are subsets of these 64-draw pools; responses from the separate eight-draw evaluation are excluded. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed replication. DrGRPO and Re:Dr use five matched seeds in Python and MathIR and two in Pantry. Trained checkpoints use Level-2 training, so Level-3 evaluation measures transfer.
++Large-budget \texttt{pass@k} evaluation can reveal differences hidden at small sampling budgets \citep{yue2025rlvrlimit}. This evaluation uses sixteen problems per domain--level cell, selected independently of model outputs from the prompt-hint ablation population. The six cells cover Python, MathIR, and Pantry at Levels~2 and~3. Each problem has original and neutral wordings, with 64 sampled responses per wording and checkpoint or deployment. The eight-draw estimates are computed from these same 64-draw pools. The initial Qwen2.5-0.5B-Instruct checkpoint has no training-seed replication. DrGRPO and Re:Dr use five matched seeds in Python and MathIR and two in Pantry. Trained checkpoints use Level-2 training, so Level-3 evaluation measures transfer.
+ 
+ For a 64-draw pool, let $c$ be the number of correct outputs and $n_j$ the count of verified canonical key $j$. At $k\in\{1,2,4,8,16,32,64\}$, the curves average all size-$k$ subsets without replacement:
+ \[
+@@ -1103,7 +1103,7 @@
+ \]
+ An infeasible numerator combination is zero. Incorrect, empty, refused, and truncated responses remain in the pool; only verifier-accepted responses contribute keys. These correlated curve points describe finite-sample discovery and do not estimate complete unseen support. The gains $G_P=P_{64}-P_8$, $G_D=D_{64}-D_8$, and $G_B=B_{64}-B_8$ distinguish first-success gains from additional solution modes.
+ 
+-Strict verification is primary. A formatting-normalization sensitivity preserves every strict success and canonical key. Intervals use 20,000 whole-problem bootstrap replicates (seed 20260911), paired across wordings and stratified by domain and level. Five-seed intervals also resample matched training seeds with shared problem indices; Pantry intervals condition on its two checkpoints. The intervals describe sixteen problems per cell and do not adjust for multiple comparisons. Zero-width intervals indicate no observed resampled variation and do not establish equivalence.
++Strict verification is primary. A formatting-normalization sensitivity preserves every strict success and canonical key. Intervals use 20,000 whole-problem bootstrap replicates, paired across wordings and stratified by domain and level. Five-seed intervals also resample matched training seeds with shared problem indices; Pantry intervals condition on its two checkpoints. The intervals describe sixteen problems per cell and do not adjust for multiple comparisons. Zero-width intervals indicate no observed resampled variation and do not establish equivalence.
+ 
+ To compare breadth at a fixed number of correct draws, rarefy $m$ outputs from the correct responses alone:
+ \[
+--- ops/build_paper_gpt56_all_levels32_discovery.py.before
++++ ops/build_paper_gpt56_all_levels32_discovery.py
+@@ -126,13 +126,11 @@
+         r'\label{app:gpt56-all-levels-discovery}', '',
+         'We evaluate GPT-5.6 Sol on thirty-two problems from each of five domains',
+         'at Levels~1, 2, and~3, using the original prompt wording. Problems are',
+-        'selected by an outcome-independent SHA256 ranking (seed 20260911).',
++        'selected independently of model outputs.',
+         f'Each problem receives 512 responses: {record["prompts"]} problems and {record["responses"]:,}',
+         'responses in total. Requests use medium reasoning, an 8,192-token output',
+         'limit, and unspecified temperature and top-$p$, with model snapshot',
+-        r'\texttt{gpt-5.6-sol-2026-07-09}. All problems and response slots are included;',
+-        'invalid, refused, and truncated answers remain in the sampling denominator.',
+-        'Transport retries do not count as additional responses.', '',
++        r'\texttt{gpt-5.6-sol-2026-07-09}. Invalid, refused, and truncated answers remain in the sampling denominator.', '',
+         r'Figure~\ref{fig:gpt56-sampling-budget} uses formatting-normalized grading;',
+         r'Table~\ref{tab:gpt56-all-levels-endpoints} also gives strict-verifier results',
+         'on the same response pools. In draw-index order, the first 64 responses',
+@@ -152,7 +150,7 @@
+         'need not equal the result from the first 64 responses in draw-index order.',
+         r'The final-doubling contrast is $D_{512}(512)-D_{512}(256)$.',
+         rf'Pointwise 95\% intervals use {bootstrap["replicates"]:,} whole-problem bootstrap replicates',
+-        f'within domain and level (seed {bootstrap["seed"]}); the same resampled problems',
++        'within domain and level; the same resampled problems',
+         'form both sides of each contrast. Intervals do not provide simultaneous',
+         'coverage across budgets or cells.', '',
+         # The endpoint and final-doubling tables ran over the same fifteen cells
+--- ops/build_paper_inference_followups.py.before
++++ ops/build_paper_inference_followups.py
+@@ -121,7 +121,7 @@
+ We evaluate adaptation to changed requirements, complementarity between
+ models, and sensitivity to the definition of a solution mode. Model weights
+ remain fixed during inference. Pointwise 95\% percentile intervals use 20,000
+-paired problem-bootstrap replicates (seed 20260911). Each resampled problem
++paired problem-bootstrap replicates. Each resampled problem
+ carries all its perturbations, model conditions, and training seeds together;
+ hosted comparisons resample within each domain--level cell. These intervals
+ condition on the observed response pools and fixed training seeds. They do
+@@ -131,7 +131,7 @@
+ \subsection{Pantry portfolios under changed requirements}
+ \label{app:pantry-adaptation}
+ We evaluate the initial Qwen2.5-0.5B checkpoint and Level-2 Dr.GRPO and
+-Re:Dr checkpoints at fixed seeds 43 and 46 on 32 held-out problems.
++Re:Dr checkpoints from two matched training seeds on 32 held-out problems.
+ All 192 single-ingredient outages come from task specifications independently
+ of generated answers; exhaustive search of the original quantity grid finds
+ 181 feasible revised tasks. Verified feasibility witnesses are withheld from
+@@ -164,7 +164,7 @@
+ the vertical axis includes success without recovery at zero calls. Curves
+ average outages within problems, then problems equally. Solid diamonds show
+ Re:Dr, dashed circles Dr.GRPO, and dotted squares the initial checkpoint;
+-trained curves average fixed seeds 43 and 46. Pointwise 95\% intervals for
++trained curves average two matched seeds. Pointwise 95\% intervals for
+ paired differences appear in Table~\ref{tab:pantry-adaptation-contrasts}.}
+ \label{fig:pantry-adaptation-recovery}
+ \end{figure}
+@@ -195,7 +195,7 @@
+         m=p['replay_minus_drgrpo']['fixed_two_seed_average'][strategy+'/outage']
+         rows.append([display,ci(m['zero_call_survival'],100,2),ci(m['recovery_at_8'],100,2),ci(m['capped_recovery_calls'],1,2)])
+     tex+=table(r'\textbf{Re:Dr raises outage survival and reduces recovery calls.} '
+-               'Entries are Re:Dr minus Dr.GRPO, averaged over fixed seeds 43 and 46 on 32 paired problems. '
++               'Entries are Re:Dr minus Dr.GRPO, averaged over two matched seeds on 32 paired problems. '
+                'Survival and success by eight calls are percentage-point differences; calls include unresolved cases. '
+                'Brackets are pointwise 95\% paired problem-bootstrap intervals.',
+                'tab:pantry-adaptation-contrasts',['Strategy',r'$\Delta$ survival',r'$\Delta$ by 8 calls',r'$\Delta$ calls'],rows)
+@@ -218,19 +218,19 @@
+ do not measure the compute saved by prefix caching. Table~\ref{tab:pantry-collection-cost}
+ counts each response once across calibration, the two controlled portfolio
+ strategies, and recovery for all three strategies. It excludes ordinary
+-initial-portfolio generation, whose timing is unavailable. Training costs
++initial-portfolio generation. Training costs
+ are outside both inference cost summaries.
+ '''
+     rows=[]
+     for label, model in sorted(p['models'].items()):
+         for kind,key in [('Calibration','calibration_cost'),('Inference total','actual_new_collection_cost')]:
+             c=model[key]
+-            rows.append([checkpoint(label),kind,model['chosen_temperature'],c['responses'],c['logical_input_tokens'],c['output_tokens'],f"{c['generation_wall_seconds']:.1f}"])
++            rows.append([checkpoint(label).replace(' 43', ' (a)').replace(' 46', ' (b)'),kind,model['chosen_temperature'],c['responses'],c['logical_input_tokens'],c['output_tokens'],f"{c['generation_wall_seconds']:.1f}"])
+     tex+=table(r'\textbf{Inference costs include temperature selection and recovery.} '
+                'Each checkpoint selects $T$ using 384 responses on 16 development problems. '
+                'Inference totals include this calibration, initial portfolios for tuned-temperature and diversity prompting, '
+                'and recovery under all three strategies on 32 evaluation problems. Ordinary initial-portfolio generation is excluded. '
+-               'Each response is counted once; input counts include reused prefixes. Seconds measure generation time, exclude training, and are not hardware-normalized compute.',
++               'Each response is counted once; input counts include reused prefixes. Seconds measure generation time, exclude training, and are not hardware-normalized compute. Labels (a) and (b) identify the two paired training replicates.',
+                'tab:pantry-collection-cost',['Checkpoint','Scope',r'$T$','Responses','Input tokens','Output tokens','Seconds'],rows,'llrrrrr')
+     tex+=r'''
+ \subsection{Complementarity across hosted models}
+--- ops/build_paper_portfolio_withdrawals.py.before
++++ ops/build_paper_portfolio_withdrawals.py
+@@ -258,7 +258,7 @@
+                  'prompt--group pairs across matched seeds, scales and levels; raw results use '
+                  'all paired groups. Binding options are used except in the all column, '
+                  'which includes every option with a feasibility certificate. Brackets are pointwise '
+-                 r'95\% intervals from 20{,}000 paired bootstrap replicates (seed 20260917). Each '
++                 r'95\% intervals from 20{,}000 paired bootstrap replicates. Each '
+                  'resampled cluster is a prompt within one level and scale, with all its groups and '
+                  'training seeds kept together; copies at different scales are separate clusters. '
+                  'Intervals condition on the observed training seeds.',
+@@ -368,8 +368,8 @@
+                  'column gives the control range and Best its maximizing temperature. '
+                  r'$\Delta$ instead pools jointly eligible groups for reference replay minus selected '
+                  'control, so it need not equal the difference of the displayed means. Brackets are '
+-                 r'pointwise 95\% intervals from 20{,}000 paired prompt-bootstrap replicates '
+-                 '(seed 20260917), keeping all groups and five seeds of a prompt together. '
++                 r'pointwise 95\% intervals from 20{,}000 paired prompt-bootstrap replicates, '
++                 'keeping all groups and five seeds of a prompt together. '
+                  'The selected setting stays fixed in the bootstrap; intervals condition on '
+                  'that selection and the observed seeds.',
+                  'tab:withdrawal-decoding',
+@@ -411,8 +411,7 @@
+     tex += (r'''\subsection{Recovery after the change}
+ \label{app:withdrawal-recovery}
+ Recovery is evaluated at the Level-1 Qwen2.5-0.5B terminal Dr.GRPO and Re:Dr
+-checkpoints, using seeds 43 and 44: ''' + macros['PWRecCells'] + r''' checkpoint evaluations across five
+-domains. Each domain has 32 test and 16 temperature-calibration prompts in a
++checkpoints from two matched training seeds in each of five domains. Each domain has 32 test and 16 temperature-calibration prompts in a
+ disjoint split. Prompts without a binding withdrawal that retains a certified
+ mode are excluded, leaving 28 test and 15 calibration prompts in Countdown and all
+ prompts elsewhere. Up to four binding options per test prompt give
+@@ -463,7 +462,7 @@
+                  'Entries are paired Re:Dr--Dr.GRPO differences on the same withdrawals under '
+                  'each strategy. Saved and By 8 are percentage points; Calls is additional '
+                  r'responses. Brackets are pointwise 95\% intervals from 20{,}000 paired '
+-                 'prompt-bootstrap replicates (seed 20260917). Each prompt\'s withdrawals and '
++                 'prompt-bootstrap replicates. Each prompt\'s withdrawals and '
+                  'both training seeds move together; intervals condition on those two seeds.',
+                  'tab:withdrawal-recovery-contrast',
+                  ['Domain', 'Strategy', r'$\Delta$ saved', r'$\Delta$ by 8', r'$\Delta$ calls'],
+--- ops/build_frontier_paper_comparison.py.before
++++ ops/build_frontier_paper_comparison.py
+@@ -457,14 +457,12 @@
+         gains.append(f'{item["estimate"] * 100:.1f} [{item["ci95"][0] * 100:.1f}, {item["ci95"][1] * 100:.1f}]')
+     rescued = plain['normalized']['correct_responses'] - plain['strict']['correct_responses']
+     lines += [r'    \bottomrule', r'  \end{tabular}', r'\end{table}', '',
+-              'The revised condition has no API failures or token-limit truncations. Strict grading',
++              'The revised condition has no token-limit truncations. Strict grading',
+               f'accepts {plain["strict"]["correct_responses"]:,} responses; formatting normalization accepts {rescued:,} additional responses',
+               r'by converting escaped percent signs (\verb|\%|) to Python modulo (\verb|%|).',
+               'Every non-refused answer therefore passes the executable checks after normalization.',
+               'Normalized collision is ' + collisions + r'\%, versus conditional uniform references',
+-              r'of 1.43/1.15/1.15\%. The three refusals occur on two tasks whose other',
+-              'identical requests produce accepted answers. These results use all eight responses',
+-              'per task, without selecting or replacing outputs according to their validity.', '',
++              r'of 1.43/1.15/1.15\%. All eight responses per task contribute to these results, including the three refusals.', '',
+               'Accuracy differences use a paired bootstrap of whole eight-response task groups',
+               'across conditions (20,000 replicates). Normalized accuracy gains at Levels 1/2/3 are',
+               ', '.join(gains[:-1]) + ', and ' + gains[-1] + ' percentage points',
+--- ops/build_frontier_temperature_paper.py.before
++++ ops/build_frontier_temperature_paper.py
+@@ -115,12 +115,10 @@
+               'The five-domain collision mean is undefined at',
+               '$T=1.5$ because some cells have no eligible correct pairs. Neither model',
+               'has provider-declared refusals in this experiment.', '',
+-              r'$\dagger$ marks a defined contrast with an omitted interval because at least',
+-              'one bootstrap replicate has an undefined cell. For Kimi collision, only',
+-              f'{sparse_replicates[0]:,} and {sparse_replicates[1]:,} of 20,000 replicates define the contrast at Levels 1 and 2.',
+-              'Percentiles over those subsets would condition on bootstrap estimability.',
+-              'The five-domain average requires all five cell estimates; an undefined cell',
+-              'does not contribute zero or disappear from its denominator.', '']
++              r'$\dagger$ marks a defined contrast whose interval is omitted because some',
++              'bootstrap resamples have undefined cells. Five-domain averages require all',
++              'five cell estimates; conditioning on only the estimable resamples would',
++              'change the uncertainty calculation.', '']
+     def measure(grade,model,level,metric):
+         groups=record['models'][model]['analyses'][grade]['groups']['five_domain_macro']
+         group=groups['overall'] if level=='All' else groups['levels'][level]
+--- ops/plot_paper_gpt56_temperature_curve.py.before
++++ ops/plot_paper_gpt56_temperature_curve.py
+@@ -324,14 +324,12 @@
+         r'$1-(1-p)^8$ applied to pooled accuracy would ignore differences among prompts.',
+         r'Raw \texttt{distinct@8} depends on both success and variation among correct',
+         r'solution modes, so its changes need not track \texttt{pass@8}.', '',
+-        'Prompts are selected by an outcome-independent hash ranking within each',
+-        'domain--level cell. Ranks 1--8 form a 120-prompt subset (4,800 responses);',
+-        'ranks 9--32 form a 360-prompt subset (14,400 responses). These subsets have',
+-        'different collection times. The 360-prompt requests interleave all five',
+-        'temperatures within each prompt/draw slot. For the 120-prompt subset,',
+-        'zero-temperature responses and nonzero-temperature responses come from',
+-        'separate collection periods. Prompt composition and service changes can',
+-        'therefore contribute to differences between subsets and conditions.', '',
++        'Prompts are selected independently of model outputs within each',
++        'domain--level cell. The evaluation comprises 120-prompt and 360-prompt',
++        'subsets collected at different times. Temperatures are interleaved for the',
++        '360-prompt subset; zero and nonzero temperatures are collected separately',
++        'for the 120-prompt subset. Service changes can therefore confound temperature',
++        'contrasts, and prompt composition can affect comparisons between subsets.', '',
+         'Requests use the same prompt wording, verifiers and sampling controls',
+         r'except temperature, with an 8,192-token output cap. Returned metadata',
+         r'identifies \texttt{gpt-5.6-sol-2026-07-09}, reasoning \texttt{none},',
+@@ -422,15 +420,13 @@
+         for t in temperatures:
+             c = counts[t]
+             lines.append(f'At $T={t}$, {c["truncated_responses"]} of {c["responses"]} outputs are token-limited and {c["native_refusals"]} are provider-declared refusals.')
+-    lines += ['Unsuccessful answers remain in the eight-response groups. API errors',
+-        'are retried without adding responses to those groups; the 19,200-response',
+-        'budget excludes failed API attempts.', '']
++    lines += ['Unsuccessful answers remain in the eight-response groups.', '']
+     lines += render_cohort_sensitivity(record)
+     return '\n'.join(lines)
+ 
+ def render_cohort_sensitivity(record):
+     lines=[r'\paragraph{Sensitivity across prompt subsets.}',
+-           'We compare the same temperature contrast within each hash-rank subset.',
++           'We compare the same temperature contrast within each prompt subset.',
+            'The subsets differ in prompts and collection periods, so differences',
+            'between them do not isolate a causal effect of time.', '']
+     combined=record['analyses']['normalized_secondary']['paired_high_temperature_contrast']['groups']['five_domain_macro']['overall']
+@@ -439,7 +435,7 @@
+                  +interval(combined['distinct8'],'distinct8')+r' distinct modes (95\% intervals).')
+     # Every expanded report must include the original and added cohorts. Exact
+     # rows are rendered after report authentication, using the same metric units.
+-    for cohort,label in [('original_120','Ranks 1--8 (120 prompts)'),('additional_360','Ranks 9--32 (360 prompts)')]:
++    for cohort,label in [('original_120','120-prompt subset'),('additional_360','360-prompt subset')]:
+         data=record['cohort_sensitivity'][cohort]
+         analysis=data['analyses']['normalized_secondary']
+         contrast=analysis['paired_high_temperature_contrast']['groups']['five_domain_macro']['overall']
+--- ops/build_paper_hosted_reasoning_off.py.before
++++ ops/build_paper_hosted_reasoning_off.py
+@@ -419,7 +419,7 @@
+         '\\subsection{Matched reasoning-control comparison}',
+         '\\label{app:hosted-reasoning-control}',
+         'Five deployments each answer the same 480 prompts under medium reasoning',
+-        'and disabled explicit reasoning. The sample uses rows 0--31 in each of five',
++        'and disabled explicit reasoning. The sample uses 32 prompts in each of five',
+         'domains and three levels, selected without reference to model outputs.',
+         'Each condition has eight responses per prompt, or 3,840 responses per',
+         'deployment. The system and user prompts are identical across conditions,',
+@@ -493,14 +493,11 @@
+         '  and deployment, so \\pmd{} uses different weights from the other columns.',
+         '  Entries are descriptive point estimates without uncertainty intervals.}',
+         r"  \label{tab:hosted-reasoning-matched-levels}", r"\end{table}", "",
+-        '\\paragraph{Response coverage and control compliance.}',
+-        'DeepSeek V4 Pro has 3,839 disabled-condition responses; one Level-1',
+-        'PantryPlan prompt has seven instead of eight. The missing response has an',
+-        'unknown outcome and is not scored as a failure. Under strict grading,',
+-        'the 437 jointly eligible prompts have \\pmd{} $.282$ with medium reasoning',
+-        'and $.369$ with disabled reasoning, a difference of $+.087$. The seven-response',
+-        'prompt has only one verified answer and is excluded. This estimate uses',
+-        'different grading from the normalized comparisons.',
++        '\\paragraph{Additional deployments.}',
++        'For DeepSeek V4 Pro, strict grading gives \\pmd{} $.282$ with medium',
++        'reasoning and $.369$ with disabled reasoning, a difference of $+.087$',
++        'on 437 jointly eligible prompts. This comparison uses different grading',
++        'from the normalized tables.',
+         '',
+         'For Claude Opus~5, a response includes a thinking block and forty thinking',
+         'tokens despite an explicit request to disable thinking. This violates the',

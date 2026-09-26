@@ -1,0 +1,305 @@
+                               More than One Way to Skin a Cat:
+                               Preserving Verified Modes in RLVR
+
+
+                                                                              Anonymous Author(s)
+                                                                                  Affiliation
+                                                                                   Address
+                                                                                    email
+
+
+
+                                                                                              Abstract
+ 1                A language model can become more accurate on mathematical problems while los-
+ 2                ing alternative correct solutions. To measure this loss, we introduce M ODE B ENCH,
+ 3                a benchmark of five executable domains that distinguishes different correct out-
+ 4                puts for the same problem. We then add replay of previously verified outputs to
+ 5                Dr.GRPO and MaxRL, yielding ReplayDr.GRPO and ReplayMaxRL. Both variants
+ 6                improve held-out correctness while preserving a broader repertoire, across three
+ 7                and two model scales, respectively, and on a harder graph-coloring task. These
+ 8                results distinguish discovering a successful behavior from keeping it available.
+
+
+      A Color the three blank nodes;                                                     B Qwen2.5-3B                           C Qwen2.5-3B
+        connected nodes must differ.                                                       Dr.GRPO                                ReplayMaxRL (ours)
+                                                       fixed-seed samples (of 32)
+
+
+
+
+                                                                                          3    3   3    2   2    1   1    1      3   3    3    3   3    3   3    4
+                                                                                    32
+         4          1            5
+
+                                                                                    24
+              2           3
+
+                                                                                    16
+      CIRCLE FILL = VERTEX COLOR                   →
+      OPTION LABEL = SOLUTION MODE (6 VALID)
+                                                                                    8
+      Option A       1     2      3      4     5
+
+      Option B       1     2      3      4     5                                    0
+                                                                                          0   0.5 1.5 2      4 4.5 6      6.5    0   0.5 1.5 2      4 4.5 6      6.5
+      Option C       1     2      3      4     5                                                 training pass (of 6.5)                 training pass (of 6.5)
+
+         ⋮
+      Option F       1     2      3      4     5                                               mode A       mode B         mode C         other valid       invalid
+
+
+     Figure 1: Correctness can rise while alternatives disappear. One graph admits six valid colorings.
+     Bars pool four eight-sample draws from matched Qwen2.5-3B runs. At pass 6.5, Dr.GRPO produces
+     22/32 correct from one mode; ReplayMaxRL produces 32/32 across four.
+
+
+ 9   1       Preserving alternatives for mathematical agents
+10   Training a language model to solve mathematical problems more accurately may also change which
+11   correct solutions it can still produce. That distinction matters for a mathematical agent: a different
+12   computation or proof idea may offer a way forward when a familiar route fails or constraints change.
+13   Tools and verifiers can guide search and revision [Brown et al., 2024, Snell et al., 2024], but a verifier
+14   cannot select an alternative the model never proposes.
+15   Correctness feedback can hide the loss of these options. Reinforcement learning with verifiable
+16   rewards (RLVR) reinforces correct outputs [Guo et al., 2025]. A familiar solution earns the same
+17   correctness reward as a newly discovered one. Accuracy can therefore improve even as the range of
+18   verified outputs shrinks. In our runs, these two trends occur together (Figure 1).
+
+     Submitted to The 6th Workshop on Mathematical Reasoning and AI (NeurIPS 2026). Do not distribute.
+19   The loss also appears across our datasets. Averaged over five domains, eight passes of Dr.GRPO
+20   reduce the initial number of verified alternatives beyond the first correct output in eight samples by
+21   99.4% at Qwen2.5-0.5B, 71.6% at Falcon3-1B, and 41.5% at Qwen2.5-3B (Appendix Figure 10).
+22   We therefore ask how training can keep discovered alternatives available.
+
+23   2        M ODE B ENCH makes output identity executable
+24   M ODE B ENCH assigns each accepted output an exact, executable identity: a canonical key whose
+25   distinct values define verified modes (Figure 2). Keys capture computation routes in Countdown
+26   and MathIR, tested program behaviors in Python, and valid configurations in Graph and PantryPlan.
+27   Cosmetic aliases merge; distinct routes can share an answer (key rules: Appendix B.1). This measures
+28   task-defined output support; it does not establish diversity of latent reasoning strategies.
+
+         One prompt, two verified answers, two different canonical keys
+
+
+          A       Graph coloring                                ✓ valid           B        Countdown                              ✓ = 18         C    Python factors              ✓ divides
+         partial colors               ? ?           ?                            tiles {3, 6, 9} · target 18                                   lambda n: EXPR
+         fill vertices 2, 3, 5                                                   use each tile once                                            one call per n in 18, 82, 91, 93
+         1        2 3 5                     2       2 3 5                                                                                       1 2 if n%2==0 else
+                                                                                 1 (6 × 9) / 3                                                        7 if n%7==0 else 3
+
+                                                                                               div(mul(6,9),3)                                         [2, 2, 7, 3]
+              1       3                         1       3
+                                                                                 2 6 + 3 + 9                                                    2 3 if n%3==0 else
+                              6                                     6
+                                                                                                                                                      13 if n%13==0 else 41
+                                                                                               add(9,add(3,6))
+              2       5           4             2           5           4                                                                              [3, 41, 13, 3]
+
+
+
+          D       MathIR                                                                           ✓ x = 16              E   PantryPlan                                           ✓ feasible
+         solve x/2 − 9 = −1                                                                                             2–4 ingredients · 125–200 g
+         … · C: add 9 · D: add 1 · E: add 18 · F: ×2                                                                    four exact nutrition bounds
+         1 C;F                                                  2 F;E                                                   1     navel_orange=75;             2    grape_tomatoes=75;
+                                                                                                                              sunflower_seeds=50                almonds=50
+                  add 9, then ×2                                        ×2, then add 18
+                  x/2 = 8 → x = 16                                      x − 18 = −2 → x = 16                                       +                                   +
+
+
+
+     Figure 2: One prompt, different verified outputs. Keys retain a color vector, normalized compu-
+     tation tree, tested return vector, algebraic state trajectory, or ingredient support. Cosmetic aliases
+     merge; these keys identify task-defined outputs rather than free-form reasoning.
+
+
+29   3       ReplayMaxRL: learn from new samples and remember successes
+30   ReplayMaxRL combines MaxRL’s sampling-aware learning from new samples [Tajwar et al., 2026]
+31   with replay of earlier verified successes (Figure 3).
+
+      REWARD-ONLY PATH
+
+
+         POLICY SAMPLES                                                     BINARY REWARD                                              MODE-BLIND UPDATE                SUPPORT NARROWS
+
+                                                                        reward: 1              1   1   0                           A in 2 of 3 correct rows                       A
+         A        A       B   ⊥
+                                                                        mode identity discarded                                    B in 1 of 3 correct rows            B is gone from the batch
+
+
+
+
+      ReplayMaxRL (ours)
+
+                                                                                                         MAXRL
+         POLICY SAMPLES                                 REWARD + KEY                                                                   ReplayMaxRL UPDATE              SUPPORT MAINTAINED
+                                                                                                   fresh search learns
+                                                                                      reward
+
+
+
+
+                                                                                                                                                                           + EXPANDED
+                                                one validator returns both                                      C
+                                                                                                                                       MaxRL adds mode C
+         A        A       B   ⊥                     reward: 1 1 1 0                                                                                                   A + B kept, C added
+                                                                                                            REPLAY
+                                                                                      key
+
+
+
+
+                                                                                                                                  Replay keeps modes A, B
+                                                                                                           maintains                                                       A      B     C
+                                                        A       A       B    ⊥
+                                                                                                            A       B
+
+
+
+     Figure 3: Discovery and preservation use the same verified samples. MaxRL learns from fresh
+     rewards; replay retains exemplars by key and revisits rare successes. Memory cannot protect a mode
+     before it is discovered.
+
+
+                                                                                                                    2
+32   Bank Bx stores one policy-generated exemplar ec of token length |ec | per admitted key for prompt x.
+33   Replay trains policy πθ with
+                                                    1 X log πθ (ec | x)
+                                  Lreplay (x) = −                          .                         (1)
+                                                  |Bx |         |ec |
+                                                                                        c∈Bx
+
+34   Each retained key receives equal replay weight, independent of its frequency in fresh rollouts. A
+35   solution seen once gets the same share of replay as one seen repeatedly. This keeps common
+36   solutions from absorbing the replay budget and gives rare successes a continuing training signal.
+37   Replacing MaxRL with Dr.GRPO [Liu et al., 2025], which debiases GRPO [Shao et al., 2024],
+38   yields ReplayDr.GRPO. Appendix K gives the full update and Appendix E.8 the idealized retention
+39   guarantee.
+40   Related work. We connect studies of collapse [Cui et al., 2025, Dang et al., 2025] and success replay
+41   [Zhang et al., 2025] through executable identity (Appendix D).
+
+42   4     Does memory preserve verified output support?
+43   pass@8 is the chance that eight samples contain any correct response; distinct@8 is their average
+44   number of distinct verified modes. Extra modes, distinct@8−pass@8, counts alternatives beyond
+45   the first correct output. Both support measures remain coupled to correctness. For a fixed prompt, our
+46   idealized categorical analysis proves that stronger updates shared across correct outputs can preserve
+47   more sampled modes at matched correctness, with identical pass@8 (Theorem E.5).
+48   We train for eight passes with five registered seeds per comparison. Each domain has 128 held-out
+49   prompts with four eight-sample draws; none enter the bank. Dr.GRPO/MaxRL controls run the same
+50   bank code with zero replay gradient. Figure 4 also compares reward normalization, UCPO [Lochab
+51   et al., 2026], RLEP-Dr success replay, and semantic entropy (protocols: Appendix B).
+      A ReplayDr.GRPO (ours) − Dr.GRPO across three model scales
+                                     Δ pass@8                                                                                          Δ distinct@8
+
+               Qwen 0.5B     +0.65   +0.19       +0.36   +0.28    +0.21     +0.34                     Qwen 0.5B    +2.11   +1.15       +0.40   +0.32    +1.02     +1.00
+
+                                             †                                      †                                              †
+                 Falcon 1B   +0.15   +0.31       +0.98   +0.64    +0.12    +0.44                       Falcon 1B   +0.68   +0.42       +1.11   +0.66    +0.94    +0.77†
+
+
+                 Qwen 3B     +0.15   +0.14       +0.59   +0.41    +0.11     +0.28                      Qwen 3B     +0.58   +0.33       +0.78   +0.43    +0.67     +0.56
+
+                             Graph Countdown Python      MathIR   Pantry   Average                                 Graph Countdown Python      MathIR   Pantry   Average
+
+
+      B Initial reference + alternatives − terminal Dr.GRPO at Qwen2.5-0.5B
+                                                  Δ pass@8                                                                             Δ distinct@8
+
+          Before training    +0.13   -0.38       -0.17   -0.29    +0.38     -0.07               Before training    +0.24   -0.38       -0.17   -0.29    +1.90     +0.26
+
+     ReplayDr.GRPO (ours)    +0.65   +0.19       +0.36   +0.28    +0.21    +0.34            ReplayDr.GRPO (ours)   +2.11   +1.15       +0.40   +0.32    +1.02    +1.00
+
+         MaxRL (no replay)   +0.21   +0.10       +0.00   -0.07    +0.01     +0.05              MaxRL (no replay)   +0.35   +0.13       +0.00   -0.07    +0.01     +0.09
+
+                    UCPO     -0.00   +0.13       +0.00   +0.03    +0.05     +0.04                         UCPO     -0.00   +0.18       +0.00   +0.03    +0.05     +0.05
+
+                  RLEP-Dr    +0.10   +0.10       +0.00   +0.13    +0.00     +0.07                       RLEP-Dr    +0.15   +0.13       +0.00   +0.12    +0.00     +0.08
+
+         Semantic-MaxEnt     +0.00   +0.14       +0.00   -0.12    +0.20     +0.04              Semantic-MaxEnt     +0.00   +0.18       +0.00   -0.12    +1.12     +0.24
+
+                    GRPO     +0.04   +0.16       +0.00   -0.05    +0.02     +0.03                         GRPO     +0.05   +0.17       +0.00   -0.05    +0.02     +0.04
+
+                             Graph Countdown Python      MathIR   Pantry   Average                                 Graph Countdown Python      MathIR   Pantry   Average
+
+
+     Figure 4: Replay improves correctness and verified support across scales. (A) ReplayDr.GRPO
+     minus Dr.GRPO. (B) Qwen2.5-0.5B alternatives and the initial model minus Dr.GRPO. Daggers
+     indicate four pairs; otherwise five. Averages use shared seeds; intervals: Appendix F.
+
+52   Replay improves held-out correctness and support. ReplayDr.GRPO improves average held-out
+53   correctness and verified support across all five domains at each of the three model scales (Figure 4). On
+54   Qwen2.5-0.5B Countdown, pass@8 rises .48 → .67 and distinct@8 .49 → 1.64. The weighting
+55   rule matters: across five Qwen2.5-0.5B domains, uniform replay adds .32 extra modes per eight
+56   samples on average over frequency-weighted replay (Appendix F.4).
+
+
+
+
+                                                                                        3
+                                              Untrained           MaxRL       ReplayMaxRL (ours)             Dr.GRPO          ReplayDr.GRPO (ours)
+
+                           A Cross-domain pass@8                                                         B Cross-domain distinct@8
+
+
+     Qwen2.5-0.5B
+
+
+
+          Falcon3-1B                                                                n=4                                                                        n=4
+
+
+
+
+         Qwen2.5-3B
+
+
+                          0.0           0.2           0.4      0.6            0.8        1.0        0.00       0.25      0.50    0.75   1.00  1.25           1.50
+                                                      probability                                                      verified modes (raw count)
+
+     Figure 5: Memory adds value beyond sampling-aware MaxRL. Each track connects the untrained
+     model, fresh-objective training, and its replay counterpart. Faint paths are seeds; bold paths average
+     domains within seed. Falcon Dr.GRPO uses four common admissible seeds; other tracks use five.
+     The Qwen2.5-3B row shows its completed Dr.GRPO/replay track.
+
+57   Replay improves both Dr.GRPO and MaxRL. Adding replay improves average correctness and
+58   verified support under either objective at Qwen2.5-0.5B and Falcon3-1B (Figure 5). Qwen2.5-3B
+59   also benefits in its completed Dr.GRPO comparison. MaxRL comparisons use five paired seeds
+60   per domain. At Qwen2.5-0.5B, replay raises MaxRL’s pass@8 by .31 and distinct@8 by .99 on
+61   average across domains (paired estimates and intervals: Appendix C.2).
+
+                                    Level 1                 Level 2                               B Mean across five domains
+                                                                                                  Interim; Pantry: initial checkpoint only
+                      A Frozen-model success                                                                     pass@8                           distinct@8
+     Graph coloring                           0.289                                            Dr.GRPO
+        Countdown               0.039
+                                                                                        ReplayDr.GRPO
+     Python factors                                                   0.172
+                                    0.078
+                                                                                                MaxRL
+            MathIR
+        PantryPlan                  0.016                                                ReplayMaxRL
+                      0         .25        .5       .75               1                                  0          .5            1          0          1           2
+                                frozen base-model pass@8                                                        probability                      verified modes
+     Figure 6: Replay across difficulty levels with Qwen2.5-0.5B-Instruct. Open/filled markers: Level
+     1/2. (A) Frozen-model success. (B) Interim means weight the five domains equally after averaging
+     seeds. Checkpoints match across levels and methods; Pantry has one seed at step 0 (Appendix N.1).
+
+62   Replaying stored solutions also helps on harder problems. Level 2 preserves validators, keys,
+63   and valid-mode-count histograms while increasing difficulty: Graph hides four vertices instead of
+64   three. Only Graph has a complete five-seed, four-method block after eight passes. Dr.GRPO/MaxRL
+65   reach .20/.43 pass@8 and .22/.55 distinct@8; replay raises these to .76/.74 and 1.24/1.21. The
+66   five-domain comparison in Figure 6B remains interim (Appendix C.3).
+
+67   5     Conclusion and Limits
+68   M ODE B ENCH makes a missing part of evaluation measurable: the range of distinct, verified out-
+69   comes a model can produce for one problem. This matters because different approaches can have
+70   different strengths. One may succeed where another fails, or remain useful when constraints change.
+71   Understanding diversity therefore gives a fuller picture of a model’s capabilities than accuracy alone.
+72   Our results show that replay can preserve alternatives while improving held-out correctness. These
+73   controlled tasks provide a starting point for studying diversity in broader mathematical reasoning.
+74   Replay retains only discovered, stored modes; individual-mode survival remains unmeasured (Ap-
+75   pendix L). Whether broader support causes accuracy gains or helps on later tasks remains open.
+76   Adding an edge can invalidate one graph coloring while leaving another valid. A natural next step is
+77   to test whether retained alternatives help a model respond to such changes.
+
+
+                                                                                    4
+

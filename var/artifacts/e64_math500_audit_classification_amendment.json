@@ -1,0 +1,8 @@
+{
+  "amended_auditor_sha256": "2c604d5cfef32504a498f77c0e13e623b049a536f7a40b1c6dcca4b6c34f881e",
+  "amendment_sha256": "7dd836ae5ae8dab367e2c6cc56db11999a42e653eb5e4a3e816bdcb9ad9de84e",
+  "original_identity_sha256": "2858c01b298691743dbcd991836b6fe55451a2948482135e9cbdeb290391e297",
+  "prior_auditor_sha256": "7abc4ba76cca20a98dff4cf0205916f73874cf60711f2cb57b0698f9a2ea9826",
+  "schema": "e64_math500_audit_classification_amendment_v1",
+  "scope": "classification_only"
+}

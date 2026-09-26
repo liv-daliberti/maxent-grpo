@@ -1,0 +1,62 @@
+{
+  "schema": "maxent-grpo.storage-cleanup.v1",
+  "created_at": "2026-07-28",
+  "reason": "Remove bulky resumable state from terminal historical E33 3B runs while preserving metrics, evaluations, logs, and completed-run exported models.",
+  "pre_cleanup_filesystem": {
+    "mount_size": "7.0T",
+    "mount_used": "5.4T",
+    "mount_available": "1.7T",
+    "mount_use_percent": 77,
+    "var_data_bytes": 4707519581184
+  },
+  "protected": [
+    "All E66/E68 MathIR recovery inputs and outputs",
+    "All metrics and evaluation records",
+    "All Slurm logs and provenance artifacts",
+    "E33 completed-run saved_models exports for jobs 30047685 and 30047686"
+  ],
+  "deleted_checkpoint_trees": [
+    {
+      "job_id": 30047682,
+      "state": "CANCELLED",
+      "bytes": 114167575040,
+      "path": "var/data/xdr_qwen25_3b_instruct_grpo_gce33_freeform_3b_ema_10ep_v3_a100_grpo_s43/debug_job30047682/checkpoints"
+    },
+    {
+      "job_id": 30047683,
+      "state": "CANCELLED",
+      "bytes": 164836072448,
+      "path": "var/data/xdr_qwen25_3b_instruct_maxent_dual_gce33_freeform_3b_ema_10ep_v3_a100_maxent_dual_s43/debug_job30047683/checkpoints"
+    },
+    {
+      "job_id": 30047684,
+      "state": "CANCELLED",
+      "bytes": 114191529984,
+      "path": "var/data/xdr_qwen25_3b_instruct_grpo_gce33_freeform_3b_ema_10ep_v3_a100_grpo_s44/debug_job30047684/checkpoints"
+    },
+    {
+      "job_id": 30047685,
+      "state": "COMPLETED",
+      "bytes": 115433081856,
+      "path": "var/data/xdr_qwen25_3b_instruct_maxent_dual_gce33_freeform_3b_ema_10ep_v3_a100_maxent_dual_s44/debug_job30047685/checkpoints",
+      "preserved_export": "var/data/xdr_qwen25_3b_instruct_maxent_dual_gce33_freeform_3b_ema_10ep_v3_a100_maxent_dual_s44/debug_job30047685/saved_models/step_01921"
+    },
+    {
+      "job_id": 30047686,
+      "state": "COMPLETED",
+      "bytes": 114182601728,
+      "path": "var/data/xdr_qwen25_3b_instruct_grpo_gce33_freeform_3b_ema_10ep_v3_a100_grpo_s45/debug_job30047686/checkpoints",
+      "preserved_export": "var/data/xdr_qwen25_3b_instruct_grpo_gce33_freeform_3b_ema_10ep_v3_a100_grpo_s45/debug_job30047686/saved_models/step_01921"
+    }
+  ],
+  "expected_reclaimed_bytes": 622810861056
+  ,
+  "result": {
+    "status": "verified_removed",
+    "post_cleanup_var_data_bytes": 4084709236224,
+    "observed_reclaimed_bytes": 622810344960,
+    "post_cleanup_mount_used": "5.0T",
+    "post_cleanup_mount_available": "2.1T",
+    "post_cleanup_mount_use_percent": 71
+  }
+}

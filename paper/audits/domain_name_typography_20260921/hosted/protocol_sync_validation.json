@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "protocol_render_byte_identical": true,
+  "protocol_tex_unchanged": true,
+  "only_sidecar_field_changed": "builder_sha256",
+  "builder_sha256": "41f04dbaebfa570808af609b74f449a8a77fb109a05e173b519bafa34f12db60",
+  "sidecar_sha256": "86a4c8505921682b8f5107609356cd79e70c8a8a1f5f605a615875ca376b491e",
+  "record_generation_plots_or_experiments_run": false
+}

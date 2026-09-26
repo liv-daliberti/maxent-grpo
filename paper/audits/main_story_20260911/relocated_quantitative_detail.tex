@@ -1,0 +1,52 @@
+% Quantitative details relocated from the long main narrative.
+% Verified against core_terminal_endpoints.json, the frozen Figure 5 JSON,
+% and modebench_level_admission.json; values retain the original rounding.
+
+\paragraph{Dr.GRPO retention contrasts.}
+\label{app:retention-numerical-detail}
+Both co-primary block means are positive in all 14 complete five-seed
+comparisons, and raw \texttt{distinct@8} increases in all 74 admissible pairs.
+At Qwen2.5-0.5B, Countdown \texttt{pass@8} rises from $.480$ to $.672$ and
+raw \texttt{distinct@8} from $.487$ to $1.637$; the extra-mode effect is
+$+.959$ (paired 95\% interval $[+.863,+1.054]$). Python correctness rises
+from $.172$ to $.528$, with an extra-mode effect of $+.043$
+($[-.077,+.164]$); MathIR rises from $.512$ to $.796$, with extra modes
+$+.030$ ($[+.001,+.060]$). These intervals are nominal, unadjusted
+Student-$t$ estimates over five paired training seeds. Extra modes remain
+coupled to correctness. Countdown keys identify computation routes, but
+these held-out endpoints do not identify which previously discovered
+routes survived training.
+
+\paragraph{Cross-domain factorial summaries.}
+\label{app:factorial-numerical-detail}
+Averaging five domains equally within each paired seed, ReplayMaxRL minus
+MaxRL gives $+.307$ on \texttt{pass@8} and $+.991$ on raw
+\texttt{distinct@8} at Qwen2.5-0.5B (unadjusted 95\% intervals
+$[+.208,+.406]$ and $[+.815,+1.167]$), and $+.133/+.228$ at Falcon3-1B
+($[+.043,+.223]$ and $[+.094,+.361]$). Both use five paired seeds.
+The Dr.GRPO replay effects on these two endpoints are $+.337/+.999$ at
+Qwen2.5-0.5B, $+.442/+.774$ at Falcon3-1B, and $+.279/+.559$ at
+Qwen2.5-3B. The Falcon Dr.GRPO average uses four common admissible seeds
+without an interval; the other two use five. These are post-hoc descriptive
+cross-domain summaries. At Qwen2.5-3B, MaxRL/ReplayMaxRL arm means are
+$.550/.695$ on correctness and $.765/1.113$ on raw support. This track
+weights the five domain-specific paired means equally, with
+Graph/Countdown/Python/MathIR/Pantry counts $5/3/5/3/1$; it has neither a
+common cross-domain seed trajectory nor an interval. The common four-arm
+intersection contains eleven complete five-seed blocks and Falcon Countdown
+at four seeds. Factorial interactions require that intersection rather than
+differences between aggregates using different seeds.
+
+\paragraph{Level-2 Graph endpoint detail.}
+\label{app:levels-numerical-detail}
+The matched construction lowers frozen-model \texttt{pass@8} from $.438$
+to $.148$. At pass 8, Dr.GRPO/MaxRL reach $.202/.434$, versus $.763/.739$
+with their replay variants. The paired correctness gains are $+.561$ and
+$+.305$ (unadjusted 95\% Student-$t$ intervals $[+.445,+.677]$ and
+$[+.250,+.360]$, five seeds each). The weakest replay run ($.711$) exceeds
+the strongest non-replay run ($.477$). Replay adds $1.019/.668$ raw
+\texttt{distinct@8}, yielding $1.243/1.214$ under the two fresh objectives.
+These observations show improved correctness and sampled support on harder
+Graph; they do not establish that broader support causes the correctness
+gain. Cross-level prompts are distinct, and the four-domain Level-2
+aggregate excludes the incomplete Pantry factorial.

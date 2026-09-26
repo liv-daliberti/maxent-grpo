@@ -1,0 +1,25 @@
+{
+  "main_table_unchanged": true,
+  "appendix_table_unchanged": true,
+  "measured_record_unchanged_except_renderer_digest": true,
+  "pmd_rebuilt_from_existing_responses_exactly": true,
+  "all_300_strict_normalized_condition_domain_level_aggregates_rebuilt": true,
+  "all_five_model_rows_unchanged": true,
+  "emitter_matches_fragments": true,
+  "model_calls": 0,
+  "bootstrap_reruns": 0,
+  "paired_counts": {
+    "claude_opus48": 458,
+    "gpt54": 309,
+    "gpt56sol": 245,
+    "grok43": 351,
+    "kimi_k3": 380
+  },
+  "final_sha256": {
+    "ops/build_paper_hosted_reasoning_off.py": "78bce95bc7b865c83e946a6945d0344965818d1ae02dc34ca5fecd7cb539378c",
+    "paper/results/hosted_reasoning_off_20260912_main.tex": "1c66ddb208d5e45658f86ffa2ad20fff3d1658a08c1f74ec0862ff76c38bbae8",
+    "paper/results/hosted_reasoning_off_20260912_appendix.tex": "61120738827153470d2977fa1d015fa6f282c87bff68c95cea198eada66fc8d6",
+    "paper/results/hosted_reasoning_off_20260912.json": "daaa3ddb561ad5bc1524582504062fcf0c78122ad0d50bf57a0cbfd680cb28c8",
+    "paper/results/hosted_reasoning_pmd.json": "92986c6c0af5d1096c8cdc5aff01f306fd6e8701841129867592dd924a8f5dc0"
+  }
+}

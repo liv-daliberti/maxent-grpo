@@ -1,0 +1,562 @@
+{
+  "checked_at_utc": "2026-09-06T01:11:59.114070+00:00",
+  "endpoint_statuses": {
+    "admitted": 111,
+    "incomplete": 39
+  },
+  "complete_pair_blocks": 11,
+  "total_terminal_pairs": 55,
+  "complete_four_arm_blocks": 10,
+  "displayed_scale_cells_unchanged": true,
+  "main_average_values_unchanged": true,
+  "delta": [
+    {
+      "scale": "falcon1b",
+      "domain": "countdown",
+      "before_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "after_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        55,
+        56,
+        57,
+        58
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.133203125,
+          "n": 5,
+          "student_t_95": [
+            0.10078436462924115,
+            0.16562188537075886
+          ]
+        },
+        "pass8": {
+          "mean": 0.025390625,
+          "n": 5,
+          "student_t_95": [
+            0.009862248357265811,
+            0.04091900164273419
+          ]
+        }
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "domain": "graph_coloring",
+      "before_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "after_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": -0.09296875,
+          "n": 5,
+          "student_t_95": [
+            -0.22940870481005438,
+            0.043471204810054356
+          ]
+        },
+        "pass8": {
+          "mean": 0.0140625,
+          "n": 5,
+          "student_t_95": [
+            -0.015905216154799624,
+            0.04403021615479963
+          ]
+        }
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "domain": "mathir",
+      "before_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "after_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.44296875,
+          "n": 5,
+          "student_t_95": [
+            0.3172897033687549,
+            0.5686477966312451
+          ]
+        },
+        "pass8": {
+          "mean": 0.42421875,
+          "n": 5,
+          "student_t_95": [
+            0.309936423142672,
+            0.538501076857328
+          ]
+        }
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "domain": "pantry_plan",
+      "before_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "after_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.375,
+          "n": 5,
+          "student_t_95": [
+            0.06488728925832127,
+            0.6851127107416788
+          ]
+        },
+        "pass8": {
+          "mean": 0.0734375,
+          "n": 5,
+          "student_t_95": [
+            0.027628949387644805,
+            0.1192460506123552
+          ]
+        }
+      }
+    },
+    {
+      "scale": "falcon1b",
+      "domain": "python_factors",
+      "before_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "after_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        55,
+        56,
+        57,
+        58,
+        59
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.2796875,
+          "n": 5,
+          "student_t_95": [
+            -0.20912530481329833,
+            0.7685003048132983
+          ]
+        },
+        "pass8": {
+          "mean": 0.1265625,
+          "n": 5,
+          "student_t_95": [
+            -0.3715938296254989,
+            0.6247188296254989
+          ]
+        }
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "domain": "countdown",
+      "before_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "after_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 1.073828125,
+          "n": 5,
+          "student_t_95": [
+            0.8224478047919026,
+            1.3252084452080972
+          ]
+        },
+        "pass8": {
+          "mean": 0.083984375,
+          "n": 5,
+          "student_t_95": [
+            -0.07387244872582413,
+            0.24184119872582413
+          ]
+        }
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "domain": "graph_coloring",
+      "before_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "after_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 1.6296875,
+          "n": 5,
+          "student_t_95": [
+            1.1550762256136562,
+            2.1042987743863435
+          ]
+        },
+        "pass8": {
+          "mean": 0.408203125,
+          "n": 5,
+          "student_t_95": [
+            0.19956484212656048,
+            0.6168414078734396
+          ]
+        }
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "domain": "mathir",
+      "before_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "after_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.355859375,
+          "n": 5,
+          "student_t_95": [
+            0.2737374664017516,
+            0.43798128359824834
+          ]
+        },
+        "pass8": {
+          "mean": 0.343359375,
+          "n": 5,
+          "student_t_95": [
+            0.26246409695860357,
+            0.4242546530413965
+          ]
+        }
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "domain": "pantry_plan",
+      "before_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "after_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.940625,
+          "n": 5,
+          "student_t_95": [
+            0.6361071229336768,
+            1.2451428770663233
+          ]
+        },
+        "pass8": {
+          "mean": 0.189453125,
+          "n": 5,
+          "student_t_95": [
+            0.10762536824480519,
+            0.2712808817551948
+          ]
+        }
+      }
+    },
+    {
+      "scale": "qwen05b",
+      "domain": "python_factors",
+      "before_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "after_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "new_seeds": [],
+      "full_factorial_seeds": [
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.95546875,
+          "n": 5,
+          "student_t_95": [
+            -0.0822685611474242,
+            1.9932060611474243
+          ]
+        },
+        "pass8": {
+          "mean": 0.509375,
+          "n": 5,
+          "student_t_95": [
+            -0.0332637206313261,
+            1.0520137206313263
+          ]
+        }
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "domain": "countdown",
+      "before_seeds": [],
+      "after_seeds": [],
+      "new_seeds": [],
+      "full_factorial_seeds": [],
+      "effects": {
+        "distinct8": {
+          "n": 0
+        },
+        "pass8": {
+          "n": 0
+        }
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "domain": "graph_coloring",
+      "before_seeds": [],
+      "after_seeds": [],
+      "new_seeds": [],
+      "full_factorial_seeds": [],
+      "effects": {
+        "distinct8": {
+          "n": 0
+        },
+        "pass8": {
+          "n": 0
+        }
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "domain": "mathir",
+      "before_seeds": [],
+      "after_seeds": [],
+      "new_seeds": [],
+      "full_factorial_seeds": [],
+      "effects": {
+        "distinct8": {
+          "n": 0
+        },
+        "pass8": {
+          "n": 0
+        }
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "domain": "pantry_plan",
+      "before_seeds": [],
+      "after_seeds": [],
+      "new_seeds": [],
+      "full_factorial_seeds": [],
+      "effects": {
+        "distinct8": {
+          "n": 0
+        },
+        "pass8": {
+          "n": 0
+        }
+      }
+    },
+    {
+      "scale": "qwen3b",
+      "domain": "python_factors",
+      "before_seeds": [
+        70,
+        71
+      ],
+      "after_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "new_seeds": [
+        72,
+        73,
+        74
+      ],
+      "full_factorial_seeds": [
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "effects": {
+        "distinct8": {
+          "mean": 0.39140625,
+          "n": 5,
+          "student_t_95": [
+            0.07867982295403525,
+            0.7041326770459648
+          ]
+        },
+        "pass8": {
+          "mean": 0.2765625,
+          "n": 5,
+          "student_t_95": [
+            -0.0369152769998326,
+            0.5900402769998325
+          ]
+        }
+      }
+    }
+  ]
+}

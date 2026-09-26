@@ -1,0 +1,14 @@
+--- ops/plot_paper_gpt56_all_levels32_sampling.py (before)
++++ ops/plot_paper_gpt56_all_levels32_sampling.py (after)
+@@ -410,6 +410,11 @@
+                  ha='left', va='center', fontsize=7.1, fontweight='bold')
+         fig.text(.02, .58, 'Share of available\nmodes found', rotation=90, ha='center', va='center', fontsize=7.5)
+         fig.text(.54, .155, 'Samples per prompt, $k$', ha='center', va='center', fontsize=7.5)
++    try:
++        from ops.paper_domain_figure_typography import apply_domain_typography
++    except ModuleNotFoundError:
++        from paper_domain_figure_typography import apply_domain_typography
++    apply_domain_typography(fig)
+     return fig
+ 
+ 

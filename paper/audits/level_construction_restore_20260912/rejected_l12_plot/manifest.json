@@ -1,0 +1,10 @@
+{
+  "reason": "User requested per-domain pass@8 versus distinct@8 levels scatter, replacing the rejected historical L1/L2 development chart.",
+  "sha256": {
+    "ops/plot_paper_modebench_level_construction.py": "41c01930095b9b21907aac596ff24fcbdbdf277e9dc1d5f502218c7c507b2b96",
+    "tests/test_paper_level_construction.py": "c9b4143fccd9d2fb552fbf5846e3ffe6d49b77a1292f7f625a9a5777ac455390",
+    "paper/figures/modebench_level_construction.pdf": "03854a3a165b6ca5e1cb926f7fa7a70cb8ba479d4b7923c364feb7cd79fa91cf",
+    "paper/figures/modebench_level_construction.png": "2cab7822631fa9c2e10f555d7259eb09a0a6f7607b6120af4ba32b61e46a0a23",
+    "paper/figures/modebench_level_construction.json": "50428fae945b316dbabbff7fb2eadc4d9f84729a45afa2437f5e04006c9f29ff"
+  }
+}

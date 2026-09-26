@@ -1,0 +1,317 @@
+\subsection{Why uniform verified replay prevents extinction}
+\label{app:theory-replay}
+
+A persistent replay signal becomes a retention guarantee when vanishing
+probability would force a bounded loss to diverge. The next argument makes
+that loss barrier explicit, then shows what changes with unequal weights
+and incomplete coverage.
+
+Let $\mathcal B\subseteq\mathcal C$ be a nonempty fixed bank of $k$ modes that
+the policy has produced and the validator has accepted. Uniform verified replay
+uses one exemplar per banked mode and, in the categorical reduction, minimizes
+\begin{equation}
+  R_{\mathcal B}(z)
+  =-\frac1k\sum_{b\in\mathcal B}\log p_b.
+  \label{eq:verified-replay-loss}
+\end{equation}
+This is ordinary cross-entropy against the distribution that assigns mass
+$1/k$ to each banked mode and zero elsewhere. It is not conditioned on the
+bank: decreasing~\eqref{eq:verified-replay-loss} can raise total bank mass as
+well as redistribute mass within the bank.
+
+In an averaged continuous-time model, absorb a fixed round-robin replay
+frequency and loss scale into an effective dose $\rho>0$. This assumes a
+fixed eligible-bank set and constant relative weighting; it does not identify
+finite alternating updates with simultaneous gradient flow. The prompt-isolated categorical mean flow for any of the three fresh
+binary-reward objectives above plus verified replay is
+\begin{equation}
+  \dot z
+  =c_G(P)\nabla_zP-\rho\nabla_zR_{\mathcal B}(z).
+  \label{eq:replay-mean-flow}
+\end{equation}
+Let $\Psi(P)=\int_0^P c_G(s)\,ds$. For the finite-group estimators in Lemmas~\ref{lem:grpo-mean}
+and~\ref{lem:maxrl-mean}, $c_G$ has a finite positive extension to $[0,1]$;
+in particular, Dr.GRPO has $c_G=(G-1)/G$ and MaxRL has
+$c_G=[1-(1-P)^{G-1}]/P$. Define
+\begin{equation}
+  F_{\mathcal B}(z)=\rho R_{\mathcal B}(z)-\Psi(P(z)).
+  \label{eq:replay-potential}
+\end{equation}
+Then~\eqref{eq:replay-mean-flow} is exactly gradient flow
+$\dot z=-\nabla_zF_{\mathcal B}$.
+
+\begin{theorem}[Verified replay prevents banked-mode extinction]
+\label{thm:replay-retention}
+Suppose that after time $T$ the nonempty verified bank $\mathcal B$ is fixed,
+fits within replay capacity, and receives a fixed positive effective replay
+dose $\rho$. Under~\eqref{eq:replay-mean-flow}, define
+\[
+  C_T
+  =R_{\mathcal B}(z(T))
+   +\frac{\Psi(1)-\Psi(P(T))}{\rho}.
+\]
+Then for every $b\in\mathcal B$ and every $t\ge T$,
+\begin{equation}
+  p_b(t)\ge \exp(-kC_T)>0.
+  \label{eq:replay-retention-bound}
+\end{equation}
+Thus each banked probability is uniformly bounded away from zero for all
+$t\ge T$, including asymptotically, even when the bank does not cover every
+correct mode. This is stronger than finite-time positivity, which already
+follows from finite softmax logits without replay.
+\end{theorem}
+
+\begin{proof}
+Along the flow,
+\[
+  \frac{d}{dt}F_{\mathcal B}(z(t))
+  =-\lVert\nabla_zF_{\mathcal B}(z(t))\rVert_2^2\le0.
+\]
+Since $P(t)\le1$ and $\Psi$ is increasing,
+\[
+  R_{\mathcal B}(z(t))
+  \le R_{\mathcal B}(z(T))
+     +\frac{\Psi(1)-\Psi(P(T))}{\rho}
+  =C_T.
+\]
+Every $-\log p_b$ is nonnegative and their sum is
+$kR_{\mathcal B}$. Therefore
+$-\log p_b(t)\le kC_T$ for every banked mode, which is exactly
+Equation~\eqref{eq:replay-retention-bound} for every time after $T$.
+\end{proof}
+
+\paragraph{Worked example: a rare mode cannot hide inside a bounded loss.}
+In \hyperref[ex:theory-running]{the running example}, bank the first and third correct modes,
+whose probabilities are $.30$ and $.05$. Their uniform replay loss is
+$R_{\mathcal B}=-\tfrac12\log(.30\cdot.05)\approx2.09985$.
+For the illustrative Dr.GRPO choices $G=4$ and $\rho=.30$,
+$C_T=R_{\mathcal B}+(.75)(1-.50)/.30\approx3.34985$, giving a floor
+$p_b\ge e^{-2C_T}\approx0.00123127$. The point is the constraint on the
+loss: if either banked probability fell to $10^{-4}$, its term alone would
+contribute $-\tfrac12\log(10^{-4})\approx4.60517>C_T$.
+The other term is nonnegative and cannot cancel this increase. These are
+hypothetical categorical values; the argument explains the barrier without
+making its conservative floor an experimental prediction.
+
+This is a qualitative positivity statement, not a useful numerical guarantee.
+If a prompt receives fresh updates with frequency $\nu_x>0$ and replay with
+frequency $\mu_x>0$, normalizing time by its fresh-update frequency gives
+$\rho=\rho_{\rm raw}\mu_x/\nu_x$. Equal fresh and replay frequencies cancel;
+round-robin scheduling alone does not imply dilution of the relative dose.
+As an illustrative equal-frequency categorical calculation, the registered
+$G=16$ coefficient and per-rollout scale give
+$\rho=.10(15/256)=5.86\times10^{-3}$. With $k=16$, the worst-case Dr.GRPO
+potential term alone permits a bound on the order of $\exp(-2560)$ (and
+$R_{\mathcal B}(z(T))$ can only weaken it). The bound is therefore vacuous at
+machine and experimental scales; it establishes only that an idealized
+continuous-time, fixed-bank coordinate cannot vanish asymptotically.
+
+\paragraph{The retention bound also holds under smooth parameterization.}
+The same argument applies to $\dot\theta=-\nabla_\theta F_{\mathcal B}(z(\theta))$:
+\[
+ \frac{d}{dt}F_{\mathcal B}(z(\theta(t)))
+ =-\lVert J_\theta^\top\nabla_zF_{\mathcal B}\rVert_2^2\le0.
+\]
+Thus Equation~\eqref{eq:replay-retention-bound} holds regardless of parameter
+count for this fixed-bank, prompt-isolated parameter gradient flow. It does
+not require the shared-correctness geometry in
+Theorem~\ref{thm:shared-correctness}. This extends the qualitative retention
+bound, not convergence to a uniform distribution: a restricted or degenerate
+parameterization can stall. The next corollary retains independent logits.
+
+\begin{corollary}[Conditional full-coverage categorical limit]
+\label{cor:replay-no-collapse}
+Assume the conditions of Theorem~\ref{thm:replay-retention} and that by time
+$T$ the bank covers the full correct support, $\mathcal B=\mathcal C$. Let
+$u_c=1/m$ on $\mathcal C$. Then the categorical mean flow converges to
+\[
+  P(t)\longrightarrow1,
+  \qquad q(t)\longrightarrow u.
+\]
+Consequently
+\[
+  \min_{c\in\mathcal C}q_c(t)\longrightarrow\frac1m,
+  \qquad
+  \mathcal H(q(t))\longrightarrow\log m,
+\]
+and conditional correct-mode collapse is impossible.
+\end{corollary}
+
+\begin{proof}
+When $\mathcal B=\mathcal C$,
+\begin{equation}
+  R_{\mathcal C}
+  =\log m-\log P+\mathrm{KL}(u\|q).
+  \label{eq:replay-mass-uniformity-decomposition}
+\end{equation}
+Thus one uniform verified-likelihood loss already contains both a verified-mass
+term $-\log P$ and a within-support uniformity term $\mathrm{KL}(u\|q)$. The
+potential~\eqref{eq:replay-potential} becomes
+\[
+  F_{\mathcal C}
+  =\rho\log m+\rho\mathrm{KL}(u\|q)
+   -\rho\log P-\Psi(P).
+\]
+For fixed $P$, its unique minimizer is $q=u$. Its derivative in $P$ is
+$-\rho/P-c_G(P)<0$, so its unique minimizing distribution on the closed
+simplex is $P=1,q=u$,
+placing all limiting probability uniformly on the correct support and zero
+mass on every incorrect category in the categorical limit.
+
+For completeness, Theorem~\ref{thm:replay-retention} keeps every correct
+coordinate away from zero. The decreasing potential gives
+$\int_T^\infty\lVert\nabla F_{\mathcal C}\rVert_2^2dt<\infty$.
+The finite-group $c_G$ is smooth on $[0,1]$; softmax derivatives and the
+cross-entropy gradient are bounded. Thus the Hessian of $F_{\mathcal C}$ and
+the velocity $\dot z=-\nabla F_{\mathcal C}$ are bounded, making
+$\nabla F_{\mathcal C}(z(t))$ uniformly continuous. Together with square
+integrability, this implies $\nabla F_{\mathcal C}\to0$: recurring gradients
+of fixed positive size would persist over intervals of a uniform minimum
+length, contradicting the finite energy integral. At any limiting
+distribution the correct-coordinate stationarity equations are
+\[
+  0=\rho(p_c-1/m)-c_G(P)p_c(1-P),
+\]
+so all $p_c$ are equal. Substituting $p_c=P/m$ gives
+$0=-(1-P)(\rho+c_G(P)P)/m$, hence $P=1$. Each incorrect coordinate satisfies
+$0=p_a(\rho+c_G(P)P)$ and therefore has $p_a=0$. The limiting distribution is
+unique, proving convergence from every initialization covered by the corollary.
+\end{proof}
+
+\paragraph{Positive replay weights and exemplar length.}
+Uniformity of the target is separate from protection against extinction.
+For fixed weights $w_b>0$ with $\sum_{b\in\mathcal B}w_b=1$, define
+$R_w=-\sum_b w_b\log p_b$ and use replay coefficient $\rho_w>0$.
+The same potential argument gives, for all $t\ge T$,
+\[
+ p_b(t)\ge\exp(-C_{T,w}/w_b),\qquad
+ C_{T,w}=R_w(z(T))+\frac{\Psi(1)-\Psi(P(T))}{\rho_w}.
+\]
+If $\mathcal B=\mathcal C$, then
+$R_w=H(w)-\log P+\mathrm{KL}(w\|q)$, and the independent-logit limit is
+$P\to1$, $q\to w$. The preceding stationarity proof applies with $1/m$
+replaced by $w_c$: summing the correct-coordinate equations forces $P=1$,
+then each equation forces $p_c=w_c$.
+
+This distinction matters for the implemented mean-token exemplar loss.
+Even if each key were represented by exactly one categorical exemplar of
+fixed length $L_b$, its loss would be $A R_w$, where
+\[
+ A=\frac1k\sum_{b\in\mathcal B}\frac1{L_b},\qquad
+ w_b=\frac{L_b^{-1}}{\sum_{j\in\mathcal B}L_j^{-1}}.
+\]
+Its effective categorical replay coefficient would be $\rho_w=\rho_{\rm LM}A$.
+The full-coverage limit would therefore weight shorter exemplars more, and
+would be uniform only for equal lengths. For an actual language model,
+$\pi_\theta(e_b\mid x)$ is only one contribution to the total key probability.
+Equal averaging of per-token exemplar scores does not imply uniform learned
+key probabilities; the categorical uniformity corollary is not that claim.
+
+\paragraph{Worked example: equal key sampling need not imply a uniform target.}
+For three singleton categorical exemplars of lengths $10,20,40$, equal
+averaging of mean-token losses gives $A=7/120$ and
+$w=(4/7,2/7,1/7)$. All three target weights are positive, so each mode is
+protected, but the full-coverage categorical limit assigns the shortest
+exemplar four times the probability of the longest. Equal lengths would
+instead give $(1/3,1/3,1/3)$. This example concerns the loss's induced
+categorical target, not an asserted distribution over actual LM keys.
+
+The premise $\mathcal B=\mathcal C$ is not a description of the released
+Python-factors experiments. Their prompts have 16--3,600 valid execution modes
+(mean 229.44), while the replay bank has capacity 16. Thus the corollary is
+inapplicable to Python factors as a domain-wide guarantee. More generally it
+applies only to prompts whose entire correct support fits in the bank and has
+actually been discovered; neither condition follows from replay.
+
+\begin{lemma}[Fixed-bank limits and deterministic finite steps]
+\label{lem:replay-finite-steps}
+Retain finite independent Euclidean logits, a nonempty fixed bank
+$\mathcal B\subseteq\mathcal C$, fixed positive normalized weights $w_b$,
+and $\rho_w>0$. Let $F=\rho_wR_w-\Psi(P)$, with
+$\Psi\in C^2([0,1])$ and $\Psi'=c_G\ge0$. Set
+\[
+ M_1=\sup_{[0,1]}|\Psi'|,\qquad
+ M_2=\sup_{[0,1]}|\Psi''|,\qquad
+ L=\frac{\rho_w}{2}+\frac{M_1}{2}+\frac{M_2}{8}.
+\]
+For constant $0<\eta<2/L$, deterministic updates
+$z_{n+1}=z_n-\eta\nabla F(z_n)$ preserve, for every $n\ge0$,
+\[
+ p_b(z_n)\ge \exp(-C_{0,w}/w_b),\qquad
+ C_{0,w}=R_w(z_0)+\frac{\Psi(1)-\Psi(P(z_0))}{\rho_w}.
+\]
+Moreover, $p(z_n)\to\bar w$, where $\bar w_b=w_b$ on the bank and
+$\bar w_a=0$ elsewhere. The same probability limit holds for the corresponding
+continuous mean flow. The logits need not converge: zero limiting probabilities require divergent logit differences relative to banked coordinates.
+\end{lemma}
+
+\begin{proof}
+For a logit direction $u$, let $U=u_a$ and $Y=\mathbf1[a\in\mathcal C]$
+under $a\sim p$. Differentiating along that direction gives
+\[
+ u^\top\nabla^2P\,u
+ =\mathbb E[(Y-P)(U-\mathbb EU)^2],\qquad
+ u^\top\nabla^2R_w\,u=\operatorname{Var}(U).
+\]
+Since $|Y-P|\le1$, the first quadratic form is bounded in absolute
+value by $\operatorname{Var}(U)$. The bounded-range variance inequality gives
+\[
+ \operatorname{Var}(U)\le\frac{(\max_a u_a-\min_a u_a)^2}{4}
+ \le\frac{\lVert u\rVert_2^2}{2}.
+\]
+Both Hessians therefore have operator norm at most $1/2$.
+Also $\lVert\nabla P\rVert_2^2\le2P^2(1-P)^2\le1/8$.
+The chain rule therefore bounds $\lVert\nabla^2F\rVert_{\rm op}\le L$
+globally. The descent lemma yields
+\[
+ F(z_{n+1})\le F(z_n)
+ -\eta(1-L\eta/2)\lVert\nabla F(z_n)\rVert_2^2.
+\]
+Energy monotonicity gives the preceding replay-loss bound and hence the
+stated retention floor. Since $F\ge-\Psi(1)$, the squared gradients are
+summable and $\nabla F(z_n)\to0$. Its coordinate expression,
+\[
+ [\nabla F]_a=\rho_w(p_a-\bar w_a)
+ -c_G(P)p_a(\mathbf1[a\in\mathcal C]-P),
+\]
+extends continuously to the closed probability simplex. Every subsequential
+probability limit is therefore stationary. On an incorrect coordinate,
+stationarity gives $(\rho_w+c_G(P)P)p_a=0$, forcing all incorrect mass to
+zero and $P=1$. The correct-coordinate equations then give $p_a=\bar w_a$.
+Compactness and this unique limit prove convergence of the whole probability
+sequence. For the mean flow, bounded Hessian and velocity together with
+energy descent give vanishing gradient as in the preceding corollary;
+the same stationarity argument applies.
+\end{proof}
+
+For Dr.GRPO, $M_1=(G-1)/G$ and $M_2=0$. For the implemented finite-group
+MaxRL estimator, $M_1=G-1$ and $M_2=(G-1)(G-2)/2$, so one sufficient smoothness
+constant is $L=\rho_w/2+(G-1)(G+6)/16$. These bounds concern categorical logit
+steps, not the neural optimizer's learning rate. With an incomplete frozen
+bank, the categorical limit assigns zero mass even to correct modes outside
+the bank: fixed-bank retention is not a guarantee of discovering or preserving
+all correct modes. The fixed-bank limit also gives
+\[
+ \lim_{t\to\infty}\texttt{distinct@}K
+ =\sum_{b\in\mathcal B}[1-(1-w_b)^K]\le k,
+\]
+with the same expression along deterministic iterates. Thus the bank itself
+sets an asymptotic support ceiling in this model. The later stochastic and changing-bank results give conditional
+retention bounds under additional energy assumptions; they do not extend this
+fixed-bank convergence limit to arbitrary neural training.
+
+\paragraph{Worked example: a safe logit step and an incomplete bank.}
+Return to the two-mode bank above with $\rho_w=.30$, $G=4$, and Dr.GRPO.
+Here $L=.525$, so $\eta=1$ satisfies $0<\eta<2/L\approx3.81$.
+One deterministic logit-gradient step changes the running distribution
+approximately as
+\[
+ (.30,.15,.05,.50)\ \longmapsto\ (.3861,.1643,.0632,.3864),
+\]
+while the potential falls from about $.25496$ to $.09689$.
+Both banked modes gain probability. The unbanked second correct mode also
+gains on this first step, but the lemma's eventual limit is
+$(.50,0,.50,0)$: early improvement of an unbanked mode does not make it
+protected. The step size here belongs to the independent-logit example;
+it is not a recommendation for the neural optimizer.
+

@@ -1,0 +1,156 @@
+% Standalone fragment: requires amsmath, amssymb, amsthm, hyperref and proposition/corollary environments.
+% Suggested citations are specified with verified metadata in discovery.md.
+% This fragment has no dependencies on the main manuscript's theorem labels.
+
+\paragraph{Discovery requires admission opportunities.}
+The following is a standard conditional-hazard argument, closely related to
+conditional Borel--Cantelli
+(\href{https://sites.math.duke.edu/~rtd/PTE/PTE5_011119.pdf}{Durrett, 2019,
+Theorem~4.3.4}), applied to insertion of a verified key into memory.
+Its hazard includes scheduling, validation, capacity, and candidate selection;
+a positive probability of generating a key alone is insufficient.
+
+\begin{proposition}[Conditional admission hazards]
+Fix a key $b$ not initially banked. Let $(\mathcal F_n)_{n\ge0}$ describe the
+complete training history after each opportunity, and let $\tau_b$ be its first
+admission time, with $\tau_b=\infty$ if it is never admitted. Define the
+predictable stopped hazard
+\[
+ h_{b,n}=\Pr(\tau_b=n\mid\mathcal F_{n-1}),\qquad
+ H_{b,N}=\sum_{n=1}^N h_{b,n}.
+\]
+For every $a\ge0$,
+\[
+ \Pr(\tau_b>N,\ H_{b,N}\ge a)\le e^{-a}.
+\]
+In particular,
+$\Pr(\tau_b=\infty,\ H_{b,\infty}=\infty)=0$.
+If deterministic numbers $\underline h_{b,n}\in[0,1]$ satisfy
+$h_{b,n}\ge\underline h_{b,n}$ on $\{\tau_b\ge n\}$, then
+\[
+ \Pr(\tau_b>N)\le\prod_{n=1}^N(1-\underline h_{b,n})
+ \le\exp\!\left(-\sum_{n=1}^N\underline h_{b,n}\right).
+\]
+For a finite target set $S$, the probability that some target key has not been
+admitted by $N$ is at most the sum of these bounds over $b\in S$.
+\end{proposition}
+\begin{proof}
+Let $Z_N=\mathbf1\{\tau_b>N\}\exp(H_{b,N})$, with $Z_0=1$.
+The event of an earlier admission is known at time $n-1$, and $h_{b,n}=0$
+on that event. On survival through $n-1$,
+\[
+ \mathbb E[Z_n\mid\mathcal F_{n-1}]
+ =Z_{n-1}e^{h_{b,n}}(1-h_{b,n})\le Z_{n-1}.
+\]
+Thus $Z_n$ is a nonnegative supermartingale. Markov's inequality gives the
+finite-hazard bound. Fatou's lemma excludes a positive-probability event on
+which survival continues forever while $H_{b,N}\to\infty$, since then
+$Z_N\to\infty$. Under deterministic hazard floors, conditioning gives
+$\Pr(\tau_b>n)\le(1-\underline h_{b,n})\Pr(\tau_b>n-1)$;
+iteration and the union bound finish the proof.
+\end{proof}
+
+Divergent cumulative hazard is a substantive premise. Independent
+opportunities with admission probabilities $h_n=(n+1)^{-2}>0$ satisfy
+\[
+ \Pr(\tau=\infty)=\prod_{n=1}^\infty
+ \left(1-\frac1{(n+1)^2}\right)=\frac12.
+\]
+Likewise, once a non-evicting capacity-$K$ bank is full, every unbanked key has
+zero admission hazard. These bounds establish coverage only for keys that
+continue to have admissible opportunities; they do not establish such
+opportunities for the implemented policy or for supports larger than capacity.
+
+\paragraph{Retention across bank changes.}
+An admitted key also needs persistent loss weight. The next elementary energy
+accounting result allows bank changes while explicitly charging their effect
+on the objective. It is not an assumption that different bank objectives
+share a single unchanged potential. This follows the standard switched-energy
+viewpoint (\href{https://people.ece.ubc.ca/moishi/eece571m/articles/Branicky98.pdf}{Branicky, 1998});
+the specific inequality below is proved directly.
+
+\begin{proposition}[Switching-energy retention]
+Let $t_0<t_1<\cdots$ be switching times with finitely many switches on every
+bounded time interval. On interval $r$, use a finite collection of verified
+complete-response exemplars, with nonnegative coefficients $d_{rj}$ and
+\[
+ F_r(\theta)=\sum_{j:d_{rj}>0}d_{rj}\ell_j(\theta)-J(\theta),
+ \qquad \ell_j(\theta)=-\log\pi_\theta(e_j\mid x_j),
+ \qquad J(\theta)\le J_{\max}<\infty.
+\]
+Zero coefficients denote absent exemplars and are omitted from the sum.
+Suppose initial energy is finite, parameters are continuous
+at switches, $F_r$ is nonincreasing within its interval, and the positive
+energy jumps obey
+\[
+ A:=\sum_{r\ge1}
+ \left[F_r(\theta(t_r))-F_{r-1}(\theta(t_r))\right]_+<\infty.
+\]
+If exemplar $j$ is protected from interval $r_j$ onward and
+$d_{rj}\ge\underline d_j>0$ for every $r\ge r_j$, then, with
+$D=F_0(\theta(t_0))+A+J_{\max}<\infty$,
+\[
+ p_\theta(b_j\mid x_j)\ge\pi_\theta(e_j\mid x_j)
+ \ge\exp(-D/\underline d_j)
+ \qquad(t\ge t_{r_j}).
+\]
+The likelihood must represent the complete verified response under the law
+whose key probability is bounded. Mean-token losses have
+$d_{rj}=\alpha_{rj}/L_j$ for fixed exemplar length $L_j>0$.
+\end{proposition}
+\begin{proof}
+Induction over the switches gives
+$F_r(\theta(t))\le F_0(\theta(t_0))+A$. Therefore
+$\sum_jd_{rj}\ell_j(\theta(t))\le D$.
+Each summand is nonnegative, so a protected exemplar has
+$\ell_j(\theta(t))\le D/\underline d_j$.
+Its complete response event is contained in its verified-key event.
+\end{proof}
+
+If old coefficients are preserved when new exemplars are added, a switch
+costs exactly the summed weighted surprisal of the new exemplars at admission.
+For uniform categorical replay with fixed dose $\rho$, adding one key to a
+size-$k$ bank instead changes the potential by
+\[
+ \Delta F=\frac{\rho}{k+1}
+ \bigl[-\log p_{\rm new}-R_{\rm old}\bigr].
+\]
+Old coefficients decrease from $\rho/k$ to $\rho/(k+1)$, but remain at least
+$\rho/K$ when capacity is $K$. Finitely many such admissions, with positive
+admission-time probabilities and no eviction, therefore have finite total
+switching cost in the exact descent model. Recurrent scheduling, bounded
+priority multipliers, or a finite-capacity buffer alone do not establish
+within-interval descent or a summable jump budget for arbitrary optimization.
+
+
+\begin{corollary}[Conditional discovery followed by retention]
+Suppose a prompt has a finite correct support $\mathcal C$ of size $m$ no
+larger than bank capacity. Admissions are non-evicting, and every missing key
+$b$ has conditional admission hazard at least $\epsilon r_b$ at every
+opportunity, for constants $\epsilon>0$ and $r_b>0$ with
+$\epsilon r_b\le1$. Assume also the switching-energy conditions above,
+including a finite positive-jump budget and persistent positive coefficients
+for the admitted complete exemplars. Then the bank reaches full correct
+coverage in finitely many opportunities almost surely, and thereafter every correct key has
+a uniform-in-time positive probability floor. At horizon $N$,
+\[
+ \Pr(\text{full coverage by }N)
+ \ge 1-\sum_{b\in\mathcal C}e^{-N\epsilon r_b}.
+\]
+If $r_b\ge\gamma>0$ for every correct key, this is at least
+$1-m e^{-N\epsilon\gamma}$.
+\end{corollary}
+\begin{proof}
+Apply the admission-hazard bound to each initially missing key and take a
+union bound. The failure bound tends to zero; finite support and non-eviction
+therefore imply a finite almost-sure opportunity index of simultaneous full coverage.
+The switching-energy bound protects each admitted complete exemplar and hence
+its key, and applies to all keys after that time.
+\end{proof}
+
+A fixed full-support proposal mixture supplies such a hazard floor if it is
+queried at every counted opportunity and insertion is guaranteed whenever the
+key appears. This is a sufficient design condition, not a property established
+for the current temperature schedule, bounded search attempts, or adaptive
+priority controller. The corollary guarantees retention, not uniform key
+probabilities or convergence of the neural optimizer.

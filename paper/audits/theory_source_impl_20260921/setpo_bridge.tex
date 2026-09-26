@@ -1,0 +1,34 @@
+\begin{corollary}[Verified-key specialization of SetPO]
+\label{cor:pcmd-setpo-neural}
+Fix a prompt, a verifier-positive response event $\mathcal C$, and a
+deterministic key map $V:\mathcal C\to\{1,\ldots,m\}$, all independent
+of $\theta$. Let $\pi_\theta$ be differentiable with common positive support,
+$P_\theta=\Pr_\theta(\mathcal C)>0$, and
+$Q_\theta=\pi_\theta(\cdot\mid\mathcal C)$. Assume the score
+$s_\theta(Y)=\nabla_\theta\log\pi_\theta(Y)$ is integrable under $Q_\theta$
+and differentiation commutes with the response sums over each key.
+Write $q_c=Q_\theta(V(Y)=c)$ and $S_2=\sum_cq_c^2$.
+For $k(y,y')=\1[V(y)=V(y')]$ and $g(u)=1-u$, the functional
+$\mathcal F(Q)=\E_{Y\sim Q}[g(\E_{Y'\sim Q}k(Y,Y'))]$ is exactly
+$\pmd(q)$. The influence formula of
+\citet[Theorem~4.2, v1]{li2026setpo} specializes to
+\begin{align}
+ \left.\frac{d}{d\varepsilon}
+  \mathcal F((1-\varepsilon)Q_\theta+\varepsilon\delta_y)
+  \right|_{\varepsilon=0}
+ &=2(S_2-q_{V(y)}),\label{eq:pcmd-setpo-influence}\\
+ \nabla_\theta\pmd(q)
+ &=2\E_{Y\sim Q_\theta}
+       [(S_2-q_{V(Y)})s_\theta(Y)].
+ \label{eq:pcmd-neural-gradient}
+\end{align}
+\end{corollary}
+\begin{proof}
+The equality kernel and $g$ satisfy SetPO's Assumption~4.1, and its local
+mass is $q_{V(y)}$. Substitution into its influence formula proves the first
+identity. The influence has mean zero under $Q_\theta$, so the
+$-\nabla_\theta\log P_\theta$ term in the conditional score cancels,
+giving the second identity.
+\end{proof}
+These identities permit shared neural parameters; they impose no sign on
+the change in diversity under an optimizer update.

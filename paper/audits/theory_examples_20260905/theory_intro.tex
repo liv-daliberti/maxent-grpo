@@ -1,0 +1,46 @@
+\section{Mode Collapse and Verified Replay}
+\label{app:theory}
+
+\noindent\emph{Main-body link.} This appendix supplies the formal claims
+invoked in Sections~\ref{sec:method} and~\ref{sec:results}.
+
+A binary verifier assigns the same reward to every correct mode, but an
+update can still amplify the most common one. We first explain that mechanism
+in a finite categorical model, then ask what changes when we alter the update
+geometry, add entropy, or replay earlier successes. Replay directly protects
+represented modes; discovery, admission, and reliable neural optimization
+remain separate requirements.
+
+\paragraph{How to read the proof chain.}
+Begin with the three-correct-mode example in
+Section~\ref{app:theory-grpo-mean}. The group calculations reveal why a
+correctness gradient need not balance correct alternatives, and the next
+section turns the local imbalance into an asymptotic collapse theorem.
+Sections~\ref{app:theory-size}--\ref{app:theory-entropy-comparison} then vary
+geometry and entropy: they show both how collapse can slow and why it is not
+a universal consequence of rewarding correctness.
+
+The second part asks what replay adds. Sections~\ref{app:theory-gradient-availability}
+and~\ref{app:theory-replay} separate a missing fresh signal from a persistent
+bank signal, then turn bounded replay loss into protected probabilities.
+The remaining sections connect that argument to complete responses,
+controlled stochastic updates, and actual bank admission. Finally,
+Section~\ref{app:theory-survival-certificates} shows how much those bounds
+can certify and what finite observations can establish about a named mode.
+Each proof states its assumptions and attributes the literature tools it uses.
+
+All worked numbers below are illustrative calculations in the stated models,
+not measurements from the training runs. Unless a new example is introduced,
+the examples reuse the same three correct modes and one incorrect category.
+Comparisons keep the optimized objective, decoding law, and time variable
+explicit, since changing any of these can change the conclusion.
+
+Here $G$ counts training rollouts, $K$ counts evaluation draws, $m,n$ count
+correct and incorrect categories, and $k$ is the bank size. In the mean-flow results, $t$ is
+continuous optimization time and $\tau$ is a reparameterized learning clock.
+The later stochastic and admission results use explicitly defined update or
+opportunity indices. None is a wall-clock or GPU-runtime prediction. ``Collapse'' refers to
+limiting concentration: finite softmax logits already give positive
+probabilities at every finite time. A uniform lower bound for all future
+times is the stronger retention property proved below.
+

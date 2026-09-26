@@ -1,0 +1,882 @@
+{
+  "amendment_binding": {
+    "path": "paper/audits/conditional_concentration_20260912/amendment_3_binding.json",
+    "sha256": "cd65390d3858dc276d3af2ea8da624e125b72db20c36a1f8cd25c19d20595337"
+  },
+  "completed_snapshot": {
+    "path": "paper/audits/conditional_concentration_20260912/source/training_curve_snapshot_complete.json",
+    "sha256": "dda99da0c8845de96b3369252dabfeb712d51c2b2e9c905d094d862def8888cb"
+  },
+  "new_sample_failures": [],
+  "new_source_prefix_checks": [
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s44/debug_job31163595/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 85963336,
+      "selected_lines": [
+        157,
+        158,
+        159,
+        160
+      ],
+      "sha256_read_prefix": "863a6523f2e9d8697c367aa28022bbd3bcfd94e9721e0e617928da17a4dee35a"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_grpo_compute_matched_e119_level2_pantry_drgrpo_s47/debug_job31163683/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 83114537,
+      "selected_lines": [
+        152,
+        153,
+        154,
+        155
+      ],
+      "sha256_read_prefix": "5b845736d5388c781623476d6b3a7a8dfe62cb206ad1b819d1326be353f7ff52"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s44/debug_job31163361/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 72953132,
+      "selected_lines": [
+        132,
+        133,
+        134,
+        135
+      ],
+      "sha256_read_prefix": "a98dd953cf92a5af884c347c49ae207e2033a7d7aff2fcb382f924ba7544b3ff"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s45/debug_job31163339/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 69781154,
+      "selected_lines": [
+        127,
+        128,
+        129,
+        130
+      ],
+      "sha256_read_prefix": "b37334a89f887f0beda4517ae461cd0631e5de73d6bdfa94df9eb22339ccae6b"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s46/debug_job31163560/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 79619722,
+      "selected_lines": [
+        147,
+        148,
+        149,
+        150
+      ],
+      "sha256_read_prefix": "93820f4b7b6c04929909d62e29e36f70eeddb6ec4e506773f2d2fe22e85427a5"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_compute_matched_e119_level2_pantry_maxrl_s47/debug_job31163584/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 88937027,
+      "selected_lines": [
+        162,
+        163,
+        164,
+        165
+      ],
+      "sha256_read_prefix": "8af4e8a6192b659da475f6f3c622153b116dee9eeb683a4b6e98c217297cc0e9"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_verified_first_replay_rehearsal_only_e119_level2_pantry_replay_drgrpo_s45/debug_job31163624/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 88969197,
+      "selected_lines": [
+        167,
+        168,
+        169,
+        170
+      ],
+      "sha256_read_prefix": "137cb39ca5e5695a9872a04d54371b43fe21808d46058ba942ff9ade6e84d738"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s45/debug_job31163665/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 86507537,
+      "selected_lines": [
+        162,
+        163,
+        164,
+        165
+      ],
+      "sha256_read_prefix": "e5f163f8391789867921f54f44f4f2ab9ccf8e78beaa6a3058e01dfebc245703"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s46/debug_job31163676/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 86451175,
+      "selected_lines": [
+        162,
+        163,
+        164,
+        165
+      ],
+      "sha256_read_prefix": "80e5c5e8c8d1ab1682ca0aab96bc8ae5c8f677a4a89aea6132fca191e7996d9f"
+    },
+    {
+      "appended_bytes_ignored": 0,
+      "path": "/n/fs/similarity/maxent-grpo/var/data/xdr_qwen25_0p5b_instruct_maxrl_verified_replay_e119_level2_pantry_replay_maxrl_s47/debug_job31163710/eval_mode_coverage_draws.jsonl",
+      "prefix_verified": true,
+      "read_bytes": 85309800,
+      "selected_lines": [
+        160,
+        161,
+        162,
+        163
+      ],
+      "sha256_read_prefix": "63692a45171b259a52f66822ea4adddf53e29c5740f81e3bc79841f33107325d"
+    }
+  ],
+  "newly_loaded_checkpoint_metadata": [
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "drgrpo",
+        44
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "d7f0bdc83e342a5353384b6d1490d6335f6318b78fa7f735acd228366172426e",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "drgrpo",
+        47
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "2839e75e20719fb4233ed14297531bbe4e15d775b4413d9794e13ca0ef948949",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "maxrl",
+        44
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "62def6b9f5bb499b4ede3ed8ff88a6f493006b11644543db7aad808284d9325b",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "maxrl",
+        45
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "e0b33749f619a561130f9986df669f0bb8e8b7be03b06e6529d0f9b85d999060",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "maxrl",
+        46
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "6c7c12979388e695415a5181023e483c549a3f261e359dd709755b282d4b5452",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "maxrl",
+        47
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "a065e3a0322aa429d46e321b8f11b5ed7c7e734870054435c40affd12925f91f",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "replay_drgrpo",
+        45
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "eeae328a9cbc5e3c636290afd22cd450c266bc382c07ebe39dfe2d9fc57eaf29",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "replay_maxrl",
+        45
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "9105ced21c94ec1fbab5bb3409700e89fc8616ee8cc213a282035002175e48dd",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "replay_maxrl",
+        46
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "62e40353e0d7c6e0211a54f804ed82fe6f008d2227a1d4434b2c91113355cbd7",
+      "step": 3072
+    },
+    {
+      "cell": [
+        "level2",
+        "qwen05b",
+        "pantry_plan",
+        "replay_maxrl",
+        47
+      ],
+      "draws": [
+        {
+          "draw_index": 0,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76299,
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306
+          ],
+          "parent_seed": 76299
+        },
+        {
+          "draw_index": 1,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76300,
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307
+          ],
+          "parent_seed": 76300
+        },
+        {
+          "draw_index": 2,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76301,
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308
+          ],
+          "parent_seed": 76301
+        },
+        {
+          "draw_index": 3,
+          "neutral_option_and_request_metadata_verified": true,
+          "nominal_child_seeds": [
+            76302,
+            76303,
+            76304,
+            76305,
+            76306,
+            76307,
+            76308,
+            76309
+          ],
+          "parent_seed": 76302
+        }
+      ],
+      "source_bound_fingerprint": "76fd36d0922f3b81293894efea3d3c9c034f3a650ccb853cd97e692396b99ee0",
+      "step": 3072
+    }
+  ],
+  "no_collision_effects_computed": true,
+  "retained_source_certificates": {
+    "paper/audits/conditional_concentration_20260912/stream_source_audit.json": "5aeee0c9a977f3e601478fba9241a32069a47df68df095dd9bb829db994acb6c",
+    "paper/audits/conditional_concentration_20260912/stream_source_audit_grpo_extension.json": "1ca8849a9cfb59e9fcb1efa91293001dcbec09101516c124fb2efd4520236483"
+  },
+  "schema": "collision-completed-census-stream-source-extension-v1",
+  "scope": "The same neutral n8 parent-plus-output-index mapping is used. Empty request lists and exact [parent] lists are accepted; option IDs must be null. Parent seeds are shared across prompts. Archived dependency identity and iid sampling are assumptions, not established by this certificate. Unchanged checkpoints inherit the source mapping audit through exact frozen metadata/origin equality."
+}

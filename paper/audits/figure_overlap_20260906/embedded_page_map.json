@@ -1,0 +1,136 @@
+{
+  "full": [
+    {
+      "figure": 1,
+      "page": 1,
+      "label": "fig:story"
+    },
+    {
+      "figure": 2,
+      "page": 4,
+      "label": "fig:modebench-examples"
+    },
+    {
+      "figure": 3,
+      "page": 5,
+      "label": "fig:verified-support-story"
+    },
+    {
+      "figure": 4,
+      "page": 7,
+      "label": "fig:cross-scale-terminal-effects"
+    },
+    {
+      "figure": 5,
+      "page": 8,
+      "label": "fig:maxrl-factorial"
+    },
+    {
+      "figure": 6,
+      "page": 9,
+      "label": "fig:level2-admission"
+    },
+    {
+      "figure": 7,
+      "page": 39,
+      "label": "fig:sustained-auc-effects"
+    },
+    {
+      "figure": 8,
+      "page": 40,
+      "label": "fig:direct-comparator-effects"
+    },
+    {
+      "figure": 9,
+      "page": 41,
+      "label": "fig:direct-baseline-curves"
+    },
+    {
+      "figure": 10,
+      "page": 45,
+      "label": "fig:baseline-precheck"
+    },
+    {
+      "figure": 11,
+      "page": 47,
+      "label": "fig:verified-support-two-scale-effects"
+    },
+    {
+      "figure": 12,
+      "page": 54,
+      "label": "fig:replay-mechanism-telemetry"
+    },
+    {
+      "figure": 13,
+      "page": 56,
+      "label": "fig:maxrl-factorial-scale-extensions"
+    }
+  ],
+  "workshop": [
+    {
+      "figure": 1,
+      "page": 1,
+      "label": "fig:story"
+    },
+    {
+      "figure": 2,
+      "page": 2,
+      "label": "fig:modebench-examples"
+    },
+    {
+      "figure": 3,
+      "page": 2,
+      "label": "fig:verified-support-story"
+    },
+    {
+      "figure": 4,
+      "page": 3,
+      "label": "fig:cross-scale-terminal-effects"
+    },
+    {
+      "figure": 5,
+      "page": 4,
+      "label": "fig:maxrl-factorial"
+    },
+    {
+      "figure": 6,
+      "page": 4,
+      "label": "fig:level2-admission"
+    },
+    {
+      "figure": 7,
+      "page": 37,
+      "label": "fig:sustained-auc-effects"
+    },
+    {
+      "figure": 8,
+      "page": 38,
+      "label": "fig:direct-comparator-effects"
+    },
+    {
+      "figure": 9,
+      "page": 39,
+      "label": "fig:direct-baseline-curves"
+    },
+    {
+      "figure": 10,
+      "page": 43,
+      "label": "fig:baseline-precheck"
+    },
+    {
+      "figure": 11,
+      "page": 45,
+      "label": "fig:verified-support-two-scale-effects"
+    },
+    {
+      "figure": 12,
+      "page": 53,
+      "label": "fig:replay-mechanism-telemetry"
+    },
+    {
+      "figure": 13,
+      "page": 55,
+      "label": "fig:maxrl-factorial-scale-extensions"
+    }
+  ]
+}

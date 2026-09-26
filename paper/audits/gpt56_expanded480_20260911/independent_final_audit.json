@@ -1,0 +1,53 @@
+{
+  "api_calls": 0,
+  "checked_at_utc": "2026-09-12T01:09:54.383321+00:00",
+  "result": {
+    "cohort_grading_temperature_blocks": 30,
+    "combined_equals_old_plus_three_new_over_four": true,
+    "combined_normalized_points": {
+      "0.0": {
+        "distinct8": 0.6729166666666667,
+        "pass8": 0.65625
+      },
+      "0.5": {
+        "distinct8": 0.8395833333333333,
+        "pass8": 0.7229166666666667
+      },
+      "1.0": {
+        "distinct8": 0.9625,
+        "pass8": 0.7520833333333333
+      },
+      "1.5": {
+        "distinct8": 1.125,
+        "pass8": 0.7979166666666667
+      },
+      "2.0": {
+        "distinct8": 1.1458333333333333,
+        "pass8": 0.79375
+      }
+    },
+    "domain_level_metric_groups_checked": 450,
+    "independent_implementation": "Python standard library only; no analyzer functions imported.",
+    "registered_eight_draw_slots": 19200,
+    "source_sha256": "7381e45af7088282906c4ee8eb4b8846731aa20e1537298d779fa43055d09e08",
+    "status": "pass",
+    "writes": 0
+  },
+  "schema": "gpt56-expanded480-independent-final-audit-v1",
+  "script": {
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/independent_final_audit.py",
+    "sha256": "47362dfd90ed0bea49bbe11e2ef59101b9689dcf57e92f653fff1adfa31b55b8"
+  },
+  "source": {
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/GPT56_PASS8_FRONTIER_EXPANDED480.json",
+    "sha256": "7381e45af7088282906c4ee8eb4b8846731aa20e1537298d779fa43055d09e08"
+  },
+  "stderr": {
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/final_verification_20260912T010953Z/independent_point_audit.stderr.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stdout": {
+    "path": "/n/fs/similarity/maxent-grpo/artifacts/frontier_temperature_20260911/prompt_expansion_32_per_cell/final_verification_20260912T010953Z/independent_point_audit.stdout.json",
+    "sha256": "011dd8992dd15c445e088a00920d6ac4b537ccaeff68ae46f48d7e6aef893f51"
+  }
+}

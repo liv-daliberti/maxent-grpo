@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""Extract the frozen PantryPlan ingredient table from USDA Foundation Foods."""
+
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Mapping
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_ARCHIVE = (
+    ROOT
+    / "var/source_data/usda_fdc_foundation_2026_04_30"
+    / "FoodData_Central_foundation_food_json_2026-04-30.zip"
+)
+DEFAULT_SOURCE = DEFAULT_ARCHIVE.with_suffix(".json")
+DEFAULT_OUTPUT = ROOT / "var/data/pantry_plan_v1/ingredients.json"
+ARCHIVE_SHA256 = "186e988ec542e913f51ef62b86a47758e8cdd0d1dc3889e7b055581f3c09c77a"
+
+SELECTED = {
+    321358: ("hummus", ()),
+    321360: ("grape_tomatoes", ()),
+    323505: ("kale", ()),
+    1999632: ("baby_spinach", ()),
+    2258586: ("carrots", ()),
+    747447: ("broccoli", ()),
+    2346396: ("rolled_oats", ()),
+    2346393: ("almonds", ("tree_nut",)),
+    2262072: ("peanut_butter", ("peanut",)),
+    1750342: ("granny_smith_apple", ()),
+    1105314: ("banana", ()),
+    746771: ("navel_orange", ()),
+    2515380: ("pumpkin_seeds", ()),
+    2515381: ("sunflower_seeds", ()),
+    2644285: ("black_beans_canned", ()),
+    2644288: ("chickpeas_canned", ()),
+}
+
+NUTRIENTS = {
+    "energy_kcal": (("208", "958", "957"), "kcal"),
+    "protein_g": (("203",), "g"),
+    "fiber_g": (("293", "291"), "g"),
+    "sodium_mg": (("307",), "mg"),
+}
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _canonical_sha256(value: Any) -> str:
+    encoded = json.dumps(
+        value,
+        allow_nan=False,
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("ascii")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _nutrient_rows(food: Mapping[str, Any]) -> dict[str, list[Mapping[str, Any]]]:
+    grouped: dict[str, list[Mapping[str, Any]]] = {}
+    rows = food.get("foodNutrients")
+    if not isinstance(rows, list):
+        raise ValueError(f"FDC {food.get('fdcId')} has no nutrient list")
+    for row in rows:
+        if not isinstance(row, Mapping) or not isinstance(row.get("nutrient"), Mapping):
+            continue
+        number = str(row["nutrient"].get("number") or "")
+        grouped.setdefault(number, []).append(row)
+    return grouped
+
+
+def _extract_nutrient(
+    food: Mapping[str, Any],
+    attribute: str,
+    precedence: tuple[str, ...],
+    expected_unit: str,
+) -> dict[str, Any]:
+    grouped = _nutrient_rows(food)
+    candidates = []
+    for number in precedence:
+        rows = grouped.get(number, [])
+        if len(rows) > 1:
+            raise ValueError(f"FDC {food.get('fdcId')} duplicates nutrient {number}")
+        if not rows:
+            continue
+        row = rows[0]
+        nutrient = row["nutrient"]
+        unit = str(nutrient.get("unitName") or "")
+        if unit != expected_unit:
+            raise ValueError(
+                f"FDC {food.get('fdcId')} nutrient {number} uses {unit}, not {expected_unit}"
+            )
+        try:
+            amount = Decimal(str(row.get("amount")))
+        except (InvalidOperation, ValueError) as error:
+            raise ValueError("nutrient amount is not decimal") from error
+        if not amount.is_finite() or amount < 0:
+            raise ValueError("nutrient amount is negative or nonfinite")
+        candidates.append(
+            {
+                "number": number,
+                "name": str(nutrient.get("name") or ""),
+                "unit": unit,
+                "amount": str(amount),
+                "data_points": row.get("dataPoints"),
+            }
+        )
+    if not candidates:
+        raise ValueError(f"FDC {food.get('fdcId')} lacks {attribute}")
+    selected_number = next(number for number in precedence if number in grouped)
+    selected = next(row for row in candidates if row["number"] == selected_number)
+    return {
+        "attribute": attribute,
+        "precedence": list(precedence),
+        "selected": selected,
+        "observed_candidates": candidates,
+    }
+
+
+def build_curation(source: Mapping[str, Any], archive_sha256: str) -> dict[str, Any]:
+    foods = source.get("FoundationFoods")
+    if not isinstance(foods, list) or len(foods) != 395:
+        raise ValueError("expected exactly 395 FoundationFoods rows")
+    food_records = [food for food in foods if isinstance(food, Mapping)]
+    null_placeholders = sum(food is None for food in foods)
+    if len(food_records) != 363 or null_placeholders != 32:
+        raise ValueError(
+            "FoundationFoods must contain 363 food objects and 32 null placeholders"
+        )
+    by_id = {
+        int(food["fdcId"]): food
+        for food in food_records
+        if isinstance(food.get("fdcId"), int)
+    }
+    if len(by_id) != len(food_records):
+        raise ValueError("Foundation food objects contain missing or duplicate FDC IDs")
+
+    ingredients = []
+    for fdc_id, (ingredient_id, tags) in SELECTED.items():
+        food = by_id.get(fdc_id)
+        if food is None:
+            raise ValueError(f"selected FDC ID {fdc_id} is missing")
+        nutrient_audit = [
+            _extract_nutrient(food, attribute, precedence, unit)
+            for attribute, (precedence, unit) in NUTRIENTS.items()
+        ]
+        attributes = {
+            audit["attribute"]: audit["selected"]["amount"]
+            for audit in nutrient_audit
+        }
+        row = {
+            "id": ingredient_id,
+            "fdc_id": fdc_id,
+            "description": str(food.get("description") or ""),
+            "publication_date": str(food.get("publicationDate") or ""),
+            "attributes_per_100g": attributes,
+            "tags": list(tags),
+            "nutrient_audit": nutrient_audit,
+            "source_row_sha256": _canonical_sha256(food),
+        }
+        row["curated_row_sha256"] = _canonical_sha256(row)
+        ingredients.append(row)
+
+    ingredient_ids = [row["id"] for row in ingredients]
+    if len(set(ingredient_ids)) != len(ingredient_ids):
+        raise ValueError("curated ingredient IDs are not unique")
+    return {
+        "schema_version": "pantry-plan-ingredient-curation-v1",
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "status": "machine_audit_complete_manual_review_pending",
+        "decision_boundary": (
+            "Nutrient extraction, units, precedence, source rows, and hashes are "
+            "complete. Dietary tags and named food states require final manual review "
+            "before policy sampling."
+        ),
+        "source": {
+            "dataset": "USDA FoodData Central Foundation Foods",
+            "release": "April 2026",
+            "physical_rows": len(foods),
+            "food_object_rows": len(food_records),
+            "null_placeholder_rows": null_placeholders,
+            "archive_name": DEFAULT_ARCHIVE.name,
+            "archive_sha256": archive_sha256,
+            "license": "CC0 1.0 / U.S. public-domain data",
+            "url": "https://fdc.nal.usda.gov/download-datasets/",
+        },
+        "nutrient_precedence": {
+            key: list(value[0]) for key, value in NUTRIENTS.items()
+        },
+        "ingredient_count": len(ingredients),
+        "ingredients": ingredients,
+        "ingredient_table_sha256": _canonical_sha256(ingredients),
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
+    parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    archive_sha = _sha256_file(args.archive)
+    if archive_sha != ARCHIVE_SHA256:
+        raise ValueError("USDA archive SHA-256 differs from the frozen source")
+    source = json.loads(args.source.read_text(encoding="utf-8"))
+    payload = build_curation(source, archive_sha)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = args.output.with_suffix(args.output.suffix + ".tmp")
+    temporary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    temporary.replace(args.output)
+    print(
+        "[pantry-curation] "
+        f"status={payload['status']} ingredients={payload['ingredient_count']} "
+        f"sha256={payload['ingredient_table_sha256']} output={args.output}"
+    )
+
+
+if __name__ == "__main__":
+    main()

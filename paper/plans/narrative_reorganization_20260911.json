@@ -1,0 +1,8 @@
+{
+  "status": "original_figure_sequence_restored",
+  "reason": "User prefers original artwork and original main-text positions",
+  "manuscripts_modified": true,
+  "evaluations_launched": false,
+  "audit": "paper/audits/figure_restoration_20260911/README.md",
+  "plan_sha256": "c9789523daccd40326328db593b539b8c7843301208ee95c62a91fa893704843"
+}

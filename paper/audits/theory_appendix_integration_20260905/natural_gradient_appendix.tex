@@ -1,0 +1,100 @@
+\subsection{An exact optimizer comparison from information geometry}
+\label{app:theory-natural-gradient}
+
+Natural gradient on the categorical simplex uses the Fisher metric, also
+called the Shahshahani metric in evolutionary dynamics
+\citep[Sections~2.3 and~3.1]{harper2009informationgeometry}. Its gradient
+formula gives an exact comparison with the Euclidean-logit collapse result
+in Theorem~\ref{thm:grpo-collapse}. We derive the specialization below so
+that the dependence on optimizer geometry is explicit.
+
+\begin{theorem}[Natural-gradient selection and replay]
+\label{ext:thm-natural-replay}
+Retain the finite categorical setup and start from an interior distribution
+$p(0)$ with $0<P(0)<1$. Let $\Psi\in C^2([0,1])$ satisfy
+$c(P):=\Psi'(P)>0$ on $[0,1]$. Choose a nonempty fixed bank
+$\mathcal B\subseteq\mathcal C$, positive weights $w_b$ summing to one over
+$\mathcal B$, and extend them by zero to a vector $\bar w$ on
+$\mathcal A$. Exact Fisher natural-gradient ascent of
+\[
+ \mathcal J(p)=\Psi(P)+\rho\sum_{b\in\mathcal B}w_b\log p_b,
+ \qquad \rho\ge0,
+\]
+induces
+\begin{align}
+ \dot p_i&=c(P)p_i(\mathbf 1\{i\in\mathcal C\}-P)
+                     +\rho(\bar w_i-p_i),
+ \label{ext:eq-natural-p}\\
+ \dot P&=(1-P)(c(P)P+\rho),
+ &\dot q_c&=\frac{\rho}{P}(\bar w_c-q_c).
+ \label{ext:eq-natural-Pq}
+\end{align}
+For $\rho=0$, $P(t)\to1$ while $q(t)=q(0)$: correctness learning preserves
+all relative probabilities among correct modes. For $\rho>0$, define
+$A(t)=\int_0^t\rho/P(s)\,ds$. Every correct mode satisfies
+\begin{equation}
+ q_c(t)=\bar w_c+(q_c(0)-\bar w_c)e^{-A(t)},
+ \qquad A(t)\ge\rho t.
+ \label{ext:eq-natural-conditional-solution}
+\end{equation}
+Furthermore,
+\begin{equation}
+ 1-P(t)\le(1-P(0))e^{-\rho t},
+ \qquad
+ p_b(t)\ge P(0)\min\{q_b(0),w_b\}>0
+ \quad (b\in\mathcal B,t\ge0).
+ \label{ext:eq-natural-retention}
+\end{equation}
+Thus full-support replay sends the conditional distribution to its bank
+target, whereas an incomplete bank still loses unbanked correct modes in the
+limit.
+\end{theorem}
+
+\begin{proof}
+For tangent vectors $u,v$ with zero coordinate sum, the categorical Fisher
+metric is $g_p(u,v)=\sum_i u_iv_i/p_i$. The tangent vector
+\[
+ v_i=p_i\left(\partial_i\mathcal J-
+                  \sum_jp_j\partial_j\mathcal J\right)
+\]
+has zero sum and satisfies $g_p(v,u)=\sum_i\partial_i\mathcal J\,u_i$
+for every tangent $u$. It is therefore the natural gradient. Here
+\[
+ \partial_i\mathcal J=c(P)\mathbf 1\{i\in\mathcal C\}
+                   +\rho\bar w_i/p_i,
+ \qquad
+ \sum_i p_i\partial_i\mathcal J=c(P)P+\rho,
+\]
+which proves Equation~\eqref{ext:eq-natural-p}. Summing over correct
+categories gives the $P$ equation. Differentiating $q_c=p_c/P$ then gives
+the $q$ equation in~\eqref{ext:eq-natural-Pq}; the correctness terms cancel.
+
+The $P$ equation makes $P$ nondecreasing. If $\rho=0$, $q$ is constant;
+if $\rho>0$, solving its linear equation gives
+Equation~\eqref{ext:eq-natural-conditional-solution}. Since $P\le1$, this
+also gives $A(t)\ge\rho t$. Incorrect coordinates satisfy
+$\dot p_i=-(c(P)P+\rho)p_i$ and remain positive at every finite time.
+Correct conditional coordinates remain positive by the explicit solution,
+and $P\ge P(0)>0$. Because $c$ is bounded on $[0,1]$ and
+$\rho/P\le\rho/P(0)$, these formulas extend the interior solution to every
+finite time.
+
+For $\rho=0$, $P$ increases and cannot tend to a limit below one: at any
+such limit $(1-P)c(P)P$ would stay positive. For $\rho>0$,
+$\dot P\ge\rho(1-P)$ yields the correctness bound in
+Equation~\eqref{ext:eq-natural-retention}. Each banked $q_b(t)$ lies between
+$q_b(0)$ and $w_b$, so multiplication by $P(t)\ge P(0)$ proves the
+probability floor. Finally, $A(t)\to\infty$ gives $q_c(t)\to\bar w_c$, so unbanked
+correct modes have zero limiting mass.
+\end{proof}
+
+The smooth potentials with positive derivatives in
+Lemmas~\ref{lem:grpo-mean} and~\ref{lem:maxrl-mean} satisfy the premises. The Fisher-gradient formula
+is established information geometry; the result above is its elementary
+specialization to correctness selection plus replay toward a fixed target.
+It makes the scope of the collapse claim concrete: increasing correctness
+alone does not force a loss of conditional support under every optimization
+geometry. The theorem concerns the exact categorical Fisher flow. It gives
+no guarantee for approximate natural gradient, a shared neural Fisher
+matrix, PPO, or AdamW, and its time variable is an ideal optimization clock
+rather than elapsed training time.

@@ -1,0 +1,11 @@
+{
+  "source_before_merge_sha256": "71c08aeb1d392068c17ab454a91f1a75b43ccf2230d0b6baf779fb1f680188ea",
+  "source_after_merge_sha256": "c10106b5cbbc33e0b92ded46a6161d88c01c8ffe88219816681a21f9f1d622ac",
+  "preserved_concurrent_draft": "concurrent_main_before_merge.tex",
+  "preserved_sections": [
+    "metric definitions",
+    "replay-metric decomposition",
+    "two-deployment hosted comparison",
+    "disclosures"
+  ]
+}

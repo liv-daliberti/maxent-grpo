@@ -1,0 +1,1380 @@
+[
+  {
+    "key": "tajwar2026maxrl",
+    "exists": true,
+    "status": "usage_correction_required",
+    "source_urls": [
+      "https://arxiv.org/abs/2602.02710",
+      "https://arxiv.org/html/2602.02710v1",
+      "https://arxiv.org/html/2602.02710v3",
+      "https://icml.cc/virtual/2026/poster/65332",
+      "https://www.doubleai.com/research/argmaxrl-generalizing-maxrl-to-continuous-rewards",
+      "https://arxiv.org/html/2602.02710"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/tajwar2026maxrl.html",
+      "metadata_title": [
+        "Maximum Likelihood Reinforcement Learning"
+      ],
+      "metadata_authors_in_order": [
+        "Tajwar, Fahim",
+        "Zeng, Guanning",
+        "Zhou, Yueer",
+        "Song, Yuda",
+        "Arora, Daman",
+        "Jiang, Yiding",
+        "Schneider, Jeff",
+        "Salakhutdinov, Ruslan",
+        "Feng, Haiwen",
+        "Zanette, Andrea"
+      ],
+      "first_posted": [
+        "2026/02/02"
+      ],
+      "latest_revision": [
+        "2026/08/21"
+      ],
+      "finding": "Both v1 and v3 establish binary MaxRL. Neither contains ArgMaxRL. The practical centered estimator with all-failure groups dropped is Algorithm1; v3 Section4.3 and AppendixD Theorem5 explicitly establish the harmonic pass@k mixture for k=1,...,G-1. The uncentered estimator instead reaches G. ICML2026 venue and oral presentation are confirmed by the official conference record.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/tajwar2026maxrl_full.html"
+    },
+    "metadata_issues": [
+      {
+        "field": "venue/type",
+        "current": "misc/arXiv",
+        "verified": "ICML2026, official oral presentation",
+        "severity": "optional publication update"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 191,
+        "status": "supported",
+        "assessment": "Supported directional description of sampling-budget-sensitive binary MaxRL; precise practical mixture is k=1,...,G-1."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 227,
+        "status": "correction_required",
+        "assessment": "ArgMaxRL is absent in both cited-paper versions; cite MaxRL Algorithm1 instead. The G-1 centered-estimator identity is in v3 AppendixD Theorem5."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 450,
+        "status": "correction_required",
+        "assessment": "ArgMaxRL is absent in both cited-paper versions; cite MaxRL Algorithm1 instead. The G-1 centered-estimator identity is in v3 AppendixD Theorem5."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 88,
+        "status": "supported",
+        "assessment": "Supported directional description of sampling-budget-sensitive binary MaxRL; precise practical mixture is k=1,...,G-1."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 489,
+        "status": "correction_required",
+        "assessment": "ArgMaxRL is absent in both cited-paper versions; cite MaxRL Algorithm1 instead. The G-1 centered-estimator identity is in v3 AppendixD Theorem5."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 2007,
+        "status": "correction_required",
+        "assessment": "ArgMaxRL is absent in both cited-paper versions; cite MaxRL Algorithm1 instead. The G-1 centered-estimator identity is in v3 AppendixD Theorem5."
+      }
+    ],
+    "recommended_changes": [
+      "Remove ArgMaxRL attribution; it is a separate doubleAI research post dated2026-09-01, not Tajwar etal.",
+      "Attribute the exact binary advantage to Algorithm1 and the G-1 result to v3 AppendixD Theorem5 alongside the manuscript derivation.",
+      "Optionally change type to inproceedings and booktitle to International Conference on Machine Learning; keep title, all10authors, year2026 and eprint2602.02710. Pin v3 when citing its Theorem5."
+    ]
+  },
+  {
+    "key": "gspo2025",
+    "exists": true,
+    "status": "metadata_correction_required",
+    "source_urls": [
+      "https://arxiv.org/abs/2507.18071"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/gspo2025.html",
+      "metadata_title": [
+        "Group Sequence Policy Optimization"
+      ],
+      "metadata_authors_in_order": [
+        "Zheng, Chujie",
+        "Liu, Shixuan",
+        "Li, Mingze",
+        "Chen, Xiong-Hui",
+        "Yu, Bowen",
+        "Gao, Chang",
+        "Dang, Kai",
+        "Liu, Yuqiong",
+        "Men, Rui",
+        "Yang, An",
+        "Zhou, Jingren",
+        "Lin, Junyang"
+      ],
+      "first_posted": [
+        "2025/07/24"
+      ],
+      "latest_revision": [
+        "2025/07/28"
+      ],
+      "finding": "Primary arXiv record confirms the exact title,12authors,2025date and identifier2507.18071; its primary subject is cs.LG."
+    },
+    "metadata_issues": [
+      {
+        "field": "primaryClass",
+        "current": "cs.CL",
+        "verified": "cs.LG",
+        "severity": "minor"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Change primaryClass from cs.CL to cs.LG."
+    ]
+  },
+  {
+    "key": "divpo2025",
+    "exists": true,
+    "status": "metadata_correction_required",
+    "source_urls": [
+      "https://arxiv.org/abs/2505.23433"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/divpo2025.html",
+      "metadata_title": [
+        "Diversity-Aware Policy Optimization for Large Language Model Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Yao, Jian",
+        "Cheng, Ran",
+        "Wu, Xingyu",
+        "Wu, Jibin",
+        "Tan, Kay Chen"
+      ],
+      "first_posted": [
+        "2025/05/29"
+      ],
+      "latest_revision": [
+        "2025/11/03"
+      ],
+      "finding": "Primary arXiv record confirms exact title,5authors,2025date and identifier2505.23433; primary subject is cs.LG."
+    },
+    "metadata_issues": [
+      {
+        "field": "primaryClass",
+        "current": "cs.CL",
+        "verified": "cs.LG",
+        "severity": "minor"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Change primaryClass from cs.CL to cs.LG."
+    ]
+  },
+  {
+    "key": "cheng2025exploration",
+    "exists": true,
+    "status": "verified_with_scope_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2506.14758",
+      "https://arxiv.org/html/2506.14758"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/cheng2025exploration.html",
+      "metadata_title": [
+        "Reasoning with Exploration: An Entropy Perspective"
+      ],
+      "metadata_authors_in_order": [
+        "Cheng, Daixuan",
+        "Huang, Shaohan",
+        "Zhu, Xuekai",
+        "Dai, Bo",
+        "Zhao, Wayne Xin",
+        "Zhang, Zhenliang",
+        "Wei, Furu"
+      ],
+      "first_posted": [
+        "2025/06/17"
+      ],
+      "latest_revision": [
+        "2025/11/08"
+      ],
+      "finding": "Full text correlates entropy with exploratory reasoning and adds entropy-based advantage shaping. This supports continued-discovery attribution. The authors distinguish their longer/deeper reasoning incentive from conventional maximum-entropy uncertainty bonuses. arXiv comments identify AAAI2026.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/cheng2025exploration_full.html"
+    },
+    "metadata_issues": [
+      {
+        "field": "venue/year",
+        "current": "2025preprint",
+        "verified": "arXiv comments identify AAAI2026;2025remains correct preprint year",
+        "severity": "optional publication update"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 166,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      }
+    ],
+    "recommended_changes": [
+      "Keep the exploration citation; describe entropy-based advantage shaping if naming the mechanism precisely.",
+      "Optional: cite the AAAI2026 publication instead of the2025preprint after adding publisher metadata."
+    ]
+  },
+  {
+    "key": "chen2025passktraining",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2508.10751",
+      "https://arxiv.org/html/2508.10751"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/chen2025passktraining.html",
+      "metadata_title": [
+        "Pass@k Training for Adaptively Balancing Exploration and Exploitation of Large Reasoning Models"
+      ],
+      "metadata_authors_in_order": [
+        "Chen, Zhipeng",
+        "Qin, Xiaobo",
+        "Wu, Youbin",
+        "Ling, Yue",
+        "Ye, Qinghao",
+        "Zhao, Wayne Xin",
+        "Shi, Guang"
+      ],
+      "first_posted": [
+        "2025/08/14"
+      ],
+      "latest_revision": [
+        "2025/08/14"
+      ],
+      "finding": "Full-text abstract, analytical advantage derivation and experiments support pass@k-oriented exploration/exploitation and improved multi-sample performance. They do not establish persistent execution-key retention.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/chen2025passktraining_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 166,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 224,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 486,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "song2025outcome",
+    "exists": true,
+    "status": "verified_with_scope_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2509.06941",
+      "https://arxiv.org/html/2509.06941"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/song2025outcome.html",
+      "metadata_title": [
+        "Outcome-based Exploration for LLM Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Song, Yuda",
+        "Kempe, Julia",
+        "Munos, Remi"
+      ],
+      "first_posted": [
+        "2025/09/08"
+      ],
+      "latest_revision": [
+        "2025/09/08"
+      ],
+      "finding": "Full text presents outcome-history UCB bonuses and within-batch repetition penalties. Outcome identity and historical counts already appear here; the paper distinguishes historical exploration from test-time batch diversity. This supports the manuscript exploration citations, without implying uniform retention of every correct execution mode.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/song2025outcome_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 166,
+        "status": "supported",
+        "assessment": "Supports outcome bonuses and batch-repetition penalties; the historical variant already keeps visitation counts, while not storing execution-key exemplars."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 224,
+        "status": "supported",
+        "assessment": "Supports outcome bonuses and batch-repetition penalties; the historical variant already keeps visitation counts, while not storing execution-key exemplars."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 486,
+        "status": "supported",
+        "assessment": "Supports outcome bonuses and batch-repetition penalties; the historical variant already keeps visitation counts, while not storing execution-key exemplars."
+      }
+    ],
+    "recommended_changes": [
+      "Keep the citation. If expanding novelty discussion, distinguish storing execution-key exemplars from prior final-answer identities and historical visitation counts."
+    ]
+  },
+  {
+    "key": "li2025divergence",
+    "exists": true,
+    "status": "verified_with_scope_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2509.07430",
+      "https://arxiv.org/html/2509.07430"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/li2025divergence.html",
+      "metadata_title": [
+        "The Choice of Divergence: A Neglected Key to Mitigating Diversity Collapse in Reinforcement Learning with Verifiable Reward"
+      ],
+      "metadata_authors_in_order": [
+        "Li, Long",
+        "Zhou, Zhijian",
+        "Hao, Jiaran",
+        "Liu, Jason Klein",
+        "Miao, Yanting",
+        "Pang, Wei",
+        "Tan, Xiaoyu",
+        "Chu, Wei",
+        "Wang, Zhe",
+        "Pan, Shirui",
+        "Qu, Chao",
+        "Qi, Yuan"
+      ],
+      "first_posted": [
+        "2025/09/09"
+      ],
+      "latest_revision": [
+        "2026/03/03"
+      ],
+      "finding": "DPH-RL uses mass-covering forward-KL/JS objectives with initial-policy samples. The full text explicitly interprets these as rehearsal and knowledge-retention mechanisms; it supports broader-support discussion.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/li2025divergence_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 224,
+        "status": "supported",
+        "assessment": "Supports mass-covering diversity preservation. Its method explicitly includes reference-policy rehearsal, so avoid classifying it as discovery-only."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 486,
+        "status": "supported",
+        "assessment": "Supports mass-covering diversity preservation. Its method explicitly includes reference-policy rehearsal, so avoid classifying it as discovery-only."
+      }
+    ],
+    "recommended_changes": [
+      "Do not describe all distribution-matching predecessors as discovery-only or memoryless: DPH-RL explicitly rehearses the initial-policy distribution.",
+      "Distinguish initial-policy distribution preservation from a bank of newly discovered verified execution keys."
+    ]
+  },
+  {
+    "key": "agrae2026",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2602.05548"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/agrae2026.html",
+      "metadata_title": [
+        "Unveiling Implicit Advantage Symmetry: Why GRPO Struggles with Exploration and Difficulty Adaptation"
+      ],
+      "metadata_authors_in_order": [
+        "Yu, Zhiqi",
+        "Chen, Zhangquan",
+        "Liu, Mengting",
+        "Zhang, Heye",
+        "Qu, Liangqiong"
+      ],
+      "first_posted": [
+        "2026/02/05"
+      ],
+      "latest_revision": [
+        "2026/03/30"
+      ],
+      "finding": "Primary arXiv record confirms the title,5authors,2026date and identifier2602.05548. This uncited work concerns implicit advantage symmetry and exploration/difficulty adaptation."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "avspo2026",
+    "exists": true,
+    "status": "verified_with_venue_update",
+    "source_urls": [
+      "https://arxiv.org/abs/2605.21125",
+      "https://icml.cc/virtual/2026/poster/64547"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/avspo2026.html",
+      "metadata_title": [
+        "Advantage Collapse in Group Relative Policy Optimization: Diagnosis and Mitigation"
+      ],
+      "metadata_authors_in_order": [
+        "He, Xixiang",
+        "Sun, Qiyao",
+        "Cheng, Ao",
+        "Li, Xingming",
+        "Ji, Xuanyu",
+        "Lu, Hailun",
+        "Huang, Runke",
+        "Hu, Qingyong"
+      ],
+      "first_posted": [
+        "2026/05/20"
+      ],
+      "latest_revision": [
+        "2026/05/30"
+      ],
+      "finding": "Primary arXiv and official ICML2026 record confirm exact title,8authors and identifier2605.21125. It concerns homogeneous-reward zero-advantage batches, a different failure mode from executed-mode extinction."
+    },
+    "metadata_issues": [
+      {
+        "field": "venue/type",
+        "current": "misc/arXiv",
+        "verified": "ICML2026",
+        "severity": "optional publication update"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Optional: cite ICML2026 as publication venue rather than only the preprint."
+    ]
+  },
+  {
+    "key": "sinha2026expected",
+    "exists": true,
+    "status": "verified_with_priority_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2601.21669",
+      "https://icml.cc/virtual/2026/poster/63579",
+      "https://arxiv.org/html/2601.21669v1"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/sinha2026expected.html",
+      "metadata_title": [
+        "Expected Return Causes Outcome-Level Mode Collapse in Reinforcement Learning and How to Fix It with Inverse Probability Scaling"
+      ],
+      "metadata_authors_in_order": [
+        "Sinha, Abhijeet",
+        "Elango, Sundari",
+        "Liu, Dianbo"
+      ],
+      "first_posted": [
+        "2026/01/29"
+      ],
+      "latest_revision": [
+        "2026/01/29"
+      ],
+      "finding": "Primary arXiv and official ICML2026 record confirm exact title,3authors and identifier2601.21669. Its subject is structural outcome-level collapse under expected-return learning and inverse-probability correction.",
+      "fulltext_snapshot": "paper/audits/reference_audit_20260905/modern_rl_sources/sinha2026expected_full.html",
+      "independent_scope_check": "Equation2 gives dlog(pi/pj)/dt=pi(ri-R)-pj(rj-R). Its broader narrative of unavoidable collapse is not universal: when every reward equals the same constant, all advantages and gradients vanish. Adding entropy changes the objective. Cite the study and correction, not an unconditional collapse guarantee."
+    },
+    "metadata_issues": [
+      {
+        "field": "venue/type",
+        "current": "misc/arXiv",
+        "verified": "ICML2026",
+        "severity": "optional publication update"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Optional venue update: ICML2026.",
+      "Consider adding this currently uncited close predecessor to the theory relationship paragraph. Do not imply first discovery of objective-induced outcome collapse or inverse-frequency correction; distinguish assumptions and the fixed replay-bank retention result."
+    ]
+  },
+  {
+    "key": "li2026distribution",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2605.19461",
+      "https://arxiv.org/html/2605.19461"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/li2026distribution.html",
+      "metadata_title": [
+        "Beyond Mode Collapse: Distribution Matching for Diverse Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Li, Xiaozhe",
+        "Li, Yang",
+        "Fang, Xinyu",
+        "Ding, Shengyuan",
+        "Li, Peiji",
+        "Chen, Yongkang",
+        "Ma, Yichuan",
+        "Lyu, Tianyi",
+        "Li, Linyang",
+        "Lin, Dahua",
+        "Guo, Qipeng",
+        "Liu, Qingwen",
+        "Chen, Kai"
+      ],
+      "first_posted": [
+        "2026/05/19"
+      ],
+      "latest_revision": [
+        "2026/05/19"
+      ],
+      "finding": "Full-text DMPO method constructs reward-proportional group-level targets and approximates forward-KL distribution matching. Its diverse-reasoning motivation and experiments support the related-work classification; it does not supply a persistent execution-key retention theorem.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/li2026distribution_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 224,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 486,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "li2026setpo",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2602.01062",
+      "https://arxiv.org/html/2602.01062"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/li2026setpo.html",
+      "metadata_title": [
+        "SetPO: Set-Level Policy Optimization for Diversity-Preserving LLM Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Li, Chenyi",
+        "Zhang, Yuan",
+        "Wang, Bo",
+        "Ma, Guoqing",
+        "Tang, Wei",
+        "Huang, Haoyang",
+        "Duan, Nan"
+      ],
+      "first_posted": [
+        "2026/02/01"
+      ],
+      "latest_revision": [
+        "2026/02/01"
+      ],
+      "finding": "Full text defines a set-level kernel-similarity objective, leave-one-out marginal contributions and advantage shaping. It explicitly studies semantic diversity and multi-modal toy outcomes, supporting the set-objective classification.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/li2026setpo_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 224,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 486,
+        "status": "supported",
+        "assessment": "Supported for the stated broad background/method classification; source-specific scope is recorded in evidence."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "ouyang2022training",
+    "exists": true,
+    "status": "verified_with_minor_metadata_style_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2203.02155",
+      "https://proceedings.neurips.cc/paper_files/paper/2022/hash/b1efde53be364a73914f58805a001731-Abstract-Conference.html",
+      "https://proceedings.neurips.cc/paper_files/paper/19175-/bibtex"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/ouyang2022training.html",
+      "metadata_title": [
+        "Training language models to follow instructions with human feedback"
+      ],
+      "metadata_authors_in_order": [
+        "Ouyang, Long",
+        "Wu, Jeff",
+        "Jiang, Xu",
+        "Almeida, Diogo",
+        "Wainwright, Carroll L.",
+        "Mishkin, Pamela",
+        "Zhang, Chong",
+        "Agarwal, Sandhini",
+        "Slama, Katarina",
+        "Ray, Alex",
+        "Schulman, John",
+        "Hilton, Jacob",
+        "Kelton, Fraser",
+        "Miller, Luke",
+        "Simens, Maddie",
+        "Askell, Amanda",
+        "Welinder, Peter",
+        "Christiano, Paul",
+        "Leike, Jan",
+        "Lowe, Ryan"
+      ],
+      "first_posted": [
+        "2022/03/04"
+      ],
+      "latest_revision": [
+        "2022/03/04"
+      ],
+      "finding": "The arXiv record verifies the title and all20authors; official NeurIPS BibTeX confirms volume35,pages27730-27744,year2022. Publisher spelling variants are Jeffrey Wu, Carroll Wainwright and Paul F Christiano versus arXiv Jeff Wu, Carroll L. Wainwright and Paul Christiano; these are source-version differences, not nonexistent authors."
+    },
+    "metadata_issues": [
+      {
+        "field": "author spelling",
+        "current": "arXiv forms Jeff Wu / Carroll L. Wainwright / Paul Christiano",
+        "verified": "NeurIPS forms Jeffrey Wu / Carroll Wainwright / Paul F Christiano",
+        "severity": "optional source-style consistency"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Optional: normalize author-name spellings to the official proceedings entry when citing that version; add publisher DOI10.52202/068431-2011 if desired."
+    ]
+  },
+  {
+    "key": "cui2025entropy",
+    "exists": true,
+    "status": "usage_scope_correction_required",
+    "source_urls": [
+      "https://arxiv.org/abs/2505.22617",
+      "https://arxiv.org/html/2505.22617"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/cui2025entropy.html",
+      "metadata_title": [
+        "The Entropy Mechanism of Reinforcement Learning for Reasoning Language Models"
+      ],
+      "metadata_authors_in_order": [
+        "Cui, Ganqu",
+        "Zhang, Yuchen",
+        "Chen, Jiacheng",
+        "Yuan, Lifan",
+        "Wang, Zhi",
+        "Zuo, Yuxin",
+        "Li, Haozhan",
+        "Fan, Yuchen",
+        "Chen, Huayu",
+        "Chen, Weize",
+        "Liu, Zhiyuan",
+        "Peng, Hao",
+        "Bai, Lei",
+        "Ouyang, Wanli",
+        "Cheng, Yu",
+        "Zhou, Bowen",
+        "Ding, Ning"
+      ],
+      "first_posted": [
+        "2025/05/28"
+      ],
+      "latest_revision": [
+        "2025/05/28"
+      ],
+      "finding": "Full text studies token-policy entropy, its covariance-driven dynamics and an empirical entropy/performance tradeoff, plus Clip-Cov/KL-Cov. It supports entropy/diversity-collapse background but does not directly measure support over execution-defined correct modes or establish literal zero-probability extinction.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/cui2025entropy_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 140,
+        "status": "scope_correction_required",
+        "assessment": "Token-policy entropy/performance evidence does not directly establish contraction of execution-defined verified modes. Split prior metric from the manuscript own result."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 216,
+        "status": "supported",
+        "assessment": "Supports entropy/diversity-collapse background, with entropy rather than exact execution-key support as its measured object."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 102,
+        "status": "supported",
+        "assessment": "Supports entropy/diversity-collapse background, with entropy rather than exact execution-key support as its measured object."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 478,
+        "status": "supported",
+        "assessment": "Supports entropy/diversity-collapse background, with entropy rather than exact execution-key support as its measured object."
+      }
+    ],
+    "recommended_changes": [
+      "Separate prior entropy/output-diversity findings from the manuscript own within-prompt executed-key observation; avoid treating them as the same measured quantity."
+    ]
+  },
+  {
+    "key": "zhu2025negative",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2506.01347",
+      "https://proceedings.nips.cc/paper_files/paper/2025/hash/b8026fe01f5f8f7a80a1a9bf01d08cad-Abstract-Conference.html"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/zhu2025negative.html",
+      "metadata_title": [
+        "The Surprising Effectiveness of Negative Reinforcement in LLM Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Zhu, Xinyu",
+        "Xia, Mengzhou",
+        "Wei, Zhepei",
+        "Chen, Wei-Lin",
+        "Chen, Danqi",
+        "Meng, Yu"
+      ],
+      "first_posted": [
+        "2025/06/02"
+      ],
+      "latest_revision": [
+        "2025/10/25"
+      ],
+      "finding": "Primary arXiv and official NeurIPS2025 proceedings confirm the exact title,6authors,2025year and identifier2506.01347. Proceedings volume38 and DOI10.52202/085713-4220 are available."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Optional: add volume38 and official proceedings URL/DOI."
+    ]
+  },
+  {
+    "key": "park2025cliplow",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2509.26114"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/park2025cliplow.html",
+      "metadata_title": [
+        "Clip-Low Increases Entropy and Clip-High Decreases Entropy in Reinforcement Learning of Large Language Models"
+      ],
+      "metadata_authors_in_order": [
+        "Park, Jaesung R.",
+        "Kim, Junsu",
+        "Kim, Gyeongman",
+        "Jo, Jinyoung",
+        "Choi, Sean",
+        "Cho, Jaewoong",
+        "Ryu, Ernest K."
+      ],
+      "first_posted": [
+        "2025/09/30"
+      ],
+      "latest_revision": [
+        "2025/09/30"
+      ],
+      "finding": "Primary arXiv confirms the exact title,7authors,2025date and identifier2509.26114. No cited usage occurs in the inventory."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "huang2025lowprob",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2510.03222"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/huang2025lowprob.html",
+      "metadata_title": [
+        "Low-probability Tokens Sustain Exploration in Reinforcement Learning with Verifiable Reward"
+      ],
+      "metadata_authors_in_order": [
+        "Huang, Guanhua",
+        "Xu, Tingqiang",
+        "Wang, Mingze",
+        "Yi, Qi",
+        "Gong, Xue",
+        "Li, Siheng",
+        "Xiong, Ruibin",
+        "Li, Kejiao",
+        "Jiang, Yuhao",
+        "Zhou, Bo"
+      ],
+      "first_posted": [
+        "2025/10/03"
+      ],
+      "latest_revision": [
+        "2025/11/07"
+      ],
+      "finding": "Primary arXiv confirms the exact title,10authors,2025date and identifier2510.03222. No cited usage occurs in the inventory."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "deng2025negativegrad",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://arxiv.org/abs/2505.18830"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/deng2025negativegrad.html",
+      "metadata_title": [
+        "On the Effect of Negative Gradient in Group Relative Deep Reinforcement Optimization"
+      ],
+      "metadata_authors_in_order": [
+        "Deng, Wenlong",
+        "Ren, Yi",
+        "Li, Muchen",
+        "Sutherland, Danica J.",
+        "Li, Xiaoxiao",
+        "Thrampoulidis, Christos"
+      ],
+      "first_posted": [
+        "2025/05/24"
+      ],
+      "latest_revision": [
+        "2025/05/24"
+      ],
+      "finding": "Primary arXiv confirms the exact title,6authors,2025date and identifier2505.18830. No cited usage occurs in the inventory."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "geng2023grammar",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://aclanthology.org/2023.emnlp-main.674/"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/geng2023grammar.html",
+      "metadata_title": [
+        "Grammar-Constrained Decoding for Structured NLP Tasks without Finetuning"
+      ],
+      "metadata_authors_in_order": [
+        "Saibo Geng",
+        "Martin Josifoski",
+        "Maxime Peyrard",
+        "Robert West"
+      ],
+      "first_posted": [
+        "2023/12"
+      ],
+      "latest_revision": null,
+      "finding": "Official ACL Anthology metadata confirms all4authors,title,EMNLP2023,pages10932-10952,DOI10.18653/v1/2023.emnlp-main.674,publisher and Singapore location. Natural-order versus surname-first author strings are formatting equivalents."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": []
+  },
+  {
+    "key": "yue2025rlvrlimit",
+    "exists": true,
+    "status": "verified_with_scope_and_venue_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2504.13837",
+      "https://arxiv.org/html/2504.13837"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/yue2025rlvrlimit.html",
+      "metadata_title": [
+        "Does Reinforcement Learning Really Incentivize Reasoning Capacity in LLMs Beyond the Base Model?"
+      ],
+      "metadata_authors_in_order": [
+        "Yue, Yang",
+        "Chen, Zhiqi",
+        "Lu, Rui",
+        "Zhao, Andrew",
+        "Wang, Zhaokai",
+        "Yue, Yang",
+        "Song, Shiji",
+        "Huang, Gao"
+      ],
+      "first_posted": [
+        "2025/04/18"
+      ],
+      "latest_revision": [
+        "2025/11/24"
+      ],
+      "finding": "Full text reports lower large-k coverage of solvable problems in tested RLVR models despite better small-k accuracy. This is across-problem pass@k coverage, not the number of correct execution modes within a prompt. Both occurrences of Yang Yue appear in the primary author list; do not automatically deduplicate. Latest arXiv journal reference identifies NeurIPS2025 Oral.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/yue2025rlvrlimit_full.html"
+    },
+    "metadata_issues": [
+      {
+        "field": "venue/type",
+        "current": "misc/arXiv",
+        "verified": "arXiv journal reference NeurIPS2025 Oral",
+        "severity": "optional publication update"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 216,
+        "status": "supported",
+        "assessment": "Supports observed large-k problem-coverage narrowing in tested models; does not directly measure within-prompt executed-mode breadth."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 478,
+        "status": "supported",
+        "assessment": "Supports observed large-k problem-coverage narrowing in tested models; does not directly measure within-prompt executed-mode breadth."
+      }
+    ],
+    "recommended_changes": [
+      "Qualify support contraction as observed effective problem coverage in this source; distinguish the manuscript within-prompt executed-key metric.",
+      "Optional: update to NeurIPS2025 publication metadata."
+    ]
+  },
+  {
+    "key": "kirk2024understanding",
+    "exists": true,
+    "status": "verified_with_scope_note",
+    "source_urls": [
+      "https://openreview.net/forum?id=PXD3FAVHJT",
+      "https://arxiv.org/abs/2310.06452",
+      "https://arxiv.org/html/2310.06452v3"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "paper/audits/reference_audit_20260905/modern_rl_sources/kirk2024understanding_arxiv.html",
+      "metadata_title": [
+        "Understanding the Effects of RLHF on LLM Generalisation and Diversity"
+      ],
+      "metadata_authors_in_order": [
+        "Kirk, Robert",
+        "Mediratta, Ishita",
+        "Nalmpantis, Christoforos",
+        "Luketina, Jelena",
+        "Hambro, Eric",
+        "Grefenstette, Edward",
+        "Raileanu, Roberta"
+      ],
+      "first_posted": [
+        "2023/10/10"
+      ],
+      "latest_revision": [
+        "2024/02/19"
+      ],
+      "finding": "ArXiv2310.06452v3 and the ICLR2024 paper confirm the title,7authors and venue. Section6.2 finds lower lexical/semantic per-input diversity for RLHF in summarization; logical NLI diversity shows no meaningful difference, and initial instruction-following diversity tests were not decisive. It supports a qualified can-reduce-output-diversity claim.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/kirk2024understanding_full.html",
+      "metadata_note": "OpenReview forum is browser-challenged; official arXivv3 full text and indexed ICLR paper verify title/authors/venue."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 216,
+        "status": "supported",
+        "assessment": "Supports a can-reduce-sampled-output-diversity claim, principally lexical/semantic summarization metrics; not universal logical-diversity loss or literal support extinction."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 478,
+        "status": "supported",
+        "assessment": "Supports a can-reduce-sampled-output-diversity claim, principally lexical/semantic summarization metrics; not universal logical-diversity loss or literal support extinction."
+      }
+    ],
+    "recommended_changes": [
+      "Use sampled output diversity rather than literal mathematical support, and avoid implying all tasks or every diversity measure decreased."
+    ]
+  },
+  {
+    "key": "hu2024amortizing",
+    "exists": true,
+    "status": "verified_version_choice_needed",
+    "source_urls": [
+      "https://arxiv.org/abs/2310.04363",
+      "https://arxiv.org/abs/2310.04363v2"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/hu2024amortizing.html",
+      "metadata_title": [
+        "Amortizing intractable inference in large language models"
+      ],
+      "metadata_authors_in_order": [
+        "Hu, Edward J.",
+        "Jain, Moksh",
+        "Elmoznino, Eric",
+        "Kaddar, Younesse",
+        "Lajoie, Guillaume",
+        "Bengio, Yoshua",
+        "Whitammer, Esmeralda S."
+      ],
+      "first_posted": [
+        "2023/10/06"
+      ],
+      "latest_revision": [
+        "2026/08/31"
+      ],
+      "finding": "The ICLR2024-era arXivv2 (2024-03-13) exactly matches the listed7authors including Nikolay Malkin. The latest unversioned arXivv3 (2026-08-31) instead lists Esmeralda S. Whitammer in the final author slot. Title/year/venue refer to a real paper; this is edition metadata drift."
+    },
+    "metadata_issues": [
+      {
+        "field": "author/url edition",
+        "current": "last author Nikolay Malkin; unversionedURL",
+        "verified": "matches2024v2;2026v3author field differs",
+        "severity": "edition consistency"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Use a consistent edition: pin the2024v2 URL for the currently listed conference author field, or update from the latest author-supplied metadata. Do not label the historical conference author list fabricated."
+    ]
+  },
+  {
+    "key": "bengio2023gflownet",
+    "exists": true,
+    "status": "verified",
+    "source_urls": [
+      "https://jmlr.org/papers/v24/22-0364.html"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/bengio2023gflownet.html",
+      "metadata_title": [
+        "GFlowNet Foundations"
+      ],
+      "metadata_authors_in_order": [
+        "Yoshua Bengio",
+        "Salem Lahlou",
+        "Tristan Deleu",
+        "Edward J. Hu",
+        "Mo Tiwari",
+        "Emmanuel Bengio"
+      ],
+      "first_posted": [
+        "2023"
+      ],
+      "latest_revision": null,
+      "finding": "Official JMLR record confirms title,6authors,year2023,volume24,number210,pages1-55. No cited usage occurs in the inventory."
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Optional: add https://jmlr.org/papers/v24/22-0364.html as the canonical URL."
+    ]
+  },
+  {
+    "key": "zhu2025flowrl",
+    "exists": true,
+    "status": "metadata_correction_required",
+    "source_urls": [
+      "https://arxiv.org/abs/2509.15207"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/zhu2025flowrl.html",
+      "metadata_title": [
+        "FlowRL: Matching Reward Distributions for LLM Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Zhu, Xuekai",
+        "Cheng, Daixuan",
+        "Zhang, Dinghuai",
+        "Li, Hengli",
+        "Zhang, Kaiyan",
+        "Jiang, Che",
+        "Sun, Youbang",
+        "Hua, Ermo",
+        "Zuo, Yuxin",
+        "Lv, Xingtai",
+        "Zhang, Qizheng",
+        "Chen, Lin",
+        "Shao, Fanghao",
+        "Xue, Bo",
+        "Song, Yunchong",
+        "Yang, Zhenjie",
+        "Cui, Ganqu",
+        "Ding, Ning",
+        "Gao, Jianfeng",
+        "Liu, Xiaodong",
+        "Zhou, Bowen",
+        "Mei, Hongyuan",
+        "Lin, Zhouhan"
+      ],
+      "first_posted": [
+        "2025/09/18"
+      ],
+      "latest_revision": [
+        "2025/11/04"
+      ],
+      "finding": "The paper and identifier2509.15207 are real, but the current author field is substantially wrong: several surnames/given names are misattributed and13authors are omitted. Primary arXivv3 lists23authors in the order supplied below."
+    },
+    "metadata_issues": [
+      {
+        "field": "author",
+        "verified": "Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Jiang, Che and Sun, Youbang and Hua, Ermo and Zuo, Yuxin and Lv, Xingtai and Zhang, Qizheng and Chen, Lin and Shao, Fanghao and Xue, Bo and Song, Yunchong and Yang, Zhenjie and Cui, Ganqu and Ding, Ning and Gao, Jianfeng and Liu, Xiaodong and Zhou, Bowen and Mei, Hongyuan and Lin, Zhouhan",
+        "severity": "major",
+        "bibtex_replacement": "author = {Zhu, Xuekai and Cheng, Daixuan and Zhang, Dinghuai and Li, Hengli and Zhang, Kaiyan and Jiang, Che and Sun, Youbang and Hua, Ermo and Zuo, Yuxin and Lv, Xingtai and Zhang, Qizheng and Chen, Lin and Shao, Fanghao and Xue, Bo and Song, Yunchong and Yang, Zhenjie and Cui, Ganqu and Ding, Ning and Gao, Jianfeng and Liu, Xiaodong and Zhou, Bowen and Mei, Hongyuan and Lin, Zhouhan}"
+      }
+    ],
+    "usage_assessment": [
+      {
+        "status": "not_cited",
+        "assessment": "No usage occurs in the provided inventory; metadata verified."
+      }
+    ],
+    "recommended_changes": [
+      "Replace the complete author field with the verified23-author list."
+    ]
+  },
+  {
+    "key": "lochab2026ucpo",
+    "exists": true,
+    "status": "verified_with_priority_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2605.00365",
+      "https://arxiv.org/html/2605.00365"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/lochab2026ucpo.html",
+      "metadata_title": [
+        "Uniform-Correct Policy Optimization: Breaking RLVR's Indifference to Diversity"
+      ],
+      "metadata_authors_in_order": [
+        "Lochab, Anamika",
+        "Li, Bolian",
+        "Zhang, Ruqi"
+      ],
+      "first_posted": [
+        "2026/05/01"
+      ],
+      "latest_revision": [
+        "2026/05/01"
+      ],
+      "finding": "Full text Section4 analyzes correctness indifference, on-policy amplification and collapse; Sections5-6 derive uniform-correct targets and conditional-uniformity regularization. Practical UCPO redistributes positive group advantage using normalized inverse-q weights. All5cited uses accurately identify on-policy diversity/redistribution, but the theoretical predecessor deserves explicit credit.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/lochab2026ucpo_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 224,
+        "status": "supported",
+        "assessment": "Accurate on-policy uniformity/positive-advantage-redistribution attribution. The source also contains close collapse theory and uniform-correct optimality, warranting nearby theoretical credit."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 553,
+        "status": "supported",
+        "assessment": "Accurate on-policy uniformity/positive-advantage-redistribution attribution. The source also contains close collapse theory and uniform-correct optimality, warranting nearby theoretical credit."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 118,
+        "status": "supported",
+        "assessment": "Accurate on-policy uniformity/positive-advantage-redistribution attribution. The source also contains close collapse theory and uniform-correct optimality, warranting nearby theoretical credit."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 342,
+        "status": "supported",
+        "assessment": "Accurate on-policy uniformity/positive-advantage-redistribution attribution. The source also contains close collapse theory and uniform-correct optimality, warranting nearby theoretical credit."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 486,
+        "status": "supported",
+        "assessment": "Accurate on-policy uniformity/positive-advantage-redistribution attribution. The source also contains close collapse theory and uniform-correct optimality, warranting nearby theoretical credit."
+      }
+    ],
+    "recommended_changes": [
+      "Cite UCPO beside the categorical-collapse/theory discussion, not only in a broad related-work list.",
+      "Distinguish persistent execution-key exemplars and fixed-bank retention from UCPO on-policy uniformity; do not imply uniform-correct targets or the collapse mechanism originate here."
+    ]
+  },
+  {
+    "key": "zhang2025rlep",
+    "exists": true,
+    "status": "verified_with_adaptation_note",
+    "source_urls": [
+      "https://arxiv.org/abs/2507.07451",
+      "https://arxiv.org/html/2507.07451"
+    ],
+    "evidence": {
+      "checked_as_of": "2026-09-05",
+      "metadata_primary_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/zhang2025rlep.html",
+      "metadata_title": [
+        "RLEP: Reinforcement Learning with Experience Replay for LLM Reasoning"
+      ],
+      "metadata_authors_in_order": [
+        "Zhang, Hongzhi",
+        "Fu, Jia",
+        "Zhang, Jingyuan",
+        "Fu, Kai",
+        "Wang, Qi",
+        "Zhang, Fuzheng",
+        "Zhou, Guorui"
+      ],
+      "first_posted": [
+        "2025/07/10"
+      ],
+      "latest_revision": [
+        "2025/07/10"
+      ],
+      "finding": "Full text Section3.2 collects a frozen pool from an earlier RL policy, randomly samples successful trajectories, combines them with fresh rollouts and recomputes advantages over the mixed group. Section4.2 uses16fresh+2replay under an optimized DAPO-based recipe. It does not define an execution-key-balanced bank or a method named RLEP-Dr.",
+      "fulltext_snapshot": "/n/fs/similarity/maxent-grpo/paper/audits/reference_audit_20260905/modern_rl_sources/zhang2025rlep_full.html"
+    },
+    "metadata_issues": [],
+    "usage_assessment": [
+      {
+        "file": "paper/main.tex",
+        "line": 234,
+        "status": "supported",
+        "assessment": "Verified-success trajectory storage/replay is directly supported by Section3.2; execution-key balancing is not claimed by RLEP."
+      },
+      {
+        "file": "paper/main.tex",
+        "line": 554,
+        "status": "adaptation_clarification_recommended",
+        "assessment": "Cited RLEP uses random success-pool replay and mixed-group advantages under DAPO; RLEP-Dr/frequency-weighted control is a local adaptation, which should be explicit."
+      },
+      {
+        "file": "paper/mathai2026/main.tex",
+        "line": 103,
+        "status": "supported",
+        "assessment": "Verified-success trajectory storage/replay is directly supported by Section3.2; execution-key balancing is not claimed by RLEP."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 343,
+        "status": "adaptation_clarification_recommended",
+        "assessment": "Cited RLEP uses random success-pool replay and mixed-group advantages under DAPO; RLEP-Dr/frequency-weighted control is a local adaptation, which should be explicit."
+      },
+      {
+        "file": "paper/mathai2026/appendix.tex",
+        "line": 496,
+        "status": "supported",
+        "assessment": "Verified-success trajectory storage/replay is directly supported by Section3.2; execution-key balancing is not claimed by RLEP."
+      }
+    ],
+    "recommended_changes": [
+      "Keep successful-trajectory replay attribution.",
+      "Call the comparator an RLEP-inspired Dr.GRPO adaptation and tie frequency weighting to this paper implementation; do not imply the cited RLEP paper defines that exact Dr.GRPO control."
+    ]
+  }
+]

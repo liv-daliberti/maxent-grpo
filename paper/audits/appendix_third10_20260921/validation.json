@@ -1,0 +1,15 @@
+{
+  "main_source_sha256": "af8e662601020e6b63b7a52a92f7f5e3f7b1204a00d76791e8f06882a4191926",
+  "main_body_text_unchanged": true,
+  "appendix_heading_count": 90,
+  "process_language_hits": [],
+  "tex_diagnostics": [],
+  "full_pdf_pages": 122,
+  "overleaf_independent_compile_passed": true,
+  "packaged_source_assets_reference_match": true,
+  "full_review_copy_matches": true,
+  "overleaf_sha256": "de43c9b6984015d37a6338047a044d2f00245f87e2da2c20ae35ff49f73ce28e",
+  "main_body_dangling_links_removed": 146,
+  "main_body_all_nine_pages_pixel_identical": true,
+  "main_body_pdfinfo_and_render_diagnostics": []
+}

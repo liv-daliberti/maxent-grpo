@@ -1,0 +1,75 @@
+--- before/main.tex
++++ paper/mathai2026/main.tex
+@@ -98,13 +98,12 @@
+ Each retained key receives equal replay weight, independent of its frequency in
+ fresh rollouts. Replacing MaxRL with Dr.GRPO \citep{liu2025understanding},
+ which debiases GRPO \citep{shao2024deepseekmath}, yields ReplayDr.GRPO.
+-Appendix~\ref{app:algorithm} gives the full update;
+-Appendix~\ref{app:theory} analyzes collapse and retention in idealized categorical models.
+-
+-\noindent\textbf{Related work.} Prior work studies diversity collapse
+-\citep{cui2025entropy,dang2025diversity} and success replay \citep{zhang2025rlep}.
+-We focus on executable identity for measurement and memory
+-(Appendix~\ref{sec:related}).
++Appendix~\ref{app:algorithm} gives the full update and
++Appendix~\ref{app:theory-replay} the idealized retention guarantee.
++
++\noindent\textbf{Related work.} We connect studies of collapse
++\citep{cui2025entropy,dang2025diversity} and success replay \citep{zhang2025rlep}
++through executable identity (Appendix~\ref{sec:related}).
+ 
+ \section{Does memory preserve verified output support?}
+ \label{sec:experiments}\label{sec:results}
+@@ -112,23 +111,24 @@
+ \texttt{distinct@8} is their average number of distinct verified modes.
+ \emph{Extra modes}, \texttt{distinct@8}$-$\texttt{pass@8}, counts alternatives
+ beyond the first correct output. Both support measures remain coupled to correctness.
+-
+-We register five seeds per comparison and train for eight passes. Each domain
+-has 128 held-out prompts, evaluated with four eight-sample draws and excluded
+-from the replay bank. Matched Dr.GRPO/MaxRL controls run the bank code with zero
+-replay gradient. Figure~\ref{fig:cross-scale-terminal-effects} also compares
+-reward normalization, on-policy diversity (UCPO; \citealp{lochab2026ucpo}),
+-success replay (RLEP-Dr), and semantic entropy. Full protocols are in
+-Appendix~\ref{app:experimental-design}.
++For a fixed prompt, our idealized categorical analysis proves that stronger
++updates shared across correct outputs can preserve more sampled modes at matched correctness,
++with identical \texttt{pass@8} (Theorem~\ref{thm:shared-correctness}).
++
++We train for eight passes with five registered seeds per comparison. Each domain
++has 128 held-out prompts with four eight-sample draws; none enter the bank.
++Dr.GRPO/MaxRL controls run the same bank code with zero replay gradient.
++Figure~\ref{fig:cross-scale-terminal-effects} also compares reward normalization,
++UCPO \citep{lochab2026ucpo}, RLEP-Dr success replay, and semantic entropy
++(protocols: Appendix~\ref{app:experimental-design}).
+ 
+ \begin{figure}[!htbp]
+ \centering
+ \includegraphics[width=\linewidth]{figures/experiment1_retention_comparator_matrix.pdf}
+ \caption{\textbf{Replay improves correctness and verified support across scales.}
+-(A) ReplayDr.GRPO minus Dr.GRPO. (B) Qwen2.5-0.5B alternatives and the untrained
+-reference minus Dr.GRPO. Daggers mark four admissible pairs; others use five. Average uses shared seeds.
+-Left: probability differences. Right: key counts. Bold marks column maxima;
+-uncertainty: Appendix~\ref{app:supporting}.}
++(A) ReplayDr.GRPO minus Dr.GRPO. (B) Qwen2.5-0.5B alternatives and the initial
++model minus Dr.GRPO. Daggers indicate four pairs; otherwise five. Averages use
++shared seeds; intervals: Appendix~\ref{app:supporting}.}
+ \label{fig:cross-scale-terminal-effects}
+ \end{figure}
+ 
+@@ -137,11 +137,11 @@
+ ReplayDr.GRPO improves both means in 14 complete model--domain blocks and one
+ four-seed block; \texttt{distinct@8} rises in all 74 admissible seed pairs
+ (one conflicting source excluded; Appendix~\ref{app:source-integrity}).
+-On Qwen2.5-0.5B Countdown, \texttt{pass@8} rises from $.48$ to $.67$ and
+-\texttt{distinct@8} from $.49$ to $1.64$. Across five Qwen2.5-0.5B domains, uniform versus
++On Qwen2.5-0.5B Countdown, \texttt{pass@8} rises $.48\to.67$ and
++\texttt{distinct@8} $.49\to1.64$. Across five Qwen2.5-0.5B domains, uniform versus
+ frequency-weighted replay adds $.318$ extra modes on average
+-(95\% paired bootstrap interval $[.272,.358]$); its correctness effect is
+-inconclusive (Appendix~\ref{app:frequency-replay-progress}).
++(95\% paired bootstrap interval $[.272,.358]$;
++Appendix~\ref{app:frequency-replay-progress}).
+ 
+ \clearpage
+ \begin{figure}[!htbp]

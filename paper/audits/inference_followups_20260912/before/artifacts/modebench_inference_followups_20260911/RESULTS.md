@@ -1,0 +1,27 @@
+# Inference follow-ups: results and remaining collection
+
+The three studies have been executed without new training. Cross-model overlap, coarse-key sensitivity and Pantry saved-portfolio adaptation are complete. Pantry temperature/diversity controls and recovery inference are running; their complete cost comparison is pending. The original protocol files remain unchanged as the preparation record.
+
+## Completed findings
+
+**Mixed portfolios offer partial complementarity.** All 107,520 responses from the seven original cohorts passed source authentication and exact prompt matching. Across all 1,920 prompts, every one of the 21 model pairs improves distinct correct outcomes relative to its average eight-response constituent (gains 0.115–0.266). Ten mixtures beat both constituents in point estimates; nine have positive pointwise 95% intervals against both. Models still overlap substantially: cross-model collision is 0.624–0.740 on prompts where both have at least two correct draws, versus 0.704–0.819 for the corresponding mean within-model collision. These are prompt averages, not pooled response-pair rates.
+
+Holding the successful-response budget at four (2+2 mixed versus four from each constituent), all 21 average-constituent gains remain positive: 0.073–0.177 extra distinct outcomes. Eligibility varies by pair and is reported. Gains over average constituents remain positive under the explicit coarse keys and the frozen normalization sensitivity. Matching response counts does not match provider tokens or compute. [Full results](offline/REPORT.md), [all-pair figure](offline/mixed_portfolios.pdf), [independent audit](offline/independent_audit.json).
+
+**Coarse grouping exposes a substantive Python limitation.** In the existing local endpoint probes, original-wording Python Level 2's replay gain shrinks from 0.431 to 0.075 distinct outcomes, and Level 3's gain shrinks from 0.419 to zero. Neutral-wording gains remain positive: 0.556 at Level 2 and 0.500 at Level 3 under coarse factor-pair keys. MathIR and Pantry retain their key definitions. These are the saved 32-prompt endpoint probes, with five Python/MathIR seeds and two Pantry seeds, not a reanalysis of every main-paper training trajectory. Divisor vectors and factor-pair vectors do not identify algorithms. [Paired local results](local_coarse_v2/REPORT.md).
+
+**Saved Pantry plans adapt better after replay, with a correctness confound.** All 192 single-ingredient outages were chosen from task specifications; 181 are feasible. On 32 held-out Level-2 problems, replay improves survival by 23.83 percentage points over DrGRPO, averaging fixed seeds 43 and 46 (paired problem-bootstrap 95% interval 12.16–35.89). Original correctness also increases by 1.234 responses out of eight. On the descriptive subset with equal observed correct counts, the outage gain is only 1.05 points [0.00, 3.53], with 19 eligible problem clusters. This does not establish diversity as the causal mechanism. Only five problems have eligible additional dietary restrictions; dietary results have limited precision. [Saved-plan results](pantry/saved_portfolios/REPORT.md), [complete numerical record](pantry/saved_portfolios/results.json).
+
+## Inference still running
+
+Slurm array **31251914** runs the five frozen checkpoints, with at most two GPUs concurrently. Each checkpoint uses 384 development responses for temperature calibration, 32 held-out problems for both eight-response controls, and up to eight sequential recovery responses after each failed portfolio/perturbation. Every failed answer is retained. Full previous histories, response counts, input/output tokens and generation/verifier timing are recorded.
+
+Dependent CPU job **31252131** runs the frozen full-cohort auditor and reporter after the array finishes. It requires all five completed checkpoints and checks every receipt, strict grade, prompt, calibration choice, recovery stopping rule, unresolved case and token total. It will write `pantry/analysis_complete/REPORT.md` and `results.json`. A missing/failed checkpoint stops that report rather than silently shrinking the analysis.
+
+[Live state](RUN_STATUS.json) is refreshed by the status watcher. It also distinguishes GPT response collection from completed grading. GPT-5.6's two 64-response conditions have completed collection and grading; GPT-5.4 and Grok remain in collection.
+
+## Validation and paper placement
+
+Eleven focused tests pass, including an end-to-end fake-model run through the full deferred Pantry auditor. Independent checks verify all 6,574 unique successful hosted prompt/key combinations and compare the portfolio formula with all 4,900 subsets for each of 252 deterministic pair/prompt examples. Every registered pair and domain/level is retained, including adverse results.
+
+These reports and figures are new analysis artifacts; they have not yet been inserted into either manuscript. The main text should summarize partial cross-model complementarity and the adverse Python grouping result. The saved-plan adaptation gain needs its correctness qualification; the stronger cost/recovery claim must wait for the complete inference study. Full model-pair tables, equivalence definitions, support references and per-seed results belong in the appendix. The earlier [paper-coverage audit](../../paper/audits/experiment_coverage_20260911/review.md) identifies the remaining existing-experiment coverage gaps.

@@ -18,8 +18,13 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from make_modebench_data import _countdown_expression_map, _countdown_prompt
-from oat_drgrpo.math_grader import _canonical_countdown_expression_key
+from make_modebench_data import (  # noqa: E402
+    _countdown_expression_map,
+    _countdown_prompt,
+)
+from oat_drgrpo.math_grader import (  # noqa: E402
+    _canonical_countdown_expression_key,
+)
 
 
 def _canonical_expression_keys(

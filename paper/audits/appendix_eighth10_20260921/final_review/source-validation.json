@@ -1,0 +1,10 @@
+{
+  "numbered_equation_environments_unchanged": true,
+  "numbered_equation_environment_count": 51,
+  "labels_unchanged": true,
+  "main_body_change": "One sentence on page5 now separates raw mode counts from conditional diversity.",
+  "experimental_runs": 0,
+  "new_model_calls": 0,
+  "bootstrap_reruns": 0,
+  "source_sha256": "3da8a4de2d1b6eb334078779a1d85204d45ab26e5871dcc3755a105282a7e458"
+}

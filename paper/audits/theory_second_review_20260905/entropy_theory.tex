@@ -1,0 +1,125 @@
+% Optional independently reviewed fragments. Root owns manuscript integration.
+% beta is the entropy coefficient; lambda remains the shared-geometry parameter.
+
+\paragraph{Exact entropy and the sampled semantic comparator are different.}
+The preceding collapse theorem has no entropy term. It does not imply collapse
+under exact Shannon-entropy regularization, which has a different vector field.
+
+\begin{lemma}[Exact categorical entropy prevents extinction]
+\label{lem:entropy-scope}
+Let $d=m+n$, $p=\operatorname{softmax}(z)$, and
+$J(z)=\Psi(P(z))+\beta H(p(z))$, where $\Psi\in C^2([0,1])$, $\beta>0$, and
+$0\le\Psi'(P)\le M<\infty$. Under the exact independent-logit gradient flow
+$\dot z=\nabla_zJ$, put
+\[
+ \bar z=\frac1d\sum_i z_i(0),\qquad
+ \ell=\min\{\min_i z_i(0),\bar z-M/\beta\}.
+\]
+For every $t\ge0$ and every category $i$,
+\[
+ p_i(t)\ge \frac1d\exp\!\bigl(d(\ell-\bar z)\bigr)>0.
+\]
+If $\Psi$ is also concave, the policy
+converges to the unique interior maximizer of $\Psi(P)+\beta H(p)$.
+In particular, for Dr.GRPO with $a=(G-1)/G$, the limit is
+\[
+ p_i^*=\frac{\exp(a\1\{i\in\mathcal C\}/\beta)}
+ {m\exp(a/\beta)+n}.
+\]
+Thus the conditional correct-mode distribution is uniform, not collapsed.
+\end{lemma}
+
+\begin{proof}
+The gradient components are
+\[
+ \dot z_i=p_i\bigl[\Psi'(P)(\1\{i\in\mathcal C\}-P)
+       +\beta(-\log p_i-H(p))\bigr].
+\]
+Their sum is zero, so $\bar z$ is conserved. Jensen's inequality and
+$H(p)\le\log d$ give
+$-\log p_i-H(p)\ge\bar z-z_i$.
+Consequently, at any coordinate with $z_i=\ell$, its velocity is at least
+$p_i[-M+\beta(\bar z-\ell)]\ge0$. The region $z_i\ge\ell$ for every $i$
+is therefore forward invariant. Conservation of the sum also gives
+$z_i\le d\bar z-(d-1)\ell$, proving the probability bound.
+
+These bounds make the fixed-mean logit trajectory compact.
+Since $\dot J=\|\nabla_zJ\|_2^2$, all its limit points are stationary.
+Interior softmax stationarity is equivalent to simplex stationarity.
+Concavity of $\Psi$ and strict concavity of $\beta H$ give a unique maximizer;
+it is interior because the entropy gain from adding a missing coordinate
+dominates the bounded first-order change of $\Psi$. Hence the entire policy
+converges to that maximizer. For linear $\Psi(P)=aP$, the simplex
+first-order conditions give the stated Gibbs distribution.
+\end{proof}
+
+This result concerns exact entropy over the finite output categories in the
+reduction. Entropy over completion strings, conditional verified keys, and
+sampled token distributions are different objectives. It does not certify a
+clipped surrogate or an adaptive neural optimizer. The concavity condition
+holds for Dr.GRPO and the implemented binary-MaxRL potential.
+
+\begin{lemma}[Bounded sampled scores have no probability-independent boundary force]
+\label{lem:sampled-score-bound}
+Condition on the training history, draw $A_1,\ldots,A_G$ independently from
+$p$, and let $a_i$ be any detached, possibly group-dependent advantages with
+$|a_i|\le B$. At the on-policy point define
+\[
+ \widehat g=\frac1G\sum_{i=1}^G a_i(\mathbf e_{A_i}-p).
+\]
+For every category $b$,
+\[
+ |\E[\widehat g_b]|\le\E|\widehat g_b|
+ \le 2B p_b(1-p_b).
+\]
+On a group with no draw of $b$, exactly
+$\widehat g_b=-p_bG^{-1}\sum_i a_i$; it is zero if the applied advantages
+sum to zero. By comparison, the verified-replay component for a fixed target
+$w$ has logit velocity $\rho(w_b-p_b)$, which approaches $\rho w_b>0$
+for a banked category as $p_b\to0$.
+\end{lemma}
+
+\begin{proof}
+Use the triangle inequality and $|a_i|\le B$. Each marginal draw satisfies
+$\E|\1\{A_i=b\}-p_b|=2p_b(1-p_b)$, irrespective of the dependence of
+$a_i$ on the group. On the absence event all indicator terms are zero.
+The replay formula follows by differentiating $-\sum_b w_b\log p_b$.
+\end{proof}
+
+The fixed historical semantic advantage has $B=\eta=.10$, including its
+unit pseudocount, reserved unseen bucket, and clipped surprisal. The bound
+does not prove inevitable collapse or rule out asymptotic retention by a
+particular bounded estimator. Unsampled probabilities can also change through
+softmax normalization or shared parameters. Exact entropy is outside the
+uniformly bounded-score premise because its surprisal is unbounded near zero.
+
+% Optional implementation-specific identity and exact counterexample.
+\paragraph{Predictor centering can change correctness as well as diversity.}
+Let $q=p(\cdot\mid\mathcal C)$ and freeze a predictor score $s_c$ and baseline
+$b$ independently of the scored action (for example, conditional on its
+leave-one-out peers). Then
+\[
+ \E_{A\sim p}\!\left[\1\{A\in\mathcal C\}(s_A-b)
+                  \nabla_z\log p_A\right]
+ =P\E_{c\sim q}[s_c\nabla_z\log q_c]
+  +(\E_q[s]-b)\nabla_zP.
+\]
+Indeed, on correct actions
+$\nabla\log p_c=\nabla\log q_c+\nabla\log P$, and
+$\E_q[\nabla\log q_c]=0$.
+The second term vanishes when the baseline equals the current conditional
+mean score, which a historical predictor need not satisfy. Even with
+unclipped $s_c=-\log q_c$ and $b=H(q)$, averaging over all unconditional
+rollout rows gives $P\nabla H(q)$, rather than $\nabla H(q)$.
+
+For an exact code-matched counterexample, suppose that there is one correct
+key and at least one incorrect category. Conditional verified-key entropy is
+identically zero. With an explicit historical-plus-peer count $N\ge1$, the
+implemented open-set predictor has seen mass $u=(N+1)/(N+2)$ and unseen mass
+$v=1/(N+2)$. At the fixed $C=5$ its advantage on the seen key is
+\[
+ -\frac{\eta v}{C}\bigl(\min\{\log(N+2),C\}+\log u\bigr)<0.
+\]
+Thus an all-success same-key group receives nonzero negative semantic
+pressure even though the exact conditional-entropy gradient is zero. This
+exhibits estimator mismatch; it is not a proof of inevitable mode collapse.

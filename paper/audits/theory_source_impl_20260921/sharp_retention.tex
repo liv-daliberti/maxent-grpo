@@ -1,0 +1,43 @@
+% Insert after the proof of thm:replay-retention.
+\paragraph{A sharper certificate from normalization.}
+Write $\operatorname{kl}(a,r)=a\log(a/r)+(1-a)\log[(1-a)/(1-r)]$
+with continuous endpoint conventions. For $0<a<1$ and $D\ge0$, let
+$\ell_-(a,D)$ be the unique $r\in(0,a]$ satisfying
+$\operatorname{kl}(a,r)=D$; set $\ell_-(1,D)=e^{-D}$.
+In particular, $\ell_-(a,0)=a$.
+
+\begin{corollary}[Replay certificate by KL data processing]
+\label{cor:replay-sharp-kl-certificate}
+Let $w_b>0$, $\sum_{b\in\mathcal B}w_b=1$, and suppose a probability law
+$p$ satisfies $R_w(p)=-\sum_{b\in\mathcal B}w_b\log p_b\le C<\infty$.
+With $D=C-H(w)$ and $H(w)=-\sum_bw_b\log w_b$, necessarily $D\ge0$, and
+\begin{equation}
+ p_b\ge\ell_-(w_b,D)>0,\qquad
+ p(\mathcal B)\ge e^{-D},\qquad
+ p_b\ge\max\{0,w_b-\sqrt{D/2}\}.
+ \label{eq:replay-sharp-kl-certificate}
+\end{equation}
+The binary-KL coordinate bound is sharp on the closed probability simplex
+when the alphabet has at least two categories. In
+Theorem~\ref{thm:replay-retention}, take $w_b=1/k$ and $C=C_T$ to obtain
+these bounds simultaneously for every $t\ge T$.
+\end{corollary}
+\begin{proof}
+Extend $w$ by zero outside $\mathcal B$. Then
+$\mathrm{KL}(\bar w\|p)=R_w(p)-H(w)\le D$.
+Data processing under the partitions $\{b\},\{b\}^{\rm c}$ and
+$\mathcal B,\mathcal B^{\rm c}$ gives
+$\operatorname{kl}(w_b,p_b)\le D$ and $-\log p(\mathcal B)\le D$
+\citep[Theorem~9]{vanerven2014renyi}. Binary inversion gives the first
+bound; Pinsker gives the third \citep[Theorem~31]{vanerven2014renyi}.
+For $w_b<1$, equality in the first is attained by
+$p_b=\ell_-(w_b,D)$ and
+$p_j=(1-p_b)w_j/(1-w_b)$ on the remaining bank, with zero mass elsewhere.
+For $w_b=1$, put the remaining probability on another category.
+For $D>0$, imposing full support gives the same infimum by approximation.
+\end{proof}
+
+For illustration, a uniform bank of 16 with $C=\log16+0.01$ gives
+$p_b\ge0.03397$, whereas the termwise bound $e^{-16C}$ is
+$4.62\times10^{-20}$. These are illustrative inputs, not measured training
+losses. A large excess loss $D$ can still make the sharper certificate weak.

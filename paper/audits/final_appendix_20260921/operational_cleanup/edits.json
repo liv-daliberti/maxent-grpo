@@ -1,0 +1,350 @@
+[
+  {
+    "path": "paper/main.tex",
+    "old": "Deployment identifiers and protocols are recorded with these results; no training or replay is applied in these studies.",
+    "new": "These studies apply no training or replay.",
+    "reason": "Remove recordkeeping narration from the main experimental design."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "Saved control completions also become byte-identical within each prompt by steps 288--480 and remain so through training. Replay supplies a separate likelihood gradient even when the fresh task gradient vanishes; the complete audit is in App.~\\ref{app:degenerate-groups}.",
+    "new": "Control completions also become byte-identical within each prompt by steps 288--480 and remain so through training. Replay supplies a separate likelihood gradient even when the fresh task gradient vanishes (App.~\\ref{app:degenerate-groups}).",
+    "reason": "State the observed result directly; remove saved-record and audit narration."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "checkpoints of Qwen2.5-0.5B (seed 43), grouped by their verified response",
+    "new": "checkpoints of Qwen2.5-0.5B from one matched seed, grouped by their verified response",
+    "reason": "Retain single-seed scope while removing the literal seed identifier."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "    Training seeds & Qwen2.5-0.5B: 43--47; Falcon3-1B: 55--59;\n      Qwen2.5-3B: 70--74. \\\\\n",
+    "new": "    Training seeds & Five per model--domain cell; paired comparisons use\n      common seeds, with sample sizes reported alongside the results. \\\\\n",
+    "reason": "Replace literal training seed IDs with the scientific replication design."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "    Evaluation seeds & Base 610100/610200/610300/610400/76299 for\n      \\texttt{Graph}/\\texttt{Countdown}/\\texttt{Python}/\\texttt{MathIR}/\\texttt{PantryPlan}; draw $d$ uses base plus $d$. \\\\\n",
+    "new": "",
+    "reason": "Remove evaluation RNG constants; evaluation groups and their dependence are specified scientifically elsewhere."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "\\begin{table}[!htbp]\n\\centering\n\\caption{\\textbf{Base-model revisions.} Both arms of each paired training\ncomparison use the same initialization from the model revisions below.}\n\\label{tab:pinned-revisions}\n\\small\n\\begin{tabular}{@{}ll@{}}\n\\toprule\n\\textbf{Base model} & \\textbf{Revision} \\\\\n\\midrule\nQwen2.5-0.5B-Instruct & {\\scriptsize\\texttt{7ae557604adf67be50417f59c2c2f167def9a775}} \\\\\nFalcon3-1B-Instruct & {\\scriptsize\\texttt{28ba2251970a01dd1edc7ba7dad2eb71216ccfdf}} \\\\\nQwen2.5-3B-Instruct & {\\scriptsize\\texttt{aa8e72537993ba99e69dfaafa59ed015b17504d1}} \\\\\n\\bottomrule\n\\end{tabular}\n\\end{table}",
+    "new": "",
+    "reason": "Remove the unused table of model revision hashes (metadata, not a result); removed label tab:pinned-revisions is unreferenced."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "Intervals condition on the fixed prompts and evaluation requests. Terminal comparisons use only terminal checkpoints;\nmissing endpoints are not replaced by earlier checkpoints. Each comparison\nspecifies its seed intersection and averaging rule; the replay-weighting\ncomparison uses a paired-seed bootstrap.",
+    "new": "Intervals condition on the fixed prompts and evaluation requests. Terminal\ncomparisons use paired final checkpoints; the replay-weighting comparison\nuses a paired-seed bootstrap.",
+    "reason": "Remove missing-checkpoint substitution procedures while retaining terminal pairing and uncertainty design."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "by domain. All MaxRL/Re:Max correctness comparisons use five paired seeds,\nincluding seeds 70--74 in every Qwen2.5-3B domain. Dr.GRPO/Re:Dr also uses\nfive except Falcon \\texttt{Countdown}, which uses four.",
+    "new": "by domain. MaxRL/Re:Max correctness comparisons use five paired seeds.\nDr.GRPO/Re:Dr also uses five except Falcon \\texttt{Countdown}, which uses four.",
+    "reason": "Remove literal seed IDs while preserving every comparison sample size."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "show accuracy and diversity during training. Accuracy and raw distinct-mode\ncounts use terminal paired-seed cohorts, averaging the available members at\neach checkpoint; ringed points identify partial cohorts. Evaluations use\nfour groups of eight responses to each of 128 held-out prompts.\nThe \\pmd{} curves use method-specific cohorts and evaluation grids, with\nat least five defining prompts per contributing seed. Their seed populations\ncan therefore differ from the accuracy curves and change over training.\nBands show seed ranges, not confidence intervals. Lines connect observed\nmeans without smoothing and break where neither a value nor an eligible\nseed is available.",
+    "new": "show accuracy and diversity during training, evaluated with four groups of\neight responses to each of 128 held-out prompts. Lines show seed means and\nbands show seed ranges, not confidence intervals. Conditional diversity\nrequires at least five prompts with two correct responses per seed, so its\ncontributing seed and prompt populations can differ across methods and time.",
+    "reason": "Replace partial-cohort procedures with the scientific estimands, uncertainty meaning, and changing-population limitation."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "Dr.GRPO/Re:Dr ($n=4$). Lines average available seeds within these fixed\ncohorts; bands span their minimum and maximum. Ringed points use fewer than\nthe full cohort. Both paired curves omit a checkpoint when either arm has\nno observation; the only such gap is Falcon \\texttt{MathIR} Dr.GRPO/Re:Dr at pass~6.5.}",
+    "new": "Dr.GRPO/Re:Dr ($n=4$). Lines show seed means and bands their ranges;\nringed points use fewer seeds and gaps indicate unavailable estimates.}",
+    "reason": "Remove the exact missing-checkpoint inventory and paired-gap procedure; retain the visual encoding."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "Each method has its own cohort and evaluation grid. A seed contributes when\nat least five prompts yield two correct responses. Fine dotted segments use\nincomplete cohorts, whose changing membership can affect the mean. Gaps mark\ncheckpoints with no eligible seed. Vertical scales are shared within each\ndomain.}",
+    "new": "A seed contributes when at least five prompts yield two correct responses.\nFine dotted segments use fewer seeds, so changes can reflect sample\ncomposition. Gaps indicate undefined estimates. Vertical scales are shared\nwithin each domain.}",
+    "reason": "Shorten operational cohort/grid narration while preserving eligibility and the meaning of plotted marks."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "seeds. Lines average available seeds within these cohorts; bands show seed\nranges, and ringed points use fewer than five seeds. Both metrics use the same\ncheckpoints and contributing seeds. Fig.~\\ref{fig:level2-training-pmd} shows\nsuccess-conditional diversity.}",
+    "new": "seeds. Lines show seed means and bands their ranges; ringed points use\nfewer than five seeds. Fig.~\\ref{fig:level2-training-pmd} shows\nsuccess-conditional diversity.}",
+    "reason": "Keep sample sizes and plot encoding; remove repeated checkpoint-membership details."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "four methods. Lines average eligible seeds on each method's evaluation grid;\nbands show seed ranges. Each seed requires at least five prompts with two\ncorrect responses, so cohorts can differ from those in\nFig.~\\ref{fig:level2-training-curves}. Fine dotted segments use incomplete\ncohorts; gaps have no eligible seed.}",
+    "new": "four methods. Lines average eligible seeds and bands show seed ranges.\nEach seed requires at least five prompts with two correct responses.\nFine dotted segments use fewer seeds; gaps indicate undefined estimates.}",
+    "reason": "Remove grid/partial-cohort procedural narration while retaining conditional-estimate eligibility and plot keys."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "  columns show the five domains. Lines average available members of each\n  method's terminal cohort; bands span the seed range, and missing checkpoints\n  leave gaps. Panel labels give cohort sizes: five except Falcon \\texttt{Countdown}\n  Dr.GRPO/Re:Dr ($n=4$) and Falcon \\texttt{Python} RLEP-Dr ($n=2$).\n  Dr.GRPO/Re:Dr use paired cohorts; comparator cohorts are method-specific.}",
+    "new": "  columns show the five domains. Lines show seed means and bands their ranges;\n  gaps indicate unavailable estimates. Panel labels give sample sizes: five\n  except Falcon \\texttt{Countdown} Dr.GRPO/Re:Dr ($n=4$) and Falcon\n  \\texttt{Python} RLEP-Dr ($n=2$). Dr.GRPO/Re:Dr use paired seeds.}",
+    "reason": "Replace cohort bookkeeping with sample sizes and the pairing/uncertainty needed to interpret the figure."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "Each method uses its own initial evaluation. For Qwen2.5-3B \\texttt{MathIR} and\n\\texttt{Pantry}, Dr.GRPO control seeds 71--74 use different initial sampling requests\nfrom plain GRPO: initial \\texttt{pass@8} averages are $.154$ versus $.162$\nand $.832$ versus $.828$, respectively. Those cells therefore have separate\ninitial references.",
+    "new": "Each method uses its own initial evaluation, so finite-sample initial\nestimates can differ despite shared model weights.",
+    "reason": "Remove per-seed initial-request provenance and redundant initial-score inventory; retain the scientific reason initial references differ."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "The fixed-bank study follows Qwen2.5-0.5B Re:Dr on \\texttt{Graph} for seeds\n43--47.",
+    "new": "The fixed-bank study follows Qwen2.5-0.5B Re:Dr on \\texttt{Graph} with five\ntraining seeds.",
+    "reason": "Retain replication count while removing training seed IDs."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "The 3,406 exemplars span 1,575 seed--prompt pairs and have finite scores at\nall scheduled visits: 8--9 visits per exemplar and 29,041 observations.",
+    "new": "The 3,406 exemplars span 1,575 seed--prompt pairs, with 8--9 replay visits\nper exemplar.",
+    "reason": "Remove score-completeness and logging inventory while retaining exemplar population and visit frequency."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "Pooled summaries weight exemplars equally. Descriptive 95\\% intervals use\n10,000 hierarchical bootstrap replicates (random seed 121): prompts are\nresampled within each original seed, followed by five seeds with replacement.\nRepeated seeds reuse their within-replicate prompt sample. Percentile\nintervals use linearly interpolated empirical quantiles.",
+    "new": "Pooled summaries weight exemplars equally. Descriptive 95\\% percentile\nintervals use 10,000 hierarchical bootstrap replicates, resampling prompts\nwithin each training seed and then resampling the five seeds.",
+    "reason": "Retain hierarchical uncertainty design; remove RNG identity, duplicate-resample procedure, and quantile implementation detail."
+  },
+  {
+    "path": "paper/main.tex",
+    "old": "There is one exception in original DrGRPO: a single problem at seed~46\ncontains two keys with counts 28 and 9,",
+    "new": "There is one exception in original DrGRPO: one seed--problem group\ncontains two keys with counts 28 and 9,",
+    "reason": "Remove the seed identifier while retaining the substantive rare-mode counterexample and all counts."
+  },
+  {
+    "path": "paper/results/conditional_concentration_20260912_appendix.tex",
+    "old": "paired terminal evaluations. A missing initial evaluation leaves the\ncorresponding before/after contrast unavailable. Nominal Student-$t$\nintervals require all five seeds; partial groups are descriptive. These\nintervals measure variation among the observed seed means, without\nsimultaneous coverage or uncertainty over unseen prompts.\n\nThe analysis includes 475 training runs and 902 checkpoint evaluations.\nBefore conditional eligibility, Level~1 has 74 Dr.GRPO and 75 MaxRL\nterminal replay pairs, and Level~2 has 25 pairs per objective. Complete\nterminal evaluations do not ensure enough correct samples to estimate\nconcentration, or supply missing initial evaluations.",
+    "new": "paired terminal evaluations. Nominal Student-$t$ intervals require five\ndefined seeds; smaller groups are descriptive. These intervals measure\nvariation among the observed seed means, without simultaneous coverage or\nuncertainty over unseen prompts. Tables report the number of defined seeds\nand eligible prompts for each contrast.",
+    "reason": "Remove checkpoint inventory and missing-initial procedures; retain eligibility, sample-size reporting, interval criterion, and uncertainty scope."
+  },
+  {
+    "path": "paper/results/conditional_concentration_20260912_appendix.tex",
+    "old": "Four eight-output groups per prompt do not supply 32 independently seeded\nresponses. Parent seeds increase by one between groups, and the vLLM V0\nsampler sets each output's seed to the parent seed plus its zero-based index. The four\nranges therefore contain eleven distinct nominal stream identifiers. For\neach prompt and checkpoint, the estimator uses the earliest draw/output\nposition for each identifier, selected independently of correctness and\nkey identity. Outputs sharing an identifier sometimes differ, so equal seed\nintegers do not imply identical outputs. The seed mapping assumes that the\nvLLM V0 rule applies across runs; the exact runtime version is not\nestablished for every run.\n\nTwo sensitivity comparisons use disjoint stream identifiers across\nconditions. Split~0 assigns the lower five identifiers to condition~A and\nthe upper six to~B; split~1 reverses the assignment. The identifiers are\ndisjoint within every prompt in both splits across all 627 paired\nseed-level comparisons. Each split has its own eligible prompts and\nnumber of defined seeds. The two splits agree with the primary contrast's\ndirection in eleven of the twelve \\texttt{Graph}/\\texttt{PantryPlan} Dr.GRPO/GRPO\nbefore/after comparisons and all six Re:Dr-minus-Dr.GRPO comparisons.\n\nDisjoint identifiers do not establish independent draws. Identifiers also\nrepeat across prompts, so neither the splits nor the jointly eligible\nprompt means imply independent prompt observations. Independent sampling\nfrom a fixed policy remains an assumption of the estimator identity.\nComparisons under shared streams are descriptive where joint-selection\nassumptions do not hold.\n\nThe original \\texttt{mean@8}, \\texttt{pass@8}, and \\texttt{distinct@8} average\nthe four intact groups. Stream overlap affects dependence, but not the\nlinearity of these marginal averages. Additional sensitivity comparisons\nuse individual intact groups, the first group alone, prompt intersections\nfixed across seeds, and four-condition change differences. Pooling all\n32 positions repeats stream identifiers and serves only as an overlap\ndiagnostic. These comparisons share outputs and are not independent\nreplications; missing conditions remain unavailable.",
+    "new": "The four eight-output groups overlap in their sampling streams. Under the\nvLLM V0 seed convention, they contain eleven distinct nominal stream\nidentifiers; the concentration estimator uses one representative per\nidentifier, chosen independently of correctness and key identity. This\nmapping is an assumption of the seed-based analysis. Equal identifiers can\nproduce different outputs, and distinct identifiers do not establish\nindependent draws.\n\nTwo sensitivity comparisons assign disjoint sets of five and six stream\nidentifiers to the two conditions. Split~0 assigns the lower five to~A and\nthe upper six to~B; split~1 reverses them. Eligibility is determined\nseparately for each split. Streams also repeat across prompts, so the\nsplits do not establish independence across prompts or conditions.\nComparisons remain descriptive where the estimator's independent-sampling\nor joint-selection assumptions do not hold.\n\nThe original \\texttt{mean@8}, \\texttt{pass@8}, and \\texttt{distinct@8} average\nthe four intact groups. Stream overlap affects dependence, but not the\nlinearity of these marginal averages.",
+    "reason": "Condense the operational seed-mapping/coverage audit; preserve the dependence limitation, actual estimator, split definitions, and marginal-estimand distinction. Agreement results remain in the following result paragraphs."
+  },
+  {
+    "path": "paper/results/semantic_current_summary_20260912.tex",
+    "old": "training seeds: five in nine cells and four (55--58) for Falcon \\texttt{Countdown}.",
+    "new": "training seeds: five in nine cells and four for Falcon \\texttt{Countdown}.",
+    "reason": "Remove exact seed IDs while retaining sample sizes."
+  },
+  {
+    "path": "paper/results/semantic_current_summary_20260912.tex",
+    "old": "At Qwen2.5-3B, seed 70 compares Re:Dr with and without the bonus across",
+    "new": "At Qwen2.5-3B, one training seed compares Re:Dr with and without the bonus across",
+    "reason": "Remove exact seed ID; preserve the single-seed limitation."
+  },
+  {
+    "path": "paper/results/modebench_prompt_ablation_20260911.tex",
+    "old": "Each of these six cells contains the 32 problems with the smallest SHA-256 hashes of $(20260911,\\mathrm{level},\\mathrm{domain},\\mathrm{row\\ index})$ from the 128-problem evaluation split.",
+    "new": "Each of these six cells uses 32 problems selected independently of model outputs from the 128-problem evaluation split.",
+    "reason": "Remove hash algorithm, tuple, and RNG constant; retain sample size, source population, and outcome-independent selection."
+  },
+  {
+    "path": "paper/results/modebench_prompt_ablation_20260911.tex",
+    "old": "stratified by domain and level (seed 20260911).",
+    "new": "stratified by domain and level.",
+    "reason": "Remove bootstrap RNG constant, retaining bootstrap design."
+  },
+  {
+    "path": "paper/results/modebench_prompt_ablation_20260911.tex",
+    "old": "\\texttt{Python} and \\texttt{MathIR} use matched training seeds 43--47; \\texttt{Pantry} uses seeds 43 and 46.",
+    "new": "\\texttt{Python} and \\texttt{MathIR} use five matched training seeds; \\texttt{Pantry} uses two.",
+    "reason": "Replace exact training seed IDs with replication counts."
+  },
+  {
+    "path": "paper/results/modebench_prompt_ablation_20260911.tex",
+    "old": "At Level 3, seed 46 produces 1 verified draw among 256 neutral outputs, compared with 256 of 256 original outputs. No problem at that checkpoint has two verified draws in both arms, so it contributes no groups to \\pmd{}. Thus four checkpoints contribute to \\pmd{}, while $P_8$ and $D_8$ average all five.",
+    "new": "At Level 3, conditional diversity uses four training seeds, while $P_8$ and $D_8$ use all five; the fifth seed has too few jointly verified responses.",
+    "reason": "Remove individual-checkpoint failure/eligibility audit while preserving the differing scientific comparison populations."
+  },
+  {
+    "path": "paper/results/modebench_prompt_ablation_20260911.tex",
+    "old": "DrGRPO L2 (seed 43: $\\Delta P_8=+0.000$, $\\Delta D_8=+0.03$; seed 46: $\\Delta P_8=-0.031$, $\\Delta D_8=-0.09$); DrGRPO L3 (seed 43: $\\Delta P_8=+0.031$, $\\Delta D_8=+0.06$; seed 46: $\\Delta P_8=-0.031$, $\\Delta D_8=-0.09$); Re:Dr L2 (seed 43: $\\Delta P_8=-0.031$, $\\Delta D_8=-0.06$; seed 46: $\\Delta P_8=+0.000$, $\\Delta D_8=+0.03$); Re:Dr L3 (seed 43: $\\Delta P_8=+0.031$, $\\Delta D_8=+0.12$; seed 46: $\\Delta P_8=+0.062$, $\\Delta D_8=+0.09$).",
+    "new": "DrGRPO L2 (first seed: $\\Delta P_8=+0.000$, $\\Delta D_8=+0.03$; second seed: $\\Delta P_8=-0.031$, $\\Delta D_8=-0.09$); DrGRPO L3 (first seed: $\\Delta P_8=+0.031$, $\\Delta D_8=+0.06$; second seed: $\\Delta P_8=-0.031$, $\\Delta D_8=-0.09$); Re:Dr L2 (first seed: $\\Delta P_8=-0.031$, $\\Delta D_8=-0.06$; second seed: $\\Delta P_8=+0.000$, $\\Delta D_8=+0.03$); Re:Dr L3 (first seed: $\\Delta P_8=+0.031$, $\\Delta D_8=+0.12$; second seed: $\\Delta P_8=+0.062$, $\\Delta D_8=+0.09$).",
+    "reason": "Keep all individual Pantry effect sizes while removing literal seed identifiers."
+  },
+  {
+    "path": "paper/results/modebench_discovery_curves_20260911.tex",
+    "old": "selected by the sixteen lowest ranks in the outcome-independent hash ordering of the prompt-hint ablation.",
+    "new": "selected independently of model outputs from the prompt-hint ablation population.",
+    "reason": "Retain outcome-independent nested prompt selection; remove hash-ranking implementation."
+  },
+  {
+    "path": "paper/results/modebench_discovery_curves_20260911.tex",
+    "old": "The eight-draw estimates below are subsets of these 64-draw pools; responses from the separate eight-draw evaluation are excluded.",
+    "new": "The eight-draw estimates are computed from these same 64-draw pools.",
+    "reason": "State the analysis population directly without exclusion/collection bookkeeping."
+  },
+  {
+    "path": "paper/results/modebench_discovery_curves_20260911.tex",
+    "old": "bootstrap replicates (seed 20260911), paired across wordings",
+    "new": "bootstrap replicates, paired across wordings",
+    "reason": "Remove bootstrap RNG identity."
+  },
+  {
+    "path": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+    "old": "selected by an outcome-independent SHA256 ranking (seed 20260911).",
+    "new": "selected independently of model outputs.",
+    "reason": "Remove prompt hash algorithm and seed while retaining selection independence."
+  },
+  {
+    "path": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+    "old": "All problems and response slots are included;\ninvalid, refused, and truncated answers remain in the sampling denominator.\nTransport retries do not count as additional responses.",
+    "new": "Invalid, refused, and truncated answers remain in the sampling denominator.",
+    "reason": "Remove response-slot and retry bookkeeping; retain denominator treatment of substantive outcomes."
+  },
+  {
+    "path": "paper/results/gpt56_all_levels32_sampling_20260913.tex",
+    "old": "within domain and level (seed 20260911); the same resampled problems",
+    "new": "within domain and level; the same resampled problems",
+    "reason": "Remove bootstrap RNG identity."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "paired problem-bootstrap replicates (seed 20260911).",
+    "new": "paired problem-bootstrap replicates.",
+    "reason": "Remove bootstrap RNG identity."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "Re:Dr checkpoints at fixed seeds 43 and 46 on 32 held-out problems.",
+    "new": "Re:Dr checkpoints from two matched training seeds on 32 held-out problems.",
+    "reason": "Remove training seed IDs; preserve matched replication count."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "trained curves average fixed seeds 43 and 46.",
+    "new": "trained curves average two matched seeds.",
+    "reason": "Remove figure-caption seed IDs; preserve replication count."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "averaged over fixed seeds 43 and 46 on 32 paired problems.",
+    "new": "averaged over two matched seeds on 32 paired problems.",
+    "reason": "Remove contrast-caption seed IDs; preserve pairing and sample sizes."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "initial-portfolio generation, whose timing is unavailable. Training costs",
+    "new": "initial-portfolio generation. Training costs",
+    "reason": "Remove missing-timing history; preserve exact scope of inference-cost totals."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "Dr.GRPO 43 & Calibration & 1.3 & 384 & 229392 & 19871 & 136.3 \\\\\nDr.GRPO 43 & Inference total & 1.3 & 4874 & 4870884 & 272484 & 3302.0 \\\\\nDr.GRPO 46 & Calibration & 1.3 & 384 & 229392 & 15544 & 126.5 \\\\\nDr.GRPO 46 & Inference total & 1.3 & 4634 & 4365524 & 220458 & 2792.9 \\\\\nRe:Dr 43 & Calibration & 0.7 & 384 & 229392 & 8552 & 111.1 \\\\\nRe:Dr 43 & Inference total & 0.7 & 3559 & 3160284 & 92227 & 1527.7 \\\\\nRe:Dr 46 & Calibration & 1.0 & 384 & 229392 & 8585 & 112.5 \\\\\nRe:Dr 46 & Inference total & 1.0 & 3592 & 3169337 & 88300 & 1510.2 \\\\\n",
+    "new": "Dr.GRPO (a) & Calibration & 1.3 & 384 & 229392 & 19871 & 136.3 \\\\\nDr.GRPO (a) & Inference total & 1.3 & 4874 & 4870884 & 272484 & 3302.0 \\\\\nDr.GRPO (b) & Calibration & 1.3 & 384 & 229392 & 15544 & 126.5 \\\\\nDr.GRPO (b) & Inference total & 1.3 & 4634 & 4365524 & 220458 & 2792.9 \\\\\nRe:Dr (a) & Calibration & 0.7 & 384 & 229392 & 8552 & 111.1 \\\\\nRe:Dr (a) & Inference total & 0.7 & 3559 & 3160284 & 92227 & 1527.7 \\\\\nRe:Dr (b) & Calibration & 1.0 & 384 & 229392 & 8585 & 112.5 \\\\\nRe:Dr (b) & Inference total & 1.0 & 3592 & 3169337 & 88300 & 1510.2 \\\\\n",
+    "reason": "Replace raw seed identifiers in the cost table with paired replicate labels; every measurement remains unchanged."
+  },
+  {
+    "path": "paper/results/inference_followups_20260912.tex",
+    "old": "Seconds measure generation time, exclude training, and are not hardware-normalized compute.}",
+    "new": "Seconds measure generation time, exclude training, and are not hardware-normalized compute. Labels (a) and (b) identify the two paired training replicates.}",
+    "reason": "Define neutral replicate labels replacing raw seed IDs in the cost table."
+  },
+  {
+    "path": "paper/results/portfolio_withdrawals_20260917.tex",
+    "old": "checkpoints, using seeds 43 and 44: 20 checkpoint evaluations across five\ndomains.",
+    "new": "checkpoints from two matched training seeds in each of five domains.",
+    "reason": "Replace seed IDs and checkpoint inventory with the scientific replication design."
+  },
+  {
+    "path": "paper/results/portfolio_withdrawals_20260917.tex",
+    "old": "\\caption{\\textbf{Replay improves survival in \\texttt{Graph}, \\texttt{Python} and \\texttt{Pantry} at four verified draws.} Each replay arm is compared with its fresh objective. Survival differences are percentage points; $\\Delta D_4$ is the difference in expected distinct modes at four verified draws. Raw uses all eight responses; Budget columns use the indicated number of verified draws. Fixed-correct-draw results pool jointly eligible prompt--group pairs across matched seeds, scales and levels; raw results use all paired groups. Binding options are used except in the all column, which includes every option with a feasibility certificate. Brackets are pointwise 95\\% intervals from 20{,}000 paired bootstrap replicates (seed 20260917). Each resampled cluster is a prompt within one level and scale, with all its groups and training seeds kept together; copies at different scales are separate clusters. Intervals condition on the observed training seeds.}",
+    "new": "\\caption{\\textbf{Replay improves survival in \\texttt{Graph}, \\texttt{Python} and \\texttt{Pantry} at four verified draws.} Each replay arm is compared with its fresh objective. Survival differences are percentage points; $\\Delta D_4$ is the difference in expected distinct modes at four verified draws. Raw uses all eight responses; Budget columns use the indicated number of verified draws. Fixed-correct-draw results pool jointly eligible prompt--group pairs across matched seeds, scales and levels; raw results use all paired groups. Binding options are used except in the all column, which includes every option with a feasibility certificate. Brackets are pointwise 95\\% intervals from 20{,}000 paired bootstrap replicates. Each resampled cluster is a prompt within one level and scale, with all its groups and training seeds kept together; copies at different scales are separate clusters. Intervals condition on the observed training seeds.}",
+    "reason": "Remove bootstrap RNG constant; preserve the number of replicates and clustering design."
+  },
+  {
+    "path": "paper/results/portfolio_withdrawals_20260917.tex",
+    "old": "\\caption{\\textbf{Replay survival exceeds the selected control setting in all five domains.} Survival at four verified draws is expressed as percentages. Control, Control grid and Replay are equal-seed means on each setting's own eligible groups; the grid column gives the control range and Best its maximizing temperature. $\\Delta$ instead pools jointly eligible groups for reference replay minus selected control, so it need not equal the difference of the displayed means. Brackets are pointwise 95\\% intervals from 20{,}000 paired prompt-bootstrap replicates (seed 20260917), keeping all groups and five seeds of a prompt together. The selected setting stays fixed in the bootstrap; intervals condition on that selection and the observed seeds.}",
+    "new": "\\caption{\\textbf{Replay survival exceeds the selected control setting in all five domains.} Survival at four verified draws is expressed as percentages. Control, Control grid and Replay are equal-seed means on each setting's own eligible groups; the grid column gives the control range and Best its maximizing temperature. $\\Delta$ instead pools jointly eligible groups for reference replay minus selected control, so it need not equal the difference of the displayed means. Brackets are pointwise 95\\% intervals from 20{,}000 paired prompt-bootstrap replicates, keeping all groups and five seeds of a prompt together. The selected setting stays fixed in the bootstrap; intervals condition on that selection and the observed seeds.}",
+    "reason": "Remove bootstrap RNG constant; preserve the number of replicates and clustering design."
+  },
+  {
+    "path": "paper/results/portfolio_withdrawals_20260917.tex",
+    "old": "\\caption{\\textbf{Recovery benefits depend on the initial portfolio strategy.} Entries are paired Re:Dr--Dr.GRPO differences on the same withdrawals under each strategy. Saved and By 8 are percentage points; Calls is additional responses. Brackets are pointwise 95\\% intervals from 20{,}000 paired prompt-bootstrap replicates (seed 20260917). Each prompt's withdrawals and both training seeds move together; intervals condition on those two seeds.}",
+    "new": "\\caption{\\textbf{Recovery benefits depend on the initial portfolio strategy.} Entries are paired Re:Dr--Dr.GRPO differences on the same withdrawals under each strategy. Saved and By 8 are percentage points; Calls is additional responses. Brackets are pointwise 95\\% intervals from 20{,}000 paired prompt-bootstrap replicates. Each prompt's withdrawals and both training seeds move together; intervals condition on those two seeds.}",
+    "reason": "Remove bootstrap RNG constant; preserve the number of replicates and clustering design."
+  },
+  {
+    "path": "paper/results/frontier_hosted_20260911_appendix.tex",
+    "old": "Each prompt has eight returned responses with distinct response identifiers.\nThe 107 failed API or transport attempts were retried and are excluded from\nthe 15,360 responses; they are not scored as incorrect answers. Stateless\nrequests and distinct identifiers do not establish independent provider\nrandomness. Hidden reasoning content is not exposed.",
+    "new": "Each prompt has eight returned responses. Stateless requests do not establish\nindependent provider randomness. Hidden reasoning content is not exposed.",
+    "reason": "Remove retry count and response-ID audit; preserve sampling and hidden-computation limitations."
+  },
+  {
+    "path": "paper/results/frontier_hosted_20260911_appendix.tex",
+    "old": "Intervals use 2,000 whole-prompt bootstrap replicates, seed\n20260911, resampling within each domain and level and keeping all eight draws",
+    "new": "Intervals use 2,000 whole-prompt bootstrap replicates, resampling within\neach domain and level and keeping all eight draws",
+    "reason": "Remove bootstrap RNG identity while preserving resampling design."
+  },
+  {
+    "path": "paper/results/frontier_comparison_20260911_protocol.tex",
+    "old": "\\paragraph{Response and cost coverage: DeepSeek V4 Pro.}\nThe 15,360 terminal responses include verification failures and truncations.\nOutside this cohort, 13 HTTP-200 responses have neither a\nterminal finish reason nor a visible answer, and\n192 request attempts have unknown outcomes and usage. These incomplete\nattempts are not scored as model responses. Token totals cover known usage\nonly and can therefore understate the usage and cost of all attempted requests.",
+    "new": "The 15,360 scored DeepSeek V4 Pro responses include verification failures\nand truncations. Usage totals omit requests without reported usage and\ntherefore give a lower bound on the cost of all attempted requests.",
+    "reason": "Remove HTTP status, failed-attempt inventory, and resolution history; retain scored population and cost-understatement limitation."
+  },
+  {
+    "path": "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+    "old": "The revised condition has no API failures or token-limit truncations. Strict grading\naccepts 2,282 responses;",
+    "new": "The revised condition has no token-limit truncations. Strict grading\naccepts 2,282 responses;",
+    "reason": "Remove operational API-success status while retaining substantive truncation and grading outcomes."
+  },
+  {
+    "path": "paper/results/frontier_comparison_20260911_python_sensitivity.tex",
+    "old": "The three refusals occur on two tasks whose other\nidentical requests produce accepted answers. These results use all eight responses\nper task, without selecting or replacing outputs according to their validity.",
+    "new": "All eight responses per task contribute to these results, including the three refusals.",
+    "reason": "Remove request-level retry/selection narration; retain unconditional response population and refusal count."
+  },
+  {
+    "path": "paper/results/frontier_temperature_20260911.tex",
+    "old": "$\\dagger$ marks a defined contrast with an omitted interval because at least\none bootstrap replicate has an undefined cell. For Kimi collision, only\n11,815 and 11,616 of 20,000 replicates define the contrast at Levels 1 and 2.\nPercentiles over those subsets would condition on bootstrap estimability.\nThe five-domain average requires all five cell estimates; an undefined cell\ndoes not contribute zero or disappear from its denominator.",
+    "new": "$\\dagger$ marks a defined contrast whose interval is omitted because some\nbootstrap resamples have undefined cells. Five-domain averages require all\nfive cell estimates; conditioning on only the estimable resamples would\nchange the uncertainty calculation.",
+    "reason": "Remove bootstrap-success inventory; retain omitted-interval criterion and undefined-domain averaging rule."
+  },
+  {
+    "path": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+    "old": "Prompts are selected by an outcome-independent hash ranking within each\ndomain--level cell. Ranks 1--8 form a 120-prompt subset (4,800 responses);\nranks 9--32 form a 360-prompt subset (14,400 responses). These subsets have\ndifferent collection times. The 360-prompt requests interleave all five\ntemperatures within each prompt/draw slot. For the 120-prompt subset,\nzero-temperature responses and nonzero-temperature responses come from\nseparate collection periods. Prompt composition and service changes can\ntherefore contribute to differences between subsets and conditions.",
+    "new": "Prompts are selected independently of model outputs within each\ndomain--level cell. The evaluation comprises 120-prompt and 360-prompt\nsubsets collected at different times. Temperatures are interleaved for the\n360-prompt subset; zero and nonzero temperatures are collected separately\nfor the 120-prompt subset. Service changes can therefore confound temperature\ncontrasts, and prompt composition can affect comparisons between subsets.",
+    "reason": "Remove hash ranks, request-slot mechanics, and response inventory; preserve the real collection-time confounding limitation."
+  },
+  {
+    "path": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+    "old": "Unsuccessful answers remain in the eight-response groups. API errors\nare retried without adding responses to those groups; the 19,200-response\nbudget excludes failed API attempts.",
+    "new": "Unsuccessful answers remain in the eight-response groups.",
+    "reason": "Remove API retry accounting; preserve scored-response denominator."
+  },
+  {
+    "path": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+    "old": "We compare the same temperature contrast within each hash-rank subset.",
+    "new": "We compare the same temperature contrast within each prompt subset.",
+    "reason": "Remove implementation-specific hash-ranking terminology."
+  },
+  {
+    "path": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+    "old": "Ranks 1--8 (120 prompts):",
+    "new": "120-prompt subset:",
+    "reason": "Replace hash-rank identifiers with the scientific sample size; preserve all contrasts."
+  },
+  {
+    "path": "paper/results/gpt56_temperature_curve_20260911_appendix.tex",
+    "old": "Ranks 9--32 (360 prompts):",
+    "new": "360-prompt subset:",
+    "reason": "Replace hash-rank identifiers with the scientific sample size; preserve all contrasts."
+  },
+  {
+    "path": "paper/results/hosted_reasoning_off_20260912_appendix.tex",
+    "old": "The sample uses rows 0--31 in each of five\ndomains and three levels, selected without reference to model outputs.",
+    "new": "The sample uses 32 prompts in each of five\ndomains and three levels, selected without reference to model outputs.",
+    "reason": "Replace raw row indices with the scientific sample size and outcome-independent selection."
+  },
+  {
+    "path": "paper/results/hosted_reasoning_off_20260912_appendix.tex",
+    "old": "\\paragraph{Response coverage and control compliance.}\nDeepSeek V4 Pro has 3,839 disabled-condition responses; one Level-1\n\\texttt{PantryPlan} prompt has seven instead of eight. The missing response has an\nunknown outcome and is not scored as a failure. Under strict grading,\nthe 437 jointly eligible prompts have \\pmd{} $.282$ with medium reasoning\nand $.369$ with disabled reasoning, a difference of $+.087$. The seven-response\nprompt has only one verified answer and is excluded. This estimate uses\ndifferent grading from the normalized comparisons.",
+    "new": "\\paragraph{Additional deployments.}\nFor DeepSeek V4 Pro, strict grading gives \\pmd{} $.282$ with medium\nreasoning and $.369$ with disabled reasoning, a difference of $+.087$\non 437 jointly eligible prompts. This comparison uses different grading\nfrom the normalized tables.",
+    "reason": "Remove single-response availability/exclusion bookkeeping; retain the actual defined population, grading distinction, and all diversity results."
+  }
+]
