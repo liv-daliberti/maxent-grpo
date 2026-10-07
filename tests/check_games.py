@@ -104,8 +104,9 @@ with sync_playwright() as p:
     assert page.locator('.games-link').first.get_attribute('href')=='games.html'
     tab('countdown');countdown('(6*9)/3')
     assert page.locator('#countdown-count').inner_text().startswith('1 of ')
-    page.locator('#concentrated').click();page.locator('[data-draw="8"]').click()
-    assert '8 replies' in page.locator('#sample-results').inner_text()
+    page.locator('#concentrated').click()
+    assert '1.21' in page.locator('#expectations').text_content()
+    assert page.locator('[data-draw],#sample-results').count()==0
     assert not errors,errors
     b.close()
-print(json.dumps({'status':'passed','checks':['two distinct solutions and duplicate detection in each new game','incorrect answers rejected','safe arithmetic parser','algebra repeated-state and step limits','pantry quantity witness','discovery counting and tab state','keyboard tab navigation','all five panels at 1200/390/320px','article integration','existing sampler retained','no browser errors']},indent=2))
+print(json.dumps({'status':'passed','checks':['two distinct solutions and duplicate detection in each new game','incorrect answers rejected','safe arithmetic parser','algebra repeated-state and step limits','pantry quantity witness','discovery counting and tab state','keyboard tab navigation','all five panels at 1200/390/320px','article integration','adjustable graph retained','no browser errors']},indent=2))
