@@ -1,0 +1,171 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Understanding mode collapse</title><style>
+*{box-sizing:border-box}body{margin:0;background:#fff;color:#202b35;font:18px/1.65 Georgia,serif}
+main{max-width:780px;margin:auto;padding:48px 26px 70px}h1{font-size:clamp(32px,5vw,49px);line-height:1.12;letter-spacing:-1px;font-weight:600;margin:16px 0 36px}
+.eyebrow{font:12px/1.5 system-ui,sans-serif;letter-spacing:1.7px;color:#99501f;border-top:4px solid #b65318;padding-top:16px}
+main>h1:has(+.article-subtitle){margin-bottom:14px}.article-subtitle{font-size:22px;line-height:1.5;color:#52666b;margin:0 0 24px}main>blockquote{margin:0 0 30px;padding:5px 0 5px 22px;border-left:3px solid #b65318}main>blockquote p:first-child{font-size:23px;line-height:1.5;margin:0 0 13px}main>blockquote p:last-child{font:14px/1.6 system-ui,sans-serif;color:#525e67;margin:0}@media(max-width:540px){main>blockquote{padding-left:17px}main>blockquote p:first-child{font-size:21px}}
+p{margin:0 0 23px}a{color:#9c4718;text-decoration-thickness:1px;text-underline-offset:3px}strong{font-weight:700}
+figure{margin:32px 0 36px;padding:0}figure>img{width:100%;height:auto;display:block}figcaption{font:13px/1.55 system-ui,sans-serif;color:#525e67;margin:13px 0 0}
+.interactive{font:14px/1.5 system-ui,sans-serif;border:1px solid #d9dde0;border-radius:8px;background:#fafaf8;padding:22px;margin:0}
+.interactive h2{font-size:19px;line-height:1.3;margin:0 0 9px}.interactive p{margin:8px 0 14px}.split{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+.puzzle-svg{width:100%;max-height:210px;display:block}label{display:block;margin:7px 0;font-weight:500}select,button,input{font:inherit}select{max-width:100%;padding:7px;border:1px solid #869099;border-radius:4px;background:white;color:#202b35}
+button{cursor:pointer;border:1px solid #737f89;background:white;color:#202b35;border-radius:4px;padding:9px 12px;margin:5px 4px 5px 0;min-height:42px}button.primary{background:#202b35;color:white;border-color:#202b35}button:hover{filter:brightness(.93)}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #b65318;outline-offset:3px}
+.status{padding:12px;background:#edf3f2;border-left:3px solid #187b7e;min-height:46px}.collection{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:12px 0}.mode{font-size:12px;color:#65717a;padding:8px;background:#eceeed;border-radius:3px}.mode.found{background:#e1efea;color:#184d49}
+.prob-row{display:grid;grid-template-columns:18px 1fr 52px;gap:8px;align-items:center;margin:5px 0;font-size:12px}.track{height:13px;background:#e5e7e5;border-radius:2px;overflow:hidden}.track div{height:100%}input[type=range]{width:100%;accent-color:#b65318}
+.chart{width:100%;height:auto;display:block;margin-top:15px}.chart text{fill:#46525c;font:12px system-ui,sans-serif}.legend{font-size:12px}.legend .selected{color:#a14a17}.legend .reference{color:#146669}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:7px 5px;text-align:right;border-bottom:1px solid #dde2e4}th:first-child{text-align:left}.small{font-size:12px;color:#525e67}.footer{font:12px/1.5 system-ui,sans-serif;border-top:1px solid #ddd;padding-top:16px;margin-top:32px}
+@media(max-width:540px){main{padding:28px 18px}.split{grid-template-columns:1fr}.interactive{padding:16px}.collection{grid-template-columns:1fr}.puzzle-svg{max-height:165px}.chart text{font-size:20px}}
+@media print{main{max-width:100%;padding:0}button,input,select{display:none}.interactive{break-inside:avoid}a{color:inherit}figure{break-inside:avoid}}
+
+#sampler{font-size:16px;background:#fff}#sampler .small,#sampler .legend{font-size:14px}#sampler .prob-row{grid-template-columns:84px 1fr 52px;font-size:14px}#sampler .track{height:16px}#sampler .model-summary{padding:12px 15px;border-left:3px solid #b65318;background:#fff3e9;margin:12px 0 20px}#sampler .sampler-step{font-size:17px;margin:24px 0 10px}#sampler .range-label{font-size:14px}#sampler button[aria-pressed=true]{background:#202b35;color:white}#sampler .legend{display:flex;flex-direction:column;gap:5px}#sampler details{font-size:14px;margin-top:14px}#sampler summary{cursor:pointer;padding:7px 0}#sampler table{font-size:14px}#sampler .status{font-weight:600}#sampler .distribution-explainer{font-size:14px;color:#525e67}
+
+.empirical{font:14px/1.45 system-ui,sans-serif;border-top:3px solid #202b35;padding-top:20px}
+.empirical h2{font-size:25px;line-height:1.2;letter-spacing:-.5px;margin:0 0 9px}
+.empirical .emp-deck{color:#52616b;margin:0 0 17px;font-size:14px}
+.emp-legend{display:flex;flex-wrap:wrap;gap:10px 24px;font-size:13px;margin-bottom:20px}
+.emp-legend span{display:flex;align-items:center;gap:7px}.emp-key{display:inline-block;width:17px;height:10px;background:#b65318}
+.emp-key.reference{width:11px;height:11px;border:2px solid #187b7e;border-radius:50%;background:white}
+.emp-head,.emp-row,.emp-axis{display:grid;grid-template-columns:160px minmax(0,1fr) 65px;column-gap:12px;align-items:center}
+.emp-head{font-size:11px;color:#52616b;margin-bottom:5px}.emp-head span:last-child{text-align:right}
+.emp-row{min-height:52px;border-bottom:1px solid #eef0ef}.emp-model{font-size:13px;font-weight:550;display:flex;align-items:center;gap:8px}.emp-logo{width:22px;height:22px;object-fit:contain;flex:none}
+.emp-accuracy{text-align:right;font-size:13px;font-variant-numeric:tabular-nums}
+.emp-track{height:38px;position:relative;background:repeating-linear-gradient(to right,#e6eae8 0,#e6eae8 1px,transparent 1px,transparent 20%)}
+.emp-bar{position:absolute;left:0;top:15px;height:10px;background:#b65318}
+.emp-ci{position:absolute;top:18px;height:4px;border:1px solid #202b35;border-top:0;border-bottom:0}
+.emp-ci:after{content:'';position:absolute;left:0;right:0;top:1px;border-top:1px solid #202b35}
+.emp-value{position:absolute;top:0;font-size:12px;font-weight:650;color:#9d4512;transform:translateX(-50%)}
+.emp-ref{position:absolute;top:20px;width:10px;height:10px;background:white;border:2px solid #187b7e;border-radius:50%;transform:translate(-50%,-50%)}
+.emp-ref-value{position:absolute;top:0;font-size:12px;color:#146568;transform:translateX(-50%)}
+.emp-ticks{position:relative;height:23px;font-size:11px;color:#52616b}.emp-ticks span{position:absolute;top:5px;transform:translateX(-50%)}
+.emp-axis-label{text-align:center;font-size:12px;color:#52616b;margin:5px 0 0!important}
+.emp-mobile-correct{display:none}
+@media(max-width:540px){.empirical h2{font-size:23px}.emp-head{display:none}.emp-row{grid-template-columns:minmax(0,1fr) 90px;column-gap:8px;padding:10px 0 8px;row-gap:6px}.emp-model{grid-column:1;grid-row:1;font-size:14px}.emp-accuracy{grid-column:2;grid-row:1;font-size:12px}.emp-mobile-correct{display:inline}.emp-track{grid-column:1/-1;grid-row:2;margin-right:8px}.emp-axis{display:block;margin-right:8px}.emp-legend{gap:9px 16px;margin-bottom:4px}.emp-value,.emp-ref-value{font-size:13px}.emp-ticks{font-size:12px}}
+</style></head><body><section id="sampler" class="interactive" aria-label="Explore repeated answers">
+<h2>What happens when you keep asking?</h2><p class="small">This toy AI has six correct solutions, A–F. Every attempt has a 90% chance of being correct.</p>
+<h3 class="sampler-step">Choose how your AI answers</h3>
+<button id="even" aria-pressed="false">Spread answers evenly</button><button id="concentrated" aria-pressed="true">Mostly repeat A</button>
+<label class="range-label" for="concentration">Share of correct answers that use solution A: <output id="share" for="concentration">97.0%</output></label>
+<input id="concentration" type="range" min="0" max="100" value="100" step="1">
+<p id="distribution-summary" class="model-summary" aria-live="polite">Out of 100 correct answers, about 97 use solution A. The other 3 are spread across B–F.</p>
+<div id="probabilities" aria-label="How correct answers are divided among the six solutions"></div>
+<p class="distribution-explainer">These shares describe correct answers only. The remaining 10% of all attempts are incorrect at every setting.</p>
+<h3 class="sampler-step">Does asking more uncover more solutions?</h3>
+<p class="small">The curves show the average number of different correct solutions as attempts increase.</p>
+<p class="legend"><span class="selected">━ <span id="your-model-label">Your AI: 97% of correct answers use A</span></span><span class="reference">┄ Comparison: all six correct solutions equally likely</span></p>
+<svg id="sampling-chart" class="chart" viewBox="0 0 600 282" role="img" aria-label="Average number of different correct solutions as attempts increase"></svg>
+<details><summary>See the exact averages</summary><table><thead><tr><th>Attempts</th><th>Your AI</th><th>Evenly spread</th></tr></thead><tbody id="expectations"></tbody></table></details>
+<noscript>Enable JavaScript to adjust the curve. At eight attempts, the average is 4.37 solutions when spread evenly and 1.21 when 97% of correct answers use A.</noscript></section><script>/* Toy probability model, not a simulation of GRPO updates. No network requests. */
+'use strict';
+const ModeDemo = (() => {
+  const modes = ['012','021','102','120','201','210'];
+  const qFor = concentration => {
+    const a = 1/6 + (0.97-1/6) * concentration/100;
+    return [a, ...Array(5).fill((1-a)/5)];
+  };
+  const expected = (q,k,p=.9) => q.reduce((s,v)=>s+1-Math.pow(1-p*v,k),0);
+  const different = q => 1-q.reduce((s,v)=>s+v*v,0);
+  const valid = a => a.length===3 && a.every(x=>['0','1','2'].includes(x)) && new Set(a).size===3;
+  function sample(q,k,rng=Math.random) {
+    const counts=Array(7).fill(0);
+    for(let i=0;i<k;i++) {
+      let u=rng(), ix=6, acc=0;
+      for(let j=0;j<6;j++) {acc+=.9*q[j]; if(u<acc) {ix=j;break;}}
+      counts[ix]++;
+    }
+    return counts;
+  }
+  return {modes,qFor,expected,different,valid,sample};
+})();
+if(typeof module!=='undefined') module.exports=ModeDemo;
+if(typeof document!=='undefined') (() => {
+  const $ = id => document.getElementById(id);
+  const palette=['#416eaa','#b65318','#187b7e'];
+  let widgetState=window.openai?.widgetState || {};
+  function remember(key,value) {
+    widgetState={...(window.openai?.widgetState||widgetState),[key]:value};
+    window.openai?.setWidgetState?.(widgetState);
+  }
+  let found=[], choices=['','',''];
+  function drawPuzzle(message,kind='neutral') {
+    choices.forEach((v,i)=>{
+      $('node'+i).setAttribute('fill',v===''?'#d9dee2':palette[+v]);
+      $('color'+i).value=v;
+    });
+    if($('graph-count')) {
+      $('graph-count').textContent=found.length+' of 6 solutions discovered';
+      $('graph-progress').value=found.length;
+      $('graph-remaining').textContent=found.length===6?'Collection complete':(6-found.length)+' left to find';
+    } else {
+      $('collection').innerHTML=ModeDemo.modes.map((m,i)=>`<span class="mode ${found.includes(m)?'found':''}">${String.fromCharCode(65+i)} ${found.includes(m)?'✓ '+m.split('').map(v=>['Blue','Orange','Teal'][v]).join(' / '):'undiscovered'}</span>`).join('');
+      $('found-count').textContent=found.length+' / 6 solutions found';
+    }
+    if(message) {$('puzzle-status').textContent=message;$('puzzle-status').dataset.kind=kind;$('puzzle-status').hidden=false;}
+    else if($('graph-count'))$('puzzle-status').hidden=true;
+  }
+  function restorePuzzle(s) {
+    if(!s||!Array.isArray(s.found)||!Array.isArray(s.choices)) return;
+    found=[...new Set(s.found.filter(m=>ModeDemo.modes.includes(m)))];
+    if(s.choices.length===3&&s.choices.every(v=>['','0','1','2'].includes(v))) choices=s.choices;
+    drawPuzzle('Saved activity restored.');
+  }
+  if($('puzzle')) {
+    [0,1,2].forEach(i=>$('color'+i).addEventListener('change',e=>{
+      choices[i]=e.target.value;drawPuzzle($('graph-count')?null:'Check this coloring when you are ready.');remember('solutionPuzzle',{found,choices});
+    }));
+    $('check-coloring').onclick=()=>{
+      let message;
+      if(choices.includes('')) message='Choose a color for all three nodes.';
+      else if(!ModeDemo.valid(choices)) message='Not valid: connected nodes must have different colors.';
+      else if(found.includes(choices.join(''))) message='Correct again. A repeated solution adds no new mode.';
+      else {found.push(choices.join('')); message=found.length===6?'All six found. Six ways to earn the same reward.':'Correct. You found a new solution mode.';}
+      if($('graph-count')&&ModeDemo.valid(choices)) message=message.startsWith('Correct again')?'Correct, but already discovered. Your progress stays the same.':found.length===6?'All 6 solutions discovered! You completed this game.':'Correct — a new solution!';
+      drawPuzzle(message,ModeDemo.valid(choices)?'success':'error'); remember('solutionPuzzle',{found,choices});
+    };
+    if($('reset-puzzle'))$('reset-puzzle').onclick=()=>{found=[];if(!$('graph-count'))choices=['','',''];drawPuzzle($('graph-count')?'Discovery collection cleared.':'Collection reset. Find two different valid colorings.');remember('solutionPuzzle',{found,choices});};
+    if($('clear-coloring'))$('clear-coloring').onclick=()=>{choices=['','',''];drawPuzzle();remember('solutionPuzzle',{found,choices});};
+    if($('show-solutions'))$('show-solutions').onclick=()=>{
+      $('solution-key').hidden=!$('solution-key').hidden;
+      $('show-solutions').setAttribute('aria-expanded',String(!$('solution-key').hidden));
+      $('solution-key').textContent=ModeDemo.modes.map((m,i)=>String.fromCharCode(65+i)+': '+m.split('').map(v=>['Blue','Orange','Teal'][v]).join(' / ')).join(' · ');
+    };
+    drawPuzzle();restorePuzzle(widgetState.solutionPuzzle);
+  }
+  function renderSampler() {
+    const c=+$('concentration').value, q=ModeDemo.qFor(c);
+    $('share').textContent=(q[0]*100).toFixed(1)+'%';
+    $('distribution-summary').textContent=c===0?'Correct answers are equally likely to use any of the six solutions.':`Out of 100 correct answers, about ${Math.round(q[0]*100)} use solution A. The other ${100-Math.round(q[0]*100)} are spread across B–F.`;
+    $('your-model-label').textContent=c===0?'Your AI: evenly spread':`Your AI: ${(q[0]*100).toFixed(1)}% of correct answers use A`;
+    $('even').setAttribute('aria-pressed',String(c===0));
+    $('concentrated').setAttribute('aria-pressed',String(c===100));
+    const labels='ABCDEF';
+    $('probabilities').innerHTML=q.map((v,i)=>`<div class="prob-row"><span>Solution ${labels[i]}</span><div class="track"><div style="width:${v*100}%;background:#b65318"></div></div><span>${(v*100).toFixed(1)}%</span></div>`).join('');
+    let svg='<title>Different correct solutions found as attempts increase</title><desc>The orange line uses your AI settings above. The dashed teal line shows an evenly spread comparison AI. Both have a 90 percent chance of correctness on every independent attempt.</desc>';
+    const X=k=>58+(k-1)/127*510,Y=v=>222-v/6*186;
+    for(let v=0;v<=6;v++) svg+=`<line x1="58" y1="${Y(v)}" x2="568" y2="${Y(v)}" stroke="#e0e3e5"/><text x="44" y="${Y(v)+4}" text-anchor="end">${v}</text>`;
+    for(const k of [1,8,32,64,128])svg+=`<text x="${X(k)}" y="244" text-anchor="middle">${k}</text>`;
+    for(const [dist,color,dash] of [[ModeDemo.qFor(0),'#187b7e','6 4'],[q,'#b65318','']]) {
+      const points=Array.from({length:128},(_,i)=>`${X(i+1)},${Y(ModeDemo.expected(dist,i+1))}`).join(' ');
+      svg+=`<polyline points="${points}" fill="none" stroke="${color}" stroke-width="3" stroke-dasharray="${dash}"/>`;
+    }
+    svg+='<text x="58" y="18">Different solutions found, on average</text><text x="310" y="270" text-anchor="middle">Number of attempts</text>';
+    $('sampling-chart').innerHTML=svg;
+    $('expectations').innerHTML=[8,32,128].map(k=>`<tr><th scope="row">${k}</th><td>${ModeDemo.expected(q,k).toFixed(2)}</td><td>${ModeDemo.expected(ModeDemo.qFor(0),k).toFixed(2)}</td></tr>`).join('');
+  }
+  function saveSampler(){remember('solutionCurve',{concentration:+$('concentration').value});}
+  function restoreSampler(s){
+    if(!s||!Number.isFinite(s.concentration)||s.concentration<0||s.concentration>100)return;
+    $('concentration').value=s.concentration;
+    renderSampler();
+  }
+  if($('sampler')) {
+    $('concentration').addEventListener('input',()=>{renderSampler();saveSampler();});
+    $('even').onclick=()=>{$('concentration').value=0;renderSampler();saveSampler();};
+    $('concentrated').onclick=()=>{$('concentration').value=100;renderSampler();saveSampler();};
+    renderSampler();restoreSampler(widgetState.solutionCurve);
+  }
+  window.addEventListener('openai:set_globals',e=>{
+    const incoming=e.detail?.globals?.widgetState;
+    if(!incoming)return;widgetState=incoming;
+    if($('puzzle'))restorePuzzle(incoming.solutionPuzzle);
+    if($('sampler'))restoreSampler(incoming.solutionCurve);
+  });
+})();
+</script></body></html>

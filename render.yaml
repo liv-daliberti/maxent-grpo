@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: can-your-ai-find-another-way
+    runtime: static
+    buildCommand: node scripts/check-site.mjs
+    staticPublishPath: ./public
+    autoDeployTrigger: off
