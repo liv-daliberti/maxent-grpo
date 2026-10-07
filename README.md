@@ -2,6 +2,10 @@
 
 An interactive blog post about mode collapse, with five playable games and an adjustable discovery graph.
 
+![Blog opening](preview/opening.png)
+
+View the full page: [desktop preview](preview/desktop.png) · [phone preview](preview/mobile.png). These are screenshots; use the Render deployment below to play the games and adjust the graph.
+
 ## Deploy on Render
 
 [Deploy to Render](https://render.com/deploy?repo=https://github.com/liv-daliberti/maxent-grpo/tree/mode-collapse-blog)
