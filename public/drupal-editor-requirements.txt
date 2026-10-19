@@ -1,0 +1,92 @@
+DRUPAL HANDOFF — Can your AI find another way?
+
+DELIVERY
+Paste article.html into the Drupal body in HTML/source mode. Set the page title
+separately to: Can your AI find another way?
+Load drupal-theme.css through the site's theme/library. THIS CSS IS REQUIRED FOR
+PLAYABLE GAMES, including feedback, validation, diagrams and discovery counts.
+The body has no inline styles, scripts, event handlers, iframe or external widget.
+Open index.html locally after extracting the whole ZIP for a working preview.
+
+WHAT READERS CAN DO
+Color each node, build arithmetic expressions, choose factor rules, construct
+algebra routes, and choose pantry ingredients. Feedback changes as controls change.
+Check “Save this solution” after a valid answer to add it to the collection;
+returning to the same solution cannot increase the count. Start over resets that
+puzzle. Collections are in-page checkbox state, not account or server storage.
+These are finite builders using the original rules; they do not execute arbitrary
+code or accept free-form expressions. Pantry suggests one feasible allocation for
+the ingredients chosen. Counts: 6 colorings, 8 computation trees, 32 output
+patterns, 9 algebra routes, 14 ingredient combinations. No runtime JavaScript.
+
+REQUIRED EDITOR / FILTER SETTINGS
+Both the Drupal text format AND its editor must preserve the following tags and
+attributes. Configure a trusted authoring format with this specific allowlist.
+  div[class role aria-label aria-hidden aria-live]
+  p[class] span[class aria-hidden hidden] strong[class] small code
+  br em blockquote a[href] img[src alt width]
+  details[class name open] summary
+  form[class aria-label autocomplete]
+  label[class for] select[id name] option[value selected]
+  input[type id name] button[type]
+  ol[class] li table[class] caption thead tbody tr th[scope] td
+Inputs are checkboxes only; buttons are reset buttons only. Forms have no action
+or submit control and send no data. Also allow the global class, hidden and aria-*
+attributes wherever present in the fragment. Preserve the mx-* IDs, names, option values,
+selected attributes, hidden attributes, CSS classes and maxent-article wrapper.
+One article instance per page: IDs must remain unique.
+
+For CKEditor 5, enable Source Editing and configure its manually editable tags /
+HTML support where available, or use the approved plain-source editor for this
+trusted format if it cannot preserve these controls. Allowing tags in Drupal's
+text filter alone may not prevent the visual editor from removing them. Do not
+paste this into a stock restricted text format and assume it will keep the games.
+The site's administrator must attach the stylesheet to the content page. The
+stylesheet is scoped to .maxent-article; it includes generated finite-state rules.
+Do not strip or rewrite those selectors during CSS processing.
+
+BROWSER REQUIREMENTS
+The interactive version uses CSS :has(), :checked, :is(), CSS custom properties,
+and native select/checkbox/reset controls. Use a current Chrome, Edge, Firefox or
+Safari. It does not depend on browser scripting being enabled. Tested locally in
+Chromium with page JavaScript disabled; not tested against your Drupal instance.
+
+EDITOR ACCEPTANCE CHECK
+Save and reopen the draft. Confirm that all controls, values, IDs and classes
+survived the editor. Color nodes Blue / Orange / Teal: it should say That works.
+Save the solution: the count should become 1 / 6. Change to a different valid
+coloring, save it, then return to the first: the count should remain 2 / 6.
+Start over must return to 0 / 6. Also check every puzzle and a 320px-wide viewport.
+Changing a selected value must update its diagram or result without reloading.
+
+FIGURES AND UPLOADS
+Responsive HTML/CSS figures preserve the original data and uncertainty intervals.
+The sampling curve remains a PNG, with large HTML values above it. The playable
+article needs figures/05-sampling.png and paper.pdf at the prefix /sites/default/files/maxent-grpo/
+Replace those URLs if Drupal assigns different upload paths. All thirteen PNGs
+are included for the reading fallback and full answer keys. This package runs
+independently of Render; uploading to Drupal is a separate step.
+
+IF THE SITE CANNOT ALLOW THE REQUIRED CONTROLS / CSS
+reading.html is a complete browser preview of the earlier self-check version,
+with diagrams, native details/summary answers and all solution keys.
+basic-html.html is a body fragment with all keys visible, no forms or details.
+Those are reading alternatives; they do not provide playable game controls.
+
+CONTENT
+The article's approved prose is retained, including the single closing sentence
+about high rewards masking repetitive solutions. Only game instructions and
+figure presentation changed in this revision. Scientific values are unchanged.
+
+REBUILD (maintainers only; not needed in Drupal)
+python paper/citp_blog/build_drupal.py
+Optional asset prefix: --asset-base https://example.org/path/to/uploads/
+Dependencies: Python with beautifulsoup4 and matplotlib, plus Node for original
+puzzle rules at build/test time. No build tools or source scripts are shipped.
+
+REFERENCES
+https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:has
+https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:checked
+https://www.drupal.org/project/drupal/issues/3231364
+https://ckeditor.com/docs/ckeditor5/latest/features/html/general-html-support.html
+https://api.drupal.org/api/drupal/core%21modules%21ckeditor5%21src%21Plugin%21CKEditor5Plugin%21SourceEditing.php/class/SourceEditing/10
