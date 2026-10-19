@@ -5,17 +5,23 @@ const article = readFileSync(resolve(root, 'index.html'), 'utf8');
 if (/<(?:script|iframe)\b|\son[a-z]+\s*=/i.test(article)) {
   throw new Error('The article must use native HTML interactions without JavaScript.');
 }
-for (const game of ['1. Graph coloring', '2. Countdown', '3. Python factors', '4. Algebra steps', '5. Pantry planning']) {
-  if (!article.includes(`<summary>${game}</summary>`)) throw new Error(`Missing HTML puzzle: ${game}`);
-}
 for (const game of ['graph', 'countdown', 'python', 'algebra', 'pantry']) {
   if (!article.includes(`play-game game-${game}`)) throw new Error(`Missing playable builder: ${game}`);
 }
-if (!/<details[^>]*open[^>]*><summary>1\. Graph coloring<\/summary>/.test(article)) {
-  throw new Error('The graph-coloring game must be open initially.');
+const inputs = [...article.matchAll(/<input\b[^>]*>/g)].map(m => m[0]);
+const tabs = inputs.filter(tag => tag.includes('type="radio"'));
+if (tabs.length !== 5 || tabs.filter(tag => /\bchecked(?:=|\s|>)/.test(tag)).length !== 1 ||
+    !tabs.some(tag => tag.includes('id="mx-game-graph"') && /\bchecked(?:=|\s|>)/.test(tag))) {
+  throw new Error('Five native game tabs must start on Graph coloring');
 }
-for (const [, type] of article.matchAll(/<input[^>]*type="([^"]+)"/g)) {
-  if (type !== 'checkbox') throw new Error('Unexpected input type');
+for (const tag of inputs) {
+  if (!tag.includes('type="checkbox"') && !(tag.includes('type="radio"') && tag.includes('name="mx-game"'))) {
+    throw new Error('Unexpected input type');
+  }
+}
+if (article.includes('Compare the exact average discoveries')) throw new Error('Removed comparison dropdown returned');
+for (const name of ['02-same-accuracy', '04-measured-concentration']) {
+  if (!article.includes(`src="figures/${name}.png"`)) throw new Error(`Missing original figure: ${name}`);
 }
 for (const [, type] of article.matchAll(/<button[^>]*type="([^"]+)"/g)) {
   if (type !== 'reset') throw new Error('Only native reset buttons are allowed');

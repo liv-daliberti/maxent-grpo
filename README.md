@@ -1,6 +1,6 @@
 # Can your AI find another way?
 
-The article now includes five playable HTML + CSS puzzles with no runtime JavaScript: graph coloring, arithmetic, factor rules, algebra routes and pantry planning. Native controls update the diagrams and feedback; readers can save distinct valid solutions to a collection and reset each puzzle. Responsive HTML figures retain the source measurements and uncertainty intervals. The approved article wording is unchanged.
+The article now includes five playable HTML + CSS puzzles with no runtime JavaScript: graph coloring, arithmetic, factor rules, algebra routes and pantry planning. A horizontal row of native radio tabs switches between games and keeps their progress. Native controls update the diagrams and feedback; readers can save distinct valid solutions to a collection and reset each puzzle. Figures 2 and 3 use the original artwork. The exact-average comparison dropdown has been removed; the sampling figure remains. The approved article wording is unchanged.
 
 ## Preview and Drupal
 

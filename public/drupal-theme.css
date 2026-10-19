@@ -70,9 +70,15 @@
 /* Required presentation and state defaults for the HTML-only puzzle builders. */
 .maxent-article .lab-intro { margin: 35px 0 18px; font: 15px/1.65 system-ui,sans-serif; color:#667776; }
 .maxent-article .lab-intro strong { display:block; color:#24383d; font-size:20px; margin-bottom:5px; }
-.maxent-article > .puzzle-panel { border-radius:14px; }
-.maxent-article > .puzzle-panel > summary { background:#fafbf8; padding:19px 24px; }
-.maxent-article > .puzzle-panel > .play-game { margin:0; padding:24px; }
+.maxent-article .puzzle-lab { margin:16px 0 24px; border:1px solid #c9d8ce; border-radius:14px; background:#fff; overflow:hidden; }
+.maxent-article .game-tabs { display:flex; gap:5px; padding:8px; overflow-x:auto; scrollbar-width:thin; background:#f5f8f2; border-bottom:1px solid #dce5d9; }
+.maxent-article .game-tab { position:relative; display:flex; flex:1 0 auto; align-items:center; justify-content:center; min-height:46px; padding:10px 12px; white-space:nowrap; border:1px solid transparent; border-radius:8px; cursor:pointer; color:#63776a; font:550 13px/1.5 system-ui,sans-serif; }
+.maxent-article .game-tab:hover { background:#edf2e8; }
+.maxent-article .game-tab:has(:checked) { color:#2c5841; background:#fff; border-color:#b9ceba; box-shadow:0 2px 5px #25432c0a; }
+.maxent-article .game-tab:has(:focus-visible) { outline:3px solid #b5673e; outline-offset:-3px; }
+.maxent-article .game-tab input { left:14px; top:50%; }
+.maxent-article .puzzle-panel { display:none; }
+.maxent-article .puzzle-panel > .play-game { margin:0; padding:24px; }
 .maxent-article .play-game { font:14px/1.6 system-ui,sans-serif; color:#344c4d; }
 .maxent-article .play-game p { margin:0; }
 .maxent-article .play-game .game-lead { font-size:15px; line-height:1.65; margin-bottom:22px; max-width:590px; }
@@ -152,8 +158,8 @@
 .maxent-article .nutrition caption { padding-top:5px; font-size:12px; }
 .maxent-article .nutrition th,.maxent-article .nutrition td { padding:7px 4px; font-size:12px; }
 @media(max-width:540px) {
-  .maxent-article > .puzzle-panel > summary { padding:16px; }
-  .maxent-article > .puzzle-panel > .play-game { padding:16px; }
+  .maxent-article .game-tab { flex:none; padding:10px 14px; }
+  .maxent-article .puzzle-panel > .play-game { padding:16px; }
   .maxent-article .graph-workspace { grid-template-columns:1fr; gap:18px; }
   .maxent-article .graph-board { width:100%; max-width:285px; margin:0 auto; }
   .maxent-article .graph-node { width:53px; height:53px; font-size:20px; }
@@ -179,39 +185,6 @@
 .maxent-article .research-figure .chart-note { font-size:12px; line-height:1.6; color:#6c7c73; margin:20px 0 0; }
 .maxent-article .research-figure + p { font:12px/1.7 system-ui,sans-serif; color:#6c7c73; margin-bottom:34px; }
 .maxent-article .research-figure + p em { font-style:normal; }
-.maxent-article .prob-panels { display:grid; grid-template-columns:1fr 1fr; gap:30px; }
-.maxent-article .prob-panel .chart-title { font-size:23px; }
-.maxent-article .prob-row { display:grid; grid-template-columns:38px minmax(0,1fr) 47px; align-items:center; gap:7px; margin:13px 0; font-size:12px; }
-.maxent-article .prob-row strong { font-weight:500; text-align:right; font-variant-numeric:tabular-nums; }
-.maxent-article .prob-track { height:11px; background:#f0f3ed; border-radius:2px; }
-.maxent-article .prob-fill { display:block; height:100%; background:#538579; min-width:2px; border-radius:2px; }
-.maxent-article .narrow .prob-fill { background:#b67a53; }
-.maxent-article .prob-row:last-child { margin-top:20px; color:#788078; }
-.maxent-article .prob-row:last-child .prob-fill { background:#aab4ab; }
-.maxent-article .emp-deck { color:#66776f; margin:0 0 18px; font-size:13px; }
-.maxent-article .emp-legend { display:flex; flex-wrap:wrap; gap:10px 20px; font-size:12px; margin-bottom:22px; }
-.maxent-article .emp-legend > span { display:flex; align-items:center; gap:7px; }
-.maxent-article .emp-key { display:inline-block; width:17px; height:8px; background:#ae7149; }
-.maxent-article .emp-key.reference { width:10px; height:10px; border:2px solid #548979; border-radius:50%; background:#fff; }
-.maxent-article :is(.emp-head,.emp-row,.emp-axis) { display:grid; grid-template-columns:145px minmax(0,1fr) 61px; column-gap:12px; align-items:center; }
-.maxent-article .emp-head { font-size:10px; color:#6b7c72; margin-bottom:6px; }
-.maxent-article .emp-head span:last-child { text-align:right; }
-.maxent-article .emp-row { min-height:57px; border-bottom:1px solid #edf0eb; }
-.maxent-article .emp-model { font-size:12px; font-weight:550; }
-.maxent-article .emp-accuracy { text-align:right; font-size:12px; font-variant-numeric:tabular-nums; }
-.maxent-article .emp-track { height:38px; position:relative; background:repeating-linear-gradient(to right,#e6ebe4 0,#e6ebe4 1px,transparent 1px,transparent 20%); }
-.maxent-article .emp-bar { position:absolute; left:0; top:22px; height:9px; background:#ae7149; }
-.maxent-article .emp-ci { position:absolute; top:23px; height:7px; border:1px solid #3d493f; border-top:0; border-bottom:0; }
-.maxent-article .emp-ci:after { content:''; position:absolute; left:0; right:0; top:3px; border-top:1px solid #3d493f; }
-.maxent-article .emp-value { position:absolute; top:0; font-size:12px; font-weight:600; color:#9a603e; transform:translateX(-50%); }
-.maxent-article .emp-ref { position:absolute; top:26px; width:10px; height:10px; background:white; border:2px solid #548979; border-radius:50%; transform:translate(-50%,-50%); }
-.maxent-article .emp-ref-value { position:absolute; top:0; font-size:12px; color:#467562; transform:translateX(-50%); }
-.maxent-article .emp-ticks { position:relative; height:23px; font-size:10px; color:#738175; }
-.maxent-article .emp-ticks span { position:absolute; top:5px; transform:translateX(-50%); }
-.maxent-article .emp-ticks span:first-child { transform:none; }
-.maxent-article .emp-ticks span:last-child { transform:translateX(-100%); }
-.maxent-article .empirical .emp-axis-label { text-align:center; font-size:12px; color:#6b7c72; margin:8px 0 0; }
-.maxent-article .emp-mobile-correct { display:none; }
 .maxent-article .feedback-steps { display:grid; grid-template-columns:1fr 1fr; gap:0; list-style:none; padding:0; margin:18px 0 0; }
 .maxent-article .feedback-steps li { display:flex; align-items:center; gap:14px; padding:20px 16px; border-bottom:1px solid #e2e8df; font-size:15px; line-height:1.5; }
 .maxent-article .step-index { color:#b27b56; font:26px/1 Georgia,serif; flex:none; }
@@ -221,17 +194,6 @@
 .maxent-article .sampling-stats p:last-child strong { color:#a96940; }
 @media(max-width:540px) {
   .maxent-article .research-figure { padding:21px 0; }
-  .maxent-article .prob-panels { grid-template-columns:1fr; gap:28px; }
-  .maxent-article .prob-panel + .prob-panel { border-top:1px solid #e2e8df; padding-top:24px; }
-  .maxent-article .prob-row { grid-template-columns:38px minmax(0,1fr) 50px; }
-  .maxent-article .emp-head { display:none; }
-  .maxent-article .emp-row { grid-template-columns:minmax(0,1fr) 95px; padding:11px 0 8px; row-gap:7px; }
-  .maxent-article .emp-model { grid-column:1; grid-row:1; font-size:13px; }
-  .maxent-article .emp-accuracy { grid-column:2; grid-row:1; font-size:12px; }
-  .maxent-article .emp-mobile-correct { display:inline; }
-  .maxent-article .emp-track { grid-column:1/-1; grid-row:2; margin-right:8px; }
-  .maxent-article .emp-axis { display:block; margin-right:8px; }
-  .maxent-article .emp-legend { margin-bottom:8px; }
   .maxent-article .feedback-steps { grid-template-columns:1fr; }
   .maxent-article .feedback-steps li { padding:17px 5px; }
   .maxent-article .sampling-stats { grid-template-columns:1fr; gap:18px; }
@@ -2860,58 +2822,9 @@
 .maxent-article .game-pantry:has(#mx-pantry-save-13:checked) .mode-13 .saved-notice{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-save-13:checked) .record-13{display:list-item}
 .maxent-article .game-pantry:has(#mx-pantry-save-0:checked):has(#mx-pantry-save-1:checked):has(#mx-pantry-save-2:checked):has(#mx-pantry-save-3:checked):has(#mx-pantry-save-4:checked):has(#mx-pantry-save-5:checked):has(#mx-pantry-save-6:checked):has(#mx-pantry-save-7:checked):has(#mx-pantry-save-8:checked):has(#mx-pantry-save-9:checked):has(#mx-pantry-save-10:checked):has(#mx-pantry-save-11:checked):has(#mx-pantry-save-12:checked):has(#mx-pantry-save-13:checked) .collection-complete{display:block}
-.maxent-article .prob-even-0 .prob-fill{width:15.0%}
-.maxent-article .prob-even-1 .prob-fill{width:15.0%}
-.maxent-article .prob-even-2 .prob-fill{width:15.0%}
-.maxent-article .prob-even-3 .prob-fill{width:15.0%}
-.maxent-article .prob-even-4 .prob-fill{width:15.0%}
-.maxent-article .prob-even-5 .prob-fill{width:15.0%}
-.maxent-article .prob-even-6 .prob-fill{width:10.0%}
-.maxent-article .prob-narrow-0 .prob-fill{width:87.3%}
-.maxent-article .prob-narrow-1 .prob-fill{width:0.54%}
-.maxent-article .prob-narrow-2 .prob-fill{width:0.54%}
-.maxent-article .prob-narrow-3 .prob-fill{width:0.54%}
-.maxent-article .prob-narrow-4 .prob-fill{width:0.54%}
-.maxent-article .prob-narrow-5 .prob-fill{width:0.54%}
-.maxent-article .prob-narrow-6 .prob-fill{width:10.0%}
-.maxent-article .emp-position-0{width:23.125%}
-.maxent-article .emp-position-1{left:21.71875%;width:2.96875%}
-.maxent-article .emp-position-2{left:23.125%}
-.maxent-article .emp-position-3{left:87.9268151760854%}
-.maxent-article .emp-position-4{left:87.9268151760854%}
-.maxent-article .emp-position-5{width:20.3125%}
-.maxent-article .emp-position-6{left:20.0%;width:0.78125%}
-.maxent-article .emp-position-7{left:20.3125%}
-.maxent-article .emp-position-8{left:87.9268151760854%}
-.maxent-article .emp-position-9{left:87.9268151760854%}
-.maxent-article .emp-position-10{width:24.53125%}
-.maxent-article .emp-position-11{left:22.8125%;width:3.4375%}
-.maxent-article .emp-position-12{left:24.53125%}
-.maxent-article .emp-position-13{left:87.83960216132488%}
-.maxent-article .emp-position-14{left:87.83960216132488%}
-.maxent-article .emp-position-15{width:23.4375%}
-.maxent-article .emp-position-16{left:22.03125%;width:2.96875%}
-.maxent-article .emp-position-17{left:23.4375%}
-.maxent-article .emp-position-18{left:87.9268151760854%}
-.maxent-article .emp-position-19{left:87.9268151760854%}
-.maxent-article .emp-position-20{width:23.75%}
-.maxent-article .emp-position-21{left:22.1875%;width:3.4375%}
-.maxent-article .emp-position-22{left:23.75%}
-.maxent-article .emp-position-23{left:87.9059583187856%}
-.maxent-article .emp-position-24{left:87.9059583187856%}
-.maxent-article .emp-position-25{width:21.5625%}
-.maxent-article .emp-position-26{left:20.625%;width:1.875%}
-.maxent-article .emp-position-27{left:21.5625%}
-.maxent-article .emp-position-28{left:87.86545644112007%}
-.maxent-article .emp-position-29{left:87.86545644112007%}
-.maxent-article .emp-position-30{width:30.46875%}
-.maxent-article .emp-position-31{left:28.125%;width:4.6875%}
-.maxent-article .emp-position-32{left:30.46875%}
-.maxent-article .emp-position-33{left:87.0846594766897%}
-.maxent-article .emp-position-34{left:87.0846594766897%}
-.maxent-article .emp-position-35{left:0%}
-.maxent-article .emp-position-36{left:20%}
-.maxent-article .emp-position-37{left:40%}
-.maxent-article .emp-position-38{left:60%}
-.maxent-article .emp-position-39{left:80%}
-.maxent-article .emp-position-40{left:100%}
+.maxent-article .puzzle-lab:has(#mx-game-graph:checked) .puzzle-panel-graph{display:block}
+.maxent-article .puzzle-lab:has(#mx-game-countdown:checked) .puzzle-panel-countdown{display:block}
+.maxent-article .puzzle-lab:has(#mx-game-python:checked) .puzzle-panel-python{display:block}
+.maxent-article .puzzle-lab:has(#mx-game-algebra:checked) .puzzle-panel-algebra{display:block}
+.maxent-article .puzzle-lab:has(#mx-game-pantry:checked) .puzzle-panel-pantry{display:block}
+

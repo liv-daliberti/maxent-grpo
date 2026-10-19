@@ -9,6 +9,9 @@ The body has no inline styles, scripts, event handlers, iframe or external widge
 Open index.html locally after extracting the whole ZIP for a working preview.
 
 WHAT READERS CAN DO
+Click the horizontal game tabs to switch puzzles. On narrow screens, scroll the
+tab row sideways. Keyboard users can use the native radio group's arrow keys.
+Switching tabs preserves each game's answers and collection.
 Color each node, build arithmetic expressions, choose factor rules, construct
 algebra routes, and choose pantry ingredients. Feedback changes as controls change.
 Check “Save this solution” after a valid answer to add it to the collection;
@@ -28,9 +31,10 @@ attributes. Configure a trusted authoring format with this specific allowlist.
   details[class name open] summary
   form[class aria-label autocomplete]
   label[class for] select[id name] option[value selected]
-  input[type id name] button[type]
+  input[type id name value checked] button[type]
   ol[class] li table[class] caption thead tbody tr th[scope] td
-Inputs are checkboxes only; buttons are reset buttons only. Forms have no action
+Inputs are checkboxes for game state and radios for the game tabs; buttons are
+reset buttons only. Forms have no action
 or submit control and send no data. Also allow the global class, hidden and aria-*
 attributes wherever present in the fragment. Preserve the mx-* IDs, names, option values,
 selected attributes, hidden attributes, CSS classes and maxent-article wrapper.
@@ -47,22 +51,24 @@ Do not strip or rewrite those selectors during CSS processing.
 
 BROWSER REQUIREMENTS
 The interactive version uses CSS :has(), :checked, :is(), CSS custom properties,
-and native select/checkbox/reset controls. Use a current Chrome, Edge, Firefox or
+and native select/checkbox/radio/reset controls. Use a current Chrome, Edge, Firefox or
 Safari. It does not depend on browser scripting being enabled. Tested locally in
 Chromium with page JavaScript disabled; not tested against your Drupal instance.
 
 EDITOR ACCEPTANCE CHECK
 Save and reopen the draft. Confirm that all controls, values, IDs and classes
 survived the editor. Color nodes Blue / Orange / Teal: it should say That works.
+Switch to another game and back; exactly one game must show, with progress kept.
 Save the solution: the count should become 1 / 6. Change to a different valid
 coloring, save it, then return to the first: the count should remain 2 / 6.
 Start over must return to 0 / 6. Also check every puzzle and a 320px-wide viewport.
 Changing a selected value must update its diagram or result without reloading.
 
 FIGURES AND UPLOADS
-Responsive HTML/CSS figures preserve the original data and uncertainty intervals.
+Figures 2 and 3 use their original PNG artwork, including uncertainty intervals.
 The sampling curve remains a PNG, with large HTML values above it. The playable
-article needs figures/05-sampling.png and paper.pdf at the prefix /sites/default/files/maxent-grpo/
+article needs figures/02-same-accuracy.png, figures/04-measured-concentration.png,
+figures/05-sampling.png and paper.pdf at the prefix /sites/default/files/maxent-grpo/
 Replace those URLs if Drupal assigns different upload paths. All thirteen PNGs
 are included for the reading fallback and full answer keys. This package runs
 independently of Render; uploading to Drupal is a separate step.
