@@ -2,6 +2,8 @@
 
 A blog post about mode collapse, with five HTML-only puzzles. Native details/summary elements provide choices, hints, feedback, and complete answer keys without JavaScript. The discovery graph is a static figure with an expandable table of exact values.
 
+Every puzzle has a diagram. Graph coloring opens with the triangle visible and includes illustrated choices and a six-coloring key. The article has updated typography, spacing, and answer panels; the approved article wording is unchanged.
+
 View the post at https://can-your-ai-find-another-way.onrender.com/ after deploying this commit. The article includes the requested closing sentence about high rewards masking repetitive solutions.
 
 ## Deploy on Render
@@ -17,5 +19,7 @@ Manual setup: select repository `liv-daliberti/maxent-grpo`, branch `mode-collap
 Run `python3 -m http.server 8000 --directory public`, then open http://localhost:8000.
 
 The article at `public/index.html` works with JavaScript disabled. Its CSS is optional presentation; the puzzle reveals also work without CSS. `public/paper.pdf` is the accompanying paper, and figures are in `public/figures/`.
+
+The optional Drupal theme stylesheet is `public/drupal-theme.css`, scoped to `.maxent-article`. The Drupal administrator can add it to the theme to match the preview; the diagrams and native HTML answer reveals do not require it.
 
 The older JavaScript companion pages remain at their existing URLs for prior links. The current article does not load or link to them. The old `tests/check_activity.py`, `tests/check_games.py`, and `tests/check_totals.py` describe those earlier controls; the deployment check in `scripts/check-site.mjs` verifies the new article contract and all local references.

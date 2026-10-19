@@ -1,0 +1,68 @@
+/* Optional Drupal theme styling. All puzzle interactions work without this CSS. */
+.maxent-article {
+  --ink: #24383d;
+  --muted: #667776;
+  --accent: #a24e29;
+  color: var(--ink);
+  font: 19px/1.78 Georgia, 'Times New Roman', serif;
+  max-width: 760px;
+  margin: 0 auto;
+}
+.maxent-article * { box-sizing: border-box; }
+.maxent-article p { margin: 0 0 25px; }
+.maxent-article > p:first-child { font-size: 23px; line-height: 1.5; color: #667776; margin-bottom: 32px; }
+.maxent-article a { color: var(--accent); text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.maxent-article blockquote { margin: 30px 0 34px; padding: 2px 0 2px 24px; border-left: 3px solid #b86d43; }
+.maxent-article blockquote p:first-child { font-size: 23px; line-height: 1.55; margin-bottom: 13px; }
+.maxent-article blockquote p:last-child { font: 13px/1.7 system-ui, sans-serif; margin-bottom: 0; color: var(--muted); }
+.maxent-article img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.maxent-article p:has(> img) { margin: 18px 0 23px; }
+.maxent-article > p:has(> img) { margin-top: 42px; }
+.maxent-article > p:has(> img) + p { font: 13px/1.65 system-ui, sans-serif; color: var(--muted); margin-bottom: 38px; }
+.maxent-article > p:has(> img) + p em { font-style: normal; }
+.maxent-article > details {
+  margin: 12px 0;
+  background: #fff;
+  border: 1px solid #dbe2df;
+  border-radius: 12px;
+  overflow: hidden;
+  font: 15px/1.7 system-ui, sans-serif;
+}
+.maxent-article > details[open] { border-color: #afc6bf; box-shadow: 0 6px 24px #233a3310; }
+.maxent-article summary { cursor: pointer; }
+.maxent-article > details > summary { padding: 18px 22px; font-size: 18px; font-weight: 650; color: #294941; background: #f5f7f4; }
+.maxent-article > details > summary::marker { color: #458879; font-size: 13px; }
+.maxent-article > details[open] > summary { border-bottom: 1px solid #e1e8e3; }
+.maxent-article > details > :not(summary) { margin-left: 24px; margin-right: 24px; }
+.maxent-article > details > p:first-of-type { margin-top: 24px; }
+.maxent-article > details > :last-child { margin-bottom: 24px; }
+.maxent-article details img { border-radius: 9px; }
+.maxent-article details details { border: 0; border-top: 1px solid #e3e9e5; margin-top: 0; }
+.maxent-article details details > summary { padding: 13px 2px; font-weight: 550; color: #315b50; }
+.maxent-article details details[open] > summary { color: #a24e29; }
+.maxent-article details details > p { margin-top: 8px; margin-bottom: 16px; }
+.maxent-article details details > details { margin-left: 12px; }
+.maxent-article details details summary::marker { color: #779e91; }
+.maxent-article summary:focus-visible { outline: 3px solid #bd7147; outline-offset: -4px; border-radius: 4px; }
+.maxent-article table { border-collapse: collapse; width: 100%; font: 14px/1.6 system-ui, sans-serif; margin: 12px 0 20px; }
+.maxent-article th, .maxent-article td { padding: 9px 7px; border-bottom: 1px solid #e3e9e5; text-align: left; }
+.maxent-article thead { background: #f0f5f1; }
+.maxent-article caption { text-align: left; font-weight: 650; padding-bottom: 9px; }
+.maxent-article code { font-size: .9em; overflow-wrap: anywhere; color: #315b50; background: #f3f6f2; }
+.maxent-article ol { padding-left: 23px; }
+.maxent-article li { padding: 3px 0; }
+@media (max-width: 540px) {
+  .maxent-article { font-size: 17px; line-height: 1.75; }
+  .maxent-article > p:first-child { font-size: 20px; }
+  .maxent-article blockquote { padding-left: 18px; }
+  .maxent-article blockquote p:first-child { font-size: 20px; }
+  .maxent-article > details > summary { padding: 15px 16px; font-size: 17px; }
+  .maxent-article > details > :not(summary) { margin-left: 15px; margin-right: 15px; }
+  .maxent-article > details > p:first-of-type { margin-top: 16px; }
+  .maxent-article th, .maxent-article td { padding: 7px 4px; font-size: 12px; }
+}
+@media print {
+  .maxent-article { max-width: none; font-size: 12pt; }
+  .maxent-article img { break-inside: avoid; }
+  .maxent-article > details[open] { box-shadow: none; }
+}

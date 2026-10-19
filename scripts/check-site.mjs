@@ -8,6 +8,12 @@ if (/<(?:script|iframe|form|input|button|select)\b|\son[a-z]+\s*=/i.test(article
 for (const game of ['1. Graph coloring', '2. Countdown', '3. Python factors', '4. Algebra steps', '5. Pantry planning']) {
   if (!article.includes(`<summary>${game}</summary>`)) throw new Error(`Missing HTML puzzle: ${game}`);
 }
+for (const graphic of ['game-graph-coloring', 'game-countdown', 'game-python', 'game-algebra', 'game-pantry', 'graph-six-colorings']) {
+  if (!article.includes(`figures/${graphic}.png`)) throw new Error(`Missing puzzle graphic: ${graphic}`);
+}
+if (!/<details open(?:="")?><summary>1\. Graph coloring<\/summary>/.test(article)) {
+  throw new Error('The graph-coloring diagram must be visible when the page opens.');
+}
 for (const name of ['index.html', 'games.html', 'puzzle.html', 'sampler.html']) {
   const page = readFileSync(resolve(root, name), 'utf8');
   if (/citp|chatgpt\.site/i.test(page)) throw new Error(`Old branding in ${name}`);
