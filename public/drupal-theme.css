@@ -147,16 +147,40 @@
 .maxent-article .equation-board { padding:30px 14px; border:1px solid #dce4d9; border-radius:10px; background:#f5f7f2; text-align:center; font:29px/1.4 Georgia,serif; }
 .maxent-article .play-game :is(.gap-error,.repeat-error) { display:none; font:14px/1.6 system-ui,sans-serif; color:#9b5c3e; }
 .maxent-article :is(.ingredient-count-message,.ingredient-no-plan) { display:none; }
+.maxent-article .pantry-targets { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; margin-bottom:25px; }
+.maxent-article .pantry-title { display:block; margin-bottom:9px; font:500 24px/1.25 Georgia,serif; color:#344f30; }
+.maxent-article .pantry-targets > span { padding:12px 10px; border-radius:8px; background:#f1f5ed; border:1px solid #dce5d4; }
+.maxent-article .pantry-targets small { display:block; color:#64765b; font-size:12px; margin-bottom:5px; }
+.maxent-article .pantry-targets strong { display:block; font-size:13px; font-weight:600; color:#344f30; }
+.maxent-article .pantry-section-heading { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.maxent-article .pantry-section-heading > span { flex:none; font-size:12px; color:#6c7f64; }
+.maxent-article .pantry-selected-count::before { content:counter(picked); }
 .maxent-article .ingredient-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-.maxent-article .ingredient-choice { display:flex; align-items:center; gap:10px; cursor:pointer; padding:14px 12px; border:1px solid #d7e0d5; background:#fafbf8; border-radius:9px; }
-.maxent-article .ingredient-choice:has(:checked) { background:#edf4e9; border-color:#8ca785; }
-.maxent-article .ingredient-choice strong { display:block; font-size:12px; font-weight:600; }
-.maxent-article .ingredient-choice small { display:block; color:#76816f; font-size:11px; margin-top:3px; }
+.maxent-article .ingredient-choice { display:block; cursor:pointer; padding:14px 12px 12px; border:1px solid #d7e0d5; border-top:4px solid var(--ingredient-color); background:#fafbf8; border-radius:9px; }
+.maxent-article .ingredient-choice:hover { background:#f1f5ec; }
+.maxent-article .ingredient-choice:has(:checked) { background:#eaf3e3; border-color:#5d8b50; box-shadow:inset 0 0 0 1px #5d8b50; }
+.maxent-article .ingredient-choice:has(:focus-visible) { outline:3px solid #b5673e; outline-offset:3px; }
+.maxent-article .ingredient-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:39px; }
+.maxent-article .ingredient-choice strong { display:block; font-size:14px; font-weight:650; color:#344d35; }
+.maxent-article .ingredient-choice small { display:block; color:#66785d; font-size:12px; }
+.maxent-article .ingredient-available { margin:3px 0 12px; }
+.maxent-article .ingredient-facts { display:grid; grid-template-columns:1fr 1fr; gap:4px 9px; font-size:12px; color:#4a6241; }
+.maxent-article .ingredient-choice .ingredient-serving { padding-top:10px; margin:0 0 7px; border-top:1px solid #dce5d4; font-size:11px; color:#6b7b63; }
+.maxent-article .game-pantry .pantry-section-heading { margin-bottom:12px; }
+.maxent-article .game-pantry .pantry-explainer { font-size:13px; color:#6b7b63; margin-bottom:15px; }
+.maxent-article .game-pantry .plan-label { margin:18px 0 9px; color:#526a45; font-size:13px; font-weight:600; }
 .maxent-article .recipe { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0; }
 .maxent-article .recipe > span { padding:6px 9px; border-radius:5px; background:#f3f5ef; font-size:12px; }
 .maxent-article .nutrition { font-size:12px; }
 .maxent-article .nutrition caption { padding-top:5px; font-size:12px; }
 .maxent-article .nutrition th,.maxent-article .nutrition td { padding:7px 4px; font-size:12px; }
+.maxent-article .game-pantry .recipe { margin:0 0 18px; }
+.maxent-article .game-pantry .recipe > span { padding:9px 11px; border:1px solid #dce5d4; font-size:13px; }
+.maxent-article .game-pantry .nutrition th,.maxent-article .game-pantry .nutrition td { padding:10px 6px; font-size:13px; }
+.maxent-article .game-pantry .nutrition th small { display:block; font-size:12px; font-weight:400; color:#6b7b63; margin-top:3px; }
+.maxent-article .nutrition .target-status { display:inline-block; padding:3px 7px; border-radius:4px; white-space:nowrap; font-size:12px; }
+.maxent-article .target-met .target-status { color:#3d6740; background:#edf4e8; }
+.maxent-article .target-missed .target-status { color:#994f2e; background:#faeee3; font-weight:600; }
 @media(max-width:540px) {
   .maxent-article .game-tab { flex:none; padding:10px 14px; }
   .maxent-article .puzzle-panel > .play-game { padding:16px; }
@@ -174,8 +198,14 @@
   .maxent-article .number-tile { height:54px; font-size:27px; }
   .maxent-article .factor-grid { grid-template-columns:1fr 1fr; }
   .maxent-article .ingredient-grid { grid-template-columns:1fr 1fr; gap:7px; }
-  .maxent-article .ingredient-choice { padding:12px 8px; gap:7px; }
-  .maxent-article .ingredient-choice strong { font-size:11px; }
+  .maxent-article .pantry-targets { grid-template-columns:1fr 1fr; }
+  .maxent-article .pantry-targets > span:last-child { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; }
+  .maxent-article .pantry-targets > span:last-child small { margin:0; }
+  .maxent-article .ingredient-choice { padding:10px 9px; }
+  .maxent-article .ingredient-choice strong { font-size:13px; }
+  .maxent-article .ingredient-facts { grid-template-columns:1fr; font-size:12px; }
+  .maxent-article .game-pantry .nutrition th,.maxent-article .game-pantry .nutrition td { padding:9px 3px; font-size:12px; }
+  .maxent-article .nutrition .target-status { padding:3px 4px; font-size:11px; }
   .maxent-article .game-footer { gap:10px; }
 }
 
@@ -2651,20 +2681,70 @@
 .maxent-article .game-algebra:has(#mx-algebra-save-8:checked) .mode-8 .saved-notice{display:block}
 .maxent-article .game-algebra:has(#mx-algebra-save-8:checked) .record-8{display:list-item}
 .maxent-article .game-algebra:has(#mx-algebra-save-0:checked):has(#mx-algebra-save-1:checked):has(#mx-algebra-save-2:checked):has(#mx-algebra-save-3:checked):has(#mx-algebra-save-4:checked):has(#mx-algebra-save-5:checked):has(#mx-algebra-save-6:checked):has(#mx-algebra-save-7:checked):has(#mx-algebra-save-8:checked) .collection-complete{display:block}
+.maxent-article .game-pantry{--picked-0:0;--picked-1:0;--picked-2:0;--picked-3:0;--picked-4:0;--picked-5:0}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked){--picked-0:1}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-1:checked){--picked-1:1}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-2:checked){--picked-2:1}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-3:checked){--picked-3:1}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-4:checked){--picked-4:1}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-5:checked){--picked-5:1}
+.maxent-article .game-pantry .pantry-selected-count{counter-reset:picked calc(var(--picked-0) + var(--picked-1) + var(--picked-2) + var(--picked-3) + var(--picked-4) + var(--picked-5))}
+.maxent-article .game-pantry .ingredient-0{--ingredient-color:#ad835b}
+.maxent-article .game-pantry .ingredient-1{--ingredient-color:#c1a144}
+.maxent-article .game-pantry .ingredient-2{--ingredient-color:#c27949}
+.maxent-article .game-pantry .ingredient-3{--ingredient-color:#b46c5c}
+.maxent-article .game-pantry .ingredient-4{--ingredient-color:#ce9149}
+.maxent-article .game-pantry .ingredient-5{--ingredient-color:#89956b}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .mode-0{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-5{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-6{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-7{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .mode-1{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-10{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .mode-2{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-12{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-13{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-14{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-15{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .mode-3{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-18{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .mode-4{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-20{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-21{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-22{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-23{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-24{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .mode-5{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-26{display:block}
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .mode-6{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-28{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-29{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):not(:has(#mx-pantry-ingredient-5:checked)) .pantry-attempt-30{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-33{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .mode-7{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-35{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-36{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-37{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-38{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-39{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .mode-8{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-41{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .mode-9{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-43{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-44{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-45{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):not(:has(#mx-pantry-ingredient-4:checked)):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-46{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .mode-10{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-49{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .mode-11{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-51{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-52{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-53{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):has(#mx-pantry-ingredient-2:checked):not(:has(#mx-pantry-ingredient-3:checked)):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-54{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .mode-12{display:block}
+.maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-57{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .mode-13{display:block}
+.maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):has(#mx-pantry-ingredient-2:checked):has(#mx-pantry-ingredient-3:checked):has(#mx-pantry-ingredient-4:checked):has(#mx-pantry-ingredient-5:checked) .pantry-attempt-60{display:block}
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .ingredient-count-message,
 .maxent-article .game-pantry:has(#mx-pantry-ingredient-0:checked):not(:has(#mx-pantry-ingredient-1:checked)):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .ingredient-count-message,
 .maxent-article .game-pantry:not(:has(#mx-pantry-ingredient-0:checked)):has(#mx-pantry-ingredient-1:checked):not(:has(#mx-pantry-ingredient-2:checked)):not(:has(#mx-pantry-ingredient-3:checked)):not(:has(#mx-pantry-ingredient-4:checked)):not(:has(#mx-pantry-ingredient-5:checked)) .ingredient-count-message,

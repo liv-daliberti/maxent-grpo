@@ -2,6 +2,8 @@
 
 The article now includes five playable HTML + CSS puzzles with no runtime JavaScript: graph coloring, arithmetic, factor rules, algebra routes and pantry planning. A horizontal row of native radio tabs switches between games and keeps their progress. Native controls update the diagrams and feedback; readers can save distinct valid solutions to a collection and reset each puzzle. Figures 2, 3 and 4 use the original artwork, including the feedback loop’s return arrow. The exact-average comparison dropdown has been removed; the sampling figure remains. The article closes with practical examples of why alternative solutions matter.
 
+The pantry game shows all targets and each ingredient’s nutrition per 50 g before any selection. Selected cards are highlighted and counted. Suggested amounts and a target-by-target result explain both working and unsuccessful combinations; only valid combinations can be saved.
+
 ## Preview and Drupal
 
 Run `python3 -m http.server 8000 --directory public`, then open http://localhost:8000. JavaScript can be disabled. `public/drupal-theme.css` is required for puzzle behavior, including validation and discovery counts. `public/reading.html` contains the illustrated reading alternative with answer keys. See `public/drupal-editor-requirements.txt` for the exact Drupal tag, attribute, editor and theme requirements. The target Drupal installation has not yet been tested.

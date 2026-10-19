@@ -18,8 +18,11 @@ Check “Save this solution” after a valid answer to add it to the collection;
 returning to the same solution cannot increase the count. Start over resets that
 puzzle. Collections are in-page checkbox state, not account or server storage.
 These are finite builders using the original rules; they do not execute arbitrary
-code or accept free-form expressions. Pantry suggests one feasible allocation for
-the ingredients chosen. Counts: 6 colorings, 8 computation trees, 32 output
+code or accept free-form expressions. Pantry shows all targets and each ingredient's
+nutrition per 50 g from the start. It suggests amounts for a chosen set of 2–4
+ingredients and marks each target Met, Too low or Too high. If a combination cannot
+work, an unsuccessful example shows the missing targets; only feasible plans can
+be saved. Counts: 6 colorings, 8 computation trees, 32 output
 patterns, 9 algebra routes, 14 ingredient combinations. No runtime JavaScript.
 
 REQUIRED EDITOR / FILTER SETTINGS
