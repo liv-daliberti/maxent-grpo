@@ -20,7 +20,7 @@ for (const tag of inputs) {
   }
 }
 if (article.includes('Compare the exact average discoveries')) throw new Error('Removed comparison dropdown returned');
-for (const name of ['02-same-accuracy', '04-measured-concentration']) {
+for (const name of ['02-same-accuracy', '04-measured-concentration', '03-feedback']) {
   if (!article.includes(`src="figures/${name}.png"`)) throw new Error(`Missing original figure: ${name}`);
 }
 for (const [, type] of article.matchAll(/<button[^>]*type="([^"]+)"/g)) {

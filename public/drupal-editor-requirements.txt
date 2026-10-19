@@ -65,10 +65,10 @@ Start over must return to 0 / 6. Also check every puzzle and a 320px-wide viewpo
 Changing a selected value must update its diagram or result without reloading.
 
 FIGURES AND UPLOADS
-Figures 2 and 3 use their original PNG artwork, including uncertainty intervals.
+Figures 2, 3 and 4 use their original PNG artwork.
 The sampling curve remains a PNG, with large HTML values above it. The playable
 article needs figures/02-same-accuracy.png, figures/04-measured-concentration.png,
-figures/05-sampling.png and paper.pdf at the prefix /sites/default/files/maxent-grpo/
+figures/03-feedback.png, figures/05-sampling.png and paper.pdf at the prefix /sites/default/files/maxent-grpo/
 Replace those URLs if Drupal assigns different upload paths. All thirteen PNGs
 are included for the reading fallback and full answer keys. This package runs
 independently of Render; uploading to Drupal is a separate step.
@@ -80,9 +80,9 @@ basic-html.html is a body fragment with all keys visible, no forms or details.
 Those are reading alternatives; they do not provide playable game controls.
 
 CONTENT
-The article's approved prose is retained, including the single closing sentence
-about high rewards masking repetitive solutions. Only game instructions and
-figure presentation changed in this revision. Scientific values are unchanged.
+The closing paragraph beginning “Getting an answer right matters” has been
+removed as requested. The remaining article prose and scientific values are
+unchanged. Figures 2, 3 and 4 use their original artwork.
 
 REBUILD (maintainers only; not needed in Drupal)
 python paper/citp_blog/build_drupal.py
