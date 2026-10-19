@@ -1,10 +1,8 @@
 # Can your AI find another way?
 
-An interactive blog post about mode collapse, with five playable games and an adjustable discovery graph.
+A blog post about mode collapse, with five HTML-only puzzles. Native details/summary elements provide choices, hints, feedback, and complete answer keys without JavaScript. The discovery graph is a static figure with an expandable table of exact values.
 
-![Blog opening](preview/opening.png)
-
-View the full page: [desktop preview](preview/desktop.png) · [phone preview](preview/mobile.png). These are screenshots; use the Render deployment below to play the games and adjust the graph.
+View the post at https://can-your-ai-find-another-way.onrender.com/ after deploying this commit. The article includes the requested closing sentence about high rewards masking repetitive solutions.
 
 ## Deploy on Render
 
@@ -18,4 +16,6 @@ Manual setup: select repository `liv-daliberti/maxent-grpo`, branch `mode-collap
 
 Run `python3 -m http.server 8000 --directory public`, then open http://localhost:8000.
 
-The browser games and graph run entirely in the browser. `public/paper.pdf` is the accompanying paper. PNG and SVG figures are in `public/figures/`.
+The article at `public/index.html` works with JavaScript disabled. Its CSS is optional presentation; the puzzle reveals also work without CSS. `public/paper.pdf` is the accompanying paper, and figures are in `public/figures/`.
+
+The older JavaScript companion pages remain at their existing URLs for prior links. The current article does not load or link to them. The old `tests/check_activity.py`, `tests/check_games.py`, and `tests/check_totals.py` describe those earlier controls; the deployment check in `scripts/check-site.mjs` verifies the new article contract and all local references.
