@@ -9,6 +9,9 @@ The body has no inline styles, scripts, event handlers, iframe or external widge
 Open index.html locally after extracting the whole ZIP for a working preview.
 
 WHAT READERS CAN DO
+Each game begins with its goal, three visible play instructions, a definition of
+what counts as a new solution, and an example. Essential rules are not hidden in
+a disclosure. The reset button's effect on saved solutions is stated beside it.
 Click the horizontal game tabs to switch puzzles. On narrow screens, scroll the
 tab row sideways. Keyboard users can use the native radio group's arrow keys.
 Switching tabs preserves each game's answers and collection.
