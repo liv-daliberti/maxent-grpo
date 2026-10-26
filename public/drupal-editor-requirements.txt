@@ -22,7 +22,7 @@ defaults; Drupal supplies the final typography and image layout. Images have a
 680-pixel display width in the HTML and retain their original full resolution.
 
 REVISION
-A three-sentence TL;DR now leads the post. Graph coloring is the only worked
+The author’s revised TL;DR now leads the post. Graph coloring is the only worked
 puzzle, with its solution immediately visible. The four other puzzle walkthroughs
 and their exhaustive solution lists have been removed. All open/close/reveal,
 choice-selection and game instructions have been removed. The study's reported

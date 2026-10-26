@@ -1,6 +1,6 @@
 # Can your AI find another way?
 
-The homepage is the fully static Drupal article: a three-sentence TL;DR, one
+The homepage is the fully static Drupal article: the author’s revised TL;DR, one
 worked graph-coloring puzzle with six solutions, and five PNG figures. It uses
 ordinary HTML and has no CSS, scripts, controls, or expandable answers. The full
 Python and pantry solution lists and other puzzle walkthroughs have been removed.
