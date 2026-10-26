@@ -1,19 +1,29 @@
 # Can your AI find another way?
 
-The article now includes five playable HTML + CSS puzzles with no runtime JavaScript: graph coloring, arithmetic, factor rules, algebra routes and pantry planning. A horizontal row of native radio tabs switches between games and keeps their progress. Native controls update the diagrams and feedback; readers can save distinct valid solutions to a collection and reset each puzzle. Figures 2, 3 and 4 use the original artwork, including the feedback loop’s return arrow. The exact-average comparison dropdown has been removed; the sampling figure remains. The article closes with practical examples of why alternative solutions matter.
-
-Each game starts with its goal, three visible play steps, an example, and a plain-language explanation of what counts as a new solution. Save and reset behavior is explained beside the controls; essential instructions are not hidden in a disclosure.
-
-The pantry game shows all targets and each ingredient’s nutrition per 50 g before any selection. Selected cards are highlighted and counted. Suggested amounts and a target-by-target result explain both working and unsuccessful combinations; only valid combinations can be saved.
+The homepage is the fully static Drupal article: a three-sentence TL;DR, one
+worked graph-coloring puzzle with six solutions, and five PNG figures. It uses
+ordinary HTML and has no CSS, scripts, controls, or expandable answers. The full
+Python and pantry solution lists and other puzzle walkthroughs have been removed.
+The study’s reported numbers and explanatory graphics are retained.
 
 ## Preview and Drupal
 
-Run `python3 -m http.server 8000 --directory public`, then open http://localhost:8000. JavaScript can be disabled. `public/drupal-theme.css` is required for puzzle behavior, including validation and discovery counts. `public/reading.html` contains the illustrated reading alternative with answer keys. See `public/drupal-editor-requirements.txt` for the exact Drupal tag, attribute, editor and theme requirements. The target Drupal installation has not yet been tested.
+Run `python3 -m http.server 8000 --directory public`, then open http://localhost:8000.
+The homepage and `reading.html` show the same unstyled article. Browser defaults
+supply typography; Drupal will supply its own typography and image layout.
+Paste `public/basic-html.html` into Drupal's source editor, upload the PNGs, and
+replace image and paper URLs with Drupal's upload URLs. See
+`public/drupal-editor-requirements.txt` for instructions. Complete and figures-only
+ZIPs are available at `/drupal_static_package.zip` and `/drupal_static_figures.zip`.
 
 ## Render
 
 Existing service: https://can-your-ai-find-another-way.onrender.com/
 
-Repository: `liv-daliberti/maxent-grpo`, branch: `mode-collapse-blog`. Build command: `node scripts/check-site.mjs`. Publish directory: `public`. Automatic deployment is disabled in the existing Blueprint; manually deploy the latest commit to update the running site.
+Repository: `liv-daliberti/maxent-grpo`, branch: `mode-collapse-blog`.
+Build command: `node scripts/check-site.mjs`. Publish directory: `public`.
+Automatic deployment is disabled in the existing Blueprint; manually deploy the
+latest commit to update the running site.
 
-The older JavaScript companion pages remain at their existing URLs for prior links. The article does not load or link to them. All article interactions use HTML controls and CSS selectors; no runtime dependencies or API keys are required.
+Older companion pages and their assets remain at their existing URLs for prior
+links. The static article does not load or link to them.
